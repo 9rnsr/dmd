@@ -1114,6 +1114,8 @@ L2:
                     goto Lnomatch;
                 if (MATCHconst < match)
                     match = MATCHconst;
+                else if (MATCHconstconvert < match)
+                    match = MATCHconstconvert;
             }
         }
     }
