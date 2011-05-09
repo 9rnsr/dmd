@@ -7394,6 +7394,7 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
     }
 
     s = sym->search(e->loc, ident, 0);
+    //printf("  TypeClass::dotExp ident = %s, s = %s\n", ident->toChars(), s ? s->toChars() : "(null)");
 L1:
     if (!s)
     {
@@ -7407,6 +7408,30 @@ L1:
                 return e;
             }
         }
+
+#if 1
+		//printf(">>>>\n");
+		ClassDeclaration *cbaseLast = NULL;
+		Expression *eroot = e;
+		do{
+			ClassDeclaration *cb;
+			for (cbase = sym->baseClass; cbase != cbaseLast; cbase = (cb = cbase)->baseClass)
+			{
+				e = new DotTypeExp(0, e, cbase);
+			}
+			cbaseLast = cb;
+			if (cbaseLast->aliasthis)
+			{
+				e = new DotIdExp(e->loc, e, cbaseLast->aliasthis->ident);
+				e = new DotIdExp(e->loc, e, ident);
+				e = e->trySemantic(sc);
+				if (e)
+					return e;
+			}
+			e = eroot;
+		}while (cbaseLast != sym->baseClass);
+		//printf("<<<<\n");
+#endif
 
         if (ident == Id::classinfo)
         {
