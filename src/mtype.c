@@ -5999,6 +5999,41 @@ bool TypeFunction::hasMutableIndirectionParams()
     return false;
 }
 
+MATCH TypeFunction::modMatch(Expressino *ethis, unsigned *wildmatch)
+{
+    assert(ethis);
+
+    if (isAmbiguous())
+        return MATCHnomatch;
+
+    Type *t = ethis->type;
+    if (t->toBasetype()->ty == Tpointer)
+        t = t->toBasetype()->nextOf();      // change struct* to struct
+    if (t->mod != mod)
+    {
+        if (MODimplicitConv(t->mod, mod))
+            match = MATCHconst;
+        else if ((mod & MODwild)
+            && MODimplicitConv(t->mod, (mod & ~MODwild) | MODconst))
+        {
+            match = MATCHconst;
+        }
+        else
+            return MATCHnomatch;
+    }
+    if (isWild() && wildmatch)
+    {
+        if (t->isWild())
+            *wildmatch |= MODwild;
+        else if (t->isConst())
+            *wildmatch |= MODconst;
+        else if (t->isImmutable())
+            *wildmatch |= MODimmutable;
+        else
+            *wildmatch |= MODmutable;
+    }
+    return MATCHexact;
+}
 
 /********************************
  * 'args' are being matched to function 'this'
@@ -6016,32 +6051,10 @@ MATCH TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
     unsigned wildmatch = 0;
 
     if (ethis)
-    {   Type *t = ethis->type;
-        if (t->toBasetype()->ty == Tpointer)
-            t = t->toBasetype()->nextOf();      // change struct* to struct
-        if (t->mod != mod)
-        {
-            if (MODimplicitConv(t->mod, mod))
-                match = MATCHconst;
-            else if ((mod & MODwild)
-                && MODimplicitConv(t->mod, (mod & ~MODwild) | MODconst))
-            {
-                match = MATCHconst;
-            }
-            else
-                return MATCHnomatch;
-        }
-        if (isWild())
-        {
-            if (t->isWild())
-                wildmatch |= MODwild;
-            else if (t->isConst())
-                wildmatch |= MODconst;
-            else if (t->isImmutable())
-                wildmatch |= MODimmutable;
-            else
-                wildmatch |= MODmutable;
-        }
+    {
+        match = modMatch(ethis->type, &wildmatch);
+        if (match == MATCHnomatch)
+            return match;
     }
 
     size_t nparams = Parameter::dim(parameters);
