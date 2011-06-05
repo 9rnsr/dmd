@@ -183,6 +183,7 @@ struct Type : Object
     static Type *tstring;               // immutable(char)[]
     static Type *tvalist;               // va_list alias
     #define terror      basic[Terror]   // for error recovery
+    static Type *tambig;
 
     #define tnull       basic[Tnull]    // for null type
 
@@ -263,6 +264,7 @@ struct Type : Object
     virtual int isscope();
     virtual int isString();
     virtual int isAssignable();
+    virtual int isAmbiguous();
     virtual int checkBoolean(); // if can be converted to boolean value
     virtual void checkDeprecated(Loc loc, Scope *sc);
     int isConst()       { return mod & MODconst; }
@@ -366,6 +368,7 @@ struct TypeNext : Type
     Type *next;
 
     TypeNext(TY ty, Type *next);
+    virtual int isAmbiguous();
     void toDecoBuffer(OutBuffer *buf, int flag);
     void checkDeprecated(Loc loc, Scope *sc);
     Type *reliesOnTident(TemplateParameters *tparams = NULL);
@@ -652,11 +655,14 @@ struct TypeFunction : TypeNext
 
     int inuse;
 
+    int isambiguous;
+
     TypeFunction(Parameters *parameters, Type *treturn, int varargs, enum LINK linkage, StorageClass stc = 0);
     const char *kind();
     TypeFunction *copy();
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
+    int isAmbiguous();
     void purityLevel();
     bool hasMutableIndirectionParams();
     void toDecoBuffer(OutBuffer *buf, int flag);
