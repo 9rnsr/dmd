@@ -778,7 +778,7 @@ void test43()
 
 class C44
 {
-    const char[][] arrArr=["foo"];
+    enum string[] arrArr=["foo"];
 }
 
 void test44()

@@ -953,7 +953,7 @@ void test35()
 
 struct Number36(int N)
 {
-    const int value = N;
+    enum int value = N;
 }
 
 struct Foo36(T)

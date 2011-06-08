@@ -523,7 +523,7 @@ void test22()
 
 template Foo23()
 {
-     const int x = 5;
+     enum int x = 5;
 }
 
 class C23

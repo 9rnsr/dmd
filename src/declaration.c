@@ -1143,6 +1143,11 @@ Lnomatch:
                 if (!tb->isTypeBasic())
                     storage_class |= STCstatic;
             }
+            else if (storage_class & (STCconst | STCimmutable) && init)
+            {
+                error("const/immutable fileld with initializer is temporary disallowed");
+                error("Now const/immutable field isn't manifest constant. Insted use 'enum'");
+            }
             else
 #endif
             {

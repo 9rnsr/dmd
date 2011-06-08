@@ -566,7 +566,7 @@ class C42
 {
     int a = ctfe() - 2;
     const int b;
-    const int c = ctfe();
+    enum int c = ctfe();
     static const int d;
     static const int e = ctfe() + 2;
 
@@ -584,7 +584,7 @@ class C42
 void test42()
 {
     printf("%d\n", C42.classinfo.init.length);
-    assert(C42.classinfo.init.length == 12 + (void*).sizeof + (void*).sizeof);
+    assert(C42.classinfo.init.length == 8 + (void*).sizeof + (void*).sizeof);
     C42 c = new C42;
     assert(c.a == 1);
     assert(c.b == 2);
@@ -595,8 +595,8 @@ void test42()
     const(int)*p;
     p = &c.b;
     assert(*p == 2);
-    p = &c.c;
-    assert(*p == 3);
+//    p = &c.c;
+//    assert(*p == 3);
     p = &c.d;
     assert(*p == 4);
     p = &c.e;

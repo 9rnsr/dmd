@@ -1359,7 +1359,7 @@ template CT56(T)
 {
   class C
   {
-    const char[][1] arrArr=["foo" ];
+    enum string[1] arrArr=["foo" ];
   }
 }
 
