@@ -149,6 +149,23 @@ void test7()
 }
 
 /**********************************/
+// 5896
+
+struct X
+{
+    T opCast(T)()      { return 10; }  // 1a
+    T opCast(T)()const { return 11; }  // 1b
+}
+void test8()
+{
+    auto xm = X();
+    auto xc = const(X)();
+    assert(cast(int)xm == 10);
+    assert(cast(int)xc == 11);
+}
+
+/**********************************/
+
 
 int main()
 {
@@ -159,6 +176,7 @@ int main()
     test5();
     test6();
     test7();
+    test8();
 
     printf("Success\n");
     return 0;
