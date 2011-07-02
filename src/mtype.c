@@ -8494,7 +8494,7 @@ MATCH TypeStruct::implicitConvTo(Type *to)
     else if (sym->aliasthis && !(att & RECtracing))
     {
         att = (AliasThisRec)(att | RECtracing);
-        m = aliasthisOf()->implicitConvTo(to);
+        m = fallbackMatch(aliasthisOf()->implicitConvTo(to));
         att = (AliasThisRec)(att & ~RECtracing);
     }
     else
@@ -9024,7 +9024,7 @@ MATCH TypeClass::implicitConvTo(Type *to)
     if (sym->aliasthis && !(att & RECtracing))
     {
         att = (AliasThisRec)(att | RECtracing);
-        m = aliasthisOf()->implicitConvTo(to);
+        m = fallbackMatch(aliasthisOf()->implicitConvTo(to));
         att = (AliasThisRec)(att & ~RECtracing);
     }
 

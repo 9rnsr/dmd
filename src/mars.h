@@ -394,11 +394,19 @@ enum DYNCAST
 
 enum MATCH
 {
-    MATCHnomatch,       // no match
-    MATCHconvert,       // match with conversions
-    MATCHconst,         // match with conversion to const
-    MATCHexact          // exact match
+    MATCHnomatch            = 0,    // no match
+    MATCHfallbackconvert    = 1,    // through alias this, match with conversions
+    MATCHfallbackconst      = 2,    // through alias this, match with conversion to const
+    MATCHfallbackexact      = 3,    // through alias this, exact match
+    MATCHconvert            = 1<<2, // match with conversions
+    MATCHconst              = 2<<2, // match with conversion to const
+    MATCHexact              = 3<<2  // exact match
 };
+
+inline MATCH fallbackMatch(MATCH m)
+{
+    return (MATCH)(m >> 2);
+}
 
 typedef uint64_t StorageClass;
 
