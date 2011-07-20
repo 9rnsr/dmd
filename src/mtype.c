@@ -7886,7 +7886,7 @@ L1:
     s = s->toAlias();
 
     v = s->isVarDeclaration();
-    if (v && !v->isDataseg())
+    if (v && !v->isDataseg() && (v->storage_class & STCmanifest))
     {
         Expression *ei = v->getConstInitializer();
         if (ei)
@@ -8487,9 +8487,9 @@ L1:
         s->checkDeprecated(e->loc, sc);
     s = s->toAlias();
     v = s->isVarDeclaration();
-    if (v && !v->isDataseg())
-    {   Expression *ei = v->getConstInitializer();
-
+    if (v && !v->isDataseg() && (v->storage_class & STCmanifest))
+    {
+        Expression *ei = v->getConstInitializer();
         if (ei)
         {   e = ei->copy();     // need to copy it if it's a StringExp
             e = e->semantic(sc);

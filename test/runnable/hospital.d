@@ -67,7 +67,7 @@ public:
     }
 
 private:
-    const int LEVELS = 5, DISTRICTS = 4;
+    enum int LEVELS = 5, DISTRICTS = 4;
     HealthcareRegion[] districts;
     Hospital localHospital;
 
@@ -215,9 +215,9 @@ private:
     }
 
     int seed = 42;
-    const int IM = 139968;
-    const int IA = 3877;
-    const int IC = 29573;
+    enum int IM = 139968;
+    enum int IA = 3877;
+    enum int IC = 29573;
     double genRandom(double max)
     {
         return(max * (seed = (seed * IA + IC) % IM) / IM);

@@ -347,24 +347,24 @@ void test14()
 
 struct Bug1914a
 {
-    const char[10] i = [1,0,0,0,0,0,0,0,0,0];
+    enum char[10] i = [1,0,0,0,0,0,0,0,0,0];
     char[10] x = i;
     int y=5;
 }
 
 struct Bug1914b
 {
-    const char[10] i = [0,0,0,0,0,0,0,0,0,0];
+    enum char[10] i = [0,0,0,0,0,0,0,0,0,0];
     char[10] x = i;
     int y=5;
 }
 
 struct Bug1914c
 {
-    const char[2] i = ['a', 'b'];
-    const char[2][3] j = [['x', 'y'], ['p', 'q'], ['r', 's']];
-    const char[2][3] k = ["cd", "ef", "gh"];
-    const char[2][3] l = [['x', 'y'], ['p'], ['h', 'k']];
+    enum char[2] i = ['a', 'b'];
+    enum char[2][3] j = [['x', 'y'], ['p', 'q'], ['r', 's']];
+    enum char[2][3] k = ["cd", "ef", "gh"];
+    enum char[2][3] l = [['x', 'y'], ['p'], ['h', 'k']];
     char[2][3] x = i;
     int y = 5;
     char[2][3] z = j;

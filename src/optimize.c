@@ -50,7 +50,7 @@ Expression *expandVar(int result, VarDeclaration *v)
     if (!v->originalType && v->scope)   // semantic() not yet run
         v->semantic (v->scope);
 
-    if (v->isConst() || v->isImmutable() || v->storage_class & STCmanifest)
+    if (!(v->storage_class & STCfield) && v->isConst() || v->isImmutable() || v->storage_class & STCmanifest)
     {
         if (!v->type)
         {
