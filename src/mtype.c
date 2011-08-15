@@ -113,6 +113,7 @@ Type *Type::tshiftcnt;
 Type *Type::tboolean;
 Type *Type::terror;
 Type *Type::tnull;
+Type *Type::tnone;
 
 Type *Type::tsize_t;
 Type *Type::tptrdiff_t;
@@ -229,7 +230,6 @@ void Type::init()
     mangleChar[Ttypedef] = 'T';
     mangleChar[Tdelegate] = 'D';
 
-    mangleChar[Tnone] = 'n';
     mangleChar[Tvoid] = 'v';
     mangleChar[Tint8] = 'g';
     mangleChar[Tuns8] = 'h';
@@ -265,8 +265,9 @@ void Type::init()
     mangleChar[Tvector] = '@';
     mangleChar[Tint128] = '@';
     mangleChar[Tuns128] = '@';
+    mangleChar[Tnone] = '@';
 
-    mangleChar[Tnull] = 'n';    // same as TypeNone
+    mangleChar[Tnull] = 'n';
 
     for (size_t i = 0; i < TMAX; i++)
     {   if (!mangleChar[i])
@@ -323,6 +324,11 @@ void Type::init()
     tboolean = tbool;
     terror = basic[Terror];
     tnull = basic[Tnull];
+
+    basic[Tnone] = new TypeNone();
+    tnone = basic[Tnone];
+    tnone->deco = tnone->merge()->deco;
+
     tnull = new TypeNull();
     tnull->deco = tnull->merge()->deco;
 
@@ -2405,6 +2411,23 @@ uinteger_t Type::sizemask()
                 assert(0);
     }
     return m;
+}
+
+/* ============================= TypeNone =========================== */
+
+TypeNone::TypeNone()
+        : Type(Tnone)
+{
+}
+
+Type *TypeNone::syntaxCopy()
+{
+    return this;
+}
+
+void TypeNone::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
+{
+    buf->writestring("_none_");
 }
 
 /* ============================= TypeError =========================== */

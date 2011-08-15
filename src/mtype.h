@@ -183,6 +183,7 @@ public:
     static Type *tvalist;               // va_list alias
     static Type *terror;                // for error recovery
     static Type *tnull;                 // for null type
+    static Type *tnone;                 // for type inference
 
     static Type *tsize_t;               // matches size_t alias
     static Type *tptrdiff_t;            // matches ptrdiff_t alias
@@ -347,6 +348,15 @@ public:
 
     // For eliminating dynamic_cast
     virtual TypeBasic *isTypeBasic();
+};
+
+class TypeNone : public Type
+{
+public:
+    TypeNone();
+
+    Type *syntaxCopy();
+    void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
 };
 
 class TypeError : public Type
