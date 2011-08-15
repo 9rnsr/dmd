@@ -126,7 +126,7 @@ public:
     int isDeclaration(Token *t, int needId, TOK endtok, Token **pt);
     int isBasicType(Token **pt);
     int isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok);
-    int isParameters(Token **pt);
+    int isParameters(Token **pt, int needId = 1);
     int isExpression(Token **pt);
     int skipParens(Token *t, Token **pt);
     int skipAttributes(Token *t, Token **pt);

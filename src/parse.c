@@ -5288,8 +5288,15 @@ int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
 }
 
 
-int Parser::isParameters(Token **pt)
-{   // This code parallels parseParameters()
+/************************************
+ * Input:
+ *      needId  0       no identifier
+ *              1       identifier optional
+ *              2       must have identifier
+ */
+int Parser::isParameters(Token **pt, int needId)
+{
+    // This code parallels parseParameters()
     Token *t = *pt;
 
     //printf("isParameters()\n");
@@ -5356,10 +5363,19 @@ int Parser::isParameters(Token **pt)
             {   if (!isBasicType(&t))
                     return FALSE;
             L2:
-                int tmp = FALSE;
+                int haveId = 0;
                 if (t->value != TOKdotdotdot &&
-                    !isDeclarator(&t, &tmp, NULL, TOKreserved))
+                    !isDeclarator(&t, &haveId, NULL, TOKreserved))
                     return FALSE;
+
+                if ( needId == 1 ||
+                    (needId == 0 && !haveId) ||
+                    (needId == 2 &&  haveId))
+                {
+                }
+                else
+                    return FALSE;
+
                 if (t->value == TOKassign)
                 {   t = peek(t);
                     if (!isExpression(&t))
