@@ -63,6 +63,7 @@ Parser::Parser(Module *module, utf8_t *base, size_t length, int doDocComment)
     linkage = LINKd;
     endloc = Loc();
     inBrackets = 0;
+    inStatements = 0;
     lookingForElse = Loc();
     //nextToken();              // start up the scanner
 }
@@ -157,6 +158,8 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
     Dsymbol *lastDecl = NULL;   // used to link unittest to its previous declaration
     if (!pLastDecl)
         pLastDecl = &lastDecl;
+
+    inStatements = 0;
 
     //printf("Parser::parseDeclDefs()\n");
     decldefs = new Dsymbols();
@@ -3830,6 +3833,8 @@ Statement *Parser::parseStatement(int flags, utf8_t** endPtr)
     bool isfinal;
     Loc loc = this->loc;
 
+    inStatements = 1;
+
     //printf("parseStatement()\n");
 
     if (flags & PScurly && token.value != TOKlcurly)
@@ -4891,6 +4896,8 @@ Statement *Parser::parseStatement(int flags, utf8_t** endPtr)
             s = NULL;
             break;
     }
+
+    inStatements = 0;
 
     return s;
 }
