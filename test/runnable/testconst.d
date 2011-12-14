@@ -2286,6 +2286,71 @@ void test6870()
 }
 
 /************************************/
+// 6872 => inout deducing with shared inout type
+
+      int  fn6872a     (             int  []  v){ return 1; }
+      int  fn6872a     (shared(      int )[]  v){ return 2; }
+      int  fn6872a     (shared(      int  []) v){ return 3; }
+
+inout(int) fw6872a     (       inout(int) []  v){ return 1; }
+inout(int) fw6872a     (shared(inout(int))[]  v){ return 2; }
+inout(int) fw6872a     (shared(inout(int) []) v){ return 3; }
+
+inout(int) ft6872a(Typ)(       inout(Typ) []  v){ return 1; }
+inout(int) ft6872a(Typ)(shared(inout(Typ))[]  v){ return 2; }
+inout(int) ft6872a(Typ)(shared(inout(Typ) []) v){ return 3; }
+
+void test6872a()
+{
+           int []  lla;
+    shared(int)[]  lga;
+    shared(int []) gga;
+
+    assert(fn6872a(lla) == 1);
+    assert(fn6872a(lga) == 2);
+    assert(fn6872a(gga) == 3);
+
+    assert(fw6872a(lla) == 1);
+    assert(fw6872a(lga) == 2);
+    assert(fw6872a(gga) == 3);
+
+    assert(ft6872a(lla) == 1);
+    assert(ft6872a(lga) == 2);
+    assert(ft6872a(gga) == 3);
+}
+
+      int  fn6872b            (             int  [float]  v){ return 1; }
+      int  fn6872b            (shared(      int )[float]  v){ return 2; }
+      int  fn6872b            (shared(      int  [float]) v){ return 3; }
+
+inout(int) fw6872b            (       inout(int) [float]  v){ return 1; }
+inout(int) fw6872b            (shared(inout(int))[float]  v){ return 2; }
+inout(int) fw6872b            (shared(inout(int) [float]) v){ return 3; }
+
+inout(int) ft6872b(Key, Value)(       inout(Key) [Value]  v){ return 1; }
+inout(int) ft6872b(Key, Value)(shared(inout(Key))[Value]  v){ return 2; }
+inout(int) ft6872b(Key, Value)(shared(inout(Key) [Value]) v){ return 3; }
+
+void test6872b()
+{
+           int [float]  llaa;
+    shared(int)[float]  lgaa;
+    shared(int [float]) ggaa;
+
+    assert(fn6872b(llaa) == 1);
+    assert(fn6872b(lgaa) == 2);
+    assert(fn6872b(ggaa) == 3);
+
+    assert(fw6872b(llaa) == 1);
+    assert(fw6872b(lgaa) == 2);
+    assert(fw6872b(ggaa) == 3);
+
+    assert(ft6872b(llaa) == 1);
+    assert(ft6872b(lgaa) == 2);
+    assert(ft6872b(ggaa) == 3);
+}
+
+/************************************/
 // 6338, 6922
 
 void test6922()
@@ -2822,6 +2887,8 @@ int main()
     test6865();
     test6866();
     test6870();
+    test6872a();
+    test6872b();
     test6922();
     test6912();
     test6939();
