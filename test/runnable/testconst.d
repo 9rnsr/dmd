@@ -2288,30 +2288,33 @@ void test6870()
 /************************************/
 // 6338, 6922
 
-alias int T;
+void test6922()
+{
+    alias int T;
 
-static assert(is( immutable(       T )  == immutable(T) ));
-static assert(is( immutable( const(T))  == immutable(T) )); // 6922
-static assert(is( immutable(shared(T))  == immutable(T) ));
-static assert(is( immutable( inout(T))  == immutable(T) ));
-static assert(is(        immutable(T)   == immutable(T) ));
-static assert(is(  const(immutable(T))  == immutable(T) )); // 6922
-static assert(is( shared(immutable(T))  == immutable(T) )); // 6338
-static assert(is(  inout(immutable(T))  == immutable(T) ));
+    static assert(is( immutable(       T )  == immutable(T) ));
+    static assert(is( immutable( const(T))  == immutable(T) )); // 6922
+    static assert(is( immutable(shared(T))  == immutable(T) ));
+    static assert(is( immutable( inout(T))  == immutable(T) ));
+    static assert(is(        immutable(T)   == immutable(T) ));
+    static assert(is(  const(immutable(T))  == immutable(T) )); // 6922
+    static assert(is( shared(immutable(T))  == immutable(T) )); // 6338
+    static assert(is(  inout(immutable(T))  == immutable(T) ));
 
-static assert(is( immutable(shared(const(T))) == immutable(T) ));
-static assert(is( immutable(const(shared(T))) == immutable(T) ));
-static assert(is( shared(immutable(const(T))) == immutable(T) ));
-static assert(is( shared(const(immutable(T))) == immutable(T) ));
-static assert(is( const(shared(immutable(T))) == immutable(T) ));
-static assert(is( const(immutable(shared(T))) == immutable(T) ));
+    static assert(is( immutable(shared(const(T))) == immutable(T) ));
+    static assert(is( immutable(const(shared(T))) == immutable(T) ));
+    static assert(is( shared(immutable(const(T))) == immutable(T) ));
+    static assert(is( shared(const(immutable(T))) == immutable(T) ));
+    static assert(is( const(shared(immutable(T))) == immutable(T) ));
+    static assert(is( const(immutable(shared(T))) == immutable(T) ));
 
-static assert(is( immutable(shared(inout(T))) == immutable(T) ));
-static assert(is( immutable(inout(shared(T))) == immutable(T) ));
-static assert(is( shared(immutable(inout(T))) == immutable(T) ));
-static assert(is( shared(inout(immutable(T))) == immutable(T) ));
-static assert(is( inout(shared(immutable(T))) == immutable(T) ));
-static assert(is( inout(immutable(shared(T))) == immutable(T) ));
+    static assert(is( immutable(shared(inout(T))) == immutable(T) ));
+    static assert(is( immutable(inout(shared(T))) == immutable(T) ));
+    static assert(is( shared(immutable(inout(T))) == immutable(T) ));
+    static assert(is( shared(inout(immutable(T))) == immutable(T) ));
+    static assert(is( inout(shared(immutable(T))) == immutable(T) ));
+    static assert(is( inout(immutable(shared(T))) == immutable(T) ));
+}
 
 /************************************/
 // 6912
@@ -2819,6 +2822,7 @@ int main()
     test6865();
     test6866();
     test6870();
+    test6922();
     test6912();
     test6939();
     test6940();
