@@ -5634,9 +5634,12 @@ void TemplateInstance::printInstantiationTrace()
     const unsigned max_shown = 6;
     const char format[] = "instantiated from here: %s";
 
+    static unsigned most_depth = 0;
+
     // determine instantiation depth and number of recursive instantiations
     int n_instantiations = 1;
     int n_totalrecursions = 0;
+    int loclength = 0;
     for (TemplateInstance *cur = this; cur; cur = cur->tinst)
     {
         ++n_instantiations;
@@ -5648,6 +5651,23 @@ void TemplateInstance::printInstantiationTrace()
         if (cur->tinst && cur->tempdecl && cur->tinst->tempdecl
             && cur->tempdecl->loc.equals(cur->tinst->tempdecl->loc))
             ++n_totalrecursions;
+        int loclen = strlen(cur->loc.toChars());
+        //printf("loclen = %d\n", loclen);
+        if (loclen > loclength)
+            loclength = loclen;
+    }
+
+    //printf("loclength = %d, n_instantiations = %d, most_depth = %d\n", loclength, n_instantiations, most_depth);
+    if (most_depth == 0)
+    {
+        most_depth = n_instantiations;
+    }
+    else if (most_depth == n_instantiations)
+        ;
+    else
+    {
+        --most_depth;
+        return;
     }
 
     // show full trace only if it's short or verbose is on
@@ -5655,7 +5675,7 @@ void TemplateInstance::printInstantiationTrace()
     {
         for (TemplateInstance *cur = this; cur; cur = cur->tinst)
         {
-            errorSupplemental(cur->loc, format, cur->toChars());
+            errorSupplemental(cur->loc, loclength, format, cur->toChars());
         }
     }
     else if (n_instantiations - n_totalrecursions <= max_shown)
@@ -5675,7 +5695,7 @@ void TemplateInstance::printInstantiationTrace()
                 if (recursionDepth)
                     errorSupplemental(cur->loc, "%d recursive instantiations from here: %s", recursionDepth+2, cur->toChars());
                 else
-                    errorSupplemental(cur->loc, format, cur->toChars());
+                    errorSupplemental(cur->loc, loclength, format, cur->toChars());
                 recursionDepth = 0;
             }
         }
@@ -5692,7 +5712,7 @@ void TemplateInstance::printInstantiationTrace()
 
             if (i < max_shown / 2 ||
                 i >= n_instantiations - max_shown + max_shown / 2)
-                errorSupplemental(cur->loc, format, cur->toChars());
+                errorSupplemental(cur->loc, loclength, format, cur->toChars());
             ++i;
         }
     }

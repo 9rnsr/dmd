@@ -187,7 +187,15 @@ void errorSupplemental(Loc loc, const char *format, ...)
 {
     va_list ap;
     va_start(ap, format);
-    verrorSupplemental(loc, format, ap);
+    verrorSupplemental(loc, 0, format, ap);
+    va_end( ap );
+}
+
+void errorSupplemental(Loc loc, int indent, const char *format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    verrorSupplemental(loc, indent, format, ap);
     va_end( ap );
 }
 
@@ -222,11 +230,16 @@ void verror(Loc loc, const char *format, va_list ap)
 }
 
 // Doesn't increase error count, doesn't print "Error:".
-void verrorSupplemental(Loc loc, const char *format, va_list ap)
+void verrorSupplemental(Loc loc, int indent, const char *format, va_list ap)
 {
     if (!global.gag)
     {
-        fprintf(stdmsg, "%s:        ", loc.toChars());
+        char *p = loc.toChars();
+        int len = strlen(p);
+        if (indent == 0)
+            fprintf(stdmsg, "%s:        ", p);
+        else
+            fprintf(stdmsg, "%s:%*c", p, (indent>=len ? indent - len : 0)+1, ' ');
 #if _MSC_VER
         // MS doesn't recognize %zu format
         OutBuffer tmp;
