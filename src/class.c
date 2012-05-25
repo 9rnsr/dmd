@@ -788,6 +788,7 @@ void ClassDeclaration::semantic(Scope *sc)
             defaultCtor = ctor;
         }
     }
+#if 0
     if (!dtor && global.params.useInvariants)
     {   // If base classes or this class have invariants,
         // dtor should be generate to call them.
@@ -814,6 +815,7 @@ void ClassDeclaration::semantic(Scope *sc)
             this->dtor = dtor;
         }
     }
+#endif
 
     sc->pop();
 
