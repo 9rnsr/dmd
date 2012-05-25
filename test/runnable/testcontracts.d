@@ -304,6 +304,41 @@ void test9()
 }
 
 /*******************************************/
+// 519
+
+void test519()
+{
+    int count = 0;
+    class Foo
+    {
+        invariant() { ++count; }
+    }
+    class Bar : Foo
+    {
+        this(){}
+        ~this(){}
+    }
+    class Baz : Foo
+    {
+    }
+
+    Foo foo = new Foo();
+    assert(count == 1);
+    delete foo;
+    assert(count == 2);
+
+    Foo bar = new Bar();
+    assert(count == 4);
+    delete bar;
+    assert(count == 6);
+
+    Foo baz = new Baz();
+    assert(count == 8);
+    delete baz;
+    assert(count == 10);
+}
+
+/*******************************************/
 // 4785
 
 int cnt;
@@ -484,6 +519,7 @@ int main()
     test7();
     test8();
     test9();
+    test519();
     test4785();
     test7218();
     test8073();

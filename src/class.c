@@ -770,6 +770,51 @@ void ClassDeclaration::semantic(Scope *sc)
         if (!(f->storage_class & STCdisable))
             error("identity assignment operator overload is illegal");
     }
+
+    // Fixing bugzilla 519
+    if (!ctor && global.params.useInvariants)
+    {
+        // If baseClass has ctors, this->ctor is already generated.
+        // Then, just looking this->inv is necessary.
+        if (inv)
+        {
+            Type *tf = new TypeFunction(NULL, NULL, 0, LINKd, 0);
+            CtorDeclaration *ctor = new CtorDeclaration(loc, 0, 0, tf);
+            ctor->fbody = new CompoundStatement(0, new Statements());
+            members->push(ctor);
+            ctor->addMember(sc, this, 1);
+            ctor->semantic(sc);
+            this->ctor = ctor;
+            defaultCtor = ctor;
+        }
+    }
+    if (!dtor && global.params.useInvariants)
+    {   // If base classes or this class have invariants,
+        // dtor should be generate to call them.
+        InvariantDeclaration *inv = this->inv;
+        if (!inv)
+        {
+            ClassDeclaration *cb = baseClass;
+            while (cb)
+            {
+                if (cb->inv)
+                {   inv = cb->inv;
+                    break;
+                }
+                cb = cb->baseClass;
+            }
+        }
+        if (inv)
+        {
+            DtorDeclaration *dtor = new DtorDeclaration(loc, 0, Lexer::idPool("__aggrDtor"));
+            dtor->fbody = new CompoundStatement(0, new Statements());
+            dtors.shift(dtor);
+            members->push(dtor);
+            dtor->semantic(sc);
+            this->dtor = dtor;
+        }
+    }
+
     sc->pop();
 
 #if 0 // Do not call until toObjfile() because of forward references
