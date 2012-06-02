@@ -6517,10 +6517,10 @@ Expression *IsExp::semantic(Scope *sc)
      */
 
     //printf("IsExp::semantic(%s)\n", toChars());
-    if (id && !(sc->flags & (SCOPEstaticif | SCOPEstaticassert)))
-    {   error("can only declare type aliases within static if conditionals or static asserts");
-        return new ErrorExp();
-    }
+    //if (id && !(sc->flags & (SCOPEstaticif | SCOPEstaticassert)))
+    //{   error("can only declare type aliases within static if conditionals or static asserts");
+    //    return new ErrorExp();
+    //}
 
     Type *t = targ->trySemantic(loc, sc);
     if (!t)
@@ -6740,7 +6740,7 @@ Expression *IsExp::semantic(Scope *sc)
         {
             goto Lno;
         }
-        else
+        else// if (sc->flags & SCOPEstaticif)
         {
             tded = (Type *)dedtypes[0];
             if (!tded)
@@ -6777,7 +6777,7 @@ Expression *IsExp::semantic(Scope *sc)
     }
 
 Lyes:
-    if (id)
+    if (id/* && (sc->flags & SCOPEstaticif)*/)
     {
         Dsymbol *s;
         Tuple *tup = isTuple(tded);

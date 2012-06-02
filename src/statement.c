@@ -2775,9 +2775,11 @@ Statement *ConditionalStatement::syntaxCopy()
     return s;
 }
 
+#include "root/aav.h"
+
 Statement *ConditionalStatement::semantic(Scope *sc)
 {
-    //printf("ConditionalStatement::semantic()\n");
+    printf("ConditionalStatement::semantic()\n");
 
     // If we can short-circuit evaluate the if statement, don't do the
     // semantic analysis of the skipped code.
@@ -2785,12 +2787,28 @@ Statement *ConditionalStatement::semantic(Scope *sc)
     if (condition->include(sc, NULL))
     {
         DebugCondition *dc = condition->isDebugCondition();
+        StaticIfCondition *ic = condition->isStaticIfCondition();
         if (dc)
         {
             sc = sc->push();
             sc->flags |= SCOPEdebug;
             ifbody = ifbody->semantic(sc);
             sc->pop();
+        }
+        else if (ic)
+        {
+	        if (ic->sym->symtab && ic->sym->symtab->tab)
+	        {
+				printf("static if[stmt], symtab contains %d symbols\n", _aaLen(ic->sym->symtab->tab));
+			}
+	        else
+	        	printf("static if[stmt], symtab is empty\n");
+
+
+	        ic->sym->parent = sc->scopesym;
+	        sc = sc->push(ic->sym);
+            ifbody = ifbody->semantic(sc);
+            sc = sc->pop();
         }
         else
             ifbody = ifbody->semantic(sc);
@@ -2808,12 +2826,31 @@ Statements *ConditionalStatement::flatten(Scope *sc)
 {
     Statement *s;
 
-    //printf("ConditionalStatement::flatten()\n");
+    printf("ConditionalStatement::flatten()\n");
     if (condition->include(sc, NULL))
     {
         DebugCondition *dc = condition->isDebugCondition();
+        StaticIfCondition *ic = condition->isStaticIfCondition();
         if (dc)
             s = new DebugStatement(loc, ifbody);
+        else if (ic)
+        {
+#if 0
+	        if (ic->sym->symtab && ic->sym->symtab->tab)
+	        {
+				printf("static if[stmt], symtab contains %d symbols\n", _aaLen(ic->sym->symtab->tab));
+			}
+	        else
+	        	printf("static if[stmt], symtab is empty\n");
+
+
+	        ic->sym->parent = sc->scopesym;
+	        sc = sc->push(ic->sym);
+            ifbody = ifbody->semantic(sc);
+            sc = sc->pop();
+#endif
+			return NULL;	//
+        }
         else
             s = ifbody;
     }

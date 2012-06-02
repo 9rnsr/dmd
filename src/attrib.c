@@ -1517,13 +1517,30 @@ void StaticIfDeclaration::setScope(Scope *sc)
     Dsymbol::setScope(sc);
 }
 
+#include "root/aav.h"
+
 void StaticIfDeclaration::semantic(Scope *sc)
 {
     Dsymbols *d = include(sc, sd);
 
-    //printf("\tStaticIfDeclaration::semantic '%s', d = %p\n",toChars(), d);
+    printf("\tStaticIfDeclaration::semantic '%s', d = %p\n",toChars(), d);
     if (d)
     {
+printf("static if, d: %p, decl: %p\n", d, decl);
+		if (d == decl)
+		{
+			StaticIfCondition *c = condition->isStaticIfCondition();
+			assert(c);
+	        c->sym->parent = sc->scopesym;
+	        sc = sc->push(c->sym);
+	        if (c->sym->symtab && c->sym->symtab->tab)
+	        {
+				printf("static if, symtab contains %d symbols\n", _aaLen(c->sym->symtab->tab));
+			}
+	        else
+	        	printf("static if, symtab is empty\n");
+		}
+
         if (!addisdone)
         {   AttribDeclaration::addMember(sc, sd, 1);
             addisdone = 1;
@@ -1535,6 +1552,63 @@ void StaticIfDeclaration::semantic(Scope *sc)
 
             s->semantic(sc);
         }
+
+		if (d == decl)
+		{
+	        sc = sc->pop();
+		}
+    }
+}
+
+void StaticIfDeclaration::semantic2(Scope *sc)
+{
+    Dsymbols *d = include(sc, NULL);
+
+    if (d)
+    {
+		if (d == decl)
+		{
+			StaticIfCondition *c = condition->isStaticIfCondition();
+			assert(c);
+	        c->sym->parent = sc->scopesym;
+	        sc = sc->push(c->sym);
+		}
+
+        for (size_t i = 0; i < d->dim; i++)
+        {   Dsymbol *s = (*d)[i];
+            s->semantic2(sc);
+        }
+
+		if (d == decl)
+		{
+	        sc = sc->pop();
+		}
+    }
+}
+
+void StaticIfDeclaration::semantic3(Scope *sc)
+{
+    Dsymbols *d = include(sc, NULL);
+
+    if (d)
+    {
+		if (d == decl)
+		{
+			StaticIfCondition *c = condition->isStaticIfCondition();
+			assert(c);
+	        c->sym->parent = sc->scopesym;
+	        sc = sc->push(c->sym);
+		}
+
+        for (size_t i = 0; i < d->dim; i++)
+        {   Dsymbol *s = (*d)[i];
+            s->semantic3(sc);
+        }
+
+		if (d == decl)
+		{
+	        sc = sc->pop();
+		}
     }
 }
 

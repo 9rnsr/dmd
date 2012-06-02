@@ -313,11 +313,14 @@ StaticIfCondition::StaticIfCondition(Loc loc, Expression *exp)
 {
     this->exp = exp;
     this->nest = 0;
+    this->sym = NULL;
 }
 
 Condition *StaticIfCondition::syntaxCopy()
 {
-    return new StaticIfCondition(loc, exp->syntaxCopy());
+    StaticIfCondition *condition = new StaticIfCondition(loc, exp->syntaxCopy());
+    condition->sym = (ScopeDsymbol *)sym->syntaxCopy(NULL);
+    return condition;
 }
 
 int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
@@ -346,7 +349,13 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
         }
 
         ++nest;
-        sc = sc->push(sc->scopesym);
+        //sc = sc->push(sc->scopesym);
+        if (!this->sym)
+        {
+	        this->sym = new ScopeDsymbol();
+	    }
+        this->sym->parent = sc->scopesym;
+        sc = sc->push(this->sym);
         sc->sd = s;                     // s gets any addMember()
         sc->flags |= SCOPEstaticif;
 

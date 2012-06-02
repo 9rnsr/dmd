@@ -18,6 +18,7 @@ class Module;
 struct Scope;
 class ScopeDsymbol;
 class DebugCondition;
+class StaticIfCondition;
 #include "lexer.h" // dmdhg
 enum TOK;
 struct HdrGenState;
@@ -38,6 +39,7 @@ public:
     virtual int include(Scope *sc, ScopeDsymbol *s) = 0;
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
     virtual DebugCondition *isDebugCondition() { return NULL; }
+    virtual StaticIfCondition *isStaticIfCondition() { return NULL; }
 };
 
 class DVCondition : public Condition
@@ -89,11 +91,13 @@ class StaticIfCondition : public Condition
 public:
     Expression *exp;
     int nest;         // limit circular dependencies
+    ScopeDsymbol *sym;
 
     StaticIfCondition(Loc loc, Expression *exp);
     Condition *syntaxCopy();
     int include(Scope *sc, ScopeDsymbol *s);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    StaticIfCondition *isStaticIfCondition() { return this; }
 };
 
 #endif
