@@ -6740,7 +6740,7 @@ Expression *IsExp::semantic(Scope *sc)
         {
             goto Lno;
         }
-        else// if (sc->flags & SCOPEstaticif)
+        else if (sc->flags & SCOPEstaticif)
         {
             tded = (Type *)dedtypes[0];
             if (!tded)
@@ -6777,7 +6777,7 @@ Expression *IsExp::semantic(Scope *sc)
     }
 
 Lyes:
-    if (id/* && (sc->flags & SCOPEstaticif)*/)
+    if (id && (sc->flags & SCOPEstaticif))
     {
         Dsymbol *s;
         Tuple *tup = isTuple(tded);
