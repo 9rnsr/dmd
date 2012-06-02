@@ -1517,35 +1517,20 @@ void StaticIfDeclaration::setScope(Scope *sc)
     Dsymbol::setScope(sc);
 }
 
-#include "root/aav.h"
-
 void StaticIfDeclaration::semantic(Scope *sc)
 {
     Dsymbols *d = include(sc, sd);
 
-    printf("\tStaticIfDeclaration::semantic '%s', d = %p\n",toChars(), d);
+    //printf("\tStaticIfDeclaration::semantic '%s', d = %p\n",toChars(), d);
     if (d)
     {
-		int newsc = 0;
-		if (d == decl)
-		{
-			StaticIfCondition *c = condition->isStaticIfCondition();
-			assert(c);
-			//if (sc->scopesym != c->sym)
-			{
-				newsc = 1;
-		        c->sym->parent = sc->scopesym;
-		        sc = sc->push(c->sym);
-
-		        printf("static if, incond = %d\n", c->sym->incond);
-				printf("           sym[%p] contains %d symbols\n",
-					c->sym,
-					c->sym->symtab && c->sym->symtab->tab ? _aaLen(c->sym->symtab->tab) : 0);
-				printf("  sc->scopesym[%p] contains %d symbols\n",
-					sc->scopesym,
-					sc->scopesym && sc->scopesym->symtab && sc->scopesym->symtab->tab ? _aaLen(sc->scopesym->symtab->tab) : 0);
-			}
-		}
+        if (d == decl)
+        {
+            StaticIfCondition *c = condition->isStaticIfCondition();
+            assert(c);
+            c->sym->parent = sc->scopesym;
+            sc = sc->push(c->sym);
+        }
 
         if (!addisdone)
         {   AttribDeclaration::addMember(sc, sd, 1);
@@ -1559,10 +1544,10 @@ void StaticIfDeclaration::semantic(Scope *sc)
             s->semantic(sc);
         }
 
-		if (d == decl)
-		{
-	        sc = sc->pop();
-		}
+        if (d == decl)
+        {
+            sc = sc->pop();
+        }
     }
 }
 
@@ -1572,23 +1557,23 @@ void StaticIfDeclaration::semantic2(Scope *sc)
 
     if (d)
     {
-		if (d == decl)
-		{
-			StaticIfCondition *c = condition->isStaticIfCondition();
-			assert(c);
-	        c->sym->parent = sc->scopesym;
-	        sc = sc->push(c->sym);
-		}
+        if (d == decl)
+        {
+            StaticIfCondition *c = condition->isStaticIfCondition();
+            assert(c);
+            c->sym->parent = sc->scopesym;
+            sc = sc->push(c->sym);
+        }
 
         for (size_t i = 0; i < d->dim; i++)
         {   Dsymbol *s = (*d)[i];
             s->semantic2(sc);
         }
 
-		if (d == decl)
-		{
-	        sc = sc->pop();
-		}
+        if (d == decl)
+        {
+            sc = sc->pop();
+        }
     }
 }
 
@@ -1598,24 +1583,23 @@ void StaticIfDeclaration::semantic3(Scope *sc)
 
     if (d)
     {
-		if (d == decl)
-		{
-			StaticIfCondition *c = condition->isStaticIfCondition();
-			assert(c);
-	        c->sym->parent = sc->scopesym;
-	        sc = sc->push(c->sym);
-		}
+        if (d == decl)
+        {
+            StaticIfCondition *c = condition->isStaticIfCondition();
+            assert(c);
+            c->sym->parent = sc->scopesym;
+            sc = sc->push(c->sym);
+        }
 
         for (size_t i = 0; i < d->dim; i++)
         {   Dsymbol *s = (*d)[i];
             s->semantic3(sc);
         }
 
-		if (d == decl)
-		{
-			if (newsc)
-		        sc = sc->pop();
-		}
+        if (d == decl)
+        {
+            sc = sc->pop();
+        }
     }
 }
 

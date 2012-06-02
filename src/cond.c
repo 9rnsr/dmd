@@ -319,14 +319,12 @@ StaticIfCondition::StaticIfCondition(Loc loc, Expression *exp)
 
 Condition *StaticIfCondition::syntaxCopy()
 {
-    StaticIfCondition *condition = new StaticIfCondition(loc, exp->syntaxCopy());
-    //condition->sym = (StaticIfScopeSymbol *)sym->syntaxCopy(NULL);
-    return condition;
+    return new StaticIfCondition(loc, exp->syntaxCopy());
 }
 
 int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
 {
-#if 1
+#if 0
     printf("StaticIfCondition::include(sc = %p, s = %p) this=%p inc = %d\n", sc, s, this, inc);
     if (s)
     {
@@ -350,14 +348,12 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
         }
 
         ++nest;
-        //sc = sc->push(sc->scopesym);
         if (!sym)
             sym = new StaticIfScopeSymbol();
-        printf("\tsym = %p, sc->scopesym = %p, sc->scopesym->symtab = %p\n", sym, sc->scopesym, sc->scopesym->symtab);
         sym->parent = sc->scopesym;
         sym->incond = 1;
         sc = sc->push(sym);
-        sc->sd = sym;//s;                     // s gets any addMember()
+        sc->sd = sym;      // inserted all symbols declared in condition to sym
         sc->flags |= SCOPEstaticif;
 
         sc = sc->startCTFE();

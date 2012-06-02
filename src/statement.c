@@ -2775,11 +2775,9 @@ Statement *ConditionalStatement::syntaxCopy()
     return s;
 }
 
-#include "root/aav.h"
-
 Statement *ConditionalStatement::semantic(Scope *sc)
 {
-    printf("ConditionalStatement::semantic()\n");
+    //printf("ConditionalStatement::semantic()\n");
 
     // If we can short-circuit evaluate the if statement, don't do the
     // semantic analysis of the skipped code.
@@ -2797,15 +2795,8 @@ Statement *ConditionalStatement::semantic(Scope *sc)
         }
         else if (ic)
         {
-	        if (ic->sym->symtab && ic->sym->symtab->tab)
-	        {
-				printf("static if[stmt], symtab contains %d symbols\n", _aaLen(ic->sym->symtab->tab));
-			}
-	        else
-	        	printf("static if[stmt], symtab is empty\n");
-
-	        ic->sym->parent = sc->scopesym;
-	        sc = sc->push(ic->sym);
+            ic->sym->parent = sc->scopesym;
+            sc = sc->push(ic->sym);
             ifbody = ifbody->semantic(sc);
             sc = sc->pop();
         }
@@ -2825,7 +2816,7 @@ Statements *ConditionalStatement::flatten(Scope *sc)
 {
     Statement *s;
 
-    printf("ConditionalStatement::flatten()\n");
+    //printf("ConditionalStatement::flatten()\n");
     if (condition->include(sc, NULL))
     {
         DebugCondition *dc = condition->isDebugCondition();

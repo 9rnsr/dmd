@@ -1488,16 +1488,18 @@ StaticIfScopeSymbol::StaticIfScopeSymbol()
 
 Dsymbol *StaticIfScopeSymbol::symtabInsert(Dsymbol *s)
 {
-	printf("StaticIfScopeSymbol::symtabInsert(%p) s = %s %s, incond = %d, symtab = %p\n",
-		this, s->kind(), s->toChars(), incond, symtab);
+#if 0
+    printf("StaticIfScopeSymbol::symtabInsert(%p) s = %s %s, incond = %d, symtab = %p\n",
+        this, s->kind(), s->toChars(), incond, symtab);
+#endif
     if (incond)
     {
         return symtab->insert(s);
     }
     else if (parent && parent->isScopeDsymbol())
     {
-		ScopeDsymbol *sds = (ScopeDsymbol *)parent;
-		if (sds->symtab)
+        ScopeDsymbol *sds = (ScopeDsymbol *)parent;
+        if (sds->symtab)
             sds->symtab = new DsymbolTable();
         return sds->symtabInsert(s);
     }
