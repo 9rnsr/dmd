@@ -2796,7 +2796,6 @@ Statement *ConditionalStatement::semantic(Scope *sc)
         else if (ic)
         {
             ic->sym->parent = sc->scopesym;
-assert(ic->sym);
             sc = sc->push(ic->sym);
             ifbody = ifbody->semantic(sc);
             sc = sc->pop();

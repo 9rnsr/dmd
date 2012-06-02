@@ -594,16 +594,14 @@ int Dsymbol::apply(Dsymbol_apply_ft_t fp, void *param)
 
 int Dsymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
-    printf("Dsymbol::addMember('%s')\n", toChars());
-    printf("Dsymbol::addMember(this = %p, '%s' scopesym = '%s')\n", this, toChars(), sd->toChars());
-    printf("Dsymbol::addMember(this = %p, '%s' sd = %p, sd->symtab = %p)\n", this, toChars(), sd, sd->symtab);
+    //printf("Dsymbol::addMember('%s')\n", toChars());
+    //printf("Dsymbol::addMember(this = %p, '%s' scopesym = '%s')\n", this, toChars(), sd->toChars());
+    //printf("Dsymbol::addMember(this = %p, '%s' sd = %p, sd->symtab = %p)\n", this, toChars(), sd, sd->symtab);
     parent = sd;
     if (!isAnonymous())         // no name, so can't add it to symbol table
     {
-printf("L%d\n", __LINE__);
         if (!sd->symtabInsert(this))    // if name is already defined
         {
-printf("L%d\n", __LINE__);
             Dsymbol *s2;
 
             s2 = sd->symtab->lookup(ident);
@@ -614,14 +612,11 @@ printf("L%d\n", __LINE__);
         }
         if (sd->isAggregateDeclaration() || sd->isEnumDeclaration())
         {
-printf("L%d\n", __LINE__);
             if (ident == Id::__sizeof || ident == Id::__xalignof || ident == Id::mangleof)
                 error(".%s property cannot be redefined", ident->toChars());
         }
-printf("L%d\n", __LINE__);
         return 1;
     }
-printf("L%d\n", __LINE__);
     return 0;
 }
 
@@ -1493,20 +1488,18 @@ StaticIfScopeSymbol::StaticIfScopeSymbol()
 
 Dsymbol *StaticIfScopeSymbol::symtabInsert(Dsymbol *s)
 {
-#if 1
+#if 0
     printf("StaticIfScopeSymbol::symtabInsert(%p) s = %s %s, incond = %d, symtab = %p\n",
         this, s->kind(), s->toChars(), incond, symtab);
 #endif
     if (incond)
     {
-printf("L%d\n", __LINE__);
         if (!symtab)
             symtab = new DsymbolTable();
         return ScopeDsymbol::symtabInsert(s);
     }
     else if (parent && parent->isScopeDsymbol())
     {
-printf("L%d\n", __LINE__);
         ScopeDsymbol *sds = (ScopeDsymbol *)parent;
         if (!sds->symtab)
             sds->symtab = new DsymbolTable();
