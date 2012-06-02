@@ -1527,7 +1527,7 @@ void StaticIfDeclaration::semantic(Scope *sc)
         if (d == decl)
         {
             StaticIfCondition *c = condition->isStaticIfCondition();
-            assert(c);
+            assert(c && c->sym);
             c->sym->parent = sc->scopesym;
             sc = sc->push(c->sym);
         }
@@ -1560,7 +1560,7 @@ void StaticIfDeclaration::semantic2(Scope *sc)
         if (d == decl)
         {
             StaticIfCondition *c = condition->isStaticIfCondition();
-            assert(c);
+            assert(c && c->sym);
             c->sym->parent = sc->scopesym;
             sc = sc->push(c->sym);
         }
@@ -1586,7 +1586,7 @@ void StaticIfDeclaration::semantic3(Scope *sc)
         if (d == decl)
         {
             StaticIfCondition *c = condition->isStaticIfCondition();
-            assert(c);
+            assert(c && c->sym);
             c->sym->parent = sc->scopesym;
             sc = sc->push(c->sym);
         }

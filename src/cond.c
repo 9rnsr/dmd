@@ -351,6 +351,7 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
         if (!sym)
             sym = new StaticIfScopeSymbol();
         sym->parent = sc->scopesym;
+assert(sym->parent);
         sym->incond = 1;
         sc = sc->push(sym);
         sc->sd = sym;      // inserted all symbols declared in condition to sym

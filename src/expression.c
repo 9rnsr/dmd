@@ -6715,6 +6715,7 @@ Expression *IsExp::semantic(Scope *sc)
     }
     else if (tspec)
     {
+printf("L%d\n", __LINE__);
         /* Evaluate to true if targ matches tspec.
          * If true, declare id as an alias for the specialized type.
          * is(targ == tspec, tpl)
@@ -6732,16 +6733,19 @@ Expression *IsExp::semantic(Scope *sc)
         dedtypes.setDim(parameters->dim);
         dedtypes.zero();
 
+printf("L%d\n", __LINE__);
         MATCH m = targ->deduceType(sc, tspec, parameters, &dedtypes);
-        //printf("targ: %s\n", targ->toChars());
-        //printf("tspec: %s\n", tspec->toChars());
+        printf("targ: %s\n", targ->toChars());
+        printf("tspec: %s\n", tspec->toChars());
         if (m == MATCHnomatch ||
             (m != MATCHexact && tok == TOKequal))
         {
+printf("L%d\n", __LINE__);
             goto Lno;
         }
         else if (sc->flags & SCOPEstaticif)
         {
+printf("L%d\n", __LINE__);
             tded = (Type *)dedtypes[0];
             if (!tded)
                 tded = targ;
@@ -6749,21 +6753,31 @@ Expression *IsExp::semantic(Scope *sc)
             tiargs.setDim(1);
             tiargs[0] = targ;
 
+printf("L%d\n", __LINE__);
             /* Declare trailing parameters
              */
             for (size_t i = 1; i < parameters->dim; i++)
             {   TemplateParameter *tp = (*parameters)[i];
                 Declaration *s = NULL;
 
+printf("L%d\n", __LINE__);
                 m = tp->matchArg(loc, sc, &tiargs, i, parameters, &dedtypes, &s);
+printf("L%d\n", __LINE__);
                 if (m == MATCHnomatch)
                     goto Lno;
                 s->semantic(sc);
+printf("L%d, s = %s\n", __LINE__, s->toChars());
+printf("L%d, sc->sd = %p\n", __LINE__, sc->sd);
                 if (sc->sd)
+                {
+printf("L%d, sc->sd = %s\n", __LINE__, sc->sd->toChars());
                     s->addMember(sc, sc->sd, 1);
+                }
                 else if (!sc->insert(s))
                     error("declaration %s is already defined", s->toChars());
+printf("L%d\n", __LINE__);
             }
+printf("L%d\n", __LINE__);
             goto Lyes;
         }
     }
@@ -6779,13 +6793,16 @@ Expression *IsExp::semantic(Scope *sc)
 Lyes:
     if (id && (sc->flags & SCOPEstaticif))
     {
+printf("L%d\n", __LINE__);
         Dsymbol *s;
         Tuple *tup = isTuple(tded);
         if (tup)
             s = new TupleDeclaration(loc, id, &(tup->objects));
         else
             s = new AliasDeclaration(loc, id, tded);
+printf("L%d\n", __LINE__);
         s->semantic(sc);
+printf("L%d\n", __LINE__);
         /* The reason for the !tup is unclear. It fails Phobos unittests if it is not there.
          * More investigation is needed.
          */
@@ -6793,6 +6810,7 @@ Lyes:
             error("declaration %s is already defined", s->toChars());
         if (sc->sd)
             s->addMember(sc, sc->sd, 1);
+printf("L%d\n", __LINE__);
     }
     //printf("Lyes\n");
     return new IntegerExp(loc, 1, Type::tbool);
