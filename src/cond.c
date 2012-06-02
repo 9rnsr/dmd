@@ -23,6 +23,7 @@
 #include "lexer.h"
 #include "mtype.h"
 #include "scope.h"
+#include "dsymbol.h"
 #include "arraytypes.h"
 
 int findCondition(Strings *ids, Identifier *ident)
@@ -319,13 +320,13 @@ StaticIfCondition::StaticIfCondition(Loc loc, Expression *exp)
 Condition *StaticIfCondition::syntaxCopy()
 {
     StaticIfCondition *condition = new StaticIfCondition(loc, exp->syntaxCopy());
-    condition->sym = (ScopeDsymbol *)sym->syntaxCopy(NULL);
+    //condition->sym = (StaticIfScopeSymbol *)sym->syntaxCopy(NULL);
     return condition;
 }
 
 int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
 {
-#if 0
+#if 1
     printf("StaticIfCondition::include(sc = %p, s = %p) this=%p inc = %d\n", sc, s, this, inc);
     if (s)
     {
@@ -350,13 +351,13 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
 
         ++nest;
         //sc = sc->push(sc->scopesym);
-        if (!this->sym)
-        {
-	        this->sym = new ScopeDsymbol();
-	    }
-        this->sym->parent = sc->scopesym;
-        sc = sc->push(this->sym);
-        sc->sd = s;                     // s gets any addMember()
+        if (!sym)
+            sym = new StaticIfScopeSymbol();
+        printf("\tsym = %p, sc->scopesym = %p, sc->scopesym->symtab = %p\n", sym, sc->scopesym, sc->scopesym->symtab);
+        sym->parent = sc->scopesym;
+        sym->incond = 1;
+        sc = sc->push(sym);
+        sc->sd = sym;//s;                     // s gets any addMember()
         sc->flags |= SCOPEstaticif;
 
         sc = sc->startCTFE();
@@ -364,6 +365,7 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
         e = resolveProperties(sc, e);
         sc = sc->endCTFE();
 
+        sym->incond = 0;
         sc->pop();
         --nest;
 

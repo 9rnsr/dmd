@@ -2804,7 +2804,6 @@ Statement *ConditionalStatement::semantic(Scope *sc)
 	        else
 	        	printf("static if[stmt], symtab is empty\n");
 
-
 	        ic->sym->parent = sc->scopesym;
 	        sc = sc->push(ic->sym);
             ifbody = ifbody->semantic(sc);
@@ -2835,21 +2834,7 @@ Statements *ConditionalStatement::flatten(Scope *sc)
             s = new DebugStatement(loc, ifbody);
         else if (ic)
         {
-#if 0
-	        if (ic->sym->symtab && ic->sym->symtab->tab)
-	        {
-				printf("static if[stmt], symtab contains %d symbols\n", _aaLen(ic->sym->symtab->tab));
-			}
-	        else
-	        	printf("static if[stmt], symtab is empty\n");
-
-
-	        ic->sym->parent = sc->scopesym;
-	        sc = sc->push(ic->sym);
-            ifbody = ifbody->semantic(sc);
-            sc = sc->pop();
-#endif
-			return NULL;	//
+            return NULL;    // Avoid flatten for declared symbols in ifbody
         }
         else
             s = ifbody;

@@ -66,6 +66,7 @@ class TemplateMixin;
 class EnumMember;
 class WithScopeSymbol;
 class ArrayScopeSymbol;
+class StaticIfScopeSymbol;
 class SymbolDeclaration;
 class Expression;
 class DeleteDeclaration;
@@ -253,6 +254,7 @@ public:
     virtual ScopeDsymbol *isScopeDsymbol() { return NULL; }
     virtual WithScopeSymbol *isWithScopeSymbol() { return NULL; }
     virtual ArrayScopeSymbol *isArrayScopeSymbol() { return NULL; }
+    virtual StaticIfScopeSymbol *isStaticIfScopeSymbol() { return NULL; }
     virtual Import *isImport() { return NULL; }
     virtual EnumDeclaration *isEnumDeclaration() { return NULL; }
     virtual DeleteDeclaration *isDeleteDeclaration() { return NULL; }
@@ -326,6 +328,16 @@ public:
     Dsymbol *search(Loc loc, Identifier *ident, int flags);
 
     ArrayScopeSymbol *isArrayScopeSymbol() { return this; }
+};
+
+class StaticIfScopeSymbol : ScopeDsymbol
+{
+    int incond;
+
+    StaticIfScopeSymbol();
+    Dsymbol *symtabInsert(Dsymbol *s);
+
+    StaticIfScopeSymbol *isStaticIfScopeSymbol() { return this; }
 };
 
 // Overload Sets

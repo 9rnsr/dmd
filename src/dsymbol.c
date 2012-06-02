@@ -1478,6 +1478,34 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 }
 
 
+/****************************** ArrayScopeSymbol ******************************/
+
+StaticIfScopeSymbol::StaticIfScopeSymbol()
+    : ScopeDsymbol()
+{
+    this->incond = 0;
+}
+
+Dsymbol *StaticIfScopeSymbol::symtabInsert(Dsymbol *s)
+{
+	printf("StaticIfScopeSymbol::symtabInsert(%p) s = %s %s, incond = %d, symtab = %p\n",
+		this, s->kind(), s->toChars(), incond, symtab);
+    if (incond)
+    {
+        return symtab->insert(s);
+    }
+    else if (parent && parent->isScopeDsymbol())
+    {
+		ScopeDsymbol *sds = (ScopeDsymbol *)parent;
+		if (sds->symtab)
+            sds->symtab = new DsymbolTable();
+        return sds->symtabInsert(s);
+    }
+    else
+        return NULL;
+}
+
+
 /****************************** DsymbolTable ******************************/
 
 DsymbolTable::DsymbolTable()

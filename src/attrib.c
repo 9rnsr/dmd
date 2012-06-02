@@ -1526,19 +1526,25 @@ void StaticIfDeclaration::semantic(Scope *sc)
     printf("\tStaticIfDeclaration::semantic '%s', d = %p\n",toChars(), d);
     if (d)
     {
-printf("static if, d: %p, decl: %p\n", d, decl);
+		int newsc = 0;
 		if (d == decl)
 		{
 			StaticIfCondition *c = condition->isStaticIfCondition();
 			assert(c);
-	        c->sym->parent = sc->scopesym;
-	        sc = sc->push(c->sym);
-	        if (c->sym->symtab && c->sym->symtab->tab)
-	        {
-				printf("static if, symtab contains %d symbols\n", _aaLen(c->sym->symtab->tab));
+			//if (sc->scopesym != c->sym)
+			{
+				newsc = 1;
+		        c->sym->parent = sc->scopesym;
+		        sc = sc->push(c->sym);
+
+		        printf("static if, incond = %d\n", c->sym->incond);
+				printf("           sym[%p] contains %d symbols\n",
+					c->sym,
+					c->sym->symtab && c->sym->symtab->tab ? _aaLen(c->sym->symtab->tab) : 0);
+				printf("  sc->scopesym[%p] contains %d symbols\n",
+					sc->scopesym,
+					sc->scopesym && sc->scopesym->symtab && sc->scopesym->symtab->tab ? _aaLen(sc->scopesym->symtab->tab) : 0);
 			}
-	        else
-	        	printf("static if, symtab is empty\n");
 		}
 
         if (!addisdone)
@@ -1607,7 +1613,8 @@ void StaticIfDeclaration::semantic3(Scope *sc)
 
 		if (d == decl)
 		{
-	        sc = sc->pop();
+			if (newsc)
+		        sc = sc->pop();
 		}
     }
 }

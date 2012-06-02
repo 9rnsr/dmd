@@ -17,6 +17,7 @@ struct OutBuffer;
 class Module;
 struct Scope;
 class ScopeDsymbol;
+class StaticIfScopeSymbol;
 class DebugCondition;
 class StaticIfCondition;
 #include "lexer.h" // dmdhg
@@ -91,7 +92,7 @@ class StaticIfCondition : public Condition
 public:
     Expression *exp;
     int nest;         // limit circular dependencies
-    ScopeDsymbol *sym;
+    StaticIfScopeSymbol *sym;
 
     StaticIfCondition(Loc loc, Expression *exp);
     Condition *syntaxCopy();
