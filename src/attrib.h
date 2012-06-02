@@ -189,6 +189,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     Dsymbols *include(Scope *sc, ScopeDsymbol *s);
     int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
+    Dsymbols *include(Scope *sc, ScopeDsymbol *sd);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);

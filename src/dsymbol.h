@@ -335,6 +335,7 @@ class StaticIfScopeSymbol : ScopeDsymbol
     int incond;
 
     StaticIfScopeSymbol();
+    Dsymbol *search(Loc loc, Identifier *ident, int flags);
     Dsymbol *symtabInsert(Dsymbol *s);
 
     StaticIfScopeSymbol *isStaticIfScopeSymbol() { return this; }

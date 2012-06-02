@@ -1486,6 +1486,22 @@ StaticIfScopeSymbol::StaticIfScopeSymbol()
     this->incond = 0;
 }
 
+Dsymbol *StaticIfScopeSymbol::search(Loc loc, Identifier *ident, int flags)
+{
+    //if (incond)
+    //{
+printf("StaticIfScopeSymbol::search incond = %d, ident = '%s', parent = %p\n", incond, ident->toChars(), parent);
+        return ScopeDsymbol::search(loc, ident, flags);
+    //}
+    //else if (parent && parent->isScopeDsymbol())
+    //{
+    //    ScopeDsymbol *sds = (ScopeDsymbol *)parent;
+    //    return sds->search(loc, ident, flags);
+    //}
+    //else
+    //    assert(0);//return NULL;
+}
+
 Dsymbol *StaticIfScopeSymbol::symtabInsert(Dsymbol *s)
 {
 #if 0
@@ -1506,7 +1522,7 @@ Dsymbol *StaticIfScopeSymbol::symtabInsert(Dsymbol *s)
         return sds->symtabInsert(s);
     }
     else
-        return NULL;
+        assert(0);return NULL;
 }
 
 

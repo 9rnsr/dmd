@@ -1509,6 +1509,19 @@ void StaticIfDeclaration::importAll(Scope *sc)
     // do not evaluate condition before semantic pass
 }
 
+Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol *sd)
+{
+    //printf("ConditionalDeclaration::include(sc = %p) scope = %p\n", sc, scope);
+    assert(condition);
+    Dsymbols *d = condition->include(scope ? scope : sc, sd) ? decl : elsedecl;
+    if (d == decl && scope)
+    {
+		StaticIfCondition *c = condition->isStaticIfCondition();
+		assert(c);
+        setScope(sc->push(c->sym));
+	}
+}
+
 void StaticIfDeclaration::setScope(Scope *sc)
 {
     // do not evaluate condition before semantic pass

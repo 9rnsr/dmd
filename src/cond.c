@@ -324,15 +324,15 @@ Condition *StaticIfCondition::syntaxCopy()
 
 int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
 {
-#if 0
-    printf("StaticIfCondition::include(sc = %p, s = %p) this=%p inc = %d\n", sc, s, this, inc);
+    if (inc == 0)
+    {
+#if 1
+    printf("[%s] StaticIfCondition::include(sc = %p, s = %p) this=%p inc = %d\n", loc.toChars(), sc, s, this, inc);
     if (s)
     {
         printf("\ts = '%s', kind = %s\n", s->toChars(), s->kind());
     }
 #endif
-    if (inc == 0)
-    {
         if (exp->op == TOKerror || nest > 100)
         {
             error(loc, (nest > 1000) ? "unresolvable circular static if expression"
@@ -352,6 +352,7 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
             sym = new StaticIfScopeSymbol();
         sym->parent = sc->scopesym;
         sym->incond = 1;
+        printf("\tsym->parent = %p, sc->flags = x%x\n", sc->scopesym, sc->flags);
         sc = sc->push(sym);
         sc->sd = sym;      // inserted all symbols declared in condition to sym
         sc->flags |= SCOPEstaticif;
