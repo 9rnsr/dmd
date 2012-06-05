@@ -348,12 +348,14 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
         }
 
         ++nest;
-        if (!sym)
-            sym = new StaticIfScopeSymbol();
-        sym->parent = sc->scopesym;
-        sym->incond = 1;
-        printf("\tsym->parent = %p, sc->flags = x%x\n", sc->scopesym, sc->flags);
-        sc = sc->push(sym);
+        if (!sc->scopesym->isStaticIfScopeSymbol())
+        {
+	        if (!sym)
+	            sym = new StaticIfScopeSymbol();
+	        sym->parent = sc->scopesym;
+	        sym->incond = 1;
+	        printf("\tsym->parent = %p, sc->flags = x%x\n", sc->scopesym, sc->flags);
+	        sc = sc->push(sym);
         sc->sd = sym;      // inserted all symbols declared in condition to sym
         sc->flags |= SCOPEstaticif;
 

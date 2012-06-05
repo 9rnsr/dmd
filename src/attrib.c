@@ -1526,8 +1526,16 @@ void StaticIfDeclaration::setScope(Scope *sc)
 {
     // do not evaluate condition before semantic pass
 
+    StaticIfCondition *ic = condition->isStaticIfCondition();
+    assert(ic);
+    sym->parent = sc->scopesym;
+    printf("\tsym->parent = %p, sc->flags = x%x\n", sc->scopesym, sc->flags);
+    sc = sc->push(sym);
+
     // But do set the scope, in case we need it for forward referencing
     Dsymbol::setScope(sc);
+
+    sc->popd();
 }
 
 void StaticIfDeclaration::semantic(Scope *sc)
