@@ -3533,8 +3533,16 @@ Statement *Parser::parseStatement(int flags)
         Lexp:
         {
             Expression *exp = parseExpression();
-            check(TOKsemicolon, "statement");
             s = new ExpStatement(loc, exp);
+        Lpostif:
+            if (token.value == TOKif)
+            {
+                Expression *cond = parseConstraint();
+                s = new IfStatement(loc, NULL, cond, s, NULL);
+                goto Lpostif;
+            }
+            else
+                check(TOKsemicolon, "statement");
             break;
         }
 
