@@ -888,13 +888,24 @@ void FuncDeclaration::semantic3(Scope *sc)
         AggregateDeclaration *ad = isThis();
         if (ad)
         {
-            if (isFuncLiteralDeclaration() && isNested() && !sc->intypeof)
+            FuncLiteralDeclaration *fld = isFuncLiteralDeclaration();
+            if (fld)
             {
-                error("function literals cannot be class members");
-                return;
+                fld->tok = TOKfunction;     // treat as like member function
+                if (!sc->intypeof)
+                {
+                    /*
+                     *  struct S {
+                     *      int a;
+                     *      auto dg = { int n = S.a; };     // disallowed
+                     *      pragma(msg, is(typeof({ int n = S.a; })));          // true
+                     *  }
+                     */
+                    error("function literals cannot be class members");
+                    return;
+                }
             }
-            else
-                assert(!isNested() || sc->intypeof);    // can't be both member and nested
+            assert(!isNested() || sc->intypeof);    // can't be both member and nested
         }
         vthis = declareThis(sc2, ad);
 

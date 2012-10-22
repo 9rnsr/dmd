@@ -74,6 +74,7 @@ void AggregateDeclaration::semantic2(Scope *sc)
     if (members)
     {
         sc = sc->push(this);
+        sc->parent = this;
         for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (*members)[i];
@@ -89,6 +90,7 @@ void AggregateDeclaration::semantic3(Scope *sc)
     if (members)
     {
         sc = sc->push(this);
+        sc->parent = this;  // needed?
         for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (*members)[i];
