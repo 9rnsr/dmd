@@ -872,7 +872,7 @@ void VarDeclaration::semantic(Scope *sc)
      * otherwise the scope overrrides.
      */
     alignment = sc->structalign;
-    if (alignment == STRUCTALIGN_DEFAULT)
+    if (alignment == STRUCTALIGN_DEFAULT && !(storage_class & STCref))
         alignment = type->alignment();          // use type's alignment
 
     //printf("sc->stc = %x\n", sc->stc);
