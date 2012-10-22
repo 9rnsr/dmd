@@ -892,12 +892,13 @@ void FuncDeclaration::semantic3(Scope *sc)
             if (fld)
             {
                 fld->tok = TOKfunction;     // treat as like member function
-                if (!sc->intypeof)
+                if (!(sc->intypeof || sc->speculative))
                 {
                     /*
                      *  struct S {
                      *      int a;
                      *      auto dg = { int n = S.a; };     // disallowed
+                     *      pragma(msg, __traits(compiles, { int n = S.a; }));  // true
                      *      pragma(msg, is(typeof({ int n = S.a; })));          // true
                      *  }
                      */
@@ -905,8 +906,10 @@ void FuncDeclaration::semantic3(Scope *sc)
                     return;
                 }
             }
-            assert(!isNested() || sc->intypeof);    // can't be both member and nested
+            assert(!isNested() || (sc->intypeof || sc->speculative));    // can't be both member and nested
         }
+        if (ad && !sc->intypeof && sc->speculative) sc2->intypeof++;
+
         vthis = declareThis(sc2, ad);
 
         // Declare hidden variable _arguments[] and _argptr
@@ -1639,6 +1642,8 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
 #endif
         }
+
+        if (ad && !sc->intypeof && sc->speculative) sc2->intypeof--;
 
         sc2->callSuper = 0;
         sc2->pop();
