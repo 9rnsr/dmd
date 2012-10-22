@@ -1088,6 +1088,41 @@ void test9552()
 
 /*************************************************************/
 
+class Bxxxx { int x; }
+class Cxxxx : Bxxxx {
+    int a;
+    //auto dg = { int n = Cxxxx.a; }; // should be fail
+
+    pragma(msg, __traits(compiles, { int n = Cxxxx.a; } ));
+    pragma(msg,         is(typeof( { int n = Cxxxx.a; } )));
+
+    static assert(__traits(compiles, { int n = Cxxxx.a; } ));
+    static assert(        is(typeof( { int n = Cxxxx.a; } )));
+
+    pragma(msg, __traits(compiles, { int n = this.a, m = super.x; } ));
+    pragma(msg,         is(typeof( { int n = this.a, m = super.x; } )));
+}
+static assert(!__traits(compiles, { int n = Cxxxx.a; } ));
+//static assert(!        is(typeof( { int n = Cxxxx.a; } ))); // might need other fix
+
+struct Sxxxx {
+    int a;
+    //auto dg = { int n = Sxxxx.a; }; // should be fail
+
+    pragma(msg, __traits(compiles, { int n = Sxxxx.a; } ));
+    pragma(msg,         is(typeof( { int n = Sxxxx.a; } )));
+
+    static assert(__traits(compiles, { int n = Sxxxx.a; } ));
+    static assert(        is(typeof( { int n = Sxxxx.a; } )));
+
+    pragma(msg, __traits(compiles, { int n = this.a; } ));
+    pragma(msg,         is(typeof( { int n = this.a; } )));
+}
+static assert(!__traits(compiles, { int n = Sxxxx.a; } ));
+static assert(!        is(typeof( { int n = Sxxxx.a; } ))); // might need other fix
+
+/********************************************************/
+
 int main()
 {
     test1();

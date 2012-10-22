@@ -3229,7 +3229,7 @@ Expression *ThisExp::semantic(Scope *sc)
     }
 
     FuncDeclaration *fd = hasThis(sc);  // fd is the uplevel function with the 'this' variable
-
+#if 0
     /* Special case for typeof(this) and typeof(super) since both
      * should work even if they are not inside a non-static member function
      */
@@ -3257,6 +3257,7 @@ Expression *ThisExp::semantic(Scope *sc)
             }
         }
     }
+#endif
     if (!fd)
         goto Lerr;
 
@@ -3325,7 +3326,7 @@ Expression *SuperExp::semantic(Scope *sc)
         return this;
 
     FuncDeclaration *fd = hasThis(sc);
-
+#if 0
     /* Special case for typeof(this) and typeof(super) since both
      * should work even if they are not inside a non-static member function
      */
@@ -3352,6 +3353,7 @@ Expression *SuperExp::semantic(Scope *sc)
             }
         }
     }
+#endif
     if (!fd)
         goto Lerr;
 
