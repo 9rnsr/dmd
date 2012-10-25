@@ -5580,6 +5580,24 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                     e = new AddrExp(e->loc, e);
                     e = e->semantic(argsc);
                 }
+                Type *tb = fparam->type->toBasetype();
+                Type *ti = e->type->toBasetype();
+                if (tb->ty == Tstruct &&
+                    !(ti->ty == Tstruct && tb->toDsymbol(sc) == ti->toDsymbol(sc)) &&
+                    !e->implicitConvTo(fparam->type))
+                {
+                    StructDeclaration *sd = ((TypeStruct *)tb)->sym;
+                    if (sd->ctor)
+                    {   // Look for constructor first
+                        // Rewrite as e1.ctor(arguments)
+                        Expression *ex;
+                        ex = new StructLiteralExp(loc, sd, NULL);
+                        ex = new DotIdExp(loc, ex, Id::ctor);
+                        ex = new CallExp(loc, ex, e);
+                        ex = ex->semantic(sc);
+                        e = ex->ctfeInterpret();
+                    }
+                }
                 e = e->implicitCastTo(argsc, fparam->type);
 
                 // default arg must be an lvalue
