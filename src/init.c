@@ -589,17 +589,17 @@ Expression *ArrayInitializer::toExpression()
         t = type->toBasetype();
         switch (t->ty)
         {
-           case Tsarray:
-               edim = ((TypeSArray *)t)->dim->toInteger();
-               break;
+            case Tsarray:
+                edim = ((TypeSArray *)t)->dim->toInteger();
+                break;
 
-           case Tpointer:
-           case Tarray:
-               edim = dim;
-               break;
+            case Tpointer:
+            case Tarray:
+                edim = dim;
+                break;
 
-           default:
-               assert(0);
+            default:
+                assert(0);
         }
     }
     else

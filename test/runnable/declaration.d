@@ -142,6 +142,59 @@ void test8410()
 }
 
 /***************************************************/
+// 8864
+
+struct BigInt8864
+{
+    int value;
+    this(int n) { value = n; }
+}
+
+struct Nibble8864
+{
+    ubyte u;
+    this(ubyte ub)
+    in {
+        assert(ub < 16);
+    } body {
+        this.u = ub;
+    }
+}
+
+BigInt8864[] rx8864 = [1, 2];
+enum BigInt8864[] cx8864 = [1, 2];
+pragma(msg, cx8864);
+
+Nibble8864[][] ra8864 = [[1, 2], [3, 4]];
+enum Nibble8864[][] sa8864 = [[1, 2], [3, 4]];
+pragma(msg, sa8864);
+
+void test8864()
+{
+    BigInt8864[] ry8864 = [1, 2];
+    enum BigInt8864[] sy8864 = [1, 2];
+    pragma(msg, sy8864);
+
+    Nibble8864[][] rb8864 = [[1, 2], [3, 4]];
+    enum Nibble8864[][] sb8864 = [[1, 2], [3, 4]];
+    pragma(msg, sb8864);
+
+    class C1
+    {
+        BigInt8864[] rz8864 = [1, 2];
+        enum BigInt8864[] sz8864 = [1, 2];
+        pragma(msg, sz8864);
+    }
+
+    class C2
+    {
+        Nibble8864[][] rc8864 = [[1, 2], [3, 4]];
+        enum Nibble8864[][] sc8864 = [[1, 2], [3, 4]];
+        pragma(msg, sc8864);
+    }
+}
+
+/***************************************************/
 
 int main()
 {
@@ -151,6 +204,7 @@ int main()
     test8123();
     test8147();
     test8410();
+    test8864();
 
     printf("Success\n");
     return 0;

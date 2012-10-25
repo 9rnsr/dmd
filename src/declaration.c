@@ -1352,16 +1352,12 @@ Lnomatch:
                 //printf("fd = '%s', var = '%s'\n", fd->toChars(), toChars());
                 if (!ei)
                 {
+                    // Run semantic, but don't need to interpret
+                    init = init->semantic(sc, type, INITnointerpret);
                     Expression *e = init->toExpression();
                     if (!e)
-                    {
-                        // Run semantic, but don't need to interpret
-                        init = init->semantic(sc, type, INITnointerpret);
-                        e = init->toExpression();
-                        if (!e)
-                        {   error("is not a static and cannot have static initializer");
-                            return;
-                        }
+                    {   error("is not a static and cannot have static initializer");
+                        return;
                     }
                     ei = new ExpInitializer(init->loc, e);
                     init = ei;
