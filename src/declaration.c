@@ -1592,7 +1592,7 @@ Lnomatch:
                         {   // Look for constructor first
                             // Rewrite as e1.ctor(arguments)
                             Expression *e;
-                            e = new StructLiteralExp(loc, sd, NULL, NULL);
+                            e = new StructLiteralExp(loc, sd, NULL);
                             e = new DotIdExp(loc, e, Id::ctor);
                             e = new CallExp(loc, e, exp);
                             e = e->semantic(sc);
