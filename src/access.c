@@ -374,6 +374,8 @@ int AggregateDeclaration::hasPrivateAccess(Dsymbol *smember)
 
 void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d)
 {
+    if (e && e->op == TOKdottype)
+        e = ((DotTypeExp *)e)->e1;
 #if LOG
     if (e)
     {   printf("accessCheck(%s . %s)\n", e->toChars(), d->toChars());
