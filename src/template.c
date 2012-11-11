@@ -4870,7 +4870,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     unsigned errorsave = global.errors;
     inst = this;
     // Mark as speculative if we are instantiated from inside is(typeof())
-    if (global.gag && sc->speculative)
+    if (global.gag && sc->speculative || sc->intypeof)
         speculative = 1;
 
     int tempdecl_instance_idx = tempdecl->instances.dim;
@@ -4883,6 +4883,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 #if 1
     if (isnested)
         parent = isnested;
+	printf("%s isnested = %p, parent = %p %s sc->intypeof = %d, sc->speculative = %d\n", toChars(), isnested, parent, parent->toChars(), sc->intypeof, sc->speculative);
 #endif
     //printf("parent = '%s'\n", parent->kind());
 
@@ -6040,7 +6041,7 @@ void TemplateInstance::toObjFile(int multiobj)
 #if LOG
     printf("TemplateInstance::toObjFile('%s', this = %p)\n", toChars(), this);
 #endif
-    if (!errors && members)
+    if (!errors && members && !speculative)
     {
         if (multiobj)
             // Append to list of object files to be written later

@@ -1571,6 +1571,28 @@ void test8940()
 }
 
 /**********************************/
+// 8994
+
+class A8994
+{
+    void foo()
+    {
+        new B8994!(a => visit(a), A8994)();
+    }
+
+    A8994 visit(A8994 a)
+    {
+        return a;
+    }
+}
+
+class B8994(alias fun, T)
+{
+    T t;
+    typeof(fun(t)) result;
+}
+
+/**********************************/
 
 int main()
 {

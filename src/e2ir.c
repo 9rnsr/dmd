@@ -796,10 +796,10 @@ elem *SymbolExp::toElem(IRState *irs)
     int offset = (op == TOKsymoff) ? ((SymOffExp*)this)->offset : 0;
     VarDeclaration *v = var->isVarDeclaration();
 
-    //printf("SymbolExp::toElem('%s') %p, %s\n", toChars(), this, type->toChars());
-    //printf("\tparent = '%s'\n", var->parent ? var->parent->toChars() : "null");
     if (op == TOKvar && var->needThis())
     {
+    printf("SymbolExp::toElem('%s') %p, %s\n", toChars(), this, type->toChars());
+    printf("\tparent = '%s'\n", var->parent ? var->parent->toChars() : "null");
         error("need 'this' to access member %s", toChars());
         return el_long(TYsize_t, 0);
     }

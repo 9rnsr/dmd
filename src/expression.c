@@ -8464,6 +8464,7 @@ Lagain:
         return new ErrorExp();
     }
 
+printf("call %s -> %s, sc->parent = %s\n", toChars(), type->toChars(), sc->parent->toChars());
     if (f && f->tintro)
     {
         Type *t = type;
