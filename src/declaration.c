@@ -1683,7 +1683,7 @@ Lnomatch:
                     init = i2;          // no errors, keep result
             }
         }
-        else if (parent->isAggregateDeclaration())
+        else// if (parent->isAggregateDeclaration())
         {
             scope = new Scope(*sc);
             scope->setNoFree();
