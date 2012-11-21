@@ -4949,19 +4949,19 @@ struct Test244 {
 int noswap245(ubyte *data)
 {
     return
-	(data[0]<<  0) |
-	(data[1]<<  8) |
-	(data[2]<< 16) |
-	(data[3]<< 24);
+        (data[0]<<  0) |
+        (data[1]<<  8) |
+        (data[2]<< 16) |
+        (data[3]<< 24);
 }
 
 int bswap245(ubyte *data)
 {
     return
-	(data[0]<< 24) |
-	(data[1]<< 16) |
-	(data[2]<< 8 ) |
-	(data[3]<< 0 );
+        (data[0]<< 24) |
+        (data[1]<< 16) |
+        (data[2]<< 8 ) |
+        (data[3]<< 0 );
 }
 
 void test245()
@@ -4982,7 +4982,7 @@ mixin template mix7974()
 
 struct Foo7974
 {
-    immutable Foo7974 fa = Foo7974(0);
+    enum immutable(Foo7974) fa = Foo7974(0);
 
     this(uint x)
     {

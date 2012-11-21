@@ -801,6 +801,11 @@ void VarDeclaration::semantic(Scope *sc)
 //      return;
 //    sem = SemanticIn;
 
+    if (inuse)
+    {
+        error("fwdref err");
+    }
+
     if (scope)
     {   sc = scope;
         scope = NULL;
@@ -817,6 +822,23 @@ void VarDeclaration::semantic(Scope *sc)
     AggregateDeclaration *ad = isThis();
     if (ad)
         storage_class |= ad->storage_class & STC_TYPECTOR;
+
+#if DMDV2
+    if (storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter | STCtls | STCgshared | STCctfe))
+    {
+    }
+    else if (parent)
+    {
+        AggregateDeclaration *aad = parent->isAggregateDeclaration();
+        if (aad)
+        {
+            assert(!(storage_class & (STCextern | STCstatic | STCtls | STCgshared)));
+            {
+                storage_class |= STCfield;
+            }
+        }
+    }
+#endif
 
     /* If auto type inference, do the inference
      */
@@ -1532,8 +1554,8 @@ Lnomatch:
                 init = init->semantic(sc, type, INITinterpret);
             }
         }
-        else if (storage_class & (STCconst | STCimmutable | STCmanifest) ||
-                 type->isConst() || type->isImmutable())
+        else if (storage_class & STCmanifest/*storage_class & (STCconst | STCimmutable | STCmanifest) ||
+                 type->isConst() || type->isImmutable()*/)
         {
             /* Because we may need the results of a const declaration in a
              * subsequent type, such as an array dimension, before semantic2()
@@ -1751,6 +1773,13 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
 
     if (!(storage_class & STCfield))
         return;
+    if (!type && init)
+    {
+        //ad->sizeok = SIZEOKfwd;             // cannot finish; flag as forward referenced
+        //printf("%s forward reference in type inference", toChars());
+        error("forward reference in type inference");
+        return;
+    }
     assert(!(storage_class & (STCstatic | STCextern | STCparameter | STCtls)));
 
     /* Fields that are tuples appear both as part of TupleDeclarations and
