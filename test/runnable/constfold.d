@@ -616,6 +616,45 @@ class C8939regression
 }
 
 /************************************/
+// 3449
+
+const int g1 = 1;
+const int g2;   static this() { g2 = 2; }
+
+void test3449()
+{
+    int x = 2;
+
+    const int n1 = 1;
+    const int n2 = x;
+
+    static class C
+    {
+        const int f1 = 1;
+        const int f2;   this() { f2 = 2; }
+    }
+    static assert(typeof(C.tupleof).stringof == "(const(int), const(int))");
+
+    int[g1]   sa1g;
+    int[n1]   sa1n;
+    int[C.f1] sa1f;
+
+    static assert(!__traits(compiles, { int[g2]   sa2g; }));
+    static assert(!__traits(compiles, { int[n2]   sa2n; }));
+    static assert(!__traits(compiles, { int[C.f2] sa2f; }));
+
+    const(int)* pg1 = &g1;
+    const(int)* pg2 = &g2;
+
+    const(int)* pn1 = &n1;
+    const(int)* pn2 = &n2;
+
+    C c = new C();
+    const(int)* pf1 = &c.f1;
+    const(int)* pf2 = &c.f2;
+}
+
+/************************************/
 
 int main()
 {
@@ -625,6 +664,7 @@ int main()
     test6077();
     test8400();
     test8939();
+    test3449();
 
     printf("Success\n");
     return 0;
