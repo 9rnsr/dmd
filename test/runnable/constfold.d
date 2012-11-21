@@ -656,6 +656,26 @@ void test3449()
 
 /************************************/
 
+/+
+// Bugzilla 3493
+
+const bar209 = foo209;
+const int * foo209 = null;
+// +/
+
+
+
+
+//+
+// from std.socket
+
+const int SOCKET_ERROR = -1;
+private const int _SOCKET_ERROR = SOCKET_ERROR;
+enum int ERROR = _SOCKET_ERROR;
+// +/
+
+/************************************/
+
 int main()
 {
     test1();
