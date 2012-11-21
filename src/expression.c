@@ -7176,9 +7176,12 @@ Expression *DotVarExp::semantic(Scope *sc)
                 accessCheck(loc, sc, e1, var);
 
             VarDeclaration *v = var->isVarDeclaration();
-            Expression *e = expandVar(WANTvalue, v);
-            if (e)
-                return e;
+            if (v && (v->isDataseg() || (v->storage_class & STCmanifest)))
+            {
+                Expression *e = expandVar(WANTvalue, v);
+                if (e)
+                    return e;
+            }
         }
         Dsymbol *s;
         if (sc->func && !sc->intypeof && t1->hasPointers() &&
