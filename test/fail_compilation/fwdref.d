@@ -17,7 +17,7 @@ struct B
 
     this(uint x) {}
 }
-pragma(msg, B.sizeof);
+enum Bsize = B.sizeof;
 
 struct C
 {
