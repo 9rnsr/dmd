@@ -227,32 +227,33 @@ Expression *TraitsExp::semantic(Scope *sc)
             goto Ldimerror;
         Object *o = (*args)[0];
         Dsymbol *s = getDsymbol(o);
-        if(!s)
+printf("o = %d %s\n", o->dyncast(), o->toChars());
+        if (!s)
         {
             // it might also be a trait getMember or something,
             // which returns a dot expression rather than a symbol
-            if(o->dyncast() == DYNCAST_EXPRESSION)
+            if (o->dyncast() == DYNCAST_EXPRESSION)
             {
                 Expression *e = (Expression *) o;
 
                 if (e->op == TOKdotvar)
                 {
-                        DotVarExp *dv = (DotVarExp *)e;
-                        s = dv->var->isDeclaration();
+                    DotVarExp *dv = (DotVarExp *)e;
+                    s = dv->var->isDeclaration();
                 }
             }
         }
-        if(!s)
+        if (!s)
         {
             bool gagError = false;
-            if(o->dyncast() == DYNCAST_EXPRESSION)
+            if (o->dyncast() == DYNCAST_EXPRESSION)
             {
                 Expression *e = (Expression *) o;
                 if(e->op == TOKerror)
                     gagError = true;
             }
 
-            if(!gagError)
+            if (!gagError)
                 error("argument %s has no protection", o->toChars());
 
             goto Lfalse;

@@ -7971,6 +7971,12 @@ L1:
             e = e->semantic(sc);
             return e;
         }
+        if (sc->func && d->needThis() && !d->isFuncDeclaration())
+        {
+            e = new DotVarExp(e->loc, new ThisExp(e->loc), d);
+            e = e->semantic(sc);
+            return e;
+        }
         if (d->needThis() && hasThis(sc))
         {
             e = new DotVarExp(e->loc, new ThisExp(e->loc), d);

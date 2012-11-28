@@ -5088,6 +5088,9 @@ Expression *VarExp::semantic(Scope *sc)
 #if DMDV2
         checkPurity(sc, v, NULL);
 #endif
+
+		if (v->needThis() && sc->func && !sc->intypeof)
+			error("need 'this' for field %s", v->toChars());
     }
     FuncDeclaration *f = var->isFuncDeclaration();
     if (f)
