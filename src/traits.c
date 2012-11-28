@@ -357,6 +357,15 @@ Expression *TraitsExp::semantic(Scope *sc)
         else if (ident == Id::getMember)
         {
             e = e->semantic(sc);
+            if (t && e->op == TOKdotvar)
+            {   DotVarExp *dve = (DotVarExp *)e;
+                if (dve->e1->op == TOKdottype || dve->e1->op == TOKthis)
+                {
+                    e = new DsymbolExp(0, dve->var);
+                    //e = e->semantic(sc);
+                    printf("-> e = %s %s\n", Token::toChars(e->op), e->toChars());
+                }
+            }
             return e;
         }
         else if (ident == Id::getVirtualFunctions ||
