@@ -296,15 +296,15 @@ Expression *TraitsExp::semantic(Scope *sc)
         if (dim != 2)
             goto Ldimerror;
         Object *o = (*args)[0];
-        Expression *e = isExpression((*args)[1]);
-        if (!e)
+        Expression *eid = isExpression((*args)[1]);
+        if (!eid)
         {   error("expression expected as second argument of __traits %s", ident->toChars());
             goto Lfalse;
         }
-        e = e->ctfeInterpret();
-        StringExp *se = e->toString();
+        eid = eid->ctfeInterpret();
+        StringExp *se = eid->toString();
         if (!se || se->length() == 0)
-        {   error("string expected as second argument of __traits %s instead of %s", ident->toChars(), e->toChars());
+        {   error("string expected as second argument of __traits %s instead of %s", ident->toChars(), eid->toChars());
             goto Lfalse;
         }
         se = se->toUTF8(sc);
@@ -315,13 +315,15 @@ Expression *TraitsExp::semantic(Scope *sc)
         Identifier *id = Lexer::idPool((char *)se->string);
 
         Type *t = isType(o);
-        e = isExpression(o);
-        Dsymbol *s = isDsymbol(o);
+        Expression *e = isExpression(o);
+        Dsymbol *tsym = NULL;
         if (t)
-            e = typeDotIdExp(loc, t, id);
+        {   e = typeDotIdExp(loc, t, id);
+            tsym = t->toDsymbol(sc);
+        }
         else if (e)
             e = new DotIdExp(loc, e, id);
-        else if (s)
+        else if (Dsymbol *s = isDsymbol(o))
         {   e = new DsymbolExp(loc, s);
             e = new DotIdExp(loc, e, id);
         }
@@ -332,23 +334,19 @@ Expression *TraitsExp::semantic(Scope *sc)
 
         if (ident == Id::hasMember)
         {
-            if (t)
+            if (tsym)
             {
-                Dsymbol *sym = t->toDsymbol(sc);
-                if (sym)
-                {
-                    Dsymbol *sm = sym->search(loc, id, 0);
-                    if (sm)
-                        goto Ltrue;
-                }
+                Dsymbol *sm = tsym->search(loc, id, 0);
+                if (sm)
+                    goto Ltrue;
             }
 
             /* Take any errors as meaning it wasn't found
              */
-            Scope *sc2 = sc->push();
+            sc = sc->push();
             //sc2->inHasMember++;
-            e = e->trySemantic(sc2);
-            sc2->pop();
+            e = e->trySemantic(sc);
+            sc = sc->pop();
             if (!e)
                 goto Lfalse;
             else
@@ -356,16 +354,9 @@ Expression *TraitsExp::semantic(Scope *sc)
         }
         else if (ident == Id::getMember)
         {
+            if (tsym) { sc = sc->push(); sc->parent = tsym; }
             e = e->semantic(sc);
-            if (t && e->op == TOKdotvar)
-            {   DotVarExp *dve = (DotVarExp *)e;
-                if (dve->e1->op == TOKdottype || dve->e1->op == TOKthis)
-                {
-                    e = new DsymbolExp(0, dve->var);
-                    //e = e->semantic(sc);
-                    printf("-> e = %s %s\n", Token::toChars(e->op), e->toChars());
-                }
-            }
+            if (tsym) { sc = sc->pop(); }
             return e;
         }
         else if (ident == Id::getVirtualFunctions ||
@@ -374,7 +365,11 @@ Expression *TraitsExp::semantic(Scope *sc)
         {
             unsigned errors = global.errors;
             Expression *ex = e;
+            if (tsym) { sc = sc->push(); sc->parent = tsym; }
+            printf("+getOv e = %s %s\n", Token::toChars(e->op), e->toChars());
             e = e->semantic(sc);
+            printf("-getOv e = %s %s\n", Token::toChars(e->op), e->toChars());
+            if (tsym) { sc = sc->pop(); }
             if (errors < global.errors)
                 error("%s cannot be resolved", ex->toChars());
 

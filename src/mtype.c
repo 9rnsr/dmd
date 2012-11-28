@@ -7964,15 +7964,14 @@ L1:
     assert(d);
 
     if (e->op == TOKtype)
-    {   FuncDeclaration *fd = sc->func;
-
+    {
         if (d->isTupleDeclaration())
         {
             e = new TupleExp(e->loc, d->isTupleDeclaration());
             e = e->semantic(sc);
             return e;
         }
-        else if (d->needThis() && fd && fd->vthis)
+        else if (d->needThis() && hasThis(sc))
         {
             e = new DotVarExp(e->loc, new ThisExp(e->loc), d);
             e = e->semantic(sc);
