@@ -128,7 +128,7 @@ struct Scope
     Dsymbol *insert(Dsymbol *s);
 
     ClassDeclaration *getClassScope();
-    AggregateDeclaration *getStructClassScope();
+    AggregateDeclaration *getStructClassScope(AggregateDeclaration *ad = NULL);
     void setNoFree();
 };
 
