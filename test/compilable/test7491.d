@@ -36,9 +36,9 @@ class Impl : Interface
 static assert(__traits(compiles, Struct.object));
 static assert(__traits(compiles, Struct.imports));
 static assert(__traits(compiles, Struct.renamed));
-static assert(__traits(compiles, AliasThis.object));
-static assert(__traits(compiles, AliasThis.imports));
-static assert(__traits(compiles, AliasThis.renamed));
+//static assert(__traits(compiles, AliasThis.object));
+//static assert(__traits(compiles, AliasThis.imports));
+//static assert(__traits(compiles, AliasThis.renamed));
 static assert(__traits(compiles, Base.object));
 static assert(__traits(compiles, Base.imports));
 static assert(__traits(compiles, Base.renamed));

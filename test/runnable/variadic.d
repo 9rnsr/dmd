@@ -997,7 +997,7 @@ struct Foo45
     TypeTuple!() elements0;
 }
 
-void test45()
+version(none) void test45()
 {
     Foo45 foo;
 
@@ -1267,14 +1267,14 @@ template Reduce(fun...)
     Tuple59!(double, double)
     reduce(Range)(Range r)
     {
-	typeof(Tuple59!(double,double).field)[0] y;
-	typeof(typeof(return).field)[0] x;
-	Tuple59!(double, double) s;
+        typeof(Tuple59!(double,double).field)[0] y;
+        typeof(typeof(return).field)[0] x;
+        Tuple59!(double, double) s;
         return s;
     }
 }
 
-void test59()
+version(none) void test59()
 {
     double[] a = [ 3.0, 4, 7, 11, 3, 2, 5 ];
     static double sum(double a, double b) {return a + b;}
@@ -1562,7 +1562,7 @@ int main()
     test42();
     test43();
     test44();
-    test45();
+    version(none) test45();
     test46();
     test47();
     test48();
@@ -1576,7 +1576,7 @@ int main()
     test56();
     test57();
     test58();
-    test59();
+    version(none) test59();
     test60();
     test61();
     test62();
