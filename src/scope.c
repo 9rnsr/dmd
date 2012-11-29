@@ -341,23 +341,20 @@ ClassDeclaration *Scope::getClassScope()
  * Search enclosing scopes for ClassDeclaration.
  */
 
-AggregateDeclaration *Scope::getStructClassScope()
-{   Scope *sc;
-
-    for (sc = this; sc; sc = sc->enclosing)
+AggregateDeclaration *Scope::getStructClassScope(AggregateDeclaration *ad)
+{
+    for (Scope *sc = this; sc; sc = sc->enclosing)
     {
-        AggregateDeclaration *ad;
+        AggregateDeclaration *ad2;
 
         if (sc->scopesym)
         {
-            ad = sc->scopesym->isClassDeclaration();
-            if (ad)
-                return ad;
-            else
-            {   ad = sc->scopesym->isStructDeclaration();
-                if (ad)
-                    return ad;
-            }
+            ad2 = sc->scopesym->isClassDeclaration();
+            if (ad2 && (!ad || ad == ad2))
+                return ad2;
+            ad2 = sc->scopesym->isStructDeclaration();
+            if (ad2 && (!ad || ad == ad2))
+                return ad2;
         }
     }
     return NULL;
