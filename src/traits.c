@@ -227,32 +227,31 @@ Expression *TraitsExp::semantic(Scope *sc)
             goto Ldimerror;
         Object *o = (*args)[0];
         Dsymbol *s = getDsymbol(o);
-        if(!s)
+        if (!s)
         {
             // it might also be a trait getMember or something,
             // which returns a dot expression rather than a symbol
-            if(o->dyncast() == DYNCAST_EXPRESSION)
+            if (o->dyncast() == DYNCAST_EXPRESSION)
             {
                 Expression *e = (Expression *) o;
-
                 if (e->op == TOKdotvar)
                 {
-                        DotVarExp *dv = (DotVarExp *)e;
-                        s = dv->var->isDeclaration();
+                    DotVarExp *dv = (DotVarExp *)e;
+                    s = dv->var->isDeclaration();
                 }
             }
         }
-        if(!s)
+        if (!s)
         {
             bool gagError = false;
-            if(o->dyncast() == DYNCAST_EXPRESSION)
+            if (o->dyncast() == DYNCAST_EXPRESSION)
             {
                 Expression *e = (Expression *) o;
                 if(e->op == TOKerror)
                     gagError = true;
             }
 
-            if(!gagError)
+            if (!gagError)
                 error("argument %s has no protection", o->toChars());
 
             goto Lfalse;
@@ -296,15 +295,15 @@ Expression *TraitsExp::semantic(Scope *sc)
         if (dim != 2)
             goto Ldimerror;
         Object *o = (*args)[0];
-        Expression *e = isExpression((*args)[1]);
-        if (!e)
+        Expression *eid = isExpression((*args)[1]);
+        if (!eid)
         {   error("expression expected as second argument of __traits %s", ident->toChars());
             goto Lfalse;
         }
-        e = e->ctfeInterpret();
-        StringExp *se = e->toString();
+        eid = eid->ctfeInterpret();
+        StringExp *se = eid->toString();
         if (!se || se->length() == 0)
-        {   error("string expected as second argument of __traits %s instead of %s", ident->toChars(), e->toChars());
+        {   error("string expected as second argument of __traits %s instead of %s", ident->toChars(), eid->toChars());
             goto Lfalse;
         }
         se = se->toUTF8(sc);
@@ -315,7 +314,7 @@ Expression *TraitsExp::semantic(Scope *sc)
         Identifier *id = Lexer::idPool((char *)se->string);
 
         Type *t = isType(o);
-        e = isExpression(o);
+        Expression *e = isExpression(o);
         Dsymbol *s = isDsymbol(o);
         if (t)
             e = typeDotIdExp(loc, t, id);

@@ -7964,19 +7964,28 @@ L1:
     assert(d);
 
     if (e->op == TOKtype)
-    {   FuncDeclaration *fd = sc->func;
-
+    {
+        /* It's:
+         *    Struct.d
+         */
         if (d->isTupleDeclaration())
         {
             e = new TupleExp(e->loc, d->isTupleDeclaration());
             e = e->semantic(sc);
             return e;
         }
-        else if (d->needThis() && fd && fd->vthis)
+        if (d->needThis())
         {
-            e = new DotVarExp(e->loc, new ThisExp(e->loc), d);
-            e = e->semantic(sc);
-            return e;
+            /* Rewrite as:
+             *  this.d
+             */
+            FuncDeclaration *fd = sc->func;
+            if (fd && fd->vthis)
+            {
+                e = new DotVarExp(e->loc, new ThisExp(e->loc), d);
+                e = e->semantic(sc);
+                return e;
+            }
         }
         VarExp *ve = new VarExp(e->loc, d, 1);
         if (d->isVarDeclaration() && d->needThis())
@@ -8579,7 +8588,16 @@ L1:
         FuncDeclaration *fdthis = hasThis(sc);
         if (d->needThis() && fdthis)
         {
-            if (d->isFuncDeclaration())
+            /* Rewrite as:
+             *  this.d
+             */
+            if (!d->isFuncDeclaration())
+            {
+                DotVarExp *de = new DotVarExp(e->loc, new ThisExp(e->loc), d);
+                e = de->semantic(sc);
+                return e;
+            }
+            else
             {
                 // This is almost same as getRightThis() in expression.c
                 Expression *e1 = new VarExp(e->loc, fdthis->vthis);
@@ -8636,15 +8654,6 @@ L1:
                         e1 = e1->semantic(sc);
                     goto L2;
                 }
-            }
-            else
-            {
-                /* Rewrite as:
-                 *  this.d
-                 */
-                DotVarExp *de = new DotVarExp(e->loc, new ThisExp(e->loc), d);
-                e = de->semantic(sc);
-                return e;
             }
         }
         VarExp *ve = new VarExp(e->loc, d, 1);
