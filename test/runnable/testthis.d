@@ -1,4 +1,5 @@
-// std.traits   9091,8972,8971,7027
+// runnable/traits.d    9091,8972,8971,7027
+// runnable/test4.d     test6()
 
 
 // test for DsymbolExp::semantic fix

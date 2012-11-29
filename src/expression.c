@@ -6747,6 +6747,7 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
 //    Type *t1save = e1->type;
 
     UnaExp::semantic(sc);
+    printf("e1 = %s %s, ident = %s\n", Token::toChars(e1->op), e1->toChars(), ident->toChars());
 
 #if 0
     /*

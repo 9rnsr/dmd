@@ -185,8 +185,8 @@ void test5()
     int i;
     for (i = 0; i < 5; i++)
     {
-	assert(foo5[i].c == 0);
-	assert(cmp(foo5[i].b, "string") == 0);
+        assert(foo5[i].c == 0);
+        assert(cmp(foo5[i].b, "string") == 0);
     }
 }
 
@@ -199,11 +199,11 @@ struct TRECT6
     union {
       struct
       {
-	int Left = 3, Top = 4, Right = 5, Bottom = 6;
+        int Left = 3, Top = 4, Right = 5, Bottom = 6;
       }
       struct
       {
-	long TopLeft, BottomRight;
+        long TopLeft, BottomRight;
       }
     }
 
