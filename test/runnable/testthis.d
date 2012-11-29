@@ -1,3 +1,5 @@
+// std.traits   9091,8972,8971,7027
+
 
 // test for DsymbolExp::semantic fix
 void testwith()
