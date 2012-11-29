@@ -8584,10 +8584,9 @@ L1:
             return e;
         }
 
-        FuncDeclaration *fdthis = hasThis(sc);
-        if (d->needThis() && fdthis)
+        if (d->needThis())
         {
-            if (!d->isFuncDeclaration())
+            if (sc->func && !d->isFuncDeclaration())
             {
                 /* Rewrite as:
                  *  this.d
@@ -8596,6 +8595,8 @@ L1:
                 e = de->semantic(sc);
                 return e;
             }
+        	FuncDeclaration *fdthis = hasThis(sc);
+			if (fdthis)
             {
                 // This is almost same as getRightThis() in expression.c
                 Expression *e1 = new VarExp(e->loc, fdthis->vthis);
