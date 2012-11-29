@@ -869,6 +869,30 @@ void getProtection()
 }
 
 /********************************************************/
+// bug 9091, which is a spin-off bug from 9065
+
+template isVariable9091(X...) if (X.length == 1)
+{
+    enum isVariable9091 = true;
+}
+class C9091
+{
+    void func()
+    {
+        enum is_x = isVariable9091!(__traits(getMember, C9091, "x"));
+    }
+    int x;  // some class members
+}
+struct S9091
+{
+    void func()
+    {
+        enum is_x = isVariable9091!(__traits(getMember, S9091, "x"));
+    }
+    int x;  // some struct members
+}
+
+/********************************************************/
 
 int main()
 {
