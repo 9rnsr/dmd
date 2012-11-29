@@ -7009,7 +7009,7 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
 #endif
     {
         Scope *sc2 = sc->push();
-        sc2->intypeof++;
+        sc2->intypeof = 1;
         sc2->speculative = true;
         sc2->flags |= sc->flags & SCOPEstaticif;
         unsigned oldspecgag = global.speculativeGag;
@@ -7974,7 +7974,7 @@ L1:
             e = e->semantic(sc);
             return e;
         }
-        if (d->needThis())
+        if (d->needThis() && sc->intypeof != 1)
         {
             /* Rewrite as:
              *  this.d
@@ -8594,7 +8594,7 @@ L1:
             return e;
         }
 
-        if (d->needThis())
+        if (d->needThis() && sc->intypeof != 1)
         {
             /* Rewrite as:
              *  this.d

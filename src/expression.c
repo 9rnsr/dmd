@@ -6746,45 +6746,37 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
 
 //    Type *t1save = e1->type;
 
-    UnaExp::semantic(sc);
-    printf("e1 = %s %s, ident = %s\n", Token::toChars(e1->op), e1->toChars(), ident->toChars());
+    // For the operand e1, these built-in properties does not require
+    // some runtime context validations (e.g. right 'this' expression).
+    // Then such validation should be avoided.
+    if (ident == Id::__sizeof || ident == Id::__xalignof ||
+        ident == Id::offsetof || ident == Id::mangleof)
+    {
+        sc = sc->push();
+        sc->intypeof = 1;
+        UnaExp::semantic(sc);
+        sc = sc->pop();
 
-#if 0
-    /*
-     * Identify typeof(var).stringof and use the original type of var, if possible
-     */
-    if (ident == Id::stringof && e1->op == TOKtype && t1save && t1save->ty == Ttypeof)
-    {   TypeTypeof *t = (TypeTypeof *)t1save;
-        if (t->exp->op == TOKvar)
-        {
-            Type *ot = ((VarExp *)t->exp)->var->originalType;
-            if (ot)
+        if (ident == Id::mangleof)
+        {   // symbol.mangleof
+            Dsymbol *ds;
+            switch (e1->op)
             {
-                char *s = ((VarExp *)t->exp)->var->originalType->toChars();
-                e = new StringExp(loc, s, strlen(s), 'c');
-                e = e->semantic(sc);
-                return e;
+                case TOKimport: ds = ((ScopeExp *)e1)->sds;     goto L1;
+                case TOKvar:    ds = ((VarExp *)e1)->var;       goto L1;
+                case TOKdotvar: ds = ((DotVarExp *)e1)->var;    goto L1;
+                default: break;
+            L1:
+                    char* s = ds->mangle();
+                    e = new StringExp(loc, s, strlen(s), 'c');
+                    e = e->semantic(sc);
+                    return e;
             }
         }
     }
-#endif
-
-    if (ident == Id::mangleof)
-    {   // symbol.mangleof
-        Dsymbol *ds;
-        switch (e1->op)
-        {
-            case TOKimport: ds = ((ScopeExp *)e1)->sds;     goto L1;
-            case TOKvar:    ds = ((VarExp *)e1)->var;       goto L1;
-            case TOKdotvar: ds = ((DotVarExp *)e1)->var;    goto L1;
-            default: break;
-        L1:
-                char* s = ds->mangle();
-                e = new StringExp(loc, s, strlen(s), 'c');
-                e = e->semantic(sc);
-                return e;
-        }
-    }
+    else
+        UnaExp::semantic(sc);
+    //printf("e1 = %s %s, ident = %s\n", Token::toChars(e1->op), e1->toChars(), ident->toChars());
 
     if (e1->op == TOKdotexp)
     {

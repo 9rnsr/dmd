@@ -353,7 +353,7 @@ Expression *TraitsExp::semantic(Scope *sc)
         }
         else if (ident == Id::getMember)
         {
-            if (tsym) { sc = sc->push(); sc->parent = tsym; }   // Make hasThis(sc) == NULL
+            if (tsym) { sc = sc->push(); sc->intypeof = 1; }
             e = e->semantic(sc);
             if (tsym) { sc = sc->pop(); }
             return e;
@@ -364,7 +364,7 @@ Expression *TraitsExp::semantic(Scope *sc)
         {
             unsigned errors = global.errors;
             Expression *ex = e;
-            if (tsym) { sc = sc->push(); sc->parent = tsym; }   // Make hasThis(sc) == NULL
+            if (tsym) { sc = sc->push(); sc->intypeof = 1; }
             //printf("+getOv e = %s %s\n", Token::toChars(e->op), e->toChars());
             e = e->semantic(sc);
             //printf("-getOv e = %s %s\n", Token::toChars(e->op), e->toChars());
