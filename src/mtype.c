@@ -7979,8 +7979,17 @@ L1:
             /* Rewrite as:
              *  this.d
              */
-            FuncDeclaration *fd = sc->func;
-            if (fd && fd->vthis)
+            FuncDeclaration *fdthis = hasThis(sc);
+            if (!d->isFuncDeclaration())
+            {
+                if (fdthis || !sc->getStructClassScope(sym))
+                {
+                    e = new DotVarExp(e->loc, new ThisExp(e->loc), d);
+                    e = e->semantic(sc);
+                    return e;
+                }
+            }
+            else if (fdthis)
             {
                 e = new DotVarExp(e->loc, new ThisExp(e->loc), d);
                 e = e->semantic(sc);
@@ -8585,19 +8594,22 @@ L1:
             return e;
         }
 
-        FuncDeclaration *fdthis = hasThis(sc);
-        if (d->needThis() && fdthis)
+        if (d->needThis())
         {
             /* Rewrite as:
              *  this.d
              */
+            FuncDeclaration *fdthis = hasThis(sc);
             if (!d->isFuncDeclaration())
             {
-                DotVarExp *de = new DotVarExp(e->loc, new ThisExp(e->loc), d);
-                e = de->semantic(sc);
-                return e;
+                if (fdthis || !sc->getStructClassScope(sym))
+                {
+                    e = new DotVarExp(e->loc, new ThisExp(e->loc), d);
+                    e = e->semantic(sc);
+                    return e;
+                }
             }
-            else
+            else if (fdthis)
             {
                 // This is almost same as getRightThis() in expression.c
                 Expression *e1 = new VarExp(e->loc, fdthis->vthis);

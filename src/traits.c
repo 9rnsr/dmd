@@ -315,12 +315,14 @@ Expression *TraitsExp::semantic(Scope *sc)
 
         Type *t = isType(o);
         Expression *e = isExpression(o);
-        Dsymbol *s = isDsymbol(o);
+        Dsymbol *tsym = NULL;
         if (t)
-            e = typeDotIdExp(loc, t, id);
+        {   e = typeDotIdExp(loc, t, id);
+            tsym = t->toDsymbol(sc);
+        }
         else if (e)
             e = new DotIdExp(loc, e, id);
-        else if (s)
+        else if (Dsymbol *s = isDsymbol(o))
         {   e = new DsymbolExp(loc, s);
             e = new DotIdExp(loc, e, id);
         }
@@ -331,23 +333,19 @@ Expression *TraitsExp::semantic(Scope *sc)
 
         if (ident == Id::hasMember)
         {
-            if (t)
+            if (tsym)
             {
-                Dsymbol *sym = t->toDsymbol(sc);
-                if (sym)
-                {
-                    Dsymbol *sm = sym->search(loc, id, 0);
-                    if (sm)
-                        goto Ltrue;
-                }
+                Dsymbol *sm = tsym->search(loc, id, 0);
+                if (sm)
+                    goto Ltrue;
             }
 
             /* Take any errors as meaning it wasn't found
              */
-            Scope *sc2 = sc->push();
+            sc = sc->push();
             //sc2->inHasMember++;
-            e = e->trySemantic(sc2);
-            sc2->pop();
+            e = e->trySemantic(sc);
+            sc = sc->pop();
             if (!e)
                 goto Lfalse;
             else
@@ -355,7 +353,9 @@ Expression *TraitsExp::semantic(Scope *sc)
         }
         else if (ident == Id::getMember)
         {
+            if (tsym) { sc = sc->push(); sc->parent = tsym; }   // Make hasThis(sc) == NULL
             e = e->semantic(sc);
+            if (tsym) { sc = sc->pop(); }
             return e;
         }
         else if (ident == Id::getVirtualFunctions ||
@@ -364,7 +364,11 @@ Expression *TraitsExp::semantic(Scope *sc)
         {
             unsigned errors = global.errors;
             Expression *ex = e;
+            if (tsym) { sc = sc->push(); sc->parent = tsym; }   // Make hasThis(sc) == NULL
+            //printf("+getOv e = %s %s\n", Token::toChars(e->op), e->toChars());
             e = e->semantic(sc);
+            //printf("-getOv e = %s %s\n", Token::toChars(e->op), e->toChars());
+            if (tsym) { sc = sc->pop(); }
             if (errors < global.errors)
                 error("%s cannot be resolved", ex->toChars());
 

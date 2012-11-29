@@ -2963,7 +2963,7 @@ Lagain:
     // BUG: This should happen after overload resolution for functions, not before
     if (s->needThis())
     {
-        if (hasThis(sc)
+        if ((sc->func || hasThis(sc))
 #if DMDV2
                 && !s->isFuncDeclaration()
 #endif
