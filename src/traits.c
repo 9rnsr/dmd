@@ -227,7 +227,7 @@ Expression *TraitsExp::semantic(Scope *sc)
             goto Ldimerror;
         Object *o = (*args)[0];
         Dsymbol *s = getDsymbol(o);
-printf("o = %d %s\n", o->dyncast(), o->toChars());
+//printf("o = %d %s\n", o->dyncast(), o->toChars());
         if (!s)
         {
             // it might also be a trait getMember or something,
@@ -235,7 +235,6 @@ printf("o = %d %s\n", o->dyncast(), o->toChars());
             if (o->dyncast() == DYNCAST_EXPRESSION)
             {
                 Expression *e = (Expression *) o;
-
                 if (e->op == TOKdotvar)
                 {
                     DotVarExp *dv = (DotVarExp *)e;
@@ -355,7 +354,7 @@ printf("o = %d %s\n", o->dyncast(), o->toChars());
         }
         else if (ident == Id::getMember)
         {
-            if (tsym) { sc = sc->push(); sc->parent = tsym; }
+            if (tsym) { sc = sc->push(); sc->parent = tsym; }   // Make hasThis(sc) == NULL
             e = e->semantic(sc);
             if (tsym) { sc = sc->pop(); }
             return e;
@@ -366,10 +365,10 @@ printf("o = %d %s\n", o->dyncast(), o->toChars());
         {
             unsigned errors = global.errors;
             Expression *ex = e;
-            if (tsym) { sc = sc->push(); sc->parent = tsym; }
-            printf("+getOv e = %s %s\n", Token::toChars(e->op), e->toChars());
+            if (tsym) { sc = sc->push(); sc->parent = tsym; }   // Make hasThis(sc) == NULL
+            //printf("+getOv e = %s %s\n", Token::toChars(e->op), e->toChars());
             e = e->semantic(sc);
-            printf("-getOv e = %s %s\n", Token::toChars(e->op), e->toChars());
+            //printf("-getOv e = %s %s\n", Token::toChars(e->op), e->toChars());
             if (tsym) { sc = sc->pop(); }
             if (errors < global.errors)
                 error("%s cannot be resolved", ex->toChars());

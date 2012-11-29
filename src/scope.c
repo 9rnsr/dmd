@@ -341,7 +341,7 @@ ClassDeclaration *Scope::getClassScope()
  * Search enclosing scopes for ClassDeclaration.
  */
 
-AggregateDeclaration *Scope::getStructClassScope(AggregateDeclaration *ad = NULL)
+AggregateDeclaration *Scope::getStructClassScope(AggregateDeclaration *ad)
 {
     for (Scope *sc = this; sc; sc = sc->enclosing)
     {
@@ -351,10 +351,10 @@ AggregateDeclaration *Scope::getStructClassScope(AggregateDeclaration *ad = NULL
         {
             ad2 = sc->scopesym->isClassDeclaration();
             if (!ad || ad == ad2)
-                return ad;
+                return ad2;
             ad2 = sc->scopesym->isStructDeclaration();
             if (!ad || ad == ad2)
-                return ad;
+                return ad2;
         }
     }
     return NULL;

@@ -7965,27 +7965,37 @@ L1:
 
     if (e->op == TOKtype)
     {
+        /* It's:
+         *    Struct.d
+         */
         if (d->isTupleDeclaration())
         {
             e = new TupleExp(e->loc, d->isTupleDeclaration());
             e = e->semantic(sc);
             return e;
         }
-		if (d->needThis())
-		{
-	        if (sc->func && !d->isFuncDeclaration())
-	        {
-	            e = new DotVarExp(e->loc, new ThisExp(e->loc), d);
-	            e = e->semantic(sc);
-	            return e;
-	        }
-	        if (hasThis(sc))
-	        {
-	            e = new DotVarExp(e->loc, new ThisExp(e->loc), d);
-	            e = e->semantic(sc);
-	            return e;
-	        }
-		}
+        if (d->needThis())
+        {
+            /* Rewrite as:
+             *  this.d
+             */
+            FuncDeclaration *fdthis = hasThis(sc);
+            if (!d->isFuncDeclaration())
+            {
+                if (fdthis || !sc->getStructClassScope(sym))
+                {
+                    e = new DotVarExp(e->loc, new ThisExp(e->loc), d);
+                    e = e->semantic(sc);
+                    return e;
+                }
+            }
+            if (fdthis && d->isFuncDeclaration())
+            {
+                e = new DotVarExp(e->loc, new ThisExp(e->loc), d);
+                e = e->semantic(sc);
+                return e;
+            }
+        }
         VarExp *ve = new VarExp(e->loc, d, 1);
         if (d->isVarDeclaration() && d->needThis())
             ve->type = d->type->addMod(e->type->mod);
@@ -8586,17 +8596,20 @@ L1:
 
         if (d->needThis())
         {
-            if (sc->func && !d->isFuncDeclaration())
+            /* Rewrite as:
+             *  this.d
+             */
+            FuncDeclaration *fdthis = hasThis(sc);
+            if (!d->isFuncDeclaration())
             {
-                /* Rewrite as:
-                 *  this.d
-                 */
-                DotVarExp *de = new DotVarExp(e->loc, new ThisExp(e->loc), d);
-                e = de->semantic(sc);
-                return e;
+                if (fdthis || !sc->getStructClassScope(sym))
+                {
+                    e = new DotVarExp(e->loc, new ThisExp(e->loc), d);
+                    e = e->semantic(sc);
+                    return e;
+                }
             }
-        	FuncDeclaration *fdthis = hasThis(sc);
-			if (fdthis)
+            else if (fdthis)
             {
                 // This is almost same as getRightThis() in expression.c
                 Expression *e1 = new VarExp(e->loc, fdthis->vthis);
