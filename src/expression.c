@@ -2963,7 +2963,7 @@ Lagain:
     // BUG: This should happen after overload resolution for functions, not before
     if (s->needThis())
     {
-        if (hasThis(sc)
+        if ((sc->func || hasThis(sc))
 #if DMDV2
                 && !s->isFuncDeclaration()
 #endif
@@ -5088,9 +5088,6 @@ Expression *VarExp::semantic(Scope *sc)
 #if DMDV2
         checkPurity(sc, v, NULL);
 #endif
-
-		if (v->needThis() && sc->func && !sc->intypeof)
-			error("need 'this' for field %s", v->toChars());
     }
     FuncDeclaration *f = var->isFuncDeclaration();
     if (f)
