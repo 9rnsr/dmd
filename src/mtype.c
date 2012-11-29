@@ -7982,7 +7982,7 @@ L1:
             FuncDeclaration *fdthis = hasThis(sc);
             if (!d->isFuncDeclaration())
             {
-                if (fdthis || !sc->getStructClassScope(sym))
+                //if (fdthis || !sc->getStructClassScope(sym))
                 {
                     e = new DotVarExp(e->loc, new ThisExp(e->loc), d);
                     e = e->semantic(sc);
@@ -8602,7 +8602,7 @@ L1:
             FuncDeclaration *fdthis = hasThis(sc);
             if (!d->isFuncDeclaration())
             {
-                if (fdthis || !sc->getStructClassScope(sym))
+                //if (fdthis || !sc->getStructClassScope(sym))
                 {
                     e = new DotVarExp(e->loc, new ThisExp(e->loc), d);
                     e = e->semantic(sc);

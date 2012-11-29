@@ -3222,7 +3222,7 @@ Expression *ThisExp::semantic(Scope *sc)
     /* Special case for typeof(this) and typeof(super) since both
      * should work even if they are not inside a non-static member function
      */
-    if (!fd && sc->intypeof)
+    if (!fd && sc->intypeof == 1)
     {
         // Find enclosing struct or class
         for (Dsymbol *s = sc->getStructClassScope(); 1; s = s->parent)
