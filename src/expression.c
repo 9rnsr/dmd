@@ -979,6 +979,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                         VarDeclaration *v = new VarDeclaration(loc, t, id,
                             (isSafe && sc->func) ? NULL : new VoidInitializer(loc));
                         v->storage_class |= STCctfe;
+                        v->storage_class |= STCparameter;   /* Avoid escape analysis */
                         v->semantic(sc);
                         v->parent = sc->parent;
                         //sc->insert(v);
@@ -5156,7 +5157,9 @@ void VarExp::checkEscapeRef(Scope *sc)
     if (v)
     {
         if (!v->isDataseg() && !(v->storage_class & (STCref | STCout)))
+        {
             error("escaping reference to local variable %s", v->toChars());
+        }
     }
 }
 
@@ -9331,7 +9334,11 @@ void CastExp::checkEscape(Scope *sc)
         if (v)
         {
             if (!v->isDataseg() && !v->isParameter())
+            {
+                //printf("v = %s, sc->func = %s, v->parent = %s\n", v->toChars(), sc->func->toChars(), v->parent->toChars());
+                //if (sc->func == v->parent)
                 error("escaping reference to local %s", v->toChars());
+            }
         }
     }
 }
