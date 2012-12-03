@@ -1631,11 +1631,11 @@ Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
  * lifetime of the stack frame.
  */
 
-void Expression::checkEscape()
+void Expression::checkEscape(Scope *sc)
 {
 }
 
-void Expression::checkEscapeRef()
+void Expression::checkEscapeRef(Scope *sc)
 {
 }
 
@@ -5027,7 +5027,7 @@ int SymOffExp::isBool(int result)
     return result ? TRUE : FALSE;
 }
 
-void SymOffExp::checkEscape()
+void SymOffExp::checkEscape(Scope *sc)
 {
     VarDeclaration *v = var->isVarDeclaration();
     if (v)
@@ -5134,7 +5134,7 @@ void VarExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring(var->toChars());
 }
 
-void VarExp::checkEscape()
+void VarExp::checkEscape(Scope *sc)
 {
     VarDeclaration *v = var->isVarDeclaration();
     if (v)
@@ -5150,7 +5150,7 @@ void VarExp::checkEscape()
     }
 }
 
-void VarExp::checkEscapeRef()
+void VarExp::checkEscapeRef(Scope *sc)
 {
     VarDeclaration *v = var->isVarDeclaration();
     if (v)
@@ -5348,11 +5348,11 @@ void TupleExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 }
 
 
-void TupleExp::checkEscape()
+void TupleExp::checkEscape(Scope *sc)
 {
     for (size_t i = 0; i < exps->dim; i++)
     {   Expression *e = (*exps)[i];
-        e->checkEscape();
+        e->checkEscape(sc);
     }
 }
 
@@ -8768,9 +8768,9 @@ Expression *AddrExp::semantic(Scope *sc)
     return this;
 }
 
-void AddrExp::checkEscape()
+void AddrExp::checkEscape(Scope *sc)
 {
-    e1->checkEscapeRef();
+    e1->checkEscapeRef(sc);
 }
 
 /************************************************************/
@@ -8823,9 +8823,9 @@ Expression *PtrExp::semantic(Scope *sc)
     return this;
 }
 
-void PtrExp::checkEscapeRef()
+void PtrExp::checkEscapeRef(Scope *sc)
 {
-    e1->checkEscape();
+    e1->checkEscape(sc);
 }
 
 int PtrExp::checkCtorInit(Scope *sc)
@@ -9322,7 +9322,7 @@ Lsafe:
 }
 
 
-void CastExp::checkEscape()
+void CastExp::checkEscape(Scope *sc)
 {   Type *tb = type->toBasetype();
     if (tb->ty == Tarray && e1->op == TOKvar &&
         e1->type->toBasetype()->ty == Tsarray)
@@ -9610,14 +9610,14 @@ Lerr:
     return e;
 }
 
-void SliceExp::checkEscape()
+void SliceExp::checkEscape(Scope *sc)
 {
-    e1->checkEscape();
+    e1->checkEscape(sc);
 }
 
-void SliceExp::checkEscapeRef()
+void SliceExp::checkEscapeRef(Scope *sc)
 {
-    e1->checkEscapeRef();
+    e1->checkEscapeRef(sc);
 }
 
 int SliceExp::checkCtorInit(Scope *sc)
@@ -9891,14 +9891,14 @@ Expression *CommaExp::semantic(Scope *sc)
     return this;
 }
 
-void CommaExp::checkEscape()
+void CommaExp::checkEscape(Scope *sc)
 {
-    e2->checkEscape();
+    e2->checkEscape(sc);
 }
 
-void CommaExp::checkEscapeRef()
+void CommaExp::checkEscapeRef(Scope *sc)
 {
-    e2->checkEscapeRef();
+    e2->checkEscapeRef(sc);
 }
 
 int CommaExp::checkCtorInit(Scope *sc)
@@ -12631,16 +12631,16 @@ Expression *CondExp::modifiableLvalue(Scope *sc, Expression *e)
     return toLvalue(sc, this);
 }
 
-void CondExp::checkEscape()
+void CondExp::checkEscape(Scope *sc)
 {
-    e1->checkEscape();
-    e2->checkEscape();
+    e1->checkEscape(sc);
+    e2->checkEscape(sc);
 }
 
-void CondExp::checkEscapeRef()
+void CondExp::checkEscapeRef(Scope *sc)
 {
-    e1->checkEscapeRef();
-    e2->checkEscapeRef();
+    e1->checkEscapeRef(sc);
+    e2->checkEscapeRef(sc);
 }
 
 

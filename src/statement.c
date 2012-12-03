@@ -3925,7 +3925,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
                          */
                         unsigned errors = global.startGagging();
             printf("ret1 exp = %s\n", exp->toChars());
-                        exp->checkEscapeRef();
+                        exp->checkEscapeRef(sc);
                         if (global.endGagging(errors))
                         {   tf->isref = FALSE;  // return by value
                         }
@@ -4054,14 +4054,14 @@ Statement *ReturnStatement::semantic(Scope *sc)
         {   // Function returns a reference
             exp = exp->toLvalue(sc, exp);
             printf("ret2 exp = %s\n", exp->toChars());
-            exp->checkEscapeRef();
+            exp->checkEscapeRef(sc);
         }
         else
         {
             printf("ret3 exp = %s\n", exp->toChars());
             //exp->dump(0);
             //exp->print();
-            exp->checkEscape();
+            exp->checkEscape(sc);
         }
 
         if (fd->returnLabel && tbret->ty != Tvoid)

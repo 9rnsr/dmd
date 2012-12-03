@@ -143,8 +143,8 @@ struct Expression : Object
     virtual IntRange getIntRange();
     virtual Expression *castTo(Scope *sc, Type *t);
     virtual Expression *inferType(Type *t, int flag = 0, TemplateParameters *tparams = NULL);
-    virtual void checkEscape();
-    virtual void checkEscapeRef();
+    virtual void checkEscape(Scope *sc);
+    virtual void checkEscapeRef(Scope *sc);
     virtual Expression *resolveLoc(Loc loc, Scope *sc);
     void checkScalar();
     void checkNoBool();
@@ -423,7 +423,7 @@ struct TupleExp : Expression
     int equals(Object *o);
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void checkEscape();
+    void checkEscape(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     Expression *castTo(Scope *sc, Type *t);
@@ -619,7 +619,7 @@ struct SymOffExp : SymbolExp
     SymOffExp(Loc loc, Declaration *var, unsigned offset, int hasOverloads = 0);
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-    void checkEscape();
+    void checkEscape(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int isConst();
     int isBool(int result);
@@ -642,8 +642,8 @@ struct VarExp : SymbolExp
     void dump(int indent);
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void checkEscape();
-    void checkEscapeRef();
+    void checkEscape(Scope *sc);
+    void checkEscapeRef(Scope *sc);
     int checkCtorInit(Scope *sc);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -984,7 +984,7 @@ struct AddrExp : UnaExp
 {
     AddrExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
-    void checkEscape();
+    void checkEscape(Scope *sc);
     elem *toElem(IRState *irs);
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
@@ -997,7 +997,7 @@ struct PtrExp : UnaExp
     PtrExp(Loc loc, Expression *e);
     PtrExp(Loc loc, Expression *e, Type *t);
     Expression *semantic(Scope *sc);
-    void checkEscapeRef();
+    void checkEscapeRef(Scope *sc);
     int checkCtorInit(Scope *sc);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -1095,7 +1095,7 @@ struct CastExp : UnaExp
     IntRange getIntRange();
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-    void checkEscape();
+    void checkEscape(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     Expression *buildArrayLoop(Parameters *fparams);
@@ -1129,8 +1129,8 @@ struct SliceExp : UnaExp
     Expression *syntaxCopy();
     int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
-    void checkEscape();
-    void checkEscapeRef();
+    void checkEscape(Scope *sc);
+    void checkEscapeRef(Scope *sc);
     int checkCtorInit(Scope *sc);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -1197,8 +1197,8 @@ struct CommaExp : BinExp
 {
     CommaExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    void checkEscape();
-    void checkEscapeRef();
+    void checkEscape(Scope *sc);
+    void checkEscapeRef(Scope *sc);
     int checkCtorInit(Scope *sc);
     IntRange getIntRange();
     int isLvalue();
@@ -1644,8 +1644,8 @@ struct CondExp : BinExp
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-    void checkEscape();
-    void checkEscapeRef();
+    void checkEscape(Scope *sc);
+    void checkEscapeRef(Scope *sc);
     int checkCtorInit(Scope *sc);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
