@@ -248,6 +248,24 @@ void test9109()
 }
 
 /*********************************************************/
+// 9110
+
+void test9110()
+{
+    int foo(lazy int[] dgs...)
+    {
+        int res;
+        foreach (i, dg; dgs)
+            res += dg;
+        return res;
+    }
+    auto a = foo(1,2,3);
+
+    int[] bar(lazy int[] dgs...) { return dgs; }
+    auto arr = bar(1,2,3);    // crash dmd?
+}
+
+/*********************************************************/
 
 int main()
 {
