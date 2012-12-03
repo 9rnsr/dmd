@@ -983,9 +983,11 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                         v->parent = sc->parent;
                         //sc->insert(v);
 
-                        Expression *c = new DeclarationExp(0, v);
-                        c->type = v->type;
+                        arg = new DeclarationExp(0, v);
+                        arg->type = v->type;
 
+                        Expression *ce = NULL;
+                        Expression *ve = new VarExp(loc, v);
                         for (size_t u = i; u < nargs; u++)
                         {   Expression *a = (*arguments)[u];
                             TypeArray *ta = (TypeArray *)tb;
@@ -997,17 +999,19 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                                 }
                             }
 
-                            Expression *e = new VarExp(loc, v);
-                            e = new IndexExp(loc, e, new IntegerExp(u + 1 - nparams));
+                            Expression *e = new IndexExp(loc, ve, new IntegerExp(u + 1 - nparams));
                             ConstructExp *ae = new ConstructExp(loc, e, a);
-                            if (c)
-                                c = new CommaExp(loc, c, ae);
+                            if (ce)
+                                ce = new CommaExp(loc, ce, ae);
                             else
-                                c = ae;
+                                ce = ae;
                         }
-                        arg = new VarExp(loc, v);
-                        if (c)
-                            arg = new CommaExp(loc, c, arg);
+                        if (ce)
+                            ce = new CommaExp(loc, ce, new VarExp(loc, v));
+                        else
+                            ce = new VarExp(loc, v);
+                        arg = new CommaExp(loc, arg, ce);
+                        printf("tb = %s, arg = %s\n", tb->toChars(), arg->toChars());
                         break;
                     }
                     case Tclass:
@@ -1137,7 +1141,17 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             }
             else if (p->storageClass & STClazy)
             {   // Convert lazy argument to a delegate
-                arg = arg->toDelegate(sc, p->type);
+                if (tf->varargs == 2 && i + 1 == nparams)
+                {
+                    assert(arg->op == TOKcomma);
+                    CommaExp *ce = (CommaExp *)arg;
+                    printf("trace\n\tce->e1 = %s %s\n", Token::toChars(ce->e1->op), ce->e1->toChars());
+                    printf("\tce->e2 = %s %s\n", Token::toChars(ce->e2->op), ce->e2->toChars());
+                    ce->e2 = ce->e2->toDelegate(sc, p->type);
+                    printf("end toDelegate\n");
+                }
+                else
+                    arg = arg->toDelegate(sc, p->type);
             }
             else
             {

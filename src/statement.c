@@ -3924,6 +3924,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
                          * escaping reference" test)
                          */
                         unsigned errors = global.startGagging();
+            printf("ret1 exp = %s\n", exp->toChars());
                         exp->checkEscapeRef();
                         if (global.endGagging(errors))
                         {   tf->isref = FALSE;  // return by value
@@ -4052,10 +4053,12 @@ Statement *ReturnStatement::semantic(Scope *sc)
         if (((TypeFunction *)fd->type)->isref && !fd->isCtorDeclaration())
         {   // Function returns a reference
             exp = exp->toLvalue(sc, exp);
+            printf("ret2 exp = %s\n", exp->toChars());
             exp->checkEscapeRef();
         }
         else
         {
+            printf("ret3 exp = %s\n", exp->toChars());
             //exp->dump(0);
             //exp->print();
             exp->checkEscape();

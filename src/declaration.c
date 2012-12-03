@@ -1912,7 +1912,7 @@ void VarDeclaration::checkCtorConstInit()
 
 void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
 {
-    //printf("VarDeclaration::checkNestedReference() %s\n", toChars());
+    printf("VarDeclaration::checkNestedReference() %s\n", toChars());
     if (parent && !isDataseg() && parent != sc->parent &&
         !(storage_class & STCmanifest))
     {
