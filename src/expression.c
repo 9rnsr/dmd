@@ -1012,7 +1012,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                         else
                             ce = new VarExp(loc, v);
                         arg = new CommaExp(loc, arg, ce);
-                        printf("tb = %s, arg = %s\n", tb->toChars(), arg->toChars());
+                        //printf("tb = %s, arg = %s\n", tb->toChars(), arg->toChars());
                         break;
                     }
                     case Tclass:
@@ -1146,10 +1146,10 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 {
                     assert(arg->op == TOKcomma);
                     CommaExp *ce = (CommaExp *)arg;
-                    printf("trace\n\tce->e1 = %s %s\n", Token::toChars(ce->e1->op), ce->e1->toChars());
-                    printf("\tce->e2 = %s %s\n", Token::toChars(ce->e2->op), ce->e2->toChars());
+                    //printf("trace\n\tce->e1 = %s %s\n", Token::toChars(ce->e1->op), ce->e1->toChars());
+                    //printf("\tce->e2 = %s %s\n", Token::toChars(ce->e2->op), ce->e2->toChars());
                     ce->e2 = ce->e2->toDelegate(sc, p->type);
-                    printf("end toDelegate\n");
+                    //printf("end toDelegate\n");
                 }
                 else
                     arg = arg->toDelegate(sc, p->type);
