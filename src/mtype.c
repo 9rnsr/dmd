@@ -1939,6 +1939,8 @@ Expression *Type::getProperty(Loc loc, Scope *sc, Identifier *ident, int flag)
     {
         Type *tb = toBasetype();
         e = defaultInitLiteral(loc);
+        while (tb->ty == Tsarray)
+            tb = tb->nextOf()->toBasetype();
         if (tb->ty == Tstruct && tb->needsNested())
         {
             if (sc && sc->func && sc->func->setUnsafe())
@@ -2026,19 +2028,6 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
                 e = new IntegerExp(e->loc, v->offset, Type::tsize_t);
                 return e;
             }
-        }
-        else if (ident == Id::init)
-        {
-            Type *tb = toBasetype();
-            e = defaultInitLiteral(e->loc);
-            if (tb->ty == Tstruct && tb->needsNested())
-            {
-                if (sc && sc->func && sc->func->setUnsafe())
-                    ::error(e->loc, "using .init for type %s is unsafe", toChars());
-                StructLiteralExp *se = (StructLiteralExp *)e;
-                se->sinit = se->sd->toInitializer();
-            }
-            goto Lreturn;
         }
     }
     if (ident == Id::typeinfo)
