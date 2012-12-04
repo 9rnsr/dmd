@@ -299,7 +299,7 @@ void EnumDeclaration::semantic(Scope *sc)
             // Lazily evaluate enum.max
             if (!emax)
             {
-                emax = t->getProperty(Loc(), Id::max, 0);
+                emax = t->getProperty(Loc(), sc, Id::max, 0);
                 emax = emax->ctfeSemantic(sce);
                 emax = emax->ctfeInterpret();
             }

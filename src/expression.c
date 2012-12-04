@@ -460,7 +460,7 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
         s = NULL;
     }
     if (!s)
-        return ue->e1->type->Type::getProperty(loc, ident, 0);
+        return ue->e1->type->Type::getProperty(loc, sc, ident, 0);
 
     if (ue->op == TOKdotti)
     {

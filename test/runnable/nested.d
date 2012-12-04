@@ -1798,6 +1798,21 @@ void test8339c()
 }
 
 /*******************************************/
+// 8752
+
+@safe void test8752()
+{
+    int x;
+    struct S
+    {
+        void foo() { x= 1; }
+    }
+    S s1;
+    S s2 = S();
+    static assert(!__traits(compiles, S.init));
+}
+
+/*******************************************/
 // 8923
 
 void test8923a()
@@ -2514,6 +2529,7 @@ int main()
     test8339a();
     test8339b();
     test8339c();
+    test8752();
     test8923a();
     test8923b();
     test8923c();

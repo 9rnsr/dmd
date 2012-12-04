@@ -309,7 +309,7 @@ struct Type : Object
     Type *substWildTo(unsigned mod);
     virtual Type *toHeadMutable();
     virtual ClassDeclaration *isClassHandle();
-    virtual Expression *getProperty(Loc loc, Identifier *ident, int flag);
+    virtual Expression *getProperty(Loc loc, Scope *sc, Identifier *ident, int flag);
     virtual Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     virtual structalign_t alignment();
     Expression *noMember(Scope *sc, Expression *e, Identifier *ident, int flag);
@@ -356,7 +356,7 @@ struct TypeError : Type
     void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
 
     d_uns64 size(Loc loc);
-    Expression *getProperty(Loc loc, Identifier *ident, int flag);
+    Expression *getProperty(Loc loc, Scope *sc, Identifier *ident, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
@@ -395,7 +395,7 @@ struct TypeBasic : Type
     Type *syntaxCopy();
     d_uns64 size(Loc loc);
     unsigned alignsize();
-    Expression *getProperty(Loc loc, Identifier *ident, int flag);
+    Expression *getProperty(Loc loc, Scope *sc, Identifier *ident, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     char *toChars();
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
@@ -429,7 +429,7 @@ struct TypeVector : Type
     Type *semantic(Loc loc, Scope *sc);
     d_uns64 size(Loc loc);
     unsigned alignsize();
-    Expression *getProperty(Loc loc, Identifier *ident, int flag);
+    Expression *getProperty(Loc loc, Scope *sc, Identifier *ident, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     char *toChars();
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
@@ -866,7 +866,7 @@ struct TypeEnum : Type
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toJson(JsonOut *json);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
-    Expression *getProperty(Loc loc, Identifier *ident, int flag);
+    Expression *getProperty(Loc loc, Scope *sc, Identifier *ident, int flag);
     int isintegral();
     int isfloating();
     int isreal();
@@ -911,7 +911,7 @@ struct TypeTypedef : Type
     void toJson(JsonOut *json);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     structalign_t alignment();
-    Expression *getProperty(Loc loc, Identifier *ident, int flag);
+    Expression *getProperty(Loc loc, Scope *sc, Identifier *ident, int flag);
     int isintegral();
     int isfloating();
     int isreal();
@@ -1001,7 +1001,7 @@ struct TypeTuple : Type
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toJson(JsonOut *json);
-    Expression *getProperty(Loc loc, Identifier *ident, int flag);
+    Expression *getProperty(Loc loc, Scope *sc, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
     TypeInfoDeclaration *getTypeInfoDeclaration();
 };

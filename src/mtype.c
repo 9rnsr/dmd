@@ -1913,7 +1913,7 @@ Type *Type::toHeadMutable()
  *
  * If flag == 1, don't report "not a property" error and just return NULL.
  */
-Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
+Expression *Type::getProperty(Loc loc, Scope *sc, Identifier *ident, int flag)
 {   Expression *e;
 
 #if LOGDOTEXP
@@ -1941,6 +1941,8 @@ Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
         e = defaultInitLiteral(loc);
         if (tb->ty == Tstruct && tb->needsNested())
         {
+            if (sc && sc->func && sc->func->setUnsafe())
+                ::error(loc, "using .init for type %s is unsafe", toChars());
             StructLiteralExp *se = (StructLiteralExp *)e;
             se->sinit = se->sd->toInitializer();
         }
@@ -2031,6 +2033,8 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
             e = defaultInitLiteral(e->loc);
             if (tb->ty == Tstruct && tb->needsNested())
             {
+                if (sc && sc->func && sc->func->setUnsafe())
+                    ::error(e->loc, "using .init for type %s is unsafe", toChars());
                 StructLiteralExp *se = (StructLiteralExp *)e;
                 se->sinit = se->sd->toInitializer();
             }
@@ -2050,7 +2054,7 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
         e = new StringExp(e->loc, s, strlen(s), 'c');
     }
     else
-        e = getProperty(e->loc, ident, flag);
+        e = getProperty(e->loc, sc, ident, flag);
 
 Lreturn:
     if (!flag || e)
@@ -2304,7 +2308,7 @@ void TypeError::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 }
 
 d_uns64 TypeError::size(Loc loc) { return SIZE_INVALID; }
-Expression *TypeError::getProperty(Loc loc, Identifier *ident, int flag) { return new ErrorExp(); }
+Expression *TypeError::getProperty(Loc loc, Scope *sc, Identifier *ident, int flag) { return new ErrorExp(); }
 Expression *TypeError::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag) { return new ErrorExp(); }
 Expression *TypeError::defaultInit(Loc loc) { return new ErrorExp(); }
 Expression *TypeError::defaultInitLiteral(Loc loc) { return new ErrorExp(); }
@@ -2769,7 +2773,7 @@ unsigned TypeBasic::alignsize()
 }
 
 
-Expression *TypeBasic::getProperty(Loc loc, Identifier *ident, int flag)
+Expression *TypeBasic::getProperty(Loc loc, Scope *sc, Identifier *ident, int flag)
 {
     Expression *e;
     d_int64 ivalue;
@@ -2996,7 +3000,7 @@ Expression *TypeBasic::getProperty(Loc loc, Identifier *ident, int flag)
         }
     }
 
-    return Type::getProperty(loc, ident, flag);
+    return Type::getProperty(loc, sc, ident, flag);
 
 Livalue:
     e = new IntegerExp(loc, ivalue, this);
@@ -3060,7 +3064,7 @@ Expression *TypeBasic::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
                 break;
 
             default:
-                e = Type::getProperty(e->loc, ident, flag);
+                e = Type::getProperty(e->loc, sc, ident, flag);
                 break;
         }
     }
@@ -3092,7 +3096,7 @@ Expression *TypeBasic::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
                 break;
 
             default:
-                e = Type::getProperty(e->loc, ident, flag);
+                e = Type::getProperty(e->loc, sc, ident, flag);
                 break;
         }
     }
@@ -3150,7 +3154,7 @@ Expression *TypeBasic::defaultInit(Loc loc)
 #if SNAN_DEFAULT_INIT
             return new RealExp(loc, fvalue, this);
 #else
-            return getProperty(loc, Id::nan);
+            return getProperty(loc, sc, Id::nan);
 #endif
 
         case Tcomplex32:
@@ -3164,7 +3168,7 @@ Expression *TypeBasic::defaultInit(Loc loc)
             return new ComplexExp(loc, cvalue, this);
         }
 #else
-            return getProperty(loc, Id::nan);
+            return getProperty(loc, sc, Id::nan);
 #endif
 
         case Tvoid:
@@ -3431,9 +3435,9 @@ unsigned TypeVector::alignsize()
     return (unsigned)basetype->size();
 }
 
-Expression *TypeVector::getProperty(Loc loc, Identifier *ident, int flag)
+Expression *TypeVector::getProperty(Loc loc, Scope *sc, Identifier *ident, int flag)
 {
-    return basetype->getProperty(loc, ident, flag);
+    return basetype->getProperty(loc, sc, ident, flag);
 }
 
 Expression *TypeVector::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
@@ -7296,7 +7300,7 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident, int fl
             !sym->memtype
            )
         {
-            return getProperty(e->loc, ident, flag);
+            return getProperty(e->loc, sc, ident, flag);
         }
         return sym->memtype->dotExp(sc, e, ident, flag);
     }
@@ -7304,7 +7308,7 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident, int fl
     return m->getVarExp(e->loc, sc);
 }
 
-Expression *TypeEnum::getProperty(Loc loc, Identifier *ident, int flag)
+Expression *TypeEnum::getProperty(Loc loc, Scope *sc, Identifier *ident, int flag)
 {   Expression *e;
 
     if (ident == Id::max)
@@ -7331,11 +7335,11 @@ Expression *TypeEnum::getProperty(Loc loc, Identifier *ident, int flag)
     }
     else if (ident == Id::mangleof)
     {
-        e = Type::getProperty(loc, ident, flag);
+        e = Type::getProperty(loc, sc, ident, flag);
     }
     else
     {
-        e = toBasetype()->getProperty(loc, ident, flag);
+        e = toBasetype()->getProperty(loc, sc, ident, flag);
     }
     return e;
 
@@ -7551,16 +7555,16 @@ structalign_t TypeTypedef::alignment()
     return a;
 }
 
-Expression *TypeTypedef::getProperty(Loc loc, Identifier *ident, int flag)
+Expression *TypeTypedef::getProperty(Loc loc, Scope *sc, Identifier *ident, int flag)
 {
 #if LOGDOTEXP
     printf("TypeTypedef::getProperty(ident = '%s') '%s'\n", ident->toChars(), toChars());
 #endif
     if (ident == Id::init)
     {
-        return Type::getProperty(loc, ident, flag);
+        return Type::getProperty(loc, sc, ident, flag);
     }
-    return sym->basetype->getProperty(loc, ident, flag);
+    return sym->basetype->getProperty(loc, sc, ident, flag);
 }
 
 int TypeTypedef::isintegral()
@@ -8431,13 +8435,13 @@ L1:
         if (sym->ident == ident)
         {
             if (e->op == TOKtype)
-                return Type::getProperty(e->loc, ident, 0);
+                return Type::getProperty(e->loc, sc, ident, 0);
             return new DotTypeExp(e->loc, e, sym);
         }
         if (ClassDeclaration *cbase = sym->searchBase(e->loc, ident))
         {
             if (e->op == TOKtype)
-                return Type::getProperty(e->loc, ident, 0);
+                return Type::getProperty(e->loc, sc, ident, 0);
             if (InterfaceDeclaration *ifbase = cbase->isInterfaceDeclaration())
                 e = new CastExp(e->loc, e, ifbase->type);
             else
@@ -9012,7 +9016,7 @@ void TypeTuple::toDecoBuffer(OutBuffer *buf, int flag)
     buf->printf("%d%.*s", len, len, (char *)buf2.extractData());
 }
 
-Expression *TypeTuple::getProperty(Loc loc, Identifier *ident, int flag)
+Expression *TypeTuple::getProperty(Loc loc, Scope *sc, Identifier *ident, int flag)
 {   Expression *e;
 
 #if LOGDOTEXP
