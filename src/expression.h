@@ -965,6 +965,7 @@ struct CallExp : UnaExp
     int apply(apply_fp_t fp, void *param);
     Expression *resolveUFCS(Scope *sc);
     Expression *semantic(Scope *sc);
+    Expression *semantic(Scope *sc, int flag);
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

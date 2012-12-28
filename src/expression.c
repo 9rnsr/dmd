@@ -912,7 +912,7 @@ Expression *callCpCtor(Loc loc, Scope *sc, Expression *e, int noscope)
  */
 
 Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
-        Expression *ethis, Expressions *arguments, FuncDeclaration *fd)
+        Expression *ethis, Expressions *arguments, FuncDeclaration *fd, int flag = 0)
 {
     //printf("functionParameters()\n");
     assert(arguments);
@@ -926,7 +926,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
     }
 
     // If inferring return type, and semantic3() needs to be run if not already run
-    if (!tf->next && fd->inferRetType)
+    if (!flag && !tf->next && fd->inferRetType)
     {
         TemplateInstance *spec = fd->isSpeculative();
         int olderrs = global.errors;
@@ -1314,7 +1314,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
     }
 
     Type *tret = tf->next;
-    if (wildmatch)
+    if (!flag && wildmatch)
     {   /* Adjust function return type based on wildmatch
          */
         //printf("wildmatch = x%x, tret = %s\n", wildmatch, tret->toChars());
@@ -3072,10 +3072,12 @@ Lagain:
             global.gag = oldgag;
         }
 
+      #if 0 // temporary
         // if inferring return type, sematic3 needs to be run
         if (f->scope && (f->inferRetType && f->type && !f->type->nextOf() ||
                          getFuncTemplateDecl(f)))
         {
+            printf("dsym f = %s\n", f->toChars());
             TemplateInstance *spec = f->isSpeculative();
             int olderrs = global.errors;
             // If it isn't speculative, we need to show errors
@@ -3089,13 +3091,14 @@ Lagain:
             if (spec && global.errors != olderrs)
                 spec->errors = global.errors - olderrs;
         }
+      #endif
 
         if (f->isUnitTestDeclaration())
         {
             error("cannot call unittest function %s", toChars());
             return new ErrorExp();
         }
-        if (!f->type->deco)
+        if (0 && !f->type->deco)
         {
             error("forward reference to %s", toChars());
             return new ErrorExp();
@@ -7769,6 +7772,11 @@ Lshift:
 
 Expression *CallExp::semantic(Scope *sc)
 {
+    return semantic(sc, 0);
+}
+
+Expression *CallExp::semantic(Scope *sc, int flag)
+{
     Type *t1;
     int istemp;
     Objects *targsi = NULL;     // initial list of template arguments
@@ -8491,6 +8499,7 @@ Lagain:
         VarExp *ve = (VarExp *)e1;
 
         f = ve->var->isFuncDeclaration();
+        printf("var f = %s\n", f->toChars());
         assert(f);
 
         if (ve->hasOverloads)
@@ -8558,11 +8567,11 @@ Lagain:
     if (!arguments)
         arguments = new Expressions();
     int olderrors = global.errors;
-    type = functionParameters(loc, sc, tf, ethis, arguments, f);
+    type = functionParameters(loc, sc, tf, ethis, arguments, f, flag);
     if (olderrors != global.errors)
         return new ErrorExp();
 
-    if (!type)
+    if (!flag && !type)
     {
         error("forward reference to inferred return type of function call %s", toChars());
         return new ErrorExp();
@@ -8570,6 +8579,7 @@ Lagain:
 
     if (f && f->tintro)
     {
+        assert(type);   //todo
         Type *t = type;
         int offset = 0;
         TypeFunction *tf = (TypeFunction *)f->tintro;

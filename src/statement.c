@@ -3794,6 +3794,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
     Scope *scx = sc;
     Expression *eorg = NULL;
+    bool tailcall = false;
 
     if (fd->fes)
         fd = fd->fes->func;             // fd is now function enclosing foreach
@@ -3841,13 +3842,37 @@ Statement *ReturnStatement::semantic(Scope *sc)
             exp = exp->inferType(tbret);
         else if (fld && fld->treq)
             exp = exp->inferType(fld->treq->nextOf()->nextOf());
-        exp = exp->semantic(sc);
-        exp = resolveProperties(sc, exp);
-        if (!((TypeFunction *)fd->type)->isref)
-            exp = exp->optimize(WANTvalue);
+        printf("+[%s] exp = %s %s, type = %p, tailcall = %d\n", loc.toChars(), Token::toChars(exp->op), exp->toChars(), exp->type, tailcall);
+        if (exp->op == TOKcall)
+        {
+            exp = ((CallExp *)exp)->semantic(sc, 1);
+            if (exp->type == NULL)
+            {
+                tailcall = true;
+                //exp = resolveProperties(sc, exp);     // might not need
+                //if (!((TypeFunction *)fd->type)->isref)
+                //    exp = exp->optimize(WANTvalue);
+            }
+            else
+            {
+                exp = resolveProperties(sc, exp);
+                if (!((TypeFunction *)fd->type)->isref)
+                    exp = exp->optimize(WANTvalue);
+            }
+        }
+        else
+        {
+            exp = exp->semantic(sc);
+            exp = resolveProperties(sc, exp);
+            if (!((TypeFunction *)fd->type)->isref)
+                exp = exp->optimize(WANTvalue);
+        }
 
         if (exp->op == TOKcall)
-            valueNoDtor(exp);
+        {
+            if (!tailcall)
+                valueNoDtor(exp);
+        }
         else
         {
             Expression *e = exp->isTemp();
@@ -3878,6 +3903,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
         else
             fd->nrvo_can = 0;
 
+        if (!tailcall)
         if (!fd->nrvo_can &&
             exp->isLvalue() && !((TypeFunction *)fd->type)->isref)
         {
@@ -3919,6 +3945,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
             }
             else
             {
+                printf("-[%s] exp = %s %s, type = %p, tailcall = %d\n", loc.toChars(), Token::toChars(exp->op), exp->toChars(), exp->type, tailcall);
                 if (tf->isref)
                 {   /* Determine "refness" of function return:
                      * if it's an lvalue, return by ref, else return by value
