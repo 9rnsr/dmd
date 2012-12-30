@@ -1652,6 +1652,8 @@ Lretry:
                     else if (farg->op == TOKslice && argtype->ty == Tsarray)
                     {   // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
                     }
+                    else if (fparam->storageClass & STCin)
+                        m = MATCHconvert;
                     else
                         goto Lnomatch;
                 }
