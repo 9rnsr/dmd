@@ -1245,7 +1245,10 @@ void FuncDeclaration::semantic3(Scope *sc)
                 if (f->isnothrow && (global.errors != nothrowErrors) )
                     error("'%s' is nothrow yet may throw", toChars());
                 if (flags & FUNCFLAGnothrowInprocess)
+                {
+                    if (type == f) f = f->copy();
                     f->isnothrow = !(blockexit & BEthrow);
+                }
 #endif
                 //printf("callSuper = x%x\n", sc2->callSuper);
 
