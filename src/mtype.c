@@ -9351,6 +9351,8 @@ MATCH TypeNull::implicitConvTo(Type *to)
     //printf("TypeNull::implicitConvTo(this=%p, to=%p)\n", this, to);
     //printf("from: %s\n", toChars());
     //printf("to  : %s\n", to->toChars());
+    if (to->toBasetype()->ty == Tnull)
+        return mod == to->toBasetype()->mod ? MATCHexact : MATCHconst;
     MATCH m = Type::implicitConvTo(to);
     if (m)
         return m;
