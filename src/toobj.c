@@ -1127,6 +1127,8 @@ void StructDeclaration::toObjFile(int multiobj)
 
 /* ================================================================== */
 
+dt_t **toBlockDt(Expression *e, Type *t, dt_t **pdt);
+
 void VarDeclaration::toObjFile(int multiobj)
 {
     Symbol *s;
@@ -1203,7 +1205,15 @@ void VarDeclaration::toObjFile(int multiobj)
         s->Sfl = FLdata;
 
         if (init)
-        {   s->Sdt = init->toDt();
+        {
+#if 1
+            ExpInitializer *ie = init->isExpInitializer();
+            if (ie)
+            	toBlockDt(ie->exp, type, &s->Sdt);
+            else
+            	s->Sdt = init->toDt();
+#else
+            s->Sdt = init->toDt();
 
             // Look for static array that is block initialized
             Type *tb;
@@ -1224,6 +1234,7 @@ void VarDeclaration::toObjFile(int multiobj)
                     pdt = ie->exp->toDt(pdt);
                 }
             }
+#endif
         }
         else if (storage_class & STCextern)
         {

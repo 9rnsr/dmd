@@ -467,23 +467,21 @@ dt_t **ArrayLiteralExp::toDt(dt_t **pdt)
     return pdt;
 }
 
-Expression *makeLiteral(Expression *e, Type *t)
+dt_t **toBlockDt(Expression *e, Type *t, dt_t **pdt)
 {
     if (t->toBasetype()->ty != Tsarray || e->implicitConvTo(t))
-        return e;
+    {
+        return e->toDt(pdt);
+    }
 
     TypeSArray *tsa = (TypeSArray *)t->toBasetype();
-    e = makeLiteral(e, tsa->nextOf());
-
     uinteger_t dim = tsa->dim->toInteger();
-
-    Expressions *a = new Expressions();
-    a->setDim(dim);
+    dt_t **pdt0 = pdt;
     for (size_t i = 0; i < dim; ++i)
-        (*a)[i] = e->copy();
-    e = new ArrayLiteralExp(e->loc, a);
-    e->type = t;
-    return e;
+    {
+        toBlockDt(e, tsa->nextOf(), pdt);
+    }
+	return pdt0;
 }
 
 dt_t **StructLiteralExp::toDt(dt_t **pdt)
@@ -503,10 +501,10 @@ dt_t **StructLiteralExp::toDt(dt_t **pdt)
         Expression *e = (*elements)[i];
         if (!e)
             continue;
-        e = makeLiteral(e, sd->fields[i]->type);
         //printf("e = %s %s\n", e->type->toChars(), e->toChars());
         dt_t *dt = NULL;
-        e->toDt(&dt);           // convert e to an initializer dt
+        //e->toDt(&dt);           // convert e to an initializer dt
+        toBlockDt(e, sd->fields[i]->type, &dt);
         dts[i] = dt;
     }
 
