@@ -467,6 +467,25 @@ dt_t **ArrayLiteralExp::toDt(dt_t **pdt)
     return pdt;
 }
 
+Expression *makeLiteral(Expression *e, Type *t)
+{
+    if (t->toBasetype()->ty != Tsarray || e->implicitConvTo(t))
+        return e;
+
+    TypeSArray *tsa = (TypeSArray *)t->toBasetype();
+    e = makeLiteral(e, tsa->nextOf());
+
+    uinteger_t dim = tsa->dim->toInteger();
+
+    Expressions *a = new Expressions();
+    a->setDim(dim);
+    for (size_t i = 0; i < dim; ++i)
+        (*a)[i] = e->copy();
+    e = new ArrayLiteralExp(e->loc, a);
+    e->type = t;
+    return e;
+}
+
 dt_t **StructLiteralExp::toDt(dt_t **pdt)
 {
     //printf("StructLiteralExp::toDt() %s, ctfe = %d\n", toChars(), ownedByCtfe);
@@ -484,6 +503,8 @@ dt_t **StructLiteralExp::toDt(dt_t **pdt)
         Expression *e = (*elements)[i];
         if (!e)
             continue;
+        e = makeLiteral(e, sd->fields[i]->type);
+        //printf("e = %s %s\n", e->type->toChars(), e->toChars());
         dt_t *dt = NULL;
         e->toDt(&dt);           // convert e to an initializer dt
         dts[i] = dt;

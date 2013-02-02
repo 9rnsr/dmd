@@ -3190,42 +3190,42 @@ void test200()
 
 // Bugzilla 2931
 
-struct Bug2931 {
-        int val[3][4];
+struct Bug2931
+{
+    int val[3][4];
 }
 
-struct Outer2931 {
-        Bug2931 p = Bug2931(67);  // Applies to struct static initializers too
-        int zoom = 2;
-        int move = 3;
-        int scale = 4;
+struct Outer2931
+{
+    Bug2931 p = Bug2931(67);  // Applies to struct static initializers too
+    int zoom = 2;
+    int move = 3;
+    int scale = 4;
 }
 
 int bug2931()
 {
-  Outer2931 v;
-  assert(v.move==3);
-  assert(v.scale == 4);
-  return v.zoom;
+    Outer2931 v;
+    assert(v.move == 3);
+    assert(v.scale == 4);
+    return v.zoom;
 }
 
 int bug2931_2()
 {
-  Outer2931 v;
-  assert(v.move==3);
-  for (int i = 0; i < 4; i++)
-  { for (int j = 0; j < 3; j++)
+    Outer2931 v;
+    assert(v.move==3);
+    for (int i = 0; i < 4; i++)
     {
-	printf("[%d][%d] = %d\n", j, i, v.p.val[j][i]);
-	if (i == 0 && j == 0)
-	    assert(v.p.val[j][i] == 67);
-	else
-	    assert(v.p.val[j][i] == 0);
+        for (int j = 0; j < 3; j++)
+        {
+            printf("[%d][%d] = %d\n", j, i, v.p.val[j][i]);
+            assert(v.p.val[j][i] == 67);
+        }
     }
-  }
-  printf("v.zoom = %d\n", v.zoom);
-  assert(v.scale == 4);
-  return v.zoom;
+    printf("v.zoom = %d\n", v.zoom);
+    assert(v.scale == 4);
+    return v.zoom;
 }
 
 static assert(bug2931()==2);
