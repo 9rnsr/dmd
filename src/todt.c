@@ -54,11 +54,25 @@ dt_t **toBlockDt(Expression *e, Type *t, dt_t **pdt)
 
 dt_t *toBlockDt(Initializer *init, Type *t)
 {
-    dt_t *dt = NULL;
-    if (ExpInitializer *ie = init->isExpInitializer())
-        toBlockDt(ie->exp, t, &dt);
-    else
-        dt = init->toDt();
+    dt_t *dt = init->toDt();
+
+    // Look for static array that is block initialized
+    ExpInitializer *ie = init->isExpInitializer();
+    Type *tb = t->toBasetype();
+    if (tb->ty == Tsarray && ie &&
+        !tb->nextOf()->equals(ie->exp->type->toBasetype()->nextOf()) &&
+        ie->exp->implicitConvTo(tb->nextOf())
+       )
+    {
+        size_t dim = ((TypeSArray *)tb)->dim->toInteger();
+
+        // Duplicate Sdt 'dim-1' times, as we already have the first one
+        dt_t **pdt = &dt;
+        while (--dim > 0)
+        {
+            pdt = ie->exp->toDt(pdt);
+        }
+    }
     return dt;
 }
 
