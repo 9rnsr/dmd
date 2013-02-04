@@ -1127,7 +1127,7 @@ void StructDeclaration::toObjFile(int multiobj)
 
 /* ================================================================== */
 
-dt_t **toBlockDt(Expression *e, Type *t, dt_t **pdt);
+dt_t *toBlockDt(Initializer *init, Type *t);
 
 void VarDeclaration::toObjFile(int multiobj)
 {
@@ -1207,11 +1207,7 @@ void VarDeclaration::toObjFile(int multiobj)
         if (init)
         {
             // Look for static array that is block initialized
-            ExpInitializer *ie = init->isExpInitializer();
-            if (ie)
-                toBlockDt(ie->exp, type, &s->Sdt);
-            else
-                s->Sdt = init->toDt();
+            s->Sdt = toBlockDt(init, type);
         }
         else if (storage_class & STCextern)
         {

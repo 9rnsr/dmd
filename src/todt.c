@@ -52,6 +52,16 @@ dt_t **toBlockDt(Expression *e, Type *t, dt_t **pdt)
     return pdt0;
 }
 
+dt_t *toBlockDt(Initializer *init, Type *t)
+{
+    dt_t *dt = NULL;
+    if (ExpInitializer *ie = init->isExpInitializer())
+        toBlockDt(ie->exp, t, &dt);
+    else
+        dt = init->toDt();
+    return dt;
+}
+
 /* ================================================================ */
 
 dt_t *Initializer::toDt()
@@ -94,10 +104,7 @@ dt_t *StructInitializer::toDt()
             {
                 if (dts[j])
                     error(loc, "field %s of %s already initialized", v->toChars(), ad->toChars());
-                if (ExpInitializer *ie = val->isExpInitializer())
-                    toBlockDt(ie->exp, ad->fields[j]->type, &dts[j]);
-                else
-                    dts[j] = val->toDt();
+                dts[j] = toBlockDt(val, ad->fields[j]->type);
                 break;
             }
         }
