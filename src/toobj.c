@@ -1206,35 +1206,12 @@ void VarDeclaration::toObjFile(int multiobj)
 
         if (init)
         {
-#if 1
+            // Look for static array that is block initialized
             ExpInitializer *ie = init->isExpInitializer();
             if (ie)
-            	toBlockDt(ie->exp, type, &s->Sdt);
+                toBlockDt(ie->exp, type, &s->Sdt);
             else
-            	s->Sdt = init->toDt();
-#else
-            s->Sdt = init->toDt();
-
-            // Look for static array that is block initialized
-            Type *tb;
-            ExpInitializer *ie = init->isExpInitializer();
-
-            tb = type->toBasetype();
-            if (tb->ty == Tsarray && ie &&
-                !tb->nextOf()->equals(ie->exp->type->toBasetype()->nextOf()) &&
-                ie->exp->implicitConvTo(tb->nextOf())
-                )
-            {
-                size_t dim = ((TypeSArray *)tb)->dim->toInteger();
-
-                // Duplicate Sdt 'dim-1' times, as we already have the first one
-                dt_t **pdt = &s->Sdt;
-                while (--dim > 0)
-                {
-                    pdt = ie->exp->toDt(pdt);
-                }
-            }
-#endif
+                s->Sdt = init->toDt();
         }
         else if (storage_class & STCextern)
         {

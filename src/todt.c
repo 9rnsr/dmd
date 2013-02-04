@@ -35,6 +35,23 @@
 
 typedef ArrayBase<dt_t> Dts;
 
+dt_t **toBlockDt(Expression *e, Type *t, dt_t **pdt)
+{
+    if (t->toBasetype()->ty != Tsarray || e->implicitConvTo(t))
+    {
+        return e->toDt(pdt);
+    }
+
+    TypeSArray *tsa = (TypeSArray *)t->toBasetype();
+    uinteger_t dim = tsa->dim->toInteger();
+    dt_t **pdt0 = pdt;
+    for (size_t i = 0; i < dim; ++i)
+    {
+        toBlockDt(e, tsa->nextOf(), pdt);
+    }
+    return pdt0;
+}
+
 /* ================================================================ */
 
 dt_t *Initializer::toDt()
@@ -77,7 +94,10 @@ dt_t *StructInitializer::toDt()
             {
                 if (dts[j])
                     error(loc, "field %s of %s already initialized", v->toChars(), ad->toChars());
-                dts[j] = val->toDt();
+                if (ExpInitializer *ie = val->isExpInitializer())
+                    toBlockDt(ie->exp, ad->fields[j]->type, &dts[j]);
+                else
+                    dts[j] = val->toDt();
                 break;
             }
         }
@@ -467,23 +487,6 @@ dt_t **ArrayLiteralExp::toDt(dt_t **pdt)
     return pdt;
 }
 
-dt_t **toBlockDt(Expression *e, Type *t, dt_t **pdt)
-{
-    if (t->toBasetype()->ty != Tsarray || e->implicitConvTo(t))
-    {
-        return e->toDt(pdt);
-    }
-
-    TypeSArray *tsa = (TypeSArray *)t->toBasetype();
-    uinteger_t dim = tsa->dim->toInteger();
-    dt_t **pdt0 = pdt;
-    for (size_t i = 0; i < dim; ++i)
-    {
-        toBlockDt(e, tsa->nextOf(), pdt);
-    }
-	return pdt0;
-}
-
 dt_t **StructLiteralExp::toDt(dt_t **pdt)
 {
     //printf("StructLiteralExp::toDt() %s, ctfe = %d\n", toChars(), ownedByCtfe);
@@ -501,9 +504,7 @@ dt_t **StructLiteralExp::toDt(dt_t **pdt)
         Expression *e = (*elements)[i];
         if (!e)
             continue;
-        //printf("e = %s %s\n", e->type->toChars(), e->toChars());
         dt_t *dt = NULL;
-        //e->toDt(&dt);           // convert e to an initializer dt
         toBlockDt(e, sd->fields[i]->type, &dt);
         dts[i] = dt;
     }
