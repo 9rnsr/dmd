@@ -397,3 +397,12 @@ void test9348()
     assert(F!0 !is null);
     assert(F!0 !in [new Object():1]);
 }
+
+/***************************************************/
+// 9460
+class C9460(T) {}
+struct S9460(T) {}
+
+static assert((C9460!int).stringof == "C9460!(int)");
+static assert((S9460!int).stringof == "S9460!(int)");
+

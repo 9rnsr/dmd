@@ -8489,7 +8489,11 @@ void TypeClass::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
     {   toCBuffer3(buf, hgs, mod);
         return;
     }
-    buf->writestring(sym->toChars());
+    TemplateInstance *ti = sym->parent->isTemplateInstance();
+    if (ti && ti->toAlias() == sym)
+        buf->writestring(ti->toChars());
+    else
+        buf->writestring(sym->toChars());
 }
 
 Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
