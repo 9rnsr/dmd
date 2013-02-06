@@ -395,7 +395,6 @@ struct TypeBasic : Type
     unsigned alignsize();
     Expression *getProperty(Loc loc, Identifier *ident);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
-    char *toChars();
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
@@ -429,7 +428,6 @@ struct TypeVector : Type
     unsigned alignsize();
     Expression *getProperty(Loc loc, Identifier *ident);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
-    char *toChars();
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toJson(JsonOut *json);
@@ -734,7 +732,6 @@ struct TypeIdentifier : TypeQualified
     TypeIdentifier(Loc loc, Identifier *ident);
     const char *kind();
     Type *syntaxCopy();
-    //char *toChars();
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toJson(JsonOut *json);
@@ -755,7 +752,6 @@ struct TypeInstance : TypeQualified
     TypeInstance(Loc loc, TemplateInstance *tempinst);
     const char *kind();
     Type *syntaxCopy();
-    //char *toChars();
     //void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toJson(JsonOut *json);
@@ -800,7 +796,6 @@ struct TypeStruct : Type
     const char *kind();
     d_uns64 size(Loc loc);
     unsigned alignsize();
-    char *toChars();
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);
@@ -842,7 +837,6 @@ struct TypeEnum : Type
     Type *syntaxCopy();
     d_uns64 size(Loc loc);
     unsigned alignsize();
-    char *toChars();
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);
     void toDecoBuffer(OutBuffer *buf, int flag);
@@ -886,7 +880,6 @@ struct TypeTypedef : Type
     Type *syntaxCopy();
     d_uns64 size(Loc loc);
     unsigned alignsize();
-    char *toChars();
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);
     void toDecoBuffer(OutBuffer *buf, int flag);
@@ -934,7 +927,6 @@ struct TypeClass : Type
     TypeClass(ClassDeclaration *sym);
     const char *kind();
     d_uns64 size(Loc loc);
-    char *toChars();
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);

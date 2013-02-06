@@ -1564,7 +1564,8 @@ void Type::toDecoBuffer(OutBuffer *buf, int flag)
  */
 
 char *Type::toChars()
-{   OutBuffer *buf;
+{
+    OutBuffer *buf;
     HdrGenState hgs;
 
     buf = new OutBuffer();
@@ -2721,12 +2722,6 @@ Type *TypeBasic::syntaxCopy()
     return this;
 }
 
-
-char *TypeBasic::toChars()
-{
-    return Type::toChars();
-}
-
 void TypeBasic::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
     //printf("TypeBasic::toCBuffer2(mod = %d, this->mod = %d)\n", mod, this->mod);
@@ -3447,11 +3442,6 @@ TypeBasic *TypeVector::elementType()
 int TypeVector::checkBoolean()
 {
     return FALSE;
-}
-
-char *TypeVector::toChars()
-{
-    return Type::toChars();
 }
 
 void TypeVector::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
@@ -7347,13 +7337,6 @@ const char *TypeEnum::kind()
     return "enum";
 }
 
-char *TypeEnum::toChars()
-{
-    if (mod)
-        return Type::toChars();
-    return sym->toChars();
-}
-
 Type *TypeEnum::syntaxCopy()
 {
     return this;
@@ -7625,11 +7608,6 @@ const char *TypeTypedef::kind()
 Type *TypeTypedef::syntaxCopy()
 {
     return this;
-}
-
-char *TypeTypedef::toChars()
-{
-    return Type::toChars();
 }
 
 Type *TypeTypedef::semantic(Loc loc, Scope *sc)
@@ -7905,19 +7883,6 @@ TypeStruct::TypeStruct(StructDeclaration *sym)
 const char *TypeStruct::kind()
 {
     return "struct";
-}
-
-char *TypeStruct::toChars()
-{
-    //printf("sym.parent: %s, deco = %s\n", sym->parent->toChars(), deco);
-    if (mod)
-        return Type::toChars();
-    TemplateInstance *ti = sym->parent->isTemplateInstance();
-    if (ti && ti->toAlias() == sym)
-    {
-        return ti->toChars();
-    }
-    return sym->toChars();
 }
 
 Type *TypeStruct::syntaxCopy()
@@ -8442,13 +8407,6 @@ TypeClass::TypeClass(ClassDeclaration *sym)
 const char *TypeClass::kind()
 {
     return "class";
-}
-
-char *TypeClass::toChars()
-{
-    if (mod)
-        return Type::toChars();
-    return (char *)sym->toPrettyChars();
 }
 
 Type *TypeClass::syntaxCopy()
