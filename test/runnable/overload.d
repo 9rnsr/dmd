@@ -139,6 +139,28 @@ void test3()
 }
 
 /***************************************************/
+
+static int g(int n)        { return 1; }
+static int g(int n, int m) { return 2; }
+
+void test4()
+{
+    static class C
+    {
+        int f(int n)        { return 1; }
+        int f(int n, int m) { return 2; }
+    }
+    auto c = new C();
+    static assert(!__traits(compiles, (&c.f)()));
+    assert((&c.f)(0) == 1);
+    assert((&c.f)(0,1) == 2);
+
+    static assert(!__traits(compiles, (&g)()));
+    assert((&g)(0) == 1);
+    assert((&g)(0,1) == 2);
+}
+
+/***************************************************/
 // 7418
 
 int foo7418(uint a)   { return 1; }

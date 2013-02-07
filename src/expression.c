@@ -8259,13 +8259,24 @@ Lagain:
             f->checkNestedReference(sc, loc);
         }
         else if (t1->ty == Tdelegate)
-        {   TypeDelegate *td = (TypeDelegate *)t1;
+        {
+            if (t1->isAmbiguous() && e1->op == TOKdelegate)
+            {   DelegateExp *de = (DelegateExp *)e1;
+                e1 = new DotVarExp(de->e1->loc, de->e1, de->func, 1);
+                goto Lagain;
+            }
+            TypeDelegate *td = (TypeDelegate *)t1;
             assert(td->next->ty == Tfunction);
             tf = (TypeFunction *)(td->next);
             p = "delegate";
         }
         else if (t1->ty == Tpointer && ((TypePointer *)t1)->next->ty == Tfunction)
         {
+            if (t1->isAmbiguous() && e1->op == TOKsymoff)
+            {   SymOffExp *se = (SymOffExp *)e1;
+                e1 = new VarExp(se->loc, se->var, 1);
+                goto Lagain;
+            }
             tf = (TypeFunction *)(((TypePointer *)t1)->next);
             p = "function pointer";
         }
