@@ -2674,6 +2674,7 @@ struct ParamM
         {
             m->anyf = f;
             TypeFunction *tf = (TypeFunction *)f->type;
+            //printf("tf = %s\n", tf->toChars());
 
             /* 
              * 
@@ -2709,6 +2710,7 @@ struct ParamM
                 return 0;
 
             LfIsBetter:
+                //printf("\tisbetter\n");
                 if (m->last <= MATCHconvert)
                 {   // clear last secondary matching
                     m->nextf = NULL;
@@ -2720,6 +2722,7 @@ struct ParamM
                 return 0;
 
             LlastIsBetter:
+                //printf("\tlastbetter\n");
                 return 0;
             }
         }
@@ -2747,7 +2750,7 @@ FuncDeclaration *FuncDeclaration::overloadModMatch(Loc loc, Expression *ethis, T
         if (!m.nextf)       // better match
             t = m.lastf->type;
         else                // ambiguous match
-            t = NULL;//Type::tambig;
+            t = Type::tambig;
         m.lastf = NULL;
     }
     else                    // no match

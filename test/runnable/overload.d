@@ -6,6 +6,59 @@ template Id(      T){ alias T Id; }
 template Id(alias A){ alias A Id; }
 
 /***************************************************/
+
+void test1()
+{
+    static class C1
+    {
+              void f1() {}
+        const void f1() {}
+
+              void f2() {}
+
+              auto f3() { return &f1; }
+        const auto f3() { return &f1; }
+    }
+    static class C2
+    {
+        const void f1() {}
+              void f1() {}
+
+              void f2() {}
+
+        const auto f3() { return &f1; }
+              auto f3() { return &f1; }
+    }
+
+    // FIX: the tolerance against C's member function declaration order
+    foreach (C; TypeTuple!(C1, C2))
+    {
+        auto mc = new C;
+
+        auto dg1 = &mc.f1;
+        static assert(is(typeof(dg1) == void delegate()));
+
+        auto dg2 = &mc.f2;
+        static assert(is(typeof(dg2) == void delegate()));
+
+        auto dg3 = &mc.f3;
+        static assert(is(typeof(dg3) == void delegate() delegate()));
+    }
+    foreach (C; TypeTuple!(C1, C2))
+    {
+        const cc = new C;
+
+        auto dg1 = &cc.f1;
+        static assert(is(typeof(dg1) == void delegate() const));
+
+        static assert(!is(typeof(&cc.f2)));
+
+        auto dg3 = &cc.f3;
+        static assert(is(typeof(dg3) == void delegate() const delegate() const));
+    }
+}
+
+/***************************************************/
 // 7418
 
 int foo7418(uint a)   { return 1; }
@@ -111,6 +164,7 @@ void test9410()
 
 int main()
 {
+    test1();
     test7418();
     test7552();
     test8943();

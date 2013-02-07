@@ -5954,8 +5954,8 @@ MATCH TypeFunction::modMatch(Expression *ethis)
 {
     assert(ethis);
 
-    //if (isAmbiguous())
-    //    return MATCHnomatch;
+    if (isAmbiguous())
+        return MATCHnomatch;
 
     Type *t = ethis->type;
     if (t->toBasetype()->ty == Tpointer)
@@ -8904,6 +8904,7 @@ L1:
         return e;
     }
 
+    //printf("dotExp d = %s hasOverloads = %d\n", d->toChars(), d->hasOverloads());
     DotVarExp *de = new DotVarExp(e->loc, e, d, d->hasOverloads());
     return de->semantic(sc);
 }

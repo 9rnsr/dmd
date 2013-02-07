@@ -7066,11 +7066,21 @@ Expression *DotVarExp::semantic(Scope *sc)
         FuncDeclaration *f = var->isFuncDeclaration();
         if (f)  // for functions, do checks after overload resolution
         {
-            //printf("L%d fd = %s\n", __LINE__, f->toChars());
+            //printf("DotVarExp f = (%s) %s, hasOverloads = %d\n", f->kind(), f->toChars(), hasOverloads);
+            Type *t = f->type;
+            //if (hasOverloads)
+            {
+                FuncDeclaration *fd = f->overloadModMatch(loc, e1, t);
+                if (!t)     // no match
+                    goto Lerr;
+                //printf("\t-> t = %s\n", t->toChars());
+                if (fd)     // exact match
+                    var = f = fd, hasOverloads = 0;
+            }
             if (!f->functionSemantic())
                 return new ErrorExp();
 
-            type = f->type;
+            type = t->semantic(loc, sc);
             assert(type);
         }
         else
@@ -7420,7 +7430,17 @@ Expression *DelegateExp::semantic(Scope *sc)
     if (!type)
     {
         e1 = e1->semantic(sc);
-        type = new TypeDelegate(func->type);
+        Type *t = func->type;
+        //printf("dg e1 = %s, t = %s\n", e1->type->toChars(), t->toChars());
+        if (!func->isNested()/* && hasOverloads*/)
+        {
+            FuncDeclaration *fd = func->overloadModMatch(loc, e1, t);
+            if (!t)     // no match
+                goto Lerr;
+            if (fd)     // exact match
+                func = fd, hasOverloads = 0;
+        }
+        type = new TypeDelegate(t);     // function to delegate
         type = type->semantic(loc, sc);
         AggregateDeclaration *ad = func->toParent()->isAggregateDeclaration();
         if (func->needThis())
@@ -7432,6 +7452,9 @@ Expression *DelegateExp::semantic(Scope *sc)
         }
     }
     return this;
+
+Lerr:
+    return new ErrorExp();
 }
 
 void DelegateExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
