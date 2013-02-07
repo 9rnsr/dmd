@@ -378,6 +378,160 @@ void test10()
 }
 
 /***************************************************/
+
+void test11()
+{
+    static class C
+    {
+        static int f()     { return 1; }
+        static int f(int n){ return 2; }
+
+        alias TypeTuple!(f) L;
+        alias L[0] F;
+        // Keep overloads through template tuple parameter
+    }
+
+    alias C.L L;
+    assert(L[0](0) == 2);
+    assert(L[0]( ) == 1);
+    static assert(!__traits( compiles,    typeof(L[0])  ));
+    static assert( __traits( compiles, is(typeof(L[0])) ));
+    // L[0] keeps overloaded f
+
+    alias C.F F;
+    assert(F(0) == 2);
+    assert(F( ) == 1);
+    static assert(!__traits( compiles,    typeof(F)  ));
+    static assert( __traits( compiles, is(typeof(F)) ));
+    // F keeps overloaded f
+
+    alias TypeTuple!(__traits(getOverloads, C, "F")) Fs;
+    assert(Fs[0]( ) == 1);
+    assert(Fs[1](0) == 2);
+    static assert(!__traits( compiles, Fs[0](0) ));
+    static assert(!__traits( compiles, Fs[1]( ) ));
+    // separate overloads from C.F <- C.L[0] <- TypeTuple!(C.f)[0]
+}
+
+/***************************************************/
+
+void test12()
+{
+	// C.f prefers static functions, and c.f prefers virtual functions.
+
+    int f1()        { return 0; }   alias typeof(f1) F1;
+    int f2(int)     { return 0; }   alias typeof(f2) F2;
+    int f3(string)  { return 0; }   alias typeof(f3) F3;
+    int f4(int[])   { return 0; }   alias typeof(f4) F4;
+
+    static class C1
+    {
+        int f()     { return 1; }
+        int f(int)  { return 2; }
+    }
+    auto c1 = new C1();
+    static assert(!__traits(compiles,            C1.f    (   )));
+    static assert(!__traits(compiles,            C1.f    (100)));
+    static assert(!__traits(compiles,        Id!(C1.f)   (   )));
+    static assert(!__traits(compiles,        Id!(C1.f)   (100)));
+    static assert(!__traits(compiles, TypeTuple!(C1.f)[0](   )));
+    static assert(!__traits(compiles, TypeTuple!(C1.f)[0](100)));
+    static assert(is(typeof(c1.f)) && !__traits(compiles, typeof(c1.f)));   // virtual ambiguous
+    static assert(is(typeof(C1.f)) && !__traits(compiles, typeof(C1.f)));   // virtual ambiguous
+
+    static class C2
+    {
+        int f()     { return 1; }
+        int f(int)  { return 2; }
+        static int f(string){ return 3; }
+    }
+    auto c2 = new C2();
+    static assert(!__traits(compiles,            C2.f    (   )    ));
+    static assert(!__traits(compiles,            C2.f    (100)    ));
+           assert(                               C2.f    ("a") == 3);
+    static assert(!__traits(compiles,        Id!(C2.f)   (   )    ));
+    static assert(!__traits(compiles,        Id!(C2.f)   (100)    ));
+           assert(                           Id!(C2.f)   ("a") == 3);
+    static assert(!__traits(compiles, TypeTuple!(C2.f)[0](   )    ));
+    static assert(!__traits(compiles, TypeTuple!(C2.f)[0](100)    ));
+           assert(                    TypeTuple!(C2.f)[0]("a") == 3);
+    static assert(is(typeof(c2.f)) && !__traits(compiles, typeof(c2.f)));   // virtual ambiguous
+    static assert(is(typeof(C2.f) == F3));                                  // static  disambiguous
+
+    static class C31
+    {
+        int f()     { return 1; }
+        static int f(string){ return 3; }
+    }
+    auto c31 = new C31();
+    static assert(!__traits(compiles,            C31.f    (100)    ));
+           assert(                               C31.f    ("a") == 3);
+    static assert(!__traits(compiles,        Id!(C31.f)   (100)    ));
+           assert(                           Id!(C31.f)   ("a") == 3);
+    static assert(!__traits(compiles, TypeTuple!(C31.f)[0](100)    ));
+           assert(                    TypeTuple!(C31.f)[0]("a") == 3);
+    static assert(is(typeof(c31.f) == F1));         // virtual disambiguous
+    static assert(is(typeof(C31.f) == F3));         // static  disambiguous
+
+    static class C32
+    {
+        int f()     { return 1; }
+        int f(int)  { return 2; }
+        static int f(string){ return 3; }
+        static int f(int[]) { return 4; }
+    }
+    auto c32 = new C32();
+    static assert(!__traits(compiles,            C32.f    (   )    ));
+    static assert(!__traits(compiles,            C32.f    (100)    ));
+           assert(                               C32.f    ("a") == 3);
+           assert(                               C32.f    ([0]) == 4);
+    static assert(!__traits(compiles,        Id!(C32.f)   (   )    ));
+    static assert(!__traits(compiles,        Id!(C32.f)   (100)    ));
+           assert(                           Id!(C32.f)   ("a") == 3);
+           assert(                           Id!(C32.f)   ([0]) == 4);
+    static assert(!__traits(compiles, TypeTuple!(C32.f)[0](   )    ));
+    static assert(!__traits(compiles, TypeTuple!(C32.f)[0](100)    ));
+           assert(                    TypeTuple!(C32.f)[0]("a") == 3);
+           assert(                    TypeTuple!(C32.f)[0]([0]) == 4);
+    static assert(is(typeof(c32.f)) && !__traits(compiles, typeof(c32.f))); // virtual ambiguous
+    static assert(is(typeof(C32.f)) && !__traits(compiles, typeof(C32.f))); // static  ambiguous
+
+    static class C4
+    {
+        int f()     { return 1; }
+        static int f(string){ return 3; }
+        static int f(int[]) { return 4; }
+    }
+    auto c4 = new C4();
+    static assert(!__traits(compiles,            C4.f    (   )    ));
+           assert(                               C4.f    ("a") == 3);
+           assert(                               C4.f    ([0]) == 4);
+    static assert(!__traits(compiles,        Id!(C4.f)   (   )    ));
+           assert(                           Id!(C4.f)   ("a") == 3);
+           assert(                           Id!(C4.f)   ([0]) == 4);
+    static assert(!__traits(compiles, TypeTuple!(C4.f)[0](   )    ));
+           assert(                    TypeTuple!(C4.f)[0]("a") == 3);
+           assert(                    TypeTuple!(C4.f)[0]([0]) == 4);
+    static assert(is(typeof(c4.f) == F1));                                  // virtual disambiguous
+    static assert(is(typeof(C4.f)) && !__traits(compiles, typeof(C4.f)));   // static  ambiguous
+
+    static class C5
+    {
+        static int f(string){ return 3; }
+        static int f(int[]) { return 4; }
+    }
+    auto c5 = new C5();
+    static assert(!__traits(compiles,            C5.f    (   )    ));
+    static assert(!__traits(compiles,            C5.f    (100)    ));
+    static assert(!__traits(compiles,        Id!(C5.f)   (   )    ));
+    static assert(!__traits(compiles,        Id!(C5.f)   (100)    ));
+    static assert(!__traits(compiles, TypeTuple!(C5.f)[0](   )    ));
+    static assert(!__traits(compiles, TypeTuple!(C5.f)[0](100)    ));
+    static assert(is(typeof(c5.f)) && !__traits(compiles, typeof(c5.f)));   // virtual ambiguous
+    static assert(is(typeof(C5.f)) && !__traits(compiles, typeof(C5.f)));   // virtual ambiguous
+}
+
+/***************************************************/
 // 7418
 
 int foo7418(uint a)   { return 1; }
@@ -493,6 +647,8 @@ int main()
     test8();
     test9();
     test10();
+    test11();
+    test12();
     test7418();
     test7552();
     test8943();

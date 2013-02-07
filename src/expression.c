@@ -5186,7 +5186,7 @@ TupleExp::TupleExp(Loc loc, TupleDeclaration *tup)
         else if (o->dyncast() == DYNCAST_DSYMBOL)
         {
             Dsymbol *s = (Dsymbol *)o;
-            Expression *e = new DsymbolExp(loc, s);
+            Expression *e = new DsymbolExp(loc, s, 1);
             exps->push(e);
         }
         else if (o->dyncast() == DYNCAST_TYPE)
