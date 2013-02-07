@@ -306,7 +306,8 @@ Type *Type::trySemantic(Loc loc, Scope *sc)
     Type *t = semantic(loc, sc);
     if (global.endGagging(errors))        // if any errors happened
     {
-        t = NULL;
+        if (!t->isAmbiguous())
+            t = NULL;
     }
     //printf("-trySemantic(%s) %d\n", toChars(), global.errors);
     return t;
@@ -7158,6 +7159,11 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
             error(loc, "expression (%s) has no type", exp->toChars());
             goto Lerr;
         }
+        if (t->isAmbiguous())
+        {
+            error(loc, "expression (%s) has ambiguous type", exp->toChars());
+            goto Lamgig;
+        }
         if (t->ty == Ttypeof)
         {   error(loc, "forward reference to %s", toChars());
             goto Lerr;
@@ -7204,6 +7210,10 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
         (*pt) = (*pt)->addMod(mod);
     inuse--;
     return;
+
+Lamgig:
+    inuse--;
+    return tambig;
 
 Lerr:
     *pt = Type::terror;

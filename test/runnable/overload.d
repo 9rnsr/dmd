@@ -59,6 +59,53 @@ void test1()
 }
 
 /***************************************************/
+
+void test2()
+{
+    static class C1
+    {
+        bool f() const { return true; }
+        void f(bool v) {}
+
+               const void g1() {}
+        shared const void g1() {}
+
+               const int g2(int m)        { return 1; }
+        shared const int g2(int m, int n) { return 2; }
+    }
+    static class C2
+    {
+        void f(bool v) {}
+        bool f() const { return true; }
+
+        shared const void g1() {}
+               const void g1() {}
+
+        shared const int g2(int m, int n) { return 2; }
+               const int g2(int m)        { return 1; }
+    }
+    static bool g(bool v) { return v; }
+
+    foreach (C; TypeTuple!(C1, C2))
+    {
+        auto mc = new C();
+        assert(g(mc.f));
+
+        auto ic = new immutable(C)();
+        static assert(is(typeof(&ic.g1)));
+        static assert(!__traits(compiles, typeof(&ic.g1)));
+
+        assert(ic.g2(0) == 1);
+        assert(ic.g2(0,0) == 2);
+
+//        alias C.f foo;
+//        static assert(is(typeof(foo)));
+//        static assert(!__traits(compiles, typeof(foo)));
+        // foo(==C.f) has ambiguous type, not exact type
+    }
+}
+
+/***************************************************/
 // 7418
 
 int foo7418(uint a)   { return 1; }
@@ -165,6 +212,7 @@ void test9410()
 int main()
 {
     test1();
+    test2();
     test7418();
     test7552();
     test8943();
