@@ -296,6 +296,88 @@ void test7()
 }
 
 /***************************************************/
+
+class A8
+{
+    static int f(){ return 1; }
+}
+int g8(int n){ return 2; }
+alias A8.f fun8;
+alias g8 fun8;
+void test8()
+{
+    assert(fun8( ) == 1);
+    assert(fun8(0) == 2);
+}
+
+/***************************************************/
+
+class A9
+{
+    static int f(){ return 1; }
+}
+class B9
+{
+    static int g(int n){ return 2; }
+    alias A9.f fun;
+    alias g fun;
+}
+
+void test9()
+{
+    assert(B9.fun( ) == 1);
+    assert(B9.fun(0) == 2);
+}
+
+/***************************************************/
+
+class A10
+{
+    static int f(){ return 1; }
+    static int f(int n){ return 2; }
+    alias TypeTuple!(__traits(getOverloads, A10, "f")) F;
+    alias F[0] f0;
+    alias F[1] f1;
+}
+class B10
+{
+    static int g(string s){ return 3; }
+}
+
+// int(), int(int), int(string)
+alias A10.f fun10_1;
+alias B10.g fun10_1;
+
+// int(), int(string)
+alias A10.F[0] fun10_2;
+alias B10.g fun10_2;
+
+// int(), int(int), int(string)
+alias fun10_1 fun10_3;
+alias fun10_2 fun10_3;
+
+void test10()
+{
+    assert(fun10_1() == 1);
+    assert(fun10_1(0) == 2);
+    assert(fun10_1("s") == 3);
+
+    assert(fun10_2() == 1);
+    static assert(!__traits(compiles, fun10_2(0)));
+    assert(fun10_2("s") == 3);
+
+    assert(A10.f0() == 1);
+    static assert(!__traits(compiles, A10.f0(0)));
+
+    static assert(!__traits(compiles, A10.f1()));
+    assert(A10.f1(0) == 2);
+
+    assert(fun10_3() == 1);
+    assert(fun10_3(0) == 2);
+    assert(fun10_3("s") == 3);
+}
+
+/***************************************************/
 // 7418
 
 int foo7418(uint a)   { return 1; }
@@ -408,6 +490,9 @@ int main()
     test5();
     test6();
     test7();
+    test8();
+    test9();
+    test10();
     test7418();
     test7552();
     test8943();
