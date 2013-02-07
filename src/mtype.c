@@ -8198,7 +8198,7 @@ L1:
         }
         else if (d->needThis() && fd && fd->vthis)
         {
-            e = new DotVarExp(e->loc, new ThisExp(e->loc), d);
+            e = new DotVarExp(e->loc, new ThisExp(e->loc), d, 1);
             e = e->semantic(sc);
             return e;
         }
@@ -8239,7 +8239,7 @@ L1:
 #endif
     }
 
-    de = new DotVarExp(e->loc, e, d);
+    de = new DotVarExp(e->loc, e, d, 1);
     return de->semantic(sc);
 }
 
@@ -8830,7 +8830,7 @@ L1:
                 if (cd && tcd && (tcd == cd || cd->isBaseOf(tcd, NULL)))
                 {
                     e = new DotTypeExp(e1->loc, e1, cd);
-                    e = new DotVarExp(e->loc, e, d);
+                    e = new DotVarExp(e->loc, e, d, 1);
                     e = e->semantic(sc);
                     return e;
                 }

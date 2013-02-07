@@ -7084,7 +7084,7 @@ Expression *DotVarExp::semantic(Scope *sc)
         {
             //printf("DotVarExp f = (%s) %s, hasOverloads = %d\n", f->kind(), f->toChars(), hasOverloads);
             Type *t = f->type;
-            //if (hasOverloads)
+            if (hasOverloads)
             {
                 FuncDeclaration *fd = f->overloadModMatch(loc, e1, t);
                 if (!t)     // no match
