@@ -2628,6 +2628,125 @@ if (arguments)
     }
 }
 
+/********************************************
+ * Decide which function matches the modifier.
+ */
+
+struct ParamM
+{
+    Match *m;
+    Expression *ethis;
+    int property;       // 0: unintialized
+                        // 1: seen @property
+                        // 2: not @property
+};
+
+int fpm(void *param, FuncDeclaration *f)
+{
+    ParamM *p = (ParamM *)param;
+    Match *m = p->m;
+    MATCH match;
+
+    if (f != m->lastf)          // skip duplicates
+    {
+        m->anyf = f;
+        TypeFunction *tf = (TypeFunction *)f->type;
+
+        /* 
+         * 
+         */
+        if (p->ethis)   // Virtual functions are preferred than static ones
+        {
+            if (f->needThis())
+                match = f->isCtorDeclaration() ? MATCHexact : tf->modMatch(p->ethis);
+            else
+                match = MATCHconvert;   // less than ethis match (MATCHexact/const)
+        }
+        else            // Static functions are preferred than virtual ones
+        {
+            if (f->needThis())
+                match = MATCHconvert;
+            else
+                match = MATCHexact;
+        }
+        if (match != MATCHnomatch)
+        {
+            if (match > m->last) goto LfIsBetter;
+            if (match < m->last) goto LlastIsBetter;
+
+            /* See if one of the matches overrides the other.
+             */
+            if (m->lastf->overrides(f)) goto LlastIsBetter;
+            if (f->overrides(m->lastf)) goto LfIsBetter;
+
+        Lambiguous:
+            //printf("\tambiguous\n");
+            m->nextf = f;
+            m->count++;
+            return 0;
+
+        LfIsBetter:
+            if (m->last <= MATCHconvert)    // primary match against secondary matches
+            {   //reset ambiguous of secondary matches
+                m->nextf = NULL;
+                m->count = 0;
+            }
+            m->last = match;
+            m->lastf = f;
+            m->count++;     // count up
+            return 0;
+
+        LlastIsBetter:
+            return 0;
+        }
+    }
+    return 0;
+}
+
+
+void overloadResolveMod(Match *m, FuncDeclaration *fstart, Expression *ethis)
+{
+    ParamM p;
+    p.m = m;
+    p.ethis = ethis;
+    p.property = 0;
+    overloadApply(fstart, &fpm, &p);
+}
+
+FuncDeclaration *FuncDeclaration::overloadModMatch(Loc loc, Expression *ethis, Type **pt)
+{
+    //printf("FuncDeclaration::overloadModMatch('%s')\n", toChars());
+    TypeFunction *tf;
+    Match m;
+
+    assert(pt);
+
+    memset(&m, 0, sizeof(m));
+    m.last = MATCHnomatch;
+    overloadResolveMod(&m, this, ethis);
+
+    if (m.count == 1)       // exact match
+        *pt = m.lastf->type;
+    else if (m.count > 1)
+    {
+        if (!m.nextf)       // better match
+            *pt = m.lastf->type;
+        else                // ambiguous match
+            *pt = NULL;//Type::tambig;
+        m.lastf = NULL;
+    }
+    else                    // no match
+    {
+        *pt = NULL;
+        if (ethis)
+            error(ethis->loc, "expression (%s.%s) has no type", ethis->toChars(), toChars());
+        else
+            assert(0);
+    }
+
+    return m.lastf;
+}
+
 /*************************************
  * Determine partial specialization order of 'this' vs g.
  * This is very similar to TemplateDeclaration::leastAsSpecialized().
