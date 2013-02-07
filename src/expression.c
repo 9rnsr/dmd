@@ -7061,6 +7061,24 @@ Expression *DotVarExp::semantic(Scope *sc)
         FuncDeclaration *f = var->isFuncDeclaration();
         if (f)  // for functions, do checks after overload resolution
         {
+            //printf("DotVarExp f = (%s) %s, hasOverloads = %d\n", f->kind(), f->toChars(), hasOverloads);
+            if (hasOverloads)
+            {
+                FuncDeclaration *fd = f->overloadModMatch(loc, e1, &type);
+                if (fd && type)     // exact match
+                {
+                    var = f = fd;
+                    hasOverloads = 0;
+                }
+                else if (type)      // better/ambiguous match
+                    ;
+                else                // no match
+                    goto Lerr;
+            }
+            else
+                type = f->type;
+            type = type->semantic(loc, sc);
+
             //printf("L%d fd = %s\n", __LINE__, f->toChars());
             if (!f->functionSemantic())
                 return new ErrorExp();
