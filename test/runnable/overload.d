@@ -264,6 +264,38 @@ void test6()
 }
 
 /***************************************************/
+
+void test7()
+{
+    static class C
+    {
+        static int f()     { return 1; }
+        static int f(int n){ return 2; }
+
+        int f1()     { return 1; }
+        int f2(int n){ return 2; }
+    }
+    alias C.f Fun;
+    alias TypeTuple!(__traits(getOverloads, C, "f")) FunSeq;
+
+    assert(C.f( ) == 1);
+    assert(C.f(0) == 2);
+
+    assert(Id!(C.f)( ) == 1);
+    assert(Id!(C.f)(0) == 2);
+
+    assert(FunSeq[0]( ) == 1);
+    assert(FunSeq[1](0) == 2);
+    static assert(!__traits(compiles, FunSeq[0](0) == 1));
+    static assert(!__traits(compiles, FunSeq[1]( ) == 2));
+
+    assert(Id!(FunSeq[0])( ) == 1);
+    assert(Id!(FunSeq[1])(0) == 2);
+    static assert(!__traits(compiles, Id!(FunSeq[0])(0) == 1));
+    static assert(!__traits(compiles, Id!(FunSeq[1])( ) == 2));
+}
+
+/***************************************************/
 // 7418
 
 int foo7418(uint a)   { return 1; }
