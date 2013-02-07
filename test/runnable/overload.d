@@ -161,6 +161,63 @@ void test4()
 }
 
 /***************************************************/
+
+struct Test5S
+{
+    void f(){}
+    void f(int n){}
+    void g()
+    {
+        // mtype.c L7107 TODO -> resloved
+        //pragma(msg, typeof(Test5S.f));
+        static assert(is(typeof(Test5S.f)));
+        static assert(!__traits(compiles, typeof(Test5S.f)));
+    }
+
+    void h(){}
+    void h(int n){}
+}
+class Test5C
+{
+    void f(){}
+    void f(int n){}
+    void g()
+    {
+        // mtype.c L7646 TODO -> resolved
+        //pragma(msg, typeof(Test5C.f));
+        static assert(is(typeof(Test5C.f)));
+        static assert(!__traits(compiles, typeof(Test5C.f)));
+    }
+
+    class N
+    {
+        void x(){
+            // mtype.c L7660 TODO -> resolved
+            //pragma(msg, typeof(Test5C.f));
+            static assert(is(typeof(Test5C.f)));
+            static assert(!__traits(compiles, typeof(Test5C.f)));
+        }
+    }
+
+}
+void test5()
+{
+    Test5S s;
+    s.g();
+    // mtype.c L7145 TODO -> resolved
+    //pragma(msg, typeof(s.h));
+    static assert(is(typeof(s.h)));
+    static assert(!__traits(compiles, typeof(s.h)));
+
+    Test5C c = new Test5C();
+    c.g();
+    // mtype.c L7694 TODO -> resolved
+    //pragma(msg, typeof(c.h));
+    static assert(is(typeof(c.f)));
+    static assert(!__traits(compiles, typeof(c.f)));
+}
+
+/***************************************************/
 // 7418
 
 int foo7418(uint a)   { return 1; }
