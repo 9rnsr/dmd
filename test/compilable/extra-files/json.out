@@ -325,7 +325,7 @@
 						},
 						"type" : {
 							"kind" : "function",
-							"pretty" : "Bar2()",
+							"pretty" : "json.Bar2()",
 							"returnType" : {
 								"kind" : "class",
 								"pretty" : "json.Bar2"
@@ -334,7 +334,7 @@
 						},
 						"originalType" : {
 							"kind" : "function",
-							"pretty" : "Bar2()",
+							"pretty" : "json.Bar2()",
 							"returnType" : {
 								"kind" : "class",
 								"pretty" : "json.Bar2"
@@ -572,7 +572,7 @@
 						},
 						"type" : {
 							"kind" : "function",
-							"pretty" : "Bar3(int i)",
+							"pretty" : "json.Bar3(int i)",
 							"returnType" : {
 								"kind" : "class",
 								"pretty" : "json.Bar3"
@@ -589,7 +589,7 @@
 						},
 						"originalType" : {
 							"kind" : "function",
-							"pretty" : "Bar3(int i)",
+							"pretty" : "json.Bar3(int i)",
 							"returnType" : {
 								"kind" : "class",
 								"pretty" : "json.Bar3"
@@ -827,7 +827,7 @@
 				],
 				"type" : {
 					"kind" : "function",
-					"pretty" : "@trusted int(ref uint blah, Bar2 foo = cast(Bar2)new Bar3(7))",
+					"pretty" : "@trusted int(ref uint blah, json.Bar2 foo = cast(json.Bar2)new json.Bar3(7))",
 					"trust" : "trusted",
 					"returnType" : {
 						"kind" : "int",
@@ -850,13 +850,13 @@
 								"kind" : "class",
 								"pretty" : "json.Bar2"
 							},
-							"default" : "cast(Bar2)new Bar3(7)"
+							"default" : "cast(json.Bar2)new json.Bar3(7)"
 						}
 					]
 				},
 				"originalType" : {
 					"kind" : "function",
-					"pretty" : "myInt(ref uint blah, Bar2 foo = new Bar3(7))",
+					"pretty" : "myInt(ref uint blah, Bar2 foo = new json.Bar3(7))",
 					"returnType" : {
 						"kind" : "identifier",
 						"pretty" : "myInt",
@@ -884,7 +884,7 @@
 								"rawIdentifier" : "Bar2",
 								"identifier" : "Bar2"
 							},
-							"default" : "new Bar3(7)"
+							"default" : "new json.Bar3(7)"
 						}
 					]
 				},
@@ -1009,7 +1009,7 @@
 				}
 			},
 			{
-				"name" : "RTInfo!(Bar2)",
+				"name" : "RTInfo!(json.Bar2)",
 				"kind" : "template instance",
 				"loc" : {
 					"line" : 22
@@ -1021,7 +1021,7 @@
 				}
 			},
 			{
-				"name" : "RTInfo!(Bar3)",
+				"name" : "RTInfo!(json.Bar3)",
 				"kind" : "template instance",
 				"loc" : {
 					"line" : 31
@@ -1057,7 +1057,7 @@
 				}
 			},
 			{
-				"name" : "RTInfo!(Bar)",
+				"name" : "RTInfo!(Bar!(1))",
 				"kind" : "template instance",
 				"loc" : {
 					"line" : 17
@@ -1069,7 +1069,7 @@
 				}
 			},
 			{
-				"name" : "RTInfo!(Baz)",
+				"name" : "RTInfo!(Baz!(int, 2, null))",
 				"kind" : "template instance",
 				"loc" : {
 					"line" : 18

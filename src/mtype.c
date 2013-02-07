@@ -8451,7 +8451,7 @@ void TypeClass::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
     if (ti && ti->toAlias() == sym)
         buf->writestring(ti->toChars());
     else
-        buf->writestring(sym->toChars());
+        buf->writestring(sym->toPrettyChars());
 }
 
 Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
