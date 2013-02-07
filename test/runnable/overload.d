@@ -164,8 +164,8 @@ void test4()
 
 struct Test5S
 {
-    void f(){}
-    void f(int n){}
+    void f()      {}
+    void f(int n) {}
     void g()
     {
         // mtype.c L7107 TODO -> resloved
@@ -174,13 +174,13 @@ struct Test5S
         static assert(!__traits(compiles, typeof(Test5S.f)));
     }
 
-    void h(){}
-    void h(int n){}
+    void h()      {}
+    void h(int n) {}
 }
 class Test5C
 {
-    void f(){}
-    void f(int n){}
+    void f()     {}
+    void f(int n) {}
     void g()
     {
         // mtype.c L7646 TODO -> resolved
@@ -223,11 +223,11 @@ void test6()
 {
     static class C
     {
-        void f(){}
-        void f(int n){}
+        void f()      {}
+        void f(int n) {}
 
-        void f1(){}
-        void f2(int n){}
+        void f1()      {}
+        void f2(int n) {}
     }
     alias C.f Fun;
     alias TypeTuple!(__traits(getOverloads, C, "f")) FunSeq;
@@ -269,11 +269,11 @@ void test7()
 {
     static class C
     {
-        static int f()     { return 1; }
-        static int f(int n){ return 2; }
+        static int f()      { return 1; }
+        static int f(int n) { return 2; }
 
-        int f1()     { return 1; }
-        int f2(int n){ return 2; }
+        int f1()      { return 1; }
+        int f2(int n) { return 2; }
     }
     alias C.f Fun;
     alias TypeTuple!(__traits(getOverloads, C, "f")) FunSeq;
@@ -299,9 +299,9 @@ void test7()
 
 class A8
 {
-    static int f(){ return 1; }
+    static int f() { return 1; }
 }
-int g8(int n){ return 2; }
+int g8(int n) { return 2; }
 alias A8.f fun8;
 alias g8 fun8;
 void test8()
@@ -314,11 +314,11 @@ void test8()
 
 class A9
 {
-    static int f(){ return 1; }
+    static int f() { return 1; }
 }
 class B9
 {
-    static int g(int n){ return 2; }
+    static int g(int n) { return 2; }
     alias A9.f fun;
     alias g fun;
 }
@@ -333,8 +333,8 @@ void test9()
 
 class A10
 {
-    static int f(){ return 1; }
-    static int f(int n){ return 2; }
+    static int f()      { return 1; }
+    static int f(int n) { return 2; }
     alias TypeTuple!(__traits(getOverloads, A10, "f")) F;
     alias F[0] f0;
     alias F[1] f1;
@@ -383,8 +383,8 @@ void test11()
 {
     static class C
     {
-        static int f()     { return 1; }
-        static int f(int n){ return 2; }
+        static int f()      { return 1; }
+        static int f(int n) { return 2; }
 
         alias TypeTuple!(f) L;
         alias L[0] F;
@@ -394,22 +394,22 @@ void test11()
     alias C.L L;
     assert(L[0](0) == 2);
     assert(L[0]( ) == 1);
-    static assert(!__traits( compiles,    typeof(L[0])  ));
-    static assert( __traits( compiles, is(typeof(L[0])) ));
+    static assert(!__traits(compiles,    typeof(L[0]) ));
+    static assert( __traits(compiles, is(typeof(L[0]))));
     // L[0] keeps overloaded f
 
     alias C.F F;
     assert(F(0) == 2);
     assert(F( ) == 1);
-    static assert(!__traits( compiles,    typeof(F)  ));
-    static assert( __traits( compiles, is(typeof(F)) ));
+    static assert(!__traits(compiles,    typeof(F) ));
+    static assert( __traits(compiles, is(typeof(F))));
     // F keeps overloaded f
 
     alias TypeTuple!(__traits(getOverloads, C, "F")) Fs;
     assert(Fs[0]( ) == 1);
     assert(Fs[1](0) == 2);
-    static assert(!__traits( compiles, Fs[0](0) ));
-    static assert(!__traits( compiles, Fs[1]( ) ));
+    static assert(!__traits(compiles, Fs[0](0)));
+    static assert(!__traits(compiles, Fs[1]( )));
     // separate overloads from C.F <- C.L[0] <- TypeTuple!(C.f)[0]
 }
 
@@ -443,7 +443,7 @@ void test12()
     {
         int f()     { return 1; }
         int f(int)  { return 2; }
-        static int f(string){ return 3; }
+        static int f(string) { return 3; }
     }
     auto c2 = new C2();
     static assert(!__traits(compiles,            C2.f    (   )    ));
@@ -461,7 +461,7 @@ void test12()
     static class C31
     {
         int f()     { return 1; }
-        static int f(string){ return 3; }
+        static int f(string) { return 3; }
     }
     auto c31 = new C31();
     static assert(!__traits(compiles,            C31.f    (100)    ));
@@ -477,8 +477,8 @@ void test12()
     {
         int f()     { return 1; }
         int f(int)  { return 2; }
-        static int f(string){ return 3; }
-        static int f(int[]) { return 4; }
+        static int f(string) { return 3; }
+        static int f(int[])  { return 4; }
     }
     auto c32 = new C32();
     static assert(!__traits(compiles,            C32.f    (   )    ));
@@ -499,8 +499,8 @@ void test12()
     static class C4
     {
         int f()     { return 1; }
-        static int f(string){ return 3; }
-        static int f(int[]) { return 4; }
+        static int f(string) { return 3; }
+        static int f(int[])  { return 4; }
     }
     auto c4 = new C4();
     static assert(!__traits(compiles,            C4.f    (   )    ));
@@ -517,8 +517,8 @@ void test12()
 
     static class C5
     {
-        static int f(string){ return 3; }
-        static int f(int[]) { return 4; }
+        static int f(string) { return 3; }
+        static int f(int[])  { return 4; }
     }
     auto c5 = new C5();
     static assert(!__traits(compiles,            C5.f    (   )    ));
