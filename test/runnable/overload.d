@@ -105,6 +105,40 @@ void test2()
 }
 
 /***************************************************/
+
+void test3()
+{
+    static class C
+    {
+        void f() {}
+        void f(int n) {}
+
+        // dummy functions to get type of f
+        void f1() {}
+        void f2(int n) {}
+    }
+
+    alias TypeTuple!(__traits(getOverloads, C, "f")) Fs;
+    alias Fs[0] F1;
+    alias Fs[1] F2;
+    static assert(is(typeof(F1) == typeof(C.f1)));
+    static assert(is(typeof(F2) == typeof(C.f2)));
+
+    static assert(is(typeof(Id!F1) == typeof(C.f1)));
+    static assert(is(typeof(Id!F2) == typeof(C.f2)));
+    // ovrload resolution keeps through template alias parameter.
+
+    foreach (i, F; __traits(getOverloads, C, "f"))
+    {
+        static if (i==0) static assert(is(typeof(F) == typeof(C.f1)));
+        static if (i==1) static assert(is(typeof(F) == typeof(C.f2)));
+
+        static if (i==0) static assert(is(typeof(Id!F) == typeof(C.f1)));
+        static if (i==1) static assert(is(typeof(Id!F) == typeof(C.f2)));
+    }
+}
+
+/***************************************************/
 // 7418
 
 int foo7418(uint a)   { return 1; }
@@ -212,6 +246,7 @@ int main()
 {
     test1();
     test2();
+    test3();
     test7418();
     test7552();
     test8943();
