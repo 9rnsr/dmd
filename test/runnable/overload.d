@@ -218,6 +218,52 @@ void test5()
 }
 
 /***************************************************/
+
+void test6()
+{
+    static class C
+    {
+        void f(){}
+        void f(int n){}
+
+        void f1(){}
+        void f2(int n){}
+    }
+    alias C.f Fun;
+    alias TypeTuple!(__traits(getOverloads, C, "f")) FunSeq;
+
+    /*
+        When template instantiates, overloaded symbol passed by FuncDeclaratioin.
+        By the side, non overloaded symbol is passed by VarExp(var=fd, hasOverloads=0),
+        and its type is same as fd->type.
+    */
+
+    static assert(is(typeof(C.f)));
+    static assert(!__traits(compiles, typeof(C.f)));
+    // direct
+
+    static assert(is(typeof(Id!(C.f))));
+    static assert(!__traits(compiles, typeof(Id!(C.f))));
+    // direct -> through template alias parameter
+
+    static assert(is(typeof(Fun)));
+    static assert(!__traits(compiles, typeof(Fun)));
+    // indirect(through alias)
+
+    static assert(is(typeof(Id!(Fun))));
+    static assert(!__traits(compiles, typeof(Id!(Fun))));
+    // indirect -> through template alias parameter
+
+    static assert(is(typeof(FunSeq[0]) == typeof(C.f1)));
+    static assert(is(typeof(FunSeq[1]) == typeof(C.f2)));
+    // direct(tuple element)
+
+    static assert(is(typeof(Id!(FunSeq[0])) == typeof(C.f1)));
+    static assert(is(typeof(Id!(FunSeq[1])) == typeof(C.f2)));
+    // direct(tuple element) -> through template alias parameter
+}
+
+/***************************************************/
 // 7418
 
 int foo7418(uint a)   { return 1; }
