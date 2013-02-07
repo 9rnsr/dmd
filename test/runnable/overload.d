@@ -98,10 +98,9 @@ void test2()
         assert(ic.g2(0) == 1);
         assert(ic.g2(0,0) == 2);
 
-//        alias C.f foo;
-//        static assert(is(typeof(foo)));
-//        static assert(!__traits(compiles, typeof(foo)));
-        // foo(==C.f) has ambiguous type, not exact type
+        alias C.f foo;
+        static assert(is(typeof(foo)));
+        static assert(!__traits(compiles, typeof(foo)));
     }
 }
 

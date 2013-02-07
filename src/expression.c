@@ -3019,9 +3019,12 @@ Lagain:
             error("forward reference to %s", toChars());
             return new ErrorExp();
         }
+        //printf("DsymbolExp f = (%s) %s, hasOverloads = %d\n", f->kind(), f->toChars(), hasOverloads);
         FuncDeclaration *fd = s->isFuncDeclaration();
         fd->type = f->type;
-        return new VarExp(loc, fd, hasOverloads);
+        e = new VarExp(loc, fd, hasOverloads);
+        e = e->semantic(sc);
+        return e;
     }
     o = s->isOverloadSet();
     if (o)
@@ -5027,7 +5030,20 @@ Expression *VarExp::semantic(Scope *sc)
     }
     FuncDeclaration *f = var->isFuncDeclaration();
     if (f)
+    {
         f->checkNestedReference(sc, loc);
+
+        //printf("VarExp f = (%s) %s, hasOverloads = %d\n", f->kind(), f->toChars(), hasOverloads);
+        Type *t = f->type;
+        if (hasOverloads)  // don't remove this
+        {
+            FuncDeclaration *fd = f->overloadModMatch(loc, NULL, t);
+            assert(t);  // -> least one match should exist
+            if (fd)     // exact match
+                var = fd, hasOverloads = 0;
+        }
+        type = t;
+    }
 
     return this;
 }
