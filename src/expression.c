@@ -530,7 +530,7 @@ Expression *chompPrecedings(Expression *e, Expression *&eprec)
 {
     if (e->op == TOKcomma)
     {
-        printf("+[%d] e = %s\n", 0, e->toChars());
+        //printf("+[%d] e = %s\n", 0, e->toChars());
         Loc loc = e->loc;
         Expression *ex = e;
         Expression **pe = &ex;
@@ -541,7 +541,7 @@ Expression *chompPrecedings(Expression *e, Expression *&eprec)
         e = ((CommaExp *)(*pe))->e2;
         *pe = ((CommaExp *)(*pe))->e1;  // rewrite AST
         eprec = eprec ? new CommaExp(eprec->loc, eprec, ex) : ex;
-        printf("-[%d] e = %s, eprec = %s\n", 0, e->toChars(), eprec ? eprec->toChars() : NULL);
+        //printf("-[%d] e = %s, eprec = %s\n", 0, e->toChars(), eprec ? eprec->toChars() : NULL);
     }
     return e;
 }
@@ -577,14 +577,14 @@ void expandTuples(Expressions *exps, Expression *&eprec)
                 }
             }
 
+            //printf("+[%d] arg = %s\n", i, arg->toChars());
             arg = chompPrecedings(arg, eprec);
-            printf("+[%d] arg = %s\n", i, arg->toChars());
-            printf("-[%d] arg = %s, eprec = %s\n", i, arg->toChars(), eprec ? eprec->toChars() : NULL);
+            //printf("-[%d] arg = %s, eprec = %s\n", i, arg->toChars(), eprec ? eprec->toChars() : NULL);
 
             // Inline expand all the tuples
             while (arg->op == TOKtuple)
             {   TupleExp *te = (TupleExp *)arg;
-                printf(" [%d] te->exps = %d\n", i, te->exps->dim);
+                //printf(" [%d] te->exps = %d\n", i, te->exps->dim);
 
                 exps->remove(i);                // remove arg
                 exps->insert(i, te->exps);      // replace with tuple contents
