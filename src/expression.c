@@ -521,11 +521,36 @@ int arrayExpressionCanThrow(Expressions *exps, bool mustNotThrow)
 }
 #endif
 
+
+/****************************************
+ * Expand comma's last and un-tail.
+ */
+
+Expression *chompPrecedings(Expression *e, Expression *&eprec)
+{
+    if (e->op == TOKcomma)
+    {
+        printf("+[%d] e = %s\n", 0, e->toChars());
+        Loc loc = e->loc;
+        Expression *ex = e;
+        Expression **pe = &ex;
+        while (((CommaExp *)(*pe))->e2->op == TOKcomma)
+        {
+            pe = &((CommaExp *)(*pe))->e2;
+        }
+        e = ((CommaExp *)(*pe))->e2;
+        *pe = ((CommaExp *)(*pe))->e1;  // rewrite AST
+        eprec = eprec ? new CommaExp(eprec->loc, eprec, ex) : ex;
+        printf("-[%d] e = %s, eprec = %s\n", 0, e->toChars(), eprec ? eprec->toChars() : NULL);
+    }
+    return e;
+}
+
 /****************************************
  * Expand tuples.
  */
 
-void expandTuples(Expressions *exps)
+void expandTuples(Expressions *exps, Expression *&eprec)
 {
     //printf("expandTuples()\n");
     if (exps)
@@ -552,9 +577,14 @@ void expandTuples(Expressions *exps)
                 }
             }
 
+            arg = chompPrecedings(arg, eprec);
+            printf("+[%d] arg = %s\n", i, arg->toChars());
+            printf("-[%d] arg = %s, eprec = %s\n", i, arg->toChars(), eprec ? eprec->toChars() : NULL);
+
             // Inline expand all the tuples
             while (arg->op == TOKtuple)
             {   TupleExp *te = (TupleExp *)arg;
+                printf(" [%d] te->exps = %d\n", i, te->exps->dim);
 
                 exps->remove(i);                // remove arg
                 exps->insert(i, te->exps);      // replace with tuple contents
@@ -764,11 +794,11 @@ TemplateDeclaration *getFuncTemplateDecl(Dsymbol *s)
  * Preprocess arguments to function.
  */
 
-void preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
+void preFunctionParameters(Loc loc, Scope *sc, Expressions *exps, Expression *&eprec)
 {
     if (exps)
     {
-        expandTuples(exps);
+        expandTuples(exps, eprec);
 
         for (size_t i = 0; i < exps->dim; i++)
         {   Expression *arg = (*exps)[i];
@@ -3825,11 +3855,13 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
     if (type)
         return this;
 
+    Expression *eprec = NULL;
+
     /* Perhaps an empty array literal [ ] should be rewritten as null?
      */
 
     arrayExpressionSemantic(elements, sc);    // run semantic() on each element
-    expandTuples(elements);
+    expandTuples(elements, eprec);
 
     Type *t0;
     elements = arrayExpressionToCommonType(sc, elements, &t0);
@@ -3842,10 +3874,10 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
      */
     if (elements->dim > 0 && t0->ty == Tvoid)
     {   error("%s of type %s has no value", toChars(), type->toChars());
-        return new ErrorExp();
+        return Expression::combine(eprec, new ErrorExp());
     }
 
-    return this;
+    return Expression::combine(eprec, this);
 }
 
 int ArrayLiteralExp::isBool(int result)
@@ -3930,11 +3962,12 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
     if (type)
         return this;
 
+    Expression *eprec = NULL;
     // Run semantic() on each element
     arrayExpressionSemantic(keys, sc);
     arrayExpressionSemantic(values, sc);
-    expandTuples(keys);
-    expandTuples(values);
+    expandTuples(keys, eprec);
+    expandTuples(values, eprec);
     if (keys->dim != values->dim)
     {
         error("number of keys is %u, must match number of values %u", keys->dim, values->dim);
@@ -4025,13 +4058,15 @@ Expression *StructLiteralExp::semantic(Scope *sc)
     if (type)
         return this;
 
+    Expression *eprec = NULL;
+
     sd->size(loc);
     if (sd->sizeok != SIZEOKdone)
         return new ErrorExp();
     size_t nfields = sd->fields.dim - sd->isnested;
 
     elements = arrayExpressionSemantic(elements, sc);   // run semantic() on each element
-    expandTuples(elements);
+    expandTuples(elements, eprec);
     size_t offset = 0;
     for (size_t i = 0; i < elements->dim; i++)
     {   e = (*elements)[i];
@@ -4491,6 +4526,8 @@ Expression *NewExp::semantic(Scope *sc)
     if (type)                   // if semantic() already run
         return this;
 
+    Expression *eprec = NULL;
+
 Lagain:
     if (thisexp)
     {   thisexp = thisexp->semantic(sc);
@@ -4521,9 +4558,9 @@ Lagain:
     //printf("tb: %s, deco = %s\n", tb->toChars(), tb->deco);
 
     arrayExpressionSemantic(newargs, sc);
-    preFunctionParameters(loc, sc, newargs);
+    preFunctionParameters(loc, sc, newargs, eprec);
     arrayExpressionSemantic(arguments, sc);
-    preFunctionParameters(loc, sc, arguments);
+    preFunctionParameters(loc, sc, arguments, eprec);
 
     if (thisexp && tb->ty != Tclass)
     {   error("e.new is only for allocating nested classes, not %s", tb->toChars());
@@ -5231,7 +5268,8 @@ Expression *TupleExp::semantic(Scope *sc)
         (*exps)[i] = e;
     }
 
-    expandTuples(exps);
+    Expression *eprec = NULL;
+    expandTuples(exps, eprec);
     type = new TypeTuple(exps);
     type = type->semantic(loc, sc);
     //printf("-TupleExp::semantic(%s)\n", toChars());
@@ -7667,9 +7705,9 @@ Expression *CallExp::semantic(Scope *sc)
 
     if (e1->op == TOKfunction)
     {   FuncExp *fe = (FuncExp *)e1;
-
+        Expression *eprec = NULL;
         arguments = arrayExpressionSemantic(arguments, sc);
-        preFunctionParameters(loc, sc, arguments);
+        preFunctionParameters(loc, sc, arguments, eprec);
         e1 = fe->semantic(sc, arguments);
         if (e1->op == TOKerror)
             return e1;
@@ -7833,8 +7871,9 @@ Lagain:
     if (e1->type)
         t1 = e1->type->toBasetype();
 
+    Expression *eprec = NULL;
     arguments = arrayExpressionSemantic(arguments, sc);
-    preFunctionParameters(loc, sc, arguments);
+    preFunctionParameters(loc, sc, arguments, eprec);
 
     // Check for call operator overload
     if (t1)

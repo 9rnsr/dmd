@@ -1873,7 +1873,8 @@ Expression *TupleExp::interpret(InterState *istate, CtfeGoal goal)
     }
     if (expsx)
     {   TupleExp *te = new TupleExp(loc, expsx);
-        expandTuples(te->exps);
+        Expression *eprec = NULL;
+        expandTuples(te->exps, eprec);
         te->type = new TypeTuple(te->exps);
         return te;
     }
@@ -1921,7 +1922,8 @@ Expression *ArrayLiteralExp::interpret(InterState *istate, CtfeGoal goal)
     }
     if (elements && expsx)
     {
-        expandTuples(expsx);
+        Expression *eprec = NULL;
+        expandTuples(expsx, eprec);
         if (expsx->dim != elements->dim)
             goto Lerror;
         ArrayLiteralExp *ae = new ArrayLiteralExp(loc, expsx);
@@ -1946,6 +1948,7 @@ Lerror:
 Expression *AssocArrayLiteralExp::interpret(InterState *istate, CtfeGoal goal)
 {   Expressions *keysx = keys;
     Expressions *valuesx = values;
+    Expression *eprec = NULL;
 
 #if LOG
     printf("%s AssocArrayLiteralExp::interpret() %s\n", loc.toChars(), toChars());
@@ -1989,9 +1992,9 @@ Expression *AssocArrayLiteralExp::interpret(InterState *istate, CtfeGoal goal)
         }
     }
     if (keysx != keys)
-        expandTuples(keysx);
+        expandTuples(keysx, eprec);
     if (valuesx != values)
-        expandTuples(valuesx);
+        expandTuples(valuesx, eprec);
     if (keysx->dim != valuesx->dim)
         goto Lerr;
 
@@ -2082,7 +2085,8 @@ Expression *StructLiteralExp::interpret(InterState *istate, CtfeGoal goal)
     }
     if (elements && expsx)
     {
-        expandTuples(expsx);
+        Expression *eprec = NULL;
+        expandTuples(expsx, eprec);
         if (expsx->dim != elements->dim)
         {   delete expsx;
             return EXP_CANT_INTERPRET;

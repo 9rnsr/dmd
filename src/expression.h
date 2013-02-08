@@ -71,7 +71,7 @@ Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *ea
 Dsymbol *search_function(ScopeDsymbol *ad, Identifier *funcid);
 void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
 void argsToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
-void expandTuples(Expressions *exps);
+void expandTuples(Expressions *exps, Expression *&eprec);
 TupleDeclaration *isAliasThisTuple(Expression *e);
 int expandAliasThisTuples(Expressions *exps, size_t starti = 0);
 FuncDeclaration *hasThis(Scope *sc);
