@@ -37,6 +37,7 @@
 #include "irstate.h"
 
 void obj_lzext(Symbol *s1,Symbol *s2);
+dt_t *toBlockDt(Initializer *init, Type *t);
 
 /* ================================================================== */
 
@@ -1126,8 +1127,6 @@ void StructDeclaration::toObjFile(int multiobj)
 }
 
 /* ================================================================== */
-
-dt_t *toBlockDt(Initializer *init, Type *t);
 
 void VarDeclaration::toObjFile(int multiobj)
 {
