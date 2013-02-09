@@ -35,45 +35,33 @@
 
 typedef ArrayBase<dt_t> Dts;
 
-dt_t **toBlockDt(Expression *e, Type *t, dt_t **pdt)
+dt_t *toBlockDt(Expression *e, Type *t)
 {
-    if (t->toBasetype()->ty != Tsarray || e->implicitConvTo(t))
+    size_t dim = 1;
+    Type *tb = t->toBasetype();
+    while (tb->ty == Tsarray)
     {
-        return e->toDt(pdt);
+        dim *= ((TypeSArray *)tb)->dim->toInteger();
+        tb = tb->nextOf()->toBasetype();
     }
 
-    TypeSArray *tsa = (TypeSArray *)t->toBasetype();
-    uinteger_t dim = tsa->dim->toInteger();
-    dt_t **pdt0 = pdt;
-    for (size_t i = 0; i < dim; ++i)
-    {
-        toBlockDt(e, tsa->nextOf(), pdt);
-    }
-    return pdt0;
+    //assert(e->implicitConvTo(tb));
+
+    TypeSArray *ts = (TypeSArray *)tb;
+    Type *tn = ts->nextOf();
+    dt_t *dt = NULL;
+    dt_t **pdt = &dt;
+    while (dim-- > 0)
+        pdt = e->toDt(pdt);
+    return dt;
 }
 
 dt_t *toBlockDt(Initializer *init, Type *t)
 {
-    dt_t *dt = init->toDt();
-
-    // Look for static array that is block initialized
-    ExpInitializer *ie = init->isExpInitializer();
-    Type *tb = t->toBasetype();
-    if (tb->ty == Tsarray && ie &&
-        !tb->nextOf()->equals(ie->exp->type->toBasetype()->nextOf()) &&
-        ie->exp->implicitConvTo(tb->nextOf())
-       )
-    {
-        size_t dim = ((TypeSArray *)tb)->dim->toInteger();
-
-        // Duplicate Sdt 'dim-1' times, as we already have the first one
-        dt_t **pdt = &dt;
-        while (--dim > 0)
-        {
-            pdt = ie->exp->toDt(pdt);
-        }
-    }
-    return dt;
+    if (ExpInitializer *ie = init->isExpInitializer())
+        return toBlockDt(ie->exp, t);
+    else
+        return init->toDt();
 }
 
 /* ================================================================ */
@@ -525,9 +513,7 @@ dt_t **StructLiteralExp::toDt(dt_t **pdt)
         Expression *e = (*elements)[i];
         if (!e)
             continue;
-        dt_t *dt = NULL;
-        toBlockDt(e, sd->fields[i]->type, &dt);
-        dts[i] = dt;
+        dts[i] = toBlockDt(e, sd->fields[i]->type);
     }
 
     unsigned offset = 0;
