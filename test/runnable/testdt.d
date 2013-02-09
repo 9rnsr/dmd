@@ -80,6 +80,18 @@ void test9425()
 
     static S9425 s2 = { 67 };       // s2.array = [67, 0, 0, 0]
     assert(array == s2.array);
+
+    int[2][3] lsa = 67;
+    static int[2][3] gsa = 67;
+    assert(lsa == gsa);
+    foreach (i; 0 .. lsa.length)
+    {
+        foreach (j; 0 .. lsa[0].length)
+        {
+            assert(lsa[i][j] == 67);
+            assert(gsa[i][j] == 67);
+        }
+    }
 }
 
 /***************************************************/

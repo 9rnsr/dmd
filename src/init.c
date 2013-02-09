@@ -901,44 +901,50 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
         !exp->implicitConvTo(t))
         return new ExpInitializer(loc, exp);
 
-    /* Look for case of initializing a static array with a too-short
-     * string literal, such as:
-     *  char[5] foo = "abc";
-     * Allow this by doing an explicit cast, which will lengthen the string
-     * literal.
-     */
-    if (exp->op == TOKstring && tb->ty == Tsarray && ti->ty == Tsarray)
-    {   StringExp *se = (StringExp *)exp;
+	if (!exp->implicitConvTo(t))
+	{
+		// change tb to terminal element type of static array type
+		while (tb->ty == Tsarray)
+			tb = tb->nextOf()->toBasetype();
 
-        if (!se->committed && se->type->ty == Tsarray &&
-            ((TypeSArray *)se->type)->dim->toInteger() <
-            ((TypeSArray *)t)->dim->toInteger())
-        {
-            exp = se->castTo(sc, t);
-            goto L1;
-        }
-    }
+#if 0	// rely on StringExp::implicitConvTo
+	    /* Look for case of initializing a static array with a too-short
+	     * string literal, such as:
+	     *  char[5] foo = "abc";
+	     * Allow this by doing an explicit cast, which will lengthen the string
+	     * literal.
+	     */
+	    if (exp->op == TOKstring && tb->ty == Tsarray && ti->ty == Tsarray)
+	    {   StringExp *se = (StringExp *)exp;
 
-    // Look for implicit constructor call
-    if (tb->ty == Tstruct &&
-        !(ti->ty == Tstruct && tb->toDsymbol(sc) == ti->toDsymbol(sc)) &&
-        !exp->implicitConvTo(t))
-    {
-        StructDeclaration *sd = ((TypeStruct *)tb)->sym;
-        if (sd->ctor)
-        {   // Rewrite as S().ctor(exp)
-            Expression *e;
-            e = new StructLiteralExp(loc, sd, NULL);
-            e = new DotIdExp(loc, e, Id::ctor);
-            e = new CallExp(loc, e, exp);
-            e = e->semantic(sc);
-            if (needInterpret)
-                exp = e->ctfeInterpret();
-            else
-                exp = e->optimize(WANTvalue);
-        }
-    }
-
+	        if (!se->committed && se->type->ty == Tsarray &&
+	            ((TypeSArray *)se->type)->dim->toInteger() <
+	            ((TypeSArray *)t)->dim->toInteger())
+	        {
+	            exp = se->castTo(sc, t);
+	            goto L1;
+	        }
+	    }
+#endif
+	    // Look for implicit constructor call
+	    if (tb->ty == Tstruct && !(ti->ty == Tstruct && tb->toDsymbol(sc) == ti->toDsymbol(sc)))
+	    {
+	        StructDeclaration *sd = ((TypeStruct *)tb)->sym;
+	        if (sd->ctor)
+	        {   // Rewrite as S().ctor(exp)
+	            Expression *e;
+	            e = new StructLiteralExp(loc, sd, NULL);
+	            e = new DotIdExp(loc, e, Id::ctor);
+	            e = new CallExp(loc, e, exp);
+	            e = e->semantic(sc);
+	            if (needInterpret)
+	                exp = e->ctfeInterpret();
+	            else
+	                exp = e->optimize(WANTvalue);
+	        }
+	    }
+	}
+#if 0
     // Look for the case of statically initializing an array
     // with a single member.
     if (tb->ty == Tsarray &&
@@ -948,8 +954,11 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
     {
         t = tb->nextOf();
     }
+#endif
+    if (!exp->implicitConvTo(tb))
+        tb = t; // restore type for better diagnostic
 
-    exp = exp->implicitCastTo(sc, t);
+    exp = exp->implicitCastTo(sc, tb);
     if (exp->op == TOKerror)
         return this;
 L1:
