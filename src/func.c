@@ -1743,9 +1743,10 @@ bool FuncDeclaration::functionSemantic()
 
     // if inferring return type, sematic3 needs to be run
     AggregateDeclaration *ad;
+    TemplateInstance *ti;
     if (scope &&
         (inferRetType && type && !type->nextOf() ||
-         getFuncTemplateDecl(this) ||
+         (ti = parent->isTemplateInstance()) != NULL && ti->tempdecl ||
          (ad = isThis()) != NULL && ad->parent && ad->parent->isTemplateInstance()))
     {
         return functionSemantic3();

@@ -913,18 +913,8 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
     }
 
     // If inferring return type, and semantic3() needs to be run if not already run
-    if (!tf->next && fd->inferRetType)
-    {
+    if (fd)
         fd->functionSemantic();
-    }
-    else if (fd && fd->parent)
-    {
-        TemplateInstance *ti = fd->parent->isTemplateInstance();
-        if (ti && ti->tempdecl)
-        {
-            fd->functionSemantic3();
-        }
-    }
 
     size_t n = (nargs > nparams) ? nargs : nparams;   // n = max(nargs, nparams)
 
