@@ -3761,7 +3761,10 @@ MATCH TemplateTypeParameter::matchArg(Scope *sc, Objects *tiargs,
         else
         {
             // So that matches with specializations are better
-            m = MATCHconvert;
+            if (isType(oarg))
+                m = MATCHconst;
+            else
+                m = MATCHconvert;
         }
     }
     (*dedtypes)[i] = ta;
@@ -4016,6 +4019,7 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, Objects *tiargs,
     Object *oarg;
     Expression *ea;
     Dsymbol *s;
+    MATCH m = MATCHexact;
 
     //printf("TemplateAliasParameter::matchArg()\n");
 
@@ -4050,6 +4054,13 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, Objects *tiargs,
                 goto Lnomatch;
             if (!d->type->equals(specType))
                 goto Lnomatch;
+        }
+        else
+        {
+            if (isType(oarg))
+                m = MATCHconvert;
+            else
+                m = MATCHconst;
         }
     }
     else
@@ -4105,7 +4116,7 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, Objects *tiargs,
         v->semantic(sc);
         *psparam = v;
     }
-    return MATCHexact;
+    return m;
 
 Lnomatch:
     *psparam = NULL;
