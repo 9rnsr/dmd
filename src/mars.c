@@ -274,7 +274,8 @@ void verror(Loc loc, const char *format, va_list ap,
     if (!global.gag)
     {
         verrorPrint(loc, header, format, ap, p1, p2);
-        if (global.errors >= 20)        // moderate blizzard of cascading messages
+        if (!global.params.verbose_error)
+            if (global.errors >= 20)    // moderate blizzard of cascading messages
                 fatal();
 //halt();
     }
@@ -655,6 +656,8 @@ int tryMain(size_t argc, char *argv[])
             else if (strcmp(p + 1, "v") == 0)
                 global.params.verbose = 1;
 #if DMDV2
+            else if (strcmp(p + 1, "verror") == 0)
+                global.params.verbose_error = 1;
             else if (strcmp(p + 1, "vtls") == 0)
                 global.params.vtls = 1;
             else if (memcmp(p + 1, "transition", 10) == 0)

@@ -135,6 +135,7 @@ struct Param
     bool trace;         // insert profiling hooks
     char quiet;         // suppress non-error messages
     char verbose;       // verbose compile
+    char verbose_error; // verbose errors
     char vtls;          // identify thread local variables
     char vfield;        // identify non-mutable field variables
     char symdebug;      // insert debug symbolic information
