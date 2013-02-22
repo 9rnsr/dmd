@@ -3168,6 +3168,8 @@ Expression *TypeBasic::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
 
     if (ident == Id::re)
     {
+        if (!e->rvalue())
+            e = new ErrorExp();
         switch (ty)
         {
             case Tcomplex32:    t = tfloat32;           goto L1;
@@ -3195,8 +3197,10 @@ Expression *TypeBasic::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         }
     }
     else if (ident == Id::im)
-    {   Type *t2;
-
+    {
+        if (!e->rvalue())
+            e = new ErrorExp();
+        Type *t2;
         switch (ty)
         {
             case Tcomplex32:    t = timaginary32;       t2 = tfloat32;  goto L3;
@@ -3625,11 +3629,15 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
 
     if (ident == Id::reverse && (n->ty == Tchar || n->ty == Twchar))
     {
+        if (!e->rvalue())
+            e = new ErrorExp();
+
         static const char *reverseName[2] = { "_adReverseChar", "_adReverseWchar" };
         static FuncDeclaration *reverseFd[2] = { NULL, NULL };
 
         int i = n->ty == Twchar;
-        if (!reverseFd[i]) {
+        if (!reverseFd[i])
+        {
             Parameters *args = new Parameters;
             Type *next = n->ty == Twchar ? Type::twchar : Type::tchar;
             Type *arrty = next->arrayOf();
@@ -3646,11 +3654,15 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
     }
     else if (ident == Id::sort && (n->ty == Tchar || n->ty == Twchar))
     {
+        if (!e->rvalue())
+            e = new ErrorExp();
+
         static const char *sortName[2] = { "_adSortChar", "_adSortWchar" };
         static FuncDeclaration *sortFd[2] = { NULL, NULL };
 
         int i = n->ty == Twchar;
-        if (!sortFd[i]) {
+        if (!sortFd[i])
+        {
             Parameters *args = new Parameters;
             Type *next = n->ty == Twchar ? Type::twchar : Type::tchar;
             Type *arrty = next->arrayOf();
@@ -3667,6 +3679,8 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
     }
     else if (ident == Id::reverse || ident == Id::dup || ident == Id::idup)
     {
+        if (!e->rvalue())
+            e = new ErrorExp();
         Expression *ec;
         FuncDeclaration *fd;
         Expressions *arguments;
@@ -3677,18 +3691,23 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         assert(size);
         dup = (ident == Id::dup || ident == Id::idup);
 
-        if (dup) {
+        if (dup)
+        {
             static FuncDeclaration *adDup_fd = NULL;
-            if (!adDup_fd) {
+            if (!adDup_fd)
+            {
                 Parameters* args = new Parameters;
                 args->push(new Parameter(STCin, Type::dtypeinfo->type, NULL, NULL));
                 args->push(new Parameter(STCin, Type::tvoid->arrayOf(), NULL, NULL));
                 adDup_fd = FuncDeclaration::genCfunc(args, Type::tvoid->arrayOf(), Id::adDup);
             }
             fd = adDup_fd;
-        } else {
+        }
+        else
+        {
             static FuncDeclaration *adReverse_fd = NULL;
-            if (!adReverse_fd) {
+            if (!adReverse_fd)
+            {
                 Parameters* args = new Parameters;
                 args->push(new Parameter(STCin, Type::tvoid->arrayOf(), NULL, NULL));
                 args->push(new Parameter(STCin, Type::tsize_t, NULL, NULL));
@@ -3730,19 +3749,20 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
     }
     else if (ident == Id::sort)
     {
-        static FuncDeclaration *fd = NULL;
-        Expression *ec;
-        Expressions *arguments;
+        if (!e->rvalue())
+            e = new ErrorExp();
 
-        if (!fd) {
+        static FuncDeclaration *fd = NULL;
+        if (!fd)
+        {
             Parameters* args = new Parameters;
             args->push(new Parameter(STCin, Type::tvoid->arrayOf(), NULL, NULL));
             args->push(new Parameter(STCin, Type::dtypeinfo->type, NULL, NULL));
             fd = FuncDeclaration::genCfunc(args, Type::tvoid->arrayOf(), "_adSort");
         }
-        ec = new VarExp(Loc(), fd);
+        Expression *ec = new VarExp(Loc(), fd);
         e = e->castTo(sc, n->arrayOf());        // convert to dynamic array
-        arguments = new Expressions();
+        Expressions *arguments = new Expressions();
         arguments->push(e);
         arguments->push(n->ty == Tsarray
                     ? n->getTypeInfo(sc)        // don't convert to dynamic array
@@ -4115,6 +4135,8 @@ Expression *TypeSArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
     }
     else if (ident == Id::ptr)
     {
+        if (!e->rvalue())
+            e = new ErrorExp();
         if (size(e->loc) == 0)
             e = new NullExp(e->loc, next->pointerTo());
         else
@@ -4410,6 +4432,8 @@ Expression *TypeDArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
 #endif
     if (ident == Id::length)
     {
+        if (!e->rvalue())
+            e = new ErrorExp();
         if (e->op == TOKstring)
         {   StringExp *se = (StringExp *)e;
 
@@ -4423,6 +4447,8 @@ Expression *TypeDArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
     }
     else if (ident == Id::ptr)
     {
+        if (!e->rvalue())
+            e = new ErrorExp();
         e = e->castTo(sc, next->pointerTo());
         return e;
     }
