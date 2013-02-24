@@ -3907,6 +3907,10 @@ Statement *ReturnStatement::semantic(Scope *sc)
                         tf->isref = FALSE;      // return by value
                     fd->storage_class &= ~STCauto;
                 }
+                if (exp->type->isAmbiguous())
+                    error("failed return type inference from %s type %s",
+                        exp->toChars(), exp->type->toChars());
+
                 tf->next = exp->type;
                 //fd->type = tf->semantic(loc, sc);     // Removed with 6902
                 if (!fd->tintro)

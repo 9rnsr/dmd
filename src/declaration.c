@@ -861,6 +861,12 @@ void VarDeclaration::semantic(Scope *sc)
 
 //      type = type->semantic(loc, sc);
 
+        if (type->isAmbiguous())
+        {
+            type = Type::terror;
+            return;
+        }
+
         inuse--;
         inferred = 1;
 

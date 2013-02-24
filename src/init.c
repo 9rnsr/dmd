@@ -1039,7 +1039,7 @@ Type *ExpInitializer::inferType(Scope *sc)
     // Give error for overloaded function addresses
     if (exp->op == TOKsymoff)
     {   SymOffExp *se = (SymOffExp *)exp;
-        if (se->hasOverloads && !se->var->isFuncDeclaration()->isUnique())
+        if (se->type->isAmbiguous())
         {
             exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
             return Type::terror;

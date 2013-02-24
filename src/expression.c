@@ -4936,12 +4936,22 @@ Expression *SymOffExp::semantic(Scope *sc)
     //var->semantic(sc);
     if (!type)
         type = var->type->pointerTo();
+
     VarDeclaration *v = var->isVarDeclaration();
     if (v)
         v->checkNestedReference(sc, loc);
     FuncDeclaration *f = var->isFuncDeclaration();
     if (f)
+    {
+        if (hasOverloads)
+        {
+            hasOverloads = !f->isUnique();
+            if (hasOverloads)
+                type = Type::tambig->pointerTo();
+        }
         f->checkNestedReference(sc, loc);
+    }
+
     return this;
 }
 
@@ -6819,7 +6829,7 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
                 {
                     if (!eleft)
                         eleft = new ThisExp(loc);
-                    e = new DotVarExp(loc, eleft, f);
+                    e = new DotVarExp(loc, eleft, f, 1);
                     e = e->semantic(sc);
                 }
                 else
@@ -8262,7 +8272,7 @@ Lagain:
         {
             if (t1->isAmbiguous() && e1->op == TOKdelegate)
             {   DelegateExp *de = (DelegateExp *)e1;
-                e1 = new DotVarExp(de->e1->loc, de->e1, de->func, 1);
+                e1 = new DotVarExp(de->e1->loc, de->e1, de->func, de->hasOverloads);
                 goto Lagain;
             }
             TypeDelegate *td = (TypeDelegate *)t1;
@@ -8274,7 +8284,7 @@ Lagain:
         {
             if (t1->isAmbiguous() && e1->op == TOKsymoff)
             {   SymOffExp *se = (SymOffExp *)e1;
-                e1 = new VarExp(se->loc, se->var, 1);
+                e1 = new VarExp(se->loc, se->var, se->hasOverloads);
                 goto Lagain;
             }
             tf = (TypeFunction *)(((TypePointer *)t1)->next);
@@ -8420,9 +8430,12 @@ Lagain:
 
         ethis = NULL;
 
-        ve->var = f;
-//      ve->hasOverloads = 0;
-        ve->type = f->type;
+        if (ve->hasOverloads)
+        {
+            ve->var = f;
+            ve->hasOverloads = 0;
+            ve->type = f->type;
+        }
         t1 = f->type;
     }
     assert(t1->ty == Tfunction);
@@ -8685,7 +8698,8 @@ Expression *AddrExp::semantic(Scope *sc)
             ce->e2->type = NULL;
             ce->e2 = ce->e2->semantic(sc);
         }
-        return optimize(WANTvalue);
+        Expression *e = optimize(WANTvalue);
+        return e->semantic(sc);
     }
     return this;
 }

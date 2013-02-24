@@ -8881,7 +8881,7 @@ L1:
                 /* Rewrite as:
                  *  this.d
                  */
-                DotVarExp *de = new DotVarExp(e->loc, new ThisExp(e->loc), d);
+                DotVarExp *de = new DotVarExp(e->loc, new ThisExp(e->loc), d, 1);
                 e = de->semantic(sc);
                 return e;
             }
