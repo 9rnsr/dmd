@@ -1299,23 +1299,50 @@ Dsymbol *StaticIfDeclaration::syntaxCopy(Dsymbol *s)
     return dd;
 }
 
-Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol *sd)
+#include "root/aav.h"   // for _aaLen()
+Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol */*sd*/)
 {
     //printf("StaticIfDeclaration::include(sc = %p) scope = %p\n", sc, scope);
 
     if (condition->inc == 0)
     {
-        Dsymbols *d = ConditionalDeclaration::include(sc, sd);
+        sc = scope ? scope : sc;
+
+        StaticIfScopeDsymbol *sym = new StaticIfScopeDsymbol();
+        sym->parent = this->sd ? this->sd : sc->scopesym;
+//        printf("--- scope = %p, sym = %p, sd = %p, sc->scopesym = %p\n", scope, sym, sd, sc->scopesym);
+        //assert(!sym->symtab);
+
+        sc = sc->push(sym);
+        sym->incond = 1;
+        printf("StaticIfDeclaration::include(sc = %p) scope = %p, sc->sd = %p\n", sc, scope, sc->sd);
+
+        Dsymbols *d = condition->include(sc, sym) ? decl : elsedecl;
+        printf("\tmembers->dim = %d\n", sym->members ? sym->members->dim : 0);
+        printf("\tsymtab->dim = %d\n", sym->symtab ? _aaLen(sym->symtab->tab) : 0);
+        sym->incond = 0;
+        if (sym->symtab && d == decl)   // Rewrite scope only when condition == true
+        {
+            //this->sd = sym;     // save
+            printf("\tsave sym = %p, scope = %p\n", sym, sc);
+            if (scope)
+                setScope(sc/*scope->push(sym)*/);
+            printf("\tscope = %p\n", scope);
+        }
+        //else
+        //    delete sym;
+
+        sc = sc->pop();
 
         // Set the scopes lazily.
         if (scope && d)
         {
-           for (size_t i = 0; i < d->dim; i++)
-           {
-               Dsymbol *s = (*d)[i];
+            for (size_t i = 0; i < d->dim; i++)
+            {
+                Dsymbol *s = (*d)[i];
 
-               s->setScope(scope);
-           }
+                s->setScope(scope);
+            }
         }
         return d;
     }
@@ -1367,13 +1394,15 @@ void StaticIfDeclaration::semantic(Scope *sc)
 {
     Dsymbols *d = include(sc, sd);
 
-    //printf("\tStaticIfDeclaration::semantic '%s', d = %p\n",toChars(), d);
+    printf("\tStaticIfDeclaration::semantic '%s', d = %p\n",toChars(), d);
     if (d)
     {
+        printf("sd = %s\n", sd->toChars());
         if (!addisdone)
         {   AttribDeclaration::addMember(sc, sd, 1);
             addisdone = 1;
         }
+        sc = scope ? scope : sc;
 
         for (size_t i = 0; i < d->dim; i++)
         {

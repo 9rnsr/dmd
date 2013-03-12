@@ -52,6 +52,7 @@ void StaticAssert::semantic(Scope *sc)
 void StaticAssert::semantic2(Scope *sc)
 {
     //printf("StaticAssert::semantic2() %s\n", toChars());
+    sc = scope ? scope : sc;
     ScopeDsymbol *sd = new ScopeDsymbol();
     sc = sc->push(sd);
     sc->flags |= SCOPEstaticassert;
