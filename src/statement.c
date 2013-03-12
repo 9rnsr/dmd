@@ -2845,7 +2845,7 @@ Statement *ConditionalStatement::syntaxCopy()
 
 Statement *ConditionalStatement::semantic(Scope *sc)
 {
-    //printf("ConditionalStatement::semantic()\n");
+    printf("ConditionalStatement::semantic()\n");
 
     // If we can short-circuit evaluate the if statement, don't do the
     // semantic analysis of the skipped code.
@@ -2853,12 +2853,21 @@ Statement *ConditionalStatement::semantic(Scope *sc)
     if (condition->include(sc, NULL))
     {
         DebugCondition *dc = condition->isDebugCondition();
+        StaticIfCondition *ic = condition->isStaticIfCondition();
         if (dc)
         {
             sc = sc->push();
             sc->flags |= SCOPEdebug;
             ifbody = ifbody->semantic(sc);
             sc->pop();
+        }
+        else if (ic)
+        {
+            printf("\tstatic if statement cond->sym = %p\n", ic->sym);
+            ic->sym->parent = sc->scopesym;
+            sc = sc->push(ic->sym);
+            ifbody = ifbody->semantic(sc);
+            sc = sc->pop();
         }
         else
             ifbody = ifbody->semantic(sc);
@@ -2880,8 +2889,13 @@ Statements *ConditionalStatement::flatten(Scope *sc)
     if (condition->include(sc, NULL))
     {
         DebugCondition *dc = condition->isDebugCondition();
+        StaticIfCondition *ic = condition->isStaticIfCondition();
         if (dc)
             s = new DebugStatement(loc, ifbody);
+        else if (ic)
+        {
+            return NULL;    // Avoid flatten for declared symbols in ifbody
+        }
         else
             s = ifbody;
     }

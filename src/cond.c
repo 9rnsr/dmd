@@ -23,6 +23,7 @@
 #include "lexer.h"
 #include "mtype.h"
 #include "scope.h"
+#include "dsymbol.h"
 #include "arraytypes.h"
 
 int findCondition(Strings *ids, Identifier *ident)
@@ -221,6 +222,7 @@ StaticIfCondition::StaticIfCondition(Loc loc, Expression *exp)
 {
     this->exp = exp;
     this->nest = 0;
+    this->sym = NULL;
 }
 
 Condition *StaticIfCondition::syntaxCopy()
@@ -256,11 +258,21 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
         }
 
         ++nest;
-        sc = sc->push(sc->scopesym);
-        sc->sd = s;                     // s gets any addMember()
+
+        if (!sym)
+            sym = new StaticIfScopeDsymbol();
+        sym->parent = sc->scopesym;
+        sym->incond = 1;
+        printf("\tsym->parent = %p, sc->flags = x%x\n", sc->scopesym, sc->flags);
+        sc = sc->push(sym);
+        sc->sd = sym;      // inserted all symbols declared in condition to sym
+
         sc->flags |= SCOPEstaticif;
         Expression *e = exp->semantic(sc);
         e = resolveProperties(sc, e);
+
+        sym->incond = 0;
+
         sc->pop();
         if (!e->type->checkBoolean())
         {

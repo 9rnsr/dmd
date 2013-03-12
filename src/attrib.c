@@ -1307,26 +1307,30 @@ Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol */*sd*/)
     if (condition->inc == 0)
     {
         sc = scope ? scope : sc;
+        StaticIfCondition *cond = condition->isStaticIfCondition();
+        assert(cond);
 
-        StaticIfScopeDsymbol *sym = new StaticIfScopeDsymbol();
-        sym->parent = this->sd ? this->sd : sc->scopesym;
-//        printf("--- scope = %p, sym = %p, sd = %p, sc->scopesym = %p\n", scope, sym, sd, sc->scopesym);
-        //assert(!sym->symtab);
+    //    StaticIfScopeDsymbol *sym = new StaticIfScopeDsymbol();
+    //    sym->parent = this->sd ? this->sd : sc->scopesym;
+//  //      printf("--- scope = %p, sym = %p, sd = %p, sc->scopesym = %p\n", scope, sym, sd, sc->scopesym);
+    //    //assert(!sym->symtab);
 
-        sc = sc->push(sym);
-        sym->incond = 1;
-        printf("StaticIfDeclaration::include(sc = %p) scope = %p, sc->sd = %p\n", sc, scope, sc->sd);
+    //    sc = sc->push(sym);
+    //    sym->incond = 1;
+    //    printf("StaticIfDeclaration::include(sc = %p) scope = %p, sc->sd = %p\n", sc, scope, sc->sd);
 
-        Dsymbols *d = condition->include(sc, sym) ? decl : elsedecl;
-        printf("\tmembers->dim = %d\n", sym->members ? sym->members->dim : 0);
-        printf("\tsymtab->dim = %d\n", sym->symtab ? _aaLen(sym->symtab->tab) : 0);
-        sym->incond = 0;
-        if (sym->symtab && d == decl)   // Rewrite scope only when condition == true
+        Dsymbols *d = condition->include(sc, cond->sym) ? decl : elsedecl;
+    //    printf("\tmembers->dim = %d\n", sym->members ? sym->members->dim : 0);
+    //    printf("\tsymtab->dim = %d\n", sym->symtab ? _aaLen(sym->symtab->tab) : 0);
+    //    sym->incond = 0;
+        if (cond->sym->symtab && d == decl)   // Rewrite scope only when condition == true
         {
             //this->sd = sym;     // save
-            printf("\tsave sym = %p, scope = %p\n", sym, sc);
+            printf("\tsave sym = %p, scope = %p\n", cond->sym, sc);
             if (scope)
-                setScope(sc/*scope->push(sym)*/);
+            {
+                setScope(scope->push(cond->sym));
+            }
             printf("\tscope = %p\n", scope);
         }
         //else

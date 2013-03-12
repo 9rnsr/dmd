@@ -66,7 +66,6 @@ void testXXXX()
     /* Test for ConditionalStatement + StaticIfCondition with false condition
      */
     alias void function(int) BugXXXXF4;
-    pragma(msg, is(BugXXXXF4 BugXXXXR4 : BugXXXXR4*));
     static if ( is(BugXXXXF4 BugXXXXR4 : BugXXXXR4*) &&
                !is(BugXXXXR4 == function))
     {
