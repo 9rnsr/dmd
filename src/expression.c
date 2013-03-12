@@ -6054,7 +6054,10 @@ Expression *IsExp::semantic(Scope *sc)
                     goto Lno;
                 s->semantic(sc);
                 if (sc->sd)
+                {
+                    printf("IsExp tiargs[%d] = %s, s = %s, sc->sd = %p\n", i, tp->ident->toChars(), s->toChars(), sc->sd);
                     s->addMember(sc, sc->sd, 1);
+                }
                 else if (!sc->insert(s))
                     error("declaration %s is already defined", s->toChars());
             }

@@ -271,6 +271,7 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
         Expression *e = exp->semantic(sc);
         e = resolveProperties(sc, e);
 
+        sc->sd = NULL;
         sym->incond = 0;
 
         sc->pop();
