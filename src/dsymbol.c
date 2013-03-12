@@ -1486,13 +1486,13 @@ StaticIfScopeDsymbol::StaticIfScopeDsymbol()
 Dsymbol *StaticIfScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
 {
     Dsymbol *s = ScopeDsymbol::search(loc, ident, flags);
-    printf("StaticIfScopeDsymbol::search incond = %d, ident = '%s', parent = %p -> s = %p\n", incond, ident->toChars(), parent, s);
+    //printf("StaticIfScopeDsymbol::search incond = %d, ident = '%s', parent = %p -> s = %p\n", incond, ident->toChars(), parent, s);
     return s;
 }
 
 Dsymbol *StaticIfScopeDsymbol::symtabInsert(Dsymbol *s)
 {
-#if 1
+#if 0
     printf("StaticIfScopeDsymbol::symtabInsert(%p) s = %s %s, incond = %d, symtab = %p\n",
         this, s->kind(), s->toChars(), incond, symtab);
 #endif

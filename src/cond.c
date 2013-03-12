@@ -263,7 +263,7 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
             sym = new StaticIfScopeDsymbol();
         sym->parent = sc->scopesym;
         sym->incond = 1;
-        printf("\tsym->parent = %p, sc->flags = x%x\n", sc->scopesym, sc->flags);
+        //printf("\tsym->parent = %p, sc->flags = x%x\n", sc->scopesym, sc->flags);
         sc = sc->push(sym);
         sc->sd = sym;      // inserted all symbols declared in condition to sym
 

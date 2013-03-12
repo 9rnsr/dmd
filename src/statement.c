@@ -2845,7 +2845,7 @@ Statement *ConditionalStatement::syntaxCopy()
 
 Statement *ConditionalStatement::semantic(Scope *sc)
 {
-    printf("ConditionalStatement::semantic()\n");
+    //printf("ConditionalStatement::semantic()\n");
 
     // If we can short-circuit evaluate the if statement, don't do the
     // semantic analysis of the skipped code.
@@ -2863,7 +2863,6 @@ Statement *ConditionalStatement::semantic(Scope *sc)
         }
         else if (ic)
         {
-            printf("\tstatic if statement cond->sym = %p\n", ic->sym);
             ic->sym->parent = sc->scopesym;
             sc = sc->push(ic->sym);
             ifbody = ifbody->semantic(sc);
