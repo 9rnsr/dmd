@@ -66,6 +66,7 @@ struct EnumMember;
 struct ScopeDsymbol;
 struct WithScopeSymbol;
 struct ArrayScopeSymbol;
+struct StaticIfScopeDsymbol;
 struct SymbolDeclaration;
 struct Expression;
 struct DeleteDeclaration;
@@ -249,6 +250,7 @@ struct Dsymbol : Object
     virtual ScopeDsymbol *isScopeDsymbol() { return NULL; }
     virtual WithScopeSymbol *isWithScopeSymbol() { return NULL; }
     virtual ArrayScopeSymbol *isArrayScopeSymbol() { return NULL; }
+    virtual StaticIfScopeDsymbol *isStaticIfScopeDsymbol() { return NULL; }
     virtual Import *isImport() { return NULL; }
     virtual EnumDeclaration *isEnumDeclaration() { return NULL; }
     virtual DeleteDeclaration *isDeleteDeclaration() { return NULL; }
@@ -319,6 +321,17 @@ struct ArrayScopeSymbol : ScopeDsymbol
     Dsymbol *search(Loc loc, Identifier *ident, int flags);
 
     ArrayScopeSymbol *isArrayScopeSymbol() { return this; }
+};
+
+struct StaticIfScopeDsymbol : ScopeDsymbol
+{
+    int incond;
+
+    StaticIfScopeDsymbol();
+    Dsymbol *search(Loc loc, Identifier *ident, int flags);
+    Dsymbol *symtabInsert(Dsymbol *s);
+
+    StaticIfScopeDsymbol *isStaticIfScopeDsymbol() { return this; }
 };
 
 // Overload Sets
