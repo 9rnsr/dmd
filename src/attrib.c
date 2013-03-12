@@ -1305,11 +1305,12 @@ Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol */*sd*/)
 
     if (condition->inc == 0)
     {
-        sc = scope ? scope : sc;
+        //sc = scope ? scope : sc;
         StaticIfCondition *cond = condition->isStaticIfCondition();
         assert(cond);
 
-        Dsymbols *d = condition->include(sc, cond->sym) ? decl : elsedecl;
+        //Dsymbols *d = condition->include(sc, cond->sym) ? decl : elsedecl;
+        Dsymbols *d = ConditionalDeclaration::include(sc, sd);
         if (cond->sym->symtab && d == decl)   // Rewrite scope only when condition == true
         {
             //this->sd = sym;     // save
@@ -1319,7 +1320,7 @@ Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol */*sd*/)
             }
         }
 
-        sc = sc->pop();
+        //sc = sc->pop();
 
         // Set the scopes lazily.
         if (scope && d)
@@ -1384,11 +1385,12 @@ void StaticIfDeclaration::semantic(Scope *sc)
     //printf("\tStaticIfDeclaration::semantic '%s', d = %p\n",toChars(), d);
     if (d)
     {
+        sc = scope ? scope : sc;
+
         if (!addisdone)
         {   AttribDeclaration::addMember(sc, sd, 1);
             addisdone = 1;
         }
-        sc = scope ? scope : sc;
 
         for (size_t i = 0; i < d->dim; i++)
         {

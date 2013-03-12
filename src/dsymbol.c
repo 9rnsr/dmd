@@ -1502,15 +1502,11 @@ Dsymbol *StaticIfScopeDsymbol::symtabInsert(Dsymbol *s)
             symtab = new DsymbolTable();
         return ScopeDsymbol::symtabInsert(s);
     }
-    else if (parent && parent->isScopeDsymbol())
-    {
-        ScopeDsymbol *sds = (ScopeDsymbol *)parent;
-        if (!sds->symtab)
-            sds->symtab = new DsymbolTable();
-        return sds->symtabInsert(s);
-    }
-    assert(0);
-    return NULL;
+    assert(parent && parent->isScopeDsymbol());
+    ScopeDsymbol *sds = (ScopeDsymbol *)parent;
+    if (!sds->symtab)
+        sds->symtab = new DsymbolTable();
+    return sds->symtabInsert(s);
 }
 
 
