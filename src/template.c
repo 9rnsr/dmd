@@ -1526,7 +1526,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Scope *sc, Objec
                 goto Lnomatch;
 
 Lretry:
-#if 1
+#if 0
             printf("\tfarg->type   = %s\n", farg->type->toChars());
             printf("\tfparam->type = %s\n", prmtype->toChars());
 #endif
@@ -1590,8 +1590,8 @@ Lretry:
 
             unsigned wm = 0;
             MATCH m = argtype->deduceType(paramscope, prmtype, parameters, &dedtypes, &wm);
-            printf("\tdeduceType m = %d\n", m);
-            printf("\twildmatch = x%x wm = x%x\n", wildmatch, wm);
+            //printf("\tdeduceType m = %d\n", m);
+            //printf("\twildmatch = x%x wm = x%x\n", wildmatch, wm);
             wildmatch |= wm;
 
             /* If no match, see if the argument can be matched by using
@@ -2942,7 +2942,7 @@ MATCH TypeDArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parame
 MATCH TypeSArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
         Objects *dedtypes, unsigned *wildmatch)
 {
-#if 1
+#if 0
     printf("TypeSArray::deduceType()\n");
     printf("\tthis   = %d, ", ty); print();
     printf("\ttparam = %d, ", tparam->ty); tparam->print();
@@ -3016,7 +3016,7 @@ MATCH TypeSArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parame
 
 MATCH TypeAArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch)
 {
-#if 1
+#if 0
     printf("TypeAArray::deduceType()\n");
     printf("\tthis   = %d, ", ty); print();
     printf("\ttparam = %d, ", tparam->ty); tparam->print();
@@ -3432,7 +3432,7 @@ Lnomatch:
 
 MATCH TypeStruct::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch)
 {
-    printf("TypeStruct::deduceType()\n");
+    //printf("TypeStruct::deduceType()\n");
     //printf("\tthis->parent   = %s, ", sym->parent->toChars()); print();
     //printf("\ttparam = %d, ", tparam->ty); tparam->print();
 
@@ -3575,7 +3575,7 @@ void deduceBaseClassParameters(BaseClass *b,
 
 MATCH TypeClass::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch)
 {
-    printf("TypeClass::deduceType(this = %s)\n", toChars());
+    //printf("TypeClass::deduceType(this = %s)\n", toChars());
 
     /* If this class is a template class, and we're matching
      * it against a template instance, convert the class type
