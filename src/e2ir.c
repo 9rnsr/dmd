@@ -254,7 +254,7 @@ elem *callfunc(Loc loc,
         }
         Symbol *sfunc = fd->toSymbol();
 
-        if (!fd->isVirtual() ||
+        if (!(fd->isVirtual() || ad->isInterfaceDeclaration()) ||
             directcall ||               // BUG: fix
             fd->isFinal()
            /* Future optimization: || (whole program analysis && not overridden)

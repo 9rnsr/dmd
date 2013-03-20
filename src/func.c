@@ -308,8 +308,10 @@ void FuncDeclaration::semantic(Scope *sc)
         error("%s functions cannot be abstract", sfunc);
     }
 
+#if 0	// Delay this until determine that overridden function is'tt interface method
     if (isOverride() && !isVirtual())
         error("cannot override a non-virtual function");
+#endif
 
     if (!f->isNaked() && !(isThis() || isNested()))
     {
@@ -438,12 +440,14 @@ void FuncDeclaration::semantic(Scope *sc)
         if (storage_class & STCabstract)
             cd->isabstract = 1;
 
+#if 0	// delay
         // if static function, do not put in vtbl[]
         if (!isVirtual())
         {
             //printf("\tnot virtual\n");
             goto Ldone;
         }
+#endif
         // Suppress further errors if the return type is an error
         if (type->nextOf() == Type::terror)
             goto Ldone;
