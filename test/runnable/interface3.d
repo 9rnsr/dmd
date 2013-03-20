@@ -4,12 +4,12 @@ extern(C) int printf(const char*, ...);
 
 interface IWriter
 {
-        IWriter put (I1 x);
+    IWriter put (I1 x);
 }
 
 interface I1
 {
-        void write (IWriter writer);
+    void write (IWriter writer);
 }
 
 interface I2 : I1 {}
@@ -18,58 +18,58 @@ interface I3 : I2 {}
 
 class Newline : I3
 {
-	static int OKset;
+    static int OKset;
 
-        void write (IWriter writer)
-        {
-                printf ("OK\n");
-		OKset += 1;
-        }
+    void write (IWriter writer)
+    {
+        printf ("OK\n");
+        OKset += 1;
+    }
 }
 
 
 
 class Writer : IWriter
 {
-        IWriter put (I1 x)
-        {
-                x.write (this);
-                return this;
-        }
+    IWriter put (I1 x)
+    {
+        x.write (this);
+        return this;
+    }
 }
 
 class FlushWriter : Writer
 {
-        override IWriter put (I1 x)
+    override IWriter put (I1 x)
+    {
+       // have superclass handle the I1
+        super.put (x);
+
+        // flush output when we see a newline
+        if (cast(Newline) x)
         {
-               // have superclass handle the I1
-                super.put (x);
-
-                // flush output when we see a newline
-                if (cast(Newline) x)
-                   {
-                   }
-
-                return this;
         }
+
+        return this;
+    }
 }
 
 
 
 void test (IWriter w)
 {
-	//w.put (new Newline);
+    //w.put (new Newline);
 
-	I3 NL = new Newline;
-	w.put (NL);
+    I3 NL = new Newline;
+    w.put (NL);
 }
 
 
 int main()
 {
-        test (new FlushWriter);
-	assert(Newline.OKset == 1);
-	return 0;
+    test (new FlushWriter);
+    assert(Newline.OKset == 1);
+    return 0;
 }
 
 
