@@ -412,8 +412,10 @@ struct StringExp : Expression
 
 struct TupleExp : Expression
 {
+    Expression *e0;     // side-effect part
     Expressions *exps;
 
+    TupleExp(Loc loc, Expression *e0, Expressions *exps);
     TupleExp(Loc loc, Expressions *exps);
     TupleExp(Loc loc, TupleDeclaration *tup);
     Expression *syntaxCopy();
