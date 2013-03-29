@@ -4114,7 +4114,7 @@ Expression *StructLiteralExp::semantic(Scope *sc)
     sd->size(loc);
     if (sd->sizeok != SIZEOKdone)
         return new ErrorExp();
-    size_t nfields = sd->fields.dim - sd->isnested;
+    size_t nfields = sd->fields.dim - sd->isNested();
 
     elements = arrayExpressionSemantic(elements, sc);   // run semantic() on each element
     expandTuples(elements);
@@ -4681,7 +4681,7 @@ Lagain:
                         goto Lerr;
                     }
                 }
-                        }
+            }
             else if (thisexp)
             {   error("e.new is only for allocating nested classes");
                 goto Lerr;
