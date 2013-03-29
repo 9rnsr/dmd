@@ -71,15 +71,12 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
     Type *t = e1->type->toBasetype();
     //printf("e1->type = %s, var->type = %s\n", e1->type->toChars(), var->type->toChars());
 
+    Type *tx = (t->ty == Tpointer ? t->nextOf() : t);
+    StructDeclaration *sd = (tx->ty == Tstruct ? ((TypeStruct *)tx)->sym : NULL);
+
     /* If e1 is not the 'this' pointer for ad
      */
-    if (ad &&
-        !(t->ty == Tpointer && t->nextOf()->ty == Tstruct &&
-          ((TypeStruct *)t->nextOf())->sym == ad)
-        &&
-        !(t->ty == Tstruct &&
-          ((TypeStruct *)t)->sym == ad)
-       )
+    if (ad && sd != ad)
     {
         ClassDeclaration *cd = ad->isClassDeclaration();
         ClassDeclaration *tcd = t->isClassHandle();
@@ -136,6 +133,12 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
                 else
                     e1 = e1->semantic(sc);
                 goto L1;
+            }
+            else if (sd && sd->isnested == ad)
+            {
+                e1 = new DotVarExp(loc, e1, sd->vthis);
+                e1->type = ad->type->pointerTo();
+                return e1;
             }
             /* Can't find a path from e1 to ad
              */
@@ -7149,11 +7152,13 @@ Expression *DotVarExp::semantic(Scope *sc)
                 if (o->dyncast() == DYNCAST_EXPRESSION)
                 {
                     e = (Expression *)o;
+                    Dsymbol *s = NULL;
                     if (e->op == TOKdsymbol)
-                    {
-                        Dsymbol *s = ((DsymbolExp *)e)->s;
+                        s = ((DsymbolExp *)e)->s;
+                    else if (e->op == TOKvar/* && ((VarExp *)e)->var->needThis()*/)
+                        s = ((VarExp *)e)->var;
+                    if (s)
                         e = new DotVarExp(loc, ev, s->isDeclaration());
-                    }
                 }
                 else if (o->dyncast() == DYNCAST_DSYMBOL)
                 {

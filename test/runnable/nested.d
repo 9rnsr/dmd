@@ -2443,6 +2443,56 @@ void test9244()
 }
 
 /*******************************************/
+// XXXX
+
+//import core.stdc.stdio;
+template Seq(T...) { alias Seq = T; }
+struct RefTup(T...) //if (allSatisfy!(isDeclaration, T))
+{
+    alias Field = T;
+    //alias Field this;
+
+    void dummy() {}   // make RefTup nested
+}
+struct Zip
+{
+    int x, y;
+    @property front() {
+        return RefTup!(x, y)();
+    }
+}
+void testXXXX() {
+    auto zip = Zip(1, 2);
+    //printf("zip.x = %d, zip.y = %d\n", zip.x, zip.y);
+    assert(zip.x == 1 && zip.y == 2);
+    zip.front.Field[0] = 5;     //zip.front[0] = 5;
+    //printf("zip.x = %d, zip.y = %d\n", zip.x, zip.y);
+    assert(zip.x == 5 && zip.y == 2);
+    zip.front.Field[1] = 6;     //zip.front[1] = 10;
+    //printf("zip.x = %d, zip.y = %d\n", zip.x, zip.y);
+    assert(zip.x == 5 && zip.y == 6);
+}
+
+/*******************************************/
+/+
+struct S(alias s) {
+    void foo() { s.x = 10; }
+}
+struct Zip
+{
+    int x, y;
+    @property front() {
+        return S!(this)();
+    }
+}
+void main() {
+    auto zip = Zip(1, 2);
+    auto f = zip.front; // unsafe, should be disabled
+    f.foo();
+    assert(zip.x == 10);
+}
++/
+/*******************************************/
 
 int main()
 {
@@ -2527,6 +2577,8 @@ int main()
     test8832();
     test9315();
     test9244();
+
+    testXXXX();
 
     printf("Success\n");
     return 0;
