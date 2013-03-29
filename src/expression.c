@@ -7149,6 +7149,7 @@ Expression *DotVarExp::semantic(Scope *sc)
             for (size_t i = 0; i < tup->objects->dim; i++)
             {   Object *o = (*tup->objects)[i];
                 Expression *e;
+                //printf("[%d] o = %s o->dyncast() = %d\n", i, o->toChars(), o->dyncast());
                 if (o->dyncast() == DYNCAST_EXPRESSION)
                 {
                     e = (Expression *)o;
@@ -7162,7 +7163,8 @@ Expression *DotVarExp::semantic(Scope *sc)
                 }
                 else if (o->dyncast() == DYNCAST_DSYMBOL)
                 {
-                    e = new DsymbolExp(loc, (Dsymbol *)o);
+                    //e = new DsymbolExp(loc, (Dsymbol *)o);
+                    e = new DotVarExp(loc, ev, ((Dsymbol *)o)->isDeclaration());
                 }
                 else if (o->dyncast() == DYNCAST_TYPE)
                 {
@@ -10429,6 +10431,11 @@ Expression *AssignExp::semantic(Scope *sc)
     e1 = e1->semantic(sc);
     if (e1->op == TOKerror)
         return new ErrorExp();
+    //printf("assign e1 = %s %s\n", Token::toChars(e1->op), e1->toChars());
+
+    Expression *e1x = e1;
+    while (e1x->op == TOKcomma)
+        e1x = ((CommaExp *)e1x)->e2;
 
     /* We have f = value.
      * Could mean:
@@ -10440,26 +10447,26 @@ Expression *AssignExp::semantic(Scope *sc)
     Objects *tiargs;
     FuncDeclaration *fd;
     Expression *ethis;
-    if (e1->op == TOKdotti)
+    if (e1x->op == TOKdotti)
     {
-        DotTemplateInstanceExp* dti = (DotTemplateInstanceExp *)e1;
+        DotTemplateInstanceExp* dti = (DotTemplateInstanceExp *)e1x;
         td     = dti->getTempdecl(sc);
                  dti->ti->semanticTiargs(sc);
         tiargs = dti->ti->tiargs;
         ethis  = dti->e1;
         goto L3;
     }
-    else if (e1->op == TOKdottd)
+    else if (e1x->op == TOKdottd)
     {
-        DotTemplateExp *dte = (DotTemplateExp *)e1;
+        DotTemplateExp *dte = (DotTemplateExp *)e1x;
         td     = dte->td;
         tiargs = NULL;
         ethis  = dte->e1;
         goto L3;
     }
-    else if (e1->op == TOKtemplate)
+    else if (e1x->op == TOKtemplate)
     {
-        td     = ((TemplateExp *)e1)->td;
+        td     = ((TemplateExp *)e1x)->td;
         tiargs = NULL;
         ethis  = NULL;
     L3:
@@ -10483,16 +10490,16 @@ Expression *AssignExp::semantic(Scope *sc)
     }
         goto Leprop;
     }
-    else if (e1->op == TOKdotvar && e1->type->toBasetype()->ty == Tfunction)
+    else if (e1x->op == TOKdotvar && e1x->type->toBasetype()->ty == Tfunction)
     {
-        DotVarExp *dve = (DotVarExp *)e1;
+        DotVarExp *dve = (DotVarExp *)e1x;
         fd    = dve->var->isFuncDeclaration();
         ethis = dve->e1;
         goto L4;
     }
-    else if (e1->op == TOKvar && e1->type->toBasetype()->ty == Tfunction)
+    else if (e1x->op == TOKvar && e1x->type->toBasetype()->ty == Tfunction)
     {
-        fd = ((VarExp *)e1)->var->isFuncDeclaration();
+        fd = ((VarExp *)e1x)->var->isFuncDeclaration();
         ethis = NULL;
     L4:
     {
