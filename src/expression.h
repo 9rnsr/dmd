@@ -1883,6 +1883,8 @@ int sliceCmpStringWithArray(StringExp *se1, ArrayLiteralExp *ae2, size_t lo1, si
 
 struct Ptn
 {
+    char *toChars();
+    virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
 };
 
 typedef Array<struct Ptn> Ptns;
@@ -1899,6 +1901,8 @@ struct IdPtn : Ptn
         this->type = t;
         this->ident = id;
     }
+
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
 struct ExpPtn : Ptn
@@ -1909,6 +1913,7 @@ struct ExpPtn : Ptn
     {
         this->exp = exp;
     }
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
 struct RestPtn : Ptn
@@ -1923,6 +1928,7 @@ struct RestPtn : Ptn
         this->type = t;
         this->ident = id;
     }
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
 struct TuplePtn : Ptn
@@ -1934,6 +1940,7 @@ struct TuplePtn : Ptn
     {
         this->elements = elements;
     }
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
 struct ArrayPtn : Ptn
@@ -1945,6 +1952,7 @@ struct ArrayPtn : Ptn
     {
         this->elements = elements;
     }
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
 #endif /* DMD_EXPRESSION_H */

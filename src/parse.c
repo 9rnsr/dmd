@@ -3482,7 +3482,7 @@ Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, utf8_t *comme
 Ptn *Parser::parsePtn(StorageClass storageClass)
 {
     printf("Parse::parsePtn storageClass = x%llx\n", storageClass);
-    StorageClass storage_class = storageClass;
+    StorageClass storage_class = 0;//storageClass;
     StorageClass stc;
     while (1)
     {
@@ -3618,6 +3618,7 @@ Dsymbols *Parser::parseDeconstDeclaration(StorageClass storageClass, utf8_t *com
     // storageClass { Patterns } = Initializer ;
     assert(token.value == TOKlcurly || token.value == TOKlbracket);
     Ptn *p = parsePtn(storageClass);
+    ((TuplePtn *)p)->stc |= storageClass;
 
     check(TOKassign);
 
@@ -3627,7 +3628,7 @@ Dsymbols *Parser::parseDeconstDeclaration(StorageClass storageClass, utf8_t *com
         error("semicolon expected following tuple declaration, not '%s'", token.toChars());
     nextToken();
 
-    printf("OK!\n");
+    printf("OK! p = %s\n", p->toChars());
     fatal();
     return NULL;//makeMultiVarDeclaration(loc, prms, init, inStatements);
 }

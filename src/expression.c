@@ -13723,3 +13723,72 @@ Expression *BinExp::reorderSettingAAElem(Scope *sc)
     ec = new CommaExp(loc, ec, this);
     return ec->semantic(sc);
 }
+
+/**************************************************************/
+
+char *Ptn::toChars()
+{
+    HdrGenState hgs;
+    memset(&hgs, 0, sizeof(hgs));
+
+    OutBuffer buf;
+    toCBuffer(&buf, &hgs);
+    buf.writeByte(0);
+    char *p = (char *)buf.data;
+    buf.data = NULL;
+    return p;
+}
+
+void IdPtn::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    if (stc)
+        StorageClassDeclaration::stcToCBuffer(buf, stc);
+    if (type)
+        type->toCBuffer(buf, ident, hgs);
+    else
+        buf->writestring(ident->toChars());
+}
+
+void ExpPtn::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    exp->toCBuffer(buf, hgs);
+}
+
+void RestPtn::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    if (stc)
+        StorageClassDeclaration::stcToCBuffer(buf, stc);
+    if (type)
+        type->toCBuffer(buf, ident, hgs);
+    else if (ident)
+        buf->writestring(ident->toChars());
+    buf->writestring("...");
+}
+
+void TuplePtn::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    if (stc)
+        StorageClassDeclaration::stcToCBuffer(buf, stc);
+    buf->writeByte('{');
+    for (size_t i = 0; i < elements->dim; i++)
+    {
+        if (i > 0)
+            buf->writestring(", ");
+        (*elements)[i]->toCBuffer(buf, hgs);
+    }
+    buf->writeByte('}');
+}
+
+void ArrayPtn::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    if (stc)
+        StorageClassDeclaration::stcToCBuffer(buf, stc);
+    buf->writeByte('[');
+    for (size_t i = 0; i < elements->dim; i++)
+    {
+        if (i > 0)
+            buf->writestring(", ");
+        (*elements)[i]->toCBuffer(buf, hgs);
+    }
+    buf->writeByte(']');
+}
