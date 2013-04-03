@@ -1880,11 +1880,22 @@ void sliceAssignStringFromString(StringExp *existingSE, StringExp *newstr, size_
 int sliceCmpStringWithString(StringExp *se1, StringExp *se2, size_t lo1, size_t lo2, size_t len);
 int sliceCmpStringWithArray(StringExp *se1, ArrayLiteralExp *ae2, size_t lo1, size_t lo2, size_t len);
 
-
 struct Ptn
 {
+    Loc loc;
+
+    Ptn(Loc loc) { this->loc = loc; }
+
+    virtual Expression *decompose(Scope *sc, Expression *e) = 0;
+
     char *toChars();
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
+
+    virtual struct IdPtn *isIdPtn() { return NULL; }
+    virtual struct ExpPtn *isExpPtn() { return NULL; }
+    virtual struct RestPtn *isRestPtn() { return NULL; }
+    virtual struct TuplePtn *isTuplePtn() { return NULL; }
+    virtual struct ArrayPtn *isArrayPtn() { return NULL; }
 };
 
 typedef Array<struct Ptn> Ptns;
@@ -1895,25 +1906,30 @@ struct IdPtn : Ptn
     Type *type;
     Identifier *ident;
 
-    IdPtn(StorageClass stc, Type *t, Identifier *id)
+    IdPtn(Loc loc, StorageClass stc, Type *t, Identifier *id) : Ptn(loc)
     {
         this->stc = stc;
         this->type = t;
         this->ident = id;
     }
-
+    Expression *decompose(Scope *sc, Expression *e);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+
+    IdPtn *isIdPtn() { return this; }
 };
 
 struct ExpPtn : Ptn
 {
     Expression *exp;
 
-    ExpPtn(Expression *exp)
+    ExpPtn(Loc loc, Expression *exp) : Ptn(loc)
     {
         this->exp = exp;
     }
+    Expression *decompose(Scope *sc, Expression *e);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+
+    ExpPtn *isExpPtn() { return this; }
 };
 
 struct RestPtn : Ptn
@@ -1922,13 +1938,16 @@ struct RestPtn : Ptn
     Type *type;
     Identifier *ident;
 
-    RestPtn(StorageClass stc, Type *t, Identifier *id)
+    RestPtn(Loc loc, StorageClass stc, Type *t, Identifier *id) : Ptn(loc)
     {
         this->stc = stc;
         this->type = t;
         this->ident = id;
     }
+    Expression *decompose(Scope *sc, Expression *e);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+
+    RestPtn *isRestPtn() { return this; }
 };
 
 struct TuplePtn : Ptn
@@ -1936,11 +1955,14 @@ struct TuplePtn : Ptn
     StorageClass stc;
     Ptns* elements;
 
-    TuplePtn(StorageClass stc, Ptns *elements)
+    TuplePtn(Loc loc, StorageClass stc, Ptns *elements) : Ptn(loc)
     {
         this->elements = elements;
     }
+    Expression *decompose(Scope *sc, Expression *e);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+
+    TuplePtn *isTuplePtn() { return this; }
 };
 
 struct ArrayPtn : Ptn
@@ -1948,11 +1970,14 @@ struct ArrayPtn : Ptn
     StorageClass stc;
     Ptns* elements;
 
-    ArrayPtn(StorageClass stc, Ptns *elements)
+    ArrayPtn(Loc loc, StorageClass stc, Ptns *elements) : Ptn(loc)
     {
         this->elements = elements;
     }
+    Expression *decompose(Scope *sc, Expression *e);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+
+    ArrayPtn *isArrayPtn() { return this; }
 };
 
 #endif /* DMD_EXPRESSION_H */

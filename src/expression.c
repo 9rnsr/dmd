@@ -13726,6 +13726,111 @@ Expression *BinExp::reorderSettingAAElem(Scope *sc)
 
 /**************************************************************/
 
+Expression *IdPtn::decompose(Scope *sc, Expression *e)
+{
+    ExpInitializer *ei = new ExpInitializer(e->loc, e);
+    VarDeclaration *v = new VarDeclaration(loc, type, ident, ei);
+    v->storage_class = stc;
+    return new DeclarationExp(loc, v);
+}
+
+Expression *ExpPtn::decompose(Scope *sc, Expression *e)
+{
+    return NULL;
+}
+
+Expression *RestPtn::decompose(Scope *sc, Expression *e)
+{
+    return NULL;
+}
+
+Expression *TuplePtn::decompose(Scope *sc, Expression *e)
+{
+    size_t dim = elements->dim;
+    assert(dim > 0);    // guarantee in parser
+    RestPtn *prest = (*elements)[dim-1]->isRestPtn();
+
+    if (prest) --dim;
+
+    Expression *e0 = NULL;
+    Expressions *exps = NULL;
+
+    Type *tb = e->type->toBasetype();
+    Expression *exp = NULL;
+    printf("tb = %s, e = %s %s\n", tb->toChars(), Token::toChars(e->op), e->toChars());
+#if 0
+    if (tb->ty == Ttuple)
+    {
+        TypeTuple *tt = (TypeTuple *)tb;
+    }
+    else
+#endif
+    if (e->op == TOKtuple)
+    {
+        TupleExp* te = (TupleExp *)e;
+        e0 = te->e0;
+        exps = te->exps;
+
+        if (prest)  assert(exps->dim >= dim);
+        else        assert(exps->dim == dim);
+
+        Expression *ev;
+        for (size_t i = 0; i < dim; i++)
+        {
+            ev = (*exps)[i];
+            ev = ev->semantic(sc);
+            printf("[%d] ev = %s\n", i, ev->toChars());
+            exp = Expression::combine(exp, (*elements)[i]->decompose(sc, ev));
+        }
+    }
+    else if (isAliasThisTuple(e))
+    {
+        Identifier *id = Lexer::uniqueId("__tup");
+        ExpInitializer *ei = new ExpInitializer(e->loc, e);
+        VarDeclaration *v = new VarDeclaration(loc, NULL, id, ei);
+        v->storage_class = STCctfe | STCref | STCforeach;
+
+        e0 = new DeclarationExp(loc, v);
+        e0 = e0->semantic(sc);
+        VarExp *ve = new VarExp(loc, v);
+        ve->type = e->type;
+
+        if (prest)  assert(exps->dim >= dim);
+        else        assert(exps->dim == dim);
+
+        Expression *ev;
+        for (size_t i = 0; i < dim; i++)
+        {
+            ev = new IntegerExp(loc, i, Type::tsize_t);
+            ev = new IndexExp(loc, ve, ev);
+            ev = ev->semantic(sc);
+            exp = Expression::combine(exp, (*elements)[i]->decompose(sc, ev));
+        }
+    }
+    else
+    {
+        assert(0);  // TODO
+    }
+
+    if (prest && prest->ident)
+    {
+        Objects *es = new Objects();
+        es->setDim(exps->dim - dim);
+        for (size_t i = dim; i < exps->dim; i++)
+            es->push((*exps)[i]);
+        TupleDeclaration *v = new TupleDeclaration(loc, prest->ident, es);
+        exp = Expression::combine(exp, new DeclarationExp(prest->loc, v));
+    }
+    if (e0)
+        exp = Expression::combine(e0, exp);
+    return exp;
+}
+
+Expression *ArrayPtn::decompose(Scope *sc, Expression *e)
+{
+    return NULL;
+}
+
 char *Ptn::toChars()
 {
     HdrGenState hgs;

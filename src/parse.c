@@ -3481,7 +3481,8 @@ Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, utf8_t *comme
 
 Ptn *Parser::parsePtn(StorageClass storageClass)
 {
-    printf("Parse::parsePtn storageClass = x%llx\n", storageClass);
+    //printf("Parse::parsePtn storageClass = x%llx\n", storageClass);
+    Loc loc = this->loc;
     StorageClass storage_class = 0;//storageClass;
     StorageClass stc;
     while (1)
@@ -3524,7 +3525,7 @@ Ptn *Parser::parsePtn(StorageClass storageClass)
         }
         break;
     }
-    printf("\tsorage_class = x%llx\n", storage_class);
+    //printf("\tsorage_class = x%llx\n", storage_class);
 
     enum TOK endtok;
     Ptn *p;
@@ -3545,7 +3546,7 @@ Ptn *Parser::parsePtn(StorageClass storageClass)
             p = parsePtn(storage_class);
 
             elements->push(p);
-            printf("CompoundPrn token == %s\n", token.toChars());
+            //printf("CompoundPrn token == %s\n", token.toChars());
 
             if (token.value == TOKcomma)
                 nextToken();
@@ -3554,14 +3555,14 @@ Ptn *Parser::parsePtn(StorageClass storageClass)
         }
         check(endtok);
         if (endtok == TOKrcurly)
-            p = new TuplePtn(storage_class, elements);
+            p = new TuplePtn(loc, storage_class, elements);
         else
-            p = new ArrayPtn(storage_class, elements);
+            p = new ArrayPtn(loc, storage_class, elements);
     }
     else if (token.value == TOKdotdotdot)
     {
         nextToken();
-        p = new RestPtn(0, NULL, NULL);
+        p = new RestPtn(loc, 0, NULL, NULL);
     }
     else
     {
@@ -3575,15 +3576,15 @@ Ptn *Parser::parsePtn(StorageClass storageClass)
             if (t->value == TOKcomma || t->value == TOKdotdotdot ||
                 t->value == TOKrcurly || t->value == TOKrbracket)
             {   ai = token.ident;
-                printf("no ti, ai = %s\n", ai->toChars());
+                //printf("no ti, ai = %s\n", ai->toChars());
                 at = NULL;              // infer argument type
                 nextToken();
                 goto Larg;
             }
         }
         t = &token;
-        if (isBasicType(&t) && (printf("isBasicType! t = %s\n", t->toChars()), 1) &&
-            isDeclarator(&t, &haveId, NULL/**/, TOKreserved) && (printf("isDeclarator! t = %s\n", t->toChars()), 1) &&
+        if (isBasicType(&t) &&// (printf("isBasicType! t = %s\n", t->toChars()), 1) &&
+            isDeclarator(&t, &haveId, NULL/**/, TOKreserved) &&// (printf("isDeclarator! t = %s\n", t->toChars()), 1) &&
             haveId)    // must have identifier
         {
             at = parseType(&ai);
@@ -3593,15 +3594,15 @@ Ptn *Parser::parsePtn(StorageClass storageClass)
             if (token.value == TOKdotdotdot)
             {
                 nextToken();
-                p = new RestPtn(storage_class, at, ai);
+                p = new RestPtn(loc, storage_class, at, ai);
             }
             else
-                p = new IdPtn(storage_class, at, ai);
+                p = new IdPtn(loc, storage_class, at, ai);
         }
         else
         {
             Expression *exp = parseExpression();
-            p = new ExpPtn(exp);
+            p = new ExpPtn(loc, exp);
         }
     }
 
@@ -3610,7 +3611,7 @@ Ptn *Parser::parsePtn(StorageClass storageClass)
 
 Dsymbols *Parser::parseDeconstDeclaration(StorageClass storageClass, utf8_t *comment)
 {
-    printf("parseDeconstDeclaration, stc = %x\n", storageClass);
+    //printf("parseDeconstDeclaration, stc = %x\n", storageClass);
 
     Ptns *elements = new Ptns();
     Loc loc = this->loc;
@@ -3628,9 +3629,10 @@ Dsymbols *Parser::parseDeconstDeclaration(StorageClass storageClass, utf8_t *com
         error("semicolon expected following tuple declaration, not '%s'", token.toChars());
     nextToken();
 
-    printf("OK! p = %s\n", p->toChars());
-    fatal();
-    return NULL;//makeMultiVarDeclaration(loc, prms, init, inStatements);
+    //printf("OK! %s = %s;\n", p->toChars(), init->toChars());
+    Dsymbols *a = new Dsymbols;
+    a->push(new DeconsDeclaration(loc, p, init));
+    return a;
 }
 
 /*****************************************
