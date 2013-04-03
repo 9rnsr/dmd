@@ -753,7 +753,6 @@ void DeconsDeclaration::semantic(Scope *sc)
 
     Expression *ei = init->toExpression();
     //Type *tb = ei->type->tobasetype();
-    ei = ei->semantic(sc);
     printf("+decompose = %s\n", ei->toChars());
     Expression *e = ptn->decompose(sc, ei);
     printf("-decompose = %s\n", e->toChars());

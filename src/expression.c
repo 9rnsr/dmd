@@ -13749,14 +13749,15 @@ Expression *TuplePtn::decompose(Scope *sc, Expression *e)
     size_t dim = elements->dim;
     assert(dim > 0);    // guarantee in parser
     RestPtn *prest = (*elements)[dim-1]->isRestPtn();
-
     if (prest) --dim;
 
     Expression *e0 = NULL;
-    Expressions *exps = NULL;
+    Expression *ex = NULL;
+
+    e = e->semantic(sc);
 
     Type *tb = e->type->toBasetype();
-    Expression *exp = NULL;
+    Expressions *exps = NULL;
     printf("tb = %s, e = %s %s\n", tb->toChars(), Token::toChars(e->op), e->toChars());
 #if 0
     if (tb->ty == Ttuple)
@@ -13780,7 +13781,7 @@ Expression *TuplePtn::decompose(Scope *sc, Expression *e)
             ev = (*exps)[i];
             ev = ev->semantic(sc);
             printf("[%d] ev = %s\n", i, ev->toChars());
-            exp = Expression::combine(exp, (*elements)[i]->decompose(sc, ev));
+            ex = Expression::combine(ex, (*elements)[i]->decompose(sc, ev));
         }
     }
     else if (isAliasThisTuple(e))
@@ -13804,7 +13805,7 @@ Expression *TuplePtn::decompose(Scope *sc, Expression *e)
             ev = new IntegerExp(loc, i, Type::tsize_t);
             ev = new IndexExp(loc, ve, ev);
             ev = ev->semantic(sc);
-            exp = Expression::combine(exp, (*elements)[i]->decompose(sc, ev));
+            ex = Expression::combine(ex, (*elements)[i]->decompose(sc, ev));
         }
     }
     else
@@ -13819,16 +13820,73 @@ Expression *TuplePtn::decompose(Scope *sc, Expression *e)
         for (size_t i = dim; i < exps->dim; i++)
             es->push((*exps)[i]);
         TupleDeclaration *v = new TupleDeclaration(loc, prest->ident, es);
-        exp = Expression::combine(exp, new DeclarationExp(prest->loc, v));
+        ex = Expression::combine(ex, new DeclarationExp(prest->loc, v));
     }
     if (e0)
-        exp = Expression::combine(e0, exp);
-    return exp;
+        ex = Expression::combine(e0, ex);
+    return ex;
 }
 
 Expression *ArrayPtn::decompose(Scope *sc, Expression *e)
 {
-    return NULL;
+    size_t dim = elements->dim;
+    assert(dim > 0);    // guarantee in parser
+    RestPtn *prest = (*elements)[dim-1]->isRestPtn();
+    if (prest) --dim;
+
+    e = e->semantic(sc);
+
+    Type *tb = e->type->toBasetype();
+    if (tb->ty == Tsarray)
+    {
+        uinteger_t edim = ((TypeSArray *)tb)->dim->toUInteger();
+        if (prest)  assert(edim >= dim);
+        else        assert(edim == dim);
+    }
+    else if (tb->ty == Tarray)
+    {
+    }
+    else
+        assert(0);
+
+    Expression *e0 = NULL;
+    Expression *ex = NULL;
+    Expression *ev = e;
+    if (elements->dim > 1 && e->hasSideEffect())
+    {
+        Identifier *id = Lexer::uniqueId("__arr");
+        ExpInitializer *ei = new ExpInitializer(e->loc, e);
+        VarDeclaration *v = new VarDeclaration(e->loc, e->type, id, ei);
+        v->storage_class |= STCctfe | STCref | STCforeach;
+        e0 = new DeclarationExp(e->loc, v);
+        ev = new VarExp(e->loc, v);
+        e0 = e0->semantic(sc);
+        ev = ev->semantic(sc);
+    }
+    for (size_t i = 0; i < dim; i++)
+    {
+        e = new IntegerExp(loc, i, Type::tsize_t);
+        e = new IndexExp(loc, ev, e);
+        e = e->semantic(sc);
+        ex = Expression::combine(ex, (*elements)[i]->decompose(sc, e));
+    }
+    if (prest && prest->ident)
+    {
+        e = new IntegerExp(loc, dim, Type::tsize_t);
+        e = new SliceExp(loc, ev, e, new DollarExp(loc));
+        ex = Expression::combine(ex, e);
+    }
+    else if (!prest)
+    {
+        e = new DotIdExp(loc, ev, Id::length);
+        e = new EqualExp(TOKequal, loc, e, new IntegerExp(loc, dim, Type::tsize_t));
+        e = new AssertExp(loc, e);
+        e0 = Expression::combine(e0, e);
+    }
+    if (e0)
+        ex = Expression::combine(e0, ex);
+
+    return ex;
 }
 
 char *Ptn::toChars()
