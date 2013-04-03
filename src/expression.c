@@ -13728,6 +13728,8 @@ Expression *BinExp::reorderSettingAAElem(Scope *sc)
 
 Expression *IdPtn::decompose(Scope *sc, Expression *e)
 {
+    e = e->semantic(sc);
+
     ExpInitializer *ei = new ExpInitializer(e->loc, e);
     VarDeclaration *v = new VarDeclaration(loc, type, ident, ei);
     v->storage_class = stc;
@@ -13741,7 +13743,15 @@ Expression *ExpPtn::decompose(Scope *sc, Expression *e)
 
 Expression *RestPtn::decompose(Scope *sc, Expression *e)
 {
-    return NULL;
+    if (!ident)
+        return NULL;
+
+    e = e->semantic(sc);
+
+    ExpInitializer *ei = new ExpInitializer(e->loc, e);
+    VarDeclaration *v = new VarDeclaration(loc, type, ident, ei);
+    v->storage_class = stc;
+    return new DeclarationExp(loc, v);
 }
 
 Expression *TuplePtn::decompose(Scope *sc, Expression *e)
@@ -13784,6 +13794,7 @@ Expression *TuplePtn::decompose(Scope *sc, Expression *e)
             ex = Expression::combine(ex, (*elements)[i]->decompose(sc, ev));
         }
     }
+#if 0
     else if (isAliasThisTuple(e))
     {
         Identifier *id = Lexer::uniqueId("__tup");
@@ -13808,6 +13819,7 @@ Expression *TuplePtn::decompose(Scope *sc, Expression *e)
             ex = Expression::combine(ex, (*elements)[i]->decompose(sc, ev));
         }
     }
+#endif
     else
     {
         assert(0);  // TODO
@@ -13815,12 +13827,13 @@ Expression *TuplePtn::decompose(Scope *sc, Expression *e)
 
     if (prest && prest->ident)
     {
-        Objects *es = new Objects();
-        es->setDim(exps->dim - dim);
+        assert(exps);
+        Expressions *iexps = new Expressions();
+        iexps->setDim(exps->dim - dim);
         for (size_t i = dim; i < exps->dim; i++)
-            es->push((*exps)[i]);
-        TupleDeclaration *v = new TupleDeclaration(loc, prest->ident, es);
-        ex = Expression::combine(ex, new DeclarationExp(prest->loc, v));
+            (*iexps)[i - dim] = (*exps)[i];
+        e = new TupleExp(loc, NULL, iexps);
+        ex = Expression::combine(ex, prest->decompose(sc, e));
     }
     if (e0)
         ex = Expression::combine(e0, ex);
@@ -13852,7 +13865,7 @@ Expression *ArrayPtn::decompose(Scope *sc, Expression *e)
     Expression *e0 = NULL;
     Expression *ex = NULL;
     Expression *ev = e;
-    if (elements->dim > 1 && e->hasSideEffect())
+    if (elements->dim > 1 && ev->hasSideEffect())
     {
         Identifier *id = Lexer::uniqueId("__arr");
         ExpInitializer *ei = new ExpInitializer(e->loc, e);
@@ -13870,11 +13883,11 @@ Expression *ArrayPtn::decompose(Scope *sc, Expression *e)
         e = e->semantic(sc);
         ex = Expression::combine(ex, (*elements)[i]->decompose(sc, e));
     }
-    if (prest && prest->ident)
+    if (prest)
     {
         e = new IntegerExp(loc, dim, Type::tsize_t);
         e = new SliceExp(loc, ev, e, new DollarExp(loc));
-        ex = Expression::combine(ex, e);
+        ex = Expression::combine(ex, prest->decompose(sc, e));
     }
     else if (!prest)
     {
