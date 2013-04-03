@@ -4083,6 +4083,11 @@ Statement *Parser::parseStatement(int flags, utf8_t** endPtr)
         case TOKtypeid:
         case TOKis:
         case TOKlbracket:
+        {
+            Token *tk = &token;
+            if (skipParens(tk, &tk) && peek(tk)->value == TOKassign)
+                goto Ldeclaration;
+        }
 #if DMDV2
         case TOKtraits:
         case TOKfile:
