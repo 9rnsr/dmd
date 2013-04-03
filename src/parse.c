@@ -3050,11 +3050,13 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, utf8_t *comment)
             nextToken();
             break;
         case TOKlcurly:
-            if (peek(&token)->value != TOKrcurly)
-            {
-                printf("parseDeclarations { ... } = \n");
-                fatal();//return parseMultiVarDeclaration(storage_class, comment);
-            }
+        case TOKlbracket:
+            //if (peek(&token)->value != TOKrcurly)
+            //{
+                return parseDeconstDeclaration(storage_class, comment);
+                //printf("parseDeclarations { ... } = \n");
+                //fatal();//return parseMultiVarDeclaration(storage_class, comment);
+            //}
             break;
         default: break;
     }
@@ -3213,7 +3215,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, utf8_t *comment)
      *  storage_class { patterns ... } = initializer;
      */
     if (storage_class &&
-        token.value == TOKlcurly &&
+        (token.value == TOKlcurly || token.value == TOKlbracket) &&
         peekNext() != TOKrcurly &&
         (tk = &token, skipParens(tk, &tk)) &&
         (peek(tk)->value == TOKassign))
@@ -3223,8 +3225,9 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, utf8_t *comment)
             // Need to improve this
             error("user defined attributes not allowed for auto declarations");
         }
-        printf("parseDeclarations stc {...} = \n");
-        fatal();
+        //printf("parseDeclarations stc {...} = \n");
+        //fatal();
+        return parseDeconstDeclaration(storage_class, comment);
         //return parseMultiVarDeclaration(storage_class, comment);
     }
 
@@ -3476,148 +3479,146 @@ Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, utf8_t *comme
 }
 #endif
 
-#if 0//DMDV2
-Dsymbols *makeMultiVarDeclaration(Loc loc, Parameters *params, Initializer *init, int inStatements)
+Ptn *Parser::parsePtn(StorageClass storageClass)
 {
-#if 0
-    for (size_t i = 0; i < params->dim; i++)
-    {
-        Parameter *prm = params->tdata()[i];
-        printf("prms[%d] = %s %s, stc = %llx\n", i,
-            (prm->type ? prm->type->toChars() : "(null)"),
-            prm->ident->toChars(),
-            prm->storageClass);
-    }
-    printf("init = %s\n", init->toChars());
-#endif
-
-    Dsymbols *a = new Dsymbols();
-
-    for (size_t i = 0; i < params->dim; i++)
-    {
-        Parameter *prm = params->tdata()[i];
-        if (!prm->type)
-            prm->type = Type::tnone;
-    }
-
-    Expression *ve;
-    if (inStatements)
-    {
-        TypeTuple *tt = new TypeTuple(params);
-        Identifier *id = Lexer::uniqueId("__tup");
-        VarDeclaration *v = new VarDeclaration(loc, tt, id, init);
-        a->push(v);
-
-        ve = new IdentifierExp(loc, id);
-    }
-    else
-        ve = init->toExpression();
-    assert(ve);
-
-    for (size_t i = 0; i < params->dim; i++)
-    {
-        Expressions *exps = new Expressions();
-        exps->push(new IntegerExp(i));
-        ExpInitializer *ei = new ExpInitializer(loc, new ArrayExp(loc, ve, exps));
-
-        Parameter *prm = params->tdata()[i];
-        VarDeclaration *v = new VarDeclaration(loc, NULL, prm->ident, ei);
-        v->storage_class |= prm->storageClass;
-        if (inStatements)
-            v->storage_class |= STCref | STCforeach;
-        a->push(v);
-    }
-
-    return a;
-}
-
-Dsymbols *Parser::parseMultiVarDeclaration(StorageClass storageClass, unsigned char *comment)
-{
-    //printf("parseMultiVarDeclaration, stc = %x\n", storageClass);
-
-    Parameters *prms = new Parameters();
-    Loc loc = this->loc;
-
-    // ( StorageClass TupleTypeList ) = Initializer ;
-    // StorageClasses ( TupleTypeList ) = Initializer ;
-    check(TOKlparen);
+    printf("Parse::parsePtn storageClass = x%llx\n", storageClass);
+    StorageClass storage_class = storageClass;
+    StorageClass stc;
     while (1)
     {
-        if (token.value == TOKrparen)
-            break;
+        switch (token.value)
+        {
+            case TOKconst:
+                if (peek(&token)->value == TOKlparen)
+                    break;              // const as type constructor
+                stc = STCconst;         // const as storage class
+                goto L1;
+            case TOKinvariant:
+            case TOKimmutable:
+                if (peek(&token)->value == TOKlparen)
+                    break;
+                stc = STCimmutable;
+                goto L1;
+            case TOKshared:
+                if (peek(&token)->value == TOKlparen)
+                    break;
+                stc = STCshared;
+                goto L1;
+            case TOKwild:
+                if (peek(&token)->value == TOKlparen)
+                    break;
+                stc = STCwild;
+                goto L1;
+        //  case TOKstatic:     stc = STCstatic;         goto L1;
+            case TOKauto:       stc = STCauto;           goto L1;
+            case TOKscope:      stc = STCscope;          goto L1;
+            L1:
+                if (storage_class & stc)
+                    error("redundant storage class '%s'", token.toChars());
+                storage_class = storage_class | stc;
+                composeStorageClass(storage_class);
+                nextToken();
+                continue;
+            default:
+                break;
+        }
+        break;
+    }
+    printf("\tsorage_class = x%llx\n", storage_class);
 
-        Identifier *ai = NULL;
-        Type *at;
+    enum TOK endtok;
+    Ptn *p;
+    if (token.value == TOKlcurly)
+    {
+        endtok = TOKrcurly;
+        goto L2;
+    }
+    else if (token.value == TOKlbracket)
+    {
+        endtok = TOKrbracket;
+    L2:
+        Ptns *elements = new Ptns();
 
-        StorageClass storage_class = storageClass;
-        StorageClass stc;
+        nextToken();
         while (1)
         {
-            switch (token.value)
-            {
-                case TOKconst:
-                    if (peek(&token)->value == TOKlparen)
-                        break;              // const as type constructor
-                    stc = STCconst;         // const as storage class
-                    goto L1;
+            p = parsePtn(storage_class);
 
-                case TOKinvariant:
-                case TOKimmutable:
-                    if (peek(&token)->value == TOKlparen)
-                        break;
-                    stc = STCimmutable;
-                    goto L1;
+            elements->push(p);
+            printf("CompoundPrn token == %s\n", token.toChars());
 
-                case TOKshared:
-                    if (peek(&token)->value == TOKlparen)
-                        break;
-                    stc = STCshared;
-                    goto L1;
-
-                case TOKwild:
-                    if (peek(&token)->value == TOKlparen)
-                        break;
-                    stc = STCwild;
-                    goto L1;
-
-            //  case TOKstatic:     stc = STCstatic;         goto L1;
-                case TOKauto:       stc = STCauto;           goto L1;
-                case TOKscope:      stc = STCscope;          goto L1;
-
-                L1:
-                    if (storage_class & stc)
-                        error("redundant storage class '%s'", token.toChars());
-                    storage_class = storage_class | stc;
-                    composeStorageClass(storage_class);
-                    nextToken();
-                    continue;
-
-                default:
-                    break;
-            }
-            break;
+            if (token.value == TOKcomma)
+                nextToken();
+            if (token.value == endtok)
+                break;
         }
-
+        check(endtok);
+        if (endtok == TOKrcurly)
+            p = new TuplePtn(storage_class, elements);
+        else
+            p = new ArrayPtn(storage_class, elements);
+    }
+    else if (token.value == TOKdotdotdot)
+    {
+        nextToken();
+        p = new RestPtn(0, NULL, NULL);
+    }
+    else
+    {
+        Identifier *ai = NULL;
+        Type *at;
+        Token *t;
+        int haveId = FALSE;
         if (token.value == TOKidentifier)
         {
-            Token *t = peek(&token);
-            if (t->value == TOKcomma || t->value == TOKrparen)
+            t = peek(&token);
+            if (t->value == TOKcomma || t->value == TOKdotdotdot ||
+                t->value == TOKrcurly || t->value == TOKrbracket)
             {   ai = token.ident;
+                printf("no ti, ai = %s\n", ai->toChars());
                 at = NULL;              // infer argument type
                 nextToken();
                 goto Larg;
             }
         }
-        at = parseType(&ai);
-        if (!ai)
-            error("no identifier for declarator %s", at->toChars());
-      Larg:
-        Parameter *a = new Parameter(storage_class, at, ai, NULL);
-        prms->push(a);
-        if (token.value == TOKcomma)
-            nextToken();
+        t = &token;
+        if (isBasicType(&t) && (printf("isBasicType! t = %s\n", t->toChars()), 1) &&
+            isDeclarator(&t, &haveId, NULL/**/, TOKreserved) && (printf("isDeclarator! t = %s\n", t->toChars()), 1) &&
+            haveId)    // must have identifier
+        {
+            at = parseType(&ai);
+            if (!ai)
+                error("no identifier for declarator %s", at->toChars());
+          Larg:
+            if (token.value == TOKdotdotdot)
+            {
+                nextToken();
+                p = new RestPtn(storage_class, at, ai);
+            }
+            else
+                p = new IdPtn(storage_class, at, ai);
+        }
+        else
+        {
+            Expression *exp = parseExpression();
+            p = new ExpPtn(exp);
+        }
     }
-    check(TOKrparen);
+
+    return p;
+}
+
+Dsymbols *Parser::parseDeconstDeclaration(StorageClass storageClass, utf8_t *comment)
+{
+    printf("parseDeconstDeclaration, stc = %x\n", storageClass);
+
+    Ptns *elements = new Ptns();
+    Loc loc = this->loc;
+
+    // storageClass { Patterns } = Initializer ;
+    assert(token.value == TOKlcurly || token.value == TOKlbracket);
+    Ptn *p = parsePtn(storageClass);
+
     check(TOKassign);
 
     Initializer *init = parseInitializer();
@@ -3626,9 +3627,10 @@ Dsymbols *Parser::parseMultiVarDeclaration(StorageClass storageClass, unsigned c
         error("semicolon expected following tuple declaration, not '%s'", token.toChars());
     nextToken();
 
-    return makeMultiVarDeclaration(loc, prms, init, inStatements);
+    printf("OK!\n");
+    fatal();
+    return NULL;//makeMultiVarDeclaration(loc, prms, init, inStatements);
 }
-#endif
 
 /*****************************************
  * Parse contracts following function declaration.
@@ -5474,6 +5476,7 @@ int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
             // Valid tokens that follow a declaration
             case TOKrparen:
             case TOKrbracket:
+            case TOKrcurly: // for TuplePtn
             case TOKassign:
             case TOKcomma:
             case TOKdotdotdot:
@@ -5686,22 +5689,14 @@ int Parser::skipParens(Token *t, Token **pt)
         switch (t->value)
         {
             case TOKlparen:
+            case TOKlcurly:
+            case TOKlbracket:
                 parens++;
                 break;
 
             case TOKrparen:
-                parens--;
-                if (parens < 0)
-                    goto Lfalse;
-                if (parens == 0)
-                    goto Ldone;
-                break;
-
-            case TOKlcurly:
-                parens++;
-                break;
-
             case TOKrcurly:
+            case TOKrbracket:
                 parens--;
                 if (parens < 0)
                     goto Lfalse;

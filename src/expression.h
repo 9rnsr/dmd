@@ -1881,4 +1881,70 @@ int sliceCmpStringWithString(StringExp *se1, StringExp *se2, size_t lo1, size_t 
 int sliceCmpStringWithArray(StringExp *se1, ArrayLiteralExp *ae2, size_t lo1, size_t lo2, size_t len);
 
 
+struct Ptn
+{
+};
+
+typedef Array<struct Ptn> Ptns;
+
+struct IdPtn : Ptn
+{
+    StorageClass stc;
+    Type *type;
+    Identifier *ident;
+
+    IdPtn(StorageClass stc, Type *t, Identifier *id)
+    {
+        this->stc = stc;
+        this->type = t;
+        this->ident = id;
+    }
+};
+
+struct ExpPtn : Ptn
+{
+    Expression *exp;
+
+    ExpPtn(Expression *exp)
+    {
+        this->exp = exp;
+    }
+};
+
+struct RestPtn : Ptn
+{
+    StorageClass stc;
+    Type *type;
+    Identifier *ident;
+
+    RestPtn(StorageClass stc, Type *t, Identifier *id)
+    {
+        this->stc = stc;
+        this->type = t;
+        this->ident = id;
+    }
+};
+
+struct TuplePtn : Ptn
+{
+    StorageClass stc;
+    Ptns* elements;
+
+    TuplePtn(StorageClass stc, Ptns *elements)
+    {
+        this->elements = elements;
+    }
+};
+
+struct ArrayPtn : Ptn
+{
+    StorageClass stc;
+    Ptns* elements;
+
+    ArrayPtn(StorageClass stc, Ptns *elements)
+    {
+        this->elements = elements;
+    }
+};
+
 #endif /* DMD_EXPRESSION_H */
