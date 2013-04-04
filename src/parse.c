@@ -3215,8 +3215,8 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, utf8_t *comment)
      *  storage_class { patterns ... } = initializer;
      */
     if (storage_class &&
-        (token.value == TOKlcurly || token.value == TOKlbracket) &&
-        peekNext() != TOKrcurly &&
+        (token.value == TOKlcurly   && peekNext() != TOKrcurly ||
+         token.value == TOKlbracket && peekNext() != TOKrbracket) &&
         (tk = &token, skipParens(tk, &tk)) &&
         (peek(tk)->value == TOKassign))
     {
@@ -4249,32 +4249,11 @@ Statement *Parser::parseStatement(int flags, utf8_t** endPtr)
         case TOKlcurly:
         {
         #if 1
-            Token *t = &token;
-            if (skipParens(t, &t) && peek(t)->value == TOKassign)
+        {
+            Token *tk = &token;
+            if (skipParens(tk, &tk) && peek(tk)->value == TOKassign)
                 goto Ldeclaration;
-          #if 0
-            switch (peek(&token)->value)
-            {
-                case TOKrcurly:
-                    break;
-
-                // { storage_class id [, ...] } = ...
-                case TOKconst:
-                case TOKinvariant:
-                case TOKimmutable:
-                case TOKshared:
-                case TOKwild:
-
-            //  case TOKstatic:
-                case TOKauto:
-                case TOKscope:
-                    if (isDeclaration(&token, 2, TOKassign, NULL))
-
-                default:
-                    if (isParameters(&t, 2) && t->value == TOKassign)
-                        goto Ldeclaration;
-            }
-          #endif
+        }
         #endif
 
             Loc lookingForElseSave = lookingForElse;
