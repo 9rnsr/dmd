@@ -6460,7 +6460,9 @@ void TemplateMixin::semantic(Scope *sc)
              */
             semanticRun = PASSinit;
             AggregateDeclaration *ad = toParent()->isAggregateDeclaration();
-            if (ad)
+            if (td->scope)
+                td->semantic(td->scope);
+            else if (ad)
                 ad->sizeok = SIZEOKfwd;
             else
             {
