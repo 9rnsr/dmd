@@ -1233,7 +1233,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             }
             if (p->storageClass & STCref)
             {
-                if (!arg->isLvalue() && p->storageClass & STCin)
+                if (!arg->isLvalue() && (p->storageClass & (STCin | STCscope)))
                 {
                     Identifier *idtmp = Lexer::uniqueId("__tmprv");
                     VarDeclaration *tmp = new VarDeclaration(loc, arg->type, idtmp, new ExpInitializer(0, arg));

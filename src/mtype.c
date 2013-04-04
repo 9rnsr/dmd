@@ -5873,7 +5873,7 @@ MATCH TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
                             Type::tindex));
                     targb = targb->semantic(0, NULL);
                 }
-                else if (p->storageClass & STCin)
+                else if (p->storageClass & (STCin | STCscope))
                     m = MATCHconvert;
                 else
                     goto Nomatch;
@@ -9295,16 +9295,13 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
             if (arg->storageClass & STCauto)
                 buf->writestring("auto ");
 
-            bool isinref = (arg->storageClass & (STCin | STCref)) == (STCin | STCref);
-
-            if (isinref)
-                buf->writestring("in ref ");
-            else if (arg->storageClass & STCout)
+            if (arg->storageClass & STCout)
                 buf->writestring("out ");
             else if (arg->storageClass & STCref)
                 buf->writestring((global.params.Dversion == 1)
                         ? "inout " : "ref ");
-            else if (arg->storageClass & STCin)
+
+            if (arg->storageClass & STCin)
                 buf->writestring("in ");
             else if (arg->storageClass & STClazy)
                 buf->writestring("lazy ");
@@ -9330,7 +9327,8 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
                 // print parameter name, instead of undetermined type parameter
                 argbuf.writestring(arg->ident->toChars());
             }
-            else if (isinref)
+            else if ((arg->storageClass & STCref) &&
+                     (arg->storageClass & (STCin | STCscope)))
                 arg->type->mutableOf()->toCBuffer(&argbuf, arg->ident, hgs);
             else
                 arg->type->toCBuffer(&argbuf, arg->ident, hgs);

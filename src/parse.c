@@ -1506,8 +1506,8 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
                         error("out cannot be const");
                     if ((storageClass & (STCimmutable | STCout)) == (STCimmutable | STCout))
                         error("out cannot be immutable");
-                    if ((storageClass & STCscope) && (storageClass & (STCref | STCout)))
-                        error("scope cannot be ref or out");
+                    if ((storageClass & STCscope) && (storageClass & STCout))
+                        error("scope cannot be out");
 
                     Token *t;
 #if 0
