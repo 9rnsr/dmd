@@ -166,8 +166,7 @@ unsigned AggregateDeclaration::size(Loc loc)
                 VarDeclaration *v = s->isVarDeclaration();
                 if (v)
                 {
-                    if (v->scope)
-                        v->semantic(NULL);
+                    v->variableSemantic();
                     if (v->storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCctfe | STCtemplateparameter))
                         return 0;
                     if (v->isField() && v->sem >= SemanticDone)

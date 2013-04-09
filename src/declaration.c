@@ -825,7 +825,7 @@ void VarDeclaration::initSemantic(Scope *sc)
     {
         inuse++;
 
-        printf("inferring type for %s with init %s\n", toChars(), init->toChars());
+        //printf("inferring type for %s with init %s\n", toChars(), init->toChars());
         ArrayInitializer *ai = init->isArrayInitializer();
         if (ai)
         {   Expression *e;
@@ -2010,13 +2010,10 @@ Expression *VarDeclaration::getConstInitializer()
     if ((isConst() || isImmutable() || storage_class & STCmanifest) &&
         storage_class & STCinit)
     {
-        ExpInitializer *ei = getExpInitializer();
-        if (ei)
-            return ei->exp;
-        else if (init)
-        {
-            return init->toExpression();
-        }
+        if (!type)
+            variableSemantic();
+
+        return init->toExpression(type);
     }
 
     return NULL;

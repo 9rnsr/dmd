@@ -290,6 +290,7 @@ struct VarDeclaration : Declaration
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     void semantic2(Scope *sc);
     void variableSemantic();
+    void variableSemantic2();
     void initSemantic(Scope *sc);
     const char *kind();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
