@@ -5277,10 +5277,11 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
          * are forward referenced. Find a way to defer semantic()
          * on this template.
          */
-        semantic2(sc2);
+        //semantic2(sc2);
 
     if (sc->func || dosemantic3)
     {
+        semantic2(sc2);
         trySemantic3(sc2);
     }
 

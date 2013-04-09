@@ -4401,23 +4401,11 @@ StructDeclaration *TypeAArray::getImpl()
         tiargs->push(next ->substWildTo(MODconst)); // hack for bug7757
 
         // Create AssociativeArray!(index, next)
-#if 1
         if (! Type::associativearray)
         {
             ObjectNotFound(Id::AssociativeArray);
         }
         TemplateInstance *ti = new TemplateInstance(loc, Type::associativearray, tiargs);
-#else
-        //Expression *e = new IdentifierExp(loc, Id::object);
-        Expression *e = new IdentifierExp(loc, Id::empty);
-        //e = new DotIdExp(loc, e, Id::object);
-        DotTemplateInstanceExp *dti = new DotTemplateInstanceExp(loc,
-                    e,
-                    Id::AssociativeArray,
-                    tiargs);
-        dti->semantic(sc);
-        TemplateInstance *ti = dti->ti;
-#endif
         // Instantiate on the root module of import dependency graph.
         sc = sc->push(sc->module->importedFrom);
         ti->semantic(sc);
