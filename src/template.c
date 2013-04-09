@@ -6671,17 +6671,9 @@ void TemplateMixin::semantic(Scope *sc)
     }
 
     AggregateDeclaration *ad = toParent()->isAggregateDeclaration();
-
-    /* The problem is when to parse the initializer for a variable.
-     * Perhaps VarDeclaration::semantic() should do it like it does
-     * for initializers inside a function.
-     */
-//    if (sc->parent->isFuncDeclaration())
-
-        semantic2(sc2);
-
     if (sc->func && !ad)
     {
+        semantic2(sc2);
         semantic3(sc2);
     }
 
