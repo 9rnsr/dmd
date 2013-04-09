@@ -810,6 +810,57 @@ Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
     return sv;
 }
 
+void VarDeclaration::variableSemantic()
+{
+    if (scope && !type)
+    {
+        initSemantic(scope);
+        semantic(NULL);
+    }
+}
+
+void VarDeclaration::initSemantic(Scope *sc)
+{
+    assert(!type);
+    {
+        inuse++;
+
+        printf("inferring type for %s with init %s\n", toChars(), init->toChars());
+        ArrayInitializer *ai = init->isArrayInitializer();
+        if (ai)
+        {   Expression *e;
+            if (ai->isAssociativeArray())
+                e = ai->toAssocArrayLiteral();
+            else
+                e = init->toExpression();
+            if (!e)
+            {
+                error("cannot infer type from initializer");
+                e = new ErrorExp();
+            }
+            init = new ExpInitializer(e->loc, e);
+            type = init->inferType(sc);
+            if (type->ty == Tsarray)
+                type = type->nextOf()->arrayOf();
+        }
+        else
+            type = init->inferType(sc);
+
+        inuse--;
+
+        if (init->isArrayInitializer() && type->toBasetype()->ty == Tsarray)
+        {   // Prefer array literals to give a T[] type rather than a T[dim]
+            type = type->toBasetype()->nextOf()->arrayOf();
+        }
+
+        /* This is a kludge to support the existing syntax for RAII
+         * declarations.
+         */
+        storage_class &= ~STCauto;
+        //originalType = type->syntaxCopy();
+    }
+}
+
 void VarDeclaration::semantic(Scope *sc)
 {
 #if 0
@@ -848,52 +899,22 @@ void VarDeclaration::semantic(Scope *sc)
      */
     int inferred = 0;
     if (!type)
-    {   inuse++;
-
-        //printf("inferring type for %s with init %s\n", toChars(), init->toChars());
-        ArrayInitializer *ai = init->isArrayInitializer();
-        if (ai)
-        {   Expression *e;
-            if (ai->isAssociativeArray())
-                e = ai->toAssocArrayLiteral();
-            else
-                e = init->toExpression();
-            if (!e)
-            {
-                error("cannot infer type from initializer");
-                e = new ErrorExp();
-            }
-            init = new ExpInitializer(e->loc, e);
-            type = init->inferType(sc);
-            if (type->ty == Tsarray)
-                type = type->nextOf()->arrayOf();
+    {
+        if (!ad)
+        {
+            scope = scx ? scx : new Scope(*sc);
+            scope->setNoFree();
+            return; // defer semantic
         }
-        else
-            type = init->inferType(sc);
-
-//      type = type->semantic(loc, sc);
-
-        inuse--;
         inferred = 1;
-
-        if (init->isArrayInitializer() && type->toBasetype()->ty == Tsarray)
-        {   // Prefer array literals to give a T[] type rather than a T[dim]
-            type = type->toBasetype()->nextOf()->arrayOf();
-        }
-
-        /* This is a kludge to support the existing syntax for RAII
-         * declarations.
-         */
-        storage_class &= ~STCauto;
+        initSemantic(sc);
+        assert(type);
+    }
+    if (!originalType)
         originalType = type->syntaxCopy();
-    }
-    else
-    {   if (!originalType)
-            originalType = type->syntaxCopy();
-        inuse++;
-        type = type->semantic(loc, sc);
-        inuse--;
-    }
+    inuse++;
+    type = type->semantic(loc, sc);
+    inuse--;
     //printf(" semantic type = %s\n", type ? type->toChars() : "null");
 
     type->checkDeprecated(loc, sc);
@@ -1671,6 +1692,8 @@ void VarDeclaration::semantic2(Scope *sc)
 {
     //printf("VarDeclaration::semantic2('%s')\n", toChars());
         // Inside unions, default to void initializers
+    if (!type)
+        variableSemantic();
     if (!init && sc->inunion && !toParent()->isFuncDeclaration())
     {
         AggregateDeclaration *aad = parent->isAggregateDeclaration();

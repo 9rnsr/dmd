@@ -3048,8 +3048,8 @@ Lagain:
     {
         //printf("Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
         if (!type)
-        {   if ((!v->type || !v->type->deco) && v->scope)
-                v->semantic(v->scope);
+        {
+            v->variableSemantic();
             type = v->type;
             if (!v->type)
             {   error("forward reference of %s %s", v->kind(), v->toChars());
