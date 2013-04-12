@@ -201,7 +201,7 @@ Expression *eval_builtin(Loc loc, enum BUILTIN builtin, Expressions *arguments)
         case BUILTINbsf:
             if (arg0->op == TOKint64)
             {   if (arg0->toInteger()==0)
-                    error(loc, "bsf(0) is undefined");
+                    ERROR_GEN(error, loc, "bsf(0) is undefined");
                 else
                     e = new IntegerExp(loc, eval_bsf(arg0->toInteger()), Type::tint32);
             }
@@ -209,7 +209,7 @@ Expression *eval_builtin(Loc loc, enum BUILTIN builtin, Expressions *arguments)
         case BUILTINbsr:
             if (arg0->op == TOKint64)
             {   if (arg0->toInteger()==0)
-                    error(loc, "bsr(0) is undefined");
+                    ERROR_GEN(error, loc, "bsr(0) is undefined");
                 else
                     e = new IntegerExp(loc, eval_bsr(arg0->toInteger()), Type::tint32);
             }

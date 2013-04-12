@@ -269,7 +269,7 @@ void FuncDeclaration::semantic(Scope *sc)
     storage_class &= ~STCref;
     if (type->ty != Tfunction)
     {
-        error("%s must be a function instead of %s", toChars(), type->toChars());
+        ERROR_GEN(error, "%s must be a function instead of %s", toChars(), type->toChars());
         return;
     }
     f = (TypeFunction *)(type);
@@ -294,7 +294,7 @@ void FuncDeclaration::semantic(Scope *sc)
     }
 
     if (storage_class & STCscope)
-        error("functions cannot be scope");
+        ERROR_GEN(error, "functions cannot be scope");
 
     if (isAbstract() && !isVirtual())
     {
@@ -305,33 +305,33 @@ void FuncDeclaration::semantic(Scope *sc)
             sfunc = Pprotectionnames[protection];
         else
             sfunc = "non-virtual";
-        error("%s functions cannot be abstract", sfunc);
+        ERROR_GEN(error, "%s functions cannot be abstract", sfunc);
     }
 
     if (isOverride() && !isVirtual())
-        error("cannot override a non-virtual function");
+        ERROR_GEN(error, "cannot override a non-virtual function");
 
     if (!f->isNaked() && !(isThis() || isNested()))
     {
         OutBuffer buf;
         MODtoBuffer(&buf, f->mod);
-        error("without 'this' cannot be %s", buf.toChars());
+        ERROR_GEN(error, "without 'this' cannot be %s", buf.toChars());
     }
 
     if (isAbstract() && isFinal())
-        error("cannot be both final and abstract");
+        ERROR_GEN(error, "cannot be both final and abstract");
 #if 0
     if (isAbstract() && fbody)
-        error("abstract functions cannot have bodies");
+        ERROR_GEN(error, "abstract functions cannot have bodies");
 #endif
 
 #if 0
     if (isStaticConstructor() || isStaticDestructor())
     {
         if (!isStatic() || type->nextOf()->ty != Tvoid)
-            error("static constructors / destructors must be static void");
+            ERROR_GEN(error, "static constructors / destructors must be static void");
         if (f->arguments && f->arguments->dim)
-            error("static constructors / destructors must have empty parameter list");
+            ERROR_GEN(error, "static constructors / destructors must have empty parameter list");
         // BUG: check for invalid storage classes
     }
 #endif
@@ -351,7 +351,7 @@ void FuncDeclaration::semantic(Scope *sc)
             //|| isUnitTestDeclaration()
            )
         {
-            error("special member functions not allowed for %ss", sd->kind());
+            ERROR_GEN(error, "special member functions not allowed for %ss", sd->kind());
         }
 
         if (!sd->inv)
@@ -363,7 +363,7 @@ void FuncDeclaration::semantic(Scope *sc)
         if (isDelete())
         {
             if (sd->aggDelete)
-                error("multiple delete's for struct %s", sd->toChars());
+                ERROR_GEN(error, "multiple delete's for struct %s", sd->toChars());
             sd->aggDelete = (DeleteDeclaration *)(this);
         }
 #endif
@@ -381,15 +381,15 @@ void FuncDeclaration::semantic(Scope *sc)
             isDtorDeclaration() ||
             isInvariantDeclaration() ||
             isNewDeclaration() || isDelete())
-            error("constructors, destructors, postblits, invariants, new and delete functions are not allowed in interface %s", id->toChars());
+            ERROR_GEN(error, "constructors, destructors, postblits, invariants, new and delete functions are not allowed in interface %s", id->toChars());
         if (fbody && isVirtual())
-            error("function body only allowed in final functions in interface %s", id->toChars());
+            ERROR_GEN(error, "function body only allowed in final functions in interface %s", id->toChars());
     }
 
     /* Contracts can only appear without a body when they are virtual interface functions
      */
     if (!fbody && (fensure || frequire) && !(id && isVirtual()))
-        error("in and out contracts require function body");
+        ERROR_GEN(error, "in and out contracts require function body");
 
     cd = parent->isClassDeclaration();
     if (cd)
@@ -411,7 +411,7 @@ void FuncDeclaration::semantic(Scope *sc)
         if (dtor)
         {
             if (cd->dtor)
-                error("multiple destructors for class %s", cd->toChars());
+                ERROR_GEN(error, "multiple destructors for class %s", cd->toChars());
             cd->dtor = dtor;
         }
 
@@ -430,7 +430,7 @@ void FuncDeclaration::semantic(Scope *sc)
         if (isDelete())
         {
             if (cd->aggDelete)
-                error("multiple delete's for class %s", cd->toChars());
+                ERROR_GEN(error, "multiple delete's for class %s", cd->toChars());
             cd->aggDelete = (DeleteDeclaration *)(this);
         }
 #endif
@@ -486,7 +486,7 @@ void FuncDeclaration::semantic(Scope *sc)
                         FuncDeclaration *f = s->isFuncDeclaration();
                         f = f->overloadExactMatch(type);
                         if (f && f->isFinal() && f->prot() != PROTprivate)
-                            error("cannot override final function %s", f->toPrettyChars());
+                            ERROR_GEN(error, "cannot override final function %s", f->toPrettyChars());
                     }
                 }
 
@@ -532,7 +532,7 @@ void FuncDeclaration::semantic(Scope *sc)
 
                 // This function overrides fdv
                 if (fdv->isFinal())
-                    error("cannot override final function %s", fdv->toPrettyChars());
+                    ERROR_GEN(error, "cannot override final function %s", fdv->toPrettyChars());
 
                 doesoverride = TRUE;
 #if DMDV2
@@ -548,7 +548,7 @@ void FuncDeclaration::semantic(Scope *sc)
                     bool fdcmixin = fdc->parent->isClassDeclaration() != NULL;
                     if (thismixin == fdcmixin)
                     {
-                        error("multiple overrides of same function");
+                        ERROR_GEN(error, "multiple overrides of same function");
                     }
                     else if (!thismixin)    // fdc overrides fdv
                     {   // this doesn't override any function
@@ -654,7 +654,7 @@ void FuncDeclaration::semantic(Scope *sc)
                                 !tintro->nextOf()->isBaseOf(ti->nextOf(), NULL) &&
                                 !ti->nextOf()->isBaseOf(tintro->nextOf(), NULL))
                             {
-                                error("incompatible covariant types %s and %s", tintro->toChars(), ti->toChars());
+                                ERROR_GEN(error, "incompatible covariant types %s and %s", tintro->toChars(), ti->toChars());
                             }
                         }
                         tintro = ti;
@@ -674,9 +674,9 @@ void FuncDeclaration::semantic(Scope *sc)
             }
 
             if (s)
-                error("does not override any function, did you mean to override '%s'?", s->toPrettyChars());
+                ERROR_GEN(error, "does not override any function, did you mean to override '%s'?", s->toPrettyChars());
             else
-                error("does not override any function");
+                ERROR_GEN(error, "does not override any function");
         }
 
     L2: ;
@@ -697,14 +697,14 @@ void FuncDeclaration::semantic(Scope *sc)
                     {
                         f = f->overloadExactMatch(type);
                         if (f && f->isFinal() && f->prot() != PROTprivate)
-                            error("cannot override final function %s.%s", b->base->toChars(), f->toPrettyChars());
+                            ERROR_GEN(error, "cannot override final function %s.%s", b->base->toChars(), f->toPrettyChars());
                     }
                 }
             }
         }
     }
     else if (isOverride() && !parent->isTemplateInstance())
-        error("override only applies to class member functions");
+        ERROR_GEN(error, "override only applies to class member functions");
 
     /* Do not allow template instances to add virtual functions
      * to a class.
@@ -727,7 +727,7 @@ void FuncDeclaration::semantic(Scope *sc)
             ClassDeclaration *cd = ti->tempdecl->isClassMember();
             if (cd)
             {
-                error("cannot use template to add virtual function to class '%s'", cd->toChars());
+                ERROR_GEN(error, "cannot use template to add virtual function to class '%s'", cd->toChars());
             }
         }
     }
@@ -756,13 +756,13 @@ void FuncDeclaration::semantic(Scope *sc)
         }
 
         if (!f->nextOf())
-            error("must return int or void");
+            ERROR_GEN(error, "must return int or void");
         else if (f->nextOf()->ty != Tint32 && f->nextOf()->ty != Tvoid)
-            error("must return int or void, not %s", f->nextOf()->toChars());
+            ERROR_GEN(error, "must return int or void, not %s", f->nextOf()->toChars());
         if (f->varargs)
         {
         Lmainerr:
-            error("parameters must be main() or main(string[] args)");
+            ERROR_GEN(error, "parameters must be main() or main(string[] args)");
         }
     }
 
@@ -895,14 +895,14 @@ void FuncDeclaration::semantic3(Scope *sc)
 
             t = t->semantic(loc, sc);
             if (!t->isClassHandle())
-                error("can only throw classes, not %s", t->toChars());
+                ERROR_GEN(error, "can only throw classes, not %s", t->toChars());
         }
     }
 #endif
 
     if (!fbody && inferRetType && !type->nextOf())
     {
-        error("has no function body with return type inference");
+        ERROR_GEN(error, "has no function body with return type inference");
         return;
     }
 
@@ -914,7 +914,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 
             if (fdv->fbody && !fdv->frequire)
             {
-                error("cannot have an in contract when overriden function %s does not have an in contract", fdv->toPrettyChars());
+                ERROR_GEN(error, "cannot have an in contract when overriden function %s does not have an in contract", fdv->toPrettyChars());
                 break;
             }
         }
@@ -963,7 +963,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         {
             if (isFuncLiteralDeclaration() && isNested() && !sc->intypeof)
             {
-                error("function literals cannot be class members");
+                ERROR_GEN(error, "function literals cannot be class members");
                 return;
             }
             else
@@ -983,7 +983,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 t = t->semantic(loc, sc);
                 if (t == Type::terror)
                 {
-                    error("must import core.vararg to use variadic functions");
+                    ERROR_GEN(error, "must import core.vararg to use variadic functions");
                     return;
                 }
                 else
@@ -1071,7 +1071,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 v->storage_class |= arg->storageClass & (STCin | STCout | STCref | STClazy | STCfinal | STC_TYPECTOR | STCnodtor);
                 v->semantic(sc2);
                 if (!sc2->insert(v))
-                    error("parameter %s.%s is already defined", toChars(), v->toChars());
+                    ERROR_GEN(error, "parameter %s.%s is already defined", toChars(), v->toChars());
                 else
                     parameters->push(v);
                 localsymtab->insert(v);
@@ -1106,7 +1106,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     //printf("declaring tuple %s\n", v->toChars());
                     v->isexp = 1;
                     if (!sc2->insert(v))
-                        error("parameter %s.%s is already defined", toChars(), v->toChars());
+                        ERROR_GEN(error, "parameter %s.%s is already defined", toChars(), v->toChars());
                     localsymtab->insert(v);
                     v->parent = this;
                 }
@@ -1259,7 +1259,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 ScopeDsymbol *pd = p->isScopeDsymbol();
                 if (!pd)
                 {
-                    error("static constructor can only be member of struct/class/module, not %s %s", p->kind(), p->toChars());
+                    ERROR_GEN(error, "static constructor can only be member of struct/class/module, not %s %s", p->kind(), p->toChars());
                 }
                 else
                 {
@@ -1278,7 +1278,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 int nothrowErrors = global.errors;
                 int blockexit = fbody->blockExit(f->isnothrow);
                 if (f->isnothrow && (global.errors != nothrowErrors) )
-                    error("'%s' is nothrow yet may throw", toChars());
+                    ERROR_GEN(error, "'%s' is nothrow yet may throw", toChars());
                 if (flags & FUNCFLAGnothrowInprocess)
                     f->isnothrow = !(blockexit & BEthrow);
 #endif
@@ -1301,11 +1301,11 @@ void FuncDeclaration::semantic3(Scope *sc)
                              *    as delegating calls to other constructors
                              */
                             if (v->isCtorinit() && !v->type->isMutable() && cd)
-                                error("missing initializer for %s field %s", MODtoChars(v->type->mod), v->toChars());
+                                ERROR_GEN(error, "missing initializer for %s field %s", MODtoChars(v->type->mod), v->toChars());
                             else if (v->storage_class & STCnodefaultctor)
-                                error("field %s must be initialized in constructor", v->toChars());
+                                ERROR_GEN(error, "field %s must be initialized in constructor", v->toChars());
                             else if (v->type->needsNested())
-                                error("field %s must be initialized in constructor, because it is nested struct", v->toChars());
+                                ERROR_GEN(error, "field %s must be initialized in constructor, because it is nested struct", v->toChars());
                         }
                     }
                 }
@@ -1319,7 +1319,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     // Insert implicit super() at start of fbody
                     if (!resolveFuncCall(0, sc2, cd->baseClass->ctor, NULL, NULL, NULL, 1))
                     {
-                        error("no match for implicit super() call in constructor");
+                        ERROR_GEN(error, "no match for implicit super() call in constructor");
                     }
                     else
                     {
@@ -1354,7 +1354,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 assert(!returnLabel);
             }
             else if (!hasReturnExp && type->nextOf()->ty != Tvoid)
-                error("has no return statement, but is expected to return a value of type %s", type->nextOf()->toChars());
+                ERROR_GEN(error, "has no return statement, but is expected to return a value of type %s", type->nextOf()->toChars());
             else if (hasReturnExp & 8)               // if inline asm
             {
                 flags &= ~FUNCFLAGnothrowInprocess;
@@ -1366,7 +1366,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 int nothrowErrors = global.errors;
                 int blockexit = fbody->blockExit(f->isnothrow);
                 if (f->isnothrow && (global.errors != nothrowErrors) )
-                    error("'%s' is nothrow yet may throw", toChars());
+                    ERROR_GEN(error, "'%s' is nothrow yet may throw", toChars());
                 if (flags & FUNCFLAGnothrowInprocess)
                 {
                     if (type == f) f = f->copy();
@@ -1382,7 +1382,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 #if DMDV1
                         warning(loc, "no return exp; or assert(0); at end of function");
 #else
-                        error("no return exp; or assert(0); at end of function");
+                        ERROR_GEN(error, "no return exp; or assert(0); at end of function");
 #endif
                         if (global.params.useAssert &&
                             !global.params.useInline)
@@ -1439,7 +1439,7 @@ void FuncDeclaration::semantic3(Scope *sc)
              */
             if (type->nextOf()->ty == Tvoid && outId)
             {
-                error("void functions have no result");
+                ERROR_GEN(error, "void functions have no result");
             }
 
             if (type->nextOf()->ty != Tvoid)
@@ -1642,7 +1642,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                         bool isnothrow = f->isnothrow & !(flags & FUNCFLAGnothrowInprocess);
                         int blockexit = s->blockExit(isnothrow);
                         if (f->isnothrow && (global.errors != nothrowErrors) )
-                            error("'%s' is nothrow yet may throw", toChars());
+                            ERROR_GEN(error, "'%s' is nothrow yet may throw", toChars());
                         if (flags & FUNCFLAGnothrowInprocess && blockexit & BEthrow)
                             f->isnothrow = FALSE;
                         if (fbody->blockExit(f->isnothrow) == BEfallthru)
@@ -1690,7 +1690,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 }
                 else
                 {
-                    error("synchronized function %s must be a member of a class", toChars());
+                    ERROR_GEN(error, "synchronized function %s must be a member of a class", toChars());
                 }
             }
         }
@@ -1979,7 +1979,7 @@ void FuncDeclaration::buildResultVar()
 #endif
     v->semantic(scout);
     if (!scout->insert(v))
-        error("out result %s is already defined", v->toChars());
+        ERROR_GEN(error, "out result %s is already defined", v->toChars());
     v->parent = this;
     vresult = v;
 
@@ -2188,7 +2188,7 @@ int FuncDeclaration::findVtblIndex(Dsymbols *vtbl, int dim)
 
                 if (exactvi >= 0)
                 {
-                    error("cannot determine overridden function");
+                    ERROR_GEN(error, "cannot determine overridden function");
                     return exactvi;
                 }
                 exactvi = vi;
@@ -2235,7 +2235,7 @@ int FuncDeclaration::findVtblIndex(Dsymbols *vtbl, int dim)
             bestvi = mismatchvi;
         }
         else
-            error("of type %s overrides but is not covariant with %s of type %s",
+            ERROR_GEN(error, "of type %s overrides but is not covariant with %s of type %s",
                 type->toChars(), mismatch->toPrettyChars(), mismatch->type->toChars());
     }
     return bestvi;
@@ -2329,7 +2329,7 @@ int overloadApply(FuncDeclaration *fstart,
             {
                 f = fa->toAliasFunc();
                 if (!f)
-                {   d->error("is aliased to a function");
+                {   ERROR_GEN(d->error, "is aliased to a function");
                     break;
                 }
                 if ((*fp)(param, f))
@@ -2354,7 +2354,7 @@ int overloadApply(FuncDeclaration *fstart,
             {
                 f = d->isFuncDeclaration();
                 if (!f)
-                {   d->error("is aliased to a function");
+                {   ERROR_GEN(d->error, "is aliased to a function");
                     break;              // BUG: should print error message?
                 }
                 if ((*fp)(param, f))
@@ -2472,7 +2472,7 @@ int fp2(void *param, FuncDeclaration *f)
         if (p->property == 0)
             p->property = property;
         else if (p->property != property)
-            error(f->loc, "cannot overload both property and non-property functions");
+            ERROR_GEN(error, f->loc, "cannot overload both property and non-property functions");
 
         /* For constructors, don't worry about the right type of ethis. It's a problem
          * anyway, because the constructor attribute may not match the ethis attribute,
@@ -2643,13 +2643,13 @@ FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Expression *ethis, Ex
                 OutBuffer thisBuf, funcBuf;
                 MODMatchToBuffer(&thisBuf, ethis->type->mod, tf->mod);
                 MODMatchToBuffer(&funcBuf, tf->mod, ethis->type->mod);
-                ::error(loc, "%smethod %s is not callable using a %sobject",
+                ERROR_GEN(::error, loc, "%smethod %s is not callable using a %sobject",
                     funcBuf.toChars(), this->toPrettyChars(), thisBuf.toChars());
             }
             else
             {
                 //printf("tf = %s, args = %s\n", tf->deco, (*arguments)[0]->type->deco);
-                error(loc, "%s%s is not callable using argument types %s",
+                ERROR_GEN(error, loc, "%s%s is not callable using argument types %s",
                     Parameter::argsTypesToChars(tf->parameters, tf->varargs),
                     tf->modToChars(),
                     buf.toChars());
@@ -2660,7 +2660,7 @@ FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Expression *ethis, Ex
             TypeFunction *t1 = (TypeFunction *)m.lastf->type;
             TypeFunction *t2 = (TypeFunction *)m.nextf->type;
 
-            error(loc, "called with argument types:\n\t(%s)\nmatches both:\n\t%s(%d): %s%s\nand:\n\t%s(%d): %s%s",
+            ERROR_GEN(error, loc, "called with argument types:\n\t(%s)\nmatches both:\n\t%s(%d): %s%s\nand:\n\t%s(%d): %s%s",
                     buf.toChars(),
                     m.lastf->loc.filename, m.lastf->loc.linnum, m.lastf->toPrettyChars(), Parameter::argsTypesToChars(t1->parameters, t1->varargs),
                     m.nextf->loc.filename, m.nextf->loc.linnum, m.nextf->toPrettyChars(), Parameter::argsTypesToChars(t2->parameters, t2->varargs));
@@ -2909,7 +2909,7 @@ int FuncDeclaration::getLevel(Loc loc, Scope *sc, FuncDeclaration *fd)
 Lerr:
     // Don't give error if in template constraint
     if (!((sc->flags & SCOPEstaticif) && parent->isTemplateDeclaration()))
-        error(loc, "cannot access frame of function %s", fd->toPrettyChars());
+        ERROR_GEN(error, loc, "cannot access frame of function %s", fd->toPrettyChars());
     return 1;
 }
 
@@ -3860,7 +3860,7 @@ void CtorDeclaration::semantic(Scope *sc)
     AggregateDeclaration *ad = parent->isAggregateDeclaration();
     if (!ad || parent->isUnionDeclaration())
     {
-        error("constructors are only for class or struct definitions");
+        ERROR_GEN(error, "constructors are only for class or struct definitions");
         tret = Type::tvoid;
     }
     else
@@ -3891,7 +3891,7 @@ void CtorDeclaration::semantic(Scope *sc)
         if (sd)
         {
             if (fbody || !(storage_class & STCdisable))
-            {   error("default constructor for structs only allowed with @disable and no body");
+            {   ERROR_GEN(error, "default constructor for structs only allowed with @disable and no body");
                 storage_class |= STCdisable;
                 fbody = NULL;
             }
@@ -3960,7 +3960,7 @@ void PostBlitDeclaration::semantic(Scope *sc)
     StructDeclaration *ad = parent->isStructDeclaration();
     if (!ad)
     {
-        error("post blits are only for struct/union definitions, not %s %s", parent->kind(), parent->toChars());
+        ERROR_GEN(error, "post blits are only for struct/union definitions, not %s %s", parent->kind(), parent->toChars());
     }
     else if (ident == Id::_postblit && semanticRun < PASSsemantic)
         ad->postblits.push(this);
@@ -4037,7 +4037,7 @@ void DtorDeclaration::semantic(Scope *sc)
     AggregateDeclaration *ad = parent->isAggregateDeclaration();
     if (!ad)
     {
-        error("destructors are only for class/struct/union definitions, not %s %s", parent->kind(), parent->toChars());
+        ERROR_GEN(error, "destructors are only for class/struct/union definitions, not %s %s", parent->kind(), parent->toChars());
     }
     else if (ident == Id::dtor && semanticRun < PASSsemantic)
         ad->dtors.push(this);
@@ -4386,12 +4386,12 @@ void InvariantDeclaration::semantic(Scope *sc)
     AggregateDeclaration *ad = parent->isAggregateDeclaration();
     if (!ad)
     {
-        error("invariants are only for struct/union/class definitions");
+        ERROR_GEN(error, "invariants are only for struct/union/class definitions");
         return;
     }
     else if (ad->inv && ad->inv != this && semanticRun < PASSsemantic)
     {
-        error("more than one invariant for %s", ad->toChars());
+        ERROR_GEN(error, "more than one invariant for %s", ad->toChars());
     }
     ad->inv = this;
     if (!type)
@@ -4570,7 +4570,7 @@ void NewDeclaration::semantic(Scope *sc)
     ClassDeclaration *cd = parent->isClassDeclaration();
     if (!cd && !parent->isStructDeclaration())
     {
-        error("new allocators only are for class or struct definitions");
+        ERROR_GEN(error, "new allocators only are for class or struct definitions");
     }
     Type *tret = Type::tvoid->pointerTo();
     if (!type)
@@ -4583,13 +4583,13 @@ void NewDeclaration::semantic(Scope *sc)
     TypeFunction *tf = (TypeFunction *)type;
     if (Parameter::dim(tf->parameters) < 1)
     {
-        error("at least one argument of type size_t expected");
+        ERROR_GEN(error, "at least one argument of type size_t expected");
     }
     else
     {
         Parameter *a = Parameter::getNth(tf->parameters, 0);
         if (!a->type->equals(Type::tsize_t))
-            error("first argument must be type size_t, not %s", a->type->toChars());
+            ERROR_GEN(error, "first argument must be type size_t, not %s", a->type->toChars());
     }
 
     FuncDeclaration::semantic(sc);
@@ -4659,7 +4659,7 @@ void DeleteDeclaration::semantic(Scope *sc)
     ClassDeclaration *cd = parent->isClassDeclaration();
     if (!cd && !parent->isStructDeclaration())
     {
-        error("new allocators only are for class or struct definitions");
+        ERROR_GEN(error, "new allocators only are for class or struct definitions");
     }
     if (!type)
         type = new TypeFunction(arguments, Type::tvoid, 0, LINKd);
@@ -4671,13 +4671,13 @@ void DeleteDeclaration::semantic(Scope *sc)
     TypeFunction *tf = (TypeFunction *)type;
     if (Parameter::dim(tf->parameters) != 1)
     {
-        error("one argument of type void* expected");
+        ERROR_GEN(error, "one argument of type void* expected");
     }
     else
     {
         Parameter *a = Parameter::getNth(tf->parameters, 0);
         if (!a->type->equals(Type::tvoid->pointerTo()))
-            error("one argument of type void* expected, not %s", a->type->toChars());
+            ERROR_GEN(error, "one argument of type void* expected, not %s", a->type->toChars());
     }
 
     FuncDeclaration::semantic(sc);

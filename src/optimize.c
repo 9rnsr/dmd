@@ -65,7 +65,7 @@ Expression *expandVar(int result, VarDeclaration *v)
             {
                 if (v->inuse)
                 {   if (v->storage_class & STCmanifest)
-                        v->error("recursive initialization of constant");
+                        ERROR_GEN(v->error, "recursive initialization of constant");
                     goto L1;
                 }
                 if (v->scope)
@@ -78,7 +78,7 @@ Expression *expandVar(int result, VarDeclaration *v)
                 Expression *ei = v->init->toExpression(v->type);
                 if (!ei)
                 {   if (v->storage_class & STCmanifest)
-                        v->error("enum cannot be initialized with %s", v->init->toChars());
+                        ERROR_GEN(v->error, "enum cannot be initialized with %s", v->init->toChars());
                     goto L1;
                 }
                 if (ei->op == TOKconstruct || ei->op == TOKblit)
@@ -172,7 +172,7 @@ Expression *fromConstInitializer(int result, Expression *e1)
             if (v && (result & WANTinterpret) &&
                 !(v->storage_class & STCtemplateparameter))
             {
-                e1->error("variable %s cannot be read at compile time", v->toChars());
+                ERROR_GEN(e1->error, "variable %s cannot be read at compile time", v->toChars());
                 e = e->copy();
                 e->type = Type::terror;
             }
@@ -319,7 +319,7 @@ Expression *SymOffExp::optimize(int result, bool keepLvalue)
 {
     assert(var);
     if ((result & WANTinterpret) && var->isThreadlocal())
-            error("cannot take address of thread-local variable %s at compile time", var->toChars());
+            ERROR_GEN(error, "cannot take address of thread-local variable %s at compile time", var->toChars());
     return this;
 }
 
@@ -385,7 +385,7 @@ Expression *AddrExp::optimize(int result, bool keepLvalue)
                 TypeSArray *ts = (TypeSArray *)ve->type;
                 sinteger_t dim = ts->dim->toInteger();
                 if (index < 0 || index >= dim)
-                    error("array index %lld is out of bounds [0..%lld]", index, dim);
+                    ERROR_GEN(error, "array index %lld is out of bounds [0..%lld]", index, dim);
                 e = new SymOffExp(loc, ve->var, index * ts->nextOf()->size());
                 e->type = type;
                 return e;
@@ -496,7 +496,7 @@ Expression *NewExp::optimize(int result, bool keepLvalue)
     }
     if (result & WANTinterpret)
     {
-        error("cannot evaluate %s at compile time", toChars());
+        ERROR_GEN(error, "cannot evaluate %s at compile time", toChars());
     }
     return this;
 }
@@ -537,7 +537,7 @@ Expression *CallExp::optimize(int result, bool keepLvalue)
         if (eresult && eresult != EXP_VOID_INTERPRET)
             e = eresult;
         else
-            error("cannot evaluate %s at compile time", toChars());
+            ERROR_GEN(error, "cannot evaluate %s at compile time", toChars());
     }
 #else
     if (e1->op == TOKvar)
@@ -558,7 +558,7 @@ Expression *CallExp::optimize(int result, bool keepLvalue)
                 if (eresult && eresult != EXP_VOID_INTERPRET)
                     e = eresult;
                 else
-                    error("cannot evaluate %s at compile time", toChars());
+                    ERROR_GEN(error, "cannot evaluate %s at compile time", toChars());
             }
         }
     }
@@ -571,7 +571,7 @@ Expression *CallExp::optimize(int result, bool keepLvalue)
             if (eresult && eresult != EXP_VOID_INTERPRET)
                 e = eresult;
             else
-                error("cannot evaluate %s at compile time", toChars());
+                ERROR_GEN(error, "cannot evaluate %s at compile time", toChars());
         }
     }
 #endif
@@ -697,7 +697,7 @@ Expression *BinExp::optimize(int result, bool keepLvalue)
             sinteger_t i2 = e2->toInteger();
             d_uns64 sz = e1->type->size() * 8;
             if (i2 < 0 || i2 >= sz)
-            {   error("shift assign by %lld is outside the range 0..%llu", i2, (ulonglong)sz - 1);
+            {   ERROR_GEN(error, "shift assign by %lld is outside the range 0..%llu", i2, (ulonglong)sz - 1);
                 e2 = new IntegerExp(0);
             }
         }
@@ -792,7 +792,7 @@ Expression *shift_optimize(int result, BinExp *e, Expression *(*shift)(Type *, E
         sinteger_t i2 = e->e2->toInteger();
         d_uns64 sz = e->e1->type->size() * 8;
         if (i2 < 0 || i2 >= sz)
-        {   e->error("shift by %lld is outside the range 0..%llu", i2, (ulonglong)sz - 1);
+        {   ERROR_GEN(e->error, "shift by %lld is outside the range 0..%llu", i2, (ulonglong)sz - 1);
             e->e2 = new IntegerExp(0);
         }
         if (e->e1->isConst() == 1)
@@ -899,7 +899,7 @@ Expression *PowExp::optimize(int result, bool keepLvalue)
     // All other negative integral powers are illegal
     else if ((e1->type->isintegral()) && (e2->op == TOKint64) && (sinteger_t)e2->toInteger() < 0)
     {
-        error("cannot raise %s to a negative integer power. Did you mean (cast(real)%s)^^%s ?",
+        ERROR_GEN(error, "cannot raise %s to a negative integer power. Did you mean (cast(real)%s)^^%s ?",
               e1->type->toBasetype()->toChars(), e1->toChars(), e2->toChars());
         e = new ErrorExp();
     }
@@ -1102,7 +1102,7 @@ Expression *AndAndExp::optimize(int result, bool keepLvalue)
     {
         e2 = e2->optimize(WANTflags | (result & WANTinterpret));
         if (result && e2->type->toBasetype()->ty == Tvoid && !global.errors)
-            error("void has no value");
+            ERROR_GEN(error, "void has no value");
         if (e1->isConst())
         {
             if (e2->isConst())
@@ -1137,7 +1137,7 @@ Expression *OrOrExp::optimize(int result, bool keepLvalue)
     {
         e2 = e2->optimize(WANTflags | (result & WANTinterpret));
         if (result && e2->type->toBasetype()->ty == Tvoid && !global.errors)
-            error("void has no value");
+            ERROR_GEN(error, "void has no value");
         if (e1->isConst())
         {
             if (e2->isConst())

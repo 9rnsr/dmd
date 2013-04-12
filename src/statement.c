@@ -480,7 +480,7 @@ Statements *CompileStatement::flatten(Scope *sc)
         return NULL;
     StringExp *se = exp->toString();
     if (!se)
-    {   error("argument to mixin must be a string, not (%s)", exp->toChars());
+    {   ERROR_GEN(error, "argument to mixin must be a string, not (%s)", exp->toChars());
         return NULL;
     }
     se = se->toUTF8(sc);
@@ -751,7 +751,7 @@ int CompoundStatement::blockExit(bool mustNotThrow)
                     else if (sd && (!sd->statement->hasCode() || sd->statement->isCaseStatement()))
                         ;
                     else
-                        s->error("switch case fallthrough - use 'goto %s;' if intended",
+                        ERROR_GEN(s->error, "switch case fallthrough - use 'goto %s;' if intended",
                             s->isCaseStatement() ? "case" : "default");
                 }
             }
@@ -1481,7 +1481,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
     if (!inferAggregate(sc, sapply))
     {
-        error("invalid foreach aggregate %s", aggr->toChars());
+        ERROR_GEN(error, "invalid foreach aggregate %s", aggr->toChars());
         return this;
     }
 
@@ -1490,7 +1490,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
     if (!inferApplyArgTypes(sc, sapply))
     {
         //printf("dim = %d, arguments->dim = %d\n", dim, arguments->dim);
-        error("cannot uniquely infer foreach argument types");
+        ERROR_GEN(error, "cannot uniquely infer foreach argument types");
         return this;
     }
 
@@ -1500,7 +1500,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
     {
         if (dim < 1 || dim > 2)
         {
-            error("only one (value) or two (key,value) arguments for tuple foreach");
+            ERROR_GEN(error, "only one (value) or two (key,value) arguments for tuple foreach");
             return s;
         }
 
@@ -1537,7 +1537,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
             if (dim == 2)
             {   // Declare key
                 if (arg->storageClass & (STCout | STCref | STClazy))
-                    error("no storage class for key %s", arg->ident->toChars());
+                    ERROR_GEN(error, "no storage class for key %s", arg->ident->toChars());
                 arg->type = arg->type->semantic(loc, sc);
                 TY keyty = arg->type->ty;
                 if (keyty != Tint32 && keyty != Tuns32)
@@ -1545,10 +1545,10 @@ Statement *ForeachStatement::semantic(Scope *sc)
                     if (global.params.is64bit)
                     {
                         if (keyty != Tint64 && keyty != Tuns64)
-                            error("foreach: key type must be int or uint, long or ulong, not %s", arg->type->toChars());
+                            ERROR_GEN(error, "foreach: key type must be int or uint, long or ulong, not %s", arg->type->toChars());
                     }
                     else
-                        error("foreach: key type must be int or uint, not %s", arg->type->toChars());
+                        ERROR_GEN(error, "foreach: key type must be int or uint, not %s", arg->type->toChars());
                 }
                 Initializer *ie = new ExpInitializer(0, new IntegerExp(k));
                 VarDeclaration *var = new VarDeclaration(loc, arg->type, arg->ident, ie);
@@ -1560,7 +1560,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
             // Declare value
             if (arg->storageClass & (STCout | STClazy) ||
                 arg->storageClass & STCref && !te)
-                error("no storage class for value %s", arg->ident->toChars());
+                ERROR_GEN(error, "no storage class for value %s", arg->ident->toChars());
             Dsymbol *var;
             if (te)
             {   Type *tb = e->type->toBasetype();
@@ -1576,15 +1576,15 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 {
                     var = new AliasDeclaration(loc, arg->ident, s);
                     if (arg->storageClass & STCref)
-                        error("symbol %s cannot be ref", s->toChars());
+                        ERROR_GEN(error, "symbol %s cannot be ref", s->toChars());
                     if (argtype && argtype->ty != Terror)
-                        error("cannot specify element type for symbol %s", s->toChars());
+                        ERROR_GEN(error, "cannot specify element type for symbol %s", s->toChars());
                 }
                 else if (e->op == TOKtype)
                 {
                     var = new AliasDeclaration(loc, arg->ident, e->type);
                     if (argtype && argtype->ty != Terror)
-                        error("cannot specify element type for type %s", e->type->toChars());
+                        ERROR_GEN(error, "cannot specify element type for type %s", e->type->toChars());
                 }
                 else
                 {
@@ -1598,7 +1598,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                     if (e->isConst() || e->op == TOKstring ||
                         e->op == TOKstructliteral || e->op == TOKarrayliteral)
                     {   if (v->storage_class & STCref)
-                            error("constant value %s cannot be ref", ie->toChars());
+                            ERROR_GEN(error, "constant value %s cannot be ref", ie->toChars());
                         else
                             v->storage_class |= STCmanifest;
                     }
@@ -1609,7 +1609,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
             {
                 var = new AliasDeclaration(loc, arg->ident, t);
                 if (argtype && argtype->ty != Terror)
-                    error("cannot specify element type for symbol %s", s->toChars());
+                    ERROR_GEN(error, "cannot specify element type for symbol %s", s->toChars());
             }
             DeclarationExp *de = new DeclarationExp(loc, var);
             st->push(new ExpStatement(loc, de));
@@ -1644,7 +1644,7 @@ Lagain:
 
             if (dim < 1 || dim > 2)
             {
-                error("only one or two arguments for array foreach");
+                ERROR_GEN(error, "only one or two arguments for array foreach");
                 break;
             }
 
@@ -1664,11 +1664,11 @@ Lagain:
                     (tnv->ty == Tchar || tnv->ty == Twchar || tnv->ty == Tdchar))
                 {
                     if (arg->storageClass & STCref)
-                        error("foreach: value of UTF conversion cannot be ref");
+                        ERROR_GEN(error, "foreach: value of UTF conversion cannot be ref");
                     if (dim == 2)
                     {   arg = (*arguments)[0];
                         if (arg->storageClass & STCref)
-                            error("foreach: key cannot be ref");
+                            ERROR_GEN(error, "foreach: key cannot be ref");
                     }
                     goto Lapply;
                 }
@@ -1694,7 +1694,7 @@ Lagain:
                         if (!var->type->invariantOf()->equals(arg->type->invariantOf()) ||
                             !MODimplicitConv(var->type->mod, arg->type->mod))
                         {
-                            error("key type mismatch, %s to ref %s",
+                            ERROR_GEN(error, "key type mismatch, %s to ref %s",
                                   var->type->toChars(), arg->type->toChars());
                         }
                     }
@@ -1721,7 +1721,7 @@ Lagain:
                         if (!t->invariantOf()->equals(arg->type->invariantOf()) ||
                             !MODimplicitConv(t->mod, arg->type->mod))
                         {
-                            error("argument type mismatch, %s to ref %s",
+                            ERROR_GEN(error, "argument type mismatch, %s to ref %s",
                                   t->toChars(), arg->type->toChars());
                         }
                     }
@@ -1808,7 +1808,7 @@ Lagain:
                 if (aggr->op == TOKstring)
                     aggr = aggr->implicitCastTo(sc, value->type->arrayOf());
                 else
-                    error("foreach: %s is not an array of %s",
+                    ERROR_GEN(error, "foreach: %s is not an array of %s",
                         tab->toChars(), value->type->toChars());
             }
 
@@ -1819,14 +1819,14 @@ Lagain:
                     if (global.params.is64bit)
                     {
                         if (key->type->ty != Tint64 && key->type->ty != Tuns64)
-                            error("foreach: key type must be int or uint, long or ulong, not %s", key->type->toChars());
+                            ERROR_GEN(error, "foreach: key type must be int or uint, long or ulong, not %s", key->type->toChars());
                     }
                     else
-                        error("foreach: key type must be int or uint, not %s", key->type->toChars());
+                        ERROR_GEN(error, "foreach: key type must be int or uint, not %s", key->type->toChars());
                 }
 
                 if (key->storage_class & (STCout | STCref))
-                    error("foreach: key cannot be out or ref");
+                    ERROR_GEN(error, "foreach: key cannot be out or ref");
             }
 
             sc->sbreak = this;
@@ -1842,7 +1842,7 @@ Lagain:
             taa = (TypeAArray *)tab;
             if (dim < 1 || dim > 2)
             {
-                error("only one or two arguments for associative array foreach");
+                ERROR_GEN(error, "only one or two arguments for associative array foreach");
                 break;
             }
 
@@ -1984,7 +1984,7 @@ Lagain:
             break;
 
         Lrangeerr:
-            error("cannot infer argument types");
+            ERROR_GEN(error, "cannot infer argument types");
             break;
         }
 #endif
@@ -2044,7 +2044,7 @@ Lagain:
                     id = arg->ident;    // argument copy is not need.
                     if ((arg->storageClass & STCref) != stc)
                     {   if (!stc)
-                            error("foreach: cannot make %s ref", arg->ident->toChars());
+                            ERROR_GEN(error, "foreach: cannot make %s ref", arg->ident->toChars());
                         goto LcopyArg;
                     }
                 }
@@ -2095,13 +2095,13 @@ Lagain:
                 if (dim == 2)
                 {
                     if (arg->storageClass & STCref)
-                        error("foreach: index cannot be ref");
+                        ERROR_GEN(error, "foreach: index cannot be ref");
                     if (!arg->type->equals(taa->index))
-                        error("foreach: index must be type %s, not %s", taa->index->toChars(), arg->type->toChars());
+                        ERROR_GEN(error, "foreach: index must be type %s, not %s", taa->index->toChars(), arg->type->toChars());
                     arg = (*arguments)[1];
                 }
                 if (!arg->type->equals(taa->nextOf()))
-                    error("foreach: value must be type %s, not %s", taa->nextOf()->toChars(), arg->type->toChars());
+                    ERROR_GEN(error, "foreach: value must be type %s, not %s", taa->nextOf()->toChars(), arg->type->toChars());
 
                 /* Call:
                  *      _aaApply(aggr, keysize, flde)
@@ -2177,7 +2177,7 @@ Lagain:
                     e = new CallExp(loc, aggr, exps);
                 e = e->semantic(sc);
                 if (e->type != Type::tint32)
-                    error("opApply() function for %s must return an int", tab->toChars());
+                    ERROR_GEN(error, "opApply() function for %s must return an int", tab->toChars());
             }
             else
             {
@@ -2207,7 +2207,7 @@ Lagain:
                 e = new CallExp(loc, ec, exps);
                 e = e->semantic(sc);
                 if (e->type != Type::tint32)
-                    error("opApply() function for %s must return an int", tab->toChars());
+                    ERROR_GEN(error, "opApply() function for %s must return an int", tab->toChars());
             }
 
             if (!cases->dim)
@@ -2242,7 +2242,7 @@ Lagain:
             break;
 
         default:
-            error("foreach: %s is not an aggregate type", aggr->type->toChars());
+            ERROR_GEN(error, "foreach: %s is not an aggregate type", aggr->type->toChars());
             s = NULL;   // error recovery
             break;
     }
@@ -2258,7 +2258,7 @@ bool ForeachStatement::checkForArgTypes()
     {   Parameter *arg = (*arguments)[i];
         if (!arg->type)
         {
-            error("cannot infer type for %s", arg->ident->toChars());
+            ERROR_GEN(error, "cannot infer type for %s", arg->ident->toChars());
             arg->type = Type::terror;
             result = FALSE;
         }
@@ -2358,7 +2358,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
     lwr = lwr->optimize(WANTvalue);
     if (!lwr->type)
     {
-        error("invalid range lower bound %s", lwr->toChars());
+        ERROR_GEN(error, "invalid range lower bound %s", lwr->toChars());
         return this;
     }
 
@@ -2367,7 +2367,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
     upr = upr->optimize(WANTvalue);
     if (!upr->type)
     {
-        error("invalid range upper bound %s", upr->toChars());
+        ERROR_GEN(error, "invalid range upper bound %s", upr->toChars());
         return this;
     }
 
@@ -2474,7 +2474,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
         if (!key->type->invariantOf()->equals(arg->type->invariantOf()) ||
             !MODimplicitConv(key->type->mod, arg->type->mod))
         {
-            error("argument type mismatch, %s to ref %s",
+            ERROR_GEN(error, "argument type mismatch, %s to ref %s",
                   key->type->toChars(), arg->type->toChars());
         }
     }
@@ -2484,7 +2484,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
     return s;
 #else
     if (!arg->type->isscalar())
-        error("%s is not a scalar type", arg->type->toChars());
+        ERROR_GEN(error, "%s is not a scalar type", arg->type->toChars());
 
     sym = new ScopeDsymbol();
     sym->parent = sc->scopesym;
@@ -2497,7 +2497,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
     de->semantic(sc);
 
     if (key->storage_class)
-        error("foreach range: key cannot have storage class");
+        ERROR_GEN(error, "foreach range: key cannot have storage class");
 
     sc->sbreak = this;
     sc->scontinue = this;
@@ -2874,10 +2874,10 @@ Statement *PragmaStatement::semantic(Scope *sc)
 #if 1
         /* Should this be allowed?
          */
-        error("pragma(lib) not allowed as statement");
+        ERROR_GEN(error, "pragma(lib) not allowed as statement");
 #else
         if (!args || args->dim != 1)
-            error("string expected for library name");
+            ERROR_GEN(error, "string expected for library name");
         else
         {
             Expression *e = (*args)[0];
@@ -2888,7 +2888,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
             (*args)[0] = e;
             StringExp *se = e->toString();
             if (!se)
-                error("string expected for library name, not '%s'", e->toChars());
+                ERROR_GEN(error, "string expected for library name, not '%s'", e->toChars());
             else if (global.params.verbose)
             {
                 char *name = (char *)mem.malloc(se->len + 1);
@@ -2904,7 +2904,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
     else if (ident == Id::startaddress)
     {
         if (!args || args->dim != 1)
-            error("function name expected for start address");
+            ERROR_GEN(error, "function name expected for start address");
         else
         {
             Expression *e = (*args)[0];
@@ -2914,7 +2914,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
             (*args)[0] = e;
             Dsymbol *sa = getDsymbol(e);
             if (!sa || !sa->isFuncDeclaration())
-                error("function name expected for start address, not '%s'", e->toChars());
+                ERROR_GEN(error, "function name expected for start address, not '%s'", e->toChars());
             if (body)
             {
                 body = body->semantic(sc);
@@ -2924,7 +2924,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
     }
 #endif
     else
-        error("unrecognized pragma(%s)", ident->toChars());
+        ERROR_GEN(error, "unrecognized pragma(%s)", ident->toChars());
 Lerror:
     if (body)
     {
@@ -3055,7 +3055,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
     else
     {   condition = condition->integralPromotions(sc);
         if (!condition->type->isintegral())
-            error("'%s' must be of integral or string type, it is a %s", condition->toChars(), condition->type->toChars());
+            ERROR_GEN(error, "'%s' must be of integral or string type, it is a %s", condition->toChars(), condition->type->toChars());
     }
     condition = condition->optimize(WANTvalue);
 
@@ -3075,7 +3075,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
 
         if (!gcs->exp)
         {
-            gcs->error("no case statement following goto case;");
+            ERROR_GEN(gcs->error, "no case statement following goto case;");
             break;
         }
 
@@ -3094,7 +3094,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
                 }
             }
         }
-        gcs->error("case %s not found", gcs->exp->toChars());
+        ERROR_GEN(gcs->error, "case %s not found", gcs->exp->toChars());
 
      Lfoundcase:
         ;
@@ -3127,7 +3127,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
                         if (cs->exp->equals(em->value) || cs->exp->toInteger() == em->value->toInteger())
                             goto L1;
                     }
-                    error("enum member %s not represented in final switch", em->toChars());
+                    ERROR_GEN(error, "enum member %s not represented in final switch", em->toChars());
                 }
               L1:
                 ;
@@ -3259,7 +3259,7 @@ Statement *CaseStatement::semantic(Scope *sc)
                  */
                 sw->hasVars = 1;
                 if (sw->isFinal)
-                    error("case variables not allowed in final switch statements");
+                    ERROR_GEN(error, "case variables not allowed in final switch statements");
                 goto L1;
             }
         }
@@ -3268,7 +3268,7 @@ Statement *CaseStatement::semantic(Scope *sc)
 
         if (exp->op != TOKstring && exp->op != TOKint64 && exp->op != TOKerror)
         {
-            error("case must be a string or an integral constant, not %s", exp->toChars());
+            ERROR_GEN(error, "case must be a string or an integral constant, not %s", exp->toChars());
             exp = new ErrorExp();
         }
 
@@ -3279,7 +3279,7 @@ Statement *CaseStatement::semantic(Scope *sc)
 
             //printf("comparing '%s' with '%s'\n", exp->toChars(), cs->exp->toChars());
             if (cs->exp->equals(exp))
-            {   error("duplicate case %s in switch statement", exp->toChars());
+            {   ERROR_GEN(error, "duplicate case %s in switch statement", exp->toChars());
                 break;
             }
         }
@@ -3299,10 +3299,10 @@ Statement *CaseStatement::semantic(Scope *sc)
         }
 
         if (sc->sw->tf != sc->tf)
-            error("switch and case are in different finally blocks");
+            ERROR_GEN(error, "switch and case are in different finally blocks");
     }
     else
-        error("case not in switch statement");
+        ERROR_GEN(error, "case not in switch statement");
     statement = statement->semantic(sc);
     return this;
 }
@@ -3355,7 +3355,7 @@ Statement *CaseRangeStatement::semantic(Scope *sc)
 
     //printf("CaseRangeStatement::semantic() %s\n", toChars());
     if (sw->isFinal)
-        error("case ranges not allowed in final switch");
+        ERROR_GEN(error, "case ranges not allowed in final switch");
 
     first = first->semantic(sc);
     first = resolveProperties(sc, first);
@@ -3377,13 +3377,13 @@ Statement *CaseRangeStatement::semantic(Scope *sc)
     if ( (first->type->isunsigned()  &&  fval > lval) ||
         (!first->type->isunsigned()  &&  (sinteger_t)fval > (sinteger_t)lval))
     {
-        error("first case %s is greater than last case %s",
+        ERROR_GEN(error, "first case %s is greater than last case %s",
             first->toChars(), last->toChars());
         lval = fval;
     }
 
     if (lval - fval > 256)
-    {   error("had %llu cases which is more than 256 cases in case range", lval - fval);
+    {   ERROR_GEN(error, "had %llu cases which is more than 256 cases in case range", lval - fval);
         lval = fval + 256;
     }
 
@@ -3449,18 +3449,18 @@ Statement *DefaultStatement::semantic(Scope *sc)
     {
         if (sc->sw->sdefault)
         {
-            error("switch statement already has a default");
+            ERROR_GEN(error, "switch statement already has a default");
         }
         sc->sw->sdefault = this;
 
         if (sc->sw->tf != sc->tf)
-            error("switch and default are in different finally blocks");
+            ERROR_GEN(error, "switch and default are in different finally blocks");
 
         if (sc->sw->isFinal)
-            error("default statement not allowed in final switch statement");
+            ERROR_GEN(error, "default statement not allowed in final switch statement");
     }
     else
-        error("default not in switch statement");
+        ERROR_GEN(error, "default not in switch statement");
     statement = statement->semantic(sc);
     return this;
 }
@@ -3496,7 +3496,7 @@ Statement *GotoDefaultStatement::semantic(Scope *sc)
 {
     sw = sc->sw;
     if (!sw)
-        error("goto default not in switch statement");
+        ERROR_GEN(error, "goto default not in switch statement");
     return this;
 }
 
@@ -3534,7 +3534,7 @@ Statement *GotoCaseStatement::semantic(Scope *sc)
         exp = exp->semantic(sc);
 
     if (!sc->sw)
-        error("goto case not in switch statement");
+        ERROR_GEN(error, "goto case not in switch statement");
     else
     {
         sc->sw->gotoCases.push(this);
@@ -3630,16 +3630,16 @@ Statement *ReturnStatement::semantic(Scope *sc)
     }
 
     if ((sc->flags & SCOPEcontract) || (scx->flags & SCOPEcontract))
-        error("return statements cannot be in contracts");
+        ERROR_GEN(error, "return statements cannot be in contracts");
     if (sc->tf || scx->tf)
-        error("return statements cannot be in finally, scope(exit) or scope(success) bodies");
+        ERROR_GEN(error, "return statements cannot be in finally, scope(exit) or scope(success) bodies");
 
     if (fd->isCtorDeclaration())
     {
         // Constructors implicitly do:
         //      return this;
         if (exp && exp->op != TOKthis)
-            error("cannot return expression from constructor");
+            ERROR_GEN(error, "cannot return expression from constructor");
         exp = new ThisExp(0);
         exp->type = tret;
     }
@@ -3721,7 +3721,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
                         else if (m1 && !m2)
                             ;
                         else if (exp->op != TOKerror)
-                            error("mismatched function return type inference of %s and %s",
+                            ERROR_GEN(error, "mismatched function return type inference of %s and %s",
                                 exp->type->toChars(), tfret->toChars());
                     }
                 }
@@ -3794,7 +3794,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
         if (fd->type->nextOf())
         {
             if (fd->type->nextOf()->ty != Tvoid)
-                error("mismatched function return type inference of void and %s",
+                ERROR_GEN(error, "mismatched function return type inference of void and %s",
                     fd->type->nextOf()->toChars());
         }
         else
@@ -3808,7 +3808,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
         }
     }
     else if (tbret->ty != Tvoid)        // if non-void return
-        error("return expression expected");
+        ERROR_GEN(error, "return expression expected");
 
     if (sc->fes)
     {
@@ -3898,7 +3898,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
     // If any branches have called a ctor, but this branch hasn't, it's an error
     if (sc->callSuper & CSXany_ctor &&
         !(sc->callSuper & (CSXthis_ctor | CSXsuper_ctor)))
-        error("return without calling constructor");
+        ERROR_GEN(error, "return without calling constructor");
 
     sc->callSuper |= CSXreturn;
 
@@ -3930,7 +3930,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
         if (exp->type->ty != Tvoid)
         {
-            error("cannot return non-void from void function");
+            ERROR_GEN(error, "cannot return non-void from void function");
         }
 
         exp = NULL;
@@ -4013,13 +4013,13 @@ Statement *BreakStatement::semantic(Scope *sc)
                 Statement *s = ls->statement;
 
                 if (!s->hasBreak())
-                    error("label '%s' has no break", ident->toChars());
+                    ERROR_GEN(error, "label '%s' has no break", ident->toChars());
                 if (ls->tf != sc->tf)
-                    error("cannot break out of finally block");
+                    ERROR_GEN(error, "cannot break out of finally block");
                 return this;
             }
         }
-        error("enclosing label '%s' for break not found", ident->toChars());
+        ERROR_GEN(error, "enclosing label '%s' for break not found", ident->toChars());
     }
     else if (!sc->sbreak)
     {
@@ -4030,7 +4030,7 @@ Statement *BreakStatement::semantic(Scope *sc)
             s = new ReturnStatement(0, new IntegerExp(1));
             return s;
         }
-        error("break is not inside a loop or switch");
+        ERROR_GEN(error, "break is not inside a loop or switch");
     }
     return this;
 }
@@ -4116,13 +4116,13 @@ Statement *ContinueStatement::semantic(Scope *sc)
                 Statement *s = ls->statement;
 
                 if (!s->hasContinue())
-                    error("label '%s' has no continue", ident->toChars());
+                    ERROR_GEN(error, "label '%s' has no continue", ident->toChars());
                 if (ls->tf != sc->tf)
-                    error("cannot continue out of finally block");
+                    ERROR_GEN(error, "cannot continue out of finally block");
                 return this;
             }
         }
-        error("enclosing label '%s' for continue not found", ident->toChars());
+        ERROR_GEN(error, "enclosing label '%s' for continue not found", ident->toChars());
     }
     else if (!sc->scontinue)
     {
@@ -4133,7 +4133,7 @@ Statement *ContinueStatement::semantic(Scope *sc)
             s = new ReturnStatement(0, new IntegerExp(0));
             return s;
         }
-        error("continue is not inside a loop");
+        ERROR_GEN(error, "continue is not inside a loop");
     }
     return this;
 }
@@ -4190,14 +4190,14 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
             goto Lbody;
         ClassDeclaration *cd = exp->type->isClassHandle();
         if (!cd)
-            error("can only synchronize on class objects, not '%s'", exp->type->toChars());
+            ERROR_GEN(error, "can only synchronize on class objects, not '%s'", exp->type->toChars());
         else if (cd->isInterfaceDeclaration())
         {   /* Cast the interface to an object, as the object has the monitor,
              * not the interface.
              */
             if (!ClassDeclaration::object)
             {
-                error("missing or corrupt object.d");
+                ERROR_GEN(error, "missing or corrupt object.d");
                 fatal();
             }
 
@@ -4346,7 +4346,7 @@ Statement *WithStatement::semantic(Scope *sc)
         Dsymbol *s = es->type->toDsymbol(sc);
         sym = s ? s->isScopeDsymbol() : NULL;
         if (!sym)
-        {   error("with type %s has no members", es->toChars());
+        {   ERROR_GEN(error, "with type %s has no members", es->toChars());
             if (body)
                 body = body->semantic(sc);
             return this;
@@ -4383,7 +4383,7 @@ Statement *WithStatement::semantic(Scope *sc)
             sym->parent = sc->scopesym;
         }
         else
-        {   error("with expressions must be aggregate types, not '%s'", exp->type->toChars());
+        {   ERROR_GEN(error, "with expressions must be aggregate types, not '%s'", exp->type->toChars());
             return NULL;
         }
     }
@@ -4460,7 +4460,7 @@ Statement *TryCatchStatement::semantic(Scope *sc)
             char *sj = cj->loc.toChars();
 
             if (c->type->toBasetype()->implicitConvTo(cj->type->toBasetype()))
-                error("catch at %s hides catch at %s", sj, si);
+                ERROR_GEN(error, "catch at %s hides catch at %s", sj, si);
         }
     }
 
@@ -4582,7 +4582,7 @@ void Catch::semantic(Scope *sc)
          * To fix, have the compiler automatically convert the finally
          * body into a nested function.
          */
-        error(loc, "cannot put catch statement inside finally block");
+        ERROR_GEN(error, loc, "cannot put catch statement inside finally block");
     }
 #endif
 
@@ -4597,7 +4597,7 @@ void Catch::semantic(Scope *sc)
     if (!cd || ((cd != ClassDeclaration::throwable) && !ClassDeclaration::throwable->isBaseOf(cd, NULL)))
     {
         if (type != Type::terror)
-        {   error(loc, "can only catch class objects derived from Throwable, not '%s'", type->toChars());
+        {   ERROR_GEN(error, loc, "can only catch class objects derived from Throwable, not '%s'", type->toChars());
             type = Type::terror;
         }
     }
@@ -4608,7 +4608,7 @@ void Catch::semantic(Scope *sc)
         !ClassDeclaration::exception->isBaseOf(cd, NULL) &&
         sc->func->setUnsafe())
     {
-        error(loc, "can only catch class objects derived from Exception in @safe code, not '%s'", type->toChars());
+        ERROR_GEN(error, loc, "can only catch class objects derived from Exception in @safe code, not '%s'", type->toChars());
         type = Type::terror;
     }
     else if (ident)
@@ -4839,7 +4839,7 @@ Statement *ThrowStatement::semantic(Scope *sc)
 #if DMDV1
     // See bugzilla 3388. Should this be or not?
     if (sc->incontract)
-        error("Throw statements cannot be in contracts");
+        ERROR_GEN(error, "Throw statements cannot be in contracts");
 #endif
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
@@ -4847,7 +4847,7 @@ Statement *ThrowStatement::semantic(Scope *sc)
         return this;
     ClassDeclaration *cd = exp->type->toBasetype()->isClassHandle();
     if (!cd || ((cd != ClassDeclaration::throwable) && !ClassDeclaration::throwable->isBaseOf(cd, NULL)))
-        error("can only throw class objects derived from Throwable, not type %s", exp->type->toChars());
+        ERROR_GEN(error, "can only throw class objects derived from Throwable, not type %s", exp->type->toChars());
 
     return this;
 }
@@ -4865,7 +4865,7 @@ int ThrowStatement::blockExit(bool mustNotThrow)
         if (!internalThrow &&
             cd != ClassDeclaration::errorException &&
             !ClassDeclaration::errorException->isBaseOf(cd, NULL))
-            error("%s is thrown but not caught", exp->type->toChars());
+            ERROR_GEN(error, "%s is thrown but not caught", exp->type->toChars());
     }
     return BEthrow;
 }
@@ -4971,7 +4971,7 @@ Statement *GotoStatement::semantic(Scope *sc)
         return s;
     }
     if (label->statement && label->statement->tf != sc->tf)
-        error("cannot goto in or out of finally block");
+        ERROR_GEN(error, "cannot goto in or out of finally block");
     return this;
 }
 
@@ -5017,7 +5017,7 @@ Statement *LabelStatement::semantic(Scope *sc)
 
     ls = fd->searchLabel(ident);
     if (ls->statement)
-        error("Label '%s' already defined", ls->toChars());
+        ERROR_GEN(error, "Label '%s' already defined", ls->toChars());
     else
         ls->statement = this;
     tf = sc->tf;
@@ -5108,7 +5108,7 @@ Statement *AsmStatement::syntaxCopy()
 int AsmStatement::blockExit(bool mustNotThrow)
 {
     if (mustNotThrow)
-        error("asm statements are assumed to throw", toChars());
+        ERROR_GEN(error, "asm statements are assumed to throw", toChars());
     // Assume the worst
     return BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt;
 }

@@ -106,15 +106,15 @@ fflush(stdout);
              *    }
              * Should eventually make it work.
              */
-            error("forward reference to type %s", t->toChars());
+            ERROR_GEN(error, "forward reference to type %s", t->toChars());
         }
         else if (t->reliesOnTident())
-            error("forward reference to type %s", t->reliesOnTident()->toChars());
+            ERROR_GEN(error, "forward reference to type %s", t->reliesOnTident()->toChars());
 
 //printf("type %p ty %d deco %p\n", type, type->ty, type->deco);
 //type = type->semantic(loc, sc);
 //printf("type %s t %s\n", type->deco, t->deco);
-        error("cannot implicitly convert expression (%s) of type %s to %s",
+        ERROR_GEN(error, "cannot implicitly convert expression (%s) of type %s to %s",
             toChars(), type->toChars(), t->toChars());
     }
     return new ErrorExp();
@@ -159,7 +159,7 @@ MATCH Expression::implicitConvTo(Type *t)
     if (t == Type::terror)
         return MATCHnomatch;
     if (!type)
-    {   error("%s is not an expression", toChars());
+    {   ERROR_GEN(error, "%s is not an expression", toChars());
         type = Type::terror;
     }
     Expression *e = optimize(WANTvalue | WANTflags);
@@ -1231,7 +1231,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
 
     if (!committed && t->ty == Tpointer && t->nextOf()->ty == Tvoid)
     {
-        error("cannot convert string literal to void*");
+        ERROR_GEN(error, "cannot convert string literal to void*");
         return new ErrorExp();
     }
 
@@ -1323,7 +1323,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
             {   unsigned c;
                 const char *p = utf_decodeChar((unsigned char *)se->string, len, &u, &c);
                 if (p)
-                    error("%s", p);
+                    ERROR_GEN(error, "%s", p);
                 else
                     buffer.writeUTF16(c);
             }
@@ -1336,7 +1336,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
             {   unsigned c;
                 const char *p = utf_decodeChar((unsigned char *)se->string, len, &u, &c);
                 if (p)
-                    error("%s", p);
+                    ERROR_GEN(error, "%s", p);
                 buffer.write4(c);
                 newlen++;
             }
@@ -1348,7 +1348,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
             {   unsigned c;
                 const char *p = utf_decodeWchar((unsigned short *)se->string, len, &u, &c);
                 if (p)
-                    error("%s", p);
+                    ERROR_GEN(error, "%s", p);
                 else
                     buffer.writeUTF8(c);
             }
@@ -1361,7 +1361,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
             {   unsigned c;
                 const char *p = utf_decodeWchar((unsigned short *)se->string, len, &u, &c);
                 if (p)
-                    error("%s", p);
+                    ERROR_GEN(error, "%s", p);
                 buffer.write4(c);
                 newlen++;
             }
@@ -1373,7 +1373,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
             {
                 unsigned c = ((unsigned *)se->string)[u];
                 if (!utf_isValidDchar(c))
-                    error("invalid UCS-32 char \\U%08x", c);
+                    ERROR_GEN(error, "invalid UCS-32 char \\U%08x", c);
                 else
                     buffer.writeUTF8(c);
                 newlen++;
@@ -1387,7 +1387,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
             {
                 unsigned c = ((unsigned *)se->string)[u];
                 if (!utf_isValidDchar(c))
-                    error("invalid UCS-32 char \\U%08x", c);
+                    ERROR_GEN(error, "invalid UCS-32 char \\U%08x", c);
                 else
                     buffer.writeUTF16(c);
                 newlen++;
@@ -1671,11 +1671,11 @@ Expression *SymOffExp::castTo(Scope *sc, Type *t)
                             e = e->semantic(sc);
                         }
                         else if (f->needThis())
-                        {   error("no 'this' to create delegate for %s", f->toChars());
+                        {   ERROR_GEN(error, "no 'this' to create delegate for %s", f->toChars());
                             return new ErrorExp();
                         }
                         else
-                        {   error("cannot cast from function pointer to delegate");
+                        {   ERROR_GEN(error, "cannot cast from function pointer to delegate");
                             return new ErrorExp();
                         }
                     }
@@ -1726,14 +1726,14 @@ Expression *DelegateExp::castTo(Scope *sc, Type *t)
                 if (f)
                 {   int offset;
                     if (f->tintro && f->tintro->nextOf()->isBaseOf(f->type->nextOf(), &offset) && offset)
-                        error("%s", msg);
+                        ERROR_GEN(error, "%s", msg);
                     f->tookAddressOf++;
                     e = new DelegateExp(loc, e1, f);
                     e->type = t;
                     return e;
                 }
                 if (func->tintro)
-                    error("%s", msg);
+                    ERROR_GEN(error, "%s", msg);
             }
         }
         e = Expression::castTo(sc, t);
@@ -1743,7 +1743,7 @@ Expression *DelegateExp::castTo(Scope *sc, Type *t)
 
         func->tookAddressOf++;
         if (func->tintro && func->tintro->nextOf()->isBaseOf(func->type->nextOf(), &offset) && offset)
-            error("%s", msg);
+            ERROR_GEN(error, "%s", msg);
         e = copy();
         e->type = t;
     }
@@ -1996,7 +1996,7 @@ Expression *FuncExp::inferType(Type *to, int flag, Scope *sc, TemplateParameters
     }
 L1:
     if (!flag && !e)
-    {   error("cannot infer function literal type from %s", to->toChars());
+    {   ERROR_GEN(error, "cannot infer function literal type from %s", to->toChars());
         e = new ErrorExp();
     }
     return e;
@@ -2067,7 +2067,7 @@ Expression *BinExp::scaleFactor(Scope *sc)
             ;
         else if (sc->func->setUnsafe())
         {
-            error("pointer arithmetic not allowed in @safe functions");
+            ERROR_GEN(error, "pointer arithmetic not allowed in @safe functions");
             return new ErrorExp();
         }
     }
@@ -2727,7 +2727,7 @@ Expression *Expression::integralPromotions(Scope *sc)
     switch (type->toBasetype()->ty)
     {
         case Tvoid:
-            error("void has no value");
+            ERROR_GEN(error, "void has no value");
             return new ErrorExp();
 
         case Tint8:
@@ -2767,7 +2767,7 @@ int arrayTypeCompatible(Loc loc, Type *t1, Type *t2)
             t2->nextOf()->implicitConvTo(t1->nextOf()) < MATCHconst &&
             (t1->nextOf()->ty != Tvoid && t2->nextOf()->ty != Tvoid))
         {
-            error(loc, "array equality comparison type mismatch, %s vs %s", t1->toChars(), t2->toChars());
+            ERROR_GEN(error, loc, "array equality comparison type mismatch, %s vs %s", t1->toChars(), t2->toChars());
         }
         return 1;
     }

@@ -101,7 +101,7 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
         !FileName::equalsExt(srcfilename, global.hdr_ext) &&
         !FileName::equalsExt(srcfilename, "dd"))
     {
-        error("source file name '%s' must have .%s extension", srcfilename, global.mars_ext);
+        ERROR_GEN(error, "source file name '%s' must have .%s extension", srcfilename, global.mars_ext);
         fatal();
     }
     srcfile = new File(srcfilename);
@@ -161,7 +161,7 @@ File *Module::setOutfile(const char *name, const char *dir, const char *arg, con
     }
 
     if (FileName::equals(docfilename, srcfile->name->str))
-    {   error("Source file and output file have same name '%s'", srcfile->name->str);
+    {   ERROR_GEN(error, "Source file and output file have same name '%s'", srcfile->name->str);
         fatal();
     }
 
@@ -288,12 +288,12 @@ bool Module::read(Loc loc)
     {
         if (!strcmp(srcfile->toChars(), "object.d"))
         {
-            ::error(loc, "cannot find source code for runtime library file 'object.d'");
+            ERROR_GEN(::error, loc, "cannot find source code for runtime library file 'object.d'");
             errorSupplemental(loc, "dmd might not be correctly installed. Run 'dmd -man' for installation instructions.");
         }
         else
         {
-            error(loc, "is in file '%s' which cannot be read", srcfile->toChars());
+            ERROR_GEN(error, loc, "is in file '%s' which cannot be read", srcfile->toChars());
         }
 
         if (!global.gag)
@@ -377,7 +377,7 @@ void Module::parse()
                 unsigned *pumax = &pu[buflen / 4];
 
                 if (buflen & 3)
-                {   error("odd length of UTF-32 char source %u", buflen);
+                {   ERROR_GEN(error, "odd length of UTF-32 char source %u", buflen);
                     fatal();
                 }
 
@@ -389,7 +389,7 @@ void Module::parse()
                     if (u & ~0x7F)
                     {
                         if (u > 0x10FFFF)
-                        {   error("UTF-32 value %08x greater than 0x10FFFF", u);
+                        {   ERROR_GEN(error, "UTF-32 value %08x greater than 0x10FFFF", u);
                             fatal();
                         }
                         dbuf.writeUTF8(u);
@@ -412,7 +412,7 @@ void Module::parse()
                 unsigned short *pumax = &pu[buflen / 2];
 
                 if (buflen & 1)
-                {   error("odd length of UTF-16 char source %u", buflen);
+                {   ERROR_GEN(error, "odd length of UTF-16 char source %u", buflen);
                     fatal();
                 }
 
@@ -426,23 +426,23 @@ void Module::parse()
                         {   unsigned u2;
 
                             if (++pu > pumax)
-                            {   error("surrogate UTF-16 high value %04x at EOF", u);
+                            {   ERROR_GEN(error, "surrogate UTF-16 high value %04x at EOF", u);
                                 fatal();
                             }
                             u2 = le ? readwordLE(pu) : readwordBE(pu);
                             if (u2 < 0xDC00 || u2 > 0xDFFF)
-                            {   error("surrogate UTF-16 low value %04x out of range", u2);
+                            {   ERROR_GEN(error, "surrogate UTF-16 low value %04x out of range", u2);
                                 fatal();
                             }
                             u = (u - 0xD7C0) << 10;
                             u |= (u2 - 0xDC00);
                         }
                         else if (u >= 0xDC00 && u <= 0xDFFF)
-                        {   error("unpaired surrogate UTF-16 value %04x", u);
+                        {   ERROR_GEN(error, "unpaired surrogate UTF-16 value %04x", u);
                             fatal();
                         }
                         else if (u == 0xFFFE || u == 0xFFFF)
-                        {   error("illegal UTF-16 value %04x", u);
+                        {   ERROR_GEN(error, "illegal UTF-16 value %04x", u);
                             fatal();
                         }
                         dbuf.writeUTF8(u);
@@ -507,7 +507,7 @@ void Module::parse()
 
             // It's UTF-8
             if (buf[0] >= 0x80)
-            {   error("source file must start with BOM or ASCII character, not \\x%02X", buf[0]);
+            {   ERROR_GEN(error, "source file must start with BOM or ASCII character, not \\x%02X", buf[0]);
                 fatal();
             }
         }
@@ -553,7 +553,7 @@ void Module::parse()
         dst = Package::resolve(md->packages, &this->parent, &ppack);
         if (ppack && ppack->isModule())
         {
-            error(loc, "package name '%s' in file %s conflicts with usage as a module name in file %s",
+            ERROR_GEN(error, loc, "package name '%s' in file %s conflicts with usage as a module name in file %s",
                 ppack->toChars(), srcname, ppack->isModule()->srcfile->toChars());
             dst = modules;
         }
@@ -565,7 +565,7 @@ void Module::parse()
         /* Check to see if module name is a valid identifier
          */
         if (!Lexer::isValidIdentifier(this->ident->toChars()))
-            error("has non-identifier characters in filename, use module declaration instead");
+            ERROR_GEN(error, "has non-identifier characters in filename, use module declaration instead");
     }
 
     // Update global list of modules
@@ -577,17 +577,17 @@ void Module::parse()
         if (mprev)
         {
             if (strcmp(srcname, mprev->srcfile->toChars()) == 0)
-                error(loc, "from file %s must be imported as module '%s'",
+                ERROR_GEN(error, loc, "from file %s must be imported as module '%s'",
                     srcname, toPrettyChars());
             else
-                error(loc, "from file %s conflicts with another module %s from file %s",
+                ERROR_GEN(error, loc, "from file %s conflicts with another module %s from file %s",
                     srcname, mprev->toChars(), mprev->srcfile->toChars());
         }
         else
         {
             Package *pkg = prev->isPackage();
             assert(pkg);
-            error(pkg->loc, "from file %s conflicts with package name %s",
+            ERROR_GEN(error, pkg->loc, "from file %s conflicts with package name %s",
                 srcname, pkg->toChars());
         }
     }
@@ -606,7 +606,7 @@ void Module::importAll(Scope *prevsc)
 
     if (isDocFile)
     {
-        error("is a Ddoc file, cannot import it");
+        ERROR_GEN(error, "is a Ddoc file, cannot import it");
         return;
     }
 
@@ -738,7 +738,7 @@ void Module::semantic2()
         {
             Dsymbol *sd = deferred[i];
 
-            sd->error("unable to resolve forward reference in definition");
+            ERROR_GEN(sd->error, "unable to resolve forward reference in definition");
         }
         return;
     }

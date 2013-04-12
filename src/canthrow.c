@@ -79,7 +79,7 @@ int lambdaCanThrow(Expression *e, void *param)
             else
             {
                 if (pct->mustnot)
-                    e->error("%s is not nothrow", ce->e1->toChars());
+                    ERROR_GEN(e->error, "%s is not nothrow", ce->e1->toChars());
                 pct->can = TRUE;
             }
             break;
@@ -94,7 +94,7 @@ int lambdaCanThrow(Expression *e, void *param)
                 if (t->ty == Tfunction && !((TypeFunction *)t)->isnothrow)
                 {
                     if (pct->mustnot)
-                        e->error("constructor %s is not nothrow", ne->member->toChars());
+                        ERROR_GEN(e->error, "constructor %s is not nothrow", ne->member->toChars());
                     pct->can = TRUE;
                 }
             }

@@ -43,7 +43,7 @@ Initializer *Initializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpr
 
 Type *Initializer::inferType(Scope *sc)
 {
-    error(loc, "cannot infer type from initializer");
+    ERROR_GEN(error, loc, "cannot infer type from initializer");
     return Type::terror;
 }
 
@@ -132,7 +132,7 @@ Initializer *VoidInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInt
 
 Expression *VoidInitializer::toExpression(Type *t)
 {
-    error(loc, "void initializer has no value");
+    ERROR_GEN(error, loc, "void initializer has no value");
     return new ErrorExp();
 }
 
@@ -192,14 +192,14 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
         TypeStruct *ts = (TypeStruct *)t;
         ad = ts->sym;
         if (ad->ctor)
-            error(loc, "%s %s has constructors, cannot use { initializers }, use %s( initializers ) instead",
+            ERROR_GEN(error, loc, "%s %s has constructors, cannot use { initializers }, use %s( initializers ) instead",
                 ad->kind(), ad->toChars(), ad->toChars());
         StructDeclaration *sd = ad->isStructDeclaration();
         assert(sd);
         sd->size(loc);
         if (sd->sizeok != SIZEOKdone)
         {
-            error(loc, "struct %s is forward referenced", sd->toChars());
+            ERROR_GEN(error, loc, "struct %s is forward referenced", sd->toChars());
             errors = 1;
             goto Lerror;
         }
@@ -214,7 +214,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
             if (id == NULL)
             {
                 if (fieldi >= nfields)
-                {   error(loc, "too many initializers for %s", ad->toChars());
+                {   ERROR_GEN(error, loc, "too many initializers for %s", ad->toChars());
                     errors = 1;
                     field.remove(i);
                     i--;
@@ -233,10 +233,10 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
                 {
                     s = ad->search_correct(id);
                     if (s)
-                        error(loc, "'%s' is not a member of '%s', did you mean '%s %s'?",
+                        ERROR_GEN(error, loc, "'%s' is not a member of '%s', did you mean '%s %s'?",
                               id->toChars(), t->toChars(), s->kind(), s->toChars());
                     else
-                        error(loc, "'%s' is not a member of '%s'", id->toChars(), t->toChars());
+                        ERROR_GEN(error, loc, "'%s' is not a member of '%s'", id->toChars(), t->toChars());
                     errors = 1;
                     continue;
                 }
@@ -247,7 +247,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
                 {
                     if (fieldi >= nfields)
                     {
-                        error(loc, "%s.%s is not a per-instance initializable field",
+                        ERROR_GEN(error, loc, "%s.%s is not a per-instance initializable field",
                             t->toChars(), s->toChars());
                         errors = 1;
                         break;
@@ -265,7 +265,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
                     errors = 1;
             }
             else
-            {   error(loc, "%s is not a field of %s", id ? id->toChars() : s->toChars(), ad->toChars());
+            {   ERROR_GEN(error, loc, "%s is not a field of %s", id ? id->toChars() : s->toChars(), ad->toChars());
                 errors = 1;
             }
             fieldi++;
@@ -285,7 +285,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
     }
     else
     {
-        error(loc, "a struct is not a valid initializer for a %s", t->toChars());
+        ERROR_GEN(error, loc, "a struct is not a valid initializer for a %s", t->toChars());
         errors = 1;
     }
 Lerror:
@@ -328,7 +328,7 @@ Expression *StructInitializer::toExpression(Type *t)
             Dsymbol * s = ad->search(loc, id, 0);
             if (!s)
             {
-                error(loc, "'%s' is not a member of '%s'", id->toChars(), sd->toChars());
+                ERROR_GEN(error, loc, "'%s' is not a member of '%s'", id->toChars(), sd->toChars());
                 goto Lerror;
             }
             s = s->toAlias();
@@ -338,7 +338,7 @@ Expression *StructInitializer::toExpression(Type *t)
             {
                 if (fieldi >= nfields)
                 {
-                    s->error("is not a per-instance initializable field");
+                    ERROR_GEN(s->error, "is not a per-instance initializable field");
                     goto Lerror;
                 }
                 if (s == ad->fields[fieldi])
@@ -346,7 +346,7 @@ Expression *StructInitializer::toExpression(Type *t)
             }
         }
         else if (fieldi >= nfields)
-        {   error(loc, "too many initializers for '%s'", ad->toChars());
+        {   ERROR_GEN(error, loc, "too many initializers for '%s'", ad->toChars());
             goto Lerror;
         }
         Initializer *iz = value[i];
@@ -356,7 +356,7 @@ Expression *StructInitializer::toExpression(Type *t)
         if (!ex)
             goto Lno;
         if ((*elements)[fieldi])
-        {   error(loc, "duplicate initializer for field '%s'",
+        {   ERROR_GEN(error, loc, "duplicate initializer for field '%s'",
                 ad->fields[fieldi]->toChars());
             goto Lerror;
         }
@@ -420,7 +420,7 @@ Expression *StructInitializer::toExpression(Type *t)
                 {
                     VarDeclaration * v1 = ((Dsymbol *)ad->fields.data[found])->isVarDeclaration();
                     VarDeclaration * v = ((Dsymbol *)ad->fields.data[j])->isVarDeclaration();
-                    error(loc, "%s cannot have initializers for fields %s and %s in same union",
+                    ERROR_GEN(error, loc, "%s cannot have initializers for fields %s and %s in same union",
                         ad->toChars(),
                         v1->toChars(), v->toChars());
                     goto Lerror;
@@ -429,7 +429,7 @@ Expression *StructInitializer::toExpression(Type *t)
             }
             if (found == -1)
             {
-                error(loc, "no initializer for union that contains field %s",
+                ERROR_GEN(error, loc, "no initializer for union that contains field %s",
                     vd->toChars());
                 goto Lerror;
             }
@@ -549,7 +549,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
             return aa->semantic(sc, t, needInterpret);
 
         default:
-            error(loc, "cannot use array to initialize %s", type->toChars());
+            ERROR_GEN(error, loc, "cannot use array to initialize %s", type->toChars());
             goto Lerr;
     }
 
@@ -598,7 +598,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
 
         length++;
         if (length == 0)
-        {   error(loc, "array dimension overflow");
+        {   ERROR_GEN(error, loc, "array dimension overflow");
             goto Lerr;
         }
         if (length > dim)
@@ -609,7 +609,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
         dinteger_t edim = ((TypeSArray *)t)->dim->toInteger();
         if (dim > edim)
         {
-            error(loc, "array initializer has %u elements, but array length is %lld", dim, edim);
+            ERROR_GEN(error, loc, "array initializer has %u elements, but array length is %lld", dim, edim);
             goto Lerr;
         }
     }
@@ -617,7 +617,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
         goto Lerr;
 
     if ((uinteger_t) dim * t->nextOf()->size() >= amax)
-    {   error(loc, "array dimension %u exceeds max of %u", (unsigned) dim, (unsigned)(amax / t->nextOf()->size()));
+    {   ERROR_GEN(error, loc, "array dimension %u exceeds max of %u", (unsigned) dim, (unsigned)(amax / t->nextOf()->size()));
         goto Lerr;
     }
     return this;
@@ -764,7 +764,7 @@ Expression *ArrayInitializer::toAssocArrayLiteral()
 Lno:
     delete keys;
     delete values;
-    error(loc, "not an associative array initializer");
+    ERROR_GEN(error, loc, "not an associative array initializer");
     return new ErrorExp();
 }
 
@@ -821,7 +821,7 @@ Laa:
         type = t->semantic(loc, sc);
     }
     else
-        error(loc, "cannot infer type from this array initializer");
+        ERROR_GEN(error, loc, "cannot infer type from this array initializer");
     return type;
 #endif
 }
@@ -936,14 +936,14 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
 
     if (exp->op == TOKtype)
     {
-        exp->error("initializer must be an expression, not '%s'", exp->toChars());
+        ERROR_GEN(exp->error, "initializer must be an expression, not '%s'", exp->toChars());
         return new ErrorInitializer();
     }
 
     // Make sure all pointers are constants
     if (needInterpret && hasNonConstPointers(exp))
     {
-        exp->error("cannot use non-constant CTFE pointer in an initializer '%s'", exp->toChars());
+        ERROR_GEN(exp->error, "cannot use non-constant CTFE pointer in an initializer '%s'", exp->toChars());
         return new ErrorInitializer();
     }
 
@@ -1027,9 +1027,9 @@ Type *ExpInitializer::inferType(Scope *sc)
     {   ScopeExp *se = (ScopeExp *)exp;
         TemplateInstance *ti = se->sds->isTemplateInstance();
         if (ti && ti->semanticRun == PASSsemantic && !ti->aliasdecl)
-            se->error("cannot infer type from %s %s, possible circular dependency", se->sds->kind(), se->toChars());
+            ERROR_GEN(se->error, "cannot infer type from %s %s, possible circular dependency", se->sds->kind(), se->toChars());
         else
-            se->error("cannot infer type from %s %s", se->sds->kind(), se->toChars());
+            ERROR_GEN(se->error, "cannot infer type from %s %s", se->sds->kind(), se->toChars());
         return Type::terror;
     }
 
@@ -1038,7 +1038,7 @@ Type *ExpInitializer::inferType(Scope *sc)
     {   SymOffExp *se = (SymOffExp *)exp;
         if (se->hasOverloads && !se->var->isFuncDeclaration()->isUnique())
         {
-            exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
+            ERROR_GEN(exp->error, "cannot infer type from overloaded function symbol %s", exp->toChars());
             return Type::terror;
         }
     }
@@ -1050,7 +1050,7 @@ Type *ExpInitializer::inferType(Scope *sc)
             se->func->isFuncDeclaration() &&
             !se->func->isFuncDeclaration()->isUnique())
         {
-            exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
+            ERROR_GEN(exp->error, "cannot infer type from overloaded function symbol %s", exp->toChars());
             return Type::terror;
         }
     }

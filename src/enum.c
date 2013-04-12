@@ -184,7 +184,7 @@ void EnumDeclaration::semantic(Scope *sc)
         }
 #if 0   // Decided to abandon this restriction for D 2.0
         if (!memtype->isintegral())
-        {   error("base type must be of integral type, not %s", memtype->toChars());
+        {   ERROR_GEN(error, "base type must be of integral type, not %s", memtype->toChars());
             memtype = Type::tint32;
         }
 #endif
@@ -201,7 +201,7 @@ void EnumDeclaration::semantic(Scope *sc)
         sce->parent = this;
     }
     if (members->dim == 0)
-        error("enum %s must have at least one member", toChars());
+        ERROR_GEN(error, "enum %s must have at least one member", toChars());
 
     ScopeDsymbol *scopesym;
     if (isAnonymous())
@@ -294,7 +294,7 @@ void EnumDeclaration::semantic(Scope *sc)
             e = e->semantic(sce);
             e = e->ctfeInterpret();
             if (e->toInteger())
-                error("overflow of enum value %s", elast->toChars());
+                ERROR_GEN(error, "overflow of enum value %s", elast->toChars());
 
             // Now set e to (elast + 1)
             e = new AddExp(em->loc, elast, new IntegerExp(em->loc, 1, Type::tint32));
@@ -309,7 +309,7 @@ void EnumDeclaration::semantic(Scope *sc)
                 etest = etest->semantic(sce);
                 etest = etest->ctfeInterpret();
                 if (etest->toInteger())
-                    error("enum member %s has inexact value, due to loss of precision", em->toChars());
+                    ERROR_GEN(error, "enum member %s has inexact value, due to loss of precision", em->toChars());
             }
         }
         elast = e;
@@ -433,7 +433,7 @@ Dsymbol *EnumDeclaration::search(Loc loc, Identifier *ident, int flags)
         semantic(scope);
 
     if (!members || !symtab || scope)
-    {   error("is forward referenced when looking for '%s'", ident->toChars());
+    {   ERROR_GEN(error, "is forward referenced when looking for '%s'", ident->toChars());
         //*(char*)0=0;
         return NULL;
     }

@@ -54,7 +54,7 @@ Import::Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *alias
 void Import::addAlias(Identifier *name, Identifier *alias)
 {
     if (isstatic)
-        error("cannot have an import bind list");
+        ERROR_GEN(error, "cannot have an import bind list");
 
     if (!aliasId)
         this->ident = NULL;     // make it an anonymous import
@@ -95,7 +95,7 @@ void Import::load(Scope *sc)
     DsymbolTable *dst = Package::resolve(packages, NULL, &pkg);
     if (pkg && pkg->isModule())
     {
-        ::error(loc, "can only import from a module, not from a member of module %s. Did you mean `import %s : %s`?",
+        ERROR_GEN(::error, loc, "can only import from a module, not from a member of module %s. Did you mean `import %s : %s`?",
              pkg->toChars(), pkg->toPrettyChars(), id->toChars());
         mod = pkg->isModule(); // Error recovery - treat as import of that module
         return;
@@ -109,12 +109,12 @@ void Import::load(Scope *sc)
         {
             if (pkg)
             {
-                ::error(loc, "can only import from a module, not from package %s.%s",
+                ERROR_GEN(::error, loc, "can only import from a module, not from package %s.%s",
                     pkg->toPrettyChars(), id->toChars());
             }
             else
             {
-                ::error(loc, "can only import from a module, not from package %s",
+                ERROR_GEN(::error, loc, "can only import from a module, not from package %s",
                     id->toChars());
             }
         }
@@ -251,9 +251,9 @@ void Import::semantic(Scope *sc)
             {
                 Dsymbol *s = mod->search_correct(names[i]);
                 if (s)
-                    mod->error(loc, "import '%s' not found, did you mean '%s %s'?", names[i]->toChars(), s->kind(), s->toChars());
+                    ERROR_GEN(mod->error, loc, "import '%s' not found, did you mean '%s %s'?", names[i]->toChars(), s->kind(), s->toChars());
                 else
-                    mod->error(loc, "import '%s' not found", names[i]->toChars());
+                    ERROR_GEN(mod->error, loc, "import '%s' not found", names[i]->toChars());
             }
         }
         sc = sc->pop();

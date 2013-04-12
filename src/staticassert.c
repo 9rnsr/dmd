@@ -61,7 +61,7 @@ void StaticAssert::semantic2(Scope *sc)
     if (!e->type->checkBoolean())
     {
         if (e->type->toBasetype() != Type::terror)
-            exp->error("expression %s of type %s does not have a boolean value", exp->toChars(), e->type->toChars());
+            ERROR_GEN(exp->error, "expression %s of type %s does not have a boolean value", exp->toChars(), e->type->toChars());
         return;
     }
     unsigned olderrs = global.errors;
@@ -86,10 +86,10 @@ void StaticAssert::semantic2(Scope *sc)
                 msg = s;
             }
             msg->toCBuffer(&buf, &hgs);
-            error("%s", buf.toChars());
+            ERROR_GEN(error, "%s", buf.toChars());
         }
         else
-            error("(%s) is false", exp->toChars());
+            ERROR_GEN(error, "(%s) is false", exp->toChars());
         if (sc->tinst)
             sc->tinst->printInstantiationTrace();
         if (!global.gag)
@@ -97,7 +97,7 @@ void StaticAssert::semantic2(Scope *sc)
     }
     else if (!e->isBool(TRUE))
     {
-        error("(%s) is not evaluatable at compile time", exp->toChars());
+        ERROR_GEN(error, "(%s) is not evaluatable at compile time", exp->toChars());
     }
 }
 

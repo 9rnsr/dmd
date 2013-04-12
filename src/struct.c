@@ -75,7 +75,7 @@ void AggregateDeclaration::semantic2(Scope *sc)
 {
     //printf("AggregateDeclaration::semantic2(%s)\n", toChars());
     if (scope && members)
-    {   error("has forward references");
+    {   ERROR_GEN(error, "has forward references");
         return;
     }
     if (members)
@@ -145,7 +145,7 @@ unsigned AggregateDeclaration::size(Loc loc)
     if (loc.linnum == 0)
         loc = this->loc;
     if (!members)
-        error(loc, "unknown size");
+        ERROR_GEN(error, loc, "unknown size");
     if (sizeok != SIZEOKdone && scope)
         semantic(NULL);
 
@@ -190,7 +190,7 @@ unsigned AggregateDeclaration::size(Loc loc)
     }
 
     if (sizeok != SIZEOKdone)
-    {   error(loc, "no size yet for forward reference");
+    {   ERROR_GEN(error, loc, "no size yet for forward reference");
         //*(char*)0=0;
     }
     return structsize;
@@ -486,7 +486,7 @@ void StructDeclaration::semantic(Scope *sc)
         isdeprecated = true;
     assert(!isAnonymous());
     if (sc->stc & STCabstract)
-        error("structs, unions cannot be abstract");
+        ERROR_GEN(error, "structs, unions cannot be abstract");
     userAttributes = sc->userAttributes;
 
     if (sizeok == SIZEOKnone)            // if not already done the addMember step
@@ -731,7 +731,7 @@ Dsymbol *StructDeclaration::search(Loc loc, Identifier *ident, int flags)
 
     if (!members || !symtab)    // opaque or semantic() is not yet called
     {
-        error("is forward referenced when looking for '%s'", ident->toChars());
+        ERROR_GEN(error, "is forward referenced when looking for '%s'", ident->toChars());
         return NULL;
     }
 

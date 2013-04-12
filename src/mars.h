@@ -433,6 +433,10 @@ void verrorSupplemental(Loc loc, const char *format, va_list ap);
 void verrorPrint(Loc loc, const char *header, const char *format, va_list ap, const char *p1 = NULL, const char *p2 = NULL);
 void vdeprecation(Loc loc, const char *format, va_list ap, const char *p1 = NULL, const char *p2 = NULL);
 
+#define ERROR_GEN(errFunc, ...)                                         \
+    do { if (global.gag) { global.gaggedErrors++; global.errors++; }    \
+         else { errFunc(__VA_ARGS__); }  } while (0)
+
 #if defined(__GNUC__) || defined(__clang__)
 __attribute__((noreturn))
 #endif

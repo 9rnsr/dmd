@@ -146,7 +146,7 @@ char *Declaration::mangle(bool isv)
 #endif
 
                 case LINKdefault:
-                    error("forward declaration");
+                    ERROR_GEN(error, "forward declaration");
                     return ident->toChars();
 
                 default:
@@ -257,7 +257,7 @@ char *TemplateInstance::mangle(bool isv)
 #endif
     char *id = ident ? ident->toChars() : toChars();
     if (!tempdecl)
-        error("is not defined");
+        ERROR_GEN(error, "is not defined");
     else
     {
         Dsymbol *par = enclosing || isTemplateMixin() ? parent : tempdecl->parent;

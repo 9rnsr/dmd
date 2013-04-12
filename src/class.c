@@ -71,117 +71,117 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     {   // Look for special class names
 
         if (id == Id::__sizeof || id == Id::__xalignof || id == Id::mangleof)
-            error("illegal class name");
+            ERROR_GEN(error, "illegal class name");
 
         // BUG: What if this is the wrong TypeInfo, i.e. it is nested?
         if (id->toChars()[0] == 'T')
         {
             if (id == Id::TypeInfo)
             {   if (Type::typeinfo)
-                    Type::typeinfo->error("%s", msg);
+                    ERROR_GEN(Type::typeinfo->error, "%s", msg);
                 Type::typeinfo = this;
             }
 
             if (id == Id::TypeInfo_Class)
             {   if (Type::typeinfoclass)
-                    Type::typeinfoclass->error("%s", msg);
+                    ERROR_GEN(Type::typeinfoclass->error, "%s", msg);
                 Type::typeinfoclass = this;
             }
 
             if (id == Id::TypeInfo_Interface)
             {   if (Type::typeinfointerface)
-                    Type::typeinfointerface->error("%s", msg);
+                    ERROR_GEN(Type::typeinfointerface->error, "%s", msg);
                 Type::typeinfointerface = this;
             }
 
             if (id == Id::TypeInfo_Struct)
             {   if (Type::typeinfostruct)
-                    Type::typeinfostruct->error("%s", msg);
+                    ERROR_GEN(Type::typeinfostruct->error, "%s", msg);
                 Type::typeinfostruct = this;
             }
 
             if (id == Id::TypeInfo_Typedef)
             {   if (Type::typeinfotypedef)
-                    Type::typeinfotypedef->error("%s", msg);
+                    ERROR_GEN(Type::typeinfotypedef->error, "%s", msg);
                 Type::typeinfotypedef = this;
             }
 
             if (id == Id::TypeInfo_Pointer)
             {   if (Type::typeinfopointer)
-                    Type::typeinfopointer->error("%s", msg);
+                    ERROR_GEN(Type::typeinfopointer->error, "%s", msg);
                 Type::typeinfopointer = this;
             }
 
             if (id == Id::TypeInfo_Array)
             {   if (Type::typeinfoarray)
-                    Type::typeinfoarray->error("%s", msg);
+                    ERROR_GEN(Type::typeinfoarray->error, "%s", msg);
                 Type::typeinfoarray = this;
             }
 
             if (id == Id::TypeInfo_StaticArray)
             {   //if (Type::typeinfostaticarray)
-                    //Type::typeinfostaticarray->error("%s", msg);
+                    //ERROR_GEN(Type::typeinfostaticarray->error, "%s", msg);
                 Type::typeinfostaticarray = this;
             }
 
             if (id == Id::TypeInfo_AssociativeArray)
             {   if (Type::typeinfoassociativearray)
-                    Type::typeinfoassociativearray->error("%s", msg);
+                    ERROR_GEN(Type::typeinfoassociativearray->error, "%s", msg);
                 Type::typeinfoassociativearray = this;
             }
 
             if (id == Id::TypeInfo_Enum)
             {   if (Type::typeinfoenum)
-                    Type::typeinfoenum->error("%s", msg);
+                    ERROR_GEN(Type::typeinfoenum->error, "%s", msg);
                 Type::typeinfoenum = this;
             }
 
             if (id == Id::TypeInfo_Function)
             {   if (Type::typeinfofunction)
-                    Type::typeinfofunction->error("%s", msg);
+                    ERROR_GEN(Type::typeinfofunction->error, "%s", msg);
                 Type::typeinfofunction = this;
             }
 
             if (id == Id::TypeInfo_Delegate)
             {   if (Type::typeinfodelegate)
-                    Type::typeinfodelegate->error("%s", msg);
+                    ERROR_GEN(Type::typeinfodelegate->error, "%s", msg);
                 Type::typeinfodelegate = this;
             }
 
             if (id == Id::TypeInfo_Tuple)
             {   if (Type::typeinfotypelist)
-                    Type::typeinfotypelist->error("%s", msg);
+                    ERROR_GEN(Type::typeinfotypelist->error, "%s", msg);
                 Type::typeinfotypelist = this;
             }
 
 #if DMDV2
             if (id == Id::TypeInfo_Const)
             {   if (Type::typeinfoconst)
-                    Type::typeinfoconst->error("%s", msg);
+                    ERROR_GEN(Type::typeinfoconst->error, "%s", msg);
                 Type::typeinfoconst = this;
             }
 
             if (id == Id::TypeInfo_Invariant)
             {   if (Type::typeinfoinvariant)
-                    Type::typeinfoinvariant->error("%s", msg);
+                    ERROR_GEN(Type::typeinfoinvariant->error, "%s", msg);
                 Type::typeinfoinvariant = this;
             }
 
             if (id == Id::TypeInfo_Shared)
             {   if (Type::typeinfoshared)
-                    Type::typeinfoshared->error("%s", msg);
+                    ERROR_GEN(Type::typeinfoshared->error, "%s", msg);
                 Type::typeinfoshared = this;
             }
 
             if (id == Id::TypeInfo_Wild)
             {   if (Type::typeinfowild)
-                    Type::typeinfowild->error("%s", msg);
+                    ERROR_GEN(Type::typeinfowild->error, "%s", msg);
                 Type::typeinfowild = this;
             }
 
             if (id == Id::TypeInfo_Vector)
             {   if (Type::typeinfovector)
-                    Type::typeinfovector->error("%s", msg);
+                    ERROR_GEN(Type::typeinfovector->error, "%s", msg);
                 Type::typeinfovector = this;
             }
 #endif
@@ -189,38 +189,38 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
 
         if (id == Id::Object)
         {   if (object)
-                object->error("%s", msg);
+                ERROR_GEN(object->error, "%s", msg);
             object = this;
         }
 
         if (id == Id::Throwable)
         {   if (throwable)
-                throwable->error("%s", msg);
+                ERROR_GEN(throwable->error, "%s", msg);
             throwable = this;
         }
 
         if (id == Id::Exception)
         {   if (exception)
-                exception->error("%s", msg);
+                ERROR_GEN(exception->error, "%s", msg);
             exception = this;
         }
 
         if (id == Id::Error)
         {   if (errorException)
-                errorException->error("%s", msg);
+                ERROR_GEN(errorException->error, "%s", msg);
             errorException = this;
         }
 
         //if (id == Id::ClassInfo)
         if (id == Id::TypeInfo_Class)
         {   if (classinfo)
-                classinfo->error("%s", msg);
+                ERROR_GEN(classinfo->error, "%s", msg);
             classinfo = this;
         }
 
         if (id == Id::ModuleInfo)
         {   if (Module::moduleinfo)
-                Module::moduleinfo->error("%s", msg);
+                ERROR_GEN(Module::moduleinfo->error, "%s", msg);
             Module::moduleinfo = this;
         }
     }
@@ -307,7 +307,7 @@ void ClassDeclaration::semantic(Scope *sc)
     userAttributes = sc->userAttributes;
 
     if (sc->linkage == LINKcpp)
-        error("cannot create C++ classes");
+        ERROR_GEN(error, "cannot create C++ classes");
 
     // Expand any tuples in baseclasses[]
     for (size_t i = 0; i < baseclasses->dim; )
@@ -341,7 +341,7 @@ void ClassDeclaration::semantic(Scope *sc)
         tb = b->type->toBasetype();
         if (tb->ty != Tclass)
         {   if (b->type != Type::terror)
-                error("base type must be class or interface, not %s", b->type->toChars());
+                ERROR_GEN(error, "base type must be class or interface, not %s", b->type->toChars());
             baseclasses->remove(0);
         }
         else
@@ -367,7 +367,7 @@ void ClassDeclaration::semantic(Scope *sc)
                 {
                     if (cdb == this)
                     {
-                        error("circular inheritance");
+                        ERROR_GEN(error, "circular inheritance");
                         baseclasses->remove(0);
                         goto L7;
                     }
@@ -415,7 +415,7 @@ void ClassDeclaration::semantic(Scope *sc)
             tc = NULL;
         if (!tc || !tc->sym->isInterfaceDeclaration())
         {   if (b->type != Type::terror)
-                error("base type must be interface, not %s", b->type->toChars());
+                ERROR_GEN(error, "base type must be interface, not %s", b->type->toChars());
             baseclasses->remove(i);
             continue;
         }
@@ -437,7 +437,7 @@ void ClassDeclaration::semantic(Scope *sc)
             {
                 BaseClass *b2 = (*baseclasses)[j];
                 if (b2->base == tc->sym)
-                    error("inherits from duplicate interface %s", b2->base->toChars());
+                    ERROR_GEN(error, "inherits from duplicate interface %s", b2->base->toChars());
             }
 
             if (!tc->sym->symtab)
@@ -471,7 +471,7 @@ void ClassDeclaration::semantic(Scope *sc)
     {
         if (!object)
         {
-            error("missing or corrupt object.d");
+            ERROR_GEN(error, "missing or corrupt object.d");
             fatal();
         }
 
@@ -495,7 +495,7 @@ void ClassDeclaration::semantic(Scope *sc)
     if (baseClass)
     {
         if (baseClass->storage_class & STCfinal)
-            error("cannot inherit from final class %s", baseClass->toChars());
+            ERROR_GEN(error, "cannot inherit from final class %s", baseClass->toChars());
 
         interfaces_dim--;
         interfaces++;
@@ -537,7 +537,7 @@ void ClassDeclaration::semantic(Scope *sc)
         if (vthis)              // if inheriting from nested class
         {   // Use the base class's 'this' member
             if (storage_class & STCstatic)
-                error("static class cannot inherit from nested class %s", baseClass->toChars());
+                ERROR_GEN(error, "static class cannot inherit from nested class %s", baseClass->toChars());
             if (toParent2() != baseClass->toParent2() &&
                 (!toParent2() ||
                  !baseClass->toParent2()->getType() ||
@@ -545,14 +545,14 @@ void ClassDeclaration::semantic(Scope *sc)
             {
                 if (toParent2())
                 {
-                    error("is nested within %s, but super class %s is nested within %s",
+                    ERROR_GEN(error, "is nested within %s, but super class %s is nested within %s",
                         toParent2()->toChars(),
                         baseClass->toChars(),
                         baseClass->toParent2()->toChars());
                 }
                 else
                 {
-                    error("is not nested, but super class %s is nested within %s",
+                    ERROR_GEN(error, "is not nested, but super class %s is nested within %s",
                         baseClass->toChars(),
                         baseClass->toParent2()->toChars());
                 }
@@ -564,7 +564,7 @@ void ClassDeclaration::semantic(Scope *sc)
     }
 
     if (storage_class & STCauto)
-        error("storage class 'auto' is invalid when declaring a class, did you mean to use 'scope'?");
+        ERROR_GEN(error, "storage class 'auto' is invalid when declaring a class, did you mean to use 'scope'?");
     if (storage_class & STCscope)
         isscope = 1;
     if (storage_class & STCabstract)
@@ -720,7 +720,7 @@ void ClassDeclaration::semantic(Scope *sc)
         }
         else
         {
-            error("Cannot implicitly generate a default ctor when base class %s is missing a default ctor", baseClass->toPrettyChars());
+            ERROR_GEN(error, "Cannot implicitly generate a default ctor when base class %s is missing a default ctor", baseClass->toPrettyChars());
         }
     }
 
@@ -765,7 +765,7 @@ void ClassDeclaration::semantic(Scope *sc)
         if (FuncDeclaration *f = hasIdentityOpAssign(sc, assign))
         {
             if (!(f->storage_class & STCdisable))
-                error("identity assignment operator overload is illegal");
+                ERROR_GEN(error, "identity assignment operator overload is illegal");
         }
     }
     sc->pop();
@@ -882,7 +882,7 @@ int ClassDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
         {
             cd->semantic(NULL);
             if (!cd->baseClass)
-                cd->error("base class is forward referenced by %s", toChars());
+                ERROR_GEN(cd->error, "base class is forward referenced by %s", toChars());
         }
 
         if (this == cd->baseClass)
@@ -934,7 +934,7 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
 
     if (!members || !symtab)    // opaque or semantic() is not yet called
     {
-        error("is forward referenced when looking for '%s'", ident->toChars());
+        ERROR_GEN(error, "is forward referenced when looking for '%s'", ident->toChars());
         //*(char*)0=0;
         return NULL;
     }
@@ -951,7 +951,7 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
             if (b->base)
             {
                 if (!b->base->symtab)
-                    error("base %s is forward referenced", b->base->ident->toChars());
+                    ERROR_GEN(error, "base %s is forward referenced", b->base->ident->toChars());
                 else
                 {
                     s = b->base->search(loc, ident, flags);
@@ -1111,7 +1111,7 @@ FuncDeclaration *ClassDeclaration::findFunc(Identifier *ident, TypeFunction *tf)
     }
 
     if (fdambig)
-        error("ambiguous virtual function %s", fdambig->toChars());
+        ERROR_GEN(error, "ambiguous virtual function %s", fdambig->toChars());
     return fdmatch;
 }
 
@@ -1315,7 +1315,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
             tc = NULL;
         if (!tc || !tc->sym->isInterfaceDeclaration())
         {   if (b->type != Type::terror)
-                error("base type must be interface, not %s", b->type->toChars());
+                ERROR_GEN(error, "base type must be interface, not %s", b->type->toChars());
             baseclasses->remove(i);
             continue;
         }
@@ -1326,13 +1326,13 @@ void InterfaceDeclaration::semantic(Scope *sc)
             {
                 BaseClass *b2 = (*baseclasses)[j];
                 if (b2->base == tc->sym)
-                    error("inherits from duplicate interface %s", b2->base->toChars());
+                    ERROR_GEN(error, "inherits from duplicate interface %s", b2->base->toChars());
             }
 
             b->base = tc->sym;
             if (b->base == this || isBaseOf2(b->base))
             {
-                error("circular inheritance of interface");
+                ERROR_GEN(error, "circular inheritance of interface");
                 baseclasses->remove(i);
                 continue;
             }
@@ -1648,13 +1648,13 @@ int BaseClass::fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newins
             //printf("            found\n");
             // Check that calling conventions match
             if (fd->linkage != ifd->linkage)
-                fd->error("linkage doesn't match interface function");
+                ERROR_GEN(fd->error, "linkage doesn't match interface function");
 
             // Check that it is current
             if (newinstance &&
                 fd->toParent() != cd &&
                 ifd->toParent() == base)
-                cd->error("interface function '%s' is not implemented", ifd->toFullSignature());
+                ERROR_GEN(cd->error, "interface function '%s' is not implemented", ifd->toFullSignature());
 
             if (fd->toParent() == cd)
                 result = 1;
@@ -1664,7 +1664,7 @@ int BaseClass::fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newins
             //printf("            not found\n");
             // BUG: should mark this class as abstract?
             if (!cd->isAbstract())
-                cd->error("interface function '%s' is not implemented", ifd->toFullSignature());
+                ERROR_GEN(cd->error, "interface function '%s' is not implemented", ifd->toFullSignature());
 
             fd = NULL;
         }

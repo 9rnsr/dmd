@@ -275,7 +275,7 @@ d_uns64 Type::size()
 
 d_uns64 Type::size(Loc loc)
 {
-    error(loc, "no size for type %s", toChars());
+    ERROR_GEN(error, loc, "no size for type %s", toChars());
     return SIZE_INVALID;
 }
 
@@ -288,7 +288,7 @@ Type *Type::semantic(Loc loc, Scope *sc)
 {
     if (ty == Tint128 || ty == Tuns128)
     {
-        error(loc, "cent and ucent types not implemented");
+        ERROR_GEN(error, loc, "cent and ucent types not implemented");
         return terror;
     }
 
@@ -1856,7 +1856,7 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
     }
     else if (ident == Id::typeinfo)
     {
-        error(loc, ".typeinfo deprecated, use typeid(type)");
+        ERROR_GEN(error, loc, ".typeinfo deprecated, use typeid(type)");
         e = getTypeInfo(NULL);
     }
     else if (ident == Id::init)
@@ -1873,7 +1873,7 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
     {
         if (!deco)
         {
-            error(loc, "forward reference of type %s.mangleof", toChars());
+            ERROR_GEN(error, loc, "forward reference of type %s.mangleof", toChars());
             e = new ErrorExp();
         }
         else
@@ -1899,9 +1899,9 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
         if (this != Type::terror)
         {
             if (s)
-                error(loc, "no property '%s' for type '%s', did you mean '%s'?", ident->toChars(), toChars(), s->toChars());
+                ERROR_GEN(error, loc, "no property '%s' for type '%s', did you mean '%s'?", ident->toChars(), toChars(), s->toChars());
             else
-                error(loc, "no property '%s' for type '%s'", ident->toChars(), toChars());
+                ERROR_GEN(error, loc, "no property '%s' for type '%s'", ident->toChars(), toChars());
         }
         e = new ErrorExp();
     }
@@ -1928,7 +1928,7 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
     {
         if (ident == Id::offset)
         {
-            error(e->loc, ".offset deprecated, use .offsetof");
+            ERROR_GEN(error, e->loc, ".offset deprecated, use .offsetof");
             goto Loffset;
         }
         else if (ident == Id::offsetof)
@@ -1954,7 +1954,7 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
     }
     if (ident == Id::typeinfo)
     {
-        error(e->loc, ".typeinfo deprecated, use typeid(type)");
+        ERROR_GEN(error, e->loc, ".typeinfo deprecated, use typeid(type)");
         e = getTypeInfo(sc);
     }
     else if (ident == Id::stringof)
@@ -2023,7 +2023,7 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident)
             TemplateDeclaration *td = fd->isTemplateDeclaration();
             if (!td)
             {
-                fd->error("must be a template opDispatch(string s), not a %s", fd->kind());
+                ERROR_GEN(fd->error, "must be a template opDispatch(string s), not a %s", fd->kind());
                 return new ErrorExp();
             }
             StringExp *se = new StringExp(e->loc, ident->toChars());
@@ -3079,7 +3079,7 @@ Expression *TypeBasic::defaultInit(Loc loc)
 #endif
 
         case Tvoid:
-            error(loc, "void does not have a default initializer");
+            ERROR_GEN(error, loc, "void does not have a default initializer");
             return new ErrorExp();
     }
     return new IntegerExp(loc, value, this);
@@ -3263,7 +3263,7 @@ Type *TypeVector::semantic(Loc loc, Scope *sc)
         return terror;
     basetype = basetype->toBasetype()->mutableOf();
     if (basetype->ty != Tsarray)
-    {   error(loc, "T in __vector(T) must be a static array, not %s", basetype->toChars());
+    {   ERROR_GEN(error, loc, "T in __vector(T) must be a static array, not %s", basetype->toChars());
         return terror;
     }
     TypeSArray *t = (TypeSArray *)basetype;
@@ -3279,12 +3279,12 @@ Type *TypeVector::semantic(Loc loc, Scope *sc)
 
     d_uns64 sz = t->size(loc);
     if (sz != 16 && sz != 32)
-    {   error(loc, "base type of __vector must be a 16 or 32 byte static array, not %s", t->toChars());
+    {   ERROR_GEN(error, loc, "base type of __vector must be a 16 or 32 byte static array, not %s", t->toChars());
         return terror;
     }
     TypeBasic *tb = t->nextOf()->isTypeBasic();
     if (!tb || !(tb->flags & TFLAGSvector))
-    {   error(loc, "base type of __vector must be a static array of an arithmetic type, not %s", t->toChars());
+    {   ERROR_GEN(error, loc, "base type of __vector must be a static array of an arithmetic type, not %s", t->toChars());
         return terror;
     }
     return merge();
@@ -3417,7 +3417,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 
     if (!n->isMutable())
         if (ident == Id::sort || ident == Id::reverse)
-        {   error(e->loc, "can only %s a mutable array", ident->toChars());
+        {   ERROR_GEN(error, e->loc, "can only %s a mutable array", ident->toChars());
             goto Lerror;
         }
 
@@ -3475,7 +3475,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
         if (ident == Id::idup)
         {   Type *einv = next->invariantOf();
             if (next->implicitConvTo(einv) < MATCHconst)
-            {   error(e->loc, "cannot implicitly convert element type %s to immutable in %s.idup",
+            {   ERROR_GEN(error, e->loc, "cannot implicitly convert element type %s to immutable in %s.idup",
                     next->toChars(), olde->toChars());
                 goto Lerror;
             }
@@ -3485,7 +3485,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
         {
             Type *emut = next->mutableOf();
             if (next->implicitConvTo(emut) < MATCHconst)
-            {   error(e->loc, "cannot implicitly convert element type %s to mutable in %s.dup",
+            {   ERROR_GEN(error, e->loc, "cannot implicitly convert element type %s to mutable in %s.dup",
                     next->toChars(), olde->toChars());
                 goto Lerror;
             }
@@ -3564,7 +3564,7 @@ d_uns64 TypeSArray::size(Loc loc)
     return sz;
 
 Loverflow:
-    error(loc, "index %lld overflow for static array", (long long)sz);
+    ERROR_GEN(error, loc, "index %lld overflow for static array", (long long)sz);
     return SIZE_INVALID;
 }
 
@@ -3635,7 +3635,7 @@ void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
             sc = sc->pop();
 
             if (d >= td->objects->dim)
-            {   error(loc, "tuple index %llu exceeds length %u", d, td->objects->dim);
+            {   ERROR_GEN(error, loc, "tuple index %llu exceeds length %u", d, td->objects->dim);
                 goto Ldefault;
             }
             Object *o = (*td->objects)[(size_t)d];
@@ -3704,12 +3704,12 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
         uinteger_t d = dim->toUInteger();
 
         if (d >= sd->objects->dim)
-        {   error(loc, "tuple index %llu exceeds %u", d, sd->objects->dim);
+        {   ERROR_GEN(error, loc, "tuple index %llu exceeds %u", d, sd->objects->dim);
             return Type::terror;
         }
         Object *o = (*sd->objects)[(size_t)d];
         if (o->dyncast() != DYNCAST_TYPE)
-        {   error(loc, "%s is not a type", toChars());
+        {   ERROR_GEN(error, loc, "%s is not a type", toChars());
             return Type::terror;
         }
         t = ((Type *)o)->addMod(this->mod);
@@ -3777,7 +3777,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
             if (n && n2 / n != d2)
             {
               Loverflow:
-                error(loc, "index %lld overflow for static array", d1);
+                ERROR_GEN(error, loc, "index %lld overflow for static array", d1);
                 goto Lerror;
             }
         }
@@ -3791,7 +3791,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
             uinteger_t d = dim->toUInteger();
 
             if (d >= tt->arguments->dim)
-            {   error(loc, "tuple index %llu exceeds %u", d, tt->arguments->dim);
+            {   ERROR_GEN(error, loc, "tuple index %llu exceeds %u", d, tt->arguments->dim);
                 goto Lerror;
             }
             Parameter *arg = (*tt->arguments)[(size_t)d];
@@ -3799,11 +3799,11 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
         }
         case Tfunction:
         case Tnone:
-            error(loc, "can't have array of %s", tbn->toChars());
+            ERROR_GEN(error, loc, "can't have array of %s", tbn->toChars());
             goto Lerror;
     }
     if (tbn->isscope())
-    {   error(loc, "cannot have array of scope %s", tbn->toChars());
+    {   ERROR_GEN(error, loc, "cannot have array of scope %s", tbn->toChars());
         goto Lerror;
     }
 
@@ -4082,12 +4082,12 @@ Type *TypeDArray::semantic(Loc loc, Scope *sc)
         case Tfunction:
         case Tnone:
         case Ttuple:
-            error(loc, "can't have array of %s", tbn->toChars());
+            ERROR_GEN(error, loc, "can't have array of %s", tbn->toChars());
         case Terror:
             return Type::terror;
     }
     if (tn->isscope())
-    {   error(loc, "cannot have array of scope %s", tn->toChars());
+    {   ERROR_GEN(error, loc, "cannot have array of scope %s", tn->toChars());
         return Type::terror;
     }
     next = tn;
@@ -4322,7 +4322,7 @@ Type *TypeAArray::semantic(Loc loc, Scope *sc)
         else if (t)
             index = t;
         else
-        {   index->error(loc, "index is not a type or an expression");
+        {   ERROR_GEN(index->error, loc, "index is not a type or an expression");
             return Type::terror;
         }
     }
@@ -4350,7 +4350,7 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
         case Tvoid:
         case Tnone:
         case Ttuple:
-            error(loc, "can't have associative array key of %s", index->toBasetype()->toChars());
+            ERROR_GEN(error, loc, "can't have associative array key of %s", index->toBasetype()->toChars());
         case Terror:
             return Type::terror;
     }
@@ -4362,12 +4362,12 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
         case Tfunction:
         case Tvoid:
         case Tnone:
-            error(loc, "can't have associative array of %s", next->toChars());
+            ERROR_GEN(error, loc, "can't have associative array of %s", next->toChars());
         case Terror:
             return Type::terror;
     }
     if (next->isscope())
-    {   error(loc, "cannot have array of scope %s", next->toChars());
+    {   ERROR_GEN(error, loc, "cannot have array of scope %s", next->toChars());
         return Type::terror;
     }
     return merge();
@@ -4382,7 +4382,7 @@ StructDeclaration *TypeAArray::getImpl()
         Type *next = this->next;
         if (index->reliesOnTident() || next->reliesOnTident())
         {
-            error(loc, "cannot create associative array %s", toChars());
+            ERROR_GEN(error, loc, "cannot create associative array %s", toChars());
             index = terror;
             next = terror;
 
@@ -4459,7 +4459,7 @@ void TypeAArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
         else if (t)
             index = t;
         else
-            index->error(loc, "index is not a type or an expression");
+            ERROR_GEN(index->error, loc, "index is not a type or an expression");
     }
     Type::resolve(loc, sc, pe, pt, ps);
 }
@@ -4708,7 +4708,7 @@ Type *TypePointer::semantic(Loc loc, Scope *sc)
     switch (n->toBasetype()->ty)
     {
         case Ttuple:
-            error(loc, "can't have pointer to %s", n->toChars());
+            ERROR_GEN(error, loc, "can't have pointer to %s", n->toChars());
         case Terror:
             return Type::terror;
     }
@@ -5467,15 +5467,15 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         tf->next = tf->next->semantic(loc,sc);
         sc = sc->pop();
         if (tf->next->toBasetype()->ty == Tfunction)
-        {   error(loc, "functions cannot return a function");
+        {   ERROR_GEN(error, loc, "functions cannot return a function");
             tf->next = Type::terror;
         }
         if (tf->next->toBasetype()->ty == Ttuple)
-        {   error(loc, "functions cannot return a tuple");
+        {   ERROR_GEN(error, loc, "functions cannot return a tuple");
             tf->next = Type::terror;
         }
         if (tf->next->isscope() && !(sc->flags & SCOPEctor))
-            error(loc, "functions cannot return scope %s", tf->next->toChars());
+            ERROR_GEN(error, loc, "functions cannot return scope %s", tf->next->toChars());
         if (tf->next->toBasetype()->ty == Tvoid)
             tf->isref = FALSE;                  // rewrite "ref void" as just "void"
         if (tf->next->hasWild() &&
@@ -5516,17 +5516,17 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                 //if (t->ty == Tsarray)
                     //error(loc, "cannot have out or ref parameter of type %s", t->toChars());
                 if (fparam->storageClass & STCout && fparam->type->mod & (STCconst | STCimmutable))
-                    error(loc, "cannot have const or immutable out parameter of type %s", t->toChars());
+                    ERROR_GEN(error, loc, "cannot have const or immutable out parameter of type %s", t->toChars());
             }
             if (!(fparam->storageClass & STClazy) && t->ty == Tvoid)
-                error(loc, "cannot have parameter of type %s", fparam->type->toChars());
+                ERROR_GEN(error, loc, "cannot have parameter of type %s", fparam->type->toChars());
 
             if (t->hasWild() &&
                 !(t->ty == Tpointer && t->nextOf()->ty == Tfunction || t->ty == Tdelegate))
             {
                 wildparams = TRUE;
                 //if (tf->next && !wildreturn)
-                //    error(loc, "inout on parameter means inout must be on return type as well (if from D1 code, replace with 'ref')");
+                //    ERROR_GEN(error, loc, "inout on parameter means inout must be on return type as well (if from D1 code, replace with 'ref')");
             }
 
             if (fparam->defaultArg)
@@ -5602,7 +5602,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                         fparam->storageClass &= ~STCref;        // value parameter
                 }
                 else
-                    error(loc, "auto can only be used for template function parameters");
+                    ERROR_GEN(error, loc, "auto can only be used for template function parameters");
             }
 
             // Remove redundant storage classes for type, they are already applied
@@ -5614,23 +5614,23 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         wildparams = TRUE;
 
     if (wildreturn && !wildparams)
-        error(loc, "inout on return means inout must be on a parameter as well for %s", toChars());
+        ERROR_GEN(error, loc, "inout on return means inout must be on a parameter as well for %s", toChars());
     tf->iswild = wildparams;
 
     if (tf->next)
         tf->deco = tf->merge()->deco;
 
     if (tf->inuse)
-    {   error(loc, "recursive type");
+    {   ERROR_GEN(error, loc, "recursive type");
         tf->inuse = 0;
         return terror;
     }
 
     if (tf->isproperty && (tf->varargs || Parameter::dim(tf->parameters) > 2))
-        error(loc, "properties can only have zero, one, or two parameter");
+        ERROR_GEN(error, loc, "properties can only have zero, one, or two parameter");
 
     if (tf->varargs == 1 && tf->linkage != LINKd && Parameter::dim(tf->parameters) == 0)
-        error(loc, "variadic functions with non-D linkage must have at least one parameter");
+        ERROR_GEN(error, loc, "variadic functions with non-D linkage must have at least one parameter");
 
     /* Don't return merge(), because arg identifiers and default args
      * can be different
@@ -6055,7 +6055,7 @@ bool TypeFunction::parameterEscapes(Parameter *p)
 
 Expression *TypeFunction::defaultInit(Loc loc)
 {
-    error(loc, "function does not have a default initializer");
+    ERROR_GEN(error, loc, "function does not have a default initializer");
     return new ErrorExp();
 }
 
@@ -6291,7 +6291,7 @@ void TypeQualified::toCBuffer2Helper(OutBuffer *buf, HdrGenState *hgs)
 
 d_uns64 TypeQualified::size(Loc loc)
 {
-    error(this->loc, "size of type %s is not known", toChars());
+    ERROR_GEN(error, this->loc, "size of type %s is not known", toChars());
     return SIZE_INVALID;
 }
 
@@ -6386,10 +6386,10 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                     {
                         sm = s->search_correct(id);
                         if (sm)
-                            error(loc, "identifier '%s' of '%s' is not defined, did you mean '%s %s'?",
+                            ERROR_GEN(error, loc, "identifier '%s' of '%s' is not defined, did you mean '%s %s'?",
                                   id->toChars(), toChars(), sm->kind(), sm->toChars());
                         else
-                            error(loc, "identifier '%s' of '%s' is not defined", id->toChars(), toChars());
+                            ERROR_GEN(error, loc, "identifier '%s' of '%s' is not defined", id->toChars(), toChars());
                     }
                     *pe = new ErrorExp();
                 }
@@ -6402,7 +6402,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
         if (VarDeclaration *v = s->isVarDeclaration())
         {
             if (v && v->inuse && (!v->type || !v->type->deco))  // Bugzilla 9494
-            {   error(loc, "circular reference to '%s'", v->toPrettyChars());
+            {   ERROR_GEN(error, loc, "circular reference to '%s'", v->toPrettyChars());
                 *pe = new ErrorExp();
                 return;
             }
@@ -6439,7 +6439,7 @@ L1:
             return;
         }
         if (t->ty == Tinstance && t != this && !t->deco)
-        {   error(loc, "forward reference to '%s'", t->toChars());
+        {   ERROR_GEN(error, loc, "forward reference to '%s'", t->toChars());
             return;
         }
 
@@ -6458,7 +6458,7 @@ L1:
                     for (Scope *scx = sc; 1; scx = scx->enclosing)
                     {
                         if (!scx)
-                        {   error(loc, "forward reference to '%s'", t->toChars());
+                        {   ERROR_GEN(error, loc, "forward reference to '%s'", t->toChars());
                             return;
                         }
                         if (scx->scopesym == scopesym)
@@ -6480,15 +6480,15 @@ L1:
         const char *p = toChars();
         const char *n = importHint(p);
         if (n)
-            error(loc, "'%s' is not defined, perhaps you need to import %s; ?", p, n);
+            ERROR_GEN(error, loc, "'%s' is not defined, perhaps you need to import %s; ?", p, n);
         else
         {
             Identifier *id = new Identifier(p, TOKidentifier);
             s = sc->search_correct(id);
             if (s)
-                error(loc, "undefined identifier %s, did you mean %s %s?", p, s->kind(), s->toChars());
+                ERROR_GEN(error, loc, "undefined identifier %s, did you mean %s %s?", p, s->kind(), s->toChars());
             else
-                error(loc, "undefined identifier %s", p);
+                ERROR_GEN(error, loc, "undefined identifier %s", p);
         }
         *pt = Type::terror;
     }
@@ -6623,7 +6623,7 @@ Type *TypeIdentifier::semantic(Loc loc, Scope *sc)
         {   TypeTypedef *tt = (TypeTypedef *)t;
 
             if (tt->sym->sem == SemanticIn)
-            {   error(loc, "circular reference of typedef %s", tt->toChars());
+            {   ERROR_GEN(error, loc, "circular reference of typedef %s", tt->toChars());
                 return terror;
             }
         }
@@ -6633,11 +6633,11 @@ Type *TypeIdentifier::semantic(Loc loc, Scope *sc)
     {
         if (s)
         {
-            s->error(loc, "is used as a type");
+            ERROR_GEN(s->error, loc, "is used as a type");
             //halt();
         }
         else
-            error(loc, "%s is used as a type", toChars());
+            ERROR_GEN(error, loc, "%s is used as a type", toChars());
         t = terror;
     }
     //t->print();
@@ -6723,7 +6723,7 @@ void TypeInstance::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymb
 #if 0
     if (!idents.dim)
     {
-        error(loc, "template instance '%s' has no identifier", toChars());
+        ERROR_GEN(error, loc, "template instance '%s' has no identifier", toChars());
         return;
     }
 #endif
@@ -6772,10 +6772,10 @@ Type *TypeInstance::semantic(Loc loc, Scope *sc)
         if (!e && s && s->errors)
         {   // if there was an error evaluating the symbol, it might actually
             // be a type. Avoid misleading error messages.
-            error(loc, "%s had previous errors", toChars());
+            ERROR_GEN(error, loc, "%s had previous errors", toChars());
         }
         else
-            error(loc, "%s is used as a type", toChars());
+            ERROR_GEN(error, loc, "%s is used as a type", toChars());
         t = terror;
     }
     return t;
@@ -6890,7 +6890,7 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
     if (inuse)
     {
         inuse = 2;
-        error(loc, "circular typeof definition");
+        ERROR_GEN(error, loc, "circular typeof definition");
         goto Lerr;
     }
     inuse++;
@@ -6915,17 +6915,17 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
         sc2->pop();
         if (exp->op == TOKtype)
         {
-            error(loc, "argument %s to typeof is not an expression", exp->toChars());
+            ERROR_GEN(error, loc, "argument %s to typeof is not an expression", exp->toChars());
             goto Lerr;
         }
         t = exp->type;
         if (!t)
         {
-            error(loc, "expression (%s) has no type", exp->toChars());
+            ERROR_GEN(error, loc, "expression (%s) has no type", exp->toChars());
             goto Lerr;
         }
         if (t->ty == Ttypeof)
-        {   error(loc, "forward reference to %s", toChars());
+        {   ERROR_GEN(error, loc, "forward reference to %s", toChars());
             goto Lerr;
         }
     }
@@ -6989,7 +6989,7 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
         t = t->addMod(mod);
     if (!t)
     {
-        error(loc, "%s is used as a type", toChars());
+        ERROR_GEN(error, loc, "%s is used as a type", toChars());
         t = Type::terror;
     }
     return t;
@@ -7044,7 +7044,7 @@ void TypeReturn::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
     {
         FuncDeclaration *func = sc->func;
         if (!func)
-        {   error(loc, "typeof(return) must be inside function");
+        {   ERROR_GEN(error, loc, "typeof(return) must be inside function");
             goto Lerr;
         }
         if (func->fes)
@@ -7053,7 +7053,7 @@ void TypeReturn::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
         t = func->type->nextOf();
         if (!t)
         {
-            error(loc, "cannot use typeof(return) inside function %s with inferred return type", sc->func->toChars());
+            ERROR_GEN(error, loc, "cannot use typeof(return) inside function %s with inferred return type", sc->func->toChars());
             goto Lerr;
         }
     }
@@ -7115,7 +7115,7 @@ Type *TypeReturn::semantic(Loc loc, Scope *sc)
         t = t->addMod(mod);
     if (!t)
     {
-        error(loc, "%s is used as a type", toChars());
+        ERROR_GEN(error, loc, "%s is used as a type", toChars());
         t = Type::terror;
     }
     return t;
@@ -7168,7 +7168,7 @@ d_uns64 TypeEnum::size(Loc loc)
 {
     if (!sym->memtype)
     {
-        error(loc, "enum %s is forward referenced", sym->toChars());
+        ERROR_GEN(error, loc, "enum %s is forward referenced", sym->toChars());
         return SIZE_INVALID;
     }
     return sym->memtype->size(loc);
@@ -7178,7 +7178,7 @@ unsigned TypeEnum::alignsize()
 {
     if (!sym->memtype)
     {
-        error(0, "enum %s is forward referenced", sym->toChars());
+        ERROR_GEN(error, 0, "enum %s is forward referenced", sym->toChars());
         return 4;
     }
     return sym->memtype->alignsize();
@@ -7204,7 +7204,7 @@ Type *TypeEnum::toBasetype()
     }
     if (!sym->memtype)
     {
-        error(sym->loc, "enum %s is forward referenced", sym->toChars());
+        ERROR_GEN(error, sym->loc, "enum %s is forward referenced", sym->toChars());
         return Type::terror;
     }
     return sym->memtype->toBasetype();
@@ -7287,7 +7287,7 @@ Expression *TypeEnum::getProperty(Loc loc, Identifier *ident)
     return e;
 
 Lfwd:
-    error(loc, "forward reference of %s.%s", toChars(), ident->toChars());
+    ERROR_GEN(error, loc, "forward reference of %s.%s", toChars(), ident->toChars());
     return new ErrorExp();
 }
 
@@ -7379,7 +7379,7 @@ Expression *TypeEnum::defaultInit(Loc loc)
     //printf("%s\n", sym->defaultval->type->toChars());
     if (!sym->defaultval)
     {
-        error(loc, "forward reference of %s.init", toChars());
+        ERROR_GEN(error, loc, "forward reference of %s.init", toChars());
         return new ErrorExp();
     }
     Expression *e = sym->defaultval;
@@ -7396,7 +7396,7 @@ int TypeEnum::isZeroInit(Loc loc)
     }
     if (!sym->defaultval)
     {
-        error(loc, "enum %s is forward referenced", sym->toChars());
+        ERROR_GEN(error, loc, "enum %s is forward referenced", sym->toChars());
         return 0;
     }
     return sym->defaultval->isBool(FALSE);
@@ -7488,7 +7488,7 @@ structalign_t TypeTypedef::alignment()
 {
     if (sym->inuse)
     {
-        sym->error("circular definition");
+        ERROR_GEN(sym->error, "circular definition");
         sym->basetype = Type::terror;
         return STRUCTALIGN_DEFAULT;
     }
@@ -7572,7 +7572,7 @@ Type *TypeTypedef::toBasetype()
 {
     if (sym->inuse)
     {
-        sym->error("circular definition");
+        ERROR_GEN(sym->error, "circular definition");
         sym->basetype = Type::terror;
         return Type::terror;
     }
@@ -7672,7 +7672,7 @@ int TypeTypedef::isZeroInit(Loc loc)
     }
     if (sym->inuse)
     {
-        sym->error("circular definition");
+        ERROR_GEN(sym->error, "circular definition");
         sym->basetype = Type::terror;
     }
     sym->inuse = 1;
@@ -7784,7 +7784,7 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
 #endif
     if (!sym->members)
     {
-        error(e->loc, "struct %s is forward referenced", sym->toChars());
+        ERROR_GEN(error, e->loc, "struct %s is forward referenced", sym->toChars());
         return new ErrorExp();
     }
 
@@ -7860,7 +7860,7 @@ L1:
 
     v = s->isVarDeclaration();
     if (v && v->inuse && (!v->type || !v->type->deco))  // Bugzilla 9494
-    {   e->error("circular reference to '%s'", v->toPrettyChars());
+    {   ERROR_GEN(e->error, "circular reference to '%s'", v->toPrettyChars());
         return new ErrorExp();
     }
     if (v && !v->isDataseg() && (v->storage_class & STCmanifest))
@@ -7990,7 +7990,7 @@ L1:
     if (v)
     {
         if (v->toParent() != sym)
-            sym->error(e->loc, "'%s' is not a member", v->toChars());
+            ERROR_GEN(sym->error, e->loc, "'%s' is not a member", v->toChars());
 
         // *(&e + offset)
         accessCheck(e->loc, sc, e, d);
@@ -8445,7 +8445,7 @@ L1:
                          * function, not classinfo.
                          * We can't get a .classinfo for it.
                          */
-                        error(e->loc, "no .classinfo for C++ interface objects");
+                        ERROR_GEN(error, e->loc, "no .classinfo for C++ interface objects");
                     }
                     /* For an interface, the first entry in the vtbl[]
                      * is actually a pointer to an instance of struct Interface.
@@ -8484,7 +8484,7 @@ L1:
 
         if (ident == Id::typeinfo)
         {
-            error(e->loc, ".typeinfo deprecated, use typeid(type)");
+            ERROR_GEN(error, e->loc, ".typeinfo deprecated, use typeid(type)");
             return getTypeInfo(sc);
         }
         if (ident == Id::outer && sym->vthis)
@@ -8502,7 +8502,7 @@ L1:
 
     v = s->isVarDeclaration();
     if (v && v->inuse && (!v->type || !v->type->deco))  // Bugzilla 9494
-    {   e->error("circular reference to '%s'", v->toPrettyChars());
+    {   ERROR_GEN(e->error, "circular reference to '%s'", v->toPrettyChars());
         return new ErrorExp();
     }
     if (v && !v->isDataseg() && (v->storage_class & STCmanifest))
@@ -8584,7 +8584,7 @@ L1:
     Declaration *d = s->isDeclaration();
     if (!d)
     {
-        e->error("%s.%s is not a declaration", e->toChars(), ident->toChars());
+        ERROR_GEN(e->error, "%s.%s is not a declaration", e->toChars(), ident->toChars());
         return new ErrorExp();
     }
 
@@ -8855,7 +8855,7 @@ TypeTuple::TypeTuple(Expressions *exps)
         for (size_t i = 0; i < exps->dim; i++)
         {   Expression *e = (*exps)[i];
             if (e->type->ty == Ttuple)
-                e->error("cannot form tuple of tuples");
+                ERROR_GEN(e->error, "cannot form tuple of tuples");
             Parameter *arg = new Parameter(STCundefined, e->type, NULL, NULL);
             (*arguments)[i] = arg;
         }
@@ -9005,7 +9005,7 @@ Expression *TypeTuple::getProperty(Loc loc, Identifier *ident)
     }
     else
     {
-        error(loc, "no property '%s' for tuple '%s'", ident->toChars(), toChars());
+        ERROR_GEN(error, loc, "no property '%s' for tuple '%s'", ident->toChars(), toChars());
         e = new ErrorExp();
     }
     return e;
@@ -9060,7 +9060,7 @@ Type *TypeSlice::semantic(Loc loc, Scope *sc)
 
     Type *tbn = next->toBasetype();
     if (tbn->ty != Ttuple)
-    {   error(loc, "can only slice tuple types, not %s", tbn->toChars());
+    {   ERROR_GEN(error, loc, "can only slice tuple types, not %s", tbn->toChars());
         return Type::terror;
     }
     TypeTuple *tt = (TypeTuple *)tbn;
@@ -9074,7 +9074,7 @@ Type *TypeSlice::semantic(Loc loc, Scope *sc)
     uinteger_t i2 = upr->toUInteger();
 
     if (!(i1 <= i2 && i2 <= tt->arguments->dim))
-    {   error(loc, "slice [%llu..%llu] is out of range of [0..%u]", i1, i2, tt->arguments->dim);
+    {   ERROR_GEN(error, loc, "slice [%llu..%llu] is out of range of [0..%u]", i1, i2, tt->arguments->dim);
         return Type::terror;
     }
 
@@ -9120,7 +9120,7 @@ void TypeSlice::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol 
             sc = sc->pop();
 
             if (!(i1 <= i2 && i2 <= td->objects->dim))
-            {   error(loc, "slice [%llu..%llu] is out of range of [0..%u]", i1, i2, td->objects->dim);
+            {   ERROR_GEN(error, loc, "slice [%llu..%llu] is out of range of [0..%u]", i1, i2, td->objects->dim);
                 goto Ldefault;
             }
 

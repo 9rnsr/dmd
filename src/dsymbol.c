@@ -336,7 +336,7 @@ void Dsymbol::semantic0(Scope *sc)
 
 void Dsymbol::semantic(Scope *sc)
 {
-    error("%p has no semantic routine", this);
+    ERROR_GEN(error, "%p has no semantic routine", this);
 }
 
 /*************************************
@@ -443,10 +443,10 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, Identifier *id)
             {
                 sm = s->search_correct(id);
                 if (sm)
-                    error("template identifier '%s' is not a member of '%s %s', did you mean '%s %s'?",
+                    ERROR_GEN(error, "template identifier '%s' is not a member of '%s %s', did you mean '%s %s'?",
                           id->toChars(), s->kind(), s->toChars(), sm->kind(), sm->toChars());
                 else
-                    error("template identifier '%s' is not a member of '%s %s'",
+                    ERROR_GEN(error, "template identifier '%s' is not a member of '%s %s'",
                           id->toChars(), s->kind(), s->toChars());
                 return NULL;
             }
@@ -454,7 +454,7 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, Identifier *id)
             TemplateDeclaration *td = sm->isTemplateDeclaration();
             if (!td)
             {
-                error("%s is not a template, it is a %s", id->toChars(), sm->kind());
+                ERROR_GEN(error, "%s is not a template, it is a %s", id->toChars(), sm->kind());
                 return NULL;
             }
             ti->tempdecl = td;
@@ -483,7 +483,7 @@ void Dsymbol::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 unsigned Dsymbol::size(Loc loc)
 {
-    error("Dsymbol '%s' has no size", toChars());
+    ERROR_GEN(error, "Dsymbol '%s' has no size", toChars());
     return 0;
 }
 
@@ -600,7 +600,7 @@ int Dsymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
         if (sd->isAggregateDeclaration() || sd->isEnumDeclaration())
         {
             if (ident == Id::__sizeof || ident == Id::__xalignof || ident == Id::mangleof)
-                error(".%s property cannot be redefined", ident->toChars());
+                ERROR_GEN(error, ".%s property cannot be redefined", ident->toChars());
         }
         return 1;
     }
@@ -680,9 +680,9 @@ void Dsymbol::checkDeprecated(Loc loc, Scope *sc)
         if (!(sc->func && sc->func->storage_class & STCdisable))
         {
             if (d->ident == Id::cpctor && d->toParent())
-                d->toParent()->error(loc, "is not copyable because it is annotated with @disable");
+                ERROR_GEN(d->toParent()->error, loc, "is not copyable because it is annotated with @disable");
             else
-                error(loc, "is not callable because it is annotated with @disable");
+                ERROR_GEN(error, loc, "is not callable because it is annotated with @disable");
         }
     }
 }
@@ -959,22 +959,22 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             {   Declaration *d = s->isDeclaration();
                 if (d && d->protection == PROTprivate &&
                     !d->parent->isTemplateMixin())
-                    error(loc, "%s is private", d->toPrettyChars());
+                    ERROR_GEN(error, loc, "%s is private", d->toPrettyChars());
 
                 AggregateDeclaration *ad = s->isAggregateDeclaration();
                 if (ad && ad->protection == PROTprivate &&
                     !ad->parent->isTemplateMixin())
-                    error(loc, "%s is private", ad->toPrettyChars());
+                    ERROR_GEN(error, loc, "%s is private", ad->toPrettyChars());
 
                 EnumDeclaration *ed = s->isEnumDeclaration();
                 if (ed && ed->protection == PROTprivate &&
                     !ed->parent->isTemplateMixin())
-                    error(loc, "%s is private", ed->toPrettyChars());
+                    ERROR_GEN(error, loc, "%s is private", ed->toPrettyChars());
 
                 TemplateDeclaration *td = s->isTemplateDeclaration();
                 if (td && td->protection == PROTprivate &&
                     !td->parent->isTemplateMixin())
-                    error(loc, "%s is private", td->toPrettyChars());
+                    ERROR_GEN(error, loc, "%s is private", td->toPrettyChars());
             }
         }
     }
@@ -1030,7 +1030,7 @@ void ScopeDsymbol::multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2)
     printf("s2 = %p, '%s' kind = '%s', parent = %s\n", s2, s2->toChars(), s2->kind(), s2->parent ? s2->parent->toChars() : "");
 #endif
     if (loc.filename)
-    {   ::error(loc, "%s at %s conflicts with %s at %s",
+    {   ERROR_GEN(::error, loc, "%s at %s conflicts with %s at %s",
             s1->toPrettyChars(),
             s1->locToChars(),
             s2->toPrettyChars(),
@@ -1038,7 +1038,7 @@ void ScopeDsymbol::multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2)
     }
     else
     {
-        s1->error(s1->loc, "conflicts with %s %s at %s",
+        ERROR_GEN(s1->error, s1->loc, "conflicts with %s %s at %s",
             s2->kind(),
             s2->toPrettyChars(),
             s2->locToChars());
@@ -1440,7 +1440,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                      */
                     if (exp->op == TOKarray && ((ArrayExp *)exp)->arguments->dim != 1)
                     {
-                        exp->error("%s only defines opDollar for one dimension", ad->toChars());
+                        ERROR_GEN(exp->error, "%s only defines opDollar for one dimension", ad->toChars());
                         return NULL;
                     }
                     Declaration *d = s->isDeclaration();
@@ -1449,7 +1449,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                 }
                 e = e->semantic(sc);
                 if (!e->type)
-                    exp->error("%s has no value", e->toChars());
+                    ERROR_GEN(exp->error, "%s has no value", e->toChars());
                 t = e->type->toBasetype();
                 if (t && t->ty == Tfunction)
                     e = new CallExp(e->loc, e);

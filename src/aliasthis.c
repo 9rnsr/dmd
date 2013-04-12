@@ -90,13 +90,13 @@ void AliasThis::semantic(Scope *sc)
         if (!s)
         {   s = sc->search(loc, ident, 0);
             if (s)
-                ::error(loc, "%s is not a member of %s", s->toChars(), ad->toChars());
+                ERROR_GEN(::error, loc, "%s is not a member of %s", s->toChars(), ad->toChars());
             else
-                ::error(loc, "undefined identifier %s", ident->toChars());
+                ERROR_GEN(::error, loc, "undefined identifier %s", ident->toChars());
             return;
         }
         else if (ad->aliasthis && s != ad->aliasthis)
-            error("there can be only one alias this");
+            ERROR_GEN(error, "there can be only one alias this");
 
         /* disable the alias this conversion so the implicit conversion check
          * doesn't use it.
@@ -114,7 +114,7 @@ void AliasThis::semantic(Scope *sc)
             assert(t);
             if (ad->type->implicitConvTo(t))
             {
-                ::error(loc, "alias this is not reachable as %s already converts to %s", ad->toChars(), t->toChars());
+                ERROR_GEN(::error, loc, "alias this is not reachable as %s already converts to %s", ad->toChars(), t->toChars());
             }
         }
 
@@ -122,7 +122,7 @@ void AliasThis::semantic(Scope *sc)
         ad->aliasthis = s;
     }
     else
-        error("alias this can only appear in struct or class declaration, not %s", parent ? parent->toChars() : "nowhere");
+        ERROR_GEN(error, "alias this can only appear in struct or class declaration, not %s", parent ? parent->toChars() : "nowhere");
 }
 
 const char *AliasThis::kind()

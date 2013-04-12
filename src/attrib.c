@@ -573,7 +573,7 @@ void DeprecatedDeclaration::setScope(Scope *sc)
     if (se)
         depmsg = (char *)se->string;
     else
-        msg->error("string expected, not '%s'", msg->toChars());
+        ERROR_GEN(msg->error, "string expected, not '%s'", msg->toChars());
 
     Scope *scx = sc->push();
     scx->depmsg = depmsg;
@@ -822,7 +822,7 @@ void AnonDeclaration::semantic(Scope *sc)
 
     if (!ad || (!ad->isStructDeclaration() && !ad->isClassDeclaration()))
     {
-        error("can only be a part of an aggregate");
+        ERROR_GEN(error, "can only be a part of an aggregate");
         return;
     }
 
@@ -994,7 +994,7 @@ void PragmaDeclaration::semantic(Scope *sc)
     else if (ident == Id::lib)
     {
         if (!args || args->dim != 1)
-            error("string expected for library name");
+            ERROR_GEN(error, "string expected for library name");
         else
         {
             Expression *e = (*args)[0];
@@ -1007,7 +1007,7 @@ void PragmaDeclaration::semantic(Scope *sc)
                 goto Lnodecl;
             StringExp *se = e->toString();
             if (!se)
-                error("string expected for library name, not '%s'", e->toChars());
+                ERROR_GEN(error, "string expected for library name, not '%s'", e->toChars());
             else if (global.params.verbose)
             {
                 char *name = (char *)mem.malloc(se->len + 1);
@@ -1023,7 +1023,7 @@ void PragmaDeclaration::semantic(Scope *sc)
     else if (ident == Id::startaddress)
     {
         if (!args || args->dim != 1)
-            error("function name expected for start address");
+            ERROR_GEN(error, "function name expected for start address");
         else
         {
             Expression *e = (*args)[0];
@@ -1033,7 +1033,7 @@ void PragmaDeclaration::semantic(Scope *sc)
             (*args)[0] = e;
             Dsymbol *sa = getDsymbol(e);
             if (!sa || !sa->isFuncDeclaration())
-                error("function name expected for start address, not '%s'", e->toChars());
+                ERROR_GEN(error, "function name expected for start address, not '%s'", e->toChars());
         }
         goto Lnodecl;
     }
@@ -1067,7 +1067,7 @@ void PragmaDeclaration::semantic(Scope *sc)
         goto Lnodecl;
     }
     else
-        error("unrecognized pragma(%s)", ident->toChars());
+        ERROR_GEN(error, "unrecognized pragma(%s)", ident->toChars());
 
 Ldecl:
     if (decl)
@@ -1084,7 +1084,7 @@ Ldecl:
 Lnodecl:
     if (decl)
     {
-        error("pragma is missing closing ';'");
+        ERROR_GEN(error, "pragma is missing closing ';'");
         goto Ldecl; // do them anyway, to avoid segfaults.
     }
 }
@@ -1433,7 +1433,7 @@ void CompileDeclaration::compileIt(Scope *sc)
     exp = exp->ctfeInterpret();
     StringExp *se = exp->toString();
     if (!se)
-    {   exp->error("argument to mixin must be a string, not (%s)", exp->toChars());
+    {   ERROR_GEN(exp->error, "argument to mixin must be a string, not (%s)", exp->toChars());
     }
     else
     {
@@ -1443,7 +1443,7 @@ void CompileDeclaration::compileIt(Scope *sc)
         p.nextToken();
         decl = p.parseDeclDefs(0);
         if (p.token.value != TOKeof)
-            exp->error("incomplete mixin declaration (%s)", se->toChars());
+            ERROR_GEN(exp->error, "incomplete mixin declaration (%s)", se->toChars());
     }
 }
 

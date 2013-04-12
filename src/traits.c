@@ -155,7 +155,7 @@ Expression *TraitsExp::semantic(Scope *sc)
         StructDeclaration *sd;
         if (!t)
         {
-            error("type expected as second argument of __traits %s instead of %s", ident->toChars(), o->toChars());
+            ERROR_GEN(error, "type expected as second argument of __traits %s instead of %s", ident->toChars(), o->toChars());
             goto Lfalse;
         }
         if (t->toBasetype()->ty == Tstruct
@@ -193,7 +193,7 @@ Expression *TraitsExp::semantic(Scope *sc)
                 goto Lfalse;
         }
 
-        error("aggregate or function expected instead of '%s'", o->toChars());
+        ERROR_GEN(error, "aggregate or function expected instead of '%s'", o->toChars());
         goto Lfalse;
     }
     else if (ident == Id::isAbstractFunction)
@@ -257,7 +257,7 @@ Expression *TraitsExp::semantic(Scope *sc)
             Dsymbol *s = getDsymbol(o);
             if (!s || !s->ident)
             {
-                error("argument %s has no identifier", o->toChars());
+                ERROR_GEN(error, "argument %s has no identifier", o->toChars());
                 goto Lfalse;
             }
             id = s->ident;
@@ -274,7 +274,7 @@ Expression *TraitsExp::semantic(Scope *sc)
         if (!s)
         {
             if (!isError(o))
-                error("argument %s has no protection", o->toChars());
+                ERROR_GEN(error, "argument %s has no protection", o->toChars());
             goto Lfalse;
         }
 
@@ -300,7 +300,7 @@ Expression *TraitsExp::semantic(Scope *sc)
         }
         if (!s || s->isImport())
         {
-            error("argument %s has no parent", o->toChars());
+            ERROR_GEN(error, "argument %s has no parent", o->toChars());
             goto Lfalse;
         }
         return (new DsymbolExp(loc, s))->semantic(sc);
@@ -317,18 +317,18 @@ Expression *TraitsExp::semantic(Scope *sc)
         Object *o = (*args)[0];
         Expression *e = isExpression((*args)[1]);
         if (!e)
-        {   error("expression expected as second argument of __traits %s", ident->toChars());
+        {   ERROR_GEN(error, "expression expected as second argument of __traits %s", ident->toChars());
             goto Lfalse;
         }
         e = e->ctfeInterpret();
         StringExp *se = e->toString();
         if (!se || se->length() == 0)
-        {   error("string expected as second argument of __traits %s instead of %s", ident->toChars(), e->toChars());
+        {   ERROR_GEN(error, "string expected as second argument of __traits %s instead of %s", ident->toChars(), e->toChars());
             goto Lfalse;
         }
         se = se->toUTF8(sc);
         if (se->sz != 1)
-        {   error("string must be chars");
+        {   ERROR_GEN(error, "string must be chars");
             goto Lfalse;
         }
         Identifier *id = Lexer::idPool((char *)se->string);
@@ -345,7 +345,7 @@ Expression *TraitsExp::semantic(Scope *sc)
         else if (Expression *ex = isExpression(o))
             e = new DotIdExp(loc, ex, id);
         else
-        {   error("invalid first argument");
+        {   ERROR_GEN(error, "invalid first argument");
             goto Lfalse;
         }
 
@@ -381,7 +381,7 @@ Expression *TraitsExp::semantic(Scope *sc)
             Expression *ex = e;
             e = e->semantic(sc);
             if (errors < global.errors)
-                error("%s cannot be resolved", ex->toChars());
+                ERROR_GEN(error, "%s cannot be resolved", ex->toChars());
 
             /* Create tuple of functions of e
              */
@@ -424,7 +424,7 @@ Expression *TraitsExp::semantic(Scope *sc)
         ClassDeclaration *cd;
         if (!s || (cd = s->isClassDeclaration()) == NULL)
         {
-            error("first argument is not a class");
+            ERROR_GEN(error, "first argument is not a class");
             goto Lfalse;
         }
         return new IntegerExp(loc, cd->structsize, Type::tsize_t);
@@ -437,7 +437,7 @@ Expression *TraitsExp::semantic(Scope *sc)
         Dsymbol *s = getDsymbol(o);
         if (!s)
         {
-            error("first argument is not a symbol");
+            ERROR_GEN(error, "first argument is not a symbol");
             goto Lfalse;
         }
         //printf("getAttributes %s, %p\n", s->toChars(), s->userAttributes);
@@ -455,7 +455,7 @@ Expression *TraitsExp::semantic(Scope *sc)
         ScopeDsymbol *sd;
         if (!s)
         {
-            error("argument has no members");
+            ERROR_GEN(error, "argument has no members");
             goto Lfalse;
         }
         Import *import;
@@ -465,7 +465,7 @@ Expression *TraitsExp::semantic(Scope *sc)
         }
         else if ((sd = s->isScopeDsymbol()) == NULL)
         {
-            error("%s %s has no members", s->kind(), s->toChars());
+            ERROR_GEN(error, "%s %s has no members", s->kind(), s->toChars());
             goto Lfalse;
         }
 
@@ -644,14 +644,14 @@ Expression *TraitsExp::semantic(Scope *sc)
             goto Lfalse;
     }
     else
-    {   error("unrecognized trait %s", ident->toChars());
+    {   ERROR_GEN(error, "unrecognized trait %s", ident->toChars());
         goto Lfalse;
     }
 
     return NULL;
 
 Ldimerror:
-    error("wrong number of arguments %d", dim);
+    ERROR_GEN(error, "wrong number of arguments %d", dim);
     goto Lfalse;
 
 

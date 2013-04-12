@@ -573,7 +573,7 @@ Expression *BinExp::op_overload(Scope *sc)
         if (m.count > 1)
         {
             // Error, ambiguous
-            error("overloads %s and %s both match argument list for %s",
+            ERROR_GEN(error, "overloads %s and %s both match argument list for %s",
                     m.lastf->type->toChars(),
                     m.nextf->type->toChars(),
                     m.lastf->toChars());
@@ -665,7 +665,7 @@ L1:
             if (m.count > 1)
             {
                 // Error, ambiguous
-                error("overloads %s and %s both match argument list for %s",
+                ERROR_GEN(error, "overloads %s and %s both match argument list for %s",
                         m.lastf->type->toChars(),
                         m.nextf->type->toChars(),
                         m.lastf->toChars());
@@ -851,7 +851,7 @@ Expression *BinExp::compare_overload(Scope *sc, Identifier *id)
             if (!(m.lastf == lastf && m.count == 2 && count == 1))
             {
                 // Error, ambiguous
-                error("overloads %s and %s both match argument list for %s",
+                ERROR_GEN(error, "overloads %s and %s both match argument list for %s",
                     m.lastf->type->toChars(),
                     m.nextf->type->toChars(),
                     m.lastf->toChars());
@@ -1150,7 +1150,7 @@ Expression *BinAssignExp::op_overload(Scope *sc)
         if (m.count > 1)
         {
             // Error, ambiguous
-            error("overloads %s and %s both match argument list for %s",
+            ERROR_GEN(error, "overloads %s and %s both match argument list for %s",
                     m.lastf->type->toChars(),
                     m.nextf->type->toChars(),
                     m.lastf->toChars());
@@ -1567,7 +1567,7 @@ static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, 
     {
         inferApplyArgTypesY((TypeFunction *)p.fd_best->type, arguments);
         if (p.fd_ambig)
-        {   ::error(ethis->loc, "%s.%s matches more than one declaration:\n\t%s(%d):%s\nand:\n\t%s(%d):%s",
+        {   ERROR_GEN(::error, ethis->loc, "%s.%s matches more than one declaration:\n\t%s(%d):%s\nand:\n\t%s(%d):%s",
                     ethis->toChars(), fstart->ident->toChars(),
                     p.fd_best ->loc.filename, p.fd_best ->loc.linnum, p.fd_best ->type->toChars(),
                     p.fd_ambig->loc.filename, p.fd_ambig->loc.linnum, p.fd_ambig->type->toChars());
@@ -1638,12 +1638,12 @@ void inferApplyArgTypesZ(TemplateDeclaration *tstart, Parameters *arguments)
     {
         if (!td->scope)
         {
-            error("forward reference to template %s", td->toChars());
+            ERROR_GEN(error, "forward reference to template %s", td->toChars());
             return;
         }
         if (!td->onemember || !td->onemember->toAlias()->isFuncDeclaration())
         {
-            error("is not a function template");
+            ERROR_GEN(error, "is not a function template");
             return;
         }
         if (!td->parameters || td->parameters->dim != 1)

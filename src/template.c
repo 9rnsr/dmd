@@ -256,7 +256,7 @@ int match(Object *o1, Object *o2, TemplateDeclaration *tempdecl, Scope *sc)
                 {
                     if (sc1->scopesym == ti1)
                     {
-                        tempdecl->error("recursive template expansion for template argument %s", t1->toChars());
+                        ERROR_GEN(tempdecl->error, "recursive template expansion for template argument %s", t1->toChars());
                         return 1;       // fake a match
                     }
                 }
@@ -499,7 +499,7 @@ void TemplateDeclaration::semantic(Scope *sc)
     if (sc->func)
     {
 #if DMDV1
-        error("cannot declare template at function scope %s", sc->func->toChars());
+        ERROR_GEN(error, "cannot declare template at function scope %s", sc->func->toChars());
 #endif
     }
 
@@ -570,7 +570,7 @@ void TemplateDeclaration::semantic(Scope *sc)
 
         tp->semantic(paramscope);
         if (i + 1 != parameters->dim && tp->isTemplateTupleParameter())
-        {   error("template tuple parameter must be last one");
+        {   ERROR_GEN(error, "template tuple parameter must be last one");
             errors = true;
         }
     }
@@ -704,7 +704,7 @@ void TemplateDeclaration::makeParamNamesVisibleInConstraint(Scope *paramscope, E
             v->storage_class = fparam->storageClass;
             v->semantic(paramscope);
             if (!paramscope->insert(v))
-                error("parameter %s.%s is already defined", toChars(), v->toChars());
+                ERROR_GEN(error, "parameter %s.%s is already defined", toChars(), v->toChars());
             else
                 v->parent = fd;
         }
@@ -862,7 +862,7 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
             goto Lnomatch;
         else
         {
-            e->error("constraint %s is not constant or does not evaluate to a bool", e->toChars());
+            ERROR_GEN(e->error, "constraint %s is not constant or does not evaluate to a bool", e->toChars());
         }
     }
 #endif
@@ -1830,7 +1830,7 @@ Lmatch:
                     if (m2 < match)
                         match = m2;             // pick worst match
                     if (dedtypes[i] != oded)
-                        error("specialization not allowed for deduced parameter %s", tparam->ident->toChars());
+                        ERROR_GEN(error, "specialization not allowed for deduced parameter %s", tparam->ident->toChars());
                 }
             }
             else
@@ -1927,7 +1927,7 @@ Lmatch:
             goto Lnomatch;
         else
         {
-            e->error("constraint %s is not constant or does not evaluate to a bool", e->toChars());
+            ERROR_GEN(e->error, "constraint %s is not constant or does not evaluate to a bool", e->toChars());
         }
     }
 #endif
@@ -2030,7 +2030,7 @@ Object *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, 
         assert(0);
     }
     if (!sc->insert(s))
-        error("declaration %s is already defined", tp->ident->toChars());
+        ERROR_GEN(error, "declaration %s is already defined", tp->ident->toChars());
     s->semantic(sc);
     /* So the caller's o gets updated with the result of semantic() being run on o
      */
@@ -2112,7 +2112,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
     {
         if (!td->semanticRun)
         {
-            error("forward reference to template %s", td->toChars());
+            ERROR_GEN(error, "forward reference to template %s", td->toChars());
             goto Lerror;
         }
         if (!td->onemember || !td->onemember->toAlias()->isFuncDeclaration())
@@ -2137,7 +2137,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
             FuncDeclaration *fd = s->isFuncDeclaration();
             if (!fd)
             {
-                td->error("is not a function template");
+                ERROR_GEN(td->error, "is not a function template");
                 goto Lerror;
             }
             fd = resolveFuncCall(loc, sc, fd, NULL, ethis, fargs, flags);
@@ -2256,7 +2256,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
     {
         if (!(flags & 1))
         {
-            ::error(loc, "%s %s.%s does not match any function template declaration. Candidates are:",
+            ERROR_GEN(::error, loc, "%s %s.%s does not match any function template declaration. Candidates are:",
                     kind(), parent->toPrettyChars(), ident->toChars());
 
             // Display candidate template functions
@@ -2281,7 +2281,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
     }
     if (td_ambig)
     {
-        ::error(loc, "%s %s.%s matches more than one template declaration, %s(%d):%s and %s(%d):%s",
+        ERROR_GEN(::error, loc, "%s %s.%s matches more than one template declaration, %s(%d):%s and %s(%d):%s",
                 kind(), parent->toPrettyChars(), ident->toChars(),
                 td_best->loc.filename,  td_best->loc.linnum,  td_best->toChars(),
                 td_ambig->loc.filename, td_ambig->loc.linnum, td_ambig->toChars());
@@ -2352,11 +2352,11 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
         OutBuffer buf;
         argExpTypesToCBuffer(&buf, fargs, &hgs);
         if (this->overnext)
-            ::error(this->loc, "%s %s.%s cannot deduce template function from argument types !(%s)(%s)",
+            ERROR_GEN(::error, this->loc, "%s %s.%s cannot deduce template function from argument types !(%s)(%s)",
                     kind(), parent->toPrettyChars(), ident->toChars(),
                     bufa.toChars(), buf.toChars());
         else
-            error(loc, "cannot deduce template function from argument types !(%s)(%s)",
+            ERROR_GEN(error, loc, "cannot deduce template function from argument types !(%s)(%s)",
                   bufa.toChars(), buf.toChars());
     }
     return NULL;
@@ -3726,7 +3726,7 @@ void TemplateTypeParameter::declareParameter(Scope *sc)
     TypeIdentifier *ti = new TypeIdentifier(loc, ident);
     sparam = new AliasDeclaration(loc, ident, ti);
     if (!sc->insert(sparam))
-        error(loc, "parameter '%s' multiply defined", ident->toChars());
+        ERROR_GEN(error, loc, "parameter '%s' multiply defined", ident->toChars());
 }
 
 void TemplateTypeParameter::semantic(Scope *sc)
@@ -3999,7 +3999,7 @@ void TemplateAliasParameter::declareParameter(Scope *sc)
     TypeIdentifier *ti = new TypeIdentifier(loc, ident);
     sparam = new AliasDeclaration(loc, ident, ti);
     if (!sc->insert(sparam))
-        error(loc, "parameter '%s' multiply defined", ident->toChars());
+        ERROR_GEN(error, loc, "parameter '%s' multiply defined", ident->toChars());
 }
 
 Object *aliasParameterSemantic(Loc loc, Scope *sc, Object *o)
@@ -4084,7 +4084,7 @@ bool isPseudoDsymbol(Object *o)
             if (fd && fd->parent && fd->parent->isTemplateDeclaration())
             {
                 const char *str = (e && e->op == TOKsuper) ? "super" : s->toChars();
-                ::error(s->loc, "cannot take a not yet instantiated symbol '%s' inside template constraint", str);
+                ERROR_GEN(::error, s->loc, "cannot take a not yet instantiated symbol '%s' inside template constraint", str);
                 return true;
             }
         }
@@ -4305,7 +4305,7 @@ void TemplateValueParameter::declareParameter(Scope *sc)
     VarDeclaration *v = new VarDeclaration(loc, valType, ident, NULL);
     v->storage_class = STCtemplateparameter;
     if (!sc->insert(v))
-        error(loc, "parameter '%s' multiply defined", ident->toChars());
+        ERROR_GEN(error, loc, "parameter '%s' multiply defined", ident->toChars());
     sparam = v;
 }
 
@@ -4326,7 +4326,7 @@ void TemplateValueParameter::semantic(Scope *sc)
         valType->ty != Tident)
     {
         if (valType != Type::terror)
-            error(loc, "arithmetic/string type expected for value-parameter, not %s", valType->toChars());
+            ERROR_GEN(error, loc, "arithmetic/string type expected for value-parameter, not %s", valType->toChars());
     }
 
 #if 0   // defer semantic analysis to arg match
@@ -4583,7 +4583,7 @@ void TemplateTupleParameter::declareParameter(Scope *sc)
     TypeIdentifier *ti = new TypeIdentifier(loc, ident);
     sparam = new AliasDeclaration(loc, ident, ti);
     if (!sc->insert(sparam))
-        error(loc, "parameter '%s' multiply defined", ident->toChars());
+        ERROR_GEN(error, loc, "parameter '%s' multiply defined", ident->toChars());
 }
 
 void TemplateTupleParameter::semantic(Scope *sc)
@@ -4815,7 +4815,7 @@ void TemplateInstance::tryExpandMembers(Scope *sc2)
     if (++nest > 500)
     {
         global.gag = 0;                 // ensure error message gets printed
-        error("recursive expansion");
+        ERROR_GEN(error, "recursive expansion");
         fatal();
     }
 
@@ -4831,7 +4831,7 @@ void TemplateInstance::tryExpandMembers(Scope *sc2)
         __except (__ehfilter(GetExceptionInformation()))
         {
             global.gag = 0;                     // ensure error message gets printed
-            error("recursive expansion");
+            ERROR_GEN(error, "recursive expansion");
             fatal();
         }
     }
@@ -4848,7 +4848,7 @@ void TemplateInstance::trySemantic3(Scope *sc2)
     if (++nest > 300)
     {
         global.gag = 0;            // ensure error message gets printed
-        error("recursive expansion");
+        ERROR_GEN(error, "recursive expansion");
         fatal();
     }
 #if WINDOWS_SEH
@@ -4863,7 +4863,7 @@ void TemplateInstance::trySemantic3(Scope *sc2)
         __except (__ehfilter(GetExceptionInformation()))
         {
             global.gag = 0;            // ensure error message gets printed
-            error("recursive expansion");
+            ERROR_GEN(error, "recursive expansion");
             fatal();
         }
     }
@@ -4896,7 +4896,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 #if LOG
         printf("Recursive template expansion\n");
 #endif
-        error(loc, "recursive template expansion");
+        ERROR_GEN(error, loc, "recursive template expansion");
 //      inst = this;
         return;
     }
@@ -4912,7 +4912,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         tdtypes.setDim(tempdecl->parameters->dim);
         if (!tempdecl->matchWithInstance(this, &tdtypes, fargs, 2))
         {
-            error("incompatible arguments for template instantiation");
+            ERROR_GEN(error, "incompatible arguments for template instantiation");
             inst = this;
             return;
         }
@@ -4938,7 +4938,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 
     // If tempdecl is a mixin, disallow it
     if (tempdecl->ismixin)
-        error("mixin templates are not regular templates");
+        ERROR_GEN(error, "mixin templates are not regular templates");
 
     hasNestedArgs(tiargs);
 
@@ -5153,7 +5153,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     Scope *scope = tempdecl->scope;
     if (!tempdecl->semanticRun)
     {
-        error("template instantiation %s forward references template declaration %s", toChars(), tempdecl->toChars());
+        ERROR_GEN(error, "template instantiation %s forward references template declaration %s", toChars(), tempdecl->toChars());
         return;
     }
 
@@ -5306,7 +5306,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     // Give additional context info if error occurred during instantiation
     if (global.errors != errorsave)
     {
-        error(loc, "error instantiating");
+        ERROR_GEN(error, loc, "error instantiating");
         if (tinst)
         {   tinst->printInstantiationTrace();
         }
@@ -5557,9 +5557,9 @@ bool TemplateInstance::findTemplateDeclaration(Scope *sc)
         {
             s = sc->search_correct(id);
             if (s)
-                error("template '%s' is not defined, did you mean %s?", id->toChars(), s->toChars());
+                ERROR_GEN(error, "template '%s' is not defined, did you mean %s?", id->toChars(), s->toChars());
             else
-                error("template '%s' is not defined", id->toChars());
+                ERROR_GEN(error, "template '%s' is not defined", id->toChars());
             return false;
         }
 
@@ -5573,12 +5573,12 @@ bool TemplateInstance::findTemplateDeclaration(Scope *sc)
                 if (s2->isTemplateDeclaration())
                 {
                     if (s)
-                        error("ambiguous template declaration %s and %s", s->toPrettyChars(), s2->toPrettyChars());
+                        ERROR_GEN(error, "ambiguous template declaration %s and %s", s->toPrettyChars(), s2->toPrettyChars());
                     s = s2;
                 }
             }
             if (!s)
-            {   error("template '%s' is not defined", id->toChars());
+            {   ERROR_GEN(error, "template '%s' is not defined", id->toChars());
                 return false;
             }
         }
@@ -5623,7 +5623,7 @@ bool TemplateInstance::findTemplateDeclaration(Scope *sc)
             {   Dsymbol *s2 = s->getType()->toDsymbol(sc);
                 if (!s2)
                 {
-                    error("%s is not a template declaration, it is a %s", id->toChars(), s->kind());
+                    ERROR_GEN(error, "%s is not a template declaration, it is a %s", id->toChars(), s->kind());
                     return false;
                 }
                 s = s2;
@@ -5649,7 +5649,7 @@ bool TemplateInstance::findTemplateDeclaration(Scope *sc)
             }
             else
             {
-                error("%s is not a template declaration, it is a %s", id->toChars(), s->kind());
+                ERROR_GEN(error, "%s is not a template declaration, it is a %s", id->toChars(), s->kind());
                 return false;
             }
         }
@@ -5690,7 +5690,7 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
             }
             if (!td->semanticRun)
             {
-                error("%s forward references template declaration %s", toChars(), td->toChars());
+                ERROR_GEN(error, "%s forward references template declaration %s", toChars(), td->toChars());
                 return false;
             }
         }
@@ -5760,15 +5760,15 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
             errorSupplemental(loc, "while looking for match for %s", toChars());
         else if (tempdecl && !tempdecl->overnext)
             // Only one template, so we can give better error message
-            error("does not match template declaration %s", tempdecl->toChars());
+            ERROR_GEN(error, "does not match template declaration %s", tempdecl->toChars());
         else
-            ::error(loc, "%s %s.%s does not match any template declaration",
+            ERROR_GEN(::error, loc, "%s %s.%s does not match any template declaration",
                     tempdecl->kind(), tempdecl->parent->toPrettyChars(), tempdecl->ident->toChars());
         return false;
     }
     if (td_ambig)
     {
-        ::error(loc, "%s %s.%s matches more than one template declaration, %s(%d):%s and %s(%d):%s",
+        ERROR_GEN(::error, loc, "%s %s.%s matches more than one template declaration, %s(%d):%s and %s(%d):%s",
                 td_best->kind(), td_best->parent->toPrettyChars(), td_best->ident->toChars(),
                 td_best->loc.filename,  td_best->loc.linnum,  td_best->toChars(),
                 td_ambig->loc.filename, td_ambig->loc.linnum, td_ambig->toChars());
@@ -5902,7 +5902,7 @@ int TemplateInstance::hasNestedArgs(Objects *args)
                                 goto L1;        // dparent is most nested
                             }
                         }
-                        error("%s is nested in both %s and %s",
+                        ERROR_GEN(error, "%s is nested in both %s and %s",
                                 toChars(), enclosing->toChars(), dparent->toChars());
                     }
                   L1:
@@ -5910,7 +5910,7 @@ int TemplateInstance::hasNestedArgs(Objects *args)
                     nested |= 1;
                 }
                 else
-                    error("cannot use local '%s' as parameter to non-global template %s", sa->toChars(), tempdecl->toChars());
+                    ERROR_GEN(error, "cannot use local '%s' as parameter to non-global template %s", sa->toChars(), tempdecl->toChars());
             }
         }
         else if (va)
@@ -5982,7 +5982,7 @@ Identifier *TemplateInstance::genIdent(Objects *args)
             }
             buf.writeByte('V');
             if (ea->op == TOKtuple)
-            {   ea->error("tuple is not a valid template value argument");
+            {   ERROR_GEN(ea->error, "tuple is not a valid template value argument");
                 continue;
             }
             // Now that we know it is not an alias, we MUST obtain a value
@@ -6018,7 +6018,7 @@ Identifier *TemplateInstance::genIdent(Objects *args)
                 {   d = fad->toAliasFunc();
                     goto Lsa2;
                 }
-                error("forward reference of %s %s", d->kind(), d->toChars());
+                ERROR_GEN(error, "forward reference of %s %s", d->kind(), d->toChars());
                 continue;
             }
 #if 0
@@ -6360,7 +6360,7 @@ Dsymbol *TemplateInstance::toAlias()
 //                inst = NULL;            // trigger fwd ref error
         }
         if (!inst)
-        {   error("cannot resolve forward reference");
+        {   ERROR_GEN(error, "cannot resolve forward reference");
             errors = 1;
             return this;
         }
@@ -6474,14 +6474,14 @@ void TemplateMixin::semantic(Scope *sc)
         tqual->resolve(loc, sc, &e, &t, &s);
         if (!s)
         {
-            error("is not defined");
+            ERROR_GEN(error, "is not defined");
             inst = this;
             return;
         }
         tempdecl = s->toAlias()->isTemplateDeclaration();
         if (!tempdecl)
         {
-            error("%s isn't a template", s->toChars());
+            ERROR_GEN(error, "%s isn't a template", s->toChars());
             inst = this;
             return;
         }
@@ -6574,7 +6574,7 @@ void TemplateMixin::semantic(Scope *sc)
             else
                 assert(0);
         }
-        error("recursive mixin instantiation");
+        ERROR_GEN(error, "recursive mixin instantiation");
         return;
 
     Lcontinue:
@@ -6640,7 +6640,7 @@ void TemplateMixin::semantic(Scope *sc)
     if (++nest > 500)
     {
         global.gag = 0;                 // ensure error message gets printed
-        error("recursive expansion");
+        ERROR_GEN(error, "recursive expansion");
         fatal();
     }
 
@@ -6702,7 +6702,7 @@ void TemplateMixin::semantic(Scope *sc)
     // Give additional context info if error occurred during instantiation
     if (global.errors != errorsave)
     {
-        error("error instantiating");
+        ERROR_GEN(error, "error instantiating");
     }
 
     sc2->pop();

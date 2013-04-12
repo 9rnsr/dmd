@@ -147,7 +147,7 @@ void Expression::discardValue()
                 break;
 
             case TOKimport:
-                error("%s has no effect", toChars());
+                ERROR_GEN(error, "%s has no effect", toChars());
                 break;
 
             case TOKandand:
@@ -207,7 +207,7 @@ void Expression::discardValue()
 
             default:
             Ldefault:
-                error("%s has no effect in expression (%s)",
+                ERROR_GEN(error, "%s has no effect in expression (%s)",
                     Token::toChars(op), toChars());
                 break;
         }

@@ -120,7 +120,7 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
                     }
                     else
                     {
-                        e1->error("need 'this' of type %s to access member %s"
+                        ERROR_GEN(e1->error, "need 'this' of type %s to access member %s"
                                   " from static function %s",
                             ad->toChars(), var->toChars(), f->toChars());
                         e1 = new ErrorExp();
@@ -139,7 +139,7 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
             }
             /* Can't find a path from e1 to ad
              */
-            e1->error("this for %s needs to be type %s not type %s",
+            ERROR_GEN(e1->error, "this for %s needs to be type %s not type %s",
                 var->toChars(), ad->toChars(), t->toChars());
             e1 = new ErrorExp();
         }
@@ -255,7 +255,7 @@ Expression *checkRightThis(Scope *sc, Expression *e)
         {
             //printf("checkRightThis sc->intypeof = %d, ad = %p, func = %p, fdthis = %p\n",
             //        sc->intypeof, sc->getStructClassScope(), func, fdthis);
-            e->error("need 'this' for '%s' of type '%s'", ve->var->toChars(), ve->var->type->toChars());
+            ERROR_GEN(e->error, "need 'this' for '%s' of type '%s'", ve->var->toChars(), ve->var->type->toChars());
             e = new ErrorExp();
         }
     }
@@ -315,7 +315,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e)
         {   assert(fd->type->ty == Tfunction);
             TypeFunction *tf = (TypeFunction *)fd->type;
             if (!tf->isproperty && global.params.enforcePropertySyntax)
-            {   error(e->loc, "not a property %s", e->toChars());
+            {   ERROR_GEN(error, e->loc, "not a property %s", e->toChars());
                 return new ErrorExp();
             }
             e = new CallExp(e->loc, e);
@@ -334,7 +334,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e)
             if (t->ty == Tfunction && !((TypeFunction *)t)->isproperty &&
                 global.params.enforcePropertySyntax)
             {
-                error(e->loc, "not a property %s", e->toChars());
+                ERROR_GEN(error, e->loc, "not a property %s", e->toChars());
                 return new ErrorExp();
             }
             e = new CallExp(e->loc, e);
@@ -356,7 +356,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e)
 
         else if (e->op == TOKdotexp)
         {
-            e->error("expression has no value");
+            ERROR_GEN(e->error, "expression has no value");
             return new ErrorExp();
         }
 
@@ -365,7 +365,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e)
 return_expr:
     if (!e->type)
     {
-        error(e->loc, "cannot resolve type for %s", e->toChars());
+        ERROR_GEN(error, e->loc, "cannot resolve type for %s", e->toChars());
         e->type = new TypeError();
     }
     return e;
@@ -412,7 +412,7 @@ void checkPropertyCall(Expression *e, Expression *emsg)
             assert(0);
 
         if (!tf->isproperty && global.params.enforcePropertySyntax)
-            ce->e1->error("not a property %s", emsg->toChars());
+            ERROR_GEN(ce->e1->error, "not a property %s", emsg->toChars());
     }
 }
 
@@ -714,7 +714,7 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
     {   Expression *e = (*exps)[i];
 
         if (!e->type)
-        {   error("%s has no value", e->toChars());
+        {   ERROR_GEN(error, "%s has no value", e->toChars());
             e = new ErrorExp();
         }
         e = resolveProperties(sc, e);
@@ -754,7 +754,7 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
         Expression *e = (*exps)[i];
         e = resolveProperties(sc, e);
         if (!e->type)
-        {   e->error("%s has no value", e->toChars());
+        {   ERROR_GEN(e->error, "%s has no value", e->toChars());
             e = new ErrorExp();
         }
 
@@ -869,7 +869,7 @@ void preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
             (*exps)[i] =  arg;
 
             if (arg->op == TOKtype)
-                arg->error("%s is not an expression", arg->toChars());
+                ERROR_GEN(arg->error, "%s is not an expression", arg->toChars());
 
             //arg->rvalue();
         }
@@ -924,7 +924,7 @@ int checkPostblit(Loc loc, Type *t)
     {   FuncDeclaration *fd = ((TypeStruct *)t)->sym->postblit;
         if (fd)
         {   if (fd->storage_class & STCdisable)
-                fd->toParent()->error(loc, "is not copyable because it is annotated with @disable");
+                ERROR_GEN(fd->toParent()->error, loc, "is not copyable because it is annotated with @disable");
             return 1;
         }
     }
@@ -1002,7 +1002,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
     size_t nparams = Parameter::dim(tf->parameters);
 
     if (nargs > nparams && tf->varargs == 0)
-    {   error(loc, "expected %llu arguments, not %llu for non-variadic function type %s", (ulonglong)nparams, (ulonglong)nargs, tf->toChars());
+    {   ERROR_GEN(error, loc, "expected %llu arguments, not %llu for non-variadic function type %s", (ulonglong)nparams, (ulonglong)nargs, tf->toChars());
         return Type::terror;
     }
 
@@ -1056,7 +1056,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 {
                     if (tf->varargs == 2 && i + 1 == nparams)
                         goto L2;
-                    error(loc, "expected %llu function arguments, not %llu", (ulonglong)nparams, (ulonglong)nargs);
+                    ERROR_GEN(error, loc, "expected %llu function arguments, not %llu", (ulonglong)nparams, (ulonglong)nargs);
                     return Type::terror;
                 }
                 arg = p->defaultArg;
@@ -1086,7 +1086,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                     if (p->type->nextOf() && arg->implicitConvTo(p->type->nextOf()) >= m)
                         goto L2;
                     else if (nargs != nparams)
-                    {   error(loc, "expected %llu function arguments, not %llu", (ulonglong)nparams, (ulonglong)nargs);
+                    {   ERROR_GEN(error, loc, "expected %llu function arguments, not %llu", (ulonglong)nparams, (ulonglong)nargs);
                         return Type::terror;
                     }
                     goto L1;
@@ -1160,7 +1160,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                     }
                     default:
                         if (!arg)
-                        {   error(loc, "not enough arguments");
+                        {   ERROR_GEN(error, loc, "not enough arguments");
                             return Type::terror;
                         }
                         break;
@@ -1222,7 +1222,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 {
                     //printf("arg->type = %s, p->type = %s\n", arg->type->toChars(), p->type->toChars());
                     if (arg->op == TOKtype)
-                    {   arg->error("cannot pass type %s as function argument", arg->toChars());
+                    {   ERROR_GEN(arg->error, "cannot pass type %s as function argument", arg->toChars());
                         arg = new ErrorExp();
                         goto L3;
                     }
@@ -1239,7 +1239,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             {
                 Type *t = arg->type;
                 if (!t->isMutable() || !t->isAssignable())  // check blit assignable
-                    arg->error("cannot modify struct %s with immutable members", arg->toChars());
+                    ERROR_GEN(arg->error, "cannot modify struct %s with immutable members", arg->toChars());
                 arg = arg->toLvalue(sc, arg);
             }
             else if (p->storageClass & STClazy)
@@ -1337,7 +1337,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
 
             // Do not allow types that need destructors
             if (arg->type->needsDestruction())
-            {   arg->error("cannot pass types that need destruction as variadic arguments");
+            {   ERROR_GEN(arg->error, "cannot pass types that need destruction as variadic arguments");
                 arg = new ErrorExp();
             }
 
@@ -1367,7 +1367,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                     se->hasOverloads &&
 #endif
                     !se->var->isFuncDeclaration()->isUnique())
-                {   arg->error("function %s is overloaded", arg->toChars());
+                {   ERROR_GEN(arg->error, "function %s is overloaded", arg->toChars());
                     arg = new ErrorExp();
                 }
             }
@@ -1597,7 +1597,7 @@ void Expression::deprecation(const char *format, ...)
 int Expression::rvalue()
 {
     if (type && type->toBasetype()->ty == Tvoid)
-    {   error("expression %s is void and has no value", toChars());
+    {   ERROR_GEN(error, "expression %s is void and has no value", toChars());
 #if 0
         dump(0);
         halt();
@@ -1627,7 +1627,7 @@ Expression *Expression::combine(Expression *e1, Expression *e2)
 dinteger_t Expression::toInteger()
 {
     //printf("Expression %s\n", Token::toChars(op));
-    error("Integer constant expression expected instead of %s", toChars());
+    ERROR_GEN(error, "Integer constant expression expected instead of %s", toChars());
     return 0;
 }
 
@@ -1639,19 +1639,19 @@ uinteger_t Expression::toUInteger()
 
 real_t Expression::toReal()
 {
-    error("Floating point constant expression expected instead of %s", toChars());
+    ERROR_GEN(error, "Floating point constant expression expected instead of %s", toChars());
     return ldouble(0);
 }
 
 real_t Expression::toImaginary()
 {
-    error("Floating point constant expression expected instead of %s", toChars());
+    ERROR_GEN(error, "Floating point constant expression expected instead of %s", toChars());
     return ldouble(0);
 }
 
 complex_t Expression::toComplex()
 {
-    error("Floating point constant expression expected instead of %s", toChars());
+    ERROR_GEN(error, "Floating point constant expression expected instead of %s", toChars());
 #ifdef IN_GCC
     return complex_t(real_t(0)); // %% nicer
 #else
@@ -1671,7 +1671,7 @@ void Expression::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 void Expression::toMangleBuffer(OutBuffer *buf)
 {
-    error("expression %s is not a valid template value argument", toChars());
+    ERROR_GEN(error, "expression %s is not a valid template value argument", toChars());
 }
 
 /***************************************
@@ -1694,7 +1694,7 @@ Expression *Expression::toLvalue(Scope *sc, Expression *e)
         e = this;
     else if (!loc.filename)
         loc = e->loc;
-    error("%s is not an lvalue", e->toChars());
+    ERROR_GEN(error, "%s is not an lvalue", e->toChars());
     return new ErrorExp();
 }
 
@@ -1724,7 +1724,7 @@ Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
         if (type->isMutable())
         {
             if (!type->isAssignable())
-                error("cannot modify struct %s %s with immutable members", toChars(), type->toChars());
+                ERROR_GEN(error, "cannot modify struct %s %s with immutable members", toChars(), type->toChars());
         }
         else
         {
@@ -1736,12 +1736,12 @@ Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
             if (var && var->storage_class & STCctorinit)
             {
                 const char *p = var->isStatic() ? "static " : "";
-                error("can only initialize %sconst member %s inside %sconstructor",
+                ERROR_GEN(error, "can only initialize %sconst member %s inside %sconstructor",
                     p, var->toChars(), p);
             }
             else
             {
-                error("cannot modify %s expression %s", MODtoChars(type->mod), toChars());
+                ERROR_GEN(error, "cannot modify %s expression %s", MODtoChars(type->mod), toChars());
             }
         }
     }
@@ -1765,21 +1765,21 @@ void Expression::checkEscapeRef()
 void Expression::checkScalar()
 {
     if (!type->isscalar() && type->toBasetype() != Type::terror)
-        error("'%s' is not a scalar, it is a %s", toChars(), type->toChars());
+        ERROR_GEN(error, "'%s' is not a scalar, it is a %s", toChars(), type->toChars());
     rvalue();
 }
 
 void Expression::checkNoBool()
 {
     if (type->toBasetype()->ty == Tbool)
-        error("operation not allowed on bool '%s'", toChars());
+        ERROR_GEN(error, "operation not allowed on bool '%s'", toChars());
 }
 
 Expression *Expression::checkIntegral()
 {
     if (!type->isintegral())
     {   if (type->toBasetype() != Type::terror)
-            error("'%s' is not of integral type, it is a %s", toChars(), type->toChars());
+            ERROR_GEN(error, "'%s' is not of integral type, it is a %s", toChars(), type->toChars());
         return new ErrorExp();
     }
     if (!rvalue())
@@ -1791,7 +1791,7 @@ Expression *Expression::checkArithmetic()
 {
     if (!type->isintegral() && !type->isfloating())
     {   if (type->toBasetype() != Type::terror)
-            error("'%s' is not of arithmetic type, it is a %s", toChars(), type->toChars());
+            ERROR_GEN(error, "'%s' is not of arithmetic type, it is a %s", toChars(), type->toChars());
         return new ErrorExp();
     }
     if (!rvalue())
@@ -1843,7 +1843,7 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
         {   // The closest pure parent of instantiated template function is
             // always itself.
             if (!f->isPure() && outerfunc->setImpure())
-                error("pure function '%s' cannot call impure function '%s'",
+                ERROR_GEN(error, "pure function '%s' cannot call impure function '%s'",
                     outerfunc->toChars(), f->toChars());
             return;
         }
@@ -1884,13 +1884,13 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
             !f->isPure() && calledparent != outerfunc)
         {
             if (outerfunc->setImpure())
-                error("pure function '%s' cannot call impure function '%s'",
+                ERROR_GEN(error, "pure function '%s' cannot call impure function '%s'",
                     outerfunc->toPrettyChars(), f->toPrettyChars());
         }
     }
 #else
     if (sc->func && sc->func->isPure() && !sc->intypeof && !f->isPure())
-        error("pure function '%s' cannot call impure function '%s'",
+        ERROR_GEN(error, "pure function '%s' cannot call impure function '%s'",
             sc->func->toPrettyChars(), f->toPrettyChars());
 #endif
 }
@@ -1930,7 +1930,7 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v, Expression *ethis)
                 if (!ff)
                     break;
                 if (ff->setImpure() && !msg)
-                {   error("pure function '%s' cannot access mutable static data '%s'",
+                {   ERROR_GEN(error, "pure function '%s' cannot access mutable static data '%s'",
                         sc->func->toPrettyChars(), v->toChars());
                     msg = TRUE;                     // only need the innermost message
                 }
@@ -1961,7 +1961,7 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v, Expression *ethis)
                 if (!ff)
                     break;
                 if (ff->setImpure())
-                {   error("pure nested function '%s' cannot access mutable data '%s'",
+                {   ERROR_GEN(error, "pure nested function '%s' cannot access mutable data '%s'",
                         ff->toChars(), v->toChars());
                     break;
                 }
@@ -1973,7 +1973,7 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v, Expression *ethis)
         if (v->storage_class & STCgshared)
         {
             if (sc->func->setUnsafe())
-                error("safe function '%s' cannot access __gshared data '%s'",
+                ERROR_GEN(error, "safe function '%s' cannot access __gshared data '%s'",
                     sc->func->toChars(), v->toChars());
         }
     }
@@ -1989,7 +1989,7 @@ void Expression::checkSafety(Scope *sc, FuncDeclaration *f)
             if (loc.linnum == 0)  // e.g. implicitly generated dtor
                 loc = sc->func->loc;
 
-            error("safe function '%s' cannot call system function '%s'",
+            ERROR_GEN(error, "safe function '%s' cannot call system function '%s'",
                 sc->func->toPrettyChars(), f->toPrettyChars());
         }
     }
@@ -2043,7 +2043,7 @@ Lagain:
 
     if (!t->checkBoolean())
     {   if (tb != Type::terror)
-            error("expression %s of type %s does not have a boolean value", toChars(), t->toChars());
+            ERROR_GEN(error, "expression %s of type %s does not have a boolean value", toChars(), t->toChars());
         return new ErrorExp();
     }
     return e;
@@ -2197,7 +2197,7 @@ IntegerExp::IntegerExp(Loc loc, dinteger_t value, Type *type)
     {
         //printf("%s, loc = %d\n", toChars(), loc.linnum);
         if (type->ty != Terror)
-            error("integral constant must be scalar type, not %s", type->toChars());
+            ERROR_GEN(error, "integral constant must be scalar type, not %s", type->toChars());
         type = Type::terror;
     }
     this->type = type;
@@ -2342,7 +2342,7 @@ Expression *IntegerExp::toLvalue(Scope *sc, Expression *e)
         e = this;
     else if (!loc.filename)
         loc = e->loc;
-    e->error("constant %s is not an lvalue", e->toChars());
+    ERROR_GEN(e->error, "constant %s is not an lvalue", e->toChars());
     return new ErrorExp();
 }
 
@@ -2891,7 +2891,7 @@ Expression *IdentifierExp::semantic(Scope *sc)
                     (s2 = scx->scopesym->symtab->lookup(s->ident)) != NULL &&
                     s != s2)
                 {
-                    error("with symbol %s is shadowing local symbol %s", s->toPrettyChars(), s2->toPrettyChars());
+                    ERROR_GEN(error, "with symbol %s is shadowing local symbol %s", s->toPrettyChars(), s2->toPrettyChars());
                     return new ErrorExp();
                 }
             }
@@ -2958,14 +2958,14 @@ Expression *IdentifierExp::semantic(Scope *sc)
 #endif
     const char *n = importHint(ident->toChars());
     if (n)
-        error("'%s' is not defined, perhaps you need to import %s; ?", ident->toChars(), n);
+        ERROR_GEN(error, "'%s' is not defined, perhaps you need to import %s; ?", ident->toChars(), n);
     else
     {
         s = sc->search_correct(ident);
         if (s)
-            error("undefined identifier %s, did you mean %s %s?", ident->toChars(), s->kind(), s->toChars());
+            ERROR_GEN(error, "undefined identifier %s, did you mean %s %s?", ident->toChars(), s->kind(), s->toChars());
         else
-            error("undefined identifier %s", ident->toChars());
+            ERROR_GEN(error, "undefined identifier %s", ident->toChars());
     }
     return new ErrorExp();
 }
@@ -3067,7 +3067,7 @@ Lagain:
         if (!e)
         {
             em->errors = true;
-            error("forward reference of %s %s", s->kind(), s->toChars());
+            ERROR_GEN(error, "forward reference of %s %s", s->kind(), s->toChars());
             return new ErrorExp();
         }
         e->loc = loc;
@@ -3083,7 +3083,7 @@ Lagain:
                 v->semantic(v->scope);
             type = v->type;
             if (!v->type)
-            {   error("forward reference of %s %s", s->kind(), s->toChars());
+            {   ERROR_GEN(error, "forward reference of %s %s", s->kind(), s->toChars());
                 return new ErrorExp();
             }
         }
@@ -3092,7 +3092,7 @@ Lagain:
         {
             e = v->init->toExpression(v->type);
             if (!e)
-            {   error("cannot make expression out of initializer for %s", v->toChars());
+            {   ERROR_GEN(error, "cannot make expression out of initializer for %s", v->toChars());
                 return new ErrorExp();
             }
             e = e->copy();
@@ -3121,12 +3121,12 @@ Lagain:
 
         if (f->isUnitTestDeclaration())
         {
-            error("cannot call unittest function %s", toChars());
+            ERROR_GEN(error, "cannot call unittest function %s", toChars());
             return new ErrorExp();
         }
         if (!f->type->deco)
         {
-            error("forward reference to %s", toChars());
+            ERROR_GEN(error, "forward reference to %s", toChars());
             return new ErrorExp();
         }
         FuncDeclaration *fd = s->isFuncDeclaration();
@@ -3142,7 +3142,7 @@ Lagain:
     if (imp)
     {
         if (!imp->pkg)
-        {   error("forward reference of import %s", imp->toChars());
+        {   ERROR_GEN(error, "forward reference of import %s", imp->toChars());
             return new ErrorExp();
         }
         ScopeExp *ie = new ScopeExp(loc, imp->pkg);
@@ -3229,7 +3229,7 @@ Lagain:
         return e;
     }
 
-    error("%s '%s' is not a variable", s->kind(), s->toChars());
+    ERROR_GEN(error, "%s '%s' is not a variable", s->kind(), s->toChars());
     return new ErrorExp();
 }
 
@@ -3285,7 +3285,7 @@ Expression *ThisExp::semantic(Scope *sc)
         {
             if (!s)
             {
-                error("%s is not in a class or struct scope", toChars());
+                ERROR_GEN(error, "%s is not in a class or struct scope", toChars());
                 goto Lerr;
             }
             ClassDeclaration *cd = s->isClassDeclaration();
@@ -3315,7 +3315,7 @@ Expression *ThisExp::semantic(Scope *sc)
     return this;
 
 Lerr:
-    error("'this' is only defined in non-static member functions, not %s", sc->parent->toChars());
+    ERROR_GEN(error, "'this' is only defined in non-static member functions, not %s", sc->parent->toChars());
     return new ErrorExp();
 }
 
@@ -3344,7 +3344,7 @@ Expression *ThisExp::modifiableLvalue(Scope *sc, Expression *e)
 {
     if (type->toBasetype()->ty == Tclass)
     {
-        error("Cannot modify '%s'", toChars());
+        ERROR_GEN(error, "Cannot modify '%s'", toChars());
         return toLvalue(sc, e);
     }
     return Expression::modifiableLvalue(sc, e);
@@ -3381,7 +3381,7 @@ Expression *SuperExp::semantic(Scope *sc)
         {
             if (!s)
             {
-                error("%s is not in a class scope", toChars());
+                ERROR_GEN(error, "%s is not in a class scope", toChars());
                 goto Lerr;
             }
             ClassDeclaration *cd = s->isClassDeclaration();
@@ -3389,7 +3389,7 @@ Expression *SuperExp::semantic(Scope *sc)
             {
                 cd = cd->baseClass;
                 if (!cd)
-                {   error("class %s has no 'super'", s->toChars());
+                {   ERROR_GEN(error, "class %s has no 'super'", s->toChars());
                     goto Lerr;
                 }
                 type = cd->type;
@@ -3416,7 +3416,7 @@ Expression *SuperExp::semantic(Scope *sc)
         goto Lerr;
     if (!cd->baseClass)
     {
-        error("no base class for %s", cd->toChars());
+        ERROR_GEN(error, "no base class for %s", cd->toChars());
         type = fd->vthis->type;
     }
     else
@@ -3433,7 +3433,7 @@ Expression *SuperExp::semantic(Scope *sc)
 
 
 Lerr:
-    error("'super' is only allowed in non-static class member functions");
+    ERROR_GEN(error, "'super' is only allowed in non-static class member functions");
     return new ErrorExp();
 }
 
@@ -3576,7 +3576,7 @@ Expression *StringExp::semantic(Scope *sc)
                 {
                     p = utf_decodeChar((unsigned char *)string, len, &u, &c);
                     if (p)
-                    {   error("%s", p);
+                    {   ERROR_GEN(error, "%s", p);
                         return new ErrorExp();
                     }
                     else
@@ -3598,7 +3598,7 @@ Expression *StringExp::semantic(Scope *sc)
                 {
                     p = utf_decodeChar((unsigned char *)string, len, &u, &c);
                     if (p)
-                    {   error("%s", p);
+                    {   ERROR_GEN(error, "%s", p);
                         return new ErrorExp();
                     }
                     else
@@ -3648,7 +3648,7 @@ size_t StringExp::length()
             {
                 p = utf_decodeChar((unsigned char *)string, len, &u, &c);
                 if (p)
-                {   error("%s", p);
+                {   ERROR_GEN(error, "%s", p);
                     return 0;
                 }
                 else
@@ -3661,7 +3661,7 @@ size_t StringExp::length()
             {
                 p = utf_decodeWchar((unsigned short *)string, len, &u, &c);
                 if (p)
-                {   error("%s", p);
+                {   ERROR_GEN(error, "%s", p);
                     return 0;
                 }
                 else
@@ -3782,7 +3782,7 @@ Expression *StringExp::toLvalue(Scope *sc, Expression *e)
 
 Expression *StringExp::modifiableLvalue(Scope *sc, Expression *e)
 {
-    e->error("Cannot modify '%s'", toChars());
+    ERROR_GEN(e->error, "Cannot modify '%s'", toChars());
     return new ErrorExp();
 }
 
@@ -3868,7 +3868,7 @@ void StringExp::toMangleBuffer(OutBuffer *buf)
             {
                 p = utf_decodeWchar((unsigned short *)string, len, &u, &c);
                 if (p)
-                    error("%s", p);
+                    ERROR_GEN(error, "%s", p);
                 else
                     tmp.writeUTF8(c);
             }
@@ -3881,7 +3881,7 @@ void StringExp::toMangleBuffer(OutBuffer *buf)
             {
                 c = ((unsigned *)string)[u];
                 if (!utf_isValidDchar(c))
-                    error("invalid UCS-32 char \\U%08x", c);
+                    ERROR_GEN(error, "invalid UCS-32 char \\U%08x", c);
                 else
                     tmp.writeUTF8(c);
             }
@@ -3954,7 +3954,7 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
     /* Disallow array literals of type void being used.
      */
     if (elements->dim > 0 && t0->ty == Tvoid)
-    {   error("%s of type %s has no value", toChars(), type->toChars());
+    {   ERROR_GEN(error, "%s of type %s has no value", toChars(), type->toChars());
         return new ErrorExp();
     }
 
@@ -4050,7 +4050,7 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
     expandTuples(values);
     if (keys->dim != values->dim)
     {
-        error("number of keys is %u, must match number of values %u", keys->dim, values->dim);
+        ERROR_GEN(error, "number of keys is %u, must match number of values %u", keys->dim, values->dim);
         return new ErrorExp();
     }
 
@@ -4158,14 +4158,14 @@ Expression *StructLiteralExp::semantic(Scope *sc)
             for (size_t i = 0; i < sd->fields.dim; i++)
                 printf("[%d] = %s\n", i, sd->fields[i]->toChars());
 #endif
-            error("more initializers than fields (%d) of %s", nfields, sd->toChars());
+            ERROR_GEN(error, "more initializers than fields (%d) of %s", nfields, sd->toChars());
             return new ErrorExp();
         }
         Dsymbol *s = sd->fields[i];
         VarDeclaration *v = s->isVarDeclaration();
         assert(v);
         if (v->offset < offset)
-        {   error("overlapping initialization for %s", v->toChars());
+        {   ERROR_GEN(error, "overlapping initialization for %s", v->toChars());
             return new ErrorExp();
         }
         offset = v->offset + v->type->size();
@@ -4423,7 +4423,7 @@ Expression *TypeExp::semantic(Scope *sc)
 
 int TypeExp::rvalue()
 {
-    error("type %s has no value", toChars());
+    ERROR_GEN(error, "type %s has no value", toChars());
     return 0;
 }
 
@@ -4552,7 +4552,7 @@ void TemplateExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 int TemplateExp::rvalue()
 {
-    error("template %s has no value", toChars());
+    ERROR_GEN(error, "template %s has no value", toChars());
     return 0;
 }
 
@@ -4608,14 +4608,14 @@ Lagain:
 
             if (!MODimplicitConv(thisexp->type->mod, newtype->mod))
             {
-                error("nested type %s should have the same or weaker constancy as enclosing type %s",
+                ERROR_GEN(error, "nested type %s should have the same or weaker constancy as enclosing type %s",
                     newtype->toChars(), thisexp->type->toChars());
                 goto Lerr;
             }
         }
         else
         {
-            error("'this' for nested class must be a class type, not %s", thisexp->type->toChars());
+            ERROR_GEN(error, "'this' for nested class must be a class type, not %s", thisexp->type->toChars());
             goto Lerr;
         }
     }
@@ -4631,7 +4631,7 @@ Lagain:
     preFunctionParameters(loc, sc, arguments);
 
     if (thisexp && tb->ty != Tclass)
-    {   error("e.new is only for allocating nested classes, not %s", tb->toChars());
+    {   ERROR_GEN(error, "e.new is only for allocating nested classes, not %s", tb->toChars());
         goto Lerr;
     }
 
@@ -4642,11 +4642,11 @@ Lagain:
         if (cd->scope)
             cd->semantic(NULL);
         if (cd->isInterfaceDeclaration())
-        {   error("cannot create instance of interface %s", cd->toChars());
+        {   ERROR_GEN(error, "cannot create instance of interface %s", cd->toChars());
             goto Lerr;
         }
         else if (cd->isAbstract())
-        {   error("cannot create instance of abstract class %s", cd->toChars());
+        {   ERROR_GEN(error, "cannot create instance of abstract class %s", cd->toChars());
             for (size_t i = 0; i < cd->vtbl.dim; i++)
             {   FuncDeclaration *fd = cd->vtbl[i]->isFuncDeclaration();
                 if (fd && fd->isAbstract())
@@ -4656,7 +4656,7 @@ Lagain:
         }
 
         if (cd->noDefaultCtor && (!arguments || !arguments->dim))
-        {   error("default construction is disabled for type %s", cd->toChars());
+        {   ERROR_GEN(error, "default construction is disabled for type %s", cd->toChars());
             goto Lerr;
         }
         checkDeprecated(sc, cd);
@@ -4678,7 +4678,7 @@ Lagain:
                     for (Dsymbol *sp = sc->parent; 1; sp = sp->parent)
                     {   if (!sp)
                         {
-                            error("outer class %s 'this' needed to 'new' nested class %s", cdn->toChars(), cd->toChars());
+                            ERROR_GEN(error, "outer class %s 'this' needed to 'new' nested class %s", cdn->toChars(), cd->toChars());
                             goto Lerr;
                         }
                         ClassDeclaration *cdp = sp->isClassDeclaration();
@@ -4696,13 +4696,13 @@ Lagain:
                 {
                     //printf("cdthis = %s\n", cdthis->toChars());
                     if (cdthis != cdn && !cdn->isBaseOf(cdthis, NULL))
-                    {   error("'this' for nested class must be of type %s, not %s", cdn->toChars(), thisexp->type->toChars());
+                    {   ERROR_GEN(error, "'this' for nested class must be of type %s, not %s", cdn->toChars(), thisexp->type->toChars());
                         goto Lerr;
                     }
                 }
             }
             else if (thisexp)
-            {   error("e.new is only for allocating nested classes");
+            {   ERROR_GEN(error, "e.new is only for allocating nested classes");
                 goto Lerr;
             }
             else if (fdn)
@@ -4715,7 +4715,7 @@ Lagain:
                     FuncDeclaration *fsp = sp ? sp->isFuncDeclaration() : NULL;
                     if (!sp || (fsp && fsp->isStatic()))
                     {
-                        error("outer function context of %s is needed to 'new' nested class %s", fdn->toPrettyChars(), cd->toPrettyChars());
+                        ERROR_GEN(error, "outer function context of %s is needed to 'new' nested class %s", fdn->toPrettyChars(), cd->toPrettyChars());
                         goto Lerr;
                     }
                 }
@@ -4724,7 +4724,7 @@ Lagain:
                 assert(0);
         }
         else if (thisexp)
-        {   error("e.new is only for allocating nested classes");
+        {   ERROR_GEN(error, "e.new is only for allocating nested classes");
             goto Lerr;
         }
 
@@ -4752,7 +4752,7 @@ Lagain:
         else
         {
             if (arguments && arguments->dim)
-            {   error("no constructor for %s", cd->toChars());
+            {   ERROR_GEN(error, "no constructor for %s", cd->toChars());
                 goto Lerr;
             }
         }
@@ -4781,7 +4781,7 @@ Lagain:
         else
         {
             if (newargs && newargs->dim)
-            {   error("no allocator for %s", cd->toChars());
+            {   ERROR_GEN(error, "no allocator for %s", cd->toChars());
                 goto Lerr;
             }
         }
@@ -4793,7 +4793,7 @@ Lagain:
         if (sd->scope)
             sd->semantic(NULL);
         if (sd->noDefaultCtor && (!arguments || !arguments->dim))
-        {   error("default construction is disabled for type %s", sd->toChars());
+        {   ERROR_GEN(error, "default construction is disabled for type %s", sd->toChars());
             goto Lerr;
         }
 
@@ -4820,7 +4820,7 @@ Lagain:
         else
         {
             if (newargs && newargs->dim)
-            {   error("no allocator for %s", sd->toChars());
+            {   ERROR_GEN(error, "no allocator for %s", sd->toChars());
                 goto Lerr;
             }
         }
@@ -4880,7 +4880,7 @@ Lagain:
         for (size_t i = 0; i < arguments->dim; i++)
         {
             if (tb->ty != Tarray)
-            {   error("too many arguments for array");
+            {   ERROR_GEN(error, "too many arguments for array");
                 goto Lerr;
             }
 
@@ -4889,7 +4889,7 @@ Lagain:
             arg = arg->implicitCastTo(sc, Type::tsize_t);
             arg = arg->optimize(WANTvalue);
             if (arg->op == TOKint64 && (sinteger_t)arg->toInteger() < 0)
-            {   error("negative array index %s", arg->toChars());
+            {   ERROR_GEN(error, "negative array index %s", arg->toChars());
                 goto Lerr;
             }
             (*arguments)[i] =  arg;
@@ -4899,7 +4899,7 @@ Lagain:
     else if (tb->isscalar())
     {
         if (arguments && arguments->dim)
-        {   error("no constructor for %s", type->toChars());
+        {   ERROR_GEN(error, "no constructor for %s", type->toChars());
             goto Lerr;
         }
 
@@ -4907,7 +4907,7 @@ Lagain:
     }
     else
     {
-        error("new can only create structs, dynamic arrays or class objects, not %s's", type->toChars());
+        ERROR_GEN(error, "new can only create structs, dynamic arrays or class objects, not %s's", type->toChars());
         goto Lerr;
     }
 
@@ -5030,7 +5030,7 @@ SymOffExp::SymOffExp(Loc loc, Declaration *var, unsigned offset, int hasOverload
     this->offset = offset;
     VarDeclaration *v = var->isVarDeclaration();
     if (v && v->needThis())
-        error("need 'this' for address of %s", v->toChars());
+        ERROR_GEN(error, "need 'this' for address of %s", v->toChars());
 }
 
 Expression *SymOffExp::semantic(Scope *sc)
@@ -5067,7 +5067,7 @@ void SymOffExp::checkEscape()
              *     int* bar() { return &a; }
              *   }
              */
-            error("escaping reference to local %s", v->toChars());
+            ERROR_GEN(error, "escaping reference to local %s", v->toChars());
         }
     }
 }
@@ -5159,9 +5159,9 @@ void VarExp::checkEscape()
         if (tb->ty == Tarray || tb->ty == Tsarray || tb->ty == Tclass || tb->ty == Tdelegate)
         {
             if (v->isScope() && (!v->noscope || tb->ty == Tclass))
-                error("escaping reference to scope local %s", v->toChars());
+                ERROR_GEN(error, "escaping reference to scope local %s", v->toChars());
             else if (v->storage_class & STCvariadic)
-                error("escaping reference to variadic parameter %s", v->toChars());
+                ERROR_GEN(error, "escaping reference to variadic parameter %s", v->toChars());
         }
     }
 }
@@ -5172,7 +5172,7 @@ void VarExp::checkEscapeRef()
     if (v)
     {
         if (!v->isDataseg() && !(v->storage_class & (STCref | STCout)))
-            error("escaping reference to local variable %s", v->toChars());
+            ERROR_GEN(error, "escaping reference to local variable %s", v->toChars());
     }
 }
 
@@ -5186,12 +5186,12 @@ int VarExp::isLvalue()
 Expression *VarExp::toLvalue(Scope *sc, Expression *e)
 {
     if (var->storage_class & STClazy)
-    {   error("lazy variables cannot be lvalues");
+    {   ERROR_GEN(error, "lazy variables cannot be lvalues");
         return new ErrorExp();
     }
     if (var->ident == Id::ctfe)
     {
-        error("compiler-generated variable __ctfe is not an lvalue");
+        ERROR_GEN(error, "compiler-generated variable __ctfe is not an lvalue");
         return new ErrorExp();
     }
     return this;
@@ -5208,7 +5208,7 @@ Expression *VarExp::modifiableLvalue(Scope *sc, Expression *e)
 {
     //printf("VarExp::modifiableLvalue('%s')\n", var->toChars());
     //if (type && type->toBasetype()->ty == Tsarray)
-        //error("cannot change reference to static array '%s'", var->toChars());
+        //ERROR_GEN(error, "cannot change reference to static array '%s'", var->toChars());
 
     // See if this expression is a modifiable lvalue (i.e. not const)
     return Expression::modifiableLvalue(sc, e);
@@ -5286,7 +5286,7 @@ TupleExp::TupleExp(Loc loc, TupleDeclaration *tup)
         }
         else
         {
-            error("%s is not an expression", o->toChars());
+            ERROR_GEN(error, "%s is not an expression", o->toChars());
         }
     }
 }
@@ -5336,7 +5336,7 @@ Expression *TupleExp::semantic(Scope *sc)
 
         e = e->semantic(sc);
         if (!e->type)
-        {   error("%s has no value", e->toChars());
+        {   ERROR_GEN(error, "%s has no value", e->toChars());
             return new ErrorExp();
         }
         (*exps)[i] = e;
@@ -5534,7 +5534,7 @@ Expression *FuncExp::semantic(Scope *sc, Expressions *arguments)
             TemplateInstance *ti = new TemplateInstance(loc, td, tiargs);
             return (new ScopeExp(loc, ti))->semantic(sc);
         }
-        error("cannot infer function literal type");
+        ERROR_GEN(error, "cannot infer function literal type");
         return new ErrorExp();
     }
     return semantic(sc);
@@ -5609,7 +5609,7 @@ Expression *DeclarationExp::semantic(Scope *sc)
     if (s->ident)
     {
         if (!sc->insert(s))
-        {   error("declaration %s is already defined", s->toPrettyChars());
+        {   ERROR_GEN(error, "declaration %s is already defined", s->toPrettyChars());
             return new ErrorExp();
         }
         else if (sc->func)
@@ -5619,7 +5619,7 @@ Expression *DeclarationExp::semantic(Scope *sc)
                 s->isInterfaceDeclaration()) &&
                 !sc->func->localsymtab->insert(s))
             {
-                error("declaration %s is already defined in another scope in %s",
+                ERROR_GEN(error, "declaration %s is already defined in another scope in %s",
                     s->toPrettyChars(), sc->func->toChars());
                 return new ErrorExp();
             }
@@ -5633,7 +5633,7 @@ Expression *DeclarationExp::semantic(Scope *sc)
                         (s2 = scx->scopesym->symtab->lookup(s->ident)) != NULL &&
                         s != s2)
                     {
-                        error("is shadowing declaration %s", s->toPrettyChars());
+                        ERROR_GEN(error, "is shadowing declaration %s", s->toPrettyChars());
                         return new ErrorExp();
                     }
                 }
@@ -5722,7 +5722,7 @@ Expression *TypeidExp::semantic(Scope *sc)
     if (!ta)
     {
         //printf("ta %p ea %p sa %p\n", ta, ea, sa);
-        error("no type for typeid(%s)", ea ? ea->toChars() : (sa ? sa->toChars() : ""));
+        ERROR_GEN(error, "no type for typeid(%s)", ea ? ea->toChars() : (sa ? sa->toChars() : ""));
         return new ErrorExp();
     }
 
@@ -5860,7 +5860,7 @@ Expression *IsExp::semantic(Scope *sc)
 
     //printf("IsExp::semantic(%s)\n", toChars());
     if (id && !(sc->flags & (SCOPEstaticif | SCOPEstaticassert)))
-    {   error("can only declare type aliases within static if conditionals or static asserts");
+    {   ERROR_GEN(error, "can only declare type aliases within static if conditionals or static asserts");
         return new ErrorExp();
     }
 
@@ -6105,7 +6105,7 @@ Expression *IsExp::semantic(Scope *sc)
                 if (sc->sd)
                     s->addMember(sc, sc->sd, 1);
                 else if (!sc->insert(s))
-                    error("declaration %s is already defined", s->toChars());
+                    ERROR_GEN(error, "declaration %s is already defined", s->toChars());
             }
 #endif
             goto Lyes;
@@ -6134,7 +6134,7 @@ Lyes:
          * More investigation is needed.
          */
         if (!tup && !sc->insert(s))
-            error("declaration %s is already defined", s->toChars());
+            ERROR_GEN(error, "declaration %s is already defined", s->toChars());
         if (sc->sd)
             s->addMember(sc, sc->sd, 1);
     }
@@ -6201,7 +6201,7 @@ Expression *UnaExp::semantic(Scope *sc)
 #endif
     e1 = e1->semantic(sc);
 //    if (!e1->type)
-//      error("%s has no value", e1->toChars());
+//      ERROR_GEN(error, "%s has no value", e1->toChars());
     return this;
 }
 
@@ -6269,20 +6269,20 @@ Expression *BinExp::checkComplexOpAssign(Scope *sc)
         const char *opstr = Token::toChars(op);
         if ( e1->type->isreal() && e2->type->iscomplex())
         {
-            error("%s %s %s is undefined. Did you mean %s %s %s.re ?",
+            ERROR_GEN(error, "%s %s %s is undefined. Did you mean %s %s %s.re ?",
                 e1->type->toChars(), opstr, e2->type->toChars(),
                 e1->type->toChars(), opstr, e2->type->toChars());
         }
         else if (e1->type->isimaginary() && e2->type->iscomplex())
         {
-            error("%s %s %s is undefined. Did you mean %s %s %s.im ?",
+            ERROR_GEN(error, "%s %s %s is undefined. Did you mean %s %s %s.im ?",
                 e1->type->toChars(), opstr, e2->type->toChars(),
                 e1->type->toChars(), opstr, e2->type->toChars());
         }
         else if ((e1->type->isreal() || e1->type->isimaginary()) &&
             e2->type->isimaginary())
         {
-            error("%s %s %s is an undefined operation", e1->type->toChars(),
+            ERROR_GEN(error, "%s %s %s is an undefined operation", e1->type->toChars(),
                     opstr, e2->type->toChars());
         }
     }
@@ -6296,7 +6296,7 @@ Expression *BinExp::checkComplexOpAssign(Scope *sc)
              (e1->type->isimaginary() && (e2->type->isreal() || e2->type->iscomplex()))
             )
         {
-            error("%s %s %s is undefined (result is complex)",
+            ERROR_GEN(error, "%s %s %s is undefined (result is complex)",
                 e1->type->toChars(), Token::toChars(op), e2->type->toChars());
         }
         if (type->isreal() || type->isimaginary())
@@ -6370,7 +6370,7 @@ Expression *BinExp::checkComplexOpAssign(Scope *sc)
     {
         if (e2->type->iscomplex())
         {
-            error("cannot perform modulo complex arithmetic");
+            ERROR_GEN(error, "cannot perform modulo complex arithmetic");
             return new ErrorExp();
         }
     }
@@ -6401,12 +6401,12 @@ Expression *BinExp::incompatibleTypes()
         TOK thisOp = (op == TOKquestion) ? TOKcolon : op;
         if (e1->op == TOKtype || e2->op == TOKtype)
         {
-            error("incompatible types for ((%s) %s (%s)): cannot use '%s' with types",
+            ERROR_GEN(error, "incompatible types for ((%s) %s (%s)): cannot use '%s' with types",
                 e1->toChars(), Token::toChars(thisOp), e2->toChars(), Token::toChars(op));
         }
         else
         {
-            error("incompatible types for ((%s) %s (%s)): '%s' and '%s'",
+            ERROR_GEN(error, "incompatible types for ((%s) %s (%s)): '%s' and '%s'",
              e1->toChars(), Token::toChars(thisOp), e2->toChars(),
              e1->type->toChars(), e2->type->toChars());
         }
@@ -6575,13 +6575,13 @@ Expression *CompileExp::semantic(Scope *sc)
         return e1;
     if (!e1->type->isString())
     {
-        error("argument to mixin must be a string type, not %s", e1->type->toChars());
+        ERROR_GEN(error, "argument to mixin must be a string type, not %s", e1->type->toChars());
         return new ErrorExp();
     }
     e1 = e1->ctfeInterpret();
     StringExp *se = e1->toString();
     if (!se)
-    {   error("argument to mixin must be a string, not (%s)", e1->toChars());
+    {   ERROR_GEN(error, "argument to mixin must be a string, not (%s)", e1->toChars());
         return new ErrorExp();
     }
     se = se->toUTF8(sc);
@@ -6594,7 +6594,7 @@ Expression *CompileExp::semantic(Scope *sc)
     if (global.errors != errors)
         return new ErrorExp();
     if (p.token.value != TOKeof)
-    {   error("incomplete mixin expression (%s)", se->toChars());
+    {   ERROR_GEN(error, "incomplete mixin expression (%s)", se->toChars());
         return new ErrorExp();
     }
     return e->semantic(sc);
@@ -6626,7 +6626,7 @@ Expression *FileExp::semantic(Scope *sc)
     e1 = resolveProperties(sc, e1);
     e1 = e1->ctfeInterpret();
     if (e1->op != TOKstring)
-    {   error("file name argument must be a string, not (%s)", e1->toChars());
+    {   ERROR_GEN(error, "file name argument must be a string, not (%s)", e1->toChars());
         goto Lerror;
     }
     se = (StringExp *)e1;
@@ -6634,7 +6634,7 @@ Expression *FileExp::semantic(Scope *sc)
     name = (char *)se->string;
 
     if (!global.params.fileImppath)
-    {   error("need -Jpath switch to import text file %s", name);
+    {   ERROR_GEN(error, "need -Jpath switch to import text file %s", name);
         goto Lerror;
     }
 
@@ -6645,7 +6645,7 @@ Expression *FileExp::semantic(Scope *sc)
 
     name = FileName::safeSearchPath(global.filePath, name);
     if (!name)
-    {   error("file %s cannot be found or not in a path specified with -J", se->toChars());
+    {   ERROR_GEN(error, "file %s cannot be found or not in a path specified with -J", se->toChars());
         goto Lerror;
     }
 
@@ -6654,7 +6654,7 @@ Expression *FileExp::semantic(Scope *sc)
 
     {   File f(name);
         if (f.read())
-        {   error("cannot read file %s", f.toChars());
+        {   ERROR_GEN(error, "cannot read file %s", f.toChars());
             goto Lerror;
         }
         else
@@ -6867,13 +6867,13 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
 
     if (e1->op == TOKdottd)
     {
-        error("template %s does not have property %s", e1->toChars(), ident->toChars());
+        ERROR_GEN(error, "template %s does not have property %s", e1->toChars(), ident->toChars());
         return new ErrorExp();
     }
 
     if (!e1->type)
     {
-        error("expression %s does not have property %s", e1->toChars(), ident->toChars());
+        ERROR_GEN(error, "expression %s does not have property %s", e1->toChars(), ident->toChars());
         return new ErrorExp();
     }
 
@@ -6914,7 +6914,7 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
                 //printf("DotIdExp:: Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
                 if (v->inuse)
                 {
-                    error("circular reference to '%s'", v->toChars());
+                    ERROR_GEN(error, "circular reference to '%s'", v->toChars());
                     return new ErrorExp();
                 }
                 type = v->type;
@@ -6976,7 +6976,7 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
             if (tup)
             {
                 if (eleft)
-                {   error("cannot have e.tuple");
+                {   ERROR_GEN(error, "cannot have e.tuple");
                     return new ErrorExp();
                 }
                 e = new TupleExp(loc, tup);
@@ -7018,10 +7018,10 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
         }
         s = ie->sds->search_correct(ident);
         if (s)
-            error("undefined identifier '%s', did you mean '%s %s'?",
+            ERROR_GEN(error, "undefined identifier '%s', did you mean '%s %s'?",
                   ident->toChars(), s->kind(), s->toChars());
         else
-            error("undefined identifier '%s'", ident->toChars());
+            ERROR_GEN(error, "undefined identifier '%s'", ident->toChars());
         return new ErrorExp();
     }
     else if (t1b->ty == Tpointer && e1->type->ty != Tenum &&
@@ -7191,7 +7191,7 @@ Expression *DotVarExp::semantic(Scope *sc)
                 }
                 else
                 {
-                    error("%s is not an expression", o->toChars());
+                    ERROR_GEN(error, "%s is not an expression", o->toChars());
                     goto Lerr;
                 }
                 exps->push(e);
@@ -7261,7 +7261,7 @@ Expression *DotVarExp::semantic(Scope *sc)
             if (ad && ad->hasUnions)
             {
                 if (sc->func->setUnsafe())
-                {   error("union %s containing pointers are not allowed in @safe functions", t1->toChars());
+                {   ERROR_GEN(error, "union %s containing pointers are not allowed in @safe functions", t1->toChars());
                     goto Lerr;
                 }
             }
@@ -7507,7 +7507,7 @@ L1:
     {   ScopeExp *se = (ScopeExp *)e;
         TemplateDeclaration *td = se->sds->isTemplateDeclaration();
         if (!td)
-        {   error("%s is not a template", e->toChars());
+        {   ERROR_GEN(error, "%s is not a template", e->toChars());
             return new ErrorExp();
         }
         ti->tempdecl = td;
@@ -7543,7 +7543,7 @@ L1:
         goto L1;
     }
 Lerr:
-    error("%s isn't a template", e->toChars());
+    ERROR_GEN(error, "%s isn't a template", e->toChars());
     return new ErrorExp();
 }
 
@@ -7710,11 +7710,11 @@ Expression *CallExp::resolveUFCS(Scope *sc)
              *  aa.remove(arg) into delete aa[arg]
              */
             if (!arguments || arguments->dim != 1)
-            {   error("expected key as argument to aa.remove()");
+            {   ERROR_GEN(error, "expected key as argument to aa.remove()");
                 return new ErrorExp();
             }
             if (!e->type->isMutable())
-            {   error("cannot remove key from %s associative array %s", MODtoChars(e->type->mod), e->toChars());
+            {   ERROR_GEN(error, "cannot remove key from %s associative array %s", MODtoChars(e->type->mod), e->toChars());
                 return new ErrorExp();
             }
             Expression *key = (*arguments)[0];
@@ -7930,7 +7930,7 @@ Lagain:
             static int nest;
             if (++nest > 500)
             {
-                error("recursive evaluation of %s", toChars());
+                ERROR_GEN(error, "recursive evaluation of %s", toChars());
                 --nest;
                 return new ErrorExp();
             }
@@ -8016,7 +8016,7 @@ Lagain:
                     // The constructor hasn't been found yet, see bug 8741
                     // This can happen if we are inferring type from
                     // from VarDeclaration::semantic() in declaration.c
-                    error("cannot create a struct until its size is determined");
+                    ERROR_GEN(error, "cannot create a struct until its size is determined");
                     return new ErrorExp();
                 }
             }
@@ -8069,7 +8069,7 @@ Lagain:
                     e1 = resolveAliasThis(sc, e1);
                     goto Lagain;
                 }
-                error("%s %s does not overload ()", ad->kind(), ad->toChars());
+                ERROR_GEN(error, "%s %s does not overload ()", ad->kind(), ad->toChars());
                 return new ErrorExp();
             }
 
@@ -8168,7 +8168,7 @@ Lagain:
             f->addPostInvariant()
            )
         {
-            error("cannot call public/export function %s from invariant", f->toChars());
+            ERROR_GEN(error, "cannot call public/export function %s from invariant", f->toChars());
             return new ErrorExp();
         }
 
@@ -8230,13 +8230,13 @@ Lagain:
             cd = sc->func->isThis()->isClassDeclaration();
         if (!cd || !cd->baseClass || !sc->func->isCtorDeclaration())
         {
-            error("super class constructor call must be in a constructor");
+            ERROR_GEN(error, "super class constructor call must be in a constructor");
             return new ErrorExp();
         }
         else
         {
             if (!cd->baseClass->ctor)
-            {   error("no super class constructor for %s", cd->baseClass->toChars());
+            {   ERROR_GEN(error, "no super class constructor for %s", cd->baseClass->toChars());
                 return new ErrorExp();
             }
             else
@@ -8244,11 +8244,11 @@ Lagain:
                 if (!sc->intypeof)
                 {
                     if (sc->noctor || sc->callSuper & CSXlabel)
-                        error("constructor calls not allowed in loops or after labels");
+                        ERROR_GEN(error, "constructor calls not allowed in loops or after labels");
                     if (sc->callSuper & (CSXsuper_ctor | CSXthis_ctor))
-                        error("multiple constructor calls");
+                        ERROR_GEN(error, "multiple constructor calls");
                     if ((sc->callSuper & CSXreturn) && !(sc->callSuper & CSXany_ctor))
-                        error("an earlier return statement skips constructor");
+                        ERROR_GEN(error, "an earlier return statement skips constructor");
                     sc->callSuper |= CSXany_ctor | CSXsuper_ctor;
                 }
 
@@ -8276,7 +8276,7 @@ Lagain:
             cd = sc->func->isThis()->isAggregateDeclaration();
         if (!cd || !sc->func->isCtorDeclaration())
         {
-            error("constructor call must be in a constructor");
+            ERROR_GEN(error, "constructor call must be in a constructor");
             return new ErrorExp();
         }
         else
@@ -8284,11 +8284,11 @@ Lagain:
             if (!sc->intypeof)
             {
                 if (sc->noctor || sc->callSuper & CSXlabel)
-                    error("constructor calls not allowed in loops or after labels");
+                    ERROR_GEN(error, "constructor calls not allowed in loops or after labels");
                 if (sc->callSuper & (CSXsuper_ctor | CSXthis_ctor))
-                    error("multiple constructor calls");
+                    ERROR_GEN(error, "multiple constructor calls");
                 if ((sc->callSuper & CSXreturn) && !(sc->callSuper & CSXany_ctor))
-                    error("an earlier return statement skips constructor");
+                    ERROR_GEN(error, "an earlier return statement skips constructor");
                 sc->callSuper |= CSXany_ctor | CSXthis_ctor;
             }
 
@@ -8307,7 +8307,7 @@ Lagain:
             // BUG: this should really be done by checking the static
             // call graph
             if (f == sc->func)
-            {   error("cyclic constructor call");
+            {   ERROR_GEN(error, "cyclic constructor call");
                 return new ErrorExp();
             }
         }
@@ -8333,7 +8333,7 @@ Lagain:
         if (!f)
         {   /* No overload matches
              */
-            error("no overload matches for %s", s->toChars());
+            ERROR_GEN(error, "no overload matches for %s", s->toChars());
             return new ErrorExp();
         }
         if (ethis)
@@ -8344,7 +8344,7 @@ Lagain:
     }
     else if (!t1)
     {
-        error("function expected before (), not '%s'", e1->toChars());
+        ERROR_GEN(error, "function expected before (), not '%s'", e1->toChars());
         return new ErrorExp();
     }
     else if (t1->ty != Tfunction)
@@ -8378,7 +8378,7 @@ Lagain:
             f = resolveFuncCall(loc, sc, te->td, tiargs, NULL, arguments);
             if (!f)
             {   if (tierror)
-                    tierror->error("errors instantiating template");    // give better error message
+                    ERROR_GEN(tierror->error, "errors instantiating template");    // give better error message
                 return new ErrorExp();
             }
             if (f->needThis())
@@ -8393,7 +8393,7 @@ Lagain:
                 }
                 else if (isNeedThisScope(sc, f))
                 {
-                    error("need 'this' for '%s' of type '%s'", f->toChars(), f->type->toChars());
+                    ERROR_GEN(error, "need 'this' for '%s' of type '%s'", f->toChars(), f->type->toChars());
                     return new ErrorExp();
                 }
             }
@@ -8402,19 +8402,19 @@ Lagain:
             goto Lagain;
         }
         else
-        {   error("function expected before (), not %s of type %s", e1->toChars(), e1->type->toChars());
+        {   ERROR_GEN(error, "function expected before (), not %s of type %s", e1->toChars(), e1->type->toChars());
             return new ErrorExp();
         }
 
         if (sc->func && !tf->purity && !(sc->flags & SCOPEdebug))
         {
             if (sc->func->setImpure())
-                error("pure function '%s' cannot call impure %s '%s'", sc->func->toPrettyChars(), p, e1->toChars());
+                ERROR_GEN(error, "pure function '%s' cannot call impure %s '%s'", sc->func->toPrettyChars(), p, e1->toChars());
         }
         if (sc->func && tf->trust <= TRUSTsystem)
         {
             if (sc->func->setUnsafe())
-                error("safe function '%s' cannot call system %s '%s'", sc->func->toPrettyChars(), p, e1->toChars());
+                ERROR_GEN(error, "safe function '%s' cannot call system %s '%s'", sc->func->toPrettyChars(), p, e1->toChars());
         }
 
         if (!tf->callMatch(NULL, arguments))
@@ -8435,7 +8435,7 @@ Lagain:
                 buf.writeByte(')');
 
             //printf("tf = %s, args = %s\n", tf->deco, (*arguments)[0]->type->deco);
-            ::error(loc, "%s %s %s is not callable using argument types %s",
+            ERROR_GEN(::error, loc, "%s %s %s is not callable using argument types %s",
                 p, e1->toChars(), Parameter::argsTypesToChars(tf->parameters, tf->varargs),
                 buf.toChars());
 
@@ -8478,7 +8478,7 @@ Lagain:
                 buf.writeByte(')');
 
                 //printf("tf = %s, args = %s\n", tf->deco, (*arguments)[0]->type->deco);
-                ::error(loc, "%s %s is not callable using argument types %s",
+                ERROR_GEN(::error, loc, "%s %s is not callable using argument types %s",
                     e1->toChars(), Parameter::argsTypesToChars(tf->parameters, tf->varargs),
                     buf.toChars());
 
@@ -8500,7 +8500,7 @@ Lagain:
             }
             else if (isNeedThisScope(sc, f))
             {
-                error("need 'this' for '%s' of type '%s'", f->toChars(), f->type->toChars());
+                ERROR_GEN(error, "need 'this' for '%s' of type '%s'", f->toChars(), f->type->toChars());
                 return new ErrorExp();
             }
         }
@@ -8534,7 +8534,7 @@ Lagain:
 
     if (!type)
     {
-        error("forward reference to inferred return type of function call %s", toChars());
+        ERROR_GEN(error, "forward reference to inferred return type of function call %s", toChars());
         return new ErrorExp();
     }
 
@@ -8657,7 +8657,7 @@ Expression *AddrExp::semantic(Scope *sc)
             return e1;
         if (!e1->type)
         {
-            error("cannot take address of %s", e1->toChars());
+            ERROR_GEN(error, "cannot take address of %s", e1->toChars());
             return new ErrorExp();
         }
         if (!e1->type->deco)
@@ -8673,10 +8673,10 @@ Expression *AddrExp::semantic(Scope *sc)
             {
                 VarExp *ve = (VarExp *)e1;
                 Declaration *d = ve->var;
-                error("forward reference to %s %s", d->kind(), d->toChars());
+                ERROR_GEN(error, "forward reference to %s %s", d->kind(), d->toChars());
             }
             else
-                error("forward reference to %s", e1->toChars());
+                ERROR_GEN(error, "forward reference to %s", e1->toChars());
             return new ErrorExp();
         }
 
@@ -8710,7 +8710,7 @@ Expression *AddrExp::semantic(Scope *sc)
             if (v)
             {
                 if (!v->canTakeAddressOf())
-                {   error("cannot take address of %s", e1->toChars());
+                {   ERROR_GEN(error, "cannot take address of %s", e1->toChars());
                     return new ErrorExp();
                 }
 
@@ -8718,7 +8718,7 @@ Expression *AddrExp::semantic(Scope *sc)
                 {
                     if (sc->func->setUnsafe())
                     {
-                        error("cannot take address of %s %s in @safe function %s",
+                        ERROR_GEN(error, "cannot take address of %s %s in @safe function %s",
                             v->isParameter() ? "parameter" : "local",
                             v->toChars(),
                             sc->func->toChars());
@@ -8832,7 +8832,7 @@ Expression *PtrExp::semantic(Scope *sc)
                 break;
 
             default:
-                error("can only * a pointer, not a '%s'", e1->type->toChars());
+                ERROR_GEN(error, "can only * a pointer, not a '%s'", e1->type->toChars());
             case Terror:
                 return new ErrorExp();
         }
@@ -9040,7 +9040,7 @@ Expression *DeleteExp::semantic(Scope *sc)
             if (cd->isCOMinterface())
             {   /* Because COM classes are deleted by IUnknown.Release()
                  */
-                error("cannot delete instance of COM interface %s", cd->toChars());
+                ERROR_GEN(error, "cannot delete instance of COM interface %s", cd->toChars());
             }
             break;
         }
@@ -9109,7 +9109,7 @@ Expression *DeleteExp::semantic(Scope *sc)
                 if (tb1->ty == Taarray)
                     break;
             }
-            error("cannot delete type %s", e1->type->toChars());
+            ERROR_GEN(error, "cannot delete type %s", e1->type->toChars());
             return new ErrorExp();
     }
 
@@ -9118,7 +9118,7 @@ Expression *DeleteExp::semantic(Scope *sc)
         IndexExp *ae = (IndexExp *)(e1);
         Type *tb1 = ae->e1->type->toBasetype();
         if (tb1->ty == Taarray)
-            error("delete aa[key] deprecated, use aa.remove(key)");
+            ERROR_GEN(error, "delete aa[key] deprecated, use aa.remove(key)");
     }
 
     return this;
@@ -9127,7 +9127,7 @@ Expression *DeleteExp::semantic(Scope *sc)
 
 Expression *DeleteExp::checkToBoolean(Scope *sc)
 {
-    error("delete does not give a boolean result");
+    ERROR_GEN(error, "delete does not give a boolean result");
     return new ErrorExp();
 }
 
@@ -9191,7 +9191,7 @@ Expression *CastExp::semantic(Scope *sc)
             return new ErrorExp();
         if (to->ty == Ttuple)
         {
-            error("cannot cast %s to tuple type %s", e1->toChars(), to->toChars());
+            ERROR_GEN(error, "cannot cast %s to tuple type %s", e1->toChars(), to->toChars());
             return new ErrorExp();
         }
         if (e1->type->ty == Terror)
@@ -9208,7 +9208,7 @@ Expression *CastExp::semantic(Scope *sc)
 
         if (e1->op == TOKtemplate)
         {
-            error("cannot cast template %s to type %s", e1->toChars(), to->toChars());
+            ERROR_GEN(error, "cannot cast template %s to type %s", e1->toChars(), to->toChars());
             return new ErrorExp();
         }
 
@@ -9242,7 +9242,7 @@ Expression *CastExp::semantic(Scope *sc)
             size_t tosize = tob->size(loc);
             if (fromsize != tosize)
             {
-                error("cannot cast from %s to %s", e1->type->toChars(), to->toChars());
+                ERROR_GEN(error, "cannot cast from %s to %s", e1->type->toChars(), to->toChars());
                 return new ErrorExp();
             }
         }
@@ -9255,7 +9255,7 @@ Expression *CastExp::semantic(Scope *sc)
 
         if (tob->isintegral() && t1b->ty == Tarray)
         {
-            error("cannot cast %s to integral type %s", e1->toChars(), to->toChars());
+            ERROR_GEN(error, "cannot cast %s to integral type %s", e1->toChars(), to->toChars());
             return new ErrorExp();
         }
 
@@ -9263,12 +9263,12 @@ Expression *CastExp::semantic(Scope *sc)
             deprecation("casting from %s to %s is deprecated", e1->type->toChars(), to->toChars());
     }
     else if (!to)
-    {   error("cannot cast tuple");
+    {   ERROR_GEN(error, "cannot cast tuple");
         return new ErrorExp();
     }
 
     if (!e1->type)
-    {   error("cannot cast %s", e1->toChars());
+    {   ERROR_GEN(error, "cannot cast %s", e1->toChars());
         return new ErrorExp();
     }
 
@@ -9328,7 +9328,7 @@ Expression *CastExp::semantic(Scope *sc)
 
     Lunsafe:
         if (sc->func->setUnsafe())
-        {   error("cast from %s to %s not allowed in safe code", e1->type->toChars(), to->toChars());
+        {   ERROR_GEN(error, "cast from %s to %s not allowed in safe code", e1->type->toChars(), to->toChars());
             return new ErrorExp();
         }
     }
@@ -9348,7 +9348,7 @@ void CastExp::checkEscape()
         if (v)
         {
             if (!v->isDataseg() && !v->isParameter())
-                error("escaping reference to local %s", v->toChars());
+                ERROR_GEN(error, "escaping reference to local %s", v->toChars());
         }
     }
 }
@@ -9458,7 +9458,7 @@ Lagain:
     {
         if (lwr || upr)
         {
-            error("cannot slice type '%s'", e1->toChars());
+            ERROR_GEN(error, "cannot slice type '%s'", e1->toChars());
             return new ErrorExp();
         }
         e = new TypeExp(loc, e1->type->arrayOf());
@@ -9491,7 +9491,7 @@ Lagain:
     if (t->ty == Tpointer)
     {
         if (!lwr || !upr)
-        {   error("need upper and lower bound to slice pointer");
+        {   ERROR_GEN(error, "need upper and lower bound to slice pointer");
             return new ErrorExp();
         }
     }
@@ -9540,7 +9540,7 @@ Lagain:
         if (!lwr && !upr)
             return e1;
         if (!lwr || !upr)
-        {   error("need upper and lower bound to slice tuple");
+        {   ERROR_GEN(error, "need upper and lower bound to slice tuple");
             goto Lerror;
         }
     }
@@ -9626,7 +9626,7 @@ Lagain:
         }
         else
         {
-            error("string slice [%llu .. %llu] is out of bounds", i1, i2);
+            ERROR_GEN(error, "string slice [%llu .. %llu] is out of bounds", i1, i2);
             goto Lerr;
         }
         return e;
@@ -9647,7 +9647,7 @@ Lerror:
         s = e1->toChars();
     else
         s = t->toChars();
-    error("%s cannot be sliced with []", s);
+    ERROR_GEN(error, "%s cannot be sliced with []", s);
 Lerr:
     e = new ErrorExp();
     return e;
@@ -9692,7 +9692,7 @@ Expression *SliceExp::toLvalue(Scope *sc, Expression *e)
 
 Expression *SliceExp::modifiableLvalue(Scope *sc, Expression *e)
 {
-    error("slice expression %s is not a modifiable lvalue", toChars());
+    ERROR_GEN(error, "slice expression %s is not a modifiable lvalue", toChars());
     return this;
 }
 
@@ -9841,7 +9841,7 @@ Expression *ArrayExp::semantic(Scope *sc)
     if (t1->ty != Tclass && t1->ty != Tstruct)
     {   // Convert to IndexExp
         if (arguments->dim != 1)
-        {   error("only one index allowed to index %s", t1->toChars());
+        {   ERROR_GEN(error, "only one index allowed to index %s", t1->toChars());
             goto Lerr;
         }
         e = new IndexExp(loc, e1, (*arguments)[0]);
@@ -9850,7 +9850,7 @@ Expression *ArrayExp::semantic(Scope *sc)
 
     e = op_overload(sc);
     if (!e)
-    {   error("no [] operator overload for type %s", e1->type->toChars());
+    {   ERROR_GEN(error, "no [] operator overload for type %s", e1->type->toChars());
         goto Lerr;
     }
     return e;
@@ -9870,7 +9870,7 @@ int ArrayExp::isLvalue()
 Expression *ArrayExp::toLvalue(Scope *sc, Expression *e)
 {
     if (type && type->toBasetype()->ty == Tvoid)
-        error("voids have no value");
+        ERROR_GEN(error, "voids have no value");
     return this;
 }
 
@@ -10060,7 +10060,7 @@ Expression *IndexExp::semantic(Scope *sc)
                 ;
             else if (sc->func->setUnsafe())
             {
-                error("safe function '%s' cannot index pointer '%s'",
+                ERROR_GEN(error, "safe function '%s' cannot index pointer '%s'",
                     sc->func->toPrettyChars(), e1->toChars());
                 return new ErrorExp();
             }
@@ -10127,7 +10127,7 @@ Expression *IndexExp::semantic(Scope *sc)
             }
             else
             {
-                error("array index [%llu] is outside array bounds [0 .. %llu]",
+                ERROR_GEN(error, "array index [%llu] is outside array bounds [0 .. %llu]",
                         index, (ulonglong)length);
                 e = e1;
             }
@@ -10137,7 +10137,7 @@ Expression *IndexExp::semantic(Scope *sc)
         default:
             if (e1->op == TOKerror)
                 goto Lerr;
-            error("%s must be an array or pointer type, not %s",
+            ERROR_GEN(error, "%s must be an array or pointer type, not %s",
                 e1->toChars(), e1->type->toChars());
         case Terror:
             goto Lerr;
@@ -10156,7 +10156,7 @@ int IndexExp::isLvalue()
 Expression *IndexExp::toLvalue(Scope *sc, Expression *e)
 {
 //    if (type && type->toBasetype()->ty == Tvoid)
-//      error("voids have no value");
+//      ERROR_GEN(error, "voids have no value");
     return this;
 }
 
@@ -10180,7 +10180,7 @@ Expression *IndexExp::modifiableLvalue(Scope *sc, Expression *e)
     {   TypeAArray *taa = (TypeAArray *)t1;
         Type *t2b = e2->type->toBasetype();
         if (t2b->ty == Tarray && t2b->nextOf()->isMutable())
-            error("associative arrays can only be assigned values with immutable keys, not %s", e2->type->toChars());
+            ERROR_GEN(error, "associative arrays can only be assigned values with immutable keys, not %s", e2->type->toChars());
         e1 = e1->modifiableLvalue(sc, e1);
         return toLvalue(sc, e);
     }
@@ -10223,7 +10223,7 @@ Expression *PostExp::semantic(Scope *sc)
         if (e1->op == TOKslice)
         {
             const char *s = op == TOKplusplus ? "increment" : "decrement";
-            error("cannot post-%s array slice '%s', use pre-%s instead", s, e1->toChars(), s);
+            ERROR_GEN(error, "cannot post-%s array slice '%s', use pre-%s instead", s, e1->toChars(), s);
             return new ErrorExp();
         }
 
@@ -10600,7 +10600,7 @@ Expression *AssignExp::semantic(Scope *sc)
         return e->semantic(sc);
 
     Leprop:
-        ::error(e1->loc, "not a property %s", e1->toChars());
+        ERROR_GEN(::error, e1->loc, "not a property %s", e1->toChars());
         return new ErrorExp();
     }
 
@@ -10627,7 +10627,7 @@ Ltupleassign:
         size_t dim = tup1->exps->dim;
         if (dim != tup2->exps->dim)
         {
-            error("mismatched tuple lengths, %d and %d", (int)dim, (int)tup2->exps->dim);
+            ERROR_GEN(error, "mismatched tuple lengths, %d and %d", (int)dim, (int)tup2->exps->dim);
             return new ErrorExp();
         }
         else
@@ -10774,7 +10774,7 @@ Ltupleassign:
                      *  e1.cpctor(e2);
                      */
                     if (!e2->type->implicitConvTo(e1->type))
-                        error("conversion error from %s to %s", e2->type->toChars(), e1->type->toChars());
+                        ERROR_GEN(error, "conversion error from %s to %s", e2->type->toChars(), e1->type->toChars());
 
                     Expression *e = new DotVarExp(loc, e1, sd->cpctor, 0);
                     e = new CallExp(loc, e, e2);
@@ -10860,7 +10860,7 @@ Ltupleassign:
     {
         Type *tn = e1->type->nextOf();
         if (op == TOKassign && e1->checkModifiable(sc) == 1 && !tn->isMutable())
-        {   error("slice %s is not mutable", e1->toChars());
+        {   ERROR_GEN(error, "slice %s is not mutable", e1->toChars());
             return new ErrorExp();
         }
     }
@@ -10902,7 +10902,7 @@ Ltupleassign:
         {
             assert(op == TOKconstruct);
         }
-        //error("cannot assign to static array %s", e1->toChars());
+        //ERROR_GEN(error, "cannot assign to static array %s", e1->toChars());
     }
     // Check element-wise assignment.
     else if (e1->op == TOKslice &&
@@ -10930,7 +10930,7 @@ Ltupleassign:
                 dim1 = ((TypeSArray *)tx1)->dim->toInteger();
                 if (dim1 != dim2)
                 {
-                    error("mismatched array lengths, %d and %d", (int)dim1, (int)dim2);
+                    ERROR_GEN(error, "mismatched array lengths, %d and %d", (int)dim1, (int)dim2);
                     return new ErrorExp();
                 }
             }
@@ -11003,11 +11003,11 @@ Ltupleassign:
         (((VarExp *)e1)->var->storage_class & STCscope) &&
         op == TOKassign)
     {
-        error("cannot rebind scope variables");
+        ERROR_GEN(error, "cannot rebind scope variables");
     }
     if (e1->op == TOKvar && ((VarExp*)e1)->var->ident == Id::ctfe)
     {
-        error("cannot modify compiler-generated variable __ctfe");
+        ERROR_GEN(error, "cannot modify compiler-generated variable __ctfe");
     }
 
     type = e1->type;
@@ -11021,7 +11021,7 @@ Expression *AssignExp::checkToBoolean(Scope *sc)
     //  if (a = b) ...
     // are usually mistakes.
 
-    error("assignment cannot be used as a condition, perhaps == was meant?");
+    ERROR_GEN(error, "assignment cannot be used as a condition, perhaps == was meant?");
     return new ErrorExp();
 }
 
@@ -11065,7 +11065,7 @@ Expression *CatAssignExp::semantic(Scope *sc)
     {   SliceExp *se = (SliceExp *)e1;
 
         if (se->e1->type->toBasetype()->ty == Tsarray)
-        {   error("cannot append to static array %s", se->e1->type->toChars());
+        {   ERROR_GEN(error, "cannot append to static array %s", se->e1->type->toChars());
             return new ErrorExp();
         }
     }
@@ -11122,7 +11122,7 @@ Expression *CatAssignExp::semantic(Scope *sc)
     else
     {
         if (tb1 != Type::terror && tb2 != Type::terror)
-            error("cannot append type %s to type %s", tb2->toChars(), tb1->toChars());
+            ERROR_GEN(error, "cannot append type %s to type %s", tb2->toChars(), tb1->toChars());
         return new ErrorExp();
     }
     return reorderSettingAAElem(sc);
@@ -11393,14 +11393,14 @@ Expression *MinExp::semantic(Scope *sc)
         else if (t2->isintegral())
             e = scaleFactor(sc);
         else
-        {   error("can't subtract %s from pointer", t2->toChars());
+        {   ERROR_GEN(error, "can't subtract %s from pointer", t2->toChars());
             return new ErrorExp();
         }
     }
     else if (t2->ty == Tpointer)
     {
         type = e2->type;
-        error("can't subtract pointer from %s", e1->type->toChars());
+        ERROR_GEN(error, "can't subtract pointer from %s", e1->type->toChars());
         return new ErrorExp();
     }
     else
@@ -11754,7 +11754,7 @@ Expression *ModExp::semantic(Scope *sc)
     if (type->isfloating())
     {   type = e1->type;
         if (e2->type->iscomplex())
-        {   error("cannot perform modulo complex arithmetic");
+        {   ERROR_GEN(error, "cannot perform modulo complex arithmetic");
             return new ErrorExp();
         }
     }
@@ -11858,7 +11858,7 @@ Expression *PowExp::semantic(Scope *sc)
                     goto L1;
                 }
             }
-            error("must import std.math to use ^^ operator");
+            ERROR_GEN(error, "must import std.math to use ^^ operator");
             return new ErrorExp();
 
          L1: ;
@@ -11867,7 +11867,7 @@ Expression *PowExp::semantic(Scope *sc)
         {
             if (!importMath)
             {
-                error("must import std.math to use ^^ operator");
+                ERROR_GEN(error, "must import std.math to use ^^ operator");
                 return new ErrorExp();
             }
         }
@@ -12114,7 +12114,7 @@ Expression *OrOrExp::semantic(Scope *sc)
         type = Type::tboolean;
     }
     if (e2->op == TOKtype || e2->op == TOKimport)
-    {   error("%s is not an expression", e2->toChars());
+    {   ERROR_GEN(error, "%s is not an expression", e2->toChars());
         return new ErrorExp();
     }
     if (e1->op == TOKerror)
@@ -12178,7 +12178,7 @@ Expression *AndAndExp::semantic(Scope *sc)
         type = Type::tboolean;
     }
     if (e2->op == TOKtype || e2->op == TOKimport)
-    {   error("%s is not an expression", e2->toChars());
+    {   ERROR_GEN(error, "%s is not an expression", e2->toChars());
         return new ErrorExp();
     }
     if (e1->op == TOKerror)
@@ -12241,7 +12241,7 @@ Expression *InExp::semantic(Scope *sc)
         }
 
         default:
-            error("rvalue of in expression must be an associative array, not %s", e2->type->toChars());
+            ERROR_GEN(error, "rvalue of in expression must be an associative array, not %s", e2->type->toChars());
         case Terror:
             return new ErrorExp();
     }
@@ -12296,7 +12296,7 @@ Expression *CmpExp::semantic(Scope *sc)
     if (t1->ty == Tclass && e2->op == TOKnull ||
         t2->ty == Tclass && e1->op == TOKnull)
     {
-        error("do not use null when comparing class types");
+        ERROR_GEN(error, "do not use null when comparing class types");
         return new ErrorExp();
     }
 
@@ -12305,7 +12305,7 @@ Expression *CmpExp::semantic(Scope *sc)
     {
         if (!e->type->isscalar() && e->type->equals(e1->type))
         {
-            error("recursive opCmp expansion");
+            ERROR_GEN(error, "recursive opCmp expansion");
             e = new ErrorExp();
         }
         else if (e->op == TOKcall)
@@ -12344,21 +12344,21 @@ Expression *CmpExp::semantic(Scope *sc)
         if (t1next->implicitConvTo(t2next) < MATCHconst &&
             t2next->implicitConvTo(t1next) < MATCHconst &&
             (t1next->ty != Tvoid && t2next->ty != Tvoid))
-            error("array comparison type mismatch, %s vs %s", t1next->toChars(), t2next->toChars());
+            ERROR_GEN(error, "array comparison type mismatch, %s vs %s", t1next->toChars(), t2next->toChars());
         e = this;
     }
     else if (t1->ty == Tstruct || t2->ty == Tstruct ||
              (t1->ty == Tclass && t2->ty == Tclass))
     {
         if (t2->ty == Tstruct)
-            error("need member function opCmp() for %s %s to compare", t2->toDsymbol(sc)->kind(), t2->toChars());
+            ERROR_GEN(error, "need member function opCmp() for %s %s to compare", t2->toDsymbol(sc)->kind(), t2->toChars());
         else
-            error("need member function opCmp() for %s %s to compare", t1->toDsymbol(sc)->kind(), t1->toChars());
+            ERROR_GEN(error, "need member function opCmp() for %s %s to compare", t1->toDsymbol(sc)->kind(), t1->toChars());
         e = new ErrorExp();
     }
     else if (t1->iscomplex() || t2->iscomplex())
     {
-        error("compare not defined for complex operands");
+        ERROR_GEN(error, "compare not defined for complex operands");
         e = new ErrorExp();
     }
     else if (t1->ty == Tvector)
@@ -12448,7 +12448,7 @@ Expression *EqualExp::semantic(Scope *sc)
     if (t1->ty == Tclass && e2->op == TOKnull ||
         t2->ty == Tclass && e1->op == TOKnull)
     {
-        error("use '%s' instead of '%s' when comparing with null",
+        ERROR_GEN(error, "use '%s' instead of '%s' when comparing with null",
                 Token::toChars(op == TOKequal ? TOKidentity : TOKnotidentity),
                 Token::toChars(op));
         return new ErrorExp();
@@ -12470,7 +12470,7 @@ Expression *EqualExp::semantic(Scope *sc)
                 e = new NotExp(loc, e);
             e = e->trySemantic(sc); // for better error message
             if (!e)
-            {   error("cannot compare %s and %s", t1->toChars(), t2->toChars());
+            {   ERROR_GEN(error, "cannot compare %s and %s", t1->toChars(), t2->toChars());
                 return new ErrorExp();
             }
             return e;
@@ -12507,7 +12507,7 @@ Expression *EqualExp::semantic(Scope *sc)
         size_t dim = tup1->exps->dim;
         if (dim != tup2->exps->dim)
         {
-            error("mismatched tuple lengths, %d and %d", (int)dim, (int)tup2->exps->dim);
+            ERROR_GEN(error, "mismatched tuple lengths, %d and %d", (int)dim, (int)tup2->exps->dim);
             return new ErrorExp();
         }
         else
@@ -12712,7 +12712,7 @@ int CondExp::checkModifiable(Scope *sc, int flag)
 
 Expression *CondExp::modifiableLvalue(Scope *sc, Expression *e)
 {
-    //error("conditional expression %s is not a modifiable lvalue", toChars());
+    //ERROR_GEN(error, "conditional expression %s is not a modifiable lvalue", toChars());
     e1 = e1->modifiableLvalue(sc, e1);
     e2 = e2->modifiableLvalue(sc, e1);
     return toLvalue(sc, this);
@@ -12930,7 +12930,7 @@ ArrayExp *resolveOpDollar(Scope *sc, ArrayExp *ae)
         e = e->semantic(sc);
         e = resolveProperties(sc, e);
         if (!e->type)
-            ae->error("%s has no value", e->toChars());
+            ERROR_GEN(ae->error, "%s has no value", e->toChars());
         if (ae->lengthVar)
         {   // If $ was used, declare it now
             Expression *de = new DeclarationExp(ae->loc, ae->lengthVar);
@@ -12967,7 +12967,7 @@ SliceExp *resolveOpDollar(Scope *sc, SliceExp *se)
         e = e->semantic(sc);
         e = resolveProperties(sc, e);
         if (!e->type)
-            se->error("%s has no value", e->toChars());
+            ERROR_GEN(se->error, "%s has no value", e->toChars());
         i == 0 ? se->lwr : se->upr = e;
     }
 

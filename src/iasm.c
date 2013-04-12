@@ -1390,7 +1390,7 @@ L386_WARNING2:
         }
 
         if (ptb.pptb0->usFlags & _64_bit && !I64)
-            error(asmstate.loc, "use -m64 to compile 64 bit instructions");
+            ERROR_GEN(error, asmstate.loc, "use -m64 to compile 64 bit instructions");
 
         if (I64 && (ptb.pptb0->usFlags & _64_bit))
         {
@@ -2281,7 +2281,7 @@ ILLEGAL_ADDRESS_ERROR:
 
             size_t index = o2->disp;
             if (index >= tup->objects->dim)
-                error(asmstate.loc, "tuple index %u exceeds length %u", index, tup->objects->dim);
+                ERROR_GEN(error, asmstate.loc, "tuple index %u exceeds length %u", index, tup->objects->dim);
             else
             {
                 Object *o = (*tup->objects)[index];
@@ -2300,7 +2300,7 @@ ILLEGAL_ADDRESS_ERROR:
                         return o1;
                     }
                 }
-                error(asmstate.loc, "invalid asm operand %s", o1->s->toChars());
+                ERROR_GEN(error, asmstate.loc, "invalid asm operand %s", o1->s->toChars());
             }
         }
 
@@ -3492,7 +3492,7 @@ STATIC code *asm_da_parse(OP *pop)
 
             label = asmstate.sc->func->searchLabel(asmtok->ident);
             if (!label)
-                error(asmstate.loc, "label '%s' not found", asmtok->ident->toChars());
+                ERROR_GEN(error, asmstate.loc, "label '%s' not found", asmtok->ident->toChars());
 
             c = code_calloc();
             c->Iop = ASM;
@@ -4656,7 +4656,7 @@ Statement *AsmStatement::semantic(Scope *sc)
     assert(sc->func);
 #if DMDV2
     if (sc->func->setUnsafe())
-        error("inline assembler not allowed in @safe function %s", sc->func->toChars());
+        ERROR_GEN(error, "inline assembler not allowed in @safe function %s", sc->func->toChars());
 #endif
 
     OP *o;

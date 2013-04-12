@@ -117,7 +117,7 @@ char *VoidInitExp::toChars()
 
 Expression *VoidInitExp::interpret(InterState *istate, CtfeGoal goal)
 {
-    error("CTFE internal error: trying to read uninitialized variable");
+    ERROR_GEN(error, "CTFE internal error: trying to read uninitialized variable");
     assert(0);
     return EXP_CANT_INTERPRET;
 }
@@ -156,7 +156,7 @@ char *ThrownExceptionExp::toChars()
 // Generate an error message when this exception is not caught
 void ThrownExceptionExp::generateUncaughtError()
 {
-    thrown->error("Uncaught CTFE exception %s(%s)", thrown->type->toChars(),
+    ERROR_GEN(thrown->error, "Uncaught CTFE exception %s(%s)", thrown->type->toChars(),
         thrown->value->elements->tdata()[0]->toChars());
     /* Also give the line where the throw statement was. We won't have it
      * in the case where the ThrowStatement is generated internally
@@ -349,7 +349,7 @@ Expression *copyLiteral(Expression *e)
         return new ClassReferenceExp(e->loc, ((ClassReferenceExp *)e)->value, e->type);
     else
     {
-        e->error("Internal Compiler Error: CTFE literal %s", e->toChars());
+        ERROR_GEN(e->error, "Internal Compiler Error: CTFE literal %s", e->toChars());
         assert(0);
         return e;
     }
@@ -401,7 +401,7 @@ Expression *paintTypeOntoLiteral(Type *type, Expression *lit)
     {   // Can't type paint from struct to struct*; this needs another
         // level of indirection
         if (lit->op == TOKstructliteral && isPointer(type) )
-            lit->error("CTFE internal error painting %s", type->toChars());
+            ERROR_GEN(lit->error, "CTFE internal error painting %s", type->toChars());
         e = copyLiteral(lit);
     }
     e->type = type;
@@ -650,7 +650,7 @@ Expression *pointerDifference(Loc loc, Type *type, Expression *e1, Expression *e
     {
         return new IntegerExp(loc, ofs1-ofs2, type);
     }
-    error(loc, "%s - %s cannot be interpreted at compile time: cannot subtract "
+    ERROR_GEN(error, loc, "%s - %s cannot be interpreted at compile time: cannot subtract "
         "pointers to two different memory blocks",
         e1->toChars(), e2->toChars());
     return EXP_CANT_INTERPRET;
@@ -663,7 +663,7 @@ Expression *pointerArithmetic(Loc loc, enum TOK op, Type *type,
 {
     if (eptr->type->nextOf()->ty == Tvoid)
     {
-        error(loc, "cannot perform arithmetic on void* pointers at compile time");
+        ERROR_GEN(error, loc, "cannot perform arithmetic on void* pointers at compile time");
         return EXP_CANT_INTERPRET;
     }
     dinteger_t ofs1, ofs2;
@@ -674,13 +674,13 @@ Expression *pointerArithmetic(Loc loc, enum TOK op, Type *type,
     {
         if (((SymOffExp *)agg1)->var->type->ty != Tsarray)
         {
-            error(loc, "cannot perform pointer arithmetic on arrays of unknown length at compile time");
+            ERROR_GEN(error, loc, "cannot perform pointer arithmetic on arrays of unknown length at compile time");
             return EXP_CANT_INTERPRET;
         }
     }
     else if (agg1->op != TOKstring && agg1->op != TOKarrayliteral)
     {
-        error(loc, "cannot perform pointer arithmetic on non-arrays at compile time");
+        ERROR_GEN(error, loc, "cannot perform pointer arithmetic on non-arrays at compile time");
         return EXP_CANT_INTERPRET;
     }
     ofs2 = e2->toInteger();
@@ -706,13 +706,13 @@ Expression *pointerArithmetic(Loc loc, enum TOK op, Type *type,
         indx -= ofs2/sz;
     else
     {
-        error(loc, "CTFE Internal compiler error: bad pointer operation");
+        ERROR_GEN(error, loc, "CTFE Internal compiler error: bad pointer operation");
         return EXP_CANT_INTERPRET;
     }
 
     if (indx < 0 || indx > len)
     {
-        error(loc, "cannot assign pointer to index %lld inside memory block [0..%lld]", indx, len);
+        ERROR_GEN(error, loc, "cannot assign pointer to index %lld inside memory block [0..%lld]", indx, len);
         return EXP_CANT_INTERPRET;
     }
 
@@ -726,7 +726,7 @@ Expression *pointerArithmetic(Loc loc, enum TOK op, Type *type,
     Expression *val = agg1;
     if (val->op != TOKarrayliteral && val->op != TOKstring)
     {
-        error(loc, "CTFE Internal compiler error: pointer arithmetic %s", val->toChars());
+        ERROR_GEN(error, loc, "CTFE Internal compiler error: pointer arithmetic %s", val->toChars());
         return EXP_CANT_INTERPRET;
     }
 
@@ -909,7 +909,7 @@ void intBinary(TOK op, IntegerExp *dest, Type *type, IntegerExp *e1, IntegerExp 
             sinteger_t n2 = e2->value;
 
             if (n2 == 0)
-            {   e2->error("divide by 0");
+            {   ERROR_GEN(e2->error, "divide by 0");
                 result = 1;
             }
             else if (e1->type->isunsigned() || e2->type->isunsigned())
@@ -923,19 +923,19 @@ void intBinary(TOK op, IntegerExp *dest, Type *type, IntegerExp *e1, IntegerExp 
             sinteger_t n2 = e2->value;
 
             if (n2 == 0)
-            {   e2->error("divide by 0");
+            {   ERROR_GEN(e2->error, "divide by 0");
                 n2 = 1;
             }
             if (n2 == -1 && !type->isunsigned())
             {    // Check for int.min % -1
                 if (n1 == 0xFFFFFFFF80000000ULL && type->toBasetype()->ty != Tint64)
                 {
-                    e2->error("integer overflow: int.min % -1");
+                    ERROR_GEN(e2->error, "integer overflow: int.min % -1");
                     n2 = 1;
                 }
                 else if (n1 == 0x8000000000000000LL) // long.min % -1
                 {
-                    e2->error("integer overflow: long.min % -1");
+                    ERROR_GEN(e2->error, "integer overflow: long.min % -1");
                     n2 = 1;
                 }
             }
@@ -949,7 +949,7 @@ void intBinary(TOK op, IntegerExp *dest, Type *type, IntegerExp *e1, IntegerExp 
         {   dinteger_t n = e2->value;
             if (!e2->type->isunsigned() && (sinteger_t)n < 0)
             {
-                e2->error("integer ^^ -integer: total loss of precision");
+                ERROR_GEN(e2->error, "integer ^^ -integer: total loss of precision");
                 n = 1;
             }
             uinteger_t r = e1->value;
@@ -1391,7 +1391,7 @@ int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2)
             return 0;   // All elements are equal
         }
     }
-    error(loc, "CTFE internal error: bad compare");
+    ERROR_GEN(error, loc, "CTFE internal error: bad compare");
     assert(0);
     return 0;
 }
@@ -1592,7 +1592,7 @@ Expression *ctfeIndex(Loc loc, Type *type, Expression *e1, uinteger_t indx)
     {   StringExp *es1 = (StringExp *)e1;
         if (indx >= es1->len)
         {
-            error(loc, "string index %llu is out of bounds [0 .. %llu]", indx, (ulonglong)es1->len);
+            ERROR_GEN(error, loc, "string index %llu is out of bounds [0 .. %llu]", indx, (ulonglong)es1->len);
             return EXP_CANT_INTERPRET;
         }
         else
@@ -1602,7 +1602,7 @@ Expression *ctfeIndex(Loc loc, Type *type, Expression *e1, uinteger_t indx)
     ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
     if (indx >= ale->elements->dim)
     {
-        error(loc, "array index %llu is out of bounds %s[0 .. %llu]", indx, e1->toChars(), (ulonglong)ale->elements->dim);
+        ERROR_GEN(error, loc, "array index %llu is out of bounds %s[0 .. %llu]", indx, e1->toChars(), (ulonglong)ale->elements->dim);
         return EXP_CANT_INTERPRET;
     }
     Expression *e = ale->elements->tdata()[indx];
@@ -1624,7 +1624,7 @@ Expression *ctfeCast(Loc loc, Type *type, Type *to, Expression *e)
     }
     Expression *r = Cast(type, to, e);
     if (r == EXP_CANT_INTERPRET)
-        error(loc, "cannot cast %s to %s at compile time", e->toChars(), to->toChars());
+        ERROR_GEN(error, loc, "cannot cast %s to %s at compile time", e->toChars(), to->toChars());
     if (e->op == TOKarrayliteral)
         ((ArrayLiteralExp *)e)->ownedByCtfe = true;
     if (e->op == TOKstring)
@@ -1958,7 +1958,7 @@ bool isCtfeValueValid(Expression *newval)
     {
         return true;
     }
-    newval->error("CTFE internal error: illegal value %s", newval->toChars());
+    ERROR_GEN(newval->error, "CTFE internal error: illegal value %s", newval->toChars());
     return false;
 }
 

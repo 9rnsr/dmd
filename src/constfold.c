@@ -460,7 +460,7 @@ Expression *Div(Type *type, Expression *e1, Expression *e2)
         n1 = e1->toInteger();
         n2 = e2->toInteger();
         if (n2 == 0)
-        {   e2->error("divide by 0");
+        {   ERROR_GEN(e2->error, "divide by 0");
             e2 = new IntegerExp(loc, 1, e2->type);
             n2 = 1;
         }
@@ -523,7 +523,7 @@ Expression *Mod(Type *type, Expression *e1, Expression *e2)
         n1 = e1->toInteger();
         n2 = e2->toInteger();
         if (n2 == 0)
-        {   e2->error("divide by 0");
+        {   ERROR_GEN(e2->error, "divide by 0");
             e2 = new IntegerExp(loc, 1, e2->type);
             n2 = 1;
         }
@@ -531,13 +531,13 @@ Expression *Mod(Type *type, Expression *e1, Expression *e2)
         {    // Check for int.min % -1
             if (n1 == 0xFFFFFFFF80000000ULL && type->toBasetype()->ty != Tint64)
             {
-                e2->error("integer overflow: int.min % -1");
+                ERROR_GEN(e2->error, "integer overflow: int.min % -1");
                 e2 = new IntegerExp(loc, 1, e2->type);
                 n2 = 1;
             }
             else if (n1 == 0x8000000000000000LL) // long.min % -1
             {
-                e2->error("integer overflow: long.min % -1");
+                ERROR_GEN(e2->error, "integer overflow: long.min % -1");
                 e2 = new IntegerExp(loc, 1, e2->type);
                 n2 = 1;
             }
@@ -1304,7 +1304,7 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
     else
     {
         if (type != Type::terror)
-            error(loc, "cannot cast %s to %s", e1->type->toChars(), type->toChars());
+            ERROR_GEN(error, loc, "cannot cast %s to %s", e1->type->toChars(), type->toChars());
         e = new ErrorExp();
     }
     return e;
@@ -1352,7 +1352,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
 
         if (i >= es1->len)
         {
-            e1->error("string index %llu is out of bounds [0 .. %llu]", i, (ulonglong)es1->len);
+            ERROR_GEN(e1->error, "string index %llu is out of bounds [0 .. %llu]", i, (ulonglong)es1->len);
             e = new ErrorExp();
         }
         else
@@ -1367,7 +1367,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
 
         if (i >= length)
         {
-            e1->error("array index %llu is out of bounds %s[0 .. %llu]", i, e1->toChars(), length);
+            ERROR_GEN(e1->error, "array index %llu is out of bounds %s[0 .. %llu]", i, e1->toChars(), length);
             e = new ErrorExp();
         }
         else if (e1->op == TOKarrayliteral)
@@ -1387,7 +1387,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
         {   ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
             if (i >= ale->elements->dim)
             {
-                e1->error("array index %llu is out of bounds %s[0 .. %u]", i, e1->toChars(), ale->elements->dim);
+                ERROR_GEN(e1->error, "array index %llu is out of bounds %s[0 .. %u]", i, e1->toChars(), ale->elements->dim);
                 e = new ErrorExp();
             }
             else
@@ -1445,7 +1445,7 @@ Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
 
         if (iupr > es1->len || ilwr > iupr)
         {
-            e1->error("string slice [%llu .. %llu] is out of bounds", ilwr, iupr);
+            ERROR_GEN(e1->error, "string slice [%llu .. %llu] is out of bounds", ilwr, iupr);
             e = new ErrorExp();
         }
         else
@@ -1475,7 +1475,7 @@ Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
 
         if (iupr > es1->elements->dim || ilwr > iupr)
         {
-            e1->error("array slice [%llu .. %llu] is out of bounds", ilwr, iupr);
+            ERROR_GEN(e1->error, "array slice [%llu .. %llu] is out of bounds", ilwr, iupr);
             e = new ErrorExp();
         }
         else

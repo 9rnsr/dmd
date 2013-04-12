@@ -291,7 +291,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 #endif
     if (semanticRun == PASSsemantic3)
     {
-        error("circular dependency. Functions cannot be interpreted while being compiled");
+        ERROR_GEN(error, "circular dependency. Functions cannot be interpreted while being compiled");
         return EXP_CANT_INTERPRET;
     }
     if (!functionSemantic3())
@@ -306,7 +306,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     if (tf->varargs && arguments &&
         ((parameters && arguments->dim != parameters->dim) || (!parameters && arguments->dim)))
     {
-        error("C-style variadic functions are not yet implemented in CTFE");
+        ERROR_GEN(error, "C-style variadic functions are not yet implemented in CTFE");
         return EXP_CANT_INTERPRET;
     }
 
@@ -320,7 +320,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     size_t dim = 0;
     if (needThis() && !thisarg)
     {   // error, no this. Prevent segfault.
-        error("need 'this' to access member %s", toChars());
+        ERROR_GEN(error, "need 'this' to access member %s", toChars());
         return EXP_CANT_INTERPRET;
     }
     if (thisarg && !istate)
@@ -351,7 +351,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
             {
                 if (!istate && (arg->storageClass & STCout))
                 {   // initializing an out parameter involves writing to it.
-                    earg->error("global %s cannot be passed as an 'out' parameter at compile time", earg->toChars());
+                    ERROR_GEN(earg->error, "global %s cannot be passed as an 'out' parameter at compile time", earg->toChars());
                     return EXP_CANT_INTERPRET;
                 }
                 // Convert all reference arguments into lvalue references
@@ -425,7 +425,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                 VarDeclaration *v2 = ve->var->isVarDeclaration();
                 if (!v2)
                 {
-                    error("cannot interpret %s as a ref parameter", ve->toChars());
+                    ERROR_GEN(error, "cannot interpret %s as a ref parameter", ve->toChars());
                     return EXP_CANT_INTERPRET;
                 }
                 /* The push() isn't a variable we'll use, it's just a place
@@ -464,7 +464,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         if (CtfeStatus::callDepth > CTFE_RECURSION_LIMIT)
         {   // This is a compiler error. It must not be suppressed.
             global.gag = 0;
-            error("CTFE recursion limit exceeded");
+            ERROR_GEN(error, "CTFE recursion limit exceeded");
             e = EXP_CANT_INTERPRET;
             break;
         }
@@ -546,7 +546,7 @@ Expression *Statement::interpret(InterState *istate)
     printf("%s Statement::interpret()\n", loc.toChars());
 #endif
     START()
-    error("Statement %s cannot be interpreted at compile time", this->toChars());
+    ERROR_GEN(error, "Statement %s cannot be interpreted at compile time", this->toChars());
     return EXP_CANT_INTERPRET;
 }
 
@@ -704,7 +704,7 @@ bool stopPointersEscaping(Loc loc, Expression *e)
     {
         if (e->op == TOKvar && ((VarExp *)e)->var->isVarDeclaration() &&
             ctfeStack.isInCurrentFrame( ((VarExp *)e)->var->isVarDeclaration() ) )
-        {   error(loc, "returning a pointer to a local stack variable");
+        {   ERROR_GEN(error, loc, "returning a pointer to a local stack variable");
             return false;
         }
         // TODO: If it is a TOKdotvar or TOKindex, we should check that it is not
@@ -755,12 +755,12 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
 {
     if (e->op == TOKclassreference)
     {
-        error(loc, "%s class literals cannot be returned from CTFE", ((ClassReferenceExp*)e)->originalClass()->toChars());
+        ERROR_GEN(error, loc, "%s class literals cannot be returned from CTFE", ((ClassReferenceExp*)e)->originalClass()->toChars());
         return EXP_CANT_INTERPRET;
     }
     if (e->op == TOKvoid)
     {
-        error(loc, "uninitialized variable '%s' cannot be returned from CTFE", ((VoidInitExp *)e)->var->toChars());
+        ERROR_GEN(error, loc, "uninitialized variable '%s' cannot be returned from CTFE", ((VoidInitExp *)e)->var->toChars());
         e = new ErrorExp();
     }
     if (e->op == TOKslice)
@@ -836,14 +836,14 @@ Expression *ReturnStatement::interpret(InterState *istate)
         {   // We need to return an lvalue
             Expression *e = exp->interpret(istate, ctfeNeedLvalue);
             if (e == EXP_CANT_INTERPRET)
-                error("ref return %s is not yet supported in CTFE", exp->toChars());
+                ERROR_GEN(error, "ref return %s is not yet supported in CTFE", exp->toChars());
             return e;
         }
         if (tf->next && (tf->next->ty == Tdelegate) && istate->fd->closureVars.dim > 0)
         {
             // To support this, we need to copy all the closure vars
             // into the delegate literal.
-            error("closures are not yet supported in CTFE");
+            ERROR_GEN(error, "closures are not yet supported in CTFE");
             return EXP_CANT_INTERPRET;
         }
     }
@@ -858,7 +858,7 @@ Expression *ReturnStatement::interpret(InterState *istate)
         // Disallow returning pointers to stack-allocated variables (bug 7876)
         if (e->op == TOKvar && ((VarExp *)e)->var->isVarDeclaration() &&
             ctfeStack.isInCurrentFrame( ((VarExp *)e)->var->isVarDeclaration() ) )
-        {   error("returning a pointer to a local stack variable");
+        {   ERROR_GEN(error, "returning a pointer to a local stack variable");
             return EXP_CANT_INTERPRET;
         }
     }
@@ -1117,7 +1117,7 @@ Expression *SwitchStatement::interpret(InterState *istate)
     }
     if (!s)
     {   if (hasNoDefault)
-            error("no default or case for %s in switch statement", econdition->toChars());
+            ERROR_GEN(error, "no default or case for %s in switch statement", econdition->toChars());
         s = sdefault;
     }
 
@@ -1351,7 +1351,7 @@ Expression *AsmStatement::interpret(InterState *istate)
     printf("%s AsmStatement::interpret()\n", loc.toChars());
 #endif
     START()
-    error("asm statements cannot be interpreted at compile time");
+    ERROR_GEN(error, "asm statements cannot be interpreted at compile time");
     return EXP_CANT_INTERPRET;
 }
 
@@ -1375,7 +1375,7 @@ Expression *Expression::interpret(InterState *istate, CtfeGoal goal)
     printf("type = %s\n", type->toChars());
     dump(0);
 #endif
-    error("Cannot interpret %s at compile time", toChars());
+    ERROR_GEN(error, "Cannot interpret %s at compile time", toChars());
     return EXP_CANT_INTERPRET;
 }
 
@@ -1386,7 +1386,7 @@ Expression *ThisExp::interpret(InterState *istate, CtfeGoal goal)
         return localThis;
     if (localThis)
         return localThis->interpret(istate, goal);
-    error("value of 'this' is not known at compile time");
+    ERROR_GEN(error, "value of 'this' is not known at compile time");
     return EXP_CANT_INTERPRET;
 }
 
@@ -1432,7 +1432,7 @@ Expression *StringExp::interpret(InterState *istate, CtfeGoal goal)
         return this;
     if (!(((TypeNext *)type)->next->toBasetype()->mod & (MODconst | MODimmutable)))
     {   // It seems this happens only when there has been an explicit cast
-        error("cannot cast a read-only string literal to mutable in CTFE");
+        ERROR_GEN(error, "cannot cast a read-only string literal to mutable in CTFE");
         return EXP_CANT_INTERPRET;
     }
 #endif
@@ -1458,13 +1458,13 @@ Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
     }
     if (type->ty != Tpointer)
     {   // Probably impossible
-        error("Cannot interpret %s at compile time", toChars());
+        ERROR_GEN(error, "Cannot interpret %s at compile time", toChars());
         return EXP_CANT_INTERPRET;
     }
     Type *pointee = ((TypePointer *)type)->next;
     if ( var->isThreadlocal())
     {
-        error("cannot take address of thread-local variable %s at compile time", var->toChars());
+        ERROR_GEN(error, "cannot take address of thread-local variable %s at compile time", var->toChars());
         return EXP_CANT_INTERPRET;
     }
     // Check for taking an address of a shared variable.
@@ -1512,7 +1512,7 @@ Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
                 ve->type = type;
                 return ve;
             }
-            error("reinterpreting cast from %s to %s is not supported in CTFE",
+            ERROR_GEN(error, "reinterpreting cast from %s to %s is not supported in CTFE",
                 val->type->toChars(), type->toChars());
             return EXP_CANT_INTERPRET;
         }
@@ -1545,7 +1545,7 @@ Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
         return ve;
     }
 
-    error("Cannot convert &%s to %s at compile time", var->type->toChars(), type->toChars());
+    ERROR_GEN(error, "Cannot convert &%s to %s at compile time", var->type->toChars(), type->toChars());
     return EXP_CANT_INTERPRET;
 }
 
@@ -1674,7 +1674,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
                 if (v->init->isVoidInitializer())
                 {
                     // var should have been initialized when it was created
-                    error(loc, "CTFE internal error - trying to access uninitialized var");
+                    ERROR_GEN(error, loc, "CTFE internal error - trying to access uninitialized var");
                     assert(0);
                     e = EXP_CANT_INTERPRET;
                 }
@@ -1688,19 +1688,19 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
                 e = v->type->defaultInitLiteral(loc);
         }
         else if (!(v->isDataseg() || v->storage_class & STCmanifest) && !v->isCTFE() && !istate)
-        {   error(loc, "variable %s cannot be read at compile time", v->toChars());
+        {   ERROR_GEN(error, loc, "variable %s cannot be read at compile time", v->toChars());
             return EXP_CANT_INTERPRET;
         }
         else
         {   e = v->hasValue() ? v->getValue() : NULL;
             if (!e && !v->isCTFE() && v->isDataseg())
-            {   error(loc, "static variable %s cannot be read at compile time", v->toChars());
+            {   ERROR_GEN(error, loc, "static variable %s cannot be read at compile time", v->toChars());
                 e = EXP_CANT_INTERPRET;
             }
             else if (!e)
             {   assert(!(v->init && v->init->isVoidInitializer()));
                 // CTFE initiated from inside a function
-                error(loc, "variable %s cannot be read at compile time", v->toChars());
+                ERROR_GEN(error, loc, "variable %s cannot be read at compile time", v->toChars());
                 return EXP_CANT_INTERPRET;
             }
             else if (exceptionOrCantInterpret(e))
@@ -1724,7 +1724,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
             else if (e->op == TOKvoid)
             {
                 VoidInitExp *ve = (VoidInitExp *)e;
-                error(loc, "cannot read uninitialized variable %s in ctfe", v->toPrettyChars());
+                ERROR_GEN(error, loc, "cannot read uninitialized variable %s in ctfe", v->toPrettyChars());
                 errorSupplemental(ve->var->loc, "%s was uninitialized and used before set", ve->var->toChars());
                 e = EXP_CANT_INTERPRET;
             }
@@ -1745,10 +1745,10 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
                 e = e->interpret(istate, goal);
         }
         else
-            error(loc, "cannot interpret symbol %s at compile time", s->toChars());
+            ERROR_GEN(error, loc, "cannot interpret symbol %s at compile time", s->toChars());
     }
     else
-        error(loc, "cannot interpret declaration %s at compile time", d->toChars());
+        ERROR_GEN(error, loc, "cannot interpret declaration %s at compile time", d->toChars());
     return e;
 }
 
@@ -1761,15 +1761,15 @@ Expression *VarExp::interpret(InterState *istate, CtfeGoal goal)
     {
         VarDeclaration *v = var->isVarDeclaration();
         if (v && !v->isDataseg() && !v->isCTFE() && !istate)
-        {   error("variable %s cannot be referenced at compile time", v->toChars());
+        {   ERROR_GEN(error, "variable %s cannot be referenced at compile time", v->toChars());
             return EXP_CANT_INTERPRET;
         }
         else if (v && !v->hasValue())
         {
             if (!v->isCTFE() && v->isDataseg())
-                error("static variable %s cannot be referenced at compile time", v->toChars());
+                ERROR_GEN(error, "static variable %s cannot be referenced at compile time", v->toChars());
             else     // CTFE initiated from inside a function
-                error("variable %s cannot be read at compile time", v->toChars());
+                ERROR_GEN(error, "variable %s cannot be read at compile time", v->toChars());
             return EXP_CANT_INTERPRET;
         }
         else if (v && v->hasValue() && v->getValue()->op == TOKvar)
@@ -1828,7 +1828,7 @@ Expression *DeclarationExp::interpret(InterState *istate, CtfeGoal goal)
             }
             else
             {
-                error("Declaration %s is not yet implemented in CTFE", toChars());
+                ERROR_GEN(error, "Declaration %s is not yet implemented in CTFE", toChars());
                 e = EXP_CANT_INTERPRET;
             }
         }
@@ -1853,7 +1853,7 @@ Expression *DeclarationExp::interpret(InterState *istate, CtfeGoal goal)
             e = NULL;   // Just ignore static variables which aren't read or written yet
         else
         {
-            error("Static variable %s cannot be modified at compile time", v->toChars());
+            ERROR_GEN(error, "Static variable %s cannot be modified at compile time", v->toChars());
             e = EXP_CANT_INTERPRET;
         }
     }
@@ -1867,7 +1867,7 @@ Expression *DeclarationExp::interpret(InterState *istate, CtfeGoal goal)
             return NULL;    // static struct declaration. Nothing to do.
 
         // These can be made to work, too lazy now
-        error("Declaration %s is not yet implemented in CTFE", toChars());
+        ERROR_GEN(error, "Declaration %s is not yet implemented in CTFE", toChars());
         e = EXP_CANT_INTERPRET;
     }
     else
@@ -1908,7 +1908,7 @@ Expression *TupleExp::interpret(InterState *istate, CtfeGoal goal)
             continue;
         if (ex == EXP_VOID_INTERPRET)
         {
-            error("ICE: void element %s in tuple", e->toChars());
+            ERROR_GEN(error, "ICE: void element %s in tuple", e->toChars());
             assert(0);
         }
 
@@ -1996,7 +1996,7 @@ Expression *ArrayLiteralExp::interpret(InterState *istate, CtfeGoal goal)
 Lerror:
     if (expsx)
         delete expsx;
-    error("cannot interpret array literal");
+    ERROR_GEN(error, "cannot interpret array literal");
     return EXP_CANT_INTERPRET;
 }
 
@@ -2101,7 +2101,7 @@ Expression *StructLiteralExp::interpret(InterState *istate, CtfeGoal goal)
     /* We don't know how to deal with overlapping fields
      */
     if (sd->hasUnions)
-    {   error("Unions with overlapping fields are not yet supported in CTFE");
+    {   ERROR_GEN(error, "Unions with overlapping fields are not yet supported in CTFE");
         return EXP_CANT_INTERPRET;
     }
     if (ownedByCtfe)
@@ -2207,7 +2207,7 @@ Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
             member->interpret(istate, arguments, se);
             if (olderrors != global.errors)
             {
-                error("cannot evaluate %s at compile time", toChars());
+                ERROR_GEN(error, "cannot evaluate %s at compile time", toChars());
                 return EXP_CANT_INTERPRET;
             }
         }
@@ -2256,7 +2256,7 @@ Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
                     return ctorfail;
                 if (ctorfail)
                     return e;
-                member->error("%s cannot be constructed at compile time, because the constructor has no available source code", newtype->toChars());
+                ERROR_GEN(member->error, "%s cannot be constructed at compile time, because the constructor has no available source code", newtype->toChars());
                 return EXP_CANT_INTERPRET;
             }
             Expression * ctorfail = member->interpret(istate, arguments, e);
@@ -2265,7 +2265,7 @@ Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
         }
         return e;
     }
-    error("Cannot interpret %s at compile time", toChars());
+    ERROR_GEN(error, "Cannot interpret %s at compile time", toChars());
     return EXP_CANT_INTERPRET;
 }
 
@@ -2337,7 +2337,7 @@ Expression *BinExp::interpretCommon(InterState *istate, CtfeGoal goal, fp_t fp)
     }
     if (this->e1->type->ty == Tpointer || this->e2->type->ty == Tpointer)
     {
-        error("pointer expression %s cannot be interpreted at compile time", toChars());
+        ERROR_GEN(error, "pointer expression %s cannot be interpreted at compile time", toChars());
         return EXP_CANT_INTERPRET;
     }
     e1 = this->e1->interpret(istate);
@@ -2354,7 +2354,7 @@ Expression *BinExp::interpretCommon(InterState *istate, CtfeGoal goal, fp_t fp)
 
     e = (*fp)(type, e1, e2);
     if (e == EXP_CANT_INTERPRET)
-        error("%s cannot be interpreted at compile time", toChars());
+        ERROR_GEN(error, "%s cannot be interpreted at compile time", toChars());
     return e;
 
 Lcant:
@@ -2409,7 +2409,7 @@ Expression *BinExp::interpretCompareCommon(InterState *istate, CtfeGoal goal, fp
         if (cmp == -1)
         {
            char dir = (op == TOKgt || op == TOKge) ? '<' : '>';
-           error("The ordering of pointers to unrelated memory blocks is indeterminate in CTFE."
+           ERROR_GEN(error, "The ordering of pointers to unrelated memory blocks is indeterminate in CTFE."
                  " To check if they point to the same memory block, use both > and < inside && or ||, "
                  "eg (%s && %s %c= %s + 1)",
                  toChars(), this->e1->toChars(), dir, this->e2->toChars());
@@ -2422,7 +2422,7 @@ Expression *BinExp::interpretCompareCommon(InterState *istate, CtfeGoal goal, fp
         return e1;
     if (!isCtfeComparable(e1))
     {
-        error("cannot compare %s at compile time", e1->toChars());
+        ERROR_GEN(error, "cannot compare %s at compile time", e1->toChars());
         return EXP_CANT_INTERPRET;
     }
     e2 = this->e2->interpret(istate);
@@ -2430,7 +2430,7 @@ Expression *BinExp::interpretCompareCommon(InterState *istate, CtfeGoal goal, fp
         return e2;
     if (!isCtfeComparable(e2))
     {
-        error("cannot compare %s at compile time", e2->toChars());
+        ERROR_GEN(error, "cannot compare %s at compile time", e2->toChars());
         return EXP_CANT_INTERPRET;
     }
     int cmp = (*fp)(loc, op, e1, e2);
@@ -2485,7 +2485,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     Expression *e1 = this->e1;
     if (!istate)
     {
-        error("value of %s is not known at compile time", e1->toChars());
+        ERROR_GEN(error, "value of %s is not known at compile time", e1->toChars());
         return returnValue;
     }
     ++CtfeStatus::numAssignments;
@@ -2620,7 +2620,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         if (!(e1->op == TOKvar || e1->op == TOKdotvar || e1->op == TOKindex
             || e1->op == TOKslice))
         {
-            error("cannot dereference invalid pointer %s",
+            ERROR_GEN(error, "cannot dereference invalid pointer %s",
                 this->e1->toChars());
             return EXP_CANT_INTERPRET;
         }
@@ -2629,7 +2629,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     if (!(e1->op == TOKarraylength || e1->op == TOKvar || e1->op == TOKdotvar
         || e1->op == TOKindex || e1->op == TOKslice))
     {
-        error("CTFE internal error: unsupported assignment %s", toChars());
+        ERROR_GEN(error, "CTFE internal error: unsupported assignment %s", toChars());
         return EXP_CANT_INTERPRET;
     }
 
@@ -2698,7 +2698,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             }
             else if (this->e1->type->ty == Tpointer)
             {
-                error("pointer expression %s cannot be interpreted at compile time", toChars());
+                ERROR_GEN(error, "pointer expression %s cannot be interpreted at compile time", toChars());
                 return EXP_CANT_INTERPRET;
             }
             else
@@ -2707,7 +2707,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             }
             if (newval == EXP_CANT_INTERPRET)
             {
-                error("Cannot interpret %s at compile time", toChars());
+                ERROR_GEN(error, "Cannot interpret %s at compile time", toChars());
                 return EXP_CANT_INTERPRET;
             }
             if (exceptionOrCantInterpret(newval))
@@ -2752,7 +2752,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             }
             else
             {
-                error("%s is not yet supported at compile time", toChars());
+                ERROR_GEN(error, "%s is not yet supported at compile time", toChars());
                 return EXP_CANT_INTERPRET;
             }
 
@@ -2766,7 +2766,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             newval = type->defaultInitLiteral(loc);
             if (newval->op != TOKstructliteral)
             {
-                error("nested structs with constructors are not yet supported in CTFE (Bug 6419)");
+                ERROR_GEN(error, "nested structs with constructors are not yet supported in CTFE (Bug 6419)");
                 return EXP_CANT_INTERPRET;
             }
         }
@@ -2786,7 +2786,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     VarDeclaration * ultimateVar = findParentVar(e1);
     if (ultimateVar && ultimateVar->isDataseg() && !ultimateVar->isCTFE())
     {   // Can't modify global or static data
-        error("%s cannot be modified at compile time", ultimateVar->toChars());
+        ERROR_GEN(error, "%s cannot be modified at compile time", ultimateVar->toChars());
         return EXP_CANT_INTERPRET;
     }
 
@@ -2978,7 +2978,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             // In-place modification
             if (newval->op != TOKstructliteral)
             {
-                error("CTFE internal error assigning struct");
+                ERROR_GEN(error, "CTFE internal error assigning struct");
                 return EXP_CANT_INTERPRET;
             }
             newval = copyLiteral(newval);
@@ -3014,13 +3014,13 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         }
         if (exx->op != TOKstructliteral && exx->op != TOKclassreference)
         {
-            error("CTFE internal error: Dotvar assignment");
+            ERROR_GEN(error, "CTFE internal error: Dotvar assignment");
             return EXP_CANT_INTERPRET;
         }
         VarDeclaration *member = ((DotVarExp *)e1)->var->isVarDeclaration();
         if (!member)
         {
-            error("CTFE internal error: Dotvar assignment");
+            ERROR_GEN(error, "CTFE internal error: Dotvar assignment");
             return EXP_CANT_INTERPRET;
         }
         StructLiteralExp *se = exx->op == TOKstructliteral
@@ -3031,7 +3031,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             : ((ClassReferenceExp *)exx)->findFieldIndexByName(member);
         if (fieldi == -1)
         {
-            error("CTFE internal error: cannot find field %s in %s", member->toChars(), exx->toChars());
+            ERROR_GEN(error, "CTFE internal error: cannot find field %s in %s", member->toChars(), exx->toChars());
             return EXP_CANT_INTERPRET;
         }
         assert(fieldi >= 0 && fieldi < se->elements->dim);
@@ -3072,13 +3072,13 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             Expression *oldval = ie->e1->interpret(istate);
             if (oldval->op == TOKnull)
             {
-                error("cannot index null array %s", ie->e1->toChars());
+                ERROR_GEN(error, "cannot index null array %s", ie->e1->toChars());
                 return EXP_CANT_INTERPRET;
             }
             if (oldval->op != TOKarrayliteral && oldval->op != TOKstring
                 && oldval->op != TOKslice)
             {
-                error("cannot determine length of %s at compile time",
+                ERROR_GEN(error, "cannot determine length of %s at compile time",
                     ie->e1->toChars());
                 return EXP_CANT_INTERPRET;
             }
@@ -3113,12 +3113,12 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 return aggregate;
             if (aggregate->op == TOKnull)
             {
-                error("cannot index through null pointer %s", ie->e1->toChars());
+                ERROR_GEN(error, "cannot index through null pointer %s", ie->e1->toChars());
                 return EXP_CANT_INTERPRET;
             }
             if (aggregate->op == TOKint64)
             {
-                error("cannot index through invalid pointer %s of value %s",
+                ERROR_GEN(error, "cannot index through invalid pointer %s of value %s",
                     ie->e1->toChars(), aggregate->toChars());
                 return EXP_CANT_INTERPRET;
             }
@@ -3129,18 +3129,18 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             {
                 if (aggregate->op == TOKsymoff)
                 {
-                    error("mutable variable %s cannot be modified at compile time, even through a pointer", ((SymOffExp *)aggregate)->var->toChars());
+                    ERROR_GEN(error, "mutable variable %s cannot be modified at compile time, even through a pointer", ((SymOffExp *)aggregate)->var->toChars());
                     return EXP_CANT_INTERPRET;
                 }
                 if (indexToModify != 0)
                 {
-                    error("pointer index [%lld] lies outside memory block [0..1]", indexToModify);
+                    ERROR_GEN(error, "pointer index [%lld] lies outside memory block [0..1]", indexToModify);
                     return EXP_CANT_INTERPRET;
                 }
                 // It is equivalent to *aggregate = newval.
                 // Aggregate could be varexp, a dotvar, ...
                 // TODO: we could support this
-                error("indexed assignment of non-array pointers is not yet supported at compile time; use *%s = %s instead",
+                ERROR_GEN(error, "indexed assignment of non-array pointers is not yet supported at compile time; use *%s = %s instead",
                     ie->e1->toChars(), e2->toChars());
                 return EXP_CANT_INTERPRET;
             }
@@ -3148,7 +3148,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         }
         if (indexToModify >= destarraylen)
         {
-            error("array index %lld is out of bounds [0..%lld]", indexToModify,
+            ERROR_GEN(error, "array index %lld is out of bounds [0..%lld]", indexToModify,
                 destarraylen);
             return EXP_CANT_INTERPRET;
         }
@@ -3172,7 +3172,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 aggregate = findKeyInAA(loc, (AssocArrayLiteralExp *)ix->e1, ix->e2);
                 if (!aggregate)
                 {
-                    error("key %s not found in associative array %s",
+                    ERROR_GEN(error, "key %s not found in associative array %s",
                         ix->e2->toChars(), ix->e1->toChars());
                     return EXP_CANT_INTERPRET;
                 }
@@ -3188,7 +3188,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             if (aggregate->op == TOKnull)
             {
                 // This would be a runtime segfault
-                error("cannot index null array %s", v->toChars());
+                ERROR_GEN(error, "cannot index null array %s", v->toChars());
                 return EXP_CANT_INTERPRET;
             }
         }
@@ -3205,7 +3205,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             existingSE = (StringExp *)aggregate;
         else
         {
-            error("CTFE internal compiler error %s", aggregate->toChars());
+            ERROR_GEN(error, "CTFE internal compiler error %s", aggregate->toChars());
             return EXP_CANT_INTERPRET;
         }
         if (!wantRef && newval->op == TOKslice)
@@ -3213,7 +3213,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             newval = resolveSlice(newval);
             if (newval == EXP_CANT_INTERPRET)
             {
-                error("Compiler error: CTFE index assign %s", toChars());
+                ERROR_GEN(error, "Compiler error: CTFE index assign %s", toChars());
                 assert(0);
             }
         }
@@ -3236,7 +3236,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             unsigned char *s = (unsigned char *)existingSE->string;
             if (!existingSE->ownedByCtfe)
             {
-                error("cannot modify read-only string literal %s", ie->e1->toChars());
+                ERROR_GEN(error, "cannot modify read-only string literal %s", ie->e1->toChars());
                 return EXP_CANT_INTERPRET;
             }
             unsigned value = newval->toInteger();
@@ -3253,7 +3253,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         }
         else
         {
-            error("Index assignment %s is not yet supported in CTFE ", toChars());
+            ERROR_GEN(error, "Index assignment %s is not yet supported in CTFE ", toChars());
             return EXP_CANT_INTERPRET;
         }
         return returnValue;
@@ -3284,16 +3284,16 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         {
             if (oldval->op == TOKsymoff)
             {
-                error("pointer %s cannot be sliced at compile time (it points to a static variable)", sexp->e1->toChars());
+                ERROR_GEN(error, "pointer %s cannot be sliced at compile time (it points to a static variable)", sexp->e1->toChars());
                 return EXP_CANT_INTERPRET;
             }
             if (assignmentToSlicedPointer)
             {
-                error("pointer %s cannot be sliced at compile time (it does not point to an array)",
+                ERROR_GEN(error, "pointer %s cannot be sliced at compile time (it does not point to an array)",
                     sexp->e1->toChars());
             }
             else
-                error("CTFE ICE: cannot resolve array length");
+                ERROR_GEN(error, "CTFE ICE: cannot resolve array length");
             return EXP_CANT_INTERPRET;
         }
         uinteger_t dollar = resolveArrayLength(oldval);
@@ -3327,7 +3327,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
 
         if (!assignmentToSlicedPointer && (((int)lowerbound < 0) || (upperbound > dim)))
         {
-            error("Array bounds [0..%d] exceeded in slice [%d..%d]",
+            ERROR_GEN(error, "Array bounds [0..%d] exceeded in slice [%d..%d]",
                 dim, lowerbound, upperbound);
             return EXP_CANT_INTERPRET;
         }
@@ -3359,7 +3359,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 aggregate = findKeyInAA(loc, (AssocArrayLiteralExp *)ix->e1, ix->e2);
                 if (!aggregate)
                 {
-                    error("key %s not found in associative array %s",
+                    ERROR_GEN(error, "key %s not found in associative array %s",
                         ix->e2->toChars(), ix->e1->toChars());
                     return EXP_CANT_INTERPRET;
                 }
@@ -3380,7 +3380,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             firstIndex = lowerbound + sexpold->lwr->toInteger();
             if (hi > sexpold->upr->toInteger())
             {
-                error("slice [%d..%d] exceeds array bounds [0..%lld]",
+                ERROR_GEN(error, "slice [%d..%d] exceeds array bounds [0..%lld]",
                     lowerbound, upperbound,
                     sexpold->upr->toInteger() - sexpold->lwr->toInteger());
                 return EXP_CANT_INTERPRET;
@@ -3394,14 +3394,14 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             aggregate = getAggregateFromPointer(aggregate, &ofs);
             if (aggregate->op == TOKnull)
             {
-                error("cannot slice null pointer %s", sexp->e1->toChars());
+                ERROR_GEN(error, "cannot slice null pointer %s", sexp->e1->toChars());
                 return EXP_CANT_INTERPRET;
             }
             sinteger_t hi = upperbound + ofs;
             firstIndex = lowerbound + ofs;
             if (firstIndex < 0 || hi > dim)
             {
-                error("slice [lld..%lld] exceeds memory block bounds [0..%lld]",
+                ERROR_GEN(error, "slice [lld..%lld] exceeds memory block bounds [0..%lld]",
                     firstIndex, hi,  dim);
                 return EXP_CANT_INTERPRET;
             }
@@ -3411,7 +3411,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         else if (aggregate->op == TOKstring)
             existingSE = (StringExp *)aggregate;
         if (existingSE && !existingSE->ownedByCtfe)
-        {   error("cannot modify read-only string literal %s", sexp->e1->toChars());
+        {   ERROR_GEN(error, "cannot modify read-only string literal %s", sexp->e1->toChars());
             return EXP_CANT_INTERPRET;
         }
 
@@ -3420,7 +3420,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             newval = resolveSlice(newval);
             if (newval == EXP_CANT_INTERPRET)
             {
-                error("Compiler error: CTFE slice %s", toChars());
+                ERROR_GEN(error, "Compiler error: CTFE slice %s", toChars());
                 assert(0);
             }
         }
@@ -3438,7 +3438,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             srclen = ((StringExp *)newval)->len;
         if (!isBlockAssignment && srclen != (upperbound - lowerbound))
         {
-            error("Array length mismatch assigning [0..%d] to [%d..%d]", srclen, lowerbound, upperbound);
+            ERROR_GEN(error, "Array length mismatch assigning [0..%d] to [%d..%d]", srclen, lowerbound, upperbound);
             return EXP_CANT_INTERPRET;
         }
 
@@ -3537,11 +3537,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             return retslice->interpret(istate);
         }
         else
-            error("Slice operation %s cannot be evaluated at compile time", toChars());
+            ERROR_GEN(error, "Slice operation %s cannot be evaluated at compile time", toChars());
     }
     else
     {
-        error("%s cannot be evaluated at compile time", toChars());
+        ERROR_GEN(error, "%s cannot be evaluated at compile time", toChars());
     }
     return returnValue;
 }
@@ -3706,7 +3706,7 @@ Expression *BinExp::interpretFourPointerRelation(InterState *istate, CtfeGoal go
                 except = p4;
         }
         if (except)
-        {   error("Comparison %s of pointers to unrelated memory blocks remains "
+        {   ERROR_GEN(error, "Comparison %s of pointers to unrelated memory blocks remains "
                  "indeterminate at compile time "
                  "because exception %s was thrown while evaluating %s",
                  this->e1->toChars(), except->toChars(), this->e2->toChars());
@@ -3730,7 +3730,7 @@ Expression *BinExp::interpretFourPointerRelation(InterState *istate, CtfeGoal go
         // comparison is in the same direction as the first, or else
         // more than two memory blocks are involved (either two independent
         // invalid comparisons are present, or else agg3 == agg4).
-        error("Comparison %s of pointers to unrelated memory blocks is "
+        ERROR_GEN(error, "Comparison %s of pointers to unrelated memory blocks is "
             "indeterminate at compile time, even when combined with %s.",
             e1->toChars(), e2->toChars());
         return EXP_CANT_INTERPRET;
@@ -3794,13 +3794,13 @@ Expression *AndAndExp::interpret(InterState *istate, CtfeGoal goal)
                 result = 1;
             else
             {
-                e->error("%s does not evaluate to a boolean", e->toChars());
+                ERROR_GEN(e->error, "%s does not evaluate to a boolean", e->toChars());
                 e = EXP_CANT_INTERPRET;
             }
         }
         else
         {
-            e->error("%s cannot be interpreted as a boolean", e->toChars());
+            ERROR_GEN(e->error, "%s cannot be interpreted as a boolean", e->toChars());
             e = EXP_CANT_INTERPRET;
         }
     }
@@ -3848,14 +3848,14 @@ Expression *OrOrExp::interpret(InterState *istate, CtfeGoal goal)
                     result = 1;
                 else
                 {
-                    e->error("%s cannot be interpreted as a boolean", e->toChars());
+                    ERROR_GEN(e->error, "%s cannot be interpreted as a boolean", e->toChars());
                     e = EXP_CANT_INTERPRET;
                 }
             }
         }
         else
         {
-            e->error("%s cannot be interpreted as a boolean", e->toChars());
+            ERROR_GEN(e->error, "%s cannot be interpreted as a boolean", e->toChars());
             e = EXP_CANT_INTERPRET;
         }
     }
@@ -3998,14 +3998,14 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
     {   // This should never happen, it's an internal compiler error.
         //printf("ecall=%s %d %d\n", ecall->toChars(), ecall->op, TOKcall);
         if (ecall->op == TOKidentifier)
-            error("cannot evaluate %s at compile time. Circular reference?", toChars());
+            ERROR_GEN(error, "cannot evaluate %s at compile time. Circular reference?", toChars());
         else
-            error("CTFE internal error: cannot evaluate %s at compile time", toChars());
+            ERROR_GEN(error, "CTFE internal error: cannot evaluate %s at compile time", toChars());
         return EXP_CANT_INTERPRET;
     }
     if (!fd)
     {
-        error("cannot evaluate %s at compile time", toChars());
+        ERROR_GEN(error, "cannot evaluate %s at compile time", toChars());
         return EXP_CANT_INTERPRET;
     }
     if (pthis)
@@ -4034,7 +4034,7 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
             ClassDeclaration *cd;
             if (thisval && thisval->op == TOKnull)
             {
-                error("function call through null class reference %s", pthis->toChars());
+                ERROR_GEN(error, "function call through null class reference %s", pthis->toChars());
                 return EXP_CANT_INTERPRET;
             }
             if (oldpthis->op == TOKsuper)
@@ -4055,7 +4055,7 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
     }
     if (fd && fd->semanticRun >= PASSsemantic3done && fd->semantic3Errors)
     {
-        error("CTFE failed because of previous errors in %s", fd->toChars());
+        ERROR_GEN(error, "CTFE failed because of previous errors in %s", fd->toChars());
         return EXP_CANT_INTERPRET;
     }
     // Check for built-in functions
@@ -4080,7 +4080,7 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
     }
     if (!fd->fbody)
     {
-        error("%s cannot be interpreted at compile time,"
+        ERROR_GEN(error, "%s cannot be interpreted at compile time,"
             " because it has no available source code", fd->toChars());
         return EXP_CANT_INTERPRET;
     }
@@ -4190,7 +4190,7 @@ Expression *CondExp::interpret(InterState *istate, CtfeGoal goal)
         e = e2->interpret(istate, goal);
     else
     {
-        error("%s does not evaluate to boolean result at compile time",
+        ERROR_GEN(error, "%s does not evaluate to boolean result at compile time",
             econd->toChars());
         e = EXP_CANT_INTERPRET;
     }
@@ -4215,7 +4215,7 @@ Expression *ArrayLengthExp::interpret(InterState *istate, CtfeGoal goal)
     }
     else
     {
-        error("%s cannot be evaluated at compile time", toChars());
+        ERROR_GEN(error, "%s cannot be evaluated at compile time", toChars());
         return EXP_CANT_INTERPRET;
     }
     return e;
@@ -4246,7 +4246,7 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
 
         if (agg->op == TOKnull)
         {
-            error("cannot index null pointer %s", this->e1->toChars());
+            ERROR_GEN(error, "cannot index null pointer %s", this->e1->toChars());
             return EXP_CANT_INTERPRET;
         }
         if ( agg->op == TOKarrayliteral || agg->op == TOKstring)
@@ -4255,7 +4255,7 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
             //Type *pointee = ((TypePointer *)agg->type)->next;
             if ((indx + ofs) < 0 || (indx+ofs) > len)
             {
-                error("pointer index [%lld] exceeds allocated memory block [0..%lld]",
+                ERROR_GEN(error, "pointer index [%lld] exceeds allocated memory block [0..%lld]",
                     indx+ofs, len);
                 return EXP_CANT_INTERPRET;
             }
@@ -4265,12 +4265,12 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
         {   // Pointer to a non-array variable
             if (agg->op == TOKsymoff)
             {
-                    error("mutable variable %s cannot be read at compile time, even through a pointer", ((SymOffExp *)agg)->var->toChars());
+                    ERROR_GEN(error, "mutable variable %s cannot be read at compile time, even through a pointer", ((SymOffExp *)agg)->var->toChars());
                     return EXP_CANT_INTERPRET;
             }
             if ((indx + ofs) != 0)
             {
-                error("pointer index [%lld] lies outside memory block [0..1]",
+                ERROR_GEN(error, "pointer index [%lld] lies outside memory block [0..1]",
                     indx+ofs);
                 return EXP_CANT_INTERPRET;
             }
@@ -4288,7 +4288,7 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
     {
         if (goal == ctfeNeedLvalue && e1->type->ty == Taarray)
             return paintTypeOntoLiteral(type, e1);
-        error("cannot index null array %s", this->e1->toChars());
+        ERROR_GEN(error, "cannot index null array %s", this->e1->toChars());
         return EXP_CANT_INTERPRET;
     }
     /* Set the $ variable.
@@ -4317,7 +4317,7 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
 
         if (indx > iup - ilo)
         {
-            error("index %llu exceeds array length %llu", indx, iup - ilo);
+            ERROR_GEN(error, "index %llu exceeds array length %llu", indx, iup - ilo);
             return EXP_CANT_INTERPRET;
         }
         indx += ilo;
@@ -4341,7 +4341,7 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
         e = findKeyInAA(loc, (AssocArrayLiteralExp *)e1, e2);
         if (!e)
         {
-            error("key %s not found in associative array %s",
+            ERROR_GEN(error, "key %s not found in associative array %s",
                 e2->toChars(), this->e1->toChars());
             return EXP_CANT_INTERPRET;
         }
@@ -4350,7 +4350,7 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
     {
         if (e2->op != TOKint64)
         {
-            e1->error("CTFE internal error: non-integral index [%s]", this->e2->toChars());
+            ERROR_GEN(e1->error, "CTFE internal error: non-integral index [%s]", this->e2->toChars());
             return EXP_CANT_INTERPRET;
         }
         e = ctfeIndex(loc, type, e1, e2->toInteger());
@@ -4361,7 +4361,7 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
         e = e->interpret(istate);
     if (goal == ctfeNeedRvalue && e->op == TOKvoid)
     {
-        error("%s is used before initialized", toChars());
+        ERROR_GEN(error, "%s is used before initialized", toChars());
         errorSupplemental(e->loc, "originally uninitialized here");
         return EXP_CANT_INTERPRET;
     }
@@ -4388,7 +4388,7 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
             return e1;
         if (e1->op == TOKint64)
         {
-            error("cannot slice invalid pointer %s of value %s",
+            ERROR_GEN(error, "cannot slice invalid pointer %s of value %s",
                 this->e1->toChars(), e1->toChars());
             return EXP_CANT_INTERPRET;
         }
@@ -4418,17 +4418,17 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
                 e->type = type;
                 return e;
             }
-            error("cannot slice null pointer %s", this->e1->toChars());
+            ERROR_GEN(error, "cannot slice null pointer %s", this->e1->toChars());
             return EXP_CANT_INTERPRET;
         }
         if (agg->op == TOKsymoff)
         {
-            error("slicing pointers to static variables is not supported in CTFE");
+            ERROR_GEN(error, "slicing pointers to static variables is not supported in CTFE");
             return EXP_CANT_INTERPRET;
         }
         if (agg->op != TOKarrayliteral && agg->op != TOKstring)
         {
-            error("pointer %s cannot be sliced at compile time (it does not point to an array)",
+            ERROR_GEN(error, "pointer %s cannot be sliced at compile time (it does not point to an array)",
                 this->e1->toChars());
             return EXP_CANT_INTERPRET;
         }
@@ -4437,7 +4437,7 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
         //Type *pointee = ((TypePointer *)agg->type)->next;
         if (iupr > (len + 1) || iupr < ilwr)
         {
-            error("pointer slice [%lld..%lld] exceeds allocated memory block [0..%lld]",
+            ERROR_GEN(error, "pointer slice [%lld..%lld] exceeds allocated memory block [0..%lld]",
                 ilwr, iupr, len);
             return EXP_CANT_INTERPRET;
         }
@@ -4470,7 +4470,7 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
     if (e1->op != TOKarrayliteral && e1->op != TOKstring &&
         e1->op != TOKnull && e1->op != TOKslice)
     {
-        error("Cannot determine length of %s at compile time", e1->toChars());
+        ERROR_GEN(error, "Cannot determine length of %s at compile time", e1->toChars());
         return EXP_CANT_INTERPRET;
     }
     uinteger_t dollar = resolveArrayLength(e1);
@@ -4505,7 +4505,7 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
     {
         if (ilwr== 0 && iupr == 0)
             return e1;
-        e1->error("slice [%llu..%llu] is out of bounds", ilwr, iupr);
+        ERROR_GEN(e1->error, "slice [%llu..%llu] is out of bounds", ilwr, iupr);
         return EXP_CANT_INTERPRET;
     }
     if (e1->op == TOKslice)
@@ -4517,7 +4517,7 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
         uinteger_t up1 = se->upr->toInteger();
         if (ilwr > iupr || iupr > up1 - lo1)
         {
-            error("slice[%llu..%llu] exceeds array bounds[%llu..%llu]",
+            ERROR_GEN(error, "slice[%llu..%llu] exceeds array bounds[%llu..%llu]",
                 ilwr, iupr, lo1, up1);
             return EXP_CANT_INTERPRET;
         }
@@ -4534,7 +4534,7 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
     {
         if (iupr < ilwr || iupr > dollar)
         {
-            error("slice [%lld..%lld] exceeds array bounds [0..%lld]",
+            ERROR_GEN(error, "slice [%lld..%lld] exceeds array bounds [0..%lld]",
                 ilwr, iupr, dollar);
             return EXP_CANT_INTERPRET;
         }
@@ -4560,7 +4560,7 @@ Expression *InExp::interpret(InterState *istate, CtfeGoal goal)
         return new NullExp(loc, type);
     if (e2->op != TOKassocarrayliteral)
     {
-        error(" %s cannot be interpreted at compile time", toChars());
+        ERROR_GEN(error, " %s cannot be interpreted at compile time", toChars());
         return EXP_CANT_INTERPRET;
     }
     if (e1->op == TOKslice)
@@ -4597,7 +4597,7 @@ Expression *CatExp::interpret(InterState *istate, CtfeGoal goal)
         e2 = resolveSlice(e2);
     e = ctfeCat(type, e1, e2);
     if (e == EXP_CANT_INTERPRET)
-    {   error("%s cannot be interpreted at compile time", toChars());
+    {   ERROR_GEN(error, "%s cannot be interpreted at compile time", toChars());
         return e;
     }
     // We know we still own it, because we interpreted both e1 and e2
@@ -4661,7 +4661,7 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
             if (ultimatePointee->ty != Tvoid && ultimateSrc->ty != Tvoid
                 && !isSafePointerCast(elemtype, pointee))
             {
-                error("reinterpreting cast from %s* to %s* is not supported in CTFE",
+                ERROR_GEN(error, "reinterpreting cast from %s* to %s* is not supported in CTFE",
                     elemtype->toChars(), pointee->toChars());
                 return EXP_CANT_INTERPRET;
             }
@@ -4709,7 +4709,7 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
                     origType = ((VarExp *)xx)->var->type;
                 if (!isSafePointerCast(origType, pointee))
                 {
-                    error("using void* to reinterpret cast from %s* to %s* is not supported in CTFE",
+                    ERROR_GEN(error, "using void* to reinterpret cast from %s* to %s* is not supported in CTFE",
                         origType->toChars(), pointee->toChars());
                     return EXP_CANT_INTERPRET;
                 }
@@ -4733,7 +4733,7 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
                     ((SymOffExp *)e1)->var->type;
             if (castBackFromVoid && !isSafePointerCast(origType, pointee))
             {
-                error("using void* to reinterpret cast from %s* to %s* is not supported in CTFE",
+                ERROR_GEN(error, "using void* to reinterpret cast from %s* to %s* is not supported in CTFE",
                     origType->toChars(), pointee->toChars());
                 return EXP_CANT_INTERPRET;
             }
@@ -4749,7 +4749,7 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
         e1 = e1->interpret(istate);
         if (e1->op != TOKnull)
         {
-            error("pointer cast from %s to %s is not supported at compile time",
+            ERROR_GEN(error, "pointer cast from %s to %s is not supported at compile time",
                 e1->type->toChars(), to->toChars());
             return EXP_CANT_INTERPRET;
         }
@@ -4760,7 +4760,7 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
         SliceExp *se = (SliceExp *)e1;
         if ( !isSafePointerCast( se->e1->type->nextOf(), to->nextOf() ) )
         {
-        error("array cast from %s to %s is not supported at compile time",
+        ERROR_GEN(error, "array cast from %s to %s is not supported at compile time",
              se->e1->type->toChars(), to->toChars());
         return EXP_CANT_INTERPRET;
         }
@@ -4774,7 +4774,7 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
         (e1->type->ty == Tsarray || e1->type->ty == Tarray) &&
         !isSafePointerCast(e1->type->nextOf(), to->nextOf()) )
     {
-        error("array cast from %s to %s is not supported at compile time", e1->type->toChars(), to->toChars());
+        ERROR_GEN(error, "array cast from %s to %s is not supported at compile time", e1->type->toChars(), to->toChars());
         return EXP_CANT_INTERPRET;
     }
     if (to->ty == Tsarray && e1->op == TOKslice)
@@ -4820,15 +4820,15 @@ Expression *AssertExp::interpret(InterState *istate, CtfeGoal goal)
             e = msg->interpret(istate);
             if (exceptionOrCantInterpret(e))
                 return e;
-            error("%s", e->toChars());
+            ERROR_GEN(error, "%s", e->toChars());
         }
         else
-            error("%s failed", toChars());
+            ERROR_GEN(error, "%s failed", toChars());
         goto Lcant;
     }
     else
     {
-        error("%s is not a compile-time boolean expression", e1->toChars());
+        ERROR_GEN(error, "%s is not a compile-time boolean expression", e1->toChars());
         goto Lcant;
     }
     return e1;
@@ -4897,9 +4897,9 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
             || e->op == TOKslice || e->op == TOKaddress))
         {
             if (e->op == TOKsymoff)
-                error("cannot dereference pointer to static variable %s at compile time", ((SymOffExp *)e)->var->toChars());
+                ERROR_GEN(error, "cannot dereference pointer to static variable %s at compile time", ((SymOffExp *)e)->var->toChars());
             else
-                error("dereference of invalid pointer '%s'", e->toChars());
+                ERROR_GEN(error, "dereference of invalid pointer '%s'", e->toChars());
             return EXP_CANT_INTERPRET;
         }
         if (goal != ctfeNeedLvalue)
@@ -4926,7 +4926,7 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
                     assert(indx >=0 && indx <= len); // invalid pointer
                     if (indx == len)
                     {
-                        error("dereference of pointer %s one past end of memory block limits [0..%lld]",
+                        ERROR_GEN(error, "dereference of pointer %s one past end of memory block limits [0..%lld]",
                             toChars(), len);
                         return EXP_CANT_INTERPRET;
                     }
@@ -4975,7 +4975,7 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
             e = ((AddrExp*)e)->e1;  // *(&x) ==> x
         else if (e->op == TOKnull)
         {
-            error("dereference of null pointer '%s'", e1->toChars());
+            ERROR_GEN(error, "dereference of null pointer '%s'", e1->toChars());
             return EXP_CANT_INTERPRET;
         }
         e->type = type;
@@ -5011,9 +5011,9 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
             ex = ((AddrExp *)ex)->e1;
         VarDeclaration *v = var->isVarDeclaration();
         if (!v)
-            error("CTFE internal error: %s", toChars());
+            ERROR_GEN(error, "CTFE internal error: %s", toChars());
         if (ex->op == TOKnull && ex->type->toBasetype()->ty == Tclass)
-        {   error("class '%s' is null and cannot be dereferenced", e1->toChars());
+        {   ERROR_GEN(error, "class '%s' is null and cannot be dereferenced", e1->toChars());
             return EXP_CANT_INTERPRET;
         }
         if (ex->op == TOKstructliteral || ex->op == TOKclassreference)
@@ -5027,7 +5027,7 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
                 i = findFieldIndexByName(se->sd, v);
             if (i == -1)
             {
-                error("couldn't find field %s of type %s in %s", v->toChars(), type->toChars(), se->toChars());
+                ERROR_GEN(error, "couldn't find field %s of type %s in %s", v->toChars(), type->toChars(), se->toChars());
                 return EXP_CANT_INTERPRET;
             }
             e = se->elements->tdata()[i];
@@ -5055,7 +5055,7 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
             }
             if (!e)
             {
-                error("couldn't find field %s in %s", v->toChars(), type->toChars());
+                ERROR_GEN(error, "couldn't find field %s in %s", v->toChars(), type->toChars());
                 e = EXP_CANT_INTERPRET;
             }
             // If it is an rvalue literal, return it...
@@ -5065,8 +5065,8 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
             if (e->op == TOKvoid)
             {
                 VoidInitExp *ve = (VoidInitExp *)e;
-                error("cannot read uninitialized variable %s in ctfe", toChars());
-                ve->var->error("was uninitialized and used before set");
+                ERROR_GEN(error, "cannot read uninitialized variable %s in ctfe", toChars());
+                ERROR_GEN(ve->var->error, "was uninitialized and used before set");
                 return EXP_CANT_INTERPRET;
             }
             if ( isPointer(type) )
@@ -5083,7 +5083,7 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
             return e->interpret(istate, goal);
         }
         else
-            error("%s.%s is not yet implemented at compile time", e1->toChars(), var->toChars());
+            ERROR_GEN(error, "%s.%s is not yet implemented at compile time", e1->toChars(), var->toChars());
     }
 
 #if LOG
@@ -5293,7 +5293,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
     else if (str->op == TOKarrayliteral)
         ale = (ArrayLiteralExp *)str;
     else
-    {   str->error("CTFE internal error: cannot foreach %s", str->toChars());
+    {   ERROR_GEN(str->error, "CTFE internal error: cannot foreach %s", str->toChars());
         return EXP_CANT_INTERPRET;
     }
     Expressions args;
@@ -5434,7 +5434,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
             }
         }
         if (errmsg)
-        {   deleg->error("%s", errmsg);
+        {   ERROR_GEN(deleg->error, "%s", errmsg);
             return EXP_CANT_INTERPRET;
         }
 

@@ -94,13 +94,13 @@ Expression *BinExp::arrayOp(Scope *sc)
     assert(tb->ty == Tarray || tb->ty == Tsarray);
     if (tb->nextOf()->toBasetype()->ty == Tvoid)
     {
-        error("Cannot perform array operations on void[] arrays");
+        ERROR_GEN(error, "Cannot perform array operations on void[] arrays");
         return new ErrorExp();
     }
 
     if (!isArrayOpValid(e2))
     {
-        e2->error("invalid array operation %s (did you forget a [] ?)", toChars());
+        ERROR_GEN(e2->error, "invalid array operation %s (did you forget a [] ?)", toChars());
         return new ErrorExp();
     }
 
@@ -388,7 +388,7 @@ Expression *BinAssignExp::arrayOp(Scope *sc)
 
     if (tn && (!tn->isMutable() || !tn->isAssignable()))
     {
-        error("slice %s is not mutable", e1->toChars());
+        ERROR_GEN(error, "slice %s is not mutable", e1->toChars());
         return new ErrorExp();
     }
 

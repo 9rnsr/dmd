@@ -2214,7 +2214,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
         }
     }
     if (inCode)
-        s->error("unmatched --- in DDoc comment");
+        ERROR_GEN(s->error, "unmatched --- in DDoc comment");
     ;
 }
 

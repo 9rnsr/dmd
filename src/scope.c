@@ -239,7 +239,7 @@ void Scope::mergeCallSuper(Loc loc, unsigned cs)
             callSuper |= cs & (CSXany_ctor | CSXlabel);
         }
         if (!ok)
-            error(loc, "one path skips constructor");
+            ERROR_GEN(error, loc, "one path skips constructor");
     }
 }
 

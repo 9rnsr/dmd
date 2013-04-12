@@ -157,7 +157,7 @@ void VersionCondition::checkPredefined(Loc loc, const char *ident)
     return;
 
   Lerror:
-    error(loc, "version identifier '%s' is reserved and cannot be set", ident);
+    ERROR_GEN(error, loc, "version identifier '%s' is reserved and cannot be set", ident);
 }
 
 void VersionCondition::addGlobalIdent(const char *ident)
@@ -241,7 +241,7 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
     {
         if (exp->op == TOKerror || nest > 100)
         {
-            error(loc, (nest > 1000) ? "unresolvable circular static if expression"
+            ERROR_GEN(error, loc, (nest > 1000) ? "unresolvable circular static if expression"
                                      : "error evaluating static if expression");
             if (!global.gag)
                 inc = 2;                // so we don't see the error message again
@@ -250,7 +250,7 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
 
         if (!sc)
         {
-            error(loc, "static if conditional cannot be at global scope");
+            ERROR_GEN(error, loc, "static if conditional cannot be at global scope");
             inc = 2;
             return 0;
         }
@@ -265,7 +265,7 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
         if (!e->type->checkBoolean())
         {
             if (e->type->toBasetype() != Type::terror)
-                exp->error("expression %s of type %s does not have a boolean value", exp->toChars(), e->type->toChars());
+                ERROR_GEN(exp->error, "expression %s of type %s does not have a boolean value", exp->toChars(), e->type->toChars());
             inc = 0;
             return 0;
         }
@@ -281,7 +281,7 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
             inc = 2;
         else
         {
-            e->error("expression %s is not constant or does not evaluate to a bool", e->toChars());
+            ERROR_GEN(e->error, "expression %s is not constant or does not evaluate to a bool", e->toChars());
             inc = 2;
         }
     }

@@ -67,7 +67,7 @@ void checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad)
             s = s->toParent2();
         }
     }
-    error(loc, "cannot access frame pointer of %s", ad->toPrettyChars());
+    ERROR_GEN(error, loc, "cannot access frame pointer of %s", ad->toPrettyChars());
 }
 
 /********************************* Declaration ****************************/
@@ -144,7 +144,7 @@ int Declaration::checkModify(Loc loc, Scope *sc, Type *t, Expression *e1, int fl
             if (scx->func == parent && (scx->flags & SCOPEcontract))
             {
                 const char *s = isParameter() && parent->ident != Id::ensure ? "parameter" : "result";
-                if (!flag) error(loc, "cannot modify %s '%s' in contract", s, toChars());
+                if (!flag) ERROR_GEN(error, loc, "cannot modify %s '%s' in contract", s, toChars());
                 return 0;
             }
         }
@@ -354,7 +354,7 @@ void TypedefDeclaration::semantic(Scope *sc)
     }
     else if (sem == SemanticIn)
     {
-        error("circular definition");
+        ERROR_GEN(error, "circular definition");
     }
 }
 
@@ -486,7 +486,7 @@ void AliasDeclaration::semantic(Scope *sc)
 
 #if DMDV1   // don't really know why this is here
     if (storage_class & STCconst)
-        error("cannot be const");
+        ERROR_GEN(error, "cannot be const");
 #endif
 
     storage_class |= sc->stc & STCdeprecated;
@@ -517,7 +517,7 @@ void AliasDeclaration::semantic(Scope *sc)
     s = type->toDsymbol(sc);
     if (s && s == this)
     {
-        error("cannot resolve");
+        ERROR_GEN(error, "cannot resolve");
         s = NULL;
         type = Type::terror;
     }
@@ -553,7 +553,7 @@ void AliasDeclaration::semantic(Scope *sc)
             goto L2;
 
         if (e->op != TOKerror)
-            error("cannot alias an expression %s", e->toChars());
+            ERROR_GEN(error, "cannot alias an expression %s", e->toChars());
         t = e->type;
     }
     else if (t)
@@ -575,7 +575,7 @@ void AliasDeclaration::semantic(Scope *sc)
     VarDeclaration *v = s->isVarDeclaration();
     if (0 && v && v->linkage == LINKdefault)
     {
-        error("forward reference of %s", v->toChars());
+        ERROR_GEN(error, "forward reference of %s", v->toChars());
         s = NULL;
     }
     else
@@ -678,7 +678,7 @@ Dsymbol *AliasDeclaration::toAlias()
     assert(this != aliassym);
     //static int count; if (++count == 10) *(char*)0=0;
     if (inSemantic)
-    {   error("recursive alias declaration");
+    {   ERROR_GEN(error, "recursive alias declaration");
         aliassym = new AliasDeclaration(loc, ident, Type::terror);
         type = Type::terror;
     }
@@ -836,7 +836,7 @@ void VarDeclaration::semantic(Scope *sc)
      */
     storage_class |= (sc->stc & ~STCsynchronized);
     if (storage_class & STCextern && init)
-        error("extern symbols cannot have initializers");
+        ERROR_GEN(error, "extern symbols cannot have initializers");
 
     userAttributes = sc->userAttributes;
 
@@ -860,7 +860,7 @@ void VarDeclaration::semantic(Scope *sc)
                 e = init->toExpression();
             if (!e)
             {
-                error("cannot infer type from initializer");
+                ERROR_GEN(error, "cannot infer type from initializer");
                 e = new ErrorExp();
             }
             init = new ExpInitializer(e->loc, e);
@@ -919,12 +919,12 @@ void VarDeclaration::semantic(Scope *sc)
         if (storage_class & STCgshared)
         {
             if (sc->func->setUnsafe())
-                error("__gshared not allowed in safe functions; use shared");
+                ERROR_GEN(error, "__gshared not allowed in safe functions; use shared");
         }
         if (init && init->isVoidInitializer() && type->hasPointers())
         {
             if (sc->func->setUnsafe())
-                error("void initializers for pointers not allowed in safe functions");
+                ERROR_GEN(error, "void initializers for pointers not allowed in safe functions");
         }
         if (type->hasPointers() && type->toDsymbol(sc))
         {
@@ -935,7 +935,7 @@ void VarDeclaration::semantic(Scope *sc)
                 if (ad2 && ad2->hasUnions)
                 {
                     if (sc->func->setUnsafe())
-                        error("unions containing pointers are not allowed in @safe functions");
+                        ERROR_GEN(error, "unions containing pointers are not allowed in @safe functions");
                 }
             }
         }
@@ -950,16 +950,16 @@ void VarDeclaration::semantic(Scope *sc)
     {
         if (inferred)
         {
-            error("type %s is inferred from initializer %s, and variables cannot be of type void",
+            ERROR_GEN(error, "type %s is inferred from initializer %s, and variables cannot be of type void",
                 type->toChars(), init->toChars());
         }
         else
-            error("variables cannot be of type void");
+            ERROR_GEN(error, "variables cannot be of type void");
         type = Type::terror;
         tb = type;
     }
     if (tb->ty == Tfunction)
-    {   error("cannot be declared to be a function");
+    {   ERROR_GEN(error, "cannot be declared to be a function");
         type = Type::terror;
         tb = type;
     }
@@ -968,11 +968,11 @@ void VarDeclaration::semantic(Scope *sc)
 
         if (!ts->sym->members)
         {
-            error("no definition of struct %s", ts->toChars());
+            ERROR_GEN(error, "no definition of struct %s", ts->toChars());
         }
     }
     if ((storage_class & STCauto) && !inferred)
-       error("storage class 'auto' has no effect if type is not inferred, did you mean 'scope'?");
+       ERROR_GEN(error, "storage class 'auto' has no effect if type is not inferred, did you mean 'scope'?");
 
     if (tb->ty == Ttuple)
     {   /* Instead, declare variables for each of the tuple elements
@@ -1078,7 +1078,7 @@ Lnomatch:
             TupleExp *te = (TupleExp *)ie;
             size_t tedim = te->exps->dim;
             if (tedim != nelems)
-            {   ::error(loc, "tuple of %d elements cannot be assigned to tuple of %d elements", (int)tedim, (int)nelems);
+            {   ERROR_GEN(::error, loc, "tuple of %d elements cannot be assigned to tuple of %d elements", (int)tedim, (int)nelems);
                 for (size_t u = tedim; u < nelems; u++) // fill dummy expression
                     te->exps->push(new ErrorExp());
             }
@@ -1148,19 +1148,19 @@ Lnomatch:
 
     if (isSynchronized())
     {
-        error("variable %s cannot be synchronized", toChars());
+        ERROR_GEN(error, "variable %s cannot be synchronized", toChars());
     }
     else if (isOverride())
     {
-        error("override cannot be applied to variable");
+        ERROR_GEN(error, "override cannot be applied to variable");
     }
     else if (isAbstract())
     {
-        error("abstract cannot be applied to variable");
+        ERROR_GEN(error, "abstract cannot be applied to variable");
     }
     else if (storage_class & STCfinal)
     {
-        error("final cannot be applied to variable, perhaps you meant const?");
+        ERROR_GEN(error, "final cannot be applied to variable, perhaps you meant const?");
     }
 
     if (storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter | STCtls | STCgshared | STCctfe))
@@ -1187,7 +1187,7 @@ Lnomatch:
         InterfaceDeclaration *id = parent->isInterfaceDeclaration();
         if (id)
         {
-            error("field not allowed in interface");
+            ERROR_GEN(error, "field not allowed in interface");
         }
 
         /* Templates cannot add fields to aggregates
@@ -1208,7 +1208,7 @@ Lnomatch:
             AggregateDeclaration *ad2 = ti->tempdecl->isMember();
             if (ad2 && storage_class != STCundefined)
             {
-                error("cannot use template to add field to aggregate '%s'", ad2->toChars());
+                ERROR_GEN(error, "cannot use template to add field to aggregate '%s'", ad2->toChars());
             }
         }
     }
@@ -1217,7 +1217,7 @@ Lnomatch:
     if ((storage_class & (STCref | STCparameter | STCforeach)) == STCref &&
         ident != Id::This)
     {
-        error("only parameters or foreach declarations can be ref");
+        ERROR_GEN(error, "only parameters or foreach declarations can be ref");
     }
 
     if (type->hasWild() &&
@@ -1227,7 +1227,7 @@ Lnomatch:
             isDataseg()
             )
         {
-            error("only parameters or stack based variables can be inout");
+            ERROR_GEN(error, "only parameters or stack based variables can be inout");
         }
         FuncDeclaration *func = sc->func;
         if (func)
@@ -1236,7 +1236,7 @@ Lnomatch:
                 func = func->fes->func;
             if (!((TypeFunction *)func->type)->iswild)
             {
-                error("inout variables can only be declared inside inout functions");
+                ERROR_GEN(error, "inout variables can only be declared inside inout functions");
             }
         }
     }
@@ -1252,7 +1252,7 @@ Lnomatch:
             else if (storage_class & STCparameter)
                 ;
             else
-                error("initializer required for type %s", type->toChars());
+                ERROR_GEN(error, "initializer required for type %s", type->toChars());
         }
     }
 #endif
@@ -1261,13 +1261,13 @@ Lnomatch:
     {
         if (storage_class & (STCfield | STCout | STCref | STCstatic | STCmanifest | STCtls | STCgshared) || !fd)
         {
-            error("globals, statics, fields, manifest constants, ref and out parameters cannot be scope");
+            ERROR_GEN(error, "globals, statics, fields, manifest constants, ref and out parameters cannot be scope");
         }
 
         if (!(storage_class & STCscope))
         {
             if (!(storage_class & STCparameter) && ident != Id::withSym)
-                error("reference to scope class must be scope");
+                ERROR_GEN(error, "reference to scope class must be scope");
         }
     }
 
@@ -1279,7 +1279,7 @@ Lnomatch:
     if (init)
         storage_class |= STCinit;     // remember we had an explicit initializer
     else if (storage_class & STCmanifest)
-        error("manifest constants must have initializers");
+        ERROR_GEN(error, "manifest constants must have initializers");
 
     enum TOK op = TOKconstruct;
     if (!init && !sc->inunion && !(storage_class & (STCstatic | STCgshared | STCextern)) && fd &&
@@ -1398,7 +1398,7 @@ Lnomatch:
                         init = init->semantic(sc, type, INITnointerpret);
                         e = init->toExpression();
                         if (!e)
-                        {   error("is not a static and cannot have static initializer");
+                        {   ERROR_GEN(error, "is not a static and cannot have static initializer");
                             return;
                         }
                     }
@@ -1620,7 +1620,7 @@ Lnomatch:
                                 }
                             }
                             global.gag--;
-                            error("of type struct %s uses this(this), which is not allowed in static initialization", tb->toChars());
+                            ERROR_GEN(error, "of type struct %s uses this(this), which is not allowed in static initialization", tb->toChars());
                             global.gag++;
 
                           LNoCopyConstruction:
@@ -1657,7 +1657,7 @@ Ldtor:
 
 #if 0 // currently disabled because of std.stdio.stdin, stdout and stderr
         if (isDataseg() && !(storage_class & STCextern))
-            error("static storage variables cannot have destructors");
+            ERROR_GEN(error, "static storage variables cannot have destructors");
 #endif
     }
 
@@ -1764,7 +1764,7 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
             if (ts->sym == ad)
             {
                 const char *s = (t->ty == Tsarray) ? "static array of " : "";
-                ad->error("cannot have field %s with %ssame struct type", toChars(), s);
+                ERROR_GEN(ad->error, "cannot have field %s with %ssame struct type", toChars(), s);
             }
             if (ts->sym->sizeok != SIZEOKdone && ts->sym->scope)
                 ts->sym->semantic(NULL);
@@ -1868,7 +1868,7 @@ void VarDeclaration::checkCtorConstInit()
 {
 #if 0 /* doesn't work if more than one static ctor */
     if (ctorinit == 0 && isCtorinit() && !isField())
-        error("missing initializer in static constructor for const variable");
+        ERROR_GEN(error, "missing initializer in static constructor for const variable");
 #endif
 }
 
@@ -1950,7 +1950,7 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
                 //printf("var %s in function %s is nested ref\n", toChars(), fdv->toChars());
                 // __dollar creates problems because it isn't a real variable Bugzilla 3326
                 if (ident == Id::dollar)
-                    ::error(loc, "cannnot use $ inside a function literal");
+                    ERROR_GEN(::error, loc, "cannnot use $ inside a function literal");
             }
         }
     }
@@ -2043,7 +2043,7 @@ int VarDeclaration::isDataseg()
         return 0;
     Dsymbol *parent = this->toParent();
     if (!parent && !(storage_class & STCstatic))
-    {   error("forward referenced");
+    {   ERROR_GEN(error, "forward referenced");
         type = Type::terror;
         return 0;
     }

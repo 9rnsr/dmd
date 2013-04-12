@@ -131,7 +131,7 @@ void cpp_mangle_name(OutBuffer *buf, CppMangleState *cms, Dsymbol *s)
         FuncDeclaration *fd = s->isFuncDeclaration();
         if (!fd)
         {
-            s->error("C++ static variables not supported");
+            ERROR_GEN(s->error, "C++ static variables not supported");
         }
         else if (fd->type->isConst())
             buf->writeByte('K');
