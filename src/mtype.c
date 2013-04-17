@@ -9294,15 +9294,16 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
 
             if (arg->storageClass & STCauto)
                 buf->writestring("auto ");
+            else if (arg->storageClass & STCin)
+                buf->writestring("in ");
+            else if (arg->storageClass & STCscope)
+                buf->writestring("scope ");
 
             if (arg->storageClass & STCout)
                 buf->writestring("out ");
             else if (arg->storageClass & STCref)
                 buf->writestring((global.params.Dversion == 1)
                         ? "inout " : "ref ");
-
-            if (arg->storageClass & STCin)
-                buf->writestring("in ");
             else if (arg->storageClass & STClazy)
                 buf->writestring("lazy ");
             else if (arg->storageClass & STCalias)
@@ -9313,7 +9314,7 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
                 stc &= ~STCshared;
 
             StorageClassDeclaration::stcToCBuffer(buf,
-                stc & (STCconst | STCimmutable | STCshared | STCscope));
+                stc & (STCconst | STCimmutable | STCshared));
 
             argbuf.reset();
             if (arg->storageClass & STCalias)
