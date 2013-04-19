@@ -465,14 +465,20 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
         if (!e)
             return eleft->type->Type::getProperty(eleft->loc, ident, 0);
 
+        Type *tb = eleft->type->toBasetype();
+        bool isptr = tb->ty == Tpointer && tb->nextOf()->ty != Tfunction;
+        //printf("eleft = %s, isptr = %d\n", eleft->toChars(), isptr);
+        Expression *efunc = e;
+
         if (e2)
         {
             // run semantic without gagging
             e2 = e2->semantic(sc);
 
+    Lagain1:
             /* .f(e1) = e2
              */
-            Expression *ex = e->copy();
+            Expression *ex = efunc->copy();
             Expressions *a1 = new Expressions();
             a1->setDim(1);
             (*a1)[0] = eleft;
@@ -497,7 +503,19 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
             }
             else
             {   // strict setter prints errors if fails
-                e = e->semantic(sc);
+                if (isptr)
+                {
+                    e = e->trySemantic(sc);
+                    if (!e)
+                    {
+                        eleft = new PtrExp(eleft->loc, eleft);
+                        eleft = eleft->semantic(sc);
+                        isptr = false;
+                        goto Lagain1;
+                    }
+                }
+                else
+                    e = e->semantic(sc);
             }
             checkPropertyCall(e, e1);
             return e;
@@ -508,9 +526,22 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
              */
             Expressions *arguments = new Expressions();
             arguments->setDim(1);
+    Lagain2:
             (*arguments)[0] = eleft;
-            e = new CallExp(loc, e, arguments);
-            e = e->semantic(sc);
+            e = new CallExp(loc, efunc, arguments);
+            if (isptr)
+            {
+                e = e->trySemantic(sc);
+                if (!e)
+                {
+                    eleft = new PtrExp(eleft->loc, eleft);
+                    eleft = eleft->semantic(sc);
+                    isptr = false;
+                    goto Lagain2;
+                }
+            }
+            else
+                e = e->semantic(sc);
             checkPropertyCall(e, e1);
             return e->semantic(sc);
         }
