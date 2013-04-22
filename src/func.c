@@ -1720,6 +1720,21 @@ void FuncDeclaration::semantic3(Scope *sc)
         sc2->pop();
     }
 
+    // function literal has reference to enclosing scope is delegate
+    if (FuncLiteralDeclaration *fld = isFuncLiteralDeclaration())
+    {
+        Type *tret = f->next;
+        Dsymbol *s = tret->toDsymbol(NULL);
+        AggregateDeclaration *ad = s ? s->isAggregateDeclaration() : NULL;
+        if (ad)
+        {
+            fld->tok = TOKdelegate;
+            //printf("\tad = %s\n", ad->toChars());
+        }
+
+        fld->setImpure();   // Bugzilla 9415 ?
+    }
+
     /* If function survived being marked as impure, then it is pure
      */
     if (flags & FUNCFLAGpurityInprocess)
