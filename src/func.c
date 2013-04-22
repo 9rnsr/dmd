@@ -71,9 +71,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     isArrayOp = 0;
     semanticRun = PASSinit;
     semantic3Errors = 0;
-#if DMDV1
     nestedFrameRef = 0;
-#endif
     fes = NULL;
     introducing = 0;
     tintro = NULL;
@@ -3695,16 +3693,18 @@ int FuncDeclaration::hasNestedFrameRefs()
 {
 #if DMDV2
     if (closureVars.dim)
-#else
-    if (nestedFrameRef)
-#endif
         return 1;
+#endif
 
+    if (nestedFrameRef)
+        return 1;
+#if 0
     if (FuncLiteralDeclaration *fld = isFuncLiteralDeclaration())
     {
         if (fld->tok == TOKdelegate)
             return 1;
     }
+#endif
 
     /* If a virtual method has contracts, assume its variables are referenced
      * by those contracts, even if they aren't. Because they might be referenced

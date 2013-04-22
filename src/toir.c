@@ -257,7 +257,7 @@ elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad)
     int offset = 0;
     Dsymbol *cdp = ad->toParent2();     // class/func we're nested in
 
-    printf("setEthis(ad = %s, cdp = %s, thisfd = %s)\n", ad->toChars(), cdp->toChars(), thisfd->toChars());
+    //printf("setEthis(ad = %s, cdp = %s, thisfd = %s)\n", ad->toChars(), cdp->toChars(), thisfd->toChars());
 
     if (cdp == thisfd)
     {   /* Class we're new'ing is a local class in this function:

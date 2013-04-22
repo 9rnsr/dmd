@@ -2443,6 +2443,133 @@ void test9244()
 }
 
 /*******************************************/
+// Polymorphic lambda
+
+struct Lambda(alias func)
+{
+    //@disable this();
+    auto ref opCall(A...)(A args)
+    {
+        return func(args);
+        //pragma(msg, "tret = ", typeof(func(args)), ", sizeof = ", typeof(func(args)).sizeof);
+    }
+
+    //void dummy() {}
+    this(int _) {
+        //static if (this.tupleof.length)
+        //    printf("context p = %p\n", this.tupleof[$-1]);
+    }
+}
+
+void poly_lambda()
+{
+    /+
+    auto curry3 = [](auto f)
+                    [=](auto a) 
+                       [=] (auto b)
+                          [=] (auto c) f(a, b, c) ;
+
+    auto sum = [](auto a, auto b, auto c) a + b + c ;
+
+    auto val = curry3(sum)(1)(2)(3); // val = 1 + 2 + 3
+    +/
+
+  version(none)
+  {
+    //auto curry3 = f => a => b => c => f(a, b, c);
+    //auto sum = (a, b, c) => a + b + c;
+  }
+  else version(none)
+  {
+    //auto curry3 = Lambda!(f => a => b => c => f(a, b, c)).init;
+  }
+  else version(none)
+  {
+    auto curry3 = Lambda!(
+        f =>
+        Lambda!(
+            a =>
+            Lambda!(
+                b =>
+                Lambda!(
+                    c =>
+                    f(a, b, c)
+                )/*.init*/
+            )/*.init*/
+        )/*.init*/
+    )/*.init*/;
+    auto sum = Lambda!((a, b, c) => a + b + c).init;
+  }
+  else version(all)
+  {
+    auto curry3 = Lambda!(
+        f =>
+        Lambda!(
+            a =>
+            Lambda!(
+                b =>
+                Lambda!(
+                    c =>
+                    f(a, b, c)
+                )(-1/*dummy*/)
+            )(-1/*dummy*/)
+        )(-1/*dummy*/)
+    )(-1/*dummy*/);
+    auto sum = Lambda!((a, b, c) => a + b + c)(-1/*dummy*/);
+  }
+/+
+    auto p1 = curry3.tupleof[$-1];
+    printf("p1 = %p\n", p1);
+
+    auto f0 = curry3(sum);
+    auto f1 = f0(1);
+    auto f2 = f1(2);
+    auto val = f2(3);
++/
+    auto val = curry3(sum)(1)(2)(3);
+    assert(val == 6);
+
+  version(/*all*/none)  // currently works as expected -> breaking pureness would block compilation
+  {
+    auto curry3X(F)(F f) {
+        return
+            Lambda!(
+                a =>
+                Lambda!(
+                    b =>
+                    Lambda!(
+                        c =>
+                        f(a, b, c)
+                    )(-1/*dummy*/)
+                )(-1/*dummy*/)
+            )(-1/*dummy*/)
+        ;
+    }
+    val = curry3X(sum)(1)(2)(3);
+    assert(val == 6);
+  }
+  version(none) // currently does not work?
+  {
+    auto curry3Y(F)(F f) {
+        auto hold_a(A)(A a) {
+            return
+                Lambda!(
+                    b =>
+                    Lambda!(
+                        c =>
+                        f(a, b, c)
+                    )(-1/*dummy*/)
+                )(-1/*dummy*/)
+            ;
+        }
+        return Lambda!(hold_a)(-1/*dummy*/);
+    }
+    val = curry3Y(sum)(1)(2)(3);
+    assert(val == 6);
+  }
+}
+
+/*******************************************/
 
 int main()
 {
@@ -2527,6 +2654,7 @@ int main()
     test8832();
     test9315();
     test9244();
+    poly_lambda();
 
     printf("Success\n");
     return 0;

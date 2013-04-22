@@ -629,9 +629,8 @@ struct FuncDeclaration : Declaration
     #define FUNCFLAGpurityInprocess 1   // working on determining purity
     #define FUNCFLAGsafetyInprocess 2   // working on determining safety
     #define FUNCFLAGnothrowInprocess 4  // working on determining nothrow
-#else
-    int nestedFrameRef;                 // !=0 if nested variables referenced
 #endif
+    int nestedFrameRef;                 // !=0 if nested variables referenced
 
     FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);

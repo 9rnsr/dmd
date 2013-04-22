@@ -5952,7 +5952,12 @@ int TemplateInstance::hasNestedArgs(Objects *args)
                 if (tempdecl->toParent()->isModule())
                 {   Dsymbol *dparent = sa->toParent2();
                     if (!enclosing)
+                    {
                         enclosing = dparent;
+
+                        if (FuncDeclaration *fd = enclosing->isFuncDeclaration())
+                            fd->nestedFrameRef = 1;
+                    }
                     else if (enclosing != dparent)
                     {
                         /* Select the more deeply nested of the two.
@@ -5965,6 +5970,9 @@ int TemplateInstance::hasNestedArgs(Objects *args)
                         }
                         for (Dsymbol *p = dparent; p; p = p->parent)
                         {
+                            if (FuncDeclaration *fd = p->isFuncDeclaration())
+                                fd->nestedFrameRef = 1;
+
                             if (p == enclosing)
                             {   enclosing = dparent;
                                 goto L1;        // dparent is most nested
