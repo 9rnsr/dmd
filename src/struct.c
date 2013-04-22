@@ -323,7 +323,7 @@ void AggregateDeclaration::makeNested()
                 }
                 else if (isStructDeclaration() && ad)
                 {
-                    if (TemplateInstance *ti = ad->parent->isTemplateInstance())
+                    if (TemplateInstance *ti = this->parent->isTemplateInstance())
                     {
                         enclosing = ti->enclosing;
                     }

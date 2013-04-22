@@ -3700,6 +3700,12 @@ int FuncDeclaration::hasNestedFrameRefs()
 #endif
         return 1;
 
+    if (FuncLiteralDeclaration *fld = isFuncLiteralDeclaration())
+    {
+        if (fld->tok == TOKdelegate)
+            return 1;
+    }
+
     /* If a virtual method has contracts, assume its variables are referenced
      * by those contracts, even if they aren't. Because they might be referenced
      * by the overridden or overriding function's contracts.

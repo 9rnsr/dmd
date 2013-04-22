@@ -5233,7 +5233,7 @@ elem *fillHole(Symbol *stmp, size_t *poffset, size_t offset2, size_t maxoff)
 
 elem *StructLiteralExp::toElem(IRState *irs)
 {
-    //printf("StructLiteralExp::toElem() %s\n", toChars());
+    printf("StructLiteralExp::toElem() %s, sinit = %p, sd->isNested() = %d\n", toChars(), sinit, sd->isNested());
 
     if (sinit)
     {
@@ -5287,10 +5287,12 @@ elem *StructLiteralExp::toElem(IRState *irs)
     {
         size_t dim = elements->dim;
         assert(dim <= sd->fields.dim - sd->isNested());
+        printf("\telements->dim = %d, dim = %d\n", elements->dim, dim);
         for (size_t i = 0; i < dim; i++)
         {   Expression *el = (*elements)[i];
             if (!el)
                 continue;
+            printf("\telements[%d] = %s %s\n", Token::toChars(el->op), el->toChars());
 
             Dsymbol *s = sd->fields[i];
             VarDeclaration *v = s->isVarDeclaration();
@@ -5402,6 +5404,7 @@ elem *StructLiteralExp::toElem(IRState *irs)
                 e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, soffset));
         }
         e1 = setEthis(loc, irs, e1, sd);
+        elem_print(e1);
 
         e = el_combine(e, e1);
     }
