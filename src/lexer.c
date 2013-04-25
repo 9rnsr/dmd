@@ -2013,7 +2013,13 @@ TOK Lexer::number(Token *t)
                         continue;
                     }
                     if (c == '.' && p[1] != '.')
+                    {
+//#if DMDV2
+//                        if (isalpha(p[1]) || p[1] == '_' || (p[1] & 0x80))
+//                            goto done;
+//#endif
                         goto real;
+                    }
                     if (c == 'P' || c == 'p' || c == 'i')
                         goto real;
                     if (state == STATE_hex0)
@@ -2032,7 +2038,13 @@ TOK Lexer::number(Token *t)
                         continue;
                     }
                     if (c == '.' && p[1] != '.')
+                    {
+#if DMDV2
+                        if (isalpha(p[1]) || p[1] == '_' || (p[1] & 0x80))
+                            goto done;
+#endif
                         goto real;
+                    }
                     if (c == 'i')
                         goto real;
                     if (isdigit(c))
