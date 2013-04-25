@@ -65,6 +65,8 @@ public:
                                  * See AggregateDeclaraton::makeNested for the details.
                                  */
     VarDeclaration *vthis;      // 'this' parameter if this aggregate is nested
+    ScopeDsymbol *parentx;      // used for UFCS name lookup
+
     // Special member functions
     FuncDeclarations invs;              // Array of invariants
     FuncDeclaration *inv;               // invariant

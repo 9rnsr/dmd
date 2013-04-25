@@ -118,6 +118,8 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     enclosing = NULL;
     vthis = NULL;
 
+    parentx = NULL;
+
     ctor = NULL;
     defaultCtor = NULL;
     aliasthis = NULL;
@@ -619,6 +621,7 @@ void StructDeclaration::semantic(Scope *sc)
     int errors = global.errors;
 
     parent = sc->parent;
+    parentx = sc->scopesym;
     type = type->semantic(loc, sc);
     handle = type;
     protection = sc->protection;

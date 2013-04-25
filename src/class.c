@@ -264,6 +264,7 @@ void ClassDeclaration::semantic(Scope *sc)
         sc = scope;
     if (!parent && sc->parent && !sc->parent->isModule())
         parent = sc->parent;
+    parentx = sc->scopesym;
 
     type = type->semantic(loc, sc);
     handle = type;
@@ -1256,6 +1257,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
         sc = scope;
     if (!parent && sc->parent && !sc->parent->isModule())
         parent = sc->parent;
+    parentx = sc->scopesym;
 
     type = type->semantic(loc, sc);
     handle = type;
