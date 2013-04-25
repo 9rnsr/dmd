@@ -545,6 +545,27 @@ void test7773()
 }
 
 /*******************************************/
+// 7802
+
+import imports.util7802;
+
+class C7802 {}
+
+void func7802(C7802 c) { }
+void invoke7802(T)(T) {}
+
+void test7802()
+{
+    C7802 c;
+    foo7802(c);
+
+    import ufcs : call7802 = invoke7802;
+    struct S7802 {}
+    S7802 s;
+    bar7802(s);
+}
+
+/*******************************************/
 // 7943
 
 struct Foo7943

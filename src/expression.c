@@ -460,6 +460,55 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
         s = NULL;
     }
     if (!s)
+    {
+        Type *tb = ue->e1->type->toBasetype();
+        Dsymbol *sym = tb->toDsymbol(sc);
+        Module *m = sym ? sym->getAccessModule() : NULL;
+        if (m && m != sc->module)
+        {
+            //printf("sym = %s, m = %s\n", sym->toChars(), m->toChars());
+
+            Dsymbol *sx = sym->parent;
+            if (AggregateDeclaration* ad = sym->isAggregateDeclaration())
+                sx = ad->parentx;
+            while (sx)
+            {
+            //    printf("\tsx = %s %s\n", sx->kind(), sx->toChars());
+                ScopeDsymbol *scopesym = sx->isScopeDsymbol();
+                if (scopesym)
+                {
+                    s = scopesym->search(loc, ident, 0);
+                    if (s)
+                    {
+            //            printf("\t->s = %s %s\n", s->kind(), s->toChars());
+                        // overload set contains only module scope symbols.
+                        if (s->isOverloadSet())
+                            break;
+                        // selective/renamed imports also be picked up
+                        if (AliasDeclaration *ad = s->isAliasDeclaration())
+                        {
+                            if (ad->import)
+                                break;
+                        }
+                        // See only module scope symbols for UFCS target.
+                        Dsymbol *p = s->toParent2();
+                        if (p && p->isModule())
+                            break;
+                        s = NULL;
+                    }
+                }
+                TemplateInstance *ti = sx->isTemplateInstance();
+                if (ti && ti->enclosing)
+                    /* Because of local template instantiation, the parent isn't where the access
+                     * rights come from - it's the template declaration
+                     */
+                    sx = ti->tempdecl;
+                else
+                    sx = sx->parent;
+            }
+        }
+    }
+    if (!s)
         return ue->e1->type->Type::getProperty(loc, ident, 0);
 
     if (ue->op == TOKdotti)

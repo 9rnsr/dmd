@@ -49,6 +49,8 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     enclosing = NULL;
     vthis = NULL;
 
+    parentx = NULL;
+
 #if DMDV2
     ctor = NULL;
     defaultCtor = NULL;
@@ -485,6 +487,7 @@ void StructDeclaration::semantic(Scope *sc)
     unsigned dprogress_save = Module::dprogress;
 
     parent = sc->parent;
+    parentx = sc->scopesym;
     type = type->semantic(loc, sc);
     handle = type;
     protection = sc->protection;

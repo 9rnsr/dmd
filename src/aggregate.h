@@ -65,6 +65,7 @@ struct AggregateDeclaration : ScopeDsymbol
                                  * See AggregateDeclaraton::makeNested for the details.
                                  */
     VarDeclaration *vthis;      // 'this' parameter if this aggregate is nested
+    ScopeDsymbol *parentx;      // used for UFCS name lookup
 #endif
     // Special member functions
     InvariantDeclaration *inv;          // invariant
