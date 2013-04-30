@@ -277,7 +277,7 @@ elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad)
         else
         {
             ethis = el_long(TYnptr, 0);
-            if (thisfd->hasNestedFrameRefs())
+            //if (thisfd->hasNestedFrameRefs())
             {
                 ethis->Eoper = OPframeptr;
             }

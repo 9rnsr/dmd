@@ -2910,6 +2910,46 @@ int FuncDeclaration::getLevel(Loc loc, Scope *sc, FuncDeclaration *fd)
     fdparent = fd->toParent2();
     if (fdparent == this)
         return -1;
+#if 0
+    {
+        level = 0;
+        FuncDeclaration *f = sc->func;
+        while (f && fd != f)
+        {
+            printf("\tf = %s %s, parent = %s\n", f->kind(), f->toChars(), f->parent->toChars());
+            Dsymbol *x;
+            if (AggregateDeclaration *ad = f->isThis())
+            {
+                x = ad->enclosing;
+            }
+            else if (TemplateInstance *ti = f->parent->isTemplateInstance())
+            {
+                x = ti->enclosing;
+            }
+            else if (f->isNested())
+            {
+                x = f->toParent2();
+            }
+            else
+            {   f = NULL;
+                break;
+            }
+            if (!x)
+            {   f = NULL;
+                break;
+            }
+            printf("\t\tx = %s %s\n", x->kind(), x->toChars());
+            level++;
+            f = x->isFuncDeclaration();
+            if (!f)
+            {   f = NULL;
+                break;
+            }
+        }
+        if (f)
+            return level;
+    }
+#endif
     s = this;
     level = 0;
     while (fd != s && fdparent != s->toParent2())
@@ -2917,7 +2957,9 @@ int FuncDeclaration::getLevel(Loc loc, Scope *sc, FuncDeclaration *fd)
         //printf("\ts = %s, '%s'\n", s->kind(), s->toChars());
         FuncDeclaration *thisfd = s->isFuncDeclaration();
         if (thisfd)
-        {   if (!thisfd->isNested() && !thisfd->vthis && !sc->intypeof)
+        {
+            //printf("\t> thisfd = %s, isNested = %d\n", thisfd->toChars(), thisfd->isNested());
+            if (!thisfd->isNested() && !thisfd->vthis && !sc->intypeof)
                 goto Lerr;
         }
         else
@@ -2925,6 +2967,7 @@ int FuncDeclaration::getLevel(Loc loc, Scope *sc, FuncDeclaration *fd)
             AggregateDeclaration *thiscd = s->isAggregateDeclaration();
             if (thiscd)
             {
+                //printf("\t> thiscd = %s\n", thiscd->toChars());
                 /* AggregateDeclaration::isNested returns true only when
                  * it has a hidden pointer.
                  * But, calling the function belongs unrelated lexical scope
@@ -3487,7 +3530,7 @@ void FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
         FuncDeclaration *fdthis = sc->parent->isFuncDeclaration();
 
         //printf("this = %s in [%s]\n", this->toChars(), this->loc.toChars());
-        //printf("fdv  = %s in [%s]\n", fdv->toChars(), fdv->loc.toChars());
+        //printf("fdv2 = %s in [%s]\n", fdv2->toChars(), fdv2->loc.toChars());
         //printf("fdthis = %s in [%s]\n", fdthis->toChars(), fdthis->loc.toChars());
 
         if (fdv2 && fdthis && fdv2 != fdthis)

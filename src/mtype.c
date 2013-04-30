@@ -8005,7 +8005,17 @@ L1:
 
     if (v)
     {
-        if (v->toParent() != sym)
+        Dsymbol *p = v->toParent();
+        Dsymbol *sx = sym;
+        if (p != sym && sym->enclosing)
+        {
+            sx = sym->enclosing;
+            printf("p  = %p %s\n", p, p->toChars());
+            printf("sx = %p %s\n", sx, sx->toChars());
+            while (p && p != sx)
+                sx = sx->parent;
+        }
+        else if (p != sx)
             sym->error(e->loc, "'%s' is not a member", v->toChars());
 
         // *(&e + offset)
@@ -8019,6 +8029,20 @@ L1:
         b->type = v->type->addMod(e->type->mod);
         return b;
 #endif
+        //if (sc->func == sx)
+        if (p != sym && p == sx)
+        {
+            Expression *ve = new VarExp(e->loc, d);
+            e = new CommaExp(e->loc, e, ve);
+            e = e->semantic(sc);
+            printf("\tcve = %s\n", e->toChars());
+            return e;
+        }
+        //if (p != sym && p == sx)
+        //{
+        //    e = new DotVarExp(e->loc, e, sym->vthis);
+        //    printf("\tdve = %s\n", e->toChars());
+        //}
     }
 
     de = new DotVarExp(e->loc, e, d);

@@ -1929,7 +1929,7 @@ void VarDeclaration::checkCtorConstInit()
 
 void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
 {
-    //printf("VarDeclaration::checkNestedReference() %s\n", toChars());
+    printf("VarDeclaration::checkNestedReference() %s\n", toChars());
     if (parent && !isDataseg() && parent != sc->parent &&
         !(storage_class & STCmanifest))
     {
@@ -1958,11 +1958,11 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
                  * so it never becomes closure.
                  */
 
-                //printf("\tfdv = %s\n", fdv->toChars());
-                //printf("\tfdthis = %s\n", fdthis->toChars());
+                printf("\tfdv = %s\n", fdv->toChars());
+                printf("\tfdthis = %s\n", fdthis->toChars());
 
-                if (loc.filename)
-                    fdthis->getLevel(loc, sc, fdv);
+                //if (loc.filename)
+                //    fdthis->getLevel(loc, sc, fdv);
 
                 // Function literals from fdthis to fdv must be delegates
                 for (Dsymbol *s = fdthis; s && s != fdv; s = s->toParent2())
@@ -1989,6 +1989,7 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
                 {
                     if (i == fdv->closureVars.dim)
                     {
+                        printf("\tpush closure var %s into %s\n", toChars(), fdv->toChars());
                         fdv->closureVars.push(this);
                         break;
                     }
