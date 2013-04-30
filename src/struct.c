@@ -321,11 +321,19 @@ void AggregateDeclaration::makeNested()
                 {
                     enclosing = ad;
                 }
-                else if (isStructDeclaration() && ad)
+                else if ((isStructDeclaration()) && ad)
                 {
                     if (TemplateInstance *ti = ad->parent->isTemplateInstance())
                     {
                         enclosing = ti->enclosing;
+                    }
+                    else
+                    {
+                        ti = this->parent->isTemplateInstance();
+                        if (ti && ti->enclosing)
+                        {
+                            enclosing = ti->enclosing;
+                        }
                     }
                 }
                 if (enclosing)
@@ -510,6 +518,10 @@ void StructDeclaration::semantic(Scope *sc)
             //printf("adding member '%s' to '%s'\n", s->toChars(), this->toChars());
             s->addMember(sc, this, 1);
         }
+
+        TemplateInstance *ti = parent->isTemplateInstance();
+        if (ti != NULL && ti->enclosing)
+            makeNested();
     }
 
     sizeok = SIZEOKnone;
