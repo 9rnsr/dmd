@@ -3376,6 +3376,7 @@ bool FuncDeclaration::setUnsafe()
 
 int enumerateIndirections(Type *t, void *data, int (*fp)(void *, Type *))
 {
+    printf("enumerateIndirections(t = %s, data = %p)\n", t->toChars(), data);
     t = t->toBasetype();
 
     if (t->ty == Tsarray)
@@ -3395,7 +3396,7 @@ int enumerateIndirections(Type *t, void *data, int (*fp)(void *, Type *))
     {
         StructDeclaration *sd = ((TypeStruct *)t)->sym;
 
-        printf("%s == struct\n", sd->toChars());
+        printf("+%s == struct\n", sd->toChars());
         for (size_t i = 0; i < sd->fields.dim; i++)
         {
             VarDeclaration *v = sd->fields[i];
@@ -3411,14 +3412,15 @@ int enumerateIndirections(Type *t, void *data, int (*fp)(void *, Type *))
                     return 1;
             }
         }
+        printf("-%s == struct\n", sd->toChars());
     }
     // should consider TypeDelegate?
     return 0;
 
 Lind:
+    printf("t = %s, data = %p\n", t->toChars(), data);
     if (t->isImmutable())   // skip immutable indirections
         return 0;
-    printf("t = %s, data = %p\n", t->toChars(), data);
     return (*fp)(data, t);
 }
 
@@ -3570,7 +3572,7 @@ bool FuncDeclaration::isolateReturn()
     }
     else
     {
-		printf("isolateReturn %s, this = %p\n", tf->next->toChars(), this);
+		printf("isolateReturn ret_t = %s, this = %p\n", tf->next->toChars(), this);
         struct DgY
         {
             static int fp(void *data, Type *tind)
@@ -3579,7 +3581,9 @@ bool FuncDeclaration::isolateReturn()
                 return ((FuncDeclaration *)data)->parametersIntersect(tind);
             }
         };
-        return enumerateIndirections(tf->next, this, &DgY::fp) == 0;
+        int res = enumerateIndirections(tf->next, this, &DgY::fp);
+        printf("res = %d\n", res);
+        return res == 1;
     }
 }
 
