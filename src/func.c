@@ -3371,12 +3371,12 @@ bool FuncDeclaration::setUnsafe()
 }
 
 /**************************************
- * //Returns an indirect type one step from t.
+ * Enumerate reachable indirections from the type t.
  */
 
 int enumerateIndirections(Type *t, void *data, int (*fp)(void *, Type *))
 {
-    printf("enumerateIndirections(t = %s, data = %p)\n", t->toChars(), data);
+    //printf("enumerateIndirections(t = %s, data = %p)\n", t->toChars(), data);
     t = t->toBasetype();
 
     if (t->ty == Tsarray)
@@ -3396,7 +3396,7 @@ int enumerateIndirections(Type *t, void *data, int (*fp)(void *, Type *))
     {
         StructDeclaration *sd = ((TypeStruct *)t)->sym;
 
-        printf("+%s == struct\n", sd->toChars());
+        //printf("+%s == struct\n", sd->toChars());
         for (size_t i = 0; i < sd->fields.dim; i++)
         {
             VarDeclaration *v = sd->fields[i];
@@ -3412,15 +3412,15 @@ int enumerateIndirections(Type *t, void *data, int (*fp)(void *, Type *))
                     return 1;
             }
         }
-        printf("-%s == struct\n", sd->toChars());
+        //printf("-%s == struct\n", sd->toChars());
     }
     // should consider TypeDelegate?
     return 0;
 
 Lind:
-    printf("t = %s, data = %p\n", t->toChars(), data);
-    if (t->isImmutable())   // skip immutable indirections
-        return 0;
+    //printf("t = %s, data = %p\n", t->toChars(), data);
+    //if (t->isImmutable())   // skip immutable indirections
+    //    return 0;
     return (*fp)(data, t);
 }
 
@@ -3432,7 +3432,7 @@ int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool a2b = true)
 {
     if (a2b)    // check ta appears in tb
     {
-        printf("\ttraverse(1) %s appears in %s\n", ta->toChars(), tb->toChars());
+        //printf("\ttraverse(1) %s appears in %s\n", ta->toChars(), tb->toChars());
         if (ta->constConv(tb))
             return 1;
         else if (ta->immutableOf()->equals(tb->immutableOf()))
@@ -3442,7 +3442,7 @@ int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool a2b = true)
     }
     else    // check tb appears in ta
     {
-        printf("\ttraverse(2) %s appears in %s\n", tb->toChars(), ta->toChars());
+        //printf("\ttraverse(2) %s appears in %s\n", tb->toChars(), ta->toChars());
         if (tb->constConv(ta))
             return 1;
         else if (tb->immutableOf()->equals(ta->immutableOf()))
@@ -3496,7 +3496,7 @@ int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool a2b = true)
                     static int fp(void *data, Type *tind)
                     {
                         DgX *dg = (DgX *)data;
-                        printf("\tta = %s, tind = %s\n", dg->ta->toChars(), tind->toChars());
+                        //printf("\tta = %s, tind = %s\n", dg->ta->toChars(), tind->toChars());
                         if (traverseIndirections(dg->ta, tind, dg->pctxt, dg->a2b))
                             return 1;
                         return 0;
@@ -3528,33 +3528,6 @@ int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool a2b = true)
     return 0;
 }
 
-#if 0
-int traverseIndirectionsX(Type *tx, Type *tb)
-{
-    Type *tprmi = getIndirection(tx);
-    if (!tprmi)
-        return 0;   // there is no mutable indirection
-
-    //printf("\t[%d] tprmi = %d %s\n", i, tprmi->ty, tprmi->toChars());
-    if (tprmi->ty != Tstruct)
-        return traverseIndirections(tprmi, tb);
-
-    assert(tprmi->ty == Tstruct);
-    StructDeclaration *sd = ((TypeStruct *)tprmi)->sym;
-
-    // todo
-    //return traverseIndirections(tprmi, tb);
-    printf("tprmi == struct %s tb = %s\n", tprmi->toChars(), tb->toChars());
-    for (size_t i = 0; i < sd->fields.dim; i++)
-    {
-        Type *tv = sd->fields[i]->type->addMod(tx->mod);
-        if (traverseIndirectionsX(tv, tb))
-            return 1;
-    }
-    return 0;
-}
-#endif
-
 /********************************************
  * Returns true if the function return value has no indirection
  * which comes from the parameters.
@@ -3572,17 +3545,17 @@ bool FuncDeclaration::isolateReturn()
     }
     else
     {
-		printf("isolateReturn ret_t = %s, this = %p\n", tf->next->toChars(), this);
+        //printf("isolateReturn ret_t = %s, this = %p\n", tf->next->toChars(), this);
         struct DgY
         {
             static int fp(void *data, Type *tind)
             {
-		printf("\ttind = %s\n", tind->toChars());
+        //printf("\ttind = %s\n", tind->toChars());
                 return ((FuncDeclaration *)data)->parametersIntersect(tind);
             }
         };
         int res = enumerateIndirections(tf->next, this, &DgY::fp);
-        printf("res = %d\n", res);
+        //printf("res = %d\n", res);
         return res == 1;
     }
 }
@@ -3602,7 +3575,7 @@ bool FuncDeclaration::parametersIntersect(Type *t)
     assert(type->ty == Tfunction);
     TypeFunction *tf = (TypeFunction *)type;
 
-    printf("parametersIntersect(%s) t = %s\n", tf->toChars(), t->toChars());
+    //printf("parametersIntersect(%s) t = %s\n", tf->toChars(), t->toChars());
 
     size_t dim = Parameter::dim(tf->parameters);
     for (size_t i = 0; i < dim; i++)
@@ -3624,7 +3597,7 @@ bool FuncDeclaration::parametersIntersect(Type *t)
                     return traverseIndirections(tind, (Type *)data);
                 }
             };
-            printf("prm[%d] type = %s, t = %s\n", i, fparam->type->toChars(), t->toChars());
+            //printf("prm[%d] type = %s, t = %s\n", i, fparam->type->toChars(), t->toChars());
             if (enumerateIndirections(fparam->type, t, &DgZ::fp))
                 return false;
         }
