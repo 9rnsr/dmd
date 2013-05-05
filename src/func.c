@@ -3371,10 +3371,10 @@ bool FuncDeclaration::setUnsafe()
 }
 
 /**************************************
- * Returns an indirect type one step from t.
+ * //Returns an indirect type one step from t.
  */
 
-Type *getIndirection(Type *t)
+int enumerateIndirections(Type *t, void *data, int (*fp)(void *, Type *))
 {
     t = t->toBasetype();
 
@@ -3383,25 +3383,54 @@ Type *getIndirection(Type *t)
             t = t->nextOf()->toBasetype();
     }
     if (t->ty == Tarray || t->ty == Tpointer)
-        return t->nextOf()->toBasetype();
+    {
+        t = t->nextOf()->toBasetype();
+        goto Lind;
+    }
     if (t->ty == Taarray || t->ty == Tclass)
-        return t;
-    if (t->ty == Tstruct)
-        return t->hasPointers() ? t : NULL; // TODO
+    {
+        goto Lind;
+    }
+    if (t->ty == Tstruct && t->hasPointers())
+    {
+        StructDeclaration *sd = ((TypeStruct *)t)->sym;
 
+        printf("%s == struct\n", sd->toChars());
+        for (size_t i = 0; i < sd->fields.dim; i++)
+        {
+            VarDeclaration *v = sd->fields[i];
+            Type *tv = v->type->addMod(t->mod);
+            if (v->storage_class & STCref)
+            {
+                if (fp(data, tv))
+                    return 1;
+            }
+            else
+            {
+                if (enumerateIndirections(tv, data, fp))
+                    return 1;
+            }
+        }
+    }
     // should consider TypeDelegate?
-    return NULL;
+    return 0;
+
+Lind:
+    if (t->isImmutable())   // skip immutable indirections
+        return 0;
+    printf("t = %s, data = %p\n", t->toChars(), data);
+    return (*fp)(data, t);
 }
 
 /**************************************
- * Traverse this and t, and then check the indirections convertibility.
+ * Traverse ta and tb, and then check the indirections convertibility.
  */
 
 int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool a2b = true)
 {
     if (a2b)    // check ta appears in tb
     {
-        //printf("\ttraverse(1) %s appears in %s\n", ta->toChars(), tb->toChars());
+        printf("\ttraverse(1) %s appears in %s\n", ta->toChars(), tb->toChars());
         if (ta->constConv(tb))
             return 1;
         else if (ta->immutableOf()->equals(tb->immutableOf()))
@@ -3411,7 +3440,7 @@ int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool a2b = true)
     }
     else    // check tb appears in ta
     {
-        //printf("\ttraverse(2) %s appears in %s\n", tb->toChars(), ta->toChars());
+        printf("\ttraverse(2) %s appears in %s\n", tb->toChars(), ta->toChars());
         if (tb->constConv(ta))
             return 1;
         else if (tb->immutableOf()->equals(ta->immutableOf()))
@@ -3448,15 +3477,36 @@ int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool a2b = true)
         for (size_t i = 0; i < sym->fields.dim; i++)
         {
             VarDeclaration *v = sym->fields[i];
-            Type *tprmi = v->type->addMod(tb->mod);
-            if (!(v->storage_class & STCref))
-                tprmi = getIndirection(tprmi);
-            if (!tprmi)
-                continue;
+            Type *tv = v->type->addMod(tb->mod);
+            if (v->storage_class & STCref)
+            {
+                if (traverseIndirections(ta, tv, &c, a2b))
+                    return 1;
+            }
+            else
+            {
+                struct DgX
+                {
+                    Type *ta;
+                    Ctxt *pctxt;
+                    bool a2b;
 
-            //printf("\ttb = %s, tprmi = %s\n", tb->toChars(), tprmi->toChars());
-            if (traverseIndirections(ta, tprmi, &c, a2b))
-                return 1;
+                    static int fp(void *data, Type *tind)
+                    {
+                        DgX *dg = (DgX *)data;
+                        printf("\tta = %s, tind = %s\n", dg->ta->toChars(), tind->toChars());
+                        if (traverseIndirections(dg->ta, tind, dg->pctxt, dg->a2b))
+                            return 1;
+                        return 0;
+                    }
+                };
+                DgX dg;
+                dg.ta = ta;
+                dg.pctxt = &c;
+                dg.a2b = a2b;
+                if (enumerateIndirections(tv, &dg, &DgX::fp))
+                    return 1;
+            }
         }
     }
     else if (tb->ty == Tarray || tb->ty == Taarray || tb->ty == Tpointer)
@@ -3476,13 +3526,9 @@ int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool a2b = true)
     return 0;
 }
 
-int traverseIndirectionsX(StorageClass stc, Type *tx, Type *tb)
+#if 0
+int traverseIndirectionsX(Type *tx, Type *tb)
 {
-    if (stc & (STClazy | STCout | STCref))
-    {
-        return traverseIndirections(tx, tb);
-    }
-
     Type *tprmi = getIndirection(tx);
     if (!tprmi)
         return 0;   // there is no mutable indirection
@@ -3495,8 +3541,17 @@ int traverseIndirectionsX(StorageClass stc, Type *tx, Type *tb)
     StructDeclaration *sd = ((TypeStruct *)tprmi)->sym;
 
     // todo
-    return traverseIndirections(tprmi, tb);
+    //return traverseIndirections(tprmi, tb);
+    printf("tprmi == struct %s tb = %s\n", tprmi->toChars(), tb->toChars());
+    for (size_t i = 0; i < sd->fields.dim; i++)
+    {
+        Type *tv = sd->fields[i]->type->addMod(tx->mod);
+        if (traverseIndirectionsX(tv, tb))
+            return 1;
+    }
+    return 0;
 }
+#endif
 
 /********************************************
  * Returns true if the function return value has no indirection
@@ -3509,11 +3564,23 @@ bool FuncDeclaration::isolateReturn()
     TypeFunction *tf = (TypeFunction *)type;
     assert(tf->next);
 
-    Type *treti = tf->next;
-    treti = tf->isref ? treti : getIndirection(treti);
-    if (!treti)
-        return true;    // target has no mutable indirection
-    return parametersIntersect(treti);
+    if (tf->isref)
+    {
+        return parametersIntersect(tf->next);
+    }
+    else
+    {
+		printf("isolateReturn %s, this = %p\n", tf->next->toChars(), this);
+        struct DgY
+        {
+            static int fp(void *data, Type *tind)
+            {
+		printf("\ttind = %s\n", tind->toChars());
+                return ((FuncDeclaration *)data)->parametersIntersect(tind);
+            }
+        };
+        return enumerateIndirections(tf->next, this, &DgY::fp) == 0;
+    }
 }
 
 /********************************************
@@ -3522,6 +3589,7 @@ bool FuncDeclaration::isolateReturn()
  */
 
 bool FuncDeclaration::parametersIntersect(Type *t)
+//bool isolatedFromParameters(Type *t)
 {
     assert(t);
     if (!isPureBypassingInference() || isNested())
@@ -3530,7 +3598,7 @@ bool FuncDeclaration::parametersIntersect(Type *t)
     assert(type->ty == Tfunction);
     TypeFunction *tf = (TypeFunction *)type;
 
-    //printf("parametersIntersect(%s) t = %s\n", tf->toChars(), t->toChars());
+    printf("parametersIntersect(%s) t = %s\n", tf->toChars(), t->toChars());
 
     size_t dim = Parameter::dim(tf->parameters);
     for (size_t i = 0; i < dim; i++)
@@ -3538,8 +3606,24 @@ bool FuncDeclaration::parametersIntersect(Type *t)
         Parameter *fparam = Parameter::getNth(tf->parameters, i);
         if (!fparam->type)
             continue;
-        if (traverseIndirectionsX(fparam->storageClass, fparam->type, t))
-            return false;
+        if (fparam->storageClass & (STClazy | STCout | STCref))
+        {
+            if (traverseIndirections(fparam->type, t))
+                return false;
+        }
+        else
+        {
+            struct DgZ
+            {
+                static int fp(void *data, Type *tind)
+                {
+                    return traverseIndirections(tind, (Type *)data);
+                }
+            };
+            printf("prm[%d] type = %s, t = %s\n", i, fparam->type->toChars(), t->toChars());
+            if (enumerateIndirections(fparam->type, t, &DgZ::fp))
+                return false;
+        }
     }
     if (AggregateDeclaration *ad = isCtorDeclaration() ? NULL : isThis())
     {
