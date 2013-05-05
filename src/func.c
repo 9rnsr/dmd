@@ -3476,6 +3476,28 @@ int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool a2b = true)
     return 0;
 }
 
+int traverseIndirectionsX(StorageClass stc, Type *tx, Type *tb)
+{
+    if (stc & (STClazy | STCout | STCref))
+    {
+        return traverseIndirections(tx, tb);
+    }
+
+    Type *tprmi = getIndirection(tx);
+    if (!tprmi)
+        return 0;   // there is no mutable indirection
+
+    //printf("\t[%d] tprmi = %d %s\n", i, tprmi->ty, tprmi->toChars());
+    if (tprmi->ty != Tstruct)
+        return traverseIndirections(tprmi, tb);
+
+    assert(tprmi->ty == Tstruct);
+    StructDeclaration *sd = ((TypeStruct *)tprmi)->sym;
+
+    // todo
+    return traverseIndirections(tprmi, tb);
+}
+
 /********************************************
  * Returns true if the function return value has no indirection
  * which comes from the parameters.
@@ -3516,13 +3538,7 @@ bool FuncDeclaration::parametersIntersect(Type *t)
         Parameter *fparam = Parameter::getNth(tf->parameters, i);
         if (!fparam->type)
             continue;
-        Type *tprmi = (fparam->storageClass & (STClazy | STCout | STCref))
-                ? fparam->type : getIndirection(fparam->type);
-        if (!tprmi)
-            continue;   // there is no mutable indirection
-
-        //printf("\t[%d] tprmi = %d %s\n", i, tprmi->ty, tprmi->toChars());
-        if (traverseIndirections(tprmi, t))
+        if (traverseIndirectionsX(fparam->storageClass, fparam->type, t))
             return false;
     }
     if (AggregateDeclaration *ad = isCtorDeclaration() ? NULL : isThis())
