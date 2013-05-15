@@ -4587,6 +4587,9 @@ Expression *TypeExp::semantic(Scope *sc)
     if (e)
     {
         //printf("e = %s %s\n", Token::toChars(e->op), e->toChars());
+        Dsymbol *sym = getDsymbol(e);
+        if (sym)
+            e = new DsymbolExp(loc, sym);
         e = e->semantic(sc);
     }
     else if (t)

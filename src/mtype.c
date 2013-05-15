@@ -6371,7 +6371,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
             Dsymbol *sm = s->searchX(loc, sc, id);
             //printf("\t3: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
             //printf("\tgetType = '%s'\n", s->getType()->toChars());
-            if (!sm)
+            if (!sm || !sm->isFuncDeclaration() && sm->needThis())
             {
                 Type *t = s->getType();     // type symbol, type alias, or type tuple?
                 if (!t)
@@ -6386,7 +6386,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                         goto L3;
                     }
                 }
-                if (t)
+                if (t && !sm)
                 {
                     sm = t->toDsymbol(sc);
                     if (sm && id->dyncast() == DYNCAST_IDENTIFIER)
@@ -6395,6 +6395,9 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                         if (sm)
                             goto L2;
                     }
+                }
+                if (t)
+                {
                 L3:
                     Expression *e = new DsymbolExp(loc, s);
                     e = e->semantic(sc);

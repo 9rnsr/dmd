@@ -6283,6 +6283,37 @@ void test9700()
 }
 
 /***************************************************/
+// 9815
+
+struct S9815 { int i; }
+class C9815 {}
+struct Test9815
+{
+    S9815 s;
+    C9815 c;
+
+    void test()
+    {
+        f9815((s).tupleof);
+        auto ti = typeid(c);
+        assert(ti == typeid(C9815));
+    }
+}
+void f9815(int) { }
+
+void test9815()
+{
+    Test9815 t;
+    t.c = new C9815();
+
+    f9815((t.s).tupleof);
+    auto ti = typeid(t.c);
+    assert(ti == typeid(C9815));
+
+    t.test();
+}
+
+/***************************************************/
 // 9834
 
 struct Event9834
@@ -6613,6 +6644,7 @@ int main()
     test9477();
     test9538();
     test9700();
+    test9815();
     test9834();
     test9883();
 
