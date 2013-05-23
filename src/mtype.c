@@ -2046,6 +2046,17 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
     {   /* Bugzilla 3796: this should demangle e->type->deco rather than
          * pretty-printing the type.
          */
+#if 1
+        if (e->op == TOKvar)
+        {
+            /* From 2.063, all enum values are now wrapped by VarDeclaration with STCmanifest.
+             * But to keep behavior of .stringof property, need expand it here.
+             */
+            VarDeclaration *v = ((VarExp *)e)->var->isVarDeclaration();
+            if (v && v->storage_class & STCmanifest)
+                e = v->getConstInitializer();
+        }
+#endif
         char *s = e->toChars();
         e = new StringExp(e->loc, s, strlen(s), 'c');
     }

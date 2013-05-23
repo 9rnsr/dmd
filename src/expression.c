@@ -3420,20 +3420,6 @@ Lagain:
                 return new ErrorExp();
             }
         }
-
-        if ((v->storage_class & STCmanifest) && v->init)
-        {
-            e = v->init->toExpression(v->type);
-            if (!e)
-            {   error("cannot make expression out of initializer for %s", v->toChars());
-                return new ErrorExp();
-            }
-            e = e->copy();
-            e->loc = loc;   // for better error message
-            e = e->semantic(sc);
-            return e;
-        }
-
         e = new VarExp(loc, v);
         e->type = type;
         e = e->semantic(sc);

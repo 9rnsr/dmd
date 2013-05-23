@@ -1333,6 +1333,14 @@ Expression *ArrayLength(Type *type, Expression *e1)
 
         e = new IntegerExp(loc, dim, type);
     }
+    else if (e1->op == TOKnull)
+    {
+        Type *t1b = e1->type->toBasetype();
+        if (t1b->ty == Tarray || t1b->ty == Taarray)
+            e = new IntegerExp(loc, 0, Type::tsize_t);
+        else
+            e = EXP_CANT_INTERPRET;
+    }
     else
         e = EXP_CANT_INTERPRET;
     return e;
