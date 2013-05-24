@@ -244,6 +244,7 @@ void verror(Loc loc, const char *format, va_list ap,
     else
     {
         global.gaggedErrors++;
+        fprintf(stderr, "[[%d]] ", global.gag); verrorPrint(loc, header, format, ap, p1, p2);
     }
     global.errors++;
 }
