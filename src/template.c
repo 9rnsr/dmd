@@ -3490,10 +3490,39 @@ MATCH TypeStruct::deduceType(Scope *sc, Type *tparam, TemplateParameters *parame
          *  S!(T).foo
          */
         TypeInstance *tpi = (TypeInstance *)tparam;
-        if (tpi->idents.dim)
-        {   Object *id = tpi->idents[tpi->idents.dim - 1];
-            if (id->dyncast() == DYNCAST_IDENTIFIER && sym->ident->equals((Identifier *)id))
+        if (tpi->idents.dim &&
+            tpi->idents[tpi->idents.dim - 1]->dyncast() == DYNCAST_IDENTIFIER)
+        {
+            Identifier *id = (Identifier *)tpi->idents[tpi->idents.dim - 1];
+            size_t i = templateIdentifierLookup(id, parameters);
+            if (i != IDX_NOTFOUND)
             {
+                TemplateParameter *tp = (*parameters)[i];
+                if (TemplateTypeParameter *ttp = tp->isTemplateTypeParameter())
+                {
+                    Type *t = (Type *)(*dedtypes)[i];
+                    if (!t || this->equals(t))
+                    {
+                        (*dedtypes)[i] = this;
+                        goto Lparent;
+                    }
+                    return MATCHnomatch;
+                }
+                if (TemplateAliasParameter *tap = tp->isTemplateAliasParameter())
+                {
+                    Dsymbol *s = (Dsymbol *)(*dedtypes)[i];
+                    if (!s || sym == s)
+                    {
+                        (*dedtypes)[i] = sym;
+                        goto Lparent;
+                    }
+                    return MATCHnomatch;
+                }
+                return MATCHnomatch;
+            }
+            if (sym->ident->equals(id))
+            {
+            Lparent:
                 Type *tparent = sym->parent->getType();
                 if (tparent)
                 {
@@ -3634,10 +3663,39 @@ MATCH TypeClass::deduceType(Scope *sc, Type *tparam, TemplateParameters *paramet
          *  S!(T).foo
          */
         TypeInstance *tpi = (TypeInstance *)tparam;
-        if (tpi->idents.dim)
-        {   Object *id = tpi->idents[tpi->idents.dim - 1];
-            if (id->dyncast() == DYNCAST_IDENTIFIER && sym->ident->equals((Identifier *)id))
+        if (tpi->idents.dim &&
+            tpi->idents[tpi->idents.dim - 1]->dyncast() == DYNCAST_IDENTIFIER)
+        {
+            Identifier *id = (Identifier *)tpi->idents[tpi->idents.dim - 1];
+            size_t i = templateIdentifierLookup(id, parameters);
+            if (i != IDX_NOTFOUND)
             {
+                TemplateParameter *tp = (*parameters)[i];
+                if (TemplateTypeParameter *ttp = tp->isTemplateTypeParameter())
+                {
+                    Type *t = (Type *)(*dedtypes)[i];
+                    if (!t || this->equals(t))
+                    {
+                        (*dedtypes)[i] = this;
+                        goto Lparent;
+                    }
+                    return MATCHnomatch;
+                }
+                if (TemplateAliasParameter *tap = tp->isTemplateAliasParameter())
+                {
+                    Dsymbol *s = (Dsymbol *)(*dedtypes)[i];
+                    if (!s || sym == s)
+                    {
+                        (*dedtypes)[i] = sym;
+                        goto Lparent;
+                    }
+                    return MATCHnomatch;
+                }
+                return MATCHnomatch;
+            }
+            if (sym->ident->equals(id))
+            {
+            Lparent:
                 Type *tparent = sym->parent->getType();
                 if (tparent)
                 {

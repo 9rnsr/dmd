@@ -1817,6 +1817,81 @@ void test9022()
 }
 
 /**********************************/
+// XXXXX
+
+// match with name
+struct FooXXXXXX(T) { enum result = 0; }
+struct FooXXXXXX(T : A!(B).Baz, alias A, B)
+{
+    enum result = 1;
+    alias ResA = A;
+    alias ResB = B;
+}
+
+// match with type parameter
+struct FooXXXXXY(T) { enum result = 0; }
+struct FooXXXXXY(T : A!(B).C, alias A, B, C)
+{
+    enum result = 2;
+    alias ResA = A;
+    alias ResB = B;
+    alias ResC = C;
+}
+
+// match with alias parameter
+struct FooXXXXXZ(T) { enum result = 0; }
+struct FooXXXXXZ(T : A!(B).C, alias A, B, alias C)
+{
+    enum result = 3;
+    alias ResA = A;
+    alias ResB = B;
+    alias ResC = C;
+}
+
+void testXXXXX()
+{
+    struct S(T) { struct Baz {} }
+    {
+        alias SX = FooXXXXXX!(S!(int).Baz);
+        static assert(SX.result == 1);
+        static assert(__traits(isSame, SX.ResA, S));
+        static assert(is(SX.ResB == int));
+
+        alias SY = FooXXXXXY!(S!(int).Baz);
+        static assert(SY.result == 2);
+        static assert(__traits(isSame, SY.ResA, S));
+        static assert(is(SY.ResB == int));
+        static assert(is(SY.ResC == S!int.Baz));
+
+        alias SZ = FooXXXXXZ!(S!(int).Baz);
+        static assert(SZ.result == 3);
+        static assert(__traits(isSame, SZ.ResA, S));
+        static assert(is(SZ.ResB == int));
+        static assert(is(SZ.ResC == S!int.Baz));
+    }
+
+    class C(T) { class Baz {} }
+    {
+        alias CX = FooXXXXXX!(C!(int).Baz);
+        static assert(CX.result == 1);
+        static assert(__traits(isSame, CX.ResA, C));
+        static assert(is(CX.ResB == int));
+
+        alias CY = FooXXXXXY!(C!(int).Baz);
+        static assert(CY.result == 2);
+        static assert(__traits(isSame, CY.ResA, C));
+        static assert(is(CY.ResB == int));
+        static assert(is(CY.ResC == C!int.Baz));
+
+        alias CZ = FooXXXXXZ!(C!(int).Baz);
+        static assert(CZ.result == 3);
+        static assert(__traits(isSame, CZ.ResA, C));
+        static assert(is(CZ.ResB == int));
+        static assert(is(CZ.ResC == C!int.Baz));
+    }
+}
+
+/**********************************/
 // 9026
 
 mixin template node9026()
@@ -2517,6 +2592,7 @@ int main()
     test8976();
     test8940();
     test9022();
+    testXXXXX();
     test9026();
     test9038();
     test9076();
