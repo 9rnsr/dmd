@@ -2661,10 +2661,58 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
 
     if (tparam->ty == Tident)
     {
+        TypeIdentifier *tident = (TypeIdentifier *)tparam;
+//printf("tident = %s, id = %s, dim = %d\n", tident->toChars(), tident->ident->toChars(), tident->idents.dim);
         // Determine which parameter tparam is
-        size_t i = templateParameterLookup(tparam, parameters);
+
+        //printf("matching %s to %s\n", tparam->toChars(), toChars());
+        Dsymbol *s = this->toDsymbol(sc);
+        for (size_t i = tident->idents.dim; i-- > 0; )
+        {
+            if (!s)
+                goto Lnomatch;
+            if (tident->idents[i]->dyncast() != DYNCAST_IDENTIFIER)
+                goto Lnomatch;
+            Identifier *id = (Identifier *)tident->idents[i];
+            size_t j = templateIdentifierLookup(id, parameters);
+            if (j != IDX_NOTFOUND)
+            {
+                TemplateParameter *tp = (*parameters)[j];
+//printf("\t[%d] id = %s, s = %s %s, s->getType = %p\n", j, id->toChars(), s->kind(), s->toChars(), s->getType());
+                Object *o = s->getType();
+                if (!o) o = s;
+                if (!tp->matchArg(sc, o, j, parameters, dedtypes, NULL))
+                    goto Lnomatch;
+            }
+            else
+            {
+                if (!s || !s->parent)
+                    goto Lnomatch;
+                Dsymbol *s2 = s->parent->searchX(Loc(), sc, id);
+                if (!s2)
+                    goto Lnomatch;
+                s2 = s2->toAlias();
+                //printf("[%d] s = %s %s, s2 = %s %s\n", i, s->kind(), s->toChars(), s2->kind(), s2->toChars());
+                if (s != s2)
+                {
+                    if (Type *t = s2->getType())
+                    {
+                        if (s != t->toDsymbol(sc))
+                            goto Lnomatch;
+                    }
+                    else
+                        goto Lnomatch;
+                }
+            }
+            s = s->parent;
+        }
+        if (!s)
+            goto Lnomatch;
+
+        size_t i = templateIdentifierLookup(tident->ident, parameters);
         if (i == IDX_NOTFOUND)
         {
+//printf("not found id = %s\n", tident->ident->toChars());
             if (!sc)
                 goto Lnomatch;
 
@@ -2680,45 +2728,30 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
             /* BUG: what if tparam is a template instance, that
              * has as an argument another Tident?
              */
-            tparam = tparam->semantic(loc, sc);
-            assert(tparam->ty != Tident);
-            return deduceType(sc, tparam, parameters, dedtypes, wildmatch);
+            Expression *ea;
+            Type *ta;
+            Dsymbol *sa;
+
+            size_t n = tident->idents.dim;
+            tident->idents.dim = 0;
+            tident->resolve(loc, sc, &ea, &ta, &sa);
+            tident->idents.dim = n;
+
+            if (ta)
+            {
+                assert(ta->ty != Tident);
+                return deduceType(sc, ta, parameters, dedtypes, wildmatch);
+            }
+            else if (sa && s == sa)
+                return MATCHexact;
+
+            return MATCHnomatch;
         }
 
         TemplateParameter *tp = (*parameters)[i];
-
-        TypeIdentifier *tident = (TypeIdentifier *)tparam;
-        if (tident->idents.dim > 0)
+        //if (!s || !tp->matchArg(sc, s, i, parameters, dedtypes, NULL))
+        //    goto Lnomatch;
         {
-            //printf("matching %s to %s\n", tparam->toChars(), toChars());
-            Dsymbol *s = this->toDsymbol(sc);
-            for (size_t i = tident->idents.dim; i-- > 0; )
-            {
-                Object *id = tident->idents[i];
-                if (id->dyncast() == DYNCAST_IDENTIFIER)
-                {
-                    if (!s || !s->parent)
-                        goto Lnomatch;
-                    Dsymbol *s2 = s->parent->searchX(Loc(), sc, id);
-                    if (!s2)
-                        goto Lnomatch;
-                    s2 = s2->toAlias();
-                    //printf("[%d] s = %s %s, s2 = %s %s\n", i, s->kind(), s->toChars(), s2->kind(), s2->toChars());
-                    if (s != s2)
-                    {
-                        if (Type *t = s2->getType())
-                        {
-                            if (s != t->toDsymbol(sc))
-                                goto Lnomatch;
-                        }
-                        else
-                            goto Lnomatch;
-                    }
-                    s = s->parent;
-                }
-                else
-                    goto Lnomatch;
-            }
             //printf("[e] s = %s\n", s?s->toChars():"(null)");
             if (TemplateTypeParameter *ttp = tp->isTemplateTypeParameter())
             {
