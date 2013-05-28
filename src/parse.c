@@ -3758,7 +3758,7 @@ Statement *Parser::parseStatement(int flags, unsigned char** endPtr)
                 Identifier *ident = token.ident;
                 nextToken();
                 nextToken();
-                s = parseStatement(PSsemi_ok);
+                s = parseStatement(/*token.value == TOKlcurly ? */ /*PSscope*/ /* : PSsemi_ok*/ PScurlyscope | PSsemi_ok);
                 s = new LabelStatement(loc, ident, s);
                 break;
             }

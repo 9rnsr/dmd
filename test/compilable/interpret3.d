@@ -2485,15 +2485,15 @@ static assert({
 int bug4448()
 {
     int n=2;
-    L1:{ switch(n)
-    {
+    { L1:switch(n)
+      {
        case 5:
         return 7;
        default:
-       n = 5;
-       break L1;
-    }
-    int w = 7;
+        n = 5;
+        break L1;
+      }
+      int w = 7;
     }
     return 3;
 }
