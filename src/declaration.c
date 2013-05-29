@@ -929,10 +929,10 @@ void VarDeclaration::semantic(Scope *sc)
             if (sc->func->setUnsafe())
                 error("__gshared not allowed in safe functions; use shared");
         }
-        if (init && init->isVoidInitializer() && type->hasPointers())
+        if (init && init->isVoidInitializer())
         {
             if (sc->func->setUnsafe())
-                error("void initializers for pointers not allowed in safe functions");
+                error("void initializers not allowed in safe functions");
         }
         if (type->hasPointers() && type->toDsymbol(sc))
         {
