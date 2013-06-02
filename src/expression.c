@@ -6424,6 +6424,17 @@ Expression *IsExp::semantic(Scope *sc)
     if (!t)
         goto Lno;                       // errors, so condition is false
     targ = t;
+    if (targ->isAmbiguous())
+    {
+        // Even if is(typeof(func)) is OK, is(typeof(func) Sym) could be NG
+        if (id)
+            error("cannot take ambiguous type");
+        if (id || tspec || (tok2 != TOKreserved && tok2 != TOKfunction))
+        {
+            tded = Type::terror;
+            goto Lno;
+        }
+    }
     if (tok2 != TOKreserved)
     {
         switch (tok2)
@@ -8898,6 +8909,11 @@ Lagain:
         }
         else if (t1->ty == Tdelegate)
         {
+            if (t1->isAmbiguous() && e1->op == TOKdelegate)
+            {   DelegateExp *de = (DelegateExp *)e1;
+                e1 = new DotVarExp(de->e1->loc, de->e1, de->func, de->hasOverloads);
+                goto Lagain;
+            }
             TypeDelegate *td = (TypeDelegate *)t1;
             assert(td->next->ty == Tfunction);
             tf = (TypeFunction *)(td->next);
@@ -8905,6 +8921,11 @@ Lagain:
         }
         else if (t1->ty == Tpointer && ((TypePointer *)t1)->next->ty == Tfunction)
         {
+            if (t1->isAmbiguous() && e1->op == TOKsymoff)
+            {   SymOffExp *se = (SymOffExp *)e1;
+                e1 = new VarExp(se->loc, se->var, se->hasOverloads);
+                goto Lagain;
+            }
             tf = (TypeFunction *)(((TypePointer *)t1)->next);
             p = "function pointer";
         }

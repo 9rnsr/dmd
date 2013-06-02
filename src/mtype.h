@@ -181,6 +181,7 @@ public:
     static Type *tvoidptr;              // void*
     static Type *tstring;               // immutable(char)[]
     static Type *tvalist;               // va_list alias
+    static Type *tambig;
     static Type *terror;                // for error recovery
     static Type *tnull;                 // for null type
 
@@ -264,6 +265,7 @@ public:
     virtual int isscope();
     virtual int isString();
     virtual int isAssignable();
+    virtual int isAmbiguous();
     virtual int checkBoolean(); // if can be converted to boolean value
     virtual void checkDeprecated(Loc loc, Scope *sc);
     int isConst()       { return mod & MODconst; }
@@ -371,6 +373,7 @@ public:
     Type *next;
 
     TypeNext(TY ty, Type *next);
+    int isAmbiguous();
     void toDecoBuffer(OutBuffer *buf, int flag);
     void checkDeprecated(Loc loc, Scope *sc);
     Type *reliesOnTident(TemplateParameters *tparams = NULL);
@@ -674,6 +677,7 @@ public:
     const char *kind();
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
+    int isAmbiguous();
     void purityLevel();
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);

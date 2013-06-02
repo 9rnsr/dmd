@@ -3775,6 +3775,11 @@ Statement *ReturnStatement::semantic(Scope *sc)
                     if (!isRefReturn)
                         exp = exp->optimize(WANTvalue);
                 }
+                if (exp->type->isAmbiguous())
+                {
+                    error("failed return type inference from ambiguous expression %s", exp->toChars());
+                }
+
                 tf->next = exp->type;
                 //fd->type = tf->semantic(loc, sc);     // Removed with 6902
                 if (!fd->tintro)

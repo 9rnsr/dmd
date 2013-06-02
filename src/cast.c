@@ -698,9 +698,7 @@ MATCH AddrExp::implicitConvTo(Type *t)
     printf("AddrExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
         toChars(), type->toChars(), t->toChars());
 #endif
-    MATCH result;
-
-    result = type->implicitConvTo(t);
+    MATCH result = type->implicitConvTo(t);
     //printf("\tresult = %d\n", result);
 
     if (result == MATCHnomatch)
@@ -755,29 +753,28 @@ MATCH SymOffExp::implicitConvTo(Type *t)
     printf("SymOffExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
         toChars(), type->toChars(), t->toChars());
 #endif
-    MATCH result;
-
-    result = type->implicitConvTo(t);
+    MATCH result = type->implicitConvTo(t);
     //printf("\tresult = %d\n", result);
 
     if (result == MATCHnomatch)
     {
         // Look for pointers to functions where the functions are overloaded.
-        FuncDeclaration *f;
-
         t = t->toBasetype();
         if (type->ty == Tpointer && type->nextOf()->ty == Tfunction &&
             (t->ty == Tpointer || t->ty == Tdelegate) && t->nextOf()->ty == Tfunction)
         {
-            f = var->isFuncDeclaration();
+            FuncDeclaration *f = var->isFuncDeclaration();
             if (f)
-            {   f = f->overloadExactMatch(t->nextOf());
-                if (f)
-                {   if ((t->ty == Tdelegate && (f->needThis() || f->isNested())) ||
-                        (t->ty == Tpointer && !(f->needThis() || f->isNested())))
-                    {
-                        result = MATCHexact;
-                    }
+                f = f->overloadExactMatch(t->nextOf());
+            if (f && ((t->ty == Tdelegate && (f->needThis() || f->isNested())) ||
+                      (t->ty == Tpointer && !(f->needThis() || f->isNested()))))
+            {
+                result = MATCHexact;
+                if (type->isAmbiguous())
+                {
+                    var = f;
+                    type = t;
+                    hasOverloads = 0;
                 }
             }
         }
@@ -792,20 +789,28 @@ MATCH DelegateExp::implicitConvTo(Type *t)
     printf("DelegateExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
         toChars(), type->toChars(), t->toChars());
 #endif
-    MATCH result;
-
-    result = type->implicitConvTo(t);
+    MATCH result = type->implicitConvTo(t);
 
     if (result == MATCHnomatch)
     {
         // Look for pointers to functions where the functions are overloaded.
-
         t = t->toBasetype();
         if (type->ty == Tdelegate &&
             t->ty == Tdelegate)
         {
-            if (func && func->overloadExactMatch(t->nextOf()))
+            FuncDeclaration *f = func;
+            if (f)
+                f = f->overloadExactMatch(t->nextOf());
+            if (f)
+            {
                 result = MATCHexact;
+                if (type->isAmbiguous())
+                {
+                    func = f;
+                    type = t;
+                    hasOverloads = 0;
+                }
+            }
         }
     }
     return result;

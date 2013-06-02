@@ -889,6 +889,12 @@ void VarDeclaration::semantic(Scope *sc)
         if (needctfe) sc = sc->endCTFE();
 //      type = type->semantic(loc, sc);
 
+        if (type->isAmbiguous())
+        {
+            type = Type::terror;
+            return;
+        }
+
         inuse--;
         inferred = 1;
 
