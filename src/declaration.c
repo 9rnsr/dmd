@@ -512,6 +512,8 @@ void AliasDeclaration::semantic(Scope *sc)
     Type *t;
     Expression *e;
 
+    int hasOverloads = 1;
+
     /* This section is needed because resolve() will:
      *   const x = 3;
      *   alias x y;
@@ -553,7 +555,17 @@ void AliasDeclaration::semantic(Scope *sc)
         // Try to convert Expression to Dsymbol
         s = getDsymbol(e);
         if (s)
+        {
+            if (e->op == TOKvar)
+            {
+                VarExp *ve = (VarExp *)e;
+                hasOverloads = ve->hasOverloads;
+                FuncAliasDeclaration *fa = ve->var->isFuncAliasDeclaration();
+                if (!hasOverloads && fa)
+                    hasOverloads = 1;
+            }
             goto L2;
+        }
 
         if (e->op != TOKerror)
             error("cannot alias an expression %s", e->toChars());
@@ -589,13 +601,15 @@ void AliasDeclaration::semantic(Scope *sc)
         {
             if (overnext)
             {
-                FuncAliasDeclaration *fa = new FuncAliasDeclaration(f);
+                FuncAliasDeclaration *fa = new FuncAliasDeclaration(f, hasOverloads);
                 if (!fa->overloadInsert(overnext))
                     ScopeDsymbol::multiplyDefined(Loc(), overnext, f);
                 overnext = NULL;
                 s = fa;
                 s->parent = sc->parent;
             }
+            else if (hasOverloads == 0)
+                s = new FuncAliasDeclaration(f, 0);
         }
         OverloadSet *o = s->toAlias()->isOverloadSet();
         if (o)

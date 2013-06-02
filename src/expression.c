@@ -46,6 +46,7 @@
 Expression *createTypeInfoArray(Scope *sc, Expression *args[], size_t dim);
 Expression *expandVar(int result, VarDeclaration *v);
 void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, int mod, const char *kind);
+void MODMatchToBuffer(OutBuffer *buf, unsigned char lhsMod, unsigned char rhsMod);
 
 #define LOGSEMANTIC     0
 
@@ -3547,7 +3548,8 @@ Lagain:
         }
         FuncDeclaration *fd = s->isFuncDeclaration();
         fd->type = f->type;
-        return new VarExp(loc, fd, hasOverloads);
+        e = new VarExp(loc, fd, hasOverloads);
+        return e->semantic(sc);
     }
     o = s->isOverloadSet();
     if (o)
@@ -5558,12 +5560,22 @@ Expression *SymOffExp::semantic(Scope *sc)
     //var->semantic(sc);
     if (!type)
         type = var->type->pointerTo();
+
     VarDeclaration *v = var->isVarDeclaration();
     if (v)
         v->checkNestedReference(sc, loc);
     FuncDeclaration *f = var->isFuncDeclaration();
     if (f)
+    {
+        if (hasOverloads)
+        {
+            hasOverloads = !f->isUnique();
+            if (hasOverloads)
+                type = Type::tambig->pointerTo();
+        }
         f->checkNestedReference(sc, loc);
+    }
+
     return this;
 }
 
@@ -5658,7 +5670,23 @@ Expression *VarExp::semantic(Scope *sc)
     }
     FuncDeclaration *f = var->isFuncDeclaration();
     if (f)
+    {
         f->checkNestedReference(sc, loc);
+
+        Type *t = f->type;
+        if (hasOverloads)
+        {
+            FuncDeclaration *fd = f->overloadModMatch(loc, NULL, t);
+            assert(t);  // -> least one match should exist
+            //if (fd)     // exact match
+            //    var = fd, hasOverloads = 0;
+            /* VarExp is a leaf AST in the Expression semantic processing,
+             * and it behaves as a payload of (Var|Func)Declaration.
+             * So in here, just resolve the type (exact or ambiguous).
+             */
+        }
+        type = t;
+    }
 
     return this;
 }
@@ -5805,7 +5833,7 @@ TupleExp::TupleExp(Loc loc, TupleDeclaration *tup)
             /* If tuple element represents a symbol, translate to DsymbolExp
              * to supply implicit 'this' if needed later.
              */
-            Expression *e = new DsymbolExp(loc, s);
+            Expression *e = new DsymbolExp(loc, s, 1);
             this->exps->push(e);
         }
         else if (o->dyncast() == DYNCAST_EXPRESSION)
@@ -7368,27 +7396,34 @@ Expression *DotIdExp::semanticX(Scope *sc)
 
     if (ident == Id::mangleof)
     {   // symbol.mangleof
-        Dsymbol *ds;
+        const char* s;
         switch (e1->op)
         {
             case TOKimport:
-                ds = ((ScopeExp *)e1)->sds;
+                s = ((ScopeExp *)e1)->sds->mangle();
                 goto L1;
             case TOKvar:
-                ds = ((VarExp *)e1)->var;
-                goto L1;
-            case TOKdotvar:
-                ds = ((DotVarExp *)e1)->var;
-                goto L1;
-            case TOKoverloadset:
-                ds = ((OverExp *)e1)->vars;
-            L1:
             {
-                const char* s = ds->mangle();
+                VarExp *ve = (VarExp *)e1;
+                FuncDeclaration *f = ve->var->isFuncDeclaration();
+                s = (f && !ve->hasOverloads ? f->toAliasFunc()->mangleExact()
+                                            : ve->var->mangle());
+                goto L1;
+            }
+            case TOKdotvar:
+            {
+                DotVarExp *dve = (DotVarExp *)e1;
+                FuncDeclaration *f = dve->var->isFuncDeclaration();
+                s = (f && !dve->hasOverloads ? f->toAliasFunc()->mangleExact()
+                                             : dve->var->mangle());
+                goto L1;
+            }
+            case TOKoverloadset:
+                s = ((OverExp *)e1)->vars->mangle();
+            L1:
                 e = new StringExp(loc, (void*)s, strlen(s), 'c');
                 e = e->semantic(sc);
                 return e;
-            }
             default:
                 break;
         }
@@ -7570,7 +7605,7 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
                 {
                     if (!eleft)
                         eleft = new ThisExp(loc);
-                    e = new DotVarExp(loc, eleft, f);
+                    e = new DotVarExp(loc, eleft, f, 1);
                     e = e->semantic(sc);
                 }
                 else
@@ -7792,11 +7827,22 @@ Expression *DotVarExp::semantic(Scope *sc)
         FuncDeclaration *f = var->isFuncDeclaration();
         if (f)  // for functions, do checks after overload resolution
         {
-            //printf("L%d fd = %s\n", __LINE__, f->toChars());
-            if (!f->functionSemantic())
-                return new ErrorExp();
-
-            type = f->type;
+            Type *t = f->type;
+            if (hasOverloads)
+            {
+                FuncDeclaration *fd = f->overloadModMatch(loc, e1->type, t);
+                if (!t)     // no match
+                    goto Lerr;
+                if (fd)     // exact match
+                    var = f = fd, hasOverloads = 0;
+            }
+            if (!hasOverloads)
+            {
+                if (!f->functionSemantic())
+                    return new ErrorExp();
+                t = f->type;
+            }
+            type = t->semantic(loc, sc);
             assert(type);
         }
         else
@@ -8223,11 +8269,29 @@ Expression *DelegateExp::semantic(Scope *sc)
     if (!type)
     {
         e1 = e1->semantic(sc);
-        type = new TypeDelegate(func->type);
+        Type *t = func->type;
+        if (!func->isNested() && hasOverloads)
+        {
+            FuncDeclaration *fd = func->overloadModMatch(loc, e1->type, t);
+            if (!t)     // no match
+                goto Lerr;
+            if (fd)     // exact match
+                func = fd, hasOverloads = 0;
+        }
+        if (!MODmethodConv(e1->type->mod, func->type->mod))
+        {
+            OutBuffer thisBuf, funcBuf;
+            MODMatchToBuffer(&thisBuf, e1->type->mod, func->type->mod);
+            MODMatchToBuffer(&funcBuf, func->type->mod, e1->type->mod);
+            error("cannot access %sfunction through %sobject", funcBuf.toChars(), thisBuf.toChars());
+            goto Lerr;
+        }
+        type = new TypeDelegate(t);     // function to delegate
         type = type->semantic(loc, sc);
-        AggregateDeclaration *ad = func->toParent()->isAggregateDeclaration();
-        if (func->needThis())
-            e1 = getRightThis(loc, sc, ad, e1, func);
+        FuncDeclaration *f = func->toAliasFunc();
+        AggregateDeclaration *ad = f->toParent()->isAggregateDeclaration();
+        if (!hasOverloads && f->needThis())
+            e1 = getRightThis(loc, sc, ad, e1, f);
         if (ad && ad->isClassDeclaration() && ad->type != e1->type)
         {   // A downcast is required for interfaces, see Bugzilla 3706
             e1 = new CastExp(loc, e1, ad->type);
@@ -8235,6 +8299,9 @@ Expression *DelegateExp::semantic(Scope *sc)
         }
     }
     return this;
+
+Lerr:
+    return new ErrorExp();
 }
 
 void DelegateExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -9294,12 +9361,11 @@ Expression *AddrExp::semantic(Scope *sc)
             FuncDeclaration *f = dve->var->isFuncDeclaration();
             if (f)
             {
-                f = f->toAliasFunc();   // FIXME, should see overlods - Bugzilla 1983
                 if (!dve->hasOverloads)
                     f->tookAddressOf++;
 
                 Expression *e;
-                if ( f->needThis())
+                if (f->needThis())
                     e = new DelegateExp(loc, dve->e1, f, dve->hasOverloads);
                 else // It is a function pointer. Convert &v.f() --> (v, &V.f())
                     e = new CommaExp(loc, dve->e1, new AddrExp(loc, new VarExp(loc, f)));
@@ -9388,7 +9454,8 @@ Expression *AddrExp::semantic(Scope *sc)
             ce->e2 = ce->e2->semantic(sc);
         }
 
-        return optimize(WANTvalue);
+        Expression *e = optimize(WANTvalue);
+        return e->semantic(sc);
     }
     return this;
 }

@@ -695,6 +695,7 @@ public:
     bool parameterEscapes(Parameter *p);
     Type *addStorageClass(StorageClass stc);
 
+    MATCH modMatch(Type *tthis);
     MATCH callMatch(Type *tthis, Expressions *toargs, int flag = 0);
     type *toCtype();
     RET retStyle();

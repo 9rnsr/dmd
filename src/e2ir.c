@@ -3710,9 +3710,16 @@ elem *DelegateExp::toElem(IRState *irs)
     int directcall = 0;
 
     //printf("DelegateExp::toElem() '%s'\n", toChars());
+    if (hasOverloads)
+    {
+        assert(type->ty == Tdelegate);
+        func = func->overloadExactMatch(type->nextOf());
+    }
+    else
+        func = func->toAliasFunc();
 
-     if (func->semanticRun == PASSsemantic3done)
-     {  // Bug 7745 - only include the function if it belongs to this module
+    if (func->semanticRun == PASSsemantic3done)
+    {   // Bug 7745 - only include the function if it belongs to this module
         // ie, it is a member of this module, or is a template instance
         // (the template declaration could come from any module).
         Dsymbol * owner = func->toParent();

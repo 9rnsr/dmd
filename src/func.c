@@ -28,6 +28,29 @@
 
 void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, int mod, const char *kind);
 
+void MODMatchToBuffer(OutBuffer *buf, unsigned char lhsMod, unsigned char rhsMod)
+{
+    bool bothMutable = ((lhsMod & rhsMod) == 0);
+    bool sharedMismatch = ((lhsMod ^ rhsMod) & MODshared);
+    bool sharedMismatchOnly = ((lhsMod ^ rhsMod) == MODshared);
+
+    if (lhsMod & MODshared)
+        buf->writestring("shared ");
+    else if (sharedMismatch && !(lhsMod & MODimmutable))
+        buf->writestring("non-shared ");
+
+    if (bothMutable && sharedMismatchOnly)
+    { }
+    else if (lhsMod & MODimmutable)
+        buf->writestring("immutable ");
+    else if (lhsMod & MODconst)
+        buf->writestring("const ");
+    else if (lhsMod & MODwild)
+        buf->writestring("inout ");
+    else
+        buf->writestring("mutable ");
+}
+
 /********************************* FuncDeclaration ****************************/
 
 FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type)
@@ -2539,6 +2562,123 @@ FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
     return p.f;
 }
 
+/********************************************
+ * Decide which function matches the modifier.
+ */
+
+struct ParamM
+{
+    Match *m;
+    Type *tthis;
+};
+
+int fpm(void *param, FuncDeclaration *f)
+{
+    ParamM *p = (ParamM *)param;
+    Match *m = p->m;
+    MATCH match;
+
+    if (f != m->lastf)          // skip duplicates
+    {
+        m->anyf = f;
+        TypeFunction *tf = (TypeFunction *)f->type;
+        //printf("tf = %s\n", tf->toChars());
+
+        /* 
+         * 
+         */
+        if (p->tthis)   // non-static functions are preferred than static ones
+        {
+            if (f->needThis())
+                match = f->isCtorDeclaration() ? MATCHexact : tf->modMatch(p->tthis);
+            else
+                match = MATCHconst; // keep static funciton in overload candidates
+        }
+        else            // static functions are preferred than non-static ones
+        {
+            if (f->needThis())
+                match = MATCHconvert;
+            else
+                match = MATCHexact;
+        }
+        if (match != MATCHnomatch)
+        {
+            if (match > m->last) goto LfIsBetter;
+            if (match < m->last) goto LlastIsBetter;
+
+            /* See if one of the matches overrides the other.
+             */
+            if (m->lastf->overrides(f)) goto LlastIsBetter;
+            if (f->overrides(m->lastf)) goto LfIsBetter;
+
+        Lambiguous:
+            //printf("\tambiguous\n");
+            m->nextf = f;
+            m->count++;
+            return 0;
+
+        LfIsBetter:
+            //printf("\tisbetter\n");
+            if (m->last <= MATCHconvert)
+            {   // clear last secondary matching
+                m->nextf = NULL;
+                m->count = 0;
+            }
+            m->last = match;
+            m->lastf = f;
+            m->count++;     // count up
+            return 0;
+
+        LlastIsBetter:
+            //printf("\tlastbetter\n");
+            return 0;
+        }
+    }
+    return 0;
+}
+
+FuncDeclaration *FuncDeclaration::overloadModMatch(Loc loc, Type *tthis, Type *&t)
+{
+    //printf("FuncDeclaration::overloadModMatch('%s')\n", toChars());
+    Match m;
+
+    memset(&m, 0, sizeof(m));
+    m.last = MATCHnomatch;
+    ParamM p;
+    p.m = &m;
+    p.tthis = tthis;
+    overloadApply(this, &fpm, &p);
+
+    if (m.count == 1)       // exact match
+    {
+        t = m.lastf->type;
+    }
+    else if (m.count > 1)
+    {
+        if (!m.nextf)       // better match
+            t = m.lastf->type;
+        else                // ambiguous match
+            t = Type::tambig;
+        m.lastf = NULL;
+    }
+    else                    // no match
+    {
+        t = NULL;
+        TypeFunction *tf = (TypeFunction *)this->type;
+        assert(tthis);
+        assert(!MODimplicitConv(tthis->mod, tf->mod));  // modifier mismatch
+        {
+            OutBuffer thisBuf, funcBuf;
+            MODMatchToBuffer(&thisBuf, tthis->mod, tf->mod);
+            MODMatchToBuffer(&funcBuf, tf->mod, tthis->mod);
+            ::error(loc, "%smethod %s is not callable using a %sobject",
+                funcBuf.toChars(), this->toPrettyChars(), thisBuf.toChars());
+        }
+    }
+
+    return m.lastf;
+}
+
 
 /********************************************
  * Decide which function matches the arguments best.
@@ -2662,29 +2802,6 @@ void functionResolve(Match *m, FuncDeclaration *fstart,
     p.arguments = arguments;
     if (plast) *plast = NULL;
     overloadApply(fstart, &fp2, &p, plast);
-}
-
-static void MODMatchToBuffer(OutBuffer *buf, unsigned char lhsMod, unsigned char rhsMod)
-{
-    bool bothMutable = ((lhsMod & rhsMod) == 0);
-    bool sharedMismatch = ((lhsMod ^ rhsMod) & MODshared);
-    bool sharedMismatchOnly = ((lhsMod ^ rhsMod) == MODshared);
-
-    if (lhsMod & MODshared)
-        buf->writestring("shared ");
-    else if (sharedMismatch && !(lhsMod & MODimmutable))
-        buf->writestring("non-shared ");
-
-    if (bothMutable && sharedMismatchOnly)
-    { }
-    else if (lhsMod & MODimmutable)
-        buf->writestring("immutable ");
-    else if (lhsMod & MODconst)
-        buf->writestring("const ");
-    else if (lhsMod & MODwild)
-        buf->writestring("inout ");
-    else
-        buf->writestring("mutable ");
 }
 
 /********************************************
