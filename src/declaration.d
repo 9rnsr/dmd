@@ -1091,6 +1091,13 @@ public:
             type = _init.toExpression().type;
             if (needctfe)
                 sc = sc.endCTFE();
+
+            if (type.isAmbiguous())
+            {
+                type = Type.terror;
+                return;
+            }
+
             inuse--;
             inferred = 1;
             /* This is a kludge to support the existing syntax for RAII
