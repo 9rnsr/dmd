@@ -776,8 +776,8 @@ public:
         exp = resolveProperties(sc, exp);
         if (exp.op == TOKscope)
         {
-            ScopeExp se = cast(ScopeExp)exp;
-            TemplateInstance ti = se.sds.isTemplateInstance();
+            auto se = cast(ScopeExp)exp;
+            auto ti = se.sds.isTemplateInstance();
             if (ti && ti.semanticRun == PASSsemantic && !ti.aliasdecl)
                 se.error("cannot infer type from %s %s, possible circular dependency", se.sds.kind(), se.toChars());
             else
@@ -787,8 +787,8 @@ public:
         // Give error for overloaded function addresses
         if (exp.op == TOKsymoff)
         {
-            SymOffExp se = cast(SymOffExp)exp;
-            if (se.hasOverloads && !se.var.isFuncDeclaration().isUnique())
+            auto se = cast(SymOffExp)exp;
+            if (se.type.isAmbiguous())
             {
                 exp.error("cannot infer type from overloaded function symbol %s", exp.toChars());
                 return new ErrorInitializer();
@@ -796,8 +796,8 @@ public:
         }
         if (exp.op == TOKdelegate)
         {
-            DelegateExp se = cast(DelegateExp)exp;
-            if (se.hasOverloads && se.func.isFuncDeclaration() && !se.func.isFuncDeclaration().isUnique())
+            auto se = cast(DelegateExp)exp;
+            if (se.type.isAmbiguous())
             {
                 exp.error("cannot infer type from overloaded function symbol %s", exp.toChars());
                 return new ErrorInitializer();
@@ -805,7 +805,7 @@ public:
         }
         if (exp.op == TOKaddress)
         {
-            AddrExp ae = cast(AddrExp)exp;
+            auto ae = cast(AddrExp)exp;
             if (ae.e1.op == TOKoverloadset)
             {
                 exp.error("cannot infer type from overloaded function symbol %s", exp.toChars());

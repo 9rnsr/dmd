@@ -8012,7 +8012,7 @@ public:
                  */
                 if (hasThis(sc))
                 {
-                    e = new DotVarExp(e.loc, new ThisExp(e.loc), d);
+                    e = new DotVarExp(e.loc, new ThisExp(e.loc), d, true);
                     e = e.semantic(sc);
                     return e;
                 }
@@ -8035,7 +8035,7 @@ public:
             e = e.semantic(sc);
             return e;
         }
-        auto de = new DotVarExp(e.loc, e, d);
+        auto de = new DotVarExp(e.loc, e, d, true);
         return de.semantic(sc);
     }
 
@@ -8879,7 +8879,7 @@ public:
                     if (cd && tcd && (tcd == cd || cd.isBaseOf(tcd, null)))
                     {
                         e = new DotTypeExp(e1.loc, e1, cd);
-                        e = new DotVarExp(e.loc, e, d);
+                        e = new DotVarExp(e.loc, e, d, true);
                         e = e.semantic(sc);
                         return e;
                     }
@@ -8891,8 +8891,10 @@ public:
                         e1 = new DotVarExp(e.loc, e1, tcd.vthis);
                         e1.type = tcd.vthis.type;
                         e1.type = e1.type.addMod(t.mod);
+
                         // Do not call checkNestedRef()
                         //e1 = e1->semantic(sc);
+
                         // Skip up over nested functions, and get the enclosing
                         // class type.
                         int n = 0;
@@ -8907,7 +8909,7 @@ public:
                             }
                             else
                             {
-                                e = new VarExp(e.loc, d, 1);
+                                e = new VarExp(e.loc, d, true);
                                 return e;
                             }
                         }

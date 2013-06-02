@@ -2563,31 +2563,39 @@ public:
      * 1. If the 'tthis' matches only one candidate, it's an "exact match".
      *    Returns the function and 'hasOverloads' is set to false.
      *      eg. If 'tthis" is mutable and there's only one mutable method.
-     * 2. If there's two or more match candidates, but a candidate function will be
+     * 2. If there's two or more match candidates, but a candidate function can be
      *    a "better match".
      *    Returns the better match function but 'hasOverloads' is set to true.
      *      eg. If 'tthis' is mutable, and there's both mutable and const methods,
      *          the mutable method will be a better match.
-     * 3. If there's two or more match candidates, but there's no better match,
+     * 3. If there's two or more match candidates, but there's no better match.
      *    Returns null and 'hasOverloads' is set to true to represent "ambiguous match".
      *      eg. If 'tthis' is mutable, and there's two or more mutable methods.
-     * 4. If there's no candidates, it's "no match" and returns null with error report.
+     * 4. If there's no candidates, it's "no match".
+     *    Returns null and 'hasOverloads' is set to false, with error report.
      *      e.g. If 'tthis' is const but there's no const methods.
+     *
+     * If one or more TemplateDeclaration is in the list, it's always ambiguous match.
      */
     final FuncDeclaration overloadModMatch(Loc loc, Type tthis, ref bool hasOverloads)
     {
         //printf("FuncDeclaration::overloadModMatch('%s')\n", toChars());
+        //if (tthis) printf("\ttthis = %s\n", tthis.toChars());
+
         Match m;
         m.last = MATCHnomatch;
-        overloadApply(this, (Dsymbol s)
+        auto r = overloadApply(this, (Dsymbol s)
         {
+            if (s.isTemplateDeclaration())
+                return 1;
+
             auto f = s.isFuncDeclaration();
             if (!f || f == m.lastf) // skip duplicates
                 return 0;
             m.anyf = f;
 
             auto tf = cast(TypeFunction)f.type;
-            //printf("tf = %s\n", tf->toChars());
+            //printf("tf = %s\n", tf.toChars());
 
             MATCH match;
             if (tthis) // non-static functions are preferred than static ones
@@ -2622,7 +2630,6 @@ public:
 
         LlastIsBetter:
             //printf("\tlastbetter\n");
-            m.count++; // count up
             return 0;
 
         LcurrIsBetter:
@@ -2639,17 +2646,27 @@ public:
             return 0;
         });
 
+        if (r) // ambiguous match
+        {
+            hasOverloads = true;
+            return null;
+        }
+
         if (m.count == 1)       // exact match
         {
             hasOverloads = false;
+            //printf("\tcount == 1, lastf = %s\n", m.lastf.type.toChars());
         }
         else if (m.count > 1)   // better or ambiguous match
         {
             hasOverloads = true;
+            if (m.nextf)        // ambiguous match
+                m.lastf = null;
+            //printf("\tcount > 1, lastf = %s\n", m.lastf ? m.lastf.type.toChars() : null);
         }
         else                    // no match
         {
-            hasOverloads = true;
+            hasOverloads = false;
             auto tf = cast(TypeFunction)this.type;
             assert(tthis);
             assert(!MODimplicitConv(tthis.mod, tf.mod)); // modifier mismatch
@@ -3878,15 +3895,17 @@ extern (C++) int overloadApply(Dsymbol fstart, void* param, int function(void*, 
     return overloadApply(fstart, s => (*fp)(param, s));
 }
 
-extern (C++) static void MODMatchToBuffer(OutBuffer* buf, ubyte lhsMod, ubyte rhsMod)
+extern (C++) void MODMatchToBuffer(OutBuffer* buf, ubyte lhsMod, ubyte rhsMod)
 {
     bool bothMutable = ((lhsMod & rhsMod) == 0);
     bool sharedMismatch = ((lhsMod ^ rhsMod) & MODshared) != 0;
     bool sharedMismatchOnly = ((lhsMod ^ rhsMod) == MODshared);
+
     if (lhsMod & MODshared)
         buf.writestring("shared ");
     else if (sharedMismatch && !(lhsMod & MODimmutable))
         buf.writestring("non-shared ");
+
     if (bothMutable && sharedMismatchOnly)
     {
     }
