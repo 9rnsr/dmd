@@ -267,12 +267,14 @@ public:
 
     Dsymbols *imports;          // imported Dsymbol's
     unsigned char *prots;       // array of PROT, one for each import
+    DsymbolTable *pkgtree;
 
     ScopeDsymbol();
     ScopeDsymbol(Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Dsymbol *search(Loc loc, Identifier *ident, int flags);
     void importScope(Dsymbol *s, PROT protection);
+    void importScope2(Scope *sc, Identifiers *packages, Dsymbol *s);
     bool isforwardRef();
     void defineRef(Dsymbol *s);
     static void multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2);

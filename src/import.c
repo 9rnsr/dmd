@@ -104,7 +104,7 @@ void Import::load(Scope *sc)
     //printf("Import::load('%s') %p\n", toPrettyChars(), this);
 
     // See if existing module
-    DsymbolTable *dst = Package::resolve(packages, NULL, &pkg);
+    DsymbolTable *dst = Package::resolve(Module::modules, packages, NULL, &pkg);
 #if 0
     if (pkg && pkg->isModule())
     {
@@ -135,11 +135,11 @@ void Import::load(Scope *sc)
                     else
                         assert(p->isPkgMod == PKGmodule);
                 }
-                else if (p->isPkgMod == PKGmodule)
+                else
                 {
-                    mod = p->mod;
+                    mod = p->isPackageMod();
                 }
-                if (p->isPkgMod != PKGmodule)
+                if (!mod)
                 {
                     ::error(loc, "can only import from a module, not from package %s.%s",
                         p->toPrettyChars(), id->toChars());
@@ -184,11 +184,15 @@ void Import::importAll(Scope *sc)
         if (mod)                // if successfully loaded module
         {   mod->importAll(NULL);
 
-            if (!isstatic && !aliasId && !names.dim)
+            if (!aliasId && !names.dim)
             {
-                if (sc->explicitProtection)
-                    protection = sc->protection;
-                sc->scopesym->importScope(mod, protection);
+                if (!isstatic)
+                {
+                    if (sc->explicitProtection)
+                        protection = sc->protection;
+                    sc->scopesym->importScope(mod, protection);
+                }
+                sc->scopesym->importScope2(sc, packages, mod);
             }
         }
     }
@@ -212,31 +216,25 @@ void Import::semantic(Scope *sc)
 
     if (mod)
     {
-#if 0
-        if (mod->loc.linnum != 0)
-        {   /* If the line number is not 0, then this is not
-             * a 'root' module, i.e. it was not specified on the command line.
-             */
-            mod->importedFrom = sc->module->importedFrom;
-            assert(mod->importedFrom);
-        }
-#endif
-
         // Modules need a list of each imported module
         //printf("%s imports %s\n", sc->module->toChars(), mod->toChars());
         sc->module->aimports.push(mod);
 
-        if (!isstatic && !aliasId && !names.dim)
+        if (!aliasId && !names.dim)
         {
-            if (sc->explicitProtection)
+            if (!isstatic && sc->explicitProtection)
                 protection = sc->protection;
             for (Scope *scd = sc; scd; scd = scd->enclosing)
             {
-                if (scd->scopesym)
+                if (!scd->scopesym)
+                    continue;
+
+                if (!isstatic)
                 {
                     scd->scopesym->importScope(mod, protection);
-                    break;
                 }
+                scd->scopesym->importScope2(sc, packages, mod);
+                break;
             }
         }
 
