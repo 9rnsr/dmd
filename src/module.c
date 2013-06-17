@@ -517,7 +517,7 @@ void Module::parse()
         this->ident = md->id;
         this->safe = md->safe;
         Package *ppack = NULL;
-        dst = Package::resolve(md->packages, &this->parent, &ppack);
+        dst = Package::resolve(Module::modules, md->packages, &this->parent, &ppack);
 #if 0
         if (ppack && ppack->isModule())
         {
@@ -564,7 +564,7 @@ void Module::parse()
         Package *p = new Package(ident);
         p->parent = this->parent;
         p->isPkgMod = PKGmodule;
-        p->mod = this;
+        p->aliased = this;
         p->symtab = new DsymbolTable();
         s = p;
     }
@@ -595,7 +595,7 @@ void Module::parse()
                  * link it to the actual module.
                  */
                 pkg->isPkgMod = PKGmodule;
-                pkg->mod = this;
+                pkg->aliased = this;
             }
             else
                 error(pkg->loc, "from file %s conflicts with package name %s",
@@ -606,6 +606,21 @@ void Module::parse()
     {
         // Add to global array of all modules
         amodules.push(this);
+    }
+
+    if (md && md->packages && md->packages->dim)
+    {
+        /* Insert self module FQN to local package tree.
+         *
+         *  module p1.p2.mod;
+         *  void foo() {}
+         *  void main() { p1.p2.mod.foo(); }
+         *  // access current module by FQN
+         */
+        if (!pkgtree)
+            pkgtree = new DsymbolTable();
+        DsymbolTable *dst = Package::resolve(pkgtree, md->packages, NULL, NULL);
+        dst->insert(this);
     }
 }
 
@@ -1076,7 +1091,7 @@ Package::Package(Identifier *ident)
         : ScopeDsymbol(ident)
 {
     this->isPkgMod = PKGunknown;
-    this->mod = NULL;
+    this->aliased = NULL;
 }
 
 
@@ -1087,6 +1102,7 @@ const char *Package::kind()
 
 /****************************************************
  * Input:
+ *      dst             package tree root
  *      packages[]      the pkg1.pkg2 of pkg1.pkg2.mod
  * Returns:
  *      the symbol table that mod should be inserted into
@@ -1095,9 +1111,8 @@ const char *Package::kind()
  *      *ppkg           the leftmost package, i.e. pkg1, or NULL if no packages
  */
 
-DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package **ppkg)
+DsymbolTable *Package::resolve(DsymbolTable *dst, Identifiers *packages, Dsymbol **pparent, Package **ppkg)
 {
-    DsymbolTable *dst = Module::modules;
     Dsymbol *parent = NULL;
 
     //printf("Package::resolve()\n");

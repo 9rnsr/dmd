@@ -825,6 +825,7 @@ ScopeDsymbol::ScopeDsymbol()
     symtab = NULL;
     imports = NULL;
     prots = NULL;
+    pkgtree = NULL;
 }
 
 ScopeDsymbol::ScopeDsymbol(Identifier *id)
@@ -834,6 +835,7 @@ ScopeDsymbol::ScopeDsymbol(Identifier *id)
     symtab = NULL;
     imports = NULL;
     prots = NULL;
+    pkgtree = NULL;
 }
 
 Dsymbol *ScopeDsymbol::syntaxCopy(Dsymbol *s)
@@ -854,22 +856,38 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
     //printf("%s->ScopeDsymbol::search(ident='%s', flags=x%x)\n", toChars(), ident->toChars(), flags);
     //if (strcmp(ident->toChars(),"c") == 0) *(char*)0=0;
 
-    if (Package *pkg = isPackage())
+    Package *pkg = isPackage();
+    if (pkg)
     {
-        if (!pkg->isModule() && pkg->mod)
+        if (Module *m = pkg->isPackageMod())
         {
-            // Prefer full package name.
+            /* Prefer full package name.
+             *
+             *  import std.algorithm;
+             *  import std; // std/package.d
+             *  void main() {
+             *      std.algorithm.map!(a=>a*2)([1,2,3]);    // Prefer FQN
+             *      std.map!(a=>a*2)([1,2,3]);
+             *      map!(a=>a*2)([1,2,3]);
+             *  }
+             */
             Dsymbol *s = pkg->symtab ? pkg->symtab->lookup(ident) : NULL;
             if (s)
                 return s;
             //printf("[%s] through pkdmod: %s\n", loc.toChars(), pkg->toChars());
-            return pkg->mod->search(loc, ident, flags);
+            return m->search(loc, ident, flags);
         }
+        pkg = pkg->enclosingPkg();
     }
 
     // Look in symbols declared in this module
     Dsymbol *s = symtab ? symtab->lookup(ident) : NULL;
     //printf("\ts = %p, imports = %p, %d\n", s, imports, imports ? imports->dim : 0);
+    if (!s && pkg)
+    {
+        //printf("[%s] pkg = %s, ident = %s\n", loc.toChars(), pkg->toChars(), ident->toChars());
+        s = pkg->search(loc, ident, flags);
+    }
     if (s)
     {
         //printf("\ts = '%s.%s'\n",toChars(),s->toChars());
@@ -1022,6 +1040,147 @@ void ScopeDsymbol::importScope(Dsymbol *s, PROT protection)
         imports->push(s);
         prots = (unsigned char *)mem.realloc(prots, imports->dim * sizeof(prots[0]));
         prots[imports->dim - 1] = protection;
+    }
+}
+
+Package *findPackage(DsymbolTable *dst, Identifiers *packages, size_t dim)
+{
+    if (packages && dim)
+    {
+        assert(dim <= packages->dim);
+        Package *pkg;
+        for (size_t i = 0; i < dim; i++)
+        {
+            assert(dst);
+            Identifier *pid = (*packages)[i];
+            Dsymbol *p = dst->lookup(pid);
+            if (!p)
+                return NULL;
+            pkg = p->isPackage();
+            assert(pkg);
+            dst = pkg->symtab;
+        }
+        return pkg;
+    }
+    return NULL;
+}
+
+void ScopeDsymbol::importScope2(Scope *sc, Identifiers *packages, Dsymbol *s)
+{
+    //printf("%s->ScopeDsymbol::importScope2(%s)\n", toChars(), s->toChars());
+
+    // No circular or redundant import's
+    if (s == this)
+        return;
+
+    Module *mod = s->isModule();
+    if (!sc || !mod)
+        return;
+
+    if (!pkgtree)
+        pkgtree = new DsymbolTable();
+    DsymbolTable *dst = Package::resolve(pkgtree, packages, NULL, NULL);
+    if (!dst->insert(mod))
+    {
+        // conflict error is already reported in Module::parse()
+        return;
+    }
+
+    /* Make links from inner packages to the corresponding outer packages.
+     *
+     *  import std.algorithm;
+     *  // In here, local package tree [A] have a Package 'std' (a),
+     *  // and it contains a module 'algorithm'.
+     *
+     *  class C {
+     *    import std.range;
+     *    // In here, local package tree [B] contains a Package 'std' (b),
+     *    // and it contains a module 'range'.
+     *
+     *    void test() {
+     *      std.algorith.map!(a=>a*2)(...);
+     *      // 'algorithm' doesn't exist in (b)->symtab, so (b) should have
+     *      // a link to (a).
+     *    }
+     *  }
+     *
+     * After that, (b)->enclosingPkg() will return (a).
+     */
+    if (packages)
+    {
+        dst = pkgtree;
+        //printf("insert mod %s into pkgtree(%p) under %s\n", mod->toChars(), pkgtree, parent->toChars());
+
+        // Find enclosing scope
+        Scope *scx = sc;
+        while (scx && scx->scopesym != this)
+            scx = scx->enclosing;
+        assert(scx && scx->scopesym == this);
+        scx = scx->enclosing;
+        if (!scx)
+            return;
+
+        for (size_t i = 0; i < packages->dim; i++)
+        {
+            assert(dst);
+            Dsymbol *s = dst->lookup((*packages)[i]);
+            assert(s);
+            Package *inn_pkg = s->isPackage();
+            assert(inn_pkg);
+
+            Package *out_pkg = NULL;
+            for (; scx; scx = scx->enclosing)
+            {
+                if (!scx->scopesym)
+                    continue;
+                //printf("\t+ scx->scopesym = x%p %s\n", scx->scopesym, scx->scopesym->toChars());
+                if (!scx->scopesym->pkgtree)
+                    continue;
+
+                out_pkg = findPackage(scx->scopesym->pkgtree, packages, i + 1);
+                if (!out_pkg)
+                    continue;
+
+                /* Importing package.d hides outer scope imports, so
+                 * further searching is not necessary.
+                 *
+                 *  import std.algorithm;
+                 *  class C1 {
+                 *    import std;
+                 *    // Here is 'scx->scopesym'
+                 *    // out_pkg == 'std' (isPackageMod() != NULL)
+                 *
+                 *    class C2 {
+                 *      import std.range;
+                 *      // Here is 'this'
+                 *      // inn_pkg == 'std' (isPackageMod() == NULL)
+                 *
+                 *      void test() {
+                 *        auto r1 = std.range.iota(10);   // OK
+                 *        auto r2 = std.algorithm.map!(a=>a*2)([1,2,3]);   // NG
+                 *        // std.range is accessible, but
+                 *        // std.algorithm isn't. Because identifier
+                 *        // 'algorithm' is found in std/package.d
+                 *      }
+                 *    }
+                 *  }
+                 */
+                if (out_pkg->isPkgMod == PKGmodule)
+                    return;
+
+                //printf("link out(%s:%p) to (%s:%p)\n", out_pkg->toPrettyChars(), out_pkg, inn_pkg->toPrettyChars(), inn_pkg);
+                inn_pkg->aliased = out_pkg;
+                break;
+            }
+
+            /* There's no corresponding package in enclosing scope, so
+             * further searching is not necessary.
+             */
+            if (!out_pkg)
+                break;
+
+            dst = inn_pkg->symtab;
+        }
     }
 }
 

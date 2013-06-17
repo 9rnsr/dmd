@@ -3483,7 +3483,37 @@ Lagain:
         {   error("forward reference of import %s", imp->toChars());
             return new ErrorExp();
         }
-        ScopeExp *ie = new ScopeExp(loc, imp->pkg);
+        ScopeDsymbol *sds;
+        if (!imp->parent)
+        {
+            //printf("[%s] imp = %s imp->ident = %s\n", imp->loc.toChars(), imp->toChars(), imp->ident->toChars());
+            // TODO: function local import
+            sds = imp->pkg;
+        }
+        else if (!imp->packages || !imp->packages->dim)
+        {
+            sds = imp->pkg;
+        }
+        else
+        {
+            sds = imp->parent->isScopeDsymbol();
+            assert(sds);    // todo
+            if (!sds->pkgtree)
+            {
+                printf("[%s] imp = %s imp->ident = %s\n", imp->loc.toChars(), imp->toChars(), imp->ident->toChars());
+            }
+            assert(sds->pkgtree);
+            Dsymbol *s = sds->pkgtree->lookup(imp->ident);
+            if (!s)
+            {
+                printf("sds->pkgtree = %p\n", sds->pkgtree);
+                printf("[%s] imp = %s imp->ident = %s\n", imp->loc.toChars(), imp->toChars(), imp->ident->toChars());
+            }
+            assert(s);
+            sds = s->isScopeDsymbol();
+            assert(sds);
+        }
+        ScopeExp *ie = new ScopeExp(loc, sds);
         return ie->semantic(sc);
     }
     pkg = s->isPackage();
