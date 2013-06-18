@@ -51,3 +51,48 @@ struct S
         this(Endian end = std.system.endian) {}
     }
 }
+
+struct S1
+{
+    import imports.test313c1;
+
+    void test()
+    {
+        static assert(!__traits(compiles, baz()));
+        static assert(!__traits(compiles, imports.test313d.baz()));
+        static assert(!__traits(compiles, imports.test313c1.imports.test313d.baz()));
+    }
+}
+struct S2
+{
+    import imports.test313c2;
+
+    void test()
+    {
+        static assert(!__traits(compiles, baz()));
+        static assert(!__traits(compiles, imports.test313d.baz()));
+        static assert(!__traits(compiles, imports.test313c1.imports.test313d.baz()));
+    }
+}
+struct S3
+{
+    import imports.test313c3;
+
+    void test()
+    {
+        baz();
+        imports.test313d.baz();
+        static assert(!__traits(compiles, imports.test313c1.imports.test313d.baz()));
+    }
+}
+struct S4
+{
+    import imports.test313c4;
+
+    void test()
+    {
+        static assert(!__traits(compiles, baz()));
+        imports.test313d.baz();
+        static assert(!__traits(compiles, imports.test313c1.imports.test313d.baz()));
+    }
+}
