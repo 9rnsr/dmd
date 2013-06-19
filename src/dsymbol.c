@@ -861,21 +861,23 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
     {
         if (Module *m = pkg->isPackageMod())
         {
-            /* Prefer full package name.
+            /* Prefer symbols declared in package.d.
              *
              *  import std.algorithm;
              *  import std; // std/package.d
              *  void main() {
-             *      std.algorithm.map!(a=>a*2)([1,2,3]);    // Prefer FQN
-             *      std.map!(a=>a*2)([1,2,3]);
              *      map!(a=>a*2)([1,2,3]);
+             *      std.map!(a=>a*2)([1,2,3]);
+             *      std.algorithm.map!(a=>a*2)([1,2,3]);
+             *      // iff std/package.d doesn't have a symbol named "algorithm",
+             *      // std/algorithm.d would hit.
              *  }
              */
-            Dsymbol *s = pkg->symtab ? pkg->symtab->lookup(ident) : NULL;
+            Dsymbol *s = m->search(loc, ident, flags);
             if (s)
                 return s;
             //printf("[%s] through pkdmod: %s\n", loc.toChars(), pkg->toChars());
-            return m->search(loc, ident, flags);
+            return pkg->symtab ? pkg->symtab->lookup(ident) : NULL;
         }
         pkg = pkg->enclosingPkg();
     }
