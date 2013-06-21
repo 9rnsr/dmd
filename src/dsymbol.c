@@ -1048,16 +1048,19 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                             if (!imp->packages || !imp->packages->dim)
                             {
                                 s2 = imp->pkg;
+                                //printf("!?-> s2 = %s %s\n", s2->kind(), s2->toChars());
                             }
                             else
                             {
-                                ScopeDsymbol *sds = /*imp->parent*/this->isScopeDsymbol();
-                                assert(sds);    // todo
-                                if (!sds->pkgtree)
-                                {
-                                    printf("[%s] imp = %s imp->ident = %s\n", imp->loc.toChars(), imp->toChars(), imp->ident->toChars());
-                                }
-                                assert(sds->pkgtree);
+                                //ScopeDsymbol *sds = imp->parent->isScopeDsymbol();
+                                //assert(sds);    // todo
+                                //if (!sds->pkgtree)
+                                //{
+                                //    printf("[%s] imp = %s imp->ident = %s\n", imp->loc.toChars(), imp->toChars(), imp->ident->toChars());
+                                //}
+                                //assert(sds->pkgtree);
+                                ScopeDsymbol *sds = this;
+                                assert(sds->imports && sds->pkgtree);
                                 Dsymbol *sx = sds->pkgtree->lookup(id/*imp->ident*/);
                                 if (!sx)
                                 {
