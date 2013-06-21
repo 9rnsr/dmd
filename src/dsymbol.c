@@ -1088,6 +1088,12 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             }
         }
     }
+    if (!s)
+        if (!(flags & 8) && pkgtree)
+        {
+            s = pkgtree->lookup(ident);
+            //printf("ident = %s\n", ident->toChars());
+        }
     return s;
 }
 

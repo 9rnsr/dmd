@@ -236,7 +236,12 @@ void Import::semantic(Scope *sc)
                     Import *imp = (*mod->ScopeDsymbol::imports)[i]->isImport();
                     if (imp && mod->prots[i] == PROTpublic)
                     {
-                        scd->scopesym->importScope(imp, protection);
+                        //printf("imp = %s %s doImportScope2 = %d\n", imp->loc.toChars(), imp->toPrettyChars(), !imp->aliasId && !imp->names.dim);
+                        //Import *imp2 = imp->syntaxCopy();
+                        //imp2->pkg = imp->pkg;
+                        //imp2->mod = imp->mod;
+                        //imp2->isstatic = true;
+                        //scd->scopesym->importScope(imp2, protection);
                         if (!imp->aliasId && !imp->names.dim)
                             scd->scopesym->importScope2(sc, imp->packages, imp->mod);
                     }
