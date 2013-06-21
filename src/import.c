@@ -422,8 +422,17 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
         mod->semantic();
     }
 
+    if (isstatic)
+        return NULL;
+
+    // Keep backward compatibility - renamed import is implicitly static
+    if (aliasId)
+        return NULL;
+
+    /* Don't find private members and import declarations
+     */
     // Forward it to the package/module
-    return pkg->search(loc, ident, flags);
+    return mod->search(loc, ident, flags | 8 | 1);
 }
 
 bool Import::overloadInsert(Dsymbol *s)

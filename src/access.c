@@ -295,14 +295,14 @@ int hasPackageAccess(Scope *sc, Dsymbol *s)
     {
         if (Module *m = s->isModule())
         {
-            DsymbolTable *dst = Package::resolve(m->md ? m->md->packages : NULL, NULL, NULL);
+            DsymbolTable *dst = Package::resolve(Module::modules, m->md ? m->md->packages : NULL, NULL, NULL);
             assert(dst);
             Dsymbol *s2 = dst->lookup(m->ident);
             assert(s2);
             Package *p = s2->isPackage();
             if (p && p->isPkgMod == PKGmodule)
             {
-                assert(p->mod == m);
+                assert(p->aliased == m);
                 pkg = p;
                 break;
             }
@@ -324,7 +324,7 @@ int hasPackageAccess(Scope *sc, Dsymbol *s)
 #endif
             return 1;
         }
-        if (pkg->isPkgMod == PKGmodule && pkg->mod == sc->module)
+        if (pkg->isPackageMod() == sc->module)
         {
 #if LOG
             printf("\ts is in same package.d module as sc\n");

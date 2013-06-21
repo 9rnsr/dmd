@@ -493,8 +493,9 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
 
         if (!xerreq)
         {
-            Expression *e = new IdentifierExp(loc, Id::empty);
-            e = new DotIdExp(loc, e, Id::object);
+            //Expression *e = new IdentifierExp(loc, Id::empty);
+            //e = new DotIdExp(loc, e, Id::object);
+            Expression *e = new IdentifierExp(loc, Id::object);
             e = new DotIdExp(loc, e, Lexer::idPool("_xopEquals"));
             e = e->semantic(sc);
             Dsymbol *s = getDsymbol(e);

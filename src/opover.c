@@ -971,8 +971,9 @@ Expression *EqualExp::op_overload(Scope *sc)
             if (cd2->isInterfaceDeclaration())
                 e2x = new CastExp(loc, e2, t2->isMutable() ? to : to->constOf());
 
-            Expression *e = new IdentifierExp(loc, Id::empty);
-            e = new DotIdExp(loc, e, Id::object);
+            //Expression *e = new IdentifierExp(loc, Id::empty);
+            //e = new DotIdExp(loc, e, Id::object);
+            Expression *e = new IdentifierExp(loc, Id::object);
             e = new DotIdExp(loc, e, Id::eq);
             e = new CallExp(loc, e, e1x, e2x);
             e = e->semantic(sc);

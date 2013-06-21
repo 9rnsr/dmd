@@ -30,7 +30,7 @@ void main()
         static assert(!__traits(compiles, imports.test313a.foo()));     // NG
     }
 
-    .imports.test313a.foo();        // OK
+    //.imports.test313a.foo();        // OK -> NG by fixing bug314
     static assert(!__traits(compiles, { auto y = .test.global; }));     // NG
 
     C.imports.test313b.bar();

@@ -893,12 +893,6 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
     }
     if (s)
     {
-        // Done in Import::toAlias()
-        //if (Import *imp = s->isImport())
-        //{
-        //    assert(imp->aliasId);
-        //    s = imp->mod;
-        //}
         //printf("\ts = '%s.%s'\n",toChars(),s->toChars());
     }
     else if (imports)
@@ -908,20 +902,14 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
         // Look in imported modules
         for (size_t i = 0; i < imports->dim; i++)
         {
-            Dsymbol *ss = (*imports)[i];
-            Dsymbol *s2;
-
             // If private import, don't search it
-            if (flags & 1 && prots[i] == PROTprivate)
-                continue;
-            Import *imp = ss->isImport();
-            if (imp->isstatic)
+            if ((flags & 1) && prots[i] == PROTprivate)
                 continue;
 
-            //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
-            /* Don't find private members if ss is a module
-             */
-            s2 = ss->search(loc, ident, imp ? 1 : 0);
+            //printf("\tscanning imports[%d] : %s '%s', prots = %d\n",
+            //       i, (*imports)[i]->kind(), (*imports)[i]->toChars(), prots[i]);
+            Dsymbol *ss = (*imports)[i];
+            Dsymbol *s2 = ss->search(loc, ident, 0);
             if (!s)
                 s = s2;
             else if (s2 && s != s2)
@@ -1037,16 +1025,55 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                 {
                     Identifier *id;
                     if (imp->aliasId)
-                        id = imp->aliasId;
-                    else if (imp->packages && imp->packages->dim)
-                        id = (*imp->packages)[0];
-                    else
-                        id = imp->mod->ident;
-                    if (ident == id)
                     {
-                        //DsymbolTable *dst = Package::resolve(/*local-pkg-tree, */imp->packages, NULL, NULL);
-                        //s2 = dst->lookup(id);
-                        s2 = imp->pkg;  // leftmost package/module
+                        if (ident == imp->aliasId)
+                            s2 = imp->mod;
+                    }
+                    else
+                    {
+                        if (imp->packages && imp->packages->dim)
+                            id = (*imp->packages)[0];
+                        else
+                            id = imp->mod->ident;
+                        if (ident == id)
+                        {
+                            //printf("weak package name lookup : id=%s, ident=%s @, imp = %s\n", id->toChars(), ident->toChars(), imp->loc.toChars());
+                        #if 1
+                            //if (!imp->parent)
+                            //{
+                            //    // TODO: function local import
+                            //    s2 = imp->pkg;
+                            //}
+                            //else
+                            if (!imp->packages || !imp->packages->dim)
+                            {
+                                s2 = imp->pkg;
+                            }
+                            else
+                            {
+                                ScopeDsymbol *sds = /*imp->parent*/this->isScopeDsymbol();
+                                assert(sds);    // todo
+                                if (!sds->pkgtree)
+                                {
+                                    printf("[%s] imp = %s imp->ident = %s\n", imp->loc.toChars(), imp->toChars(), imp->ident->toChars());
+                                }
+                                assert(sds->pkgtree);
+                                Dsymbol *sx = sds->pkgtree->lookup(id/*imp->ident*/);
+                                if (!sx)
+                                {
+                                    printf("sds->pkgtree = %p\n", sds->pkgtree);
+                                    printf("[%s] imp = %s imp->ident = %s\n", imp->loc.toChars(), imp->toChars(), imp->ident->toChars());
+                                }
+                                assert(sx);
+                                s2 = sx;
+                                //printf("!!-> s2 = %s %s\n", s2->kind(), s2->toChars());
+                            }
+                        #else
+                            //DsymbolTable *dst = Package::resolve(/*local-pkg-tree, */imp->packages, NULL, NULL);
+                            //s2 = dst->lookup(id);
+                            s2 = imp->pkg;  // leftmost package/module
+                        #endif
+                        }
                     }
                 }
                 if (!s)
