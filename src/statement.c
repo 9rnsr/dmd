@@ -5147,7 +5147,8 @@ Statement *ImportStatement::syntaxCopy()
     Dsymbols *m = new Dsymbols();
     m->setDim(imports->dim);
     for (size_t i = 0; i < imports->dim; i++)
-    {   Dsymbol *s = (*imports)[i];
+    {
+        Dsymbol *s = (*imports)[i];
         (*m)[i] = s->syntaxCopy(NULL);
     }
     return new ImportStatement(loc, m);
@@ -5156,7 +5157,8 @@ Statement *ImportStatement::syntaxCopy()
 Statement *ImportStatement::semantic(Scope *sc)
 {
     for (size_t i = 0; i < imports->dim; i++)
-    {   Import *s = (*imports)[i]->isImport();
+    {
+        Import *s = (*imports)[i]->isImport();
 
         for (size_t i = 0; i < s->names.dim; i++)
         {

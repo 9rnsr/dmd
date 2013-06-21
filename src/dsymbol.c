@@ -880,7 +880,8 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
 
         // Look in imported modules
         for (size_t i = 0; i < imports->dim; i++)
-        {   Dsymbol *ss = (*imports)[i];
+        {
+            Dsymbol *ss = (*imports)[i];
             Dsymbol *s2;
 
             // If private import, don't search it
@@ -1010,7 +1011,8 @@ void ScopeDsymbol::importScope(Dsymbol *s, PROT protection)
         else
         {
             for (size_t i = 0; i < imports->dim; i++)
-            {   Dsymbol *ss = (*imports)[i];
+            {
+                Dsymbol *ss = (*imports)[i];
                 if (ss == s)                    // if already imported
                 {
                     if (protection > prots[i])

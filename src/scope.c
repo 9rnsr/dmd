@@ -244,7 +244,8 @@ void Scope::mergeCallSuper(Loc loc, unsigned cs)
 }
 
 Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym)
-{   Dsymbol *s;
+{
+    Dsymbol *s;
     Scope *sc;
 
     //printf("Scope::search(%p, '%s')\n", this, ident->toChars());
