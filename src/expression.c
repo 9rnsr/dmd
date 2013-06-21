@@ -12203,8 +12203,9 @@ Expression *PowExp::semantic(Scope *sc)
         }
     }
 
-    e = new IdentifierExp(loc, Id::empty);
-    e = new DotIdExp(loc, e, Id::std);
+    //e = new IdentifierExp(loc, Id::empty);
+    //e = new DotIdExp(loc, e, Id::std);
+    e = new IdentifierExp(loc, Id::std);
     e = new DotIdExp(loc, e, Id::math);
     if (e2->op == TOKfloat64 && e2->toReal() == 0.5)
     {   // Replace e1 ^^ 0.5 with .std.math.sqrt(x)
