@@ -376,6 +376,7 @@ void Dsymbol::inlineScan()
  *      flags:  1       don't find private members
  *              2       don't give error messages
  *              4       return NULL if ambiguous
+ *              8       don't find imported FQNs
  * Returns:
  *      NULL if not found
  */
@@ -892,6 +893,12 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
     }
     if (s)
     {
+        // Done in Import::toAlias()
+        //if (Import *imp = s->isImport())
+        //{
+        //    assert(imp->aliasId);
+        //    s = imp->mod;
+        //}
         //printf("\ts = '%s.%s'\n",toChars(),s->toChars());
     }
     else if (imports)
@@ -907,11 +914,14 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             // If private import, don't search it
             if (flags & 1 && prots[i] == PROTprivate)
                 continue;
+            Import *imp = ss->isImport();
+            if (imp->isstatic)
+                continue;
 
             //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
             /* Don't find private members if ss is a module
              */
-            s2 = ss->search(loc, ident, ss->isModule() ? 1 : 0);
+            s2 = ss->search(loc, ident, imp ? 1 : 0);
             if (!s)
                 s = s2;
             else if (s2 && s != s2)
@@ -983,18 +993,19 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             }
         }
 
-        /* Build special symbol if we had multiple finds
-         */
-        if (a)
-        {   assert(s);
-            a->push(s);
-            s = a;
-        }
-
         if (s)
         {
-            if (!(flags & 2))
-            {   Declaration *d = s->isDeclaration();
+            /* Build special symbol if we had multiple finds
+             */
+            if (a)
+            {
+                a->push(s);
+                s = a;
+            }
+
+            if (!(flags & 2) && !s->isOverloadable())
+            {
+                Declaration *d = s->isDeclaration();
                 if (d && d->protection == PROTprivate &&
                     !d->parent->isTemplateMixin())
                     error(loc, "%s is private", d->toPrettyChars());
@@ -1009,10 +1020,41 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                     !ed->parent->isTemplateMixin())
                     error(loc, "%s is private", ed->toPrettyChars());
 
-                TemplateDeclaration *td = s->isTemplateDeclaration();
-                if (td && td->protection == PROTprivate &&
-                    !td->parent->isTemplateMixin())
-                    error(loc, "%s is private", td->toPrettyChars());
+                //TemplateDeclaration *td = s->isTemplateDeclaration();
+                //if (td && td->protection == PROTprivate &&
+                //    !td->parent->isTemplateMixin())
+                //    error(loc, "%s is private", td->toPrettyChars());
+            }
+        }
+        else if (!(flags & 8))
+        {
+            for (size_t i = 0; i < imports->dim; i++)
+            {
+                Dsymbol *ss = (*imports)[i];
+                Dsymbol *s2 = NULL;
+
+                if (Import *imp = ss->isImport())
+                {
+                    Identifier *id;
+                    if (imp->aliasId)
+                        id = imp->aliasId;
+                    else if (imp->packages && imp->packages->dim)
+                        id = (*imp->packages)[0];
+                    else
+                        id = imp->mod->ident;
+                    if (ident == id)
+                    {
+                        //DsymbolTable *dst = Package::resolve(/*local-pkg-tree, */imp->packages, NULL, NULL);
+                        //s2 = dst->lookup(id);
+                        s2 = imp->pkg;  // leftmost package/module
+                    }
+                }
+                if (!s)
+                    s = s2;
+                else if (s2 && s != s2)
+                {
+                    /* never reachable? */
+                }
             }
         }
     }

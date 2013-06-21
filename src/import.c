@@ -51,6 +51,7 @@ Import::Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *alias
     this->pkg = NULL;
     this->mod = NULL;
 
+#if 0
     // Set symbol name (bracketed)
     // import [cstdio] = std.stdio;
     if (aliasId)
@@ -61,6 +62,7 @@ Import::Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *alias
     // import [foo];
     else
         this->ident = id;
+#endif
 }
 
 void Import::addAlias(Identifier *name, Identifier *alias)
@@ -68,8 +70,8 @@ void Import::addAlias(Identifier *name, Identifier *alias)
     if (isstatic)
         error("cannot have an import bind list");
 
-    if (!aliasId)
-        this->ident = NULL;     // make it an anonymous import
+    //if (!aliasId)
+    //    this->ident = NULL;     // make it an anonymous import
 
     names.push(name);
     aliases.push(alias);
@@ -185,16 +187,11 @@ void Import::importAll(Scope *sc)
         {
             mod->importAll(NULL);
 
+            if (sc->explicitProtection)
+                protection = sc->protection;
+            sc->scopesym->importScope(this, protection);
             if (!aliasId && !names.dim)
-            {
-                if (!isstatic)
-                {
-                    if (sc->explicitProtection)
-                        protection = sc->protection;
-                    sc->scopesym->importScope(mod, protection);
-                }
                 sc->scopesym->importScope2(sc, packages, mod);
-            }
         }
     }
 }
@@ -223,20 +220,27 @@ void Import::semantic(Scope *sc)
         //printf("%s imports %s\n", sc->module->toChars(), mod->toChars());
         sc->module->aimports.push(mod);
 
-        if (!aliasId && !names.dim)
+        if (sc->explicitProtection)
+            protection = sc->protection;
+        for (Scope *scd = sc; scd; scd = scd->enclosing)
         {
-            if (!isstatic && sc->explicitProtection)
-                protection = sc->protection;
-            for (Scope *scd = sc; scd; scd = scd->enclosing)
+            if (scd->scopesym)
             {
-                if (!scd->scopesym)
-                    continue;
+                scd->scopesym->importScope(this, protection);
+                if (!aliasId && !names.dim)
+                    scd->scopesym->importScope2(sc, packages, mod);
 
-                if (!isstatic)
+                if (mod->ScopeDsymbol::imports)
+                for (size_t i = 0; i < mod->ScopeDsymbol::imports->dim; i++)
                 {
-                    scd->scopesym->importScope(mod, protection);
+                    Import *imp = (*mod->ScopeDsymbol::imports)[i]->isImport();
+                    if (imp && mod->prots[i] == PROTpublic)
+                    {
+                        scd->scopesym->importScope(imp, protection);
+                        if (!imp->aliasId && !imp->names.dim)
+                            scd->scopesym->importScope2(sc, imp->packages, imp->mod);
+                    }
                 }
-                scd->scopesym->importScope2(sc, packages, mod);
                 break;
             }
         }
@@ -249,33 +253,30 @@ void Import::semantic(Scope *sc)
             sc->module->needmoduleinfo = 1;
         }
 
-        sc = sc->push(mod);
-        /* BUG: Protection checks can't be enabled yet. The issue is
-         * that Dsymbol::search errors before overload resolution.
-         */
-#if 0
-        sc->protection = protection;
-#else
-        sc->protection = PROTpublic;
-#endif
-        for (size_t i = 0; i < aliasdecls.dim; i++)
+        for (size_t i = 0; i < names.dim; i++)
         {
-            AliasDeclaration *ad = aliasdecls[i];
+            //AliasDeclaration *ad = aliasdecls[i];
             //printf("\tImport alias semantic('%s')\n", s->toChars());
             if (mod->search(loc, names[i], 0))
             {
+            #if 0   // don't create alias in imported scope.
+                sc = sc->push(mod);
+                sc = sc->push();
+                sc->protection = protection;
                 ad->semantic(sc);
+                sc = sc->pop();
+                sc = sc->pop();
+            #endif
             }
             else
             {
-                Dsymbol *s = mod->search_correct(names[i]);
+                Dsymbol *s = mod->search_correct(names[i]/*, ignore private symbols*/);
                 if (s)
                     mod->error(loc, "import '%s' not found, did you mean '%s %s'?", names[i]->toChars(), s->kind(), s->toChars());
                 else
                     mod->error(loc, "import '%s' not found", names[i]->toChars());
             }
         }
-        sc = sc->pop();
     }
 
     if (global.params.moduleDeps != NULL &&
@@ -382,7 +383,7 @@ Dsymbol *Import::toAlias()
 int Import::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
     int result = 0;
-
+#if 0
     if (names.dim == 0)
         return Dsymbol::addMember(sc, sd, memnum);
 
@@ -407,7 +408,7 @@ int Import::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 
         aliasdecls.push(ad);
     }
-
+#endif
     return result;
 }
 
