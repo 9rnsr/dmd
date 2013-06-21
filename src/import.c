@@ -429,6 +429,25 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
     if (aliasId)
         return NULL;
 
+    if (names.dim)
+    {
+        Identifier *id = NULL;
+        for (size_t i = 0; i < names.dim; i++)
+        {
+            Identifier *name = names[i];
+            Identifier *alias = aliases[i];
+
+            if ((alias ? alias : name) == ident)
+            {
+                id = name;
+                break;
+            }
+        }
+        if (!id)
+            return NULL;
+        ident = id;
+    }
+
     /* Don't find private members and import declarations
      */
     // Forward it to the package/module
