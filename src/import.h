@@ -46,7 +46,7 @@ public:
         int isstatic);
     void addAlias(Identifier *name, Identifier *alias);
 
-    AliasDeclarations aliasdecls; // corresponding AliasDeclarations for alias=name pairs
+    //AliasDeclarations aliasdecls; // corresponding AliasDeclarations for alias=name pairs
 
     Module *mod;
     Package *pkg;               // leftmost package/module

@@ -30,6 +30,7 @@
 #include "template.h"
 #include "attrib.h"
 #include "import.h"
+#include "module.h"
 
 Identifier *fixupLabelName(Scope *sc, Identifier *ident)
 {
@@ -5160,6 +5161,8 @@ Statement *ImportStatement::semantic(Scope *sc)
     {
         Import *s = (*imports)[i]->isImport();
 
+        AliasDeclarations aliasdecls;
+
         for (size_t i = 0; i < s->names.dim; i++)
         {
             Identifier *name = s->names[i];
@@ -5172,16 +5175,19 @@ Statement *ImportStatement::semantic(Scope *sc)
             AliasDeclaration *ad = new AliasDeclaration(s->loc, alias, tname);
             ad->import = s;
 
-            s->aliasdecls.push(ad);
+            /*s->*/aliasdecls.push(ad);
         }
 
         s->semantic(sc);
         s->semantic2(sc);
         sc->insert(s);
 
-        for (size_t i = 0; i < s->aliasdecls.dim; i++)
+        for (size_t i = 0; i < s->names.dim; i++)
         {
-            sc->insert(s->aliasdecls[i]);
+            sc = sc->push(s->mod);
+            aliasdecls[i]->semantic(sc);
+            sc = sc->pop();
+            sc->insert(/*s->*/aliasdecls[i]);
         }
     }
     return this;
