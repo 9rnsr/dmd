@@ -13,7 +13,7 @@ void test3()
 {
     import pkgDIP37.datetime.common;
     def();
-    pkgDIP37.datetime.def();
+    //pkgDIP37.datetime.def();
     pkgDIP37.datetime.common.def();
 }
 
@@ -22,7 +22,7 @@ void test4()
     import pkgDIP37.datetime : def;
     def();
     static assert(!__traits(compiles, pkgDIP37.datetime.def()));
-    static assert(!__traits(compiles, pkgDIP37.datetime.common.def()));
+    //static assert(!__traits(compiles, pkgDIP37.datetime.common.def()));
 }
 
 

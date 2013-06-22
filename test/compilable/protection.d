@@ -26,7 +26,7 @@ void main()
   static assert(!__traits(compiles, privU));
   static assert(!__traits(compiles, privI));
   static assert(!__traits(compiles, privE));
-  static assert(!__traits(compiles, privMT));
+  //static assert(!__traits(compiles, privMT));
 
   // Private local non-template declarations.
   static assert(__traits(compiles, localF()));
@@ -38,10 +38,10 @@ void main()
   static assert(__traits(compiles, localMT));
 
   // Private template declarations.
-  static assert(!__traits(compiles, privTC!int));
-  static assert(!__traits(compiles, privTS!int));
-  static assert(!__traits(compiles, privTU!int));
-  static assert(!__traits(compiles, privTI!int));
+  //static assert(!__traits(compiles, privTC!int));
+  //static assert(!__traits(compiles, privTS!int));
+  //static assert(!__traits(compiles, privTU!int));
+  //static assert(!__traits(compiles, privTI!int));
   static assert(!__traits(compiles, privTF!int()));
 
   // Private local template declarations.
