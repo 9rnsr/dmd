@@ -51,11 +51,13 @@ Import::Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *alias
     this->pkg = NULL;
     this->mod = NULL;
 
-#if 0
+#if 1   // Renamed import will create alias in imported scope
     // Set symbol name (bracketed)
     // import [cstdio] = std.stdio;
     if (aliasId)
         this->ident = aliasId;
+#endif
+#if 0
     // import [std].stdio;
     else if (packages && packages->dim)
         this->ident = (*packages)[0];
@@ -69,9 +71,6 @@ void Import::addAlias(Identifier *name, Identifier *alias)
 {
     if (isstatic)
         error("cannot have an import bind list");
-
-    //if (!aliasId)
-    //    this->ident = NULL;     // make it an anonymous import
 
     names.push(name);
     aliases.push(alias);
@@ -260,16 +259,14 @@ void Import::semantic(Scope *sc)
 
         for (size_t i = 0; i < names.dim; i++)
         {
-            //AliasDeclaration *ad = aliasdecls[i];
             //printf("\tImport alias semantic('%s')\n", s->toChars());
             if (mod->search(loc, names[i], 0))
             {
-            #if 0   // don't create alias in imported scope.
+            #if 1   // don't create alias in imported scope.
+                AliasDeclaration *ad = aliasdecls[i];
                 sc = sc->push(mod);
-                sc = sc->push();
-                sc->protection = protection;
+                //sc->protection = protection;
                 ad->semantic(sc);
-                sc = sc->pop();
                 sc = sc->pop();
             #endif
             }
@@ -388,7 +385,7 @@ Dsymbol *Import::toAlias()
 int Import::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
     int result = 0;
-#if 0
+#if 1
     if (names.dim == 0)
         return Dsymbol::addMember(sc, sd, memnum);
 

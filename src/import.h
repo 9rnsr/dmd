@@ -42,14 +42,15 @@ public:
     Identifiers names;
     Identifiers aliases;
 
-    Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *aliasId,
-        int isstatic);
-    void addAlias(Identifier *name, Identifier *alias);
-
-    //AliasDeclarations aliasdecls; // corresponding AliasDeclarations for alias=name pairs
-
     Module *mod;
     Package *pkg;               // leftmost package/module
+
+    AliasDeclarations aliasdecls; // corresponding AliasDeclarations for alias=name pairs
+
+    Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *aliasId,
+        int isstatic);
+
+    void addAlias(Identifier *name, Identifier *alias);
 
     const char *kind();
     PROT prot();

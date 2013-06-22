@@ -5162,7 +5162,7 @@ Statement *ImportStatement::semantic(Scope *sc)
     {
         Import *s = (*imports)[i]->isImport();
 
-        AliasDeclarations aliasdecls;
+        //AliasDeclarations aliasdecls;
 
         for (size_t i = 0; i < s->names.dim; i++)
         {
@@ -5176,7 +5176,8 @@ Statement *ImportStatement::semantic(Scope *sc)
             AliasDeclaration *ad = new AliasDeclaration(s->loc, alias, tname);
             ad->import = s;
 
-            /*s->*/aliasdecls.push(ad);
+            //aliasdecls.push(ad);
+            s->aliasdecls.push(ad);
         }
 
         s->semantic(sc);
@@ -5185,10 +5186,13 @@ Statement *ImportStatement::semantic(Scope *sc)
 
         for (size_t i = 0; i < s->names.dim; i++)
         {
+        #if 0
             sc = sc->push(s->mod);
             aliasdecls[i]->semantic(sc);
             sc = sc->pop();
-            sc->insert(/*s->*/aliasdecls[i]);
+        #else
+            sc->insert(s->aliasdecls[i]);
+        #endif
         }
     }
     return this;
