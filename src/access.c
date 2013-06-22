@@ -405,32 +405,34 @@ int AggregateDeclaration::hasPrivateAccess(Dsymbol *smember)
 }
 
 /****************************************
- * Check access to d for expression e.d
+ * Check access to s for expression e.s
  */
 
-void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d)
+void accessCheck(Loc loc, Scope *sc, Expression *e, Dsymbol *s)
 {
 #if LOG
     if (e)
-    {   printf("accessCheck(%s . %s)\n", e->toChars(), d->toChars());
+    {
+        printf("accessCheck(%s . %s)\n", e->toChars(), s->toChars());
         printf("\te->type = %s\n", e->type->toChars());
     }
     else
     {
-        printf("accessCheck(%s)\n", d->toPrettyChars());
+        printf("accessCheck(%s)\n", s->toPrettyChars());
     }
 #endif
     if (!e)
     {
-        if (d->prot() == PROTprivate && d->getAccessModule() != sc->module ||
-            d->prot() == PROTpackage && !hasPackageAccess(sc, d))
+        if (s->prot() == PROTprivate && s->getAccessModule() != sc->module ||
+            s->prot() == PROTpackage && !hasPackageAccess(sc, s))
         {
             error(loc, "%s %s is not accessible from module %s",
-                d->kind(), d->toPrettyChars(), sc->module->toChars());
+                s->kind(), s->toPrettyChars(), sc->module->toChars());
         }
     }
     else if (e->type->ty == Tclass)
-    {   // Do access check
+    {
+        // Do access check
         ClassDeclaration *cd = (ClassDeclaration *)(((TypeClass *)e->type)->sym);
         if (e->op == TOKsuper)
         {
@@ -438,11 +440,12 @@ void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d)
             if (cd2)
                 cd = cd2;
         }
-        cd->accessCheck(loc, sc, d);
+        cd->accessCheck(loc, sc, s);
     }
     else if (e->type->ty == Tstruct)
-    {   // Do access check
+    {
+        // Do access check
         StructDeclaration *cd = (StructDeclaration *)(((TypeStruct *)e->type)->sym);
-        cd->accessCheck(loc, sc, d);
+        cd->accessCheck(loc, sc, s);
     }
 }

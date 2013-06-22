@@ -5993,6 +5993,10 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
                 td_best->loc.filename,  td_best->loc.linnum,  td_best->toChars(),
                 td_ambig->loc.filename, td_ambig->loc.linnum, td_ambig->toChars());
     }
+    else
+    {
+        accessCheck(loc, sc, NULL, td_best);
+    }
 
     /* The best match is td_best
      */
