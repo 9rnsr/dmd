@@ -1073,6 +1073,17 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                         #endif
                         }
                     }
+#if 0
+                    if (!s)
+                        s = s2;
+                    else if (s2 && s != s2)
+                    {
+                        Import *imp2 = s2->isImport();
+                        assert(imp2);
+                        if (imp->mod != imp->mod2)
+                            error("conflicts with ...?");
+                    }
+#endif
                 }
                 if (!s)
                     s = s2;
