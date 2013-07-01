@@ -188,7 +188,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
             }
 
             case TOKimport:
-                s = parseImport(decldefs, 0);
+                s = parseImport(decldefs, 0, comment);
                 break;
 
             case TOKtemplate:
@@ -323,7 +323,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                 }
                 else if (token.value == TOKimport)
                 {
-                    s = parseImport(decldefs, 1);
+                    s = parseImport(decldefs, 1, comment);
                 }
                 else
                 {   stc = STCstatic;
@@ -2292,7 +2292,7 @@ Objects *Parser::parseTemplateArgument()
     return tiargs;
 }
 
-Import *Parser::parseImport(Dsymbols *decldefs, int isstatic)
+Import *Parser::parseImport(Dsymbols *decldefs, int isstatic, unsigned char *comment)
 {   Import *s;
     Identifier *id;
     Identifier *aliasid = NULL;
@@ -2374,7 +2374,10 @@ Import *Parser::parseImport(Dsymbols *decldefs, int isstatic)
     } while (token.value == TOKcomma);
 
     if (token.value == TOKsemicolon)
+    {
         nextToken();
+        addComment(s, comment);
+    }
     else
     {
         error("';' expected");
@@ -3844,7 +3847,7 @@ Statement *Parser::parseStatement(int flags, unsigned char** endPtr)
             if (t->value == TOKimport)
             {   nextToken();
                 Dsymbols *imports = new Dsymbols();
-                parseImport(imports, 1);                // static import ...
+                parseImport(imports, 1, NULL);          // static import ...
                 s = new ImportStatement(loc, imports);
                 if (flags & PSscope)
                     s = new ScopeStatement(loc, s);
@@ -4774,7 +4777,7 @@ Statement *Parser::parseStatement(int flags, unsigned char** endPtr)
 
         case TOKimport:
         {   Dsymbols *imports = new Dsymbols();
-            parseImport(imports, 0);
+            parseImport(imports, 0, NULL);
             s = new ImportStatement(loc, imports);
             if (flags & PSscope)
                 s = new ScopeStatement(loc, s);

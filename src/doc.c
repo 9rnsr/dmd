@@ -31,6 +31,7 @@
 #include "enum.h"
 #include "id.h"
 #include "module.h"
+#include "import.h"
 #include "scope.h"
 #include "hdrgen.h"
 #include "doc.h"
@@ -98,6 +99,7 @@ struct DocComment
 int cmp(const char *stringz, void *s, size_t slen);
 int icmp(const char *stringz, void *s, size_t slen);
 int isDitto(unsigned char *comment);
+int isInherit(unsigned char *comment);
 unsigned char *skipwhitespace(unsigned char *p);
 size_t skiptoident(OutBuffer *buf, size_t i);
 size_t skippastident(OutBuffer *buf, size_t i);
@@ -865,6 +867,31 @@ void EnumMember::emitComment(Scope *sc)
     buf->writestring(ddoc_decl_dd_s);
     dc->writeSections(sc, this, buf);
     buf->writestring(ddoc_decl_dd_e);
+}
+
+void Import::emitComment(Scope *sc)
+{
+    //DocComment *dc = DocComment::parse(sc, this, comment);
+    if (!isInherit(comment) || protection != PROTpublic)
+        return;
+
+    if (mod->insearch)
+        return;
+    ++mod->insearch;
+
+    OutBuffer *buf = sc->docbuf;
+    if (mod->members && mod->members->dim)
+    {
+        unsigned offset = buf->offset;  // save starting offset
+        sc = sc->push(mod);
+        for (size_t i = 0; i < mod->members->dim; i++)
+        {
+            Dsymbol *s = (*mod->members)[i];
+            s->emitComment(sc);
+        }
+        sc->pop();
+    }
+    --mod->insearch;
 }
 
 /******************************* toDocBuffer **********************************/
@@ -1781,6 +1808,18 @@ int isDitto(unsigned char *comment)
         unsigned char *p = skipwhitespace(comment);
 
         if (Port::memicmp((char *)p, "ditto", 5) == 0 && *skipwhitespace(p + 5) == 0)
+            return 1;
+    }
+    return 0;
+}
+
+int isInherit(unsigned char *comment)
+{
+    if (comment)
+    {
+        unsigned char *p = skipwhitespace(comment);
+
+        if (Port::memicmp((char *)p, "inherit", 7) == 0 && *skipwhitespace(p + 7) == 0)
             return 1;
     }
     return 0;

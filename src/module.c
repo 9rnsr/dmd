@@ -187,7 +187,8 @@ const char *Module::kind()
 }
 
 Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
-{   Module *m;
+{
+    Module *m;
     char *filename;
 
     //printf("Module::load(ident = '%s')\n", ident->toChars());
@@ -493,7 +494,7 @@ void Module::parse()
             setDocfile();
         return;
     }
-    Parser p(this, buf, buflen, docfile != NULL);
+    Parser p(this, buf, buflen, global.params.doDocComments);
     p.nextToken();
     members = p.parseModule();
 
