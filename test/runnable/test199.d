@@ -39,7 +39,9 @@ void test199b()
         assert(i199b == 7); // local i199b
     }
 
-    assert(i199b == 3); // global i199b
+    //assert(i199b == 3); // global i199b
+    static assert(!__traits(compiles, i199b == 3));
+    assert(.i199b == 3); // global i199b
 }
 
 /******************************************/
@@ -63,7 +65,9 @@ class C199
             assert(i199c == 7); // local i199c
         }
 
-        assert(i199c == 3); // field i199c
+        //assert(i199c == 3); // field i199c
+        static assert(!__traits(compiles, i199c == 3));
+        assert(this.i199c == 3); // field i199c
     }
 }
 

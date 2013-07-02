@@ -3758,6 +3758,14 @@ Statement *Parser::parseStatement(int flags, unsigned char** endPtr)
                 nextToken();
                 nextToken();
                 s = parseStatement(PSsemi_ok | PScurlyscope);
+                //if (ScopeStatement *ss = s->isScopeStatement())
+                //{
+                //    CompoundStatement *cs = ss->statement->isCompoundStatement();
+                //    if (cs && cs->statements->dim > 1)
+                //    {
+                //        warning(ss->loc, "labeled block '%s: {...}' now creates newly scope", ident->toChars());
+                //    }
+                //}
                 s = new LabelStatement(loc, ident, s);
                 break;
             }

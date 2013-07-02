@@ -1259,6 +1259,12 @@ void FuncDeclaration::semantic3(Scope *sc)
             sym->parent = sc2->scopesym;
             sc2 = sc2->push(sym);
 
+            State199 s199;
+            s199.enclosing = NULL;
+            s199.check = NULL;
+            s199.collect = NULL;
+            sc2->state199 = &s199;
+
             AggregateDeclaration *ad = isAggregateMember2();
 
             /* If this is a class constructor
@@ -1473,6 +1479,12 @@ void FuncDeclaration::semantic3(Scope *sc)
             sc2 = sc2->push(sym);
             sc2->flags = (sc2->flags & ~SCOPEcontract) | SCOPErequire;
 
+            State199 s199;
+            s199.enclosing = NULL;
+            s199.check = NULL;
+            s199.collect = NULL;
+            sc2->state199 = &s199;
+
             // BUG: need to error if accessing out parameters
             // BUG: need to treat parameters as const
             // BUG: need to disallow returns and throws
@@ -1498,6 +1510,12 @@ void FuncDeclaration::semantic3(Scope *sc)
 
             sc2 = scout;    //push
             sc2->flags = (sc2->flags & ~SCOPEcontract) | SCOPEensure;
+
+            State199 s199;
+            s199.enclosing = NULL;
+            s199.check = NULL;
+            s199.collect = NULL;
+            sc2->state199 = &s199;
 
             // BUG: need to treat parameters as const
             // BUG: need to disallow returns and throws
@@ -1820,7 +1838,7 @@ bool FuncDeclaration::functionSemantic()
             return false;
     }
 
-    // if inferring return type, sematic3 needs to be run
+    // if inferring return type, semantic3 needs to be run
     if (inferRetType && type && !type->nextOf())
         return functionSemantic3();
 

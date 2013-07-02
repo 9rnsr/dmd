@@ -57,6 +57,13 @@ enum PROT;
 #define SCOPEensure     0x60    // inside out contract code
 #define SCOPEcontract   0x60    // [mask] we're inside contract code
 
+struct State199
+{
+    State199 *enclosing;
+    Dsymbols *collect;
+    Dsymbols *check;
+};
+
 class Scope
 {
 public:
@@ -107,6 +114,8 @@ public:
     DocComment *lastdc;         // documentation comment for last symbol at this scope
     unsigned lastoffset;        // offset in docbuf of where to insert next dec
     OutBuffer *docbuf;          // buffer for documentation output
+
+    State199 *state199;
 
     static Scope *freelist;
     static void *operator new(size_t sz);

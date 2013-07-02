@@ -83,6 +83,7 @@ Scope::Scope()
     this->lastoffset = 0;
     this->docbuf = NULL;
     this->userAttributes = NULL;
+    this->state199 = NULL;
 }
 
 Scope::Scope(Scope *enclosing)
@@ -132,6 +133,7 @@ Scope::Scope(Scope *enclosing)
     this->lastoffset = 0;
     this->docbuf = enclosing->docbuf;
     this->userAttributes = enclosing->userAttributes;
+    this->state199 = enclosing->state199;
     assert(this != enclosing);
 }
 
@@ -244,7 +246,8 @@ void Scope::mergeCallSuper(Loc loc, unsigned cs)
 }
 
 Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym)
-{   Dsymbol *s;
+{
+    Dsymbol *s;
     Scope *sc;
 
     //printf("Scope::search(%p, '%s')\n", this, ident->toChars());
@@ -269,6 +272,7 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym)
         return NULL;
     }
 
+    Dsymbol *sym199 = NULL;
     for (sc = this; sc; sc = sc->enclosing)
     {
         assert(sc != sc->enclosing);
@@ -289,7 +293,21 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym)
                 //printf("\tfound %s.%s, kind = '%s'\n", s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
                 if (pscopesym)
                     *pscopesym = sc->scopesym;
+                if (sym199)
+                {
+                    ::error(loc, "'%s' now refers %s '%s' at %s instead of %s '%s' declared in labeled block at %s",
+                        s->ident->toChars(), s->kind(), s->toPrettyChars(), s->loc.toChars(),
+                        sym199->kind(), sym199->toPrettyChars(), sym199->loc.toChars());
+                }
                 return s;
+            }
+            if (sc->state199 && !sym199 && sc->state199->check)
+            {
+                for (size_t i = 0; i < sc->state199->check->dim; i++)
+                {
+                    if ((*sc->state199->check)[i]->ident == ident)
+                        sym199 = (*sc->state199->check)[i];
+                }
             }
         }
     }

@@ -351,6 +351,23 @@ Statement *ExpStatement::semantic(Scope *sc)
         }
 #endif
 
+        if (sc->state199 && exp && exp->op  == TOKdeclaration)
+        {
+            DeclarationExp *de = (DeclarationExp *)(exp);
+            VarDeclaration *v = de->declaration->isVarDeclaration();
+            if (v)
+            {
+                for (State199 *ps199 = sc->state199; ps199; ps199 = ps199->enclosing)
+                {
+                    if (ps199->check != ps199->collect)
+                    {
+                        ps199->collect->push(v);
+                        break;
+                    }
+                }
+            }
+        }
+
         exp = exp->semantic(sc);
         exp = exp->addDtorHook(sc);
         exp = resolveProperties(sc, exp);
@@ -553,8 +570,7 @@ Statement *CompoundStatement::syntaxCopy()
 
 
 Statement *CompoundStatement::semantic(Scope *sc)
-{   Statement *s;
-
+{
     //printf("CompoundStatement::semantic(this = %p, sc = %p)\n", this, sc);
 
 #if 0
@@ -566,19 +582,46 @@ Statement *CompoundStatement::semantic(Scope *sc)
     }
 #endif
 
+    Dsymbols collect199;
+
     for (size_t i = 0; i < statements->dim; )
     {
-        s = (*statements)[i];
+        Statement *s = (*statements)[i];
         if (s)
-        {   Statements *a = s->flatten(sc);
-
-            if (a)
+        {
+            if (Statements *a = s->flatten(sc))
             {
                 statements->remove(i);
                 statements->insert(i, a);
                 continue;
             }
-            s = s->semantic(sc);
+            if (sc->state199)
+            {
+                State199 s199;
+                s199.enclosing = sc->state199;
+
+                LabelStatement *ls = s->isLabelStatement();
+                ScopeStatement *ss = ls ? ls->statement->isScopeStatement() : NULL;
+                CompoundStatement *cs = ss ? ss->statement->isCompoundStatement() : NULL;
+                if (cs && cs->statements->dim > 1)
+                {
+                    //warning(ss->loc, "labeled block '%s: {...}' now creates newly scope", ident->toChars());
+                    //printf("** [%s] block after label '%s' (%d)\n", cs->loc.toChars(), ls->ident->toChars(), i);
+
+                    s199.check = sc->state199->check;  // inherit enclosing 'check'
+                }
+                else
+                    s199.check = &collect199;
+
+                s199.collect = &collect199;
+                sc->state199 = &s199;
+                s = s->semantic(sc);
+                sc->state199 = s199.enclosing;
+            }
+            else
+            {
+                s = s->semantic(sc);
+            }
             (*statements)[i] = s;
             if (s)
             {
@@ -966,9 +1009,16 @@ Statement *ScopeStatement::semantic(Scope *sc)
     if (statement)
     {   Statements *a;
 
+        //if (sc->warn199names) printf("sc->warn199names ScopeStatement::semantic(%s)\n", toChars());
         sym = new ScopeDsymbol();
         sym->parent = sc->scopesym;
         sc = sc->push(sym);
+
+        State199 s199;
+        s199.enclosing = sc->state199;
+        s199.check = NULL;
+        s199.collect = NULL;
+        sc->state199 = &s199;
 
         a = statement->flatten(sc);
         if (a)
