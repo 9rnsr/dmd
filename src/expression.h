@@ -693,6 +693,7 @@ public:
     int isConst();
     int isBool(int result);
     Expression *doInline(InlineDoState *ids);
+    Expression *implicitCastTo(Scope *sc, Type *t);
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
 
@@ -1035,6 +1036,7 @@ public:
     DelegateExp(Loc loc, Expression *e, FuncDeclaration *func, bool hasOverloads = false);
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
+    Expression *implicitCastTo(Scope *sc, Type *t);
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

@@ -144,6 +144,36 @@ Expression *FuncExp::implicitCastTo(Scope *sc, Type *t)
     return inferType(t)->Expression::implicitCastTo(sc, t);
 }
 
+Expression *SymOffExp::implicitCastTo(Scope *sc, Type *t)
+{
+    if (!hasOverloads)
+        return Expression::implicitCastTo(sc, t);
+
+    Expression *e = Expression::implicitCastTo(sc, t);
+    if (e->op == TOKsymoff)
+    {
+        SymOffExp *se = (SymOffExp *)e;
+        if (!se->hasOverloads)
+            se->checkDeprecated(sc, se->var);
+    }
+    return e;
+}
+
+Expression *DelegateExp::implicitCastTo(Scope *sc, Type *t)
+{
+    if (!hasOverloads)
+        return Expression::implicitCastTo(sc, t);
+
+    Expression *e = Expression::implicitCastTo(sc, t);
+    if (e->op == TOKdelegate)
+    {
+        DelegateExp *de = (DelegateExp *)e;
+        if (!de->hasOverloads)
+            de->checkDeprecated(sc, de->func);
+    }
+    return e;
+}
+
 /*******************************************
  * Return !=0 if we can implicitly convert this to type t.
  * Don't do the actual cast.

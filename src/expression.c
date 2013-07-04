@@ -7834,7 +7834,10 @@ Expression *DotVarExp::semantic(Scope *sc)
                 if (!t)     // no match
                     goto Lerr;
                 if (fd)     // exact match
+                {
                     var = f = fd, hasOverloads = 0;
+                    checkDeprecated(sc, var);
+                }
             }
             if (!hasOverloads)
             {
@@ -8276,7 +8279,10 @@ Expression *DelegateExp::semantic(Scope *sc)
             if (!t)     // no match
                 goto Lerr;
             if (fd)     // exact match
+            {
                 func = fd, hasOverloads = 0;
+                checkDeprecated(sc, func);
+            }
         }
         if (!MODmethodConv(e1->type->mod, func->type->mod))
         {
