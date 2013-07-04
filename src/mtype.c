@@ -7869,6 +7869,7 @@ L1:
     }
     if (v && !v->isDataseg() && (v->storage_class & STCmanifest))
     {
+        accessCheck(e->loc, sc, e, v);
         Expression *ve = new VarExp(e->loc, v);
         ve = ve->semantic(sc);
         return ve;
@@ -7876,13 +7877,17 @@ L1:
 
     if (s->getType())
     {
+        //printf("s = %s %s\n", s->kind(), s->toChars());
+        sym->accessCheck(e->loc, sc, s);
         return new TypeExp(e->loc, s->getType());
     }
 
     EnumMember *em = s->isEnumMember();
     if (em)
     {
-        return em->getVarExp(e->loc, sc);
+        Expression *ve = em->getVarExp(e->loc, sc);
+        sym->accessCheck(e->loc, sc, em->vd);
+        return ve;
     }
 
     TemplateMixin *tm = s->isTemplateMixin();
@@ -8491,6 +8496,7 @@ L1:
     }
     if (v && !v->isDataseg() && (v->storage_class & STCmanifest))
     {
+        accessCheck(e->loc, sc, e, v);
         Expression *ve = new VarExp(e->loc, v);
         ve = ve->semantic(sc);
         return ve;
@@ -8498,13 +8504,16 @@ L1:
 
     if (s->getType())
     {
+        sym->accessCheck(e->loc, sc, s);
         return new TypeExp(e->loc, s->getType());
     }
 
     EnumMember *em = s->isEnumMember();
     if (em)
     {
-        return em->getVarExp(e->loc, sc);
+        Expression *ve = em->getVarExp(e->loc, sc);
+        sym->accessCheck(e->loc, sc, em->vd);
+        return ve;
     }
 
     TemplateMixin *tm = s->isTemplateMixin();
