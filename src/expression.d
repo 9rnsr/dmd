@@ -8367,7 +8367,10 @@ public:
                 if (f)                      // better or exact match
                     fd = f;
                 if (!hasOverloads)          // exact match
+                {
                     var = f;
+                    checkDeprecated(sc, f);
+                }
             }
             if (!fd.functionSemantic())
                 return new ErrorExp();
@@ -8798,7 +8801,10 @@ public:
             if (f)                      // better or exact match
                 fd = f;
             if (!hasOverloads)          // exact match
+            {
                 func = f;
+                checkDeprecated(sc, f);
+            }
         }
         else
         {
@@ -9990,7 +9996,10 @@ public:
                     ve.hasOverloads = hasOverloads;
                     e1 = ve;
                     if (!hasOverloads)          // exact match
+                    {
                         ve.var = f;
+                        checkDeprecated(sc, f);
+                    }
                     type = e1.type.pointerTo();
                 }
             }
