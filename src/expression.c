@@ -544,6 +544,37 @@ void checkPropertyCall(Expression *e, Expression *emsg)
 }
 
 
+Dsymbol *searchUFCSX(Scope *sc, Loc loc, Identifier *ident)
+{
+    Dsymbol *s = NULL;
+
+    for (Scope *scx = sc; scx; scx = scx->enclosing)
+    {
+        if (!scx->scopesym)
+            continue;
+        s = scx->scopesym->search(loc, ident, 0);
+        if (s)
+        {
+            // overload set contains only module scope symbols.
+            if (s->isOverloadSet())
+                break;
+            // selective/renamed imports also be picked up
+            if (AliasDeclaration *ad = s->isAliasDeclaration())
+            {
+                if (ad->import)
+                    break;
+            }
+            // See only module scope symbols for UFCS target.
+            Dsymbol *p = s->toParent2();
+            if (p && p->isModule())
+                break;
+        }
+        s = NULL;
+    }
+
+    return s;
+}
+
 /******************************
  * Find symbol in accordance with the UFCS name look up rule
  */
@@ -705,12 +736,16 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
             if (Expression *ey = die->semanticY(sc, 1))
             {
                 ce->e1 = ey;
+                printf("ey = %s\n", ey->toChars());
                 if (isDotOpDispatch(ey))
                 {
                     unsigned errors = global.startGagging();
                     e = ce->semantic(sc);
                     if (global.endGagging(errors))
-                    {}  /* fall down to UFCS */
+                    {
+                        if (!searchUFCSX(sc, die->loc, ident))
+                            return ce->semantic(sc);
+                    }
                     else
                         return e;
                 }
