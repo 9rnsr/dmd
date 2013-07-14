@@ -281,8 +281,8 @@ void test21()
     int[string] esdom;
     auto f = new File("runnable/extra-files/test15.txt");
 
-    while(!f.eof())
-	esdom[cast(string)f.readLine()] = 0;
+    while(!f.eof)
+        esdom[cast(string)f.readLine()] = 0;
     f.close();
     esdom.rehash;
 }

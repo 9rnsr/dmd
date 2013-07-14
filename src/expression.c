@@ -306,17 +306,11 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
                 Dsymbol *s = os->a[i];
                 FuncDeclaration *f = resolveFuncCall(loc, sc, s, tiargs, tthis, &a, 1);
                 if (f)
-                {
                     fd = f;
-                    assert(fd->type->ty == Tfunction);
-                    TypeFunction *tf = (TypeFunction *)fd->type;
-                    if (!tf->isproperty && global.params.enforcePropertySyntax)
-                        goto Leprop;
-                }
             }
             if (fd)
             {
-                Expression *e = new CallExp(loc, e1, e2);
+                Expression *e = new CallExp(loc, e1, e2, PROPmemset);
                 return e->semantic(sc);
             }
         }
@@ -326,19 +320,11 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
                 Dsymbol *s = os->a[i];
                 FuncDeclaration *f = resolveFuncCall(loc, sc, s, tiargs, tthis, NULL, 1);
                 if (f)
-                {
                     fd = f;
-                    assert(fd->type->ty == Tfunction);
-                    TypeFunction *tf = (TypeFunction *)fd->type;
-                    if (!tf->isref && e2)
-                        goto Leproplvalue;
-                    if (!tf->isproperty && global.params.enforcePropertySyntax)
-                        goto Leprop;
-                }
             }
             if (fd)
             {
-                Expression *e = new CallExp(loc, e1);
+                Expression *e = new CallExp(loc, e1, PROPmemget);
                 if (e2)
                     e = new AssignExp(loc, e, e2);
                 return e->semantic(sc);
@@ -428,11 +414,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
             fd = resolveFuncCall(loc, sc, s, tiargs, tthis, &a, 1);
             if (fd && fd->type)
             {
-                assert(fd->type->ty == Tfunction);
-                TypeFunction *tf = (TypeFunction *)fd->type;
-                if (!tf->isproperty && global.params.enforcePropertySyntax)
-                    goto Leprop;
-                Expression *e = new CallExp(loc, e1, e2);
+                Expression *e = new CallExp(loc, e1, e2, PROPmemset);
                 return e->semantic(sc);
             }
         }
@@ -440,25 +422,18 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
             fd = resolveFuncCall(loc, sc, s, tiargs, tthis, NULL, 1);
             if (fd && fd->type)
             {
-                assert(fd->type->ty == Tfunction);
-                TypeFunction *tf = (TypeFunction *)fd->type;
-                if (!tf->isref && e2)
-                    goto Leproplvalue;
-                if (!tf->isproperty && global.params.enforcePropertySyntax)
-                    goto Leprop;
-                Expression *e = new CallExp(loc, e1);
+                Expression *e = new CallExp(loc, e1, PROPmemget);
                 if (e2)
                     e = new AssignExp(loc, e, e2);
                 return e->semantic(sc);
             }
         }
         if (FuncDeclaration *fd = s->isFuncDeclaration())
-        {   // Keep better diagnostic message for invalid property usage of functions
+        {
+            // Don't keep function as an expression in AST
             assert(fd->type->ty == Tfunction);
             TypeFunction *tf = (TypeFunction *)fd->type;
-            if (!tf->isproperty && global.params.enforcePropertySyntax)
-                error(loc, "not a property %s", e1->toChars());
-            Expression *e = new CallExp(loc, e1, e2);
+            Expression *e = new CallExp(loc, e1, e2, e2 ? PROPmemset : PROPmemget);
             return e->semantic(sc);
         }
         if (e2)
@@ -496,12 +471,8 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
     }
     return e1;
 
-Leprop:
+Leprop: // necessary?
     error(loc, "not a property %s", e1->toChars());
-    return new ErrorExp();
-
-Leproplvalue:
-    error(loc, "%s is not an lvalue", e1->toChars());
     return new ErrorExp();
 }
 
@@ -512,42 +483,6 @@ Expression *resolveProperties(Scope *sc, Expression *e)
     e = resolvePropertiesX(sc, e);
     e = checkRightThis(sc, e);
     return e;
-}
-
-/******************************
- * Check the tail CallExp is really property function call.
- */
-
-void checkPropertyCall(Expression *e, Expression *emsg)
-{
-    while (e->op == TOKcomma)
-        e = ((CommaExp *)e)->e2;
-
-    if (e->op == TOKcall)
-    {   CallExp *ce = (CallExp *)e;
-        TypeFunction *tf;
-        if (ce->f)
-        {
-            tf = (TypeFunction *)ce->f->type;
-            /* If a forward reference to ce->f, try to resolve it
-             */
-            if (!tf->deco && ce->f->scope)
-            {   ce->f->semantic(ce->f->scope);
-                tf = (TypeFunction *)ce->f->type;
-            }
-        }
-        else if (ce->e1->type->ty == Tfunction)
-            tf = (TypeFunction *)ce->e1->type;
-        else if (ce->e1->type->ty == Tdelegate)
-            tf = (TypeFunction *)ce->e1->type->nextOf();
-        else if (ce->e1->type->ty == Tpointer && ce->e1->type->nextOf()->ty == Tfunction)
-            tf = (TypeFunction *)ce->e1->type->nextOf();
-        else
-            assert(0);
-
-        if (!tf->isproperty && global.params.enforcePropertySyntax)
-            ce->e1->error("not a property %s", emsg->toChars());
-    }
 }
 
 /******************************
@@ -880,24 +815,17 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
         /* f(e1) = e2
          */
         Expression *ex = e->copy();
-        Expressions *a1 = new Expressions();
-        a1->setDim(1);
-        (*a1)[0] = eleft;
-        ex = new CallExp(loc, ex, a1);
+        ex = new CallExp(loc, ex, eleft, PROPufcget);
         ex = ex->trySemantic(sc);
 
         /* f(e1, e2)
          */
-        Expressions *a2 = new Expressions();
-        a2->setDim(2);
-        (*a2)[0] = eleft;
-        (*a2)[1] = e2;
-        e = new CallExp(loc, e, a2);
+        e = new CallExp(loc, e, eleft, e2, PROPufcset);
         if (ex)
         {   // if fallback setter exists, gag errors
             e = e->trySemantic(sc);
             if (!e)
-            {   checkPropertyCall(ex, e1);
+            {
                 ex = new AssignExp(loc, ex, e2);
                 return ex->semantic(sc);
             }
@@ -906,19 +834,14 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
         {   // strict setter prints errors if fails
             e = e->semantic(sc);
         }
-        checkPropertyCall(e, e1);
         return e;
     }
     else
     {
         /* f(e1)
          */
-        Expressions *arguments = new Expressions();
-        arguments->setDim(1);
-        (*arguments)[0] = eleft;
-        e = new CallExp(loc, e, arguments);
+        e = new CallExp(loc, e, eleft, PROPufcget);
         e = e->semantic(sc);
-        checkPropertyCall(e, e1);
         return e->semantic(sc);
     }
 }
@@ -8303,20 +8226,23 @@ void DotTypeExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /************************************************************/
 
-CallExp::CallExp(Loc loc, Expression *e, Expressions *exps)
+CallExp::CallExp(Loc loc, Expression *e, Expressions *exps, PROP prop)
         : UnaExp(loc, TOKcall, sizeof(CallExp), e)
 {
     this->arguments = exps;
     this->f = NULL;
+    this->prop = prop;
 }
 
-CallExp::CallExp(Loc loc, Expression *e)
+CallExp::CallExp(Loc loc, Expression *e, PROP prop)
         : UnaExp(loc, TOKcall, sizeof(CallExp), e)
 {
     this->arguments = NULL;
+    this->f = NULL;
+    this->prop = prop;
 }
 
-CallExp::CallExp(Loc loc, Expression *e, Expression *earg1)
+CallExp::CallExp(Loc loc, Expression *e, Expression *earg1, PROP prop)
         : UnaExp(loc, TOKcall, sizeof(CallExp), e)
 {
     Expressions *arguments = new Expressions();
@@ -8325,9 +8251,11 @@ CallExp::CallExp(Loc loc, Expression *e, Expression *earg1)
         (*arguments)[0] = earg1;
     }
     this->arguments = arguments;
+    this->f = NULL;
+    this->prop = prop;
 }
 
-CallExp::CallExp(Loc loc, Expression *e, Expression *earg1, Expression *earg2)
+CallExp::CallExp(Loc loc, Expression *e, Expression *earg1, Expression *earg2, PROP prop)
         : UnaExp(loc, TOKcall, sizeof(CallExp), e)
 {
     Expressions *arguments = new Expressions();
@@ -8336,11 +8264,13 @@ CallExp::CallExp(Loc loc, Expression *e, Expression *earg1, Expression *earg2)
     (*arguments)[1] = earg2;
 
     this->arguments = arguments;
+    this->f = NULL;
+    this->prop = prop;
 }
 
 Expression *CallExp::syntaxCopy()
 {
-    return new CallExp(loc, e1->syntaxCopy(), arraySyntaxCopy(arguments));
+    return new CallExp(loc, e1->syntaxCopy(), arraySyntaxCopy(arguments), prop);
 }
 
 Expression *CallExp::semantic(Scope *sc)
@@ -9115,6 +9045,40 @@ Lagain:
     }
     assert(t1->ty == Tfunction);
     TypeFunction *tf = (TypeFunction *)(t1);
+
+    if (f/* && global.params.enforcePropertySyntax*/)
+    {
+        if (!tf->isproperty)
+        {
+            switch (prop)
+            {
+                case PROPnone:
+                case PROPmemget:    // e1.func;      -> e1.func();
+                case PROPufcget:    // e1.func;      -> func(e1);
+                    break;
+
+                case PROPmemset:    // e1.func = e2; -> e1.func(e2);
+                case PROPufcset:    // e1.func = e2; -> func(e1, e2);
+                    e1->error("not a property %s", e1->toChars());
+                    break;
+            }
+        }
+        else
+        {
+            switch (prop)
+            {
+                case PROPnone:
+                    e1->error("is a property %s", e1->toChars());
+                    break;
+
+                case PROPmemget:    // e1.func;      -> e1.func;
+                case PROPmemset:    // e1.func = e2; -> e1.func(e2);
+                case PROPufcget:    // e1.func;      -> func(e1);
+                case PROPufcset:    // e1.func = e2; -> func(e1, e2);
+                    break;
+            }
+        }
+    }
 
     if (!arguments)
         arguments = new Expressions();

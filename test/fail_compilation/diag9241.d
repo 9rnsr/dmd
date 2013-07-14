@@ -2,8 +2,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag9241.d(18): Error: not a property s.splitLines
-fail_compilation/diag9241.d(18): Error: cannot implicitly convert expression (splitLines(s)) of type string[] to string
+fail_compilation/diag9241.d(17): Error: cannot implicitly convert expression (splitLines(s)) of type string[] to string
 ---
 */
 
