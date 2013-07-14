@@ -8603,6 +8603,17 @@ Lagain:
     if (e1->op == TOKerror)
         return e1;
 
+    // Transform prop(...) to prop()(...)
+    if (prop == PROPnone)
+    {
+        Expression *e = resolvePropertiesOnly(sc, e1);
+        if (e != e1 && e->op == TOKerror)
+            return e;
+        e1 = e;
+        if (e1->type)
+            t1 = e1->type->toBasetype();
+    }
+
     // If there was an error processing any template argument,
     // return an error without trying to resolve the template.
     if (tiargs && tiargs->dim)
