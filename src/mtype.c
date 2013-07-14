@@ -2231,7 +2231,7 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
             DotTemplateInstanceExp *dti = new DotTemplateInstanceExp(e->loc, e, Id::opDispatch, tiargs);
             dti->ti->tempdecl = td;
 
-            /* opDispatch, which doesn't need IFTI,  may occur instantiate error.
+            /* opDispatch, which doesn't need IFTI, may occur instantiate error.
              * It should be gagged if flag != 0.
              * e.g.
              *  tempalte opDispatch(name) if (isValid!name) { ... }
@@ -2240,6 +2240,8 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
             Expression *e = dti->semanticY(sc, 0);
             if (flag && global.endGagging(errors))
                 e = NULL;
+            if (e && e->op == TOKdotti)
+                ((DotTemplateInstanceExp *)e)->isOpDispatch = true;
             return e;
         }
 

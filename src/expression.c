@@ -659,7 +659,7 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
 bool isDotOpDispatch(Expression *e)
 {
     return e->op == TOKdotti &&
-           ((DotTemplateInstanceExp *)e)->ti->name == Id::opDispatch;
+           ((DotTemplateInstanceExp *)e)->isOpDispatch;
 }
 
 /******************************
@@ -7899,6 +7899,7 @@ DotTemplateInstanceExp::DotTemplateInstanceExp(Loc loc, Expression *e, Identifie
     //printf("DotTemplateInstanceExp()\n");
     this->ti = new TemplateInstance(loc, name);
     this->ti->tiargs = tiargs;
+    this->isOpDispatch = false;
 }
 
 Expression *DotTemplateInstanceExp::syntaxCopy()
@@ -8328,6 +8329,8 @@ Expression *CallExp::semantic(Scope *sc)
     Expression *e = resolveUFCS(sc, this);
     if (e)
         return e;
+
+    bool isOpDispatch = isDotOpDispatch(e1);
 
     /* This recognizes:
      *  foo!(tiargs)(funcargs)
@@ -9069,6 +9072,13 @@ Lagain:
                     break;
 
                 case PROPmemset:    // e1.func = e2; -> e1.func(e2);
+                    if (isOpDispatch)
+                    {
+                        TemplateInstance *ti = f->parent->isTemplateInstance();
+                        if (ti && ti->parent->pastMixin()->isAggregateDeclaration())
+                            break;
+                    }
+                    /* fall through */
                 case PROPufcset:    // e1.func = e2; -> func(e1, e2);
                     e1->error("not a property %s", e1->toChars());
                     break;
