@@ -154,38 +154,47 @@ bool CtfeStack::isInCurrentFrame(VarDeclaration *v)
 {
     if (v->isDataseg() && !v->isCTFE())
         return false;   // It's a global
-    return v->ctfeAdrOnStack >= framepointer;
+    return v->ctfeAdrOnStack != INVALID_CTFE_STACK_ADDR &&
+           v->ctfeAdrOnStack >= framepointer;
 }
 
 Expression *CtfeStack::getValue(VarDeclaration *v)
 {
     if ((v->isDataseg() || v->storage_class & STCmanifest) && !v->isCTFE())
     {
-        assert(v->ctfeAdrOnStack >= 0 &&
-        v->ctfeAdrOnStack < globalValues.dim);
+        assert(v->ctfeAdrOnStack != INVALID_CTFE_STACK_ADDR &&
+               v->ctfeAdrOnStack < globalValues.dim);
         return globalValues[v->ctfeAdrOnStack];
     }
-    assert(v->ctfeAdrOnStack >= 0 && v->ctfeAdrOnStack < stackPointer());
+    assert(v->ctfeAdrOnStack != INVALID_CTFE_STACK_ADDR &&
+           v->ctfeAdrOnStack < stackPointer());
     return values[v->ctfeAdrOnStack];
 }
 
 void CtfeStack::setValue(VarDeclaration *v, Expression *e)
 {
     assert(!v->isDataseg() || v->isCTFE());
-    assert(v->ctfeAdrOnStack >= 0 && v->ctfeAdrOnStack < stackPointer());
+    if (!(v->ctfeAdrOnStack != INVALID_CTFE_STACK_ADDR &&
+          v->ctfeAdrOnStack < stackPointer()))
+    {
+        printf("v = %s @ [%s]\n", v->toChars(), v->loc.toChars());
+        printf("v->ctfeAdrOnStack = %u, stackPointer = %u\n", v->ctfeAdrOnStack, stackPointer());
+    }
+    assert(v->ctfeAdrOnStack != INVALID_CTFE_STACK_ADDR &&
+           v->ctfeAdrOnStack < stackPointer());
     values[v->ctfeAdrOnStack] = e;
 }
 
 void CtfeStack::push(VarDeclaration *v)
 {
     assert(!v->isDataseg() || v->isCTFE());
-    if (v->ctfeAdrOnStack!= (size_t)-1
-        && v->ctfeAdrOnStack >= framepointer)
+    if (v->ctfeAdrOnStack != INVALID_CTFE_STACK_ADDR &&
+        v->ctfeAdrOnStack >= framepointer)
     {   // Already exists in this frame, reuse it.
         values[v->ctfeAdrOnStack] = NULL;
         return;
     }
-    savedId.push((void *)(size_t)(v->ctfeAdrOnStack));
+    savedId.push((void *)(v->ctfeAdrOnStack));
     v->ctfeAdrOnStack = values.dim;
     vars.push(v);
     values.push(NULL);
@@ -195,8 +204,8 @@ void CtfeStack::pop(VarDeclaration *v)
 {
     assert(!v->isDataseg() || v->isCTFE());
     assert(!(v->storage_class & (STCref | STCout)));
-    int oldid = v->ctfeAdrOnStack;
-    v->ctfeAdrOnStack = (int)(size_t)(savedId[oldid]);
+    size_t oldid = v->ctfeAdrOnStack;
+    v->ctfeAdrOnStack = (size_t)(savedId[oldid]);
     if (v->ctfeAdrOnStack == values.dim - 1)
     {
         values.pop();
@@ -2113,7 +2122,7 @@ Expression * resolveReferences(Expression *e)
             assert(v);
             if (v->type->ty == Tpointer)
                 break;
-            if (v->ctfeAdrOnStack == (size_t)-1) // If not on the stack, can't possibly be a ref.
+            if (v->ctfeAdrOnStack == INVALID_CTFE_STACK_ADDR)    // If not on the stack, can't possibly be a ref.
                 break;
             Expression *val = v->getValue();
             if (val && (val->op == TOKslice))
@@ -6288,7 +6297,7 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
  */
 bool VarDeclaration::hasValue()
 {
-    if (ctfeAdrOnStack == (size_t)-1)
+    if (ctfeAdrOnStack == INVALID_CTFE_STACK_ADDR)
         return false;
     return NULL != getValue();
 }

@@ -102,6 +102,8 @@ struct Match
     FuncDeclaration *anyf;      // pick a func, any func, to use for error recovery
 };
 
+#define INVALID_CTFE_STACK_ADDR     ((size_t)~0)
+
 void functionResolve(Match *m, FuncDeclaration *f,
         Type *tthis, Expressions *arguments, Dsymbol **plast = NULL);
 void templateResolve(Match *m, TemplateDeclaration *td, Loc loc, Scope *sc,
@@ -278,7 +280,7 @@ public:
 
     // When interpreting, these point to the value (NULL if value not determinable)
     // The index of this variable on the CTFE stack, -1 if not allocated
-    int ctfeAdrOnStack;
+    size_t ctfeAdrOnStack;
     // The various functions are used only to detect compiler CTFE bugs
     Expression *getValue();
     bool hasValue();
