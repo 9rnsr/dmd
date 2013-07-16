@@ -1977,22 +1977,6 @@ bool FuncDeclaration::equals(RootObject *o)
         FuncDeclaration *fd2 = s->isFuncDeclaration();
         if (!fd2)
             return false;
-
-        FuncAliasDeclaration *fa1 = fd1->isFuncAliasDeclaration();
-        FuncAliasDeclaration *fa2 = fd2->isFuncAliasDeclaration();
-        if (fa1 && fa2)
-        {
-            return fa1->toAliasFunc()->equals(fa2->toAliasFunc()) &&
-                   fa1->hasOverloads == fa2->hasOverloads;
-        }
-
-        if (fa1 && (fd1 = fa1->toAliasFunc())->isUnique() && !fa1->hasOverloads)
-            fa1 = NULL;
-        if (fa2 && (fd2 = fa2->toAliasFunc())->isUnique() && !fa2->hasOverloads)
-            fa2 = NULL;
-        if ((fa1 != NULL) != (fa2 != NULL))
-            return false;
-
         return fd1->toParent()->equals(fd2->toParent()) &&
             fd1->ident->equals(fd2->ident) && fd1->type->equals(fd2->type);
     }
@@ -2357,8 +2341,7 @@ int FuncDeclaration::findVtblIndex(Dsymbols *vtbl, int dim)
 bool FuncDeclaration::overloadInsert(Dsymbol *s)
 {
     //printf("FuncDeclaration::overloadInsert(s = %s) this = %s\n", s->toChars(), toChars());
-    AliasDeclaration *ad = s->isAliasDeclaration();
-    if (ad)
+    if (AliasDeclaration *ad = s->isAliasDeclaration())
     {
         if (overnext)
             return overnext->overloadInsert(ad);
@@ -2371,49 +2354,34 @@ bool FuncDeclaration::overloadInsert(Dsymbol *s)
         //printf("\ttrue: no conflict\n");
         return true;
     }
-    TemplateDeclaration *td = s->isTemplateDeclaration();
-    if (td)
+    if (OverloadDeclaration *od = s->isOverloadDeclaration())
+    {
+        if (overnext)
+            return overnext->overloadInsert(od);
+        overnext = od;
+        return true;
+    }
+    if (TemplateDeclaration *td = s->isTemplateDeclaration())
     {
         if (overnext)
             return overnext->overloadInsert(td);
         overnext = td;
-        return TRUE;
+        return true;
     }
-    FuncDeclaration *fd = s->isFuncDeclaration();
-    if (!fd)
-        return false;
-
-#if 0
-    /* Disable this check because:
-     *  const void foo();
-     * semantic() isn't run yet on foo(), so the const hasn't been
-     * applied yet.
-     */
-    if (type)
-    {   printf("type = %s\n", type->toChars());
-        printf("fd->type = %s\n", fd->type->toChars());
-    }
-    if (type && fd->type &&      // can be NULL for overloaded constructors
-        fd->type->covariant(type) &&
-        fd->type->mod == type->mod &&
-        !isFuncAliasDeclaration())
+    if (FuncDeclaration *fd = s->isFuncDeclaration())
     {
-        //printf("\tfalse: conflict %s\n", kind());
-        return FALSE;
+        if (overnext)
+        {
+            if (TemplateDeclaration *td = overnext->isTemplateDeclaration())
+                fd->overloadInsert(td);
+            else
+                return overnext->overloadInsert(fd);
+        }
+        overnext = fd;
+        //printf("\ttrue: no conflict\n");
+        return true;
     }
-#endif
-
-    if (overnext)
-    {
-        td = overnext->isTemplateDeclaration();
-        if (td)
-            fd->overloadInsert(td);
-        else
-            return overnext->overloadInsert(fd);
-    }
-    overnext = fd;
-    //printf("\ttrue: no conflict\n");
-    return true;
+    return false;
 }
 
 /********************************************
@@ -2429,63 +2397,61 @@ bool FuncDeclaration::overloadInsert(Dsymbol *s)
  *      1       done
  */
 
-int overloadApply(FuncDeclaration *fstart,
+int overloadApply(Declaration *fstart,
         int (*fp)(void *, FuncDeclaration *),
         void *param, Dsymbol **plast)
 {
-    FuncDeclaration *f;
     Declaration *d;
     Declaration *next;
 
     for (d = fstart; d; d = next)
-    {   FuncAliasDeclaration *fa = d->isFuncAliasDeclaration();
-
-        if (fa)
+    {
+        if (OverloadDeclaration *od = d->isOverloadDeclaration())
         {
-            if (fa->hasOverloads)
+            if (od->hasOverloads)
             {
-                if (overloadApply(fa->funcalias, fp, param, plast))
+                if (overloadApply(od->aliassym->isDeclaration(), fp, param, plast))
                     return 1;
             }
             else
             {
-                f = fa->toAliasFunc();
-                if (!f)
-                {   d->error("is aliased to a function");
+                FuncDeclaration *fd = od->aliassym->isFuncDeclaration();
+                if (!fd)
+                {
+                    d->error("is aliased to a function");   // ?
                     break;
                 }
-                if ((*fp)(param, f))
-                    return 1;
+                else
+                {
+                    if ((*fp)(param, fd))
+                        return 1;
+                }
             }
-            next = fa->overnext ? fa->overnext->isDeclaration() : NULL;
-            if (plast) *plast = fa->overnext;
+            next = od->overnext ? od->overnext->isDeclaration() : NULL;
+            if (plast) *plast = od->overnext;
+        }
+        else if (AliasDeclaration *ad = d->isAliasDeclaration())
+        {
+            Dsymbol *s = ad->toAlias();
+            next = s->isDeclaration();
+            if (next == ad)
+                break;
+            if (next == fstart)
+                break;
         }
         else
         {
-            AliasDeclaration *a = d->isAliasDeclaration();
-
-            if (a)
+            FuncDeclaration *fd = d->isFuncDeclaration();
+            if (!fd)
             {
-                Dsymbol *s = a->toAlias();
-                next = s->isDeclaration();
-                if (next == a)
-                    break;
-                if (next == fstart)
-                    break;
+                d->error("is aliased to a function");   // d may be template?
+                break;              // BUG: should print error message?
             }
-            else
-            {
-                f = d->isFuncDeclaration();
-                if (!f)
-                {   d->error("is aliased to a function");
-                    break;              // BUG: should print error message?
-                }
-                if ((*fp)(param, f))
-                    return 1;
+            if ((*fp)(param, fd))
+                return 1;
 
-                next = f->overnext ? f->overnext->isDeclaration() : NULL;
-                if (plast) *plast = f->overnext;
-            }
+            next = fd->overnext ? fd->overnext->isDeclaration() : NULL;
+            if (plast) *plast = fd->overnext;
         }
     }
     return 0;
@@ -3314,9 +3280,6 @@ bool FuncDeclaration::isImportedSymbol()
 
 bool FuncDeclaration::isVirtual()
 {
-    if (toAliasFunc() != this)
-        return toAliasFunc()->isVirtual();
-
     Dsymbol *p = toParent();
 #if 0
     printf("FuncDeclaration::isVirtual(%s)\n", toChars());
@@ -3337,9 +3300,6 @@ bool FuncDeclaration::isVirtual()
 
 bool FuncDeclaration::isVirtualMethod()
 {
-    if (toAliasFunc() != this)
-        return toAliasFunc()->isVirtualMethod();
-
     //printf("FuncDeclaration::isVirtualMethod() %s\n", toChars());
     if (!isVirtual())
         return false;
@@ -3353,9 +3313,6 @@ bool FuncDeclaration::isVirtualMethod()
 
 bool FuncDeclaration::isFinal()
 {
-    if (toAliasFunc() != this)
-        return toAliasFunc()->isFinal();
-
     ClassDeclaration *cd;
 #if 0
     printf("FuncDeclaration::isFinal(%s), %x\n", toChars(), Declaration::isFinal());
@@ -3655,7 +3612,7 @@ bool FuncDeclaration::parametersIntersect(Type *t)
 
 bool FuncDeclaration::isNested()
 {
-    FuncDeclaration *f = toAliasFunc();
+    FuncDeclaration *f = this;
     //printf("\ttoParent2() = '%s'\n", f->toParent2()->toChars());
     return ((f->storage_class & STCstatic) == 0) &&
            (f->linkage == LINKd) &&
@@ -3665,7 +3622,7 @@ bool FuncDeclaration::isNested()
 bool FuncDeclaration::needThis()
 {
     //printf("FuncDeclaration::needThis() '%s'\n", toChars());
-    return toAliasFunc()->isThis() != NULL;
+    return isThis() != NULL;
 }
 
 bool FuncDeclaration::addPreInvariant()
@@ -4006,42 +3963,6 @@ Parameters *FuncDeclaration::getParameters(int *pvarargs)
     if (pvarargs)
         *pvarargs = fvarargs;
     return fparameters;
-}
-
-
-/****************************** FuncAliasDeclaration ************************/
-
-// Used as a way to import a set of functions from another scope into this one.
-
-FuncAliasDeclaration::FuncAliasDeclaration(FuncDeclaration *funcalias, bool hasOverloads)
-    : FuncDeclaration(funcalias->loc, funcalias->endloc, funcalias->ident,
-        funcalias->storage_class, funcalias->type)
-{
-    assert(funcalias != this);
-    this->funcalias = funcalias;
-
-    this->hasOverloads = hasOverloads;
-    if (hasOverloads)
-    {
-        if (FuncAliasDeclaration *fad = funcalias->isFuncAliasDeclaration())
-            this->hasOverloads = fad->hasOverloads;
-    }
-    else
-    {   // for internal use
-        assert(!funcalias->isFuncAliasDeclaration());
-        this->hasOverloads = false;
-    }
-    userAttributes = funcalias->userAttributes;
-}
-
-const char *FuncAliasDeclaration::kind()
-{
-    return "function alias";
-}
-
-FuncDeclaration *FuncAliasDeclaration::toAliasFunc()
-{
-    return funcalias->toAliasFunc();
 }
 
 

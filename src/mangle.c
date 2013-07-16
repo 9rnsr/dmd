@@ -203,15 +203,19 @@ const char *FuncDeclaration::mangle(bool isv)
 {
     return isUnique() ? mangleExact(isv) : Dsymbol::mangle(isv);
 }
-// ditto
-const char *FuncAliasDeclaration::mangle(bool isv)
+
+const char *OverloadDeclaration::mangle(bool isv)
 {
-    FuncDeclaration *f = toAliasFunc();
-    FuncAliasDeclaration *fa = f->isFuncAliasDeclaration();
-    if (!hasOverloads && !fa)
-        return f->mangleExact(isv);
-    if (fa)
-        return fa->mangle(isv);
+    if (FuncDeclaration *fd = aliassym->isFuncDeclaration())
+    {
+        if (!hasOverloads || fd->isUnique())
+            return fd->mangleExact(isv);
+    }
+    if (TemplateDeclaration *td = aliassym->isTemplateDeclaration())
+    {
+        if (!hasOverloads || td->overnext == NULL)
+            return td->mangle(isv);
+    }
     return Dsymbol::mangle(isv);
 }
 
@@ -227,8 +231,6 @@ const char *FuncDeclaration::mangleExact(bool isv)
     __body
 #endif
     {
-        assert(!isFuncAliasDeclaration());
-
         if (mangleOverride)
             return mangleOverride;
 

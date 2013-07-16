@@ -332,9 +332,6 @@ hash_t arrayObjectHash(Objects *oa1)
             }
             else if (s1)
             {
-                FuncAliasDeclaration *fa1 = s1->isFuncAliasDeclaration();
-                if (fa1)
-                    s1 = fa1->toAliasFunc();
                 hash += (size_t)(void *)s1->getIdent() + (size_t)(void *)s1->parent;
             }
             else if (Tuple *u1 = isTuple(o1))
@@ -5849,7 +5846,8 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             {   (*tiargs)[j] = new ErrorExp();
                 continue;
             }
-            TupleDeclaration *d = sa->toAlias()->isTupleDeclaration();
+            sa = sa->toAlias();
+            TupleDeclaration *d = sa/*->toAlias()*/->isTupleDeclaration();
             if (d)
             {   // Expand tuple
                 size_t dim = d->objects->dim;
@@ -5857,16 +5855,6 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                 tiargs->insert(j, d->objects);
                 j--;
                 continue;
-            }
-            if (FuncAliasDeclaration *fa = sa->isFuncAliasDeclaration())
-            {
-                FuncDeclaration *f = fa->toAliasFunc();
-                if (!fa->hasOverloads && f->isUnique())
-                {
-                    // Strip FuncAlias only when the aliased function
-                    // does not have any overloads.
-                    sa = f;
-                }
             }
             (*tiargs)[j] = sa;
 

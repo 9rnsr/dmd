@@ -3528,6 +3528,11 @@ Lagain:
         e = e->semantic(sc);
         return e->deref();
     }
+    if (OverloadDeclaration *od = s->isOverloadDeclaration())
+    {
+        printf("od = %s %s\n", od->kind(), od->toChars());
+        return new VarExp(loc, od, hasOverloads);
+    }
     fld = s->isFuncLiteralDeclaration();
     if (fld)
     {   //printf("'%s' is a function literal\n", fld->toChars());
@@ -3537,7 +3542,7 @@ Lagain:
     f = s->isFuncDeclaration();
     if (f)
     {
-        f = f->toAliasFunc();
+        //f = f->toAliasFunc();
         if (!f->functionSemantic())
             return new ErrorExp();
 
@@ -5659,8 +5664,11 @@ Expression *VarExp::semantic(Scope *sc)
      */
     //accessCheck(loc, sc, NULL, var);
 
-    VarDeclaration *v = var->isVarDeclaration();
-    if (v)
+    if (OverloadDeclaration *od = var->isOverloadDeclaration())
+    {
+        // if all of overloaded symbols are template - ?
+    }
+    else if (VarDeclaration *v = var->isVarDeclaration())
     {
         hasOverloads = 0;
         v->checkNestedReference(sc, loc);
@@ -5668,8 +5676,7 @@ Expression *VarExp::semantic(Scope *sc)
         checkPurity(sc, v, NULL);
 #endif
     }
-    FuncDeclaration *f = var->isFuncDeclaration();
-    if (f)
+    else if (FuncDeclaration *f = var->isFuncDeclaration())
     {
         f->checkNestedReference(sc, loc);
 
@@ -7406,7 +7413,7 @@ Expression *DotIdExp::semanticX(Scope *sc)
             {
                 VarExp *ve = (VarExp *)e1;
                 FuncDeclaration *f = ve->var->isFuncDeclaration();
-                s = (f && !ve->hasOverloads ? f->toAliasFunc()->mangleExact()
+                s = (f && !ve->hasOverloads ? f->mangleExact()
                                             : ve->var->mangle());
                 goto L1;
             }
@@ -7414,7 +7421,7 @@ Expression *DotIdExp::semanticX(Scope *sc)
             {
                 DotVarExp *dve = (DotVarExp *)e1;
                 FuncDeclaration *f = dve->var->isFuncDeclaration();
-                s = (f && !dve->hasOverloads ? f->toAliasFunc()->mangleExact()
+                s = (f && !dve->hasOverloads ? f->mangleExact()
                                              : dve->var->mangle());
                 goto L1;
             }
@@ -7766,7 +7773,8 @@ Expression *DotVarExp::semantic(Scope *sc)
 
         TupleDeclaration *tup = var->isTupleDeclaration();
         if (tup)
-        {   /* Replace:
+        {
+            /* Replace:
              *  e1.tuple(a, b, c)
              * with:
              *  tuple(e1.a, e1.b, e1.c)
@@ -7789,7 +7797,8 @@ Expression *DotVarExp::semantic(Scope *sc)
 
             exps->reserve(tup->objects->dim);
             for (size_t i = 0; i < tup->objects->dim; i++)
-            {   RootObject *o = (*tup->objects)[i];
+            {
+                RootObject *o = (*tup->objects)[i];
                 Expression *e;
                 if (o->dyncast() == DYNCAST_EXPRESSION)
                 {
@@ -7824,8 +7833,13 @@ Expression *DotVarExp::semantic(Scope *sc)
         e1 = e1->addDtorHook(sc);
 
         Type *t1 = e1->type;
-        FuncDeclaration *f = var->isFuncDeclaration();
-        if (f)  // for functions, do checks after overload resolution
+        if (OverloadDeclaration *od = var->isOverloadDeclaration())
+        {
+            type = Type::tambig;
+            printf("od = %s %s\n", od->kind(), od->toChars());
+            //return new VarExp(loc, od, hasOverloads);
+        }
+        else if (FuncDeclaration *f = var->isFuncDeclaration())
         {
             Type *t = f->type;
             if (hasOverloads)
@@ -8294,7 +8308,7 @@ Expression *DelegateExp::semantic(Scope *sc)
         }
         type = new TypeDelegate(t);     // function to delegate
         type = type->semantic(loc, sc);
-        FuncDeclaration *f = func->toAliasFunc();
+        FuncDeclaration *f = func;
         AggregateDeclaration *ad = f->toParent()->isAggregateDeclaration();
         if (!hasOverloads && f->needThis())
             e1 = getRightThis(loc, sc, ad, e1, f);
@@ -9106,7 +9120,6 @@ Lagain:
             f = resolveFuncCall(loc, sc, f, tiargs, NULL, arguments, 2);
         else
         {
-            f = f->toAliasFunc();
             TypeFunction *tf = (TypeFunction *)f->type;
             if (!tf->callMatch(NULL, arguments))
             {

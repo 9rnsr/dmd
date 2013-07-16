@@ -106,7 +106,7 @@ void functionResolve(Match *m, FuncDeclaration *f,
         Type *tthis, Expressions *arguments, Dsymbol **plast = NULL);
 void templateResolve(Match *m, TemplateDeclaration *td, Loc loc, Scope *sc,
         Objects *tiargs, Type *tthis, Expressions *fargs);
-int overloadApply(FuncDeclaration *fstart,
+int overloadApply(Declaration *fstart,
         int (*fp)(void *, FuncDeclaration *),
         void *param, Dsymbol **plast = NULL);
 
@@ -253,6 +253,27 @@ public:
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     AliasDeclaration *isAliasDeclaration() { return this; }
+};
+
+/**************************************************************/
+
+class OverloadDeclaration : public Declaration
+{
+public:
+    Dsymbol *overnext;          // next in overload list
+    Dsymbol *aliassym;
+    bool hasOverloads;
+
+    OverloadDeclaration(Dsymbol *s, bool hasOverloads = true);
+    const char *kind();
+    void semantic(Scope *sc);
+    bool equals(RootObject *o);
+    bool overloadInsert(Dsymbol *s);
+
+    const char *mangle(bool isv);
+    Dsymbol *toAlias();
+
+    OverloadDeclaration *isOverloadDeclaration() { return this; }
 };
 
 /**************************************************************/
@@ -736,7 +757,7 @@ public:
 
     FuncDeclaration *isFuncDeclaration() { return this; }
 
-    virtual FuncDeclaration *toAliasFunc() { return this; }
+    //virtual FuncDeclaration *toAliasFunc() { return this; }
 };
 
 #if DMDV2
@@ -746,22 +767,6 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
         Expressions *arguments,
         int flags = 0);
 #endif
-
-class FuncAliasDeclaration : public FuncDeclaration
-{
-public:
-    FuncDeclaration *funcalias;
-    bool hasOverloads;
-
-    FuncAliasDeclaration(FuncDeclaration *funcalias, bool hasOverloads = true);
-
-    FuncAliasDeclaration *isFuncAliasDeclaration() { return this; }
-    const char *kind();
-    Symbol *toSymbol();
-    const char *mangle(bool isv = false);
-
-    FuncDeclaration *toAliasFunc();
-};
 
 class FuncLiteralDeclaration : public FuncDeclaration
 {

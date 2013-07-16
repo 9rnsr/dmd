@@ -633,7 +633,7 @@ void FuncDeclaration::toObjFile(int multiobj)
         /* The enclosing function must have its code generated first,
          * so we know things like where its local symbols are stored.
          */
-        FuncDeclaration *fdp = toAliasFunc()->toParent2()->isFuncDeclaration();
+        FuncDeclaration *fdp = toParent2()->isFuncDeclaration();
         // Bug 8016 - only include the function if it is a template instance
         Dsymbol * owner = NULL;
         if (fdp)

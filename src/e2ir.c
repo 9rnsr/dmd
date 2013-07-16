@@ -3715,8 +3715,8 @@ elem *DelegateExp::toElem(IRState *irs)
         assert(type->ty == Tdelegate);
         func = func->overloadExactMatch(type->nextOf());
     }
-    else
-        func = func->toAliasFunc();
+    //else
+    //    func = func->toAliasFunc();
 
     if (func->semanticRun == PASSsemantic3done)
     {   // Bug 7745 - only include the function if it belongs to this module

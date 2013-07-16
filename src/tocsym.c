@@ -334,14 +334,6 @@ Symbol *TypeInfoClassDeclaration::toSymbol()
 /*************************************
  */
 
-Symbol *FuncAliasDeclaration::toSymbol()
-{
-    return funcalias->toSymbol();
-}
-
-/*************************************
- */
-
 Symbol *FuncDeclaration::toSymbol()
 {
     if (!csym)

@@ -53,7 +53,8 @@ struct Ptrait
 };
 
 static int fptraits(void *param, FuncDeclaration *f)
-{   Ptrait *p = (Ptrait *)param;
+{
+    Ptrait *p = (Ptrait *)param;
 
     if (p->ident == Id::getVirtualFunctions && !f->isVirtual())
         return 0;
@@ -62,12 +63,11 @@ static int fptraits(void *param, FuncDeclaration *f)
         return 0;
 
     Expression *e;
-    FuncAliasDeclaration* alias = new FuncAliasDeclaration(f, 0);
-    alias->protection = f->protection;
+    OverloadDeclaration* od = new OverloadDeclaration(f, 0);
     if (p->e1)
-        e = new DotVarExp(Loc(), p->e1, alias);
+        e = new DotVarExp(Loc(), p->e1, od);
     else
-        e = new DsymbolExp(Loc(), alias);
+        e = new DsymbolExp(Loc(), od);
     p->exps->push(e);
     return 0;
 }
@@ -87,30 +87,25 @@ static int fptraits(void *param, FuncDeclaration *f)
  *      unitTests           array of DsymbolExp's of the collected unit test functions
  *      uniqueUnitTests     updated with symbols from unitTests[ ]
  */
-static void collectUnitTests (const Dsymbols* const symbols, AA* uniqueUnitTests, Expressions* const unitTests)
+static void collectUnitTests(Dsymbols* symbols, AA* uniqueUnitTests, Expressions* unitTests)
 {
     for (size_t i = 0; i < symbols->dim; i++)
     {
-        Dsymbol* const symbol = (*symbols)[i];
-        UnitTestDeclaration* const unitTest = symbol->unittest ? symbol->unittest : symbol->isUnitTestDeclaration();
-
-        if (unitTest)
+        Dsymbol* s = (*symbols)[i];
+        UnitTestDeclaration* ud = s->unittest ? s->unittest : s->isUnitTestDeclaration();
+        if (ud)
         {
-            if (!_aaGetRvalue(uniqueUnitTests, unitTest))
+            if (!_aaGetRvalue(uniqueUnitTests, ud))
             {
-                FuncAliasDeclaration* alias = new FuncAliasDeclaration(unitTest, 0);
-                alias->protection = unitTest->protection;
-                Expression* e = new DsymbolExp(Loc(), alias);
+                Expression* e = new DsymbolExp(Loc(), ud, 0);
                 unitTests->push(e);
-                bool* value = (bool*) _aaGet(&uniqueUnitTests, unitTest);
+                bool* value = (bool*) _aaGet(&uniqueUnitTests, ud);
                 *value = true;
             }
         }
-
         else
         {
-            const AttribDeclaration* const attrDecl = symbol->isAttribDeclaration();
-
+            AttribDeclaration* attrDecl = s->isAttribDeclaration();
             if (attrDecl)
                 collectUnitTests(attrDecl->decl, uniqueUnitTests, unitTests);
         }
@@ -349,8 +344,8 @@ Expression *TraitsExp::semantic(Scope *sc)
         Dsymbol *s = getDsymbol(o);
         if (s)
         {
-            if (FuncDeclaration *fd = s->isFuncDeclaration())   // Bugzilla 8943
-                s = fd->toAliasFunc();
+            //if (FuncDeclaration *fd = s->isFuncDeclaration())   // Bugzilla 8943
+            //    s = fd->toAliasFunc();
             if (!s->isImport())  // Bugzilla 8922
                 s = s->toParent();
         }
@@ -706,11 +701,6 @@ Expression *TraitsExp::semantic(Scope *sc)
 
         s1 = s1->toAlias();
         s2 = s2->toAlias();
-
-        if (s1->isFuncAliasDeclaration())
-            s1 = ((FuncAliasDeclaration *)s1)->toAliasFunc();
-        if (s2->isFuncAliasDeclaration())
-            s2 = ((FuncAliasDeclaration *)s2)->toAliasFunc();
 
         if (s1 == s2)
             goto Ltrue;

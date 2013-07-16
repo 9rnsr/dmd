@@ -560,8 +560,8 @@ void AliasDeclaration::semantic(Scope *sc)
             {
                 VarExp *ve = (VarExp *)e;
                 hasOverloads = ve->hasOverloads;
-                FuncAliasDeclaration *fa = ve->var->isFuncAliasDeclaration();
-                if (!hasOverloads && fa)
+                OverloadDeclaration *od = ve->var->isOverloadDeclaration();
+                if (!hasOverloads && od)
                     hasOverloads = 1;
             }
             goto L2;
@@ -596,22 +596,22 @@ void AliasDeclaration::semantic(Scope *sc)
     else
     {
         Dsymbol *savedovernext = overnext;
-        FuncDeclaration *f = s->toAlias()->isFuncDeclaration();
-        if (f)
+        Dsymbol *a = s->toAlias();
+        if (a->isFuncDeclaration() || a->isTemplateDeclaration())
         {
             if (overnext)
             {
-                FuncAliasDeclaration *fa = new FuncAliasDeclaration(f, hasOverloads);
-                if (!fa->overloadInsert(overnext))
-                    ScopeDsymbol::multiplyDefined(Loc(), overnext, f);
+                OverloadDeclaration *od = new OverloadDeclaration(a, hasOverloads);
+                if (!od->overloadInsert(overnext))
+                    ScopeDsymbol::multiplyDefined(Loc(), overnext, a);
                 overnext = NULL;
-                s = fa;
+                s = od;
                 s->parent = sc->parent;
             }
             else if (hasOverloads == 0)
-                s = new FuncAliasDeclaration(f, 0);
+                s = new OverloadDeclaration(a, 0);
         }
-        OverloadSet *o = s->toAlias()->isOverloadSet();
+        OverloadSet *o = a->isOverloadSet();
         if (o)
         {
             if (overnext)
@@ -653,12 +653,11 @@ bool AliasDeclaration::overloadInsert(Dsymbol *s)
     if (aliassym) // see test/test56.d
     {
         Dsymbol *a = aliassym->toAlias();
-        FuncDeclaration *f = a->isFuncDeclaration();
-        if (f)  // BUG: what if it's a template?
+        if (a->isFuncDeclaration() || a->isTemplateDeclaration())
         {
-            FuncAliasDeclaration *fa = new FuncAliasDeclaration(f);
-            aliassym = fa;
-            return fa->overloadInsert(s);
+            OverloadDeclaration *od = new OverloadDeclaration(a);
+            aliassym = od;
+            return od->overloadInsert(s);
         }
     }
 
@@ -749,6 +748,92 @@ void AliasDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     }
     buf->writeByte(';');
     buf->writenl();
+}
+
+/****************************** OverloadDeclaration **************************/
+
+OverloadDeclaration::OverloadDeclaration(Dsymbol *s, bool hasOverloads)
+    : Declaration(s->ident)
+{
+    this->aliassym = s;
+
+    this->hasOverloads = hasOverloads;
+    if (hasOverloads)
+    {
+        if (OverloadDeclaration *od = aliassym->isOverloadDeclaration())
+            this->hasOverloads = od->hasOverloads;
+    }
+    else
+    {
+        // for internal use
+        assert(!aliassym->isOverloadDeclaration());
+    }
+}
+
+const char *OverloadDeclaration::kind()
+{
+    return "overload alias";
+}
+
+void OverloadDeclaration::semantic(Scope *sc)
+{
+}
+
+bool OverloadDeclaration::equals(RootObject *o)
+{
+    if (this == o)
+        return true;
+
+    Dsymbol *s = isDsymbol(o);
+    if (!s)
+        return false;
+
+    OverloadDeclaration *od1 = this;
+    if (OverloadDeclaration *od2 = s->isOverloadDeclaration())
+    {
+        // use od->toAlias() ?
+        return od1->aliassym->equals(od2->aliassym) &&
+               od1->hasOverloads == od2->hasOverloads;
+    }
+    if (aliassym == s)
+    {
+        if (hasOverloads)
+            return true;
+        if (FuncDeclaration *fd = s->isFuncDeclaration())
+        {
+            return fd->isUnique();
+            // (td = fd->findTemplateDeclRoot) && td && td == aliassym->isFuncDeclaration() ?
+        }
+        if (TemplateDeclaration *td = s->isTemplateDeclaration())
+        {
+            return td->overnext == NULL;
+        }
+    }
+    return false;
+}
+
+bool OverloadDeclaration::overloadInsert(Dsymbol *s)
+{
+    if (overnext == NULL)
+    {
+        if (s == this)
+        {
+            return true;
+        }
+        overnext = s;
+        return true;
+    }
+    else
+    {
+        return overnext->overloadInsert(s);
+    }
+}
+
+Dsymbol *OverloadDeclaration::toAlias()
+{
+    //if (!hasOverloads && !aliassym->isOverloadDeclaration())
+    //    return aliassym/*->toAlias()*/; //?
+    return this;
 }
 
 /********************************* VarDeclaration ****************************/
