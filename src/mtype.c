@@ -2065,14 +2065,20 @@ Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
     else
     {
         Dsymbol *s = NULL;
+        Dsymbol *sx = NULL;
         if (ty == Tstruct || ty == Tclass || ty == Tenum || ty == Ttypedef)
             s = toDsymbol(NULL);
         if (s)
+        {
+            sx = s->search(loc, Id::opDispatch, 0);
             s = s->search_correct(ident);
+        }
         if (this != Type::terror)
         {
             if (s)
                 error(loc, "no property '%s' for type '%s', did you mean '%s'?", ident->toChars(), toChars(), s->toChars());
+            else if (sx)
+                error(loc, "no property '%s' or matches opDispatch template for type '%s'", ident->toChars(), toChars());
             else
                 error(loc, "no property '%s' for type '%s'", ident->toChars(), toChars());
         }
