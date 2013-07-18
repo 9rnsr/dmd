@@ -662,21 +662,50 @@ void Dsymbol::checkDeprecated(Loc loc, Scope *sc)
 {
     if (global.params.useDeprecated != 1 && isDeprecated())
     {
+        bool force = false;
+        printf("0: [%s] checkDeprecated('%s')\n", loc.toChars(), toPrettyChars());
         // Don't complain if we're inside a deprecated symbol's scope
         for (Dsymbol *sp = sc->parent; sp; sp = sp->parent)
-        {   if (sp->isDeprecated())
+        {
+            if (TemplateInstance *ti = sp->isTemplateInstance())
+            {
+                if (ti->isdeprecated == 2)
+                    goto L1;
+                force = true;
+                ti->isdeprecated = 1;
+            }
+            else
+            {
+            if (sp->isDeprecated())
                 goto L1;
+            }
         }
+        printf("1: [%s] checkDeprecated('%s')\n", loc.toChars(), toPrettyChars());
 
         for (Scope *sc2 = sc; sc2; sc2 = sc2->enclosing)
         {
+    //printf("+ sc2 = %p, sc2->tinst = %p, s2->parent = %p\n", sc2, sc2->tinst, sc2->parent);
+            if (TemplateInstance *ti = sc2->tinst)
+            {
+                printf("ti = %s, spec = %d, depl = %d\n", ti->toChars(), ti->speculative, ti->isdeprecated);
+                if (ti->isdeprecated == 2)
+                    goto L1;
+                force = true;
+                ti->isdeprecated = 1;
+            }
+            else
+            {
+
             if (sc2->scopesym && sc2->scopesym->isDeprecated())
                 goto L1;
 
             // If inside a StorageClassDeclaration that is deprecated
             if (sc2->stc & STCdeprecated)
                 goto L1;
+
+            }
         }
+        printf("2: [%s] checkDeprecated('%s')\n", loc.toChars(), toPrettyChars());
 
         char *message = NULL;
         for (Dsymbol *p = this; p; p = p->parent)
@@ -686,10 +715,23 @@ void Dsymbol::checkDeprecated(Loc loc, Scope *sc)
                 break;
         }
 
+        if (force)
+        {
+            unsigned oldgag = global.gag;
+            global.gag = 0;
         if (message)
             deprecation(loc, "is deprecated - %s", message);
         else
             deprecation(loc, "is deprecated");
+            global.gag = oldgag;
+        }
+        else
+        {
+        if (message)
+            deprecation(loc, "is deprecated - %s", message);
+        else
+            deprecation(loc, "is deprecated");
+        }
     }
 
   L1:

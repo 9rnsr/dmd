@@ -5038,6 +5038,7 @@ TemplateInstance::TemplateInstance(Loc loc, Identifier *ident)
     this->havetempdecl = false;
     this->enclosing = NULL;
     this->speculative = false;
+    this->isdeprecated = 0;
     this->hash = 0;
     this->fargs = NULL;
 }
@@ -5069,6 +5070,7 @@ TemplateInstance::TemplateInstance(Loc loc, TemplateDeclaration *td, Objects *ti
     this->havetempdecl = true;
     this->enclosing = NULL;
     this->speculative = false;
+    this->isdeprecated = 0;
     this->hash = 0;
     this->fargs = NULL;
 
@@ -5436,7 +5438,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         }
         break;
     }
-
+#if 0
     /* If one or more template arguments are deprecated symbol,
      * instance members inherit 'deprecated' attribute.
      */
@@ -5451,7 +5453,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         members = a;
         break;
     }
-
+#endif
     // Create our own scope for the template parameters
     Scope *scope = tempdecl->scope;
     if (!tempdecl->semanticRun)
@@ -5533,6 +5535,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     //printf("enclosing = %d, sc->parent = %s\n", enclosing, sc->parent->toChars());
     sc2->parent = /*enclosing ? sc->parent :*/ this;
     sc2->tinst = this;
+    printf("%s sc2 = %p, sc2->tinst = %p, s2->parent = %p\n", toChars(), sc2, sc2->tinst, sc2->parent);
     sc2->speculative = speculative;
 
     tryExpandMembers(sc2);
@@ -5602,6 +5605,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     }
 
   Laftersemantic:
+    if (isdeprecated == 1)
+        isdeprecated = 2;
     sc2->pop();
 
     scope->pop();

@@ -321,6 +321,7 @@ public:
     bool semantictiargsdone;            // has semanticTiargs() been done?
     bool havetempdecl;                  // if used second constructor
     bool speculative;                   // if only instantiated with errors gagged
+    int isdeprecated;
     Dsymbol *enclosing;                 // if referencing local symbols, this is the context
     hash_t hash;                        // cached result of hashCode()
     Expressions *fargs;                 // for function template, these are the function arguments
