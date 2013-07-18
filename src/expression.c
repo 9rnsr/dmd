@@ -656,10 +656,20 @@ Expression *resolvePropertiesOnly(Scope *sc, Expression *e1)
     {
         DotVarExp *dve = (DotVarExp *)e1;
         fd = dve->var->isFuncDeclaration();
+        if (((VarExp *)e1)->var->isOverloadDeclaration())
+        {
+            // todo
+        }
         goto Lfd;
     }
     else if (e1->op == TOKvar && e1->type->ty == Tfunction)
     {
+        if (((VarExp *)e1)->var->isOverloadDeclaration())
+        {
+    Lod:
+            
+            return NULL;
+        }
         fd = ((VarExp *)e1)->var->isFuncDeclaration();
     Lfd:
         assert(fd);
