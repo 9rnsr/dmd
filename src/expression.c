@@ -1145,7 +1145,7 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
         Expression *e = (*exps)[i];
         e = resolveProperties(sc, e);
         if (!e->type)
-        {   e->error("%s has no value", e->toChars());
+        {   e->error("[1] %s has no value", e->toChars());
             e = new ErrorExp();
         }
 
@@ -3530,8 +3530,9 @@ Lagain:
     }
     if (OverloadDeclaration *od = s->isOverloadDeclaration())
     {
-        printf("od = %s %s\n", od->kind(), od->toChars());
-        return new VarExp(loc, od, hasOverloads);
+        printf("dsymexp od = %s %s\n", od->kind(), od->toChars());
+        e = new VarExp(loc, od, hasOverloads);
+        return e->semantic(sc);
     }
     fld = s->isFuncLiteralDeclaration();
     if (fld)
@@ -5667,6 +5668,8 @@ Expression *VarExp::semantic(Scope *sc)
     if (OverloadDeclaration *od = var->isOverloadDeclaration())
     {
         // if all of overloaded symbols are template - ?
+        printf("var = %s %s\n", var->kind(), var->toChars());
+        type = Type::tambig;
     }
     else if (VarDeclaration *v = var->isVarDeclaration())
     {
@@ -5902,11 +5905,13 @@ Expression *TupleExp::semantic(Scope *sc)
 
     // Run semantic() on each argument
     for (size_t i = 0; i < exps->dim; i++)
-    {   Expression *e = (*exps)[i];
-
+    {
+        Expression *e = (*exps)[i];
         e = e->semantic(sc);
         if (!e->type)
-        {   error("%s has no value", e->toChars());
+        {
+            printf("e = %s %s\n", Token::toChars(e->op), e->toChars());
+            error("[2] %s has no value", e->toChars());
             return new ErrorExp();
         }
         (*exps)[i] = e;
@@ -7836,7 +7841,7 @@ Expression *DotVarExp::semantic(Scope *sc)
         if (OverloadDeclaration *od = var->isOverloadDeclaration())
         {
             type = Type::tambig;
-            printf("od = %s %s\n", od->kind(), od->toChars());
+            printf("dotvar od = %s %s\n", od->kind(), od->toChars());
             //return new VarExp(loc, od, hasOverloads);
         }
         else if (FuncDeclaration *f = var->isFuncDeclaration())
