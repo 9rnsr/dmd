@@ -5437,6 +5437,21 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         break;
     }
 
+    /* If one or more template arguments are deprecated symbol,
+     * instance members inherit 'deprecated' attribute.
+     */
+    for (size_t i = 0; i < tdtypes.dim; i++)
+    {
+        Dsymbol *s = getDsymbol(tdtypes[i]);
+        if (!s || !s->isDeprecated())
+            continue;
+
+        Dsymbols *a = new Dsymbols();
+        a->push(new StorageClassDeclaration(STCdeprecated, members));
+        members = a;
+        break;
+    }
+
     // Create our own scope for the template parameters
     Scope *scope = tempdecl->scope;
     if (!tempdecl->semanticRun)

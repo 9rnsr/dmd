@@ -128,6 +128,8 @@ void AggregateDeclaration::semantic3(Scope *sc)
             Expression *e = new DsymbolExp(Loc(), s, 0);
 
             Scope *sc = ti->tempdecl->scope->startCTFE();
+            if (s->isDeprecated())
+                sc->stc |= STCdeprecated;
             e = e->semantic(sc);
             sc->endCTFE();
 
