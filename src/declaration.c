@@ -596,6 +596,7 @@ void AliasDeclaration::semantic(Scope *sc)
     else
     {
         Dsymbol *savedovernext = overnext;
+        //printf("[%s] alias s = %s %s\n", loc.toChars(), s->kind(), s->toChars(), overnext);
         Dsymbol *a = s->toAlias();
         if (a->isFuncDeclaration() || a->isTemplateDeclaration())
         {
@@ -611,8 +612,21 @@ void AliasDeclaration::semantic(Scope *sc)
             else if (hasOverloads == 0)
                 s = new OverloadDeclaration(a, 0);
         }
-        OverloadSet *o = a->isOverloadSet();
-        if (o)
+        else if (a->isOverloadDeclaration())
+        {
+            if (overnext)
+            {
+                OverloadDeclaration *od = new OverloadDeclaration(a, hasOverloads);
+                if (!od->overloadInsert(overnext))
+                    ScopeDsymbol::multiplyDefined(Loc(), overnext, a);
+                overnext = NULL;
+                s = od;
+                s->parent = sc->parent;
+            }
+            else if (hasOverloads == 0)
+                s = a;
+        }
+        else if (OverloadSet *o = a->isOverloadSet())
         {
             if (overnext)
             {
@@ -649,7 +663,7 @@ bool AliasDeclaration::overloadInsert(Dsymbol *s)
      * be overloaded and check later for correctness.
      */
 
-    //printf("AliasDeclaration::overloadInsert('%s')\n", s->toChars());
+    //printf("AliasDeclaration::overloadInsert('%s') aliassym = %p, overnext = %p\n", s->toChars(), aliassym, overnext);
     if (aliassym) // see test/test56.d
     {
         Dsymbol *a = aliassym->toAlias();
@@ -657,6 +671,11 @@ bool AliasDeclaration::overloadInsert(Dsymbol *s)
         {
             OverloadDeclaration *od = new OverloadDeclaration(a);
             aliassym = od;
+            return od->overloadInsert(s);
+        }
+        if (OverloadDeclaration *od = a->isOverloadDeclaration())
+        {
+            //printf("alias sym = od\n");
             return od->overloadInsert(s);
         }
     }
@@ -814,6 +833,7 @@ bool OverloadDeclaration::equals(RootObject *o)
 
 bool OverloadDeclaration::overloadInsert(Dsymbol *s)
 {
+    //printf("OverloadDeclaration::overloadInsert('%s') aliassym = %p, overnext = %p\n", s->toChars(), aliassym, overnext);
     if (overnext == NULL)
     {
         if (s == this)

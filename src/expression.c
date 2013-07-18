@@ -1145,7 +1145,8 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
         Expression *e = (*exps)[i];
         e = resolveProperties(sc, e);
         if (!e->type)
-        {   e->error("[1] %s has no value", e->toChars());
+        {
+            e->error("%s has no value", e->toChars());
             e = new ErrorExp();
         }
 
@@ -3530,7 +3531,7 @@ Lagain:
     }
     if (OverloadDeclaration *od = s->isOverloadDeclaration())
     {
-        printf("dsymexp od = %s %s\n", od->kind(), od->toChars());
+        //printf("dsymexp od = %s %s\n", od->kind(), od->toChars());
         e = new VarExp(loc, od, hasOverloads);
         return e->semantic(sc);
     }
@@ -5668,7 +5669,7 @@ Expression *VarExp::semantic(Scope *sc)
     if (OverloadDeclaration *od = var->isOverloadDeclaration())
     {
         // if all of overloaded symbols are template - ?
-        printf("var = %s %s\n", var->kind(), var->toChars());
+        //printf("var = %s %s\n", var->kind(), var->toChars());
         type = Type::tambig;
     }
     else if (VarDeclaration *v = var->isVarDeclaration())
@@ -5910,8 +5911,8 @@ Expression *TupleExp::semantic(Scope *sc)
         e = e->semantic(sc);
         if (!e->type)
         {
-            printf("e = %s %s\n", Token::toChars(e->op), e->toChars());
-            error("[2] %s has no value", e->toChars());
+            //printf("e = %s %s\n", Token::toChars(e->op), e->toChars());
+            error("%s has no value", e->toChars());
             return new ErrorExp();
         }
         (*exps)[i] = e;
@@ -7841,7 +7842,7 @@ Expression *DotVarExp::semantic(Scope *sc)
         if (OverloadDeclaration *od = var->isOverloadDeclaration())
         {
             type = Type::tambig;
-            printf("dotvar od = %s %s\n", od->kind(), od->toChars());
+            //printf("dotvar od = %s %s\n", od->kind(), od->toChars());
             //return new VarExp(loc, od, hasOverloads);
         }
         else if (FuncDeclaration *f = var->isFuncDeclaration())
