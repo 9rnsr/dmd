@@ -5658,6 +5658,9 @@ Expression *VarExp::semantic(Scope *sc)
     VarDeclaration *v = var->isVarDeclaration();
     if (v)
     {
+        if (v->isDataseg() || (v->storage_class & STCmanifest))
+            accessCheck(loc, sc, NULL, v);
+
         hasOverloads = 0;
         v->checkNestedReference(sc, loc);
 #if DMDV2

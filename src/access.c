@@ -248,7 +248,8 @@ void AggregateDeclaration::accessCheck(Loc loc, Scope *sc, Dsymbol *smember)
     }
     if (!result)
     {
-        error(loc, "member %s is not accessible", smember->toChars());
+        error(loc, "member %s is not accessible from module %s",
+            smember->toChars(), sc->module->toChars());
     }
 }
 

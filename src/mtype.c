@@ -8117,7 +8117,7 @@ L1:
     if (d->isDataseg() || unreal && d->isField())
     {
         // (e, d)
-        accessCheck(e->loc, sc, e, d);
+        //accessCheck(e->loc, sc, e, d);
         Expression *ve = new VarExp(e->loc, d);
         e = unreal ? ve : new CommaExp(e->loc, e, ve);
         e = e->semantic(sc);
@@ -8793,7 +8793,7 @@ L1:
     if (d->isDataseg() || unreal && d->isField())
     {
         // (e, d)
-        accessCheck(e->loc, sc, e, d);
+        //accessCheck(e->loc, sc, e, d);
         Expression *ve = new VarExp(e->loc, d);
         e = unreal ? ve : new CommaExp(e->loc, e, ve);
         e = e->semantic(sc);
@@ -8807,6 +8807,15 @@ L1:
         e = new CommaExp(e->loc, e, ve);
         e->type = d->type;
         return e;
+    }
+
+    if (v)
+    {
+        //if (v->toParent() != sym)
+        //    sym->error(e->loc, "'%s' is not a member", v->toChars());
+
+        // same as TypeStruct::dotExp
+        accessCheck(e->loc, sc, e, d);
     }
 
     DotVarExp *de = new DotVarExp(e->loc, e, d, d->hasOverloads());
