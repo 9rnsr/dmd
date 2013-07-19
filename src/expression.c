@@ -3614,6 +3614,27 @@ Lagain:
     TemplateDeclaration *td = s->isTemplateDeclaration();
     if (td)
     {
+        if (!td->overnext)
+            accessCheck(loc, sc, NULL, td/*olds?*/);
+        else
+        {
+#if 0   // Disable access check for overloaded symbol temporarily.
+            Dsymbol *p = td->parent;
+            PROT prot = PROTundefined;
+            for (TemplateDeclaration *td2 = td; td2; td2 = td2->overnext)
+            {
+                if (td2->prot() > prot)
+                    prot = td2->prot();
+            }
+            if (prot == PROTprivate && p->getAccessModule() != sc->module ||
+                prot == PROTpackage && !hasPackageAccess(sc, p))
+            {
+                ::error(loc, "%s %s.%s is not accessible from module %s",
+                    td->kind(), p->toPrettyChars(), td->ident->toChars(), sc->module->toChars());
+            }
+#endif
+        }
+
         Dsymbol *p = td->toParent2();
         FuncDeclaration *fdthis = hasThis(sc);
         AggregateDeclaration *ad = p ? p->isAggregateDeclaration() : NULL;
@@ -5037,6 +5058,11 @@ int TemplateExp::rvalue()
 {
     error("template %s has no value", toChars());
     return 0;
+}
+
+Expression *TemplateExp::semantic(Scope *sc)
+{
+    return this;
 }
 
 int TemplateExp::isLvalue()
@@ -7690,6 +7716,12 @@ DotTemplateExp::DotTemplateExp(Loc loc, Expression *e, TemplateDeclaration *td)
 
 {
     this->td = td;
+}
+
+Expression *DotTemplateExp::semantic(Scope *sc)
+{
+    // access check?
+    return this;
 }
 
 void DotTemplateExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)

@@ -611,6 +611,7 @@ public:
 
     TemplateExp(Loc loc, TemplateDeclaration *td, FuncDeclaration *fd = NULL);
     int rvalue();
+    Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -990,6 +991,7 @@ public:
     TemplateDeclaration *td;
 
     DotTemplateExp(Loc loc, Expression *e, TemplateDeclaration *td);
+    Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 

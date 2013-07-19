@@ -82,8 +82,8 @@ PROT ClassDeclaration::getAccess(Dsymbol *smember)
         }
 
         for (size_t i = 0; i < baseclasses->dim; i++)
-        {   BaseClass *b = (*baseclasses)[i];
-
+        {
+            BaseClass *b = (*baseclasses)[i];
             PROT access = b->base->getAccess(smember);
             switch (access)
             {
@@ -357,7 +357,8 @@ int hasPackageAccess(Scope *sc, Dsymbol *s)
 int AggregateDeclaration::hasPrivateAccess(Dsymbol *smember)
 {
     if (smember)
-    {   AggregateDeclaration *cd = NULL;
+    {
+        AggregateDeclaration *cd = NULL;
         Dsymbol *smemberparent = smember->toParent();
         if (smemberparent)
             cd = smemberparent->isAggregateDeclaration();
@@ -377,7 +378,8 @@ int AggregateDeclaration::hasPrivateAccess(Dsymbol *smember)
 
         // If both are members of the same module, grant access
         while (1)
-        {   Dsymbol *sp = smember->toParent();
+        {
+            Dsymbol *sp = smember->toParent();
             if (sp->isFuncDeclaration() && smember->isFuncDeclaration())
                 smember = sp;
             else
