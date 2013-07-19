@@ -6205,6 +6205,8 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
     tempdecl = td_best;
     tempovers = NULL;
 
+    accessCheck(loc, sc, NULL, tempdecl);
+
 #if 0
     /* Cast any value arguments to be same type as value parameter
      */

@@ -7965,7 +7965,7 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
         }
         e = new TupleExp(e->loc, e0, exps);
         Scope *sc2 = sc->push();
-        sc2->flags = sc->flags | SCOPEnoaccesscheck;
+        sc2->flags = sc->flags;// | SCOPEnoaccesscheck;
         e = e->semantic(sc2);
         sc2->pop();
         return e;
@@ -8513,7 +8513,7 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         }
         e = new TupleExp(e->loc, e0, exps);
         Scope *sc2 = sc->push();
-        sc2->flags = sc->flags | SCOPEnoaccesscheck;
+        sc2->flags = sc->flags;// | SCOPEnoaccesscheck;
         e = e->semantic(sc2);
         sc2->pop();
         return e;

@@ -976,17 +976,18 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             }
         }
 
-        /* Build special symbol if we had multiple finds
-         */
-        if (a)
-        {   assert(s);
-            a->push(s);
-            s = a;
-        }
-
         if (s)
         {
-            if (!(flags & 2) && s->prot() == PROTprivate && !s->parent->isTemplateMixin())
+            /* Build special symbol if we had multiple finds
+             */
+            if (a)
+            {
+                a->push(s);
+                s = a;
+            }
+
+            if (!(flags & 2) && s->prot() == PROTprivate &&
+                !s->isOverloadable() && !s->parent->isTemplateMixin())
             {
                 if (!s->isImport())
                     error(loc, "%s %s is private", s->kind(), s->toPrettyChars());

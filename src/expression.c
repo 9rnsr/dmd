@@ -46,6 +46,7 @@
 Expression *createTypeInfoArray(Scope *sc, Expression *args[], size_t dim);
 Expression *expandVar(int result, VarDeclaration *v);
 void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, int mod, const char *kind);
+int hasPackageAccess(Scope *sc, Dsymbol *s);    // access.c
 
 #define LOGSEMANTIC     0
 
@@ -7805,7 +7806,7 @@ Expression *DotVarExp::semantic(Scope *sc)
             Dsymbol *vparent = var->toParent();
             AggregateDeclaration *ad = vparent ? vparent->isAggregateDeclaration() : NULL;
             e1 = getRightThis(loc, sc, ad, e1, var);
-            accessCheck(loc, sc, e1, var);
+            //accessCheck(loc, sc, e1, var);
 
             VarDeclaration *v = var->isVarDeclaration();
 #if PULL93
@@ -7820,7 +7821,7 @@ Expression *DotVarExp::semantic(Scope *sc)
             if (v && v->isDataseg())     // fix bugzilla 8238
             {
                 // (e1, v)
-                accessCheck(loc, sc, e1, v);
+                //accessCheck(loc, sc, e1, v);
                 VarExp *ve = new VarExp(loc, v);
                 Expression *e = new CommaExp(loc, e1, ve);
                 e = e->semantic(sc);
@@ -8848,16 +8849,49 @@ Lagain:
     }
     else if (e1->op == TOKoverloadset)
     {
+        AggregateDeclaration *ad = tthis ? isAggregate(tthis) : NULL;
+
         OverExp *eo = (OverExp *)e1;
         FuncDeclaration *f = NULL;
         Dsymbol *s = NULL;
         for (size_t i = 0; i < eo->vars->a.dim; i++)
-        {   s = eo->vars->a[i];
-            if (tiargs && s->isFuncDeclaration())
+        {
+            s = eo->vars->a[i];
+            if (tiargs && s->isFuncDeclaration())   // unnecessary?
                 continue;
             FuncDeclaration *f2 = resolveFuncCall(loc, sc, s, tiargs, tthis, arguments, 1);
             if (f2)
-            {   if (f)
+            {
+                if (ad)
+                {
+                    Dsymbol *smember = f2;
+                    FuncDeclaration *f = sc->func;
+                    AggregateDeclaration *cdscope = sc->getStructClassScope();
+                    int result;
+
+                    PROT access2 = smember->prot();
+                    result = access2 >= PROTpublic ||
+                            ad->hasPrivateAccess(f) ||
+                            ad->isFriendOf(cdscope) ||
+                            (access2 == PROTpackage && hasPackageAccess(sc, ad)) ||
+                            ad->getAccessModule() == sc->module;
+
+                    if (!result)
+                        f2 = NULL;
+                }
+                else
+                {
+                    Dsymbol *s = f2;
+                    if (s->prot() == PROTprivate && s->getAccessModule() != sc->module ||
+                        s->prot() == PROTpackage && !hasPackageAccess(sc, s))
+                    {
+                        f2 = NULL;
+                    }
+                }
+            }
+            if (f2)
+            {
+                if (f)
                     /* Error if match in more than one overload set,
                      * even if one is a 'better' match than the other.
                      */
