@@ -655,6 +655,56 @@ loop_with_dtors:
 }
 
 /***************************************/
+// 10257
+
+void test10257()
+{
+    template TypeTuple(TL...) { alias TypeTuple = TL; }
+
+    struct S
+    {
+        @(1,2) private int a;
+        @(3,4) public  int b;
+
+        @(1,2) private static int c;
+        @(3,4) public  static int d;
+
+        @(1,2) private struct S1 {}
+        @(3,4) public  struct S2 {}
+    }
+
+    S store;
+    foreach (i, x; store.tupleof)
+    {
+        static assert( __traits(getProtection, x)  ==  __traits(getProtection, store.tupleof[i]) );
+        static assert([__traits(getAttributes, x)] == [__traits(getAttributes, store.tupleof[i])]);
+    }
+
+    store = S(1, 2);
+    foreach (i, ref x; store.tupleof)
+    {
+        static assert( __traits(getProtection, x)  ==  __traits(getProtection, store.tupleof[i]) );
+        static assert([__traits(getAttributes, x)] == [__traits(getAttributes, store.tupleof[i])]);
+        x = 10 + i;
+    }
+    assert(store == S(10, 11));
+
+    alias vars = TypeTuple!(S.c, S.d);
+    foreach (i, x; vars)
+    {
+        static assert( __traits(getProtection, x)  ==  __traits(getProtection, vars[i]) );
+        static assert([__traits(getAttributes, x)] == [__traits(getAttributes, vars[i])]);
+    }
+
+    alias types = TypeTuple!(S.S1, S.S2);
+    foreach (i, x; types)
+    {
+        static assert( __traits(getProtection, x)  ==  __traits(getProtection, types[i]) );
+        static assert([__traits(getAttributes, x)] == [__traits(getAttributes, types[i])]);
+    }
+}
+
+/***************************************/
 // 10475
 
 void test10475a()
@@ -753,6 +803,7 @@ int main()
     test7814();
     test6652();
     test9068();
+    test10257();
     test10475a();
     test10475b();
 

@@ -1541,26 +1541,27 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 error("no storage class for value %s", arg->ident->toChars());
                 goto Lerror;
             }
-            Dsymbol *var;
+            Declaration *var;
+            Dsymbol *dsym = NULL;
             if (te)
-            {   Type *tb = e->type->toBasetype();
-                Dsymbol *s = NULL;
+            {
+                Type *tb = e->type->toBasetype();
                 if ((tb->ty == Tfunction || tb->ty == Tsarray) && e->op == TOKvar)
-                    s = ((VarExp *)e)->var;
+                    dsym = ((VarExp *)e)->var;
                 else if (e->op == TOKtemplate)
-                    s =((TemplateExp *)e)->td;
+                    dsym = ((TemplateExp *)e)->td;
                 else if (e->op == TOKimport)
-                    s =((ScopeExp *)e)->sds;
+                    dsym = ((ScopeExp *)e)->sds;
 
-                if (s)
+                if (dsym)
                 {
-                    var = new AliasDeclaration(loc, arg->ident, s);
+                    var = new AliasDeclaration(loc, arg->ident, dsym);
                     if (arg->storageClass & STCref)
                     {   error("symbol %s cannot be ref", s->toChars());
                         goto Lerror;
                     }
                     if (argtype)
-                    {   error("cannot specify element type for symbol %s", s->toChars());
+                    {   error("cannot specify element type for symbol %s", dsym->toChars());
                         goto Lerror;
                     }
                 }
@@ -1590,6 +1591,10 @@ Statement *ForeachStatement::semantic(Scope *sc)
                         else
                             v->storage_class |= STCmanifest;
                     }
+                    if (e->op == TOKdotvar)
+                        dsym = ((DotVarExp *)e)->var;
+                    else
+                        dsym = getDsymbol(e);
                     var = v;
                 }
             }
@@ -1600,6 +1605,14 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 {   error("cannot specify element type for symbol %s", s->toChars());
                     goto Lerror;
                 }
+                dsym = t->toDsymbol(NULL);
+            }
+            if (dsym && var)
+            {
+                // Inherit uda and protection attributes.
+                var->semantic(sc);
+                var->userAttributes = dsym->userAttributes;
+                var->protection = dsym->prot();
             }
             DeclarationExp *de = new DeclarationExp(loc, var);
             st->push(new ExpStatement(loc, de));
