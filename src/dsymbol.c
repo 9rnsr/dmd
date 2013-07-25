@@ -452,10 +452,10 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
             break;
 
         case DYNCAST_DSYMBOL:
-        {   // It's a template instance
+        {
+            // It's a template instance
             //printf("\ttemplate instance id\n");
-            Dsymbol *st = (Dsymbol *)id;
-            TemplateInstance *ti = st->isTemplateInstance();
+            TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
             Identifier *id = ti->name;
             sm = s->search(loc, sc, id, 0);
             if (!sm)
@@ -469,14 +469,8 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
                           id->toChars(), s->kind(), s->toChars());
                 return NULL;
             }
-            sm = sm->toAlias();
-            TemplateDeclaration *td = sm->isTemplateDeclaration();
-            if (!td)
-            {
-                error("%s is not a template, it is a %s", id->toChars(), sm->kind());
+            if (!ti->updateTemplateDeclaration(sc, sm))
                 return NULL;
-            }
-            ti->tempdecl = td;
             if (!ti->semanticRun)
                 ti->semantic(sc);
             sm = ti->toAlias();
