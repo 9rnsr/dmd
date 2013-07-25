@@ -267,11 +267,12 @@ void Import::semantic(Scope *sc)
             }
             else
             {
-                Dsymbol *s = mod->search_correct(names[i]);
-                if (s)
-                    mod->error(loc, "import '%s' not found, did you mean '%s %s'?", names[i]->toChars(), s->kind(), s->toChars());
-                else
-                    mod->error(loc, "import '%s' not found", names[i]->toChars());
+                mod->error(loc, "import '%s' not found", names[i]->toChars());
+                if (Dsymbol *sx = mod->search_correct(names[i]))
+                {
+                    errorSupplemental(loc, "did you mean %s %s '%s'?",
+                        Pprotectionnames[sx->prot()], sx->kind(), sx->toPrettyChars());
+                }
             }
         }
         sc = sc->pop();

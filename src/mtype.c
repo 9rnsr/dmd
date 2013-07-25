@@ -2071,10 +2071,12 @@ Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
             s = s->search_correct(ident);
         if (this != Type::terror)
         {
-            if (s)
-                error(loc, "no property '%s' for type '%s', did you mean '%s'?", ident->toChars(), toChars(), s->toChars());
-            else
-                error(loc, "no property '%s' for type '%s'", ident->toChars(), toChars());
+            error(loc, "no property '%s' for type '%s'", ident->toChars(), toChars());
+            if (Dsymbol *sx = s)
+            {
+                errorSupplemental(loc, "did you mean %s %s '%s'?",
+                    Pprotectionnames[sx->prot()], sx->kind(), sx->toPrettyChars());
+            }
         }
         e = new ErrorExp();
     }
@@ -6506,12 +6508,12 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                     else
                     {
                         assert(id->dyncast() == DYNCAST_IDENTIFIER);
-                        sm = s->search_correct((Identifier *)id);
-                        if (sm)
-                            error(loc, "identifier '%s' of '%s' is not defined, did you mean '%s %s'?",
-                                  id->toChars(), toChars(), sm->kind(), sm->toChars());
-                        else
-                            error(loc, "identifier '%s' of '%s' is not defined", id->toChars(), toChars());
+                        error(loc, "identifier '%s' of '%s' is not defined", id->toChars(), toChars());
+                        if (Dsymbol *sx = s->search_correct((Identifier *)id))
+                        {
+                            errorSupplemental(loc, "did you mean %s %s '%s'?",
+                                Pprotectionnames[sx->prot()], sx->kind(), sx->toPrettyChars());
+                        }
                     }
                     *pe = new ErrorExp();
                 }
@@ -6607,12 +6609,13 @@ L1:
             error(loc, "'%s' is not defined, perhaps you need to import %s; ?", p, n);
         else
         {
+            error(loc, "undefined identifier %s", p);
             Identifier *id = new Identifier(p, TOKidentifier);
-            s = sc->search_correct(id);
-            if (s)
-                error(loc, "undefined identifier %s, did you mean %s %s?", p, s->kind(), s->toChars());
-            else
-                error(loc, "undefined identifier %s", p);
+            if (Dsymbol *sx = sc->search_correct(id))
+            {
+                errorSupplemental(loc, "did you mean %s %s '%s'?",
+                    Pprotectionnames[sx->prot()], sx->kind(), sx->toPrettyChars());
+            }
         }
         *pt = Type::terror;
     }

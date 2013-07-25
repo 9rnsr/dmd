@@ -3369,11 +3369,12 @@ Expression *IdentifierExp::semantic(Scope *sc)
         error("'%s' is not defined, perhaps you need to import %s; ?", ident->toChars(), n);
     else
     {
-        s = sc->search_correct(ident);
-        if (s)
-            error("undefined identifier %s, did you mean %s %s?", ident->toChars(), s->kind(), s->toChars());
-        else
-            error("undefined identifier %s", ident->toChars());
+        error("undefined identifier %s", ident->toChars());
+        if (Dsymbol *sx = sc->search_correct(ident))
+        {
+            errorSupplemental(loc, "did you mean %s %s '%s'?",
+                Pprotectionnames[sx->prot()], sx->kind(), sx->toPrettyChars());
+        }
     }
     return new ErrorExp();
 }
@@ -6811,7 +6812,7 @@ Expression *BinExp::checkComplexOpAssign(Scope *sc)
         // Any multiplication by an imaginary or complex number yields a complex result.
         // r *= c, i*=c, r*=i, i*=i are all forbidden operations.
         const char *opstr = Token::toChars(op);
-        if ( e1->type->isreal() && e2->type->iscomplex())
+        if (e1->type->isreal() && e2->type->iscomplex())
         {
             error("%s %s %s is undefined. Did you mean %s %s %s.re ?",
                 e1->type->toChars(), opstr, e2->type->toChars(),
@@ -7628,12 +7629,12 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
         }
         if (flag)
             return NULL;
-        s = ie->sds->search_correct(ident);
-        if (s)
-            error("undefined identifier '%s', did you mean '%s %s'?",
-                  ident->toChars(), s->kind(), s->toChars());
-        else
-            error("undefined identifier '%s'", ident->toChars());
+        error("undefined identifier '%s'", ident->toChars());
+        if (Dsymbol *sx = ie->sds->search_correct(ident))
+        {
+            errorSupplemental(loc, "did you mean %s %s '%s'?",
+                Pprotectionnames[sx->prot()], sx->kind(), sx->toPrettyChars());
+        }
         return new ErrorExp();
     }
     else if (t1b->ty == Tpointer && e1->type->ty != Tenum &&

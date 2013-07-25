@@ -230,12 +230,12 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
                 s = ad->search(loc, sc, id, 0);
                 if (!s)
                 {
-                    s = ad->search_correct(id);
-                    if (s)
-                        error(loc, "'%s' is not a member of '%s', did you mean '%s %s'?",
-                              id->toChars(), t->toChars(), s->kind(), s->toChars());
-                    else
-                        error(loc, "'%s' is not a member of '%s'", id->toChars(), t->toChars());
+                    error(loc, "'%s' is not a member of '%s'", id->toChars(), t->toChars());
+                    if (Dsymbol *sx = ad->search_correct(id))
+                    {
+                        errorSupplemental(loc, "did you mean %s %s '%s'?",
+                            Pprotectionnames[sx->prot()], sx->kind(), sx->toPrettyChars());
+                    }
                     errors = 1;
                     continue;
                 }

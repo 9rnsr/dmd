@@ -1,8 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail10481.d(11): Error: undefined identifier T1, did you mean alias T0?
-fail_compilation/fail10481.d(15): Error: cannot resolve type for get!(A)
+fail_compilation/fail10481.d(12): Error: undefined identifier T1
+fail_compilation/fail10481.d(12):        did you mean public alias 'T0'?
+fail_compilation/fail10481.d(16): Error: cannot resolve type for get!(A)
 ---
 */
 
