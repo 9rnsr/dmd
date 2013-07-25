@@ -227,7 +227,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
             else
             {
                 //s = ad->symtab->lookup(id);
-                s = ad->search(loc, id, 0);
+                s = ad->search(loc, sc, id, 0);
                 if (!s)
                 {
                     s = ad->search_correct(id);
@@ -324,7 +324,7 @@ Expression *StructInitializer::toExpression(Type *t)
         Identifier *id = field[i];
         if (id)
         {
-            Dsymbol * s = ad->search(loc, id, 0);
+            Dsymbol * s = ad->search(loc, NULL, id, 0); // todo_sc
             if (!s)
             {
                 error(loc, "'%s' is not a member of '%s'", id->toChars(), sd->toChars());

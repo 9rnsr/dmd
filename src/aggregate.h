@@ -157,7 +157,7 @@ public:
     StructDeclaration(Loc loc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
-    Dsymbol *search(Loc, Identifier *ident, int flags);
+    Dsymbol *search(Loc loc, Scope *sc, Identifier *ident, int flags);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *mangle(bool isv = false);
     const char *kind();
@@ -274,7 +274,7 @@ public:
     virtual int isBaseOf(ClassDeclaration *cd, int *poffset);
 
     virtual int isBaseInfoComplete();
-    Dsymbol *search(Loc, Identifier *ident, int flags);
+    Dsymbol *search(Loc loc, Scope *sc, Identifier *ident, int flags);
     ClassDeclaration *searchBase(Loc, Identifier *ident);
 #if DMDV2
     int isFuncHidden(FuncDeclaration *fd);

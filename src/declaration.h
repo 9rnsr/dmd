@@ -140,7 +140,7 @@ public:
     unsigned size(Loc loc);
     int checkModify(Loc loc, Scope *sc, Type *t, Expression *e1, int flag);
 
-    Dsymbol *search(Loc loc, Identifier *ident, int flags);
+    Dsymbol *search(Loc loc, Scope *sc, Identifier *ident, int flags);
 
     void emitComment(Scope *sc);
     void toJson(JsonOut *json);

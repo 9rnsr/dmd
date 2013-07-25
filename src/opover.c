@@ -1198,7 +1198,7 @@ Dsymbol *search_function(ScopeDsymbol *ad, Identifier *funcid)
     FuncDeclaration *fd;
     TemplateDeclaration *td;
 
-    s = ad->search(Loc(), funcid, 0);
+    s = ad->search(Loc(), NULL, funcid, 0); // todo_sc
     if (s)
     {   Dsymbol *s2;
 
@@ -1280,7 +1280,7 @@ int ForeachStatement::inferAggregate(Scope *sc, Dsymbol *&sapply)
                     }
                 }
 
-                if (Dsymbol *shead = ad->search(Loc(), idfront, 0))
+                if (Dsymbol *shead = ad->search(Loc(), sc, idfront, 0))
                 {   // range aggregate
                     break;
                 }
@@ -1441,7 +1441,7 @@ int ForeachStatement::inferApplyArgTypes(Scope *sc, Dsymbol *&sapply)
                     /* Look for a front() or back() overload
                      */
                     Identifier *id = (op == TOKforeach) ? Id::Ffront : Id::Fback;
-                    Dsymbol *s = ad->search(Loc(), id, 0);
+                    Dsymbol *s = ad->search(Loc(), sc, id, 0);
                     FuncDeclaration *fd = s ? s->isFuncDeclaration() : NULL;
                     if (fd)
                     {

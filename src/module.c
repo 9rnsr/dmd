@@ -877,7 +877,7 @@ int Module::needModuleInfo()
     return needmoduleinfo || global.params.cov;
 }
 
-Dsymbol *Module::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *Module::search(Loc loc, Scope *sc, Identifier *ident, int flags)
 {
     /* Since modules can be circularly referenced,
      * need to stop infinite recursive searches.
@@ -896,7 +896,7 @@ Dsymbol *Module::search(Loc loc, Identifier *ident, int flags)
     else
     {
         insearch = 1;
-        s = ScopeDsymbol::search(loc, ident, flags);
+        s = ScopeDsymbol::search(loc, sc, ident, flags);
         insearch = 0;
 
         searchCacheIdent = ident;
@@ -1155,7 +1155,7 @@ DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package
     return dst;
 }
 
-Dsymbol *Package::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *Package::search(Loc loc, Scope *sc, Identifier *ident, int flags)
 {
     if (!isModule() && mod)
     {
@@ -1164,10 +1164,10 @@ Dsymbol *Package::search(Loc loc, Identifier *ident, int flags)
         if (s)
             return s;
         //printf("[%s] through pkdmod: %s\n", loc.toChars(), toChars());
-        return mod->search(loc, ident, flags);
+        return mod->search(loc, sc, ident, flags);
     }
 
-    return ScopeDsymbol::search(loc, ident, flags);
+    return ScopeDsymbol::search(loc, sc, ident, flags);
 }
 
 /* ===========================  ===================== */

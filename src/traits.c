@@ -409,7 +409,7 @@ Expression *TraitsExp::semantic(Scope *sc)
         {
             if (sym)
             {
-                Dsymbol *sm = sym->search(loc, id, 0);
+                Dsymbol *sm = sym->search(loc, sc, id, 0);
                 if (sm)
                     goto Ltrue;
             }

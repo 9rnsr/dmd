@@ -162,7 +162,7 @@ public:
     virtual void semantic2(Scope *sc);
     virtual void semantic3(Scope *sc);
     virtual void inlineScan();
-    virtual Dsymbol *search(Loc loc, Identifier *ident, int flags);
+    virtual Dsymbol *search(Loc loc, Scope *sc, Identifier *ident, int flags);
     Dsymbol *search_correct(Identifier *id);
     Dsymbol *searchX(Loc loc, Scope *sc, RootObject *id);
     virtual bool overloadInsert(Dsymbol *s);
@@ -271,7 +271,7 @@ public:
     ScopeDsymbol();
     ScopeDsymbol(Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    Dsymbol *search(Loc loc, Identifier *ident, int flags);
+    Dsymbol *search(Loc loc, Scope *sc, Identifier *ident, int flags);
     void importScope(Dsymbol *s, PROT protection);
     bool isforwardRef();
     void defineRef(Dsymbol *s);
@@ -301,7 +301,7 @@ public:
     WithStatement *withstate;
 
     WithScopeSymbol(WithStatement *withstate);
-    Dsymbol *search(Loc loc, Identifier *ident, int flags);
+    Dsymbol *search(Loc loc, Scope *sc, Identifier *ident, int flags);
 
     WithScopeSymbol *isWithScopeSymbol() { return this; }
 };
@@ -319,7 +319,7 @@ public:
     ArrayScopeSymbol(Scope *sc, Expression *e);
     ArrayScopeSymbol(Scope *sc, TypeTuple *t);
     ArrayScopeSymbol(Scope *sc, TupleDeclaration *td);
-    Dsymbol *search(Loc loc, Identifier *ident, int flags);
+    Dsymbol *search(Loc loc, Scope *sc, Identifier *ident, int flags);
 
     ArrayScopeSymbol *isArrayScopeSymbol() { return this; }
 };

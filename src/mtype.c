@@ -6467,7 +6467,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                     sm = t->toDsymbol(sc);
                     if (sm && id->dyncast() == DYNCAST_IDENTIFIER)
                     {
-                        sm = sm->search(loc, (Identifier *)id, 0);
+                        sm = sm->search(loc, sc, (Identifier *)id, 0);
                         if (sm)
                             goto L2;
                     }
@@ -6552,7 +6552,7 @@ L1:
             // If the symbol is an import, try looking inside the import
             if (Import *si = s->isImport())
             {
-                s = si->search(loc, s->ident, 0);
+                s = si->search(loc, sc, s->ident, 0);
                 if (s && s != si)
                     goto L1;
                 s = si;
@@ -7362,7 +7362,7 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident, int fl
 #if LOGDOTEXP
     printf("TypeEnum::dotExp(e = '%s', ident = '%s') '%s'\n", e->toChars(), ident->toChars(), toChars());
 #endif
-    Dsymbol *s = sym->search(e->loc, ident, 0);
+    Dsymbol *s = sym->search(e->loc, sc, ident, 0);
     if (!s)
     {
         if (ident == Id::max ||
@@ -7980,20 +7980,20 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
                         // assert in until we do
             ScopeExp *se = (ScopeExp *)de->e1;
 
-            s = se->sds->search(e->loc, ident, 0);
+            s = se->sds->search(e->loc, sc, ident, 0);
             e = de->e1;
             goto L1;
         }
     }
 
-    s = sym->search(e->loc, ident, 0);
+    s = sym->search(e->loc, sc, ident, 0);
 L1:
     if (!s)
     {
         if (sym->scope)                 // it's a fwd ref, maybe we can resolve it
         {
             sym->semantic(NULL);
-            s = sym->search(e->loc, ident, 0);
+            s = sym->search(e->loc, sc, ident, 0);
         }
         if (!s)
             return noMember(sc, e, ident, flag);
@@ -8465,7 +8465,7 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         {
             ScopeExp *se = (ScopeExp *)de->e1;
 
-            s = se->sds->search(e->loc, ident, 0);
+            s = se->sds->search(e->loc, sc, ident, 0);
             e = de->e1;
             goto L1;
         }
@@ -8519,7 +8519,7 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         return e;
     }
 
-    s = sym->search(e->loc, ident, 0);
+    s = sym->search(e->loc, sc, ident, 0);
 L1:
     if (!s)
     {

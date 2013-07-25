@@ -669,7 +669,7 @@ void ClassDeclaration::semantic(Scope *sc)
     /* Look for special member functions.
      * They must be in this class, not in a base class.
      */
-    ctor = search(Loc(), Id::ctor, 0);
+    ctor = search(Loc(), sc, Id::ctor, 0);
 #if DMDV1
     if (ctor && (ctor->toParent() != this || !ctor->isCtorDeclaration()))
         ctor = NULL;
@@ -695,8 +695,8 @@ void ClassDeclaration::semantic(Scope *sc)
     inv = buildInv(sc);
 
     // Can be in base class
-    aggNew    = (NewDeclaration *)search(Loc(), Id::classNew, 0);
-    aggDelete = (DeleteDeclaration *)search(Loc(), Id::classDelete, 0);
+    aggNew    = (NewDeclaration *)search(Loc(), sc, Id::classNew, 0);
+    aggDelete = (DeleteDeclaration *)search(Loc(), sc, Id::classDelete, 0);
 
     // If this class has no constructor, but base class has a default
     // ctor, create a constructor:
@@ -909,7 +909,7 @@ int ClassDeclaration::isBaseInfoComplete()
     return 1;
 }
 
-Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *ClassDeclaration::search(Loc loc, Scope *sc, Identifier *ident, int flags)
 {
     Dsymbol *s;
     //printf("%s.ClassDeclaration::search('%s')\n", toChars(), ident->toChars());
@@ -938,7 +938,7 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
         return NULL;
     }
 
-    s = ScopeDsymbol::search(loc, ident, flags);
+    s = ScopeDsymbol::search(loc, sc, ident, flags);
     if (!s)
     {
         // Search bases classes in depth-first, left to right order
@@ -953,7 +953,7 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
                     error("base %s is forward referenced", b->base->ident->toChars());
                 else
                 {
-                    s = b->base->search(loc, ident, flags);
+                    s = b->base->search(loc, sc, ident, flags);
                     if (s == this)      // happens if s is nested in this and derives from this
                         s = NULL;
                     else if (s)
@@ -997,7 +997,7 @@ int isf(void *param, FuncDeclaration *fd)
 int ClassDeclaration::isFuncHidden(FuncDeclaration *fd)
 {
     //printf("ClassDeclaration::isFuncHidden(class = %s, fd = %s)\n", toChars(), fd->toChars());
-    Dsymbol *s = search(Loc(), fd->ident, 4|2);
+    Dsymbol *s = search(Loc(), NULL, fd->ident, 4|2);   // todo
     if (!s)
     {   //printf("not found\n");
         /* Because, due to a hack, if there are multiple definitions

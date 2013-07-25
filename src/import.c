@@ -257,10 +257,11 @@ void Import::semantic(Scope *sc)
         sc->protection = PROTpublic;
 #endif
         for (size_t i = 0; i < aliasdecls.dim; i++)
-        {   AliasDeclaration *ad = aliasdecls[i];
+        {
+            AliasDeclaration *ad = aliasdecls[i];
 
             //printf("\tImport alias semantic('%s')\n", s->toChars());
-            if (mod->search(loc, names[i], 0))
+            if (mod->search(loc, sc, names[i], 0))
             {
                 ad->semantic(sc);
             }
@@ -409,7 +410,7 @@ int Import::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
     return result;
 }
 
-Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *Import::search(Loc loc, Scope *sc, Identifier *ident, int flags)
 {
     //printf("%s.Import::search(ident = '%s', flags = x%x)\n", toChars(), ident->toChars(), flags);
 
@@ -419,7 +420,7 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
     }
 
     // Forward it to the package/module
-    return pkg->search(loc, ident, flags);
+    return pkg->search(loc, sc, ident, flags);
 }
 
 bool Import::overloadInsert(Dsymbol *s)

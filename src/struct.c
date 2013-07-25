@@ -709,10 +709,10 @@ void StructDeclaration::semantic(Scope *sc)
     /* Look for special member functions.
      */
 #if DMDV2
-    ctor = search(Loc(), Id::ctor, 0);
+    ctor = search(Loc(), sc, Id::ctor, 0);
 #endif
-    aggNew =       (NewDeclaration *)search(Loc(), Id::classNew,       0);
-    aggDelete = (DeleteDeclaration *)search(Loc(), Id::classDelete,    0);
+    aggNew =       (NewDeclaration *)search(Loc(), sc, Id::classNew,       0);
+    aggDelete = (DeleteDeclaration *)search(Loc(), sc, Id::classDelete,    0);
 
     TypeTuple *tup = type->toArgTypes();
     size_t dim = tup->arguments->dim;
@@ -750,7 +750,7 @@ void StructDeclaration::semantic(Scope *sc)
     assert(type->ty != Tstruct || ((TypeStruct *)type)->sym == this);
 }
 
-Dsymbol *StructDeclaration::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *StructDeclaration::search(Loc loc, Scope *sc, Identifier *ident, int flags)
 {
     //printf("%s.StructDeclaration::search('%s')\n", toChars(), ident->toChars());
 
@@ -763,7 +763,7 @@ Dsymbol *StructDeclaration::search(Loc loc, Identifier *ident, int flags)
         return NULL;
     }
 
-    return ScopeDsymbol::search(loc, ident, flags);
+    return ScopeDsymbol::search(loc, sc, ident, flags);
 }
 
 void StructDeclaration::finalizeSize(Scope *sc)

@@ -459,7 +459,7 @@ PROT EnumDeclaration::prot()
     return protection;
 }
 
-Dsymbol *EnumDeclaration::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *EnumDeclaration::search(Loc loc, Scope *sc, Identifier *ident, int flags)
 {
     //printf("%s.EnumDeclaration::search('%s')\n", toChars(), ident->toChars());
     if (scope)
@@ -472,7 +472,7 @@ Dsymbol *EnumDeclaration::search(Loc loc, Identifier *ident, int flags)
         return NULL;
     }
 
-    Dsymbol *s = ScopeDsymbol::search(loc, ident, flags);
+    Dsymbol *s = ScopeDsymbol::search(loc, sc, ident, flags);
     return s;
 }
 

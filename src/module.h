@@ -53,7 +53,7 @@ public:
     Package *isPackage() { return this; }
 
     virtual void semantic(Scope *) { }
-    Dsymbol *search(Loc loc, Identifier *ident, int flags);
+    Dsymbol *search(Loc loc, Scope *sc, Identifier *ident, int flags);
 };
 
 class Module : public Package
@@ -140,7 +140,7 @@ public:
     void gensymfile();
     void gendocfile();
     int needModuleInfo();
-    Dsymbol *search(Loc loc, Identifier *ident, int flags);
+    Dsymbol *search(Loc loc, Scope *sc, Identifier *ident, int flags);
     Dsymbol *symtabInsert(Dsymbol *s);
     void deleteObjFile();
     void addDeferredSemantic(Dsymbol *s);

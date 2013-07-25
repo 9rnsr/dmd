@@ -395,7 +395,7 @@ void Dsymbol::inlineScan()
  *      NULL if not found
  */
 
-Dsymbol *Dsymbol::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *Dsymbol::search(Loc loc, Scope *sc, Identifier *ident, int flags)
 {
     //printf("Dsymbol::search(this=%p,%s, ident='%s')\n", this, toChars(), ident->toChars());
     return NULL;
@@ -421,7 +421,7 @@ void *symbol_search_fp(void *arg, const char *seed)
 
     Dsymbol *s = (Dsymbol *)arg;
     Module::clearCache();
-    return (void *)s->search(Loc(), id, 4|2);
+    return (void *)s->search(Loc(), NULL, id, 4|2); // todo
 }
 
 Dsymbol *Dsymbol::search_correct(Identifier *ident)
@@ -448,7 +448,7 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
     switch (id->dyncast())
     {
         case DYNCAST_IDENTIFIER:
-            sm = s->search(loc, (Identifier *)id, 0);
+            sm = s->search(loc, sc, (Identifier *)id, 0);
             break;
 
         case DYNCAST_DSYMBOL:
@@ -457,7 +457,7 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
             Dsymbol *st = (Dsymbol *)id;
             TemplateInstance *ti = st->isTemplateInstance();
             Identifier *id = ti->name;
-            sm = s->search(loc, id, 0);
+            sm = s->search(loc, sc, id, 0);
             if (!sm)
             {
                 sm = s->search_correct(id);
@@ -869,7 +869,7 @@ Dsymbol *ScopeDsymbol::syntaxCopy(Dsymbol *s)
  * Be very, very careful about slowing it down.
  */
 
-Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *ScopeDsymbol::search(Loc loc, Scope *sc, Identifier *ident, int flags)
 {
     //printf("%s->ScopeDsymbol::search(ident='%s', flags=x%x)\n", toChars(), ident->toChars(), flags);
     //if (strcmp(ident->toChars(),"c") == 0) *(char*)0=0;
@@ -901,7 +901,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
             /* Don't find private members if ss is a module
              */
-            Dsymbol *s2 = ss->search(loc, ident, ss->isModule() ? 1 : 0);
+            Dsymbol *s2 = ss->search(loc, sc, ident, ss->isModule() ? 1 : 0);
             if (!s)
                 s = s2;
             else if (s2 && s != s2)
@@ -1250,7 +1250,7 @@ WithScopeSymbol::WithScopeSymbol(WithStatement *withstate)
     this->withstate = withstate;
 }
 
-Dsymbol *WithScopeSymbol::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *WithScopeSymbol::search(Loc loc, Scope *sc, Identifier *ident, int flags)
 {
     // Acts as proxy to the with class declaration
     Dsymbol *s = NULL;
@@ -1260,7 +1260,7 @@ Dsymbol *WithScopeSymbol::search(Loc loc, Identifier *ident, int flags)
         s = e->type->toDsymbol(NULL);
         if (s)
         {
-            s = s->search(loc, ident, 0);
+            s = s->search(loc, sc, ident, 0);
             if (s)
                 return s;
         }
@@ -1299,7 +1299,7 @@ ArrayScopeSymbol::ArrayScopeSymbol(Scope *sc, TupleDeclaration *s)
     this->sc = sc;
 }
 
-Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *ArrayScopeSymbol::search(Loc loc, Scope *sc, Identifier *ident, int flags)
 {
     //printf("ArrayScopeSymbol::search('%s', flags = %d)\n", ident->toChars(), flags);
     if (ident == Id::dollar)
@@ -1408,7 +1408,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                 }
                 assert(ad);
 
-                Dsymbol *s = ad->search(loc, Id::opDollar, 0);
+                Dsymbol *s = ad->search(loc, sc, Id::opDollar, 0);
                 if (!s)  // no dollar exists -- search in higher scope
                     return NULL;
                 s = s->toAlias();
@@ -1521,7 +1521,3 @@ Dsymbol *DsymbolTable::update(Dsymbol *s)
     *ps = s;
     return s;
 }
-
-
-
-

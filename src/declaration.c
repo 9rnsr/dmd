@@ -163,14 +163,14 @@ int Declaration::checkModify(Loc loc, Scope *sc, Type *t, Expression *e1, int fl
 }
 #endif
 
-Dsymbol *Declaration::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *Declaration::search(Loc loc, Scope *sc, Identifier *ident, int flags)
 {
-    Dsymbol *s = Dsymbol::search(loc, ident, flags);
+    Dsymbol *s = Dsymbol::search(loc, sc, ident, flags);
     if (!s && type)
     {
         s = type->toDsymbol(NULL);
         if (s)
-            s = s->search(loc, ident, flags);
+            s = s->search(loc, sc, ident, flags);
     }
     return s;
 }

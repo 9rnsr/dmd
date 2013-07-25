@@ -668,7 +668,7 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
     {
         if (!scx->scopesym)
             continue;
-        s = scx->scopesym->search(loc, ident, 0);
+        s = scx->scopesym->search(loc, sc, ident, 0);
         if (s)
         {
             // overload set contains only module scope symbols.
@@ -798,7 +798,7 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
                 TypeAArray *taa = (TypeAArray *)t;
                 assert(taa->ty == Taarray);
                 StructDeclaration *sd = taa->getImpl();
-                Dsymbol *s = sd->search(Loc(), ident, 2);
+                Dsymbol *s = sd->search(Loc(), sc, ident, 2);
                 if (s)
                     return NULL;
             }
@@ -7491,7 +7491,7 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
          * The check for 'is sds our current module' is because
          * the current module should have access to its own imports.
          */
-        Dsymbol *s = ie->sds->search(loc, ident,
+        Dsymbol *s = ie->sds->search(loc, sc, ident,
             (ie->sds->isModule() && ie->sds != sc->module) ? 1 : 0);
         if (s)
         {
@@ -8524,7 +8524,7 @@ Lagain:
             {
                 if (ad->scope)
                     ad->semantic(ad->scope);
-                else if (!ad->ctor && ad->search(Loc(), Id::ctor, 0))
+                else if (!ad->ctor && ad->search(Loc(), sc, Id::ctor, 0))
                 {
                     // The constructor hasn't been found yet, see bug 8741
                     // This can happen if we are inferring type from
