@@ -876,12 +876,10 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Scope *sc, Identifier *ident, int flags)
         //printf("\ts = '%s.%s'\n",toChars(),s1->toChars());
         return s1;
     }
-    else if (!imports)
-        return NULL;
-    else
+    if (imports)
     {
         Dsymbol *s = NULL;
-        OverloadSet *a = NULL;
+        OverloadSet *os = NULL;
 
         // Look in imported modules
         for (size_t i = 0; i < imports->dim; i++)
@@ -896,90 +894,95 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Scope *sc, Identifier *ident, int flags)
             /* Don't find private members if ss is a module
              */
             Dsymbol *s2 = ss->search(loc, sc, ident, ss->isModule() ? 1 : 0);
+            if (!s2 || s == s2)
+                continue;
             if (!s)
-                s = s2;
-            else if (s2 && s != s2)
             {
-                if (s->toAlias() == s2->toAlias() ||
-                    s->getType() == s2->getType() && s->getType())
-                {
-                    /* After following aliases, we found the same
-                     * symbol, so it's not an ambiguity.  But if one
-                     * alias is deprecated or less accessible, prefer
-                     * the other.
-                     */
-                    if (s->isDeprecated() ||
-                        s2->prot() > s->prot() && s2->prot() != PROTnone)
-                        s = s2;
-                }
-                else
-                {
-                    /* Two imports of the same module should be regarded as
-                     * the same.
-                     */
-                    Import *i1 = s->isImport();
-                    Import *i2 = s2->isImport();
-                    if (!(i1 && i2 &&
-                          (i1->mod == i2->mod ||
-                           (!i1->parent->isImport() && !i2->parent->isImport() &&
-                            i1->ident->equals(i2->ident))
-                          )
-                         )
-                       )
-                    {
-                        /* Bugzilla 8668:
-                         * Public selective import adds AliasDeclaration in module.
-                         * To make an overload set, resolve aliases in here and
-                         * get actual overload roots which accessible via s and s2.
-                         */
-                        s = s->toAlias();
-                        s2 = s2->toAlias();
+                s = s2;
+                continue;
+            }
 
-                        /* If both s2 and s are overloadable (though we only
-                         * need to check s once)
-                         */
-                        if (s2->isOverloadable() && (a || s->isOverloadable()))
-                        {   if (!a)
-                            {
-                                a = new OverloadSet(s->ident);
-                                a->parent = this;
-                            }
-                            /* Don't add to a[] if s2 is alias of previous sym
-                             */
-                            for (size_t j = 0; j < a->a.dim; j++)
-                            {   Dsymbol *s3 = a->a[j];
-                                if (s2->toAlias() == s3->toAlias())
-                                {
-                                    if (s3->isDeprecated() ||
-                                        s2->prot() > s3->prot() && s2->prot() != PROTnone)
-                                        a->a[j] = s2;
-                                    goto Lcontinue;
-                                }
-                            }
-                            a->push(s2);
-                        Lcontinue:
-                            continue;
-                        }
-                        if (flags & 4)          // if return NULL on ambiguity
-                            return NULL;
-                        if (!(flags & 2))
-                            ScopeDsymbol::multiplyDefined(loc, s, s2);
-                        break;
+            if (s->toAlias() == s2->toAlias() ||
+                s->getType() == s2->getType() && s->getType())
+            {
+                /* After following aliases, we found the same
+                 * symbol, so it's not an ambiguity.  But if one
+                 * alias is deprecated or less accessible, prefer
+                 * the other.
+                 */
+                if (s->isDeprecated() ||
+                    s2->prot() > s->prot() && s2->prot() != PROTnone)
+                    s = s2;
+                continue;
+            }
+
+            /* Two imports of the same module should be regarded as
+             * the same.
+             */
+            Import *i1 = s->isImport();
+            Import *i2 = s2->isImport();
+            if (i1 && i2 &&
+                (i1->mod == i2->mod ||
+                 (!i1->parent->isImport() && !i2->parent->isImport() &&
+                  i1->ident->equals(i2->ident))))
+            {
+                continue;
+            }
+
+            /* Bugzilla 8668:
+             * Public selective import adds AliasDeclaration in module.
+             * To make an overload set, resolve aliases in here and
+             * get actual overload roots which accessible via s and s2.
+             */
+            s = s->toAlias();
+            s2 = s2->toAlias();
+
+            /* If both s2 and s are overloadable (though we only
+             * need to check s once)
+             */
+            if (s2->isOverloadable() && (os || s->isOverloadable()))
+            {
+                if (!os)
+                {
+                    os = new OverloadSet(s->ident);
+                    os->parent = this;
+                }
+                /* Don't add to os[] if s2 is alias of previous sym
+                 */
+                for (size_t j = 0; j < os->a.dim; j++)
+                {
+                    Dsymbol *s3 = os->a[j];
+                    if (s2->toAlias() == s3->toAlias())
+                    {
+                        if (s3->isDeprecated() ||
+                            s2->prot() > s3->prot() && s2->prot() != PROTnone)
+                            os->a[j] = s2;
+                        goto Lcontinue;
                     }
                 }
+                os->push(s2);
+            Lcontinue:
+                continue;
             }
-        }
 
-        /* Build special symbol if we had multiple finds
-         */
-        if (a)
-        {   assert(s);
-            a->push(s);
-            s = a;
+            // Report conflict
+            if (flags & 4)          // if return NULL on ambiguity
+                return NULL;
+            if (!(flags & 2))
+                ScopeDsymbol::multiplyDefined(loc, s, s2);
+            break;
         }
 
         if (s)
         {
+            /* Build special symbol if we had multiple finds
+             */
+            if (os)
+            {
+                os->push(s);
+                s = os;
+            }
+
             if (!(flags & 2) && s->prot() == PROTprivate && !s->parent->isTemplateMixin())
             {
                 if (!s->isImport())
@@ -988,6 +991,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Scope *sc, Identifier *ident, int flags)
         }
         return s;
     }
+    return NULL;
 }
 
 void ScopeDsymbol::importScope(Dsymbol *s, PROT protection)
