@@ -6085,11 +6085,6 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
         return true;
     }
 
-    /* Since there can be multiple TemplateDeclaration's with the same
-     * name, look for the best match.
-     */
-    TemplateDeclaration *td_best = NULL;
-    Objects dedtypes;
     unsigned errs = global.errors;
 
 #if LOG
@@ -6103,7 +6098,12 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
     assert(tdecl || tovers);
     size_t overs_dim = tdecl ? 1 : tovers->a.dim;
 
+    /* Since there can be multiple TemplateDeclaration's with the same
+     * name, look for the best match.
+     */
     TemplateDeclaration *td_last = NULL;
+    bool a_last = false;
+    Objects dedtypes;
     for (size_t oi = 0; oi < overs_dim; oi++)
     {
         TemplateDeclaration *td;
@@ -6117,6 +6117,7 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
             else
                 td = s->isTemplateDeclaration();
         }
+        TemplateDeclaration *td_best = NULL;
         TemplateDeclaration *td_ambig = NULL;
         MATCH m_best = MATCHnomatch;
 
@@ -6178,17 +6179,24 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
         }
         if (td_best)
         {
-            if (!td_last)
-                td_last = td_best;
-            else if (td_last != td_best)
+            bool a_best = !(td_best->prot() == PROTprivate && td_best->getAccessModule() != sc->module ||
+                            td_best->prot() == PROTpackage && !hasPackageAccess(sc, td_best));
+          //if (td_last)
+          //  printf("td_last = %s, a = %d\n", td_last->toPrettyChars(), a_last);
+          //  printf("   best = %s, a = %d\n", td_best->toPrettyChars(), a_best);
+            if (a_last && !a_best) continue;
+            if (!a_last && a_best) td_last = NULL;
+            if (td_last)
             {
                 ScopeDsymbol::multiplyDefined(loc, td_last, td_best);
                 return false;
             }
+            else
+                td_last = td_best, a_last = a_best;
         }
     }
 
-    if (!td_best)
+    if (!td_last)
     {
         if (errs != global.errors)
             errorSupplemental(loc, "while looking for match for %s", toChars());
@@ -6203,9 +6211,11 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
         return false;
     }
 
-    /* The best match is td_best
+    accessCheck(loc, sc, NULL, td_last);
+
+    /* The best match is td_last
      */
-    tempdecl = td_best;
+    tempdecl = td_last;
 
 #if LOG
     printf("\tIt's a match with template declaration '%s'\n", tempdecl->toChars());

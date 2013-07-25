@@ -8841,28 +8841,39 @@ Lagain:
     {
         OverExp *eo = (OverExp *)e1;
         FuncDeclaration *f = NULL;
-        Dsymbol *s = NULL;
+        bool a = false;
         for (size_t i = 0; i < eo->vars->a.dim; i++)
-        {   s = eo->vars->a[i];
-            if (tiargs && s->isFuncDeclaration())
-                continue;
+        {
+            Dsymbol *s = eo->vars->a[i];
+            //if (tiargs && s->isFuncDeclaration())
+            //    continue;
             FuncDeclaration *f2 = resolveFuncCall(loc, sc, s, tiargs, tthis, arguments, 1);
             if (f2)
-            {   if (f)
+            {
+                bool a2 = !(f2->prot() == PROTprivate && f2->getAccessModule() != sc->module ||
+                            f2->prot() == PROTpackage && !hasPackageAccess(sc, f2));
+                if (a && !a2) continue;
+                if (!a && a2) f = NULL;
+                if (f)
+                {
                     /* Error if match in more than one overload set,
                      * even if one is a 'better' match than the other.
                      */
                     ScopeDsymbol::multiplyDefined(loc, f, f2);
+                }
                 else
-                    f = f2;
+                    f = f2, a = a2;
             }
         }
         if (!f)
         {   /* No overload matches
              */
-            error("no overload matches for %s", s->toChars());
+            error("no overload matches for %s", eo->vars->toChars());
             return new ErrorExp();
         }
+
+        accessCheck(loc, sc, ethis, f);
+
         if (ethis)
             e1 = new DotVarExp(loc, ethis, f);
         else

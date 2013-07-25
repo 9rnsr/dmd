@@ -879,6 +879,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Scope *sc, Identifier *ident, int flags)
     if (imports)
     {
         Dsymbol *s = NULL;
+        bool a = false;
         OverloadSet *os = NULL;
 
         // Look in imported modules
@@ -899,6 +900,8 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Scope *sc, Identifier *ident, int flags)
             if (!s)
             {
                 s = s2;
+                a = !sc || !(s->prot() == PROTprivate && s->getAccessModule() != sc->module ||
+                             s->prot() == PROTpackage && !hasPackageAccess(sc, s));
                 continue;
             }
 
@@ -961,9 +964,27 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Scope *sc, Identifier *ident, int flags)
                     }
                 }
                 os->push(s2);
+            //printf("ovs s = %s %s, s2 = %s %s\n", s->kind(), s->toPrettyChars(), s2->kind(), s2->toPrettyChars());
             Lcontinue:
                 continue;
             }
+
+            /* If s or s2 is inaccessible, drop it.
+             */
+            if (!a && s2->prot() > s->prot() ||
+                 a && s2->prot() < s->prot())
+            {
+                bool a2 = !sc || !(s2->prot() == PROTprivate && s2->getAccessModule() != sc->module ||
+                                   s2->prot() == PROTpackage && !hasPackageAccess(sc, s2));
+                if (a && !a2) continue;
+                if (!a && a2) { s = s2, a = a2; continue; }
+            }
+
+            /* If both are accessible, prefer non-deprecated symbol.
+             */
+            bool d1 = s->isDeprecated(), d2 = s2->isDeprecated();
+            if (d1 && !d2) continue;
+            if (!d1 && d2) { s = s2; continue; }
 
             // Report conflict
             if (flags & 4)          // if return NULL on ambiguity
@@ -980,14 +1001,26 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Scope *sc, Identifier *ident, int flags)
             if (os)
             {
                 os->push(s);
-                s = os;
+                s = os, a = true;
             }
-
-            if (!(flags & 2) && s->prot() == PROTprivate && !s->parent->isTemplateMixin())
+#if 1
+            if (!(flags & 2) && !a &&
+                //(s->prot() == PROTprivate && s->getAccessModule() != sc->module ||
+                // s->prot() == PROTpackage && !hasPackageAccess(sc, s)) &&
+                !s->parent->isTemplateMixin())
             {
                 if (!s->isImport())
                     error(loc, "%s %s is private", s->kind(), s->toPrettyChars());
             }
+#else
+            if (!(flags & 2) && !a &&
+                !s->isOverloadable() &&
+                !s->isImport() &&
+                !s->parent->isTemplateMixin())
+            {
+                accessCheck(loc, sc, NULL, s);
+            }
+#endif
         }
         return s;
     }

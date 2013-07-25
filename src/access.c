@@ -32,8 +32,6 @@
 /* Code to do access checks
  */
 
-int hasPackageAccess(Scope *sc, Dsymbol *s);
-
 /****************************************
  * Return PROT access for Dsymbol smember in this declaration.
  */
@@ -284,7 +282,7 @@ int AggregateDeclaration::isFriendOf(AggregateDeclaration *cd)
  * Determine if scope sc has package level access to s.
  */
 
-int hasPackageAccess(Scope *sc, Dsymbol *s)
+bool hasPackageAccess(Scope *sc, Dsymbol *s)
 {
 #if LOG
     printf("hasPackageAccess(s = '%s', sc = '%p')\n", s->toChars(), sc);
@@ -322,14 +320,14 @@ int hasPackageAccess(Scope *sc, Dsymbol *s)
 #if LOG
             printf("\ts is in same package as sc\n");
 #endif
-            return 1;
+            return true;
         }
         if (pkg->isPkgMod == PKGmodule && pkg->mod == sc->module)
         {
 #if LOG
             printf("\ts is in same package.d module as sc\n");
 #endif
-            return 1;
+            return true;
         }
         s = sc->module->parent;
         for (; s; s = s->parent)
@@ -339,7 +337,7 @@ int hasPackageAccess(Scope *sc, Dsymbol *s)
 #if LOG
                 printf("\ts is in ancestor package of sc\n");
 #endif
-                return 1;
+                return true;
             }
         }
     }
@@ -347,7 +345,7 @@ int hasPackageAccess(Scope *sc, Dsymbol *s)
 #if LOG
     printf("\tno package access\n");
 #endif
-    return 0;
+    return false;
 }
 
 /**********************************
@@ -408,7 +406,7 @@ int AggregateDeclaration::hasPrivateAccess(Dsymbol *smember)
  * Check access to d for expression e.d
  */
 
-void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d)
+void accessCheck(Loc loc, Scope *sc, Expression *e, Dsymbol *d)
 {
     if (sc->flags & SCOPEnoaccesscheck)
         return;

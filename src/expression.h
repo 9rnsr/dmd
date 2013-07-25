@@ -69,7 +69,8 @@ typedef int (*apply_fp_t)(Expression *, void *);
 
 Expression *resolveProperties(Scope *sc, Expression *e);
 Expression *resolvePropertiesOnly(Scope *sc, Expression *e1);
-void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d);
+void accessCheck(Loc loc, Scope *sc, Expression *e, Dsymbol *d);
+bool hasPackageAccess(Scope *sc, Dsymbol *s);
 Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *earg, Dsymbol *d);
 Dsymbol *search_function(ScopeDsymbol *ad, Identifier *funcid);
 void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
