@@ -322,6 +322,7 @@ public:
     Dsymbol *enclosing;                 // if referencing local symbols, this is the context
     hash_t hash;                        // cached result of hashCode()
     Expressions *fargs;                 // for function template, these are the function arguments
+    PROT protection;                    // accessibility of tempdecl
 #ifdef IN_GCC
     /* On some targets, it is necessary to know whether a symbol
        will be emitted in the output or not before the symbol

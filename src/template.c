@@ -2102,7 +2102,7 @@ RootObject *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *
     Dsymbol *sa = isDsymbol(o);
     Tuple *va = isTuple(o);
 
-    Dsymbol *s;
+    Declaration *d;
     VarDeclaration *v = NULL;
 
     if (ea && ea->op == TOKtype)
@@ -2115,12 +2115,14 @@ RootObject *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *
     if (targ)
     {
         //printf("type %s\n", targ->toChars());
-        s = new AliasDeclaration(Loc(), tp->ident, targ);
+        d = new AliasDeclaration(Loc(), tp->ident, targ);
+        d->storage_class = STCtemplateparameter;
     }
     else if (sa)
     {
         //printf("Alias %s %s;\n", sa->ident->toChars(), tp->ident->toChars());
-        s = new AliasDeclaration(Loc(), tp->ident, sa);
+        d = new AliasDeclaration(Loc(), tp->ident, sa);
+        d->storage_class = STCtemplateparameter;
     }
     else if (ea && ea->op == TOKfunction)
     {
@@ -2128,7 +2130,8 @@ RootObject *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *
             sa = ((FuncExp *)ea)->td;
         else
             sa = ((FuncExp *)ea)->fd;
-        s = new AliasDeclaration(Loc(), tp->ident, sa);
+        d = new AliasDeclaration(Loc(), tp->ident, sa);
+        d->storage_class = STCtemplateparameter;
     }
     else if (ea)
     {
@@ -2140,12 +2143,12 @@ RootObject *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *
 
         v = new VarDeclaration(loc, t, tp->ident, init);
         v->storage_class = STCmanifest | STCtemplateparameter;
-        s = v;
+        d = v;
     }
     else if (va)
     {
         //printf("\ttuple\n");
-        s = new TupleDeclaration(loc, tp->ident, &va->objects);
+        d = new TupleDeclaration(loc, tp->ident, &va->objects);
     }
     else
     {
@@ -2154,9 +2157,9 @@ RootObject *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *
 #endif
         assert(0);
     }
-    if (!sc->insert(s))
+    if (!sc->insert(d))
         error("declaration %s is already defined", tp->ident->toChars());
-    s->semantic(sc);
+    d->semantic(sc);
     /* So the caller's o gets updated with the result of semantic() being run on o
      */
     if (v)
@@ -3985,6 +3988,7 @@ void TemplateTypeParameter::declareParameter(Scope *sc)
     //printf("TemplateTypeParameter::declareParameter('%s')\n", ident->toChars());
     TypeIdentifier *ti = new TypeIdentifier(loc, ident);
     sparam = new AliasDeclaration(loc, ident, ti);
+    sparam->storage_class = STCtemplateparameter;
     if (!sc->insert(sparam))
         error(loc, "parameter '%s' multiply defined", ident->toChars());
 }
@@ -4270,6 +4274,7 @@ void TemplateAliasParameter::declareParameter(Scope *sc)
 {
     TypeIdentifier *ti = new TypeIdentifier(loc, ident);
     sparam = new AliasDeclaration(loc, ident, ti);
+    sparam->storage_class = STCtemplateparameter;
     if (!sc->insert(sparam))
         error(loc, "parameter '%s' multiply defined", ident->toChars());
 }
@@ -4894,6 +4899,7 @@ void TemplateTupleParameter::declareParameter(Scope *sc)
 {
     TypeIdentifier *ti = new TypeIdentifier(loc, ident);
     sparam = new AliasDeclaration(loc, ident, ti);
+    sparam->storage_class = STCtemplateparameter;
     if (!sc->insert(sparam))
         error(loc, "parameter '%s' multiply defined", ident->toChars());
 }
@@ -5041,6 +5047,7 @@ TemplateInstance::TemplateInstance(Loc loc, Identifier *ident)
     this->speculative = false;
     this->hash = 0;
     this->fargs = NULL;
+    this->protection = PROTpublic;
 }
 
 /*****************
@@ -5071,6 +5078,7 @@ TemplateInstance::TemplateInstance(Loc loc, TemplateDeclaration *td, Objects *ti
     this->speculative = false;
     this->hash = 0;
     this->fargs = NULL;
+    this->protection = PROTpublic;
 
     assert(tempdecl->scope);
 }
@@ -5985,6 +5993,7 @@ bool TemplateInstance::updateTemplateDeclaration(Scope *sc, Dsymbol *s)
     if (s)
     {
         Identifier *id = name;
+        Dsymbol *sorg = s;
         s = s->toAlias();
 
         /* If an OverloadSet, look for a unique member that is a template declaration
@@ -6063,6 +6072,19 @@ bool TemplateInstance::updateTemplateDeclaration(Scope *sc, Dsymbol *s)
                 error("%s is not a template declaration, it is a %s", id->toChars(), s->kind());
                 return false;
             }
+        }
+#if 0
+        PROT prot = PROTpublic;
+        if (sorg->prot() == PROTprivate && sorg->getAccessModule() == sc->module)
+            prot = PROTprivate;
+        else if (sorg->prot() == PROTpackage && !hasPackageAccess(sc, sorg))
+            prot = PROTpackage;
+#endif
+        if (AliasDeclaration *ad = sorg->isAliasDeclaration())
+        {
+            //printf("%s, tempdecl = %s ad->stc = x%llx\n", toChars(), ad->toChars(), ad->storage_class);
+            if (ad->storage_class & STCtemplateparameter)
+                protection = PROTprivate;
         }
     }
     return (tempdecl != NULL);
@@ -6211,7 +6233,8 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
         return false;
     }
 
-    accessCheck(loc, sc, NULL, td_last);
+    if (protection > PROTprivate)
+        accessCheck(loc, sc, NULL, td_last);
 
     /* The best match is td_last
      */
