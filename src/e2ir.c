@@ -5543,3 +5543,35 @@ elem *ClassReferenceExp::toElem(IRState *irs)
     elem *e = el_ptr(toSymbol());
     return e;
 }
+
+/*****************************************************/
+/*                  Inline stuff                     */
+/*****************************************************/
+
+void InlineExpandStatement::toIR(IRState *irs)
+{
+    printf("InlineExpandStatement::toIR() [%s] mod = %s\n", loc.toChars(), mod->toChars());
+//    Module *savemod = irs->blx->module;
+//    if (irs->blx->module != mod)
+//        irs->blx->module = mod;
+
+    s->toIR(irs);
+
+//    if (irs->blx->module != savemod)
+//        irs->blx->module = savemod;
+}
+
+elem *InlineExpandExp::toElem(IRState *irs)
+{
+    printf("InlineExpandExp::toElem() [%s] mod = %s\n", loc.toChars(), mod->toChars());
+    Module *savemod = irs->blx->module;
+    if (irs->blx->module != mod)
+        irs->blx->module = mod;
+
+    elem *e = exp->toElem(irs);
+
+    if (irs->blx->module != savemod)
+        irs->blx->module = savemod;
+    return e;
+}
+

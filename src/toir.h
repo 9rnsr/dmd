@@ -19,3 +19,61 @@ elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad);
 int intrinsic_op(char *name);
 elem *resolveLengthVar(VarDeclaration *lengthVar, elem **pe, Type *t1);
 
+#include "statement.h"
+#include "expression.h"
+
+class InlineExpandStatement : public Statement
+{
+public:
+    Statement *s;
+    Module *mod;
+
+    InlineExpandStatement(Statement *s, Module *mod)
+        : Statement(s->loc)
+    {
+        this->s = s;
+        this->mod = mod;
+    }
+
+    int inlineCost(InlineCostState *ics)
+    {
+        return s->inlineCost(ics);
+    }
+
+    void toIR(IRState *irs);
+};
+
+class InlineExpandExp : public Expression
+{
+public:
+    Expression *exp;
+    Module *mod;
+
+    InlineExpandExp(Expression *exp, Module *mod)
+        : Expression(exp->loc, TOKbody, sizeof(InlineExpandExp))
+    {
+        this->exp = exp;
+        this->mod = mod;
+    }
+
+    int apply(apply_fp_t fp, void *param)
+    {
+        return exp->apply(fp, param);
+    }
+
+    int inlineCost3(InlineCostState *ics)
+    {
+        return exp->inlineCost3(ics);
+    }
+    Expression *doInline(InlineDoState *ids)
+    {
+        return exp->doInline(ids);
+    }
+    Expression *inlineScan(InlineScanState *iss)
+    {
+        return exp->inlineScan(iss);
+    }
+
+    elem *toElem(IRState *irs);
+};
+

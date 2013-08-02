@@ -24,6 +24,7 @@
 #include "statement.h"
 #include "mtype.h"
 #include "scope.h"
+#include "toir.h"                       // InlineExpandExp
 
 /* ========== Compute cost of inlining =============== */
 
@@ -1758,6 +1759,11 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss, Expression *ethi
     {
         inlineNest++;
         Statement *s = fbody->doInlineStatement(&ids);
+
+        Module *m = getModule();
+        //printf("s = %s, m = %p\n", s->toChars(), m);
+        s = new InlineExpandStatement(s, m);
+
         as->push(s);
         *ps = new ScopeStatement(Loc(), new CompoundStatement(Loc(), as));
         inlineNest--;
@@ -1771,6 +1777,10 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss, Expression *ethi
         //eb->type->print();
         //eb->print();
         //eb->dump(0);
+
+        Module *m = getModule();
+        //printf("e = %p, m = %p\n", e, m);
+        e = new InlineExpandExp(e, m);
     }
     //printf("%s->expandInline = { %s }\n", toChars(), e->toChars());
 
