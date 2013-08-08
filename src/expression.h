@@ -921,6 +921,7 @@ public:
     {
     }
 
+    Expression *resolveProp(Scope *sc);
     Expression *semantic(Scope *sc);
     Expression *arrayOp(Scope *sc);
 

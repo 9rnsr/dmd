@@ -6947,12 +6947,133 @@ Expression *BinExp::incompatibleTypes()
 
 /********************** BinAssignExp **************************************/
 
-Expression *BinAssignExp::semantic(Scope *sc)
+Expression *makeBin(TOK op, Loc loc, Expression *e1, Expression *e2)
 {
+    switch (op)
+    {
+        case TOKaddass:   return new AddExp(loc, e1, e2);  break;
+        case TOKminass:   return new MinExp(loc, e1, e2);  break;
+        case TOKmulass:   return new MulExp(loc, e1, e2);  break;
+        case TOKdivass:   return new DivExp(loc, e1, e2);  break;
+        case TOKmodass:   return new ModExp(loc, e1, e2);  break;
+        case TOKandass:   return new AndExp(loc, e1, e2);  break;
+        case TOKorass:    return new OrExp (loc, e1, e2);  break;
+        case TOKxorass:   return new XorExp(loc, e1, e2);  break;
+        case TOKshlass:   return new ShlExp(loc, e1, e2);  break;
+        case TOKshrass:   return new ShrExp(loc, e1, e2);  break;
+        case TOKushrass:  return new UshrExp(loc, e1, e2); break;
+        case TOKpowass:   return new PowExp(loc, e1, e2);  break;
+        case TOKcatass:   return new CatExp(loc, e1, e2);  break;
+        default:          assert(0);
+    }
+    return NULL;    /* never reach */
+}
+
+Expression *BinAssignExp::resolveProp(Scope *sc)
+{
+    //printf("BinAssign %s\n", toChars());
     Expression *e;
 
+    /* With UFCS, e.f op= value
+     * Could mean:
+     *      .f(e, .f(e) op value)
+     * or:
+     *      .f(e) op= value
+     */
+    Identifier *ident;
+    if (e1->op == TOKdotti)
+    {
+        DotTemplateInstanceExp* dti = (DotTemplateInstanceExp *)e1;
+        e = dti->semanticY(sc, 1);
+        if (!e)
+        {
+            ident = dti->ti->name;
+            goto L1;
+        }
+        e1 = e;
+    }
+    else if (e1->op == TOKdot)
+    {
+        e = ((DotIdExp *)e1)->semanticY(sc, 1);
+        if (!e)
+        {
+            ident = ((DotIdExp *)e1)->ident;
+        L1:
+            Expression *ex = searchUFCS(sc, (UnaExp *)e1, ident);
+            if (ex->op == TOKerror)
+                return ex;
+            e = resolveUFCSProperties(sc, e1);
+            assert(e->op != TOKerror);
+
+            VarDeclaration *v = new VarDeclaration(loc, e->type,
+                Lexer::uniqueId("__binasstmp"), new ExpInitializer(loc, e));
+            v->storage_class |= STCref | STCforeach;
+            Expression *de = new DeclarationExp(e->loc, v);
+            Expression *ve = new VarExp(e->loc, v);
+            de = de->semantic(sc);
+
+            Expression *ethis = ((UnaExp *)e1)->e1;
+
+            // Rewrite as: ex(ethis, ve op e2)
+            e = new CallExp(ex->loc, ex, ethis, makeBin(op, loc, ve, e2), PROPufcset);
+            e = e->trySemantic(sc);
+            if (!e)
+            {
+                // Rewrite as: ve op= e2
+                e1 = ve;
+                e = this->semantic(sc);
+            }
+            e = combine(de, e);
+            //printf("-y> %s\n", e->toChars());
+            return e;
+        }
+        e1 = e;
+    }
+    else
+        e1 = e1->semantic(sc);
+
+    /* We have f op= value.
+     * Could mean:
+     *      f(f() op value)
+     * or:
+     *      f() op= value
+     */
+    Expression *ex = e1;
+    e = resolvePropertiesOnly(sc, ex);
+    if (e == ex)
+        return NULL;
+    if (e->op == TOKerror)
+        return e;
+
+    VarDeclaration *v = new VarDeclaration(loc, e->type,
+        Lexer::uniqueId("__binasstmp"), new ExpInitializer(loc, e));
+    v->storage_class |= STCref | STCforeach;
+    Expression *de = new DeclarationExp(e->loc, v);
+    Expression *ve = new VarExp(e->loc, v);
+    de = de->semantic(sc);
+
+    // Rewrite as: ex(ve op e2)
+    e = new CallExp(ex->loc, ex->syntaxCopy(), makeBin(op, loc, ve, e2), PROPmemset);
+    e = e->trySemantic(sc);
+    if (!e)
+    {
+        // Rewrite as: ve op= e2
+        e1 = ve;
+        e = this->semantic(sc);
+    }
+    e = combine(de, e);
+    //printf("-2> %s\n", e->toChars());
+    return e;
+}
+
+Expression *BinAssignExp::semantic(Scope *sc)
+{
     if (type)
         return this;
+
+    Expression *e = resolveProp(sc);
+    if (e)
+        return e;
 
     e = op_overload(sc);
     if (e)
@@ -11635,7 +11756,11 @@ CatAssignExp::CatAssignExp(Loc loc, Expression *e1, Expression *e2)
 Expression *CatAssignExp::semantic(Scope *sc)
 {
     //printf("CatAssignExp::semantic() %s\n", toChars());
-    Expression *e = op_overload(sc);
+    Expression *e = resolveProp(sc);
+    if (e)
+        return e;
+
+    e = op_overload(sc);
     if (e)
         return e;
 
@@ -11778,10 +11903,12 @@ PowAssignExp::PowAssignExp(Loc loc, Expression *e1, Expression *e2)
 
 Expression *PowAssignExp::semantic(Scope *sc)
 {
-    Expression *e;
-
     if (type)
         return this;
+
+    Expression *e = resolveProp(sc);
+    if (e)
+        return e;
 
     e = op_overload(sc);
     if (e)

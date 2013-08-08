@@ -119,6 +119,117 @@ void test1()
 }
 
 /*******************************************/
+
+import std.math;
+
+struct S2a
+{
+    static string result;
+
+    @property int     nprop2a()        { result ~= "g"; return int.init; }
+    @property void    nprop2a(int)     { result ~= "s"; }
+    @property ref int nprop2b()        { result ~= "r"; static int g; return g; }
+
+    @property     int[] aprop2a()      { result ~= "g"; return (int[]).init; }
+    @property     void  aprop2a(int[]) { result ~= "s"; }
+    @property ref int[] aprop2b()      { result ~= "r"; static int[] g; return g; }
+
+    @property     T     tprop2a(T)()   { result ~= "g"; return T.init; }
+    @property     void  tprop2a(T)(T)  { result ~= "s"; }
+    @property ref T     tprop2b(T)()   { result ~= "r"; static T g; return g; }
+}
+
+struct S2b { static string result; }
+
+@property     int   nprop2a(S2b)        { S2b.result ~= "g"; return int.init; }
+@property     void  nprop2a(S2b, int)   { S2b.result ~= "s"; }
+@property ref int   nprop2b(S2b)        { S2b.result ~= "r"; static int g; return g; }
+
+@property     int[] aprop2a(S2b)        { S2b.result ~= "g"; return (int[]).init; }
+@property     void  aprop2a(S2b, int[]) { S2b.result ~= "s"; }
+@property ref int[] aprop2b(S2b)        { S2b.result ~= "r"; static int[] g; return g; }
+
+@property     T     tprop2a(T)(S2b)     { S2b.result ~= "g"; return T.init; }
+@property     void  tprop2a(T)(S2b, T)  { S2b.result ~= "s"; }
+@property ref T     tprop2b(T)(S2b)     { S2b.result ~= "r"; static T g; return g; }
+
+void test2()
+{
+    void test(string op, string name, S)(S s, string res, ulong ln = __LINE__)
+    {
+        static if (op == "~") int[] value = [];
+        else                  int   value = 1;
+        alias T = typeof(value);
+        enum stmt = "s."~name~" "~op~"= value;";
+        //pragma(msg, stmt);
+
+        S.result = null;
+        mixin(stmt);
+        assert(S.result == res);
+    }
+
+    S2a sa;
+    // sa.x1(s.xprop2a op value)                // sa.xprop2b() op= value
+    test!(  "+", "nprop2a")(sa, "gs");          test!(  "+", "nprop2b")(sa, "r");
+    test!(  "-", "nprop2a")(sa, "gs");          test!(  "-", "nprop2b")(sa, "r");
+    test!(  "*", "nprop2a")(sa, "gs");          test!(  "*", "nprop2b")(sa, "r");
+    test!(  "/", "nprop2a")(sa, "gs");          test!(  "/", "nprop2b")(sa, "r");
+    test!(  "%", "nprop2a")(sa, "gs");          test!(  "%", "nprop2b")(sa, "r");
+    test!(  "&", "nprop2a")(sa, "gs");          test!(  "&", "nprop2b")(sa, "r");
+    test!(  "|", "nprop2a")(sa, "gs");          test!(  "|", "nprop2b")(sa, "r");
+    test!(  "^", "nprop2a")(sa, "gs");          test!(  "^", "nprop2b")(sa, "r");
+    test!( "<<", "nprop2a")(sa, "gs");          test!( "<<", "nprop2b")(sa, "r");
+    test!( ">>", "nprop2a")(sa, "gs");          test!( ">>", "nprop2b")(sa, "r");
+    test!(">>>", "nprop2a")(sa, "gs");          test!(">>>", "nprop2b")(sa, "r");
+    test!( "^^", "nprop2a")(sa, "gs");          test!( "^^", "nprop2b")(sa, "r");
+    test!(  "~", "aprop2a")(sa, "gs");          test!(  "~", "aprop2b")(sa, "r");   // use 'a'
+    // sa.x1(s.xprop2a!X op value)              // sa.xprop2b!X() op= value
+    test!(  "+", "tprop2a!int")(sa, "gs");      test!(  "+", "tprop2b!int")(sa, "r");
+    test!(  "-", "tprop2a!int")(sa, "gs");      test!(  "-", "tprop2b!int")(sa, "r");
+    test!(  "*", "tprop2a!int")(sa, "gs");      test!(  "*", "tprop2b!int")(sa, "r");
+    test!(  "/", "tprop2a!int")(sa, "gs");      test!(  "/", "tprop2b!int")(sa, "r");
+    test!(  "%", "tprop2a!int")(sa, "gs");      test!(  "%", "tprop2b!int")(sa, "r");
+    test!(  "&", "tprop2a!int")(sa, "gs");      test!(  "&", "tprop2b!int")(sa, "r");
+    test!(  "|", "tprop2a!int")(sa, "gs");      test!(  "|", "tprop2b!int")(sa, "r");
+    test!(  "^", "tprop2a!int")(sa, "gs");      test!(  "^", "tprop2b!int")(sa, "r");
+    test!( "<<", "tprop2a!int")(sa, "gs");      test!( "<<", "tprop2b!int")(sa, "r");
+    test!( ">>", "tprop2a!int")(sa, "gs");      test!( ">>", "tprop2b!int")(sa, "r");
+    test!(">>>", "tprop2a!int")(sa, "gs");      test!(">>>", "tprop2b!int")(sa, "r");
+    test!( "^^", "tprop2a!int")(sa, "gs");      test!( "^^", "tprop2b!int")(sa, "r");
+    test!(  "~", "tprop2a!(int[])")(sa, "gs");  test!(  "~", "tprop2b!(int[])")(sa, "r");
+
+    S2b sb;
+    // sb.x1(s.xprop2a op value)                // sb.xprop2b() op= value
+    test!(  "+", "nprop2a")(sb, "gs");          test!(  "+", "nprop2b")(sb, "r");
+    test!(  "-", "nprop2a")(sb, "gs");          test!(  "-", "nprop2b")(sb, "r");
+    test!(  "*", "nprop2a")(sb, "gs");          test!(  "*", "nprop2b")(sb, "r");
+    test!(  "/", "nprop2a")(sb, "gs");          test!(  "/", "nprop2b")(sb, "r");
+    test!(  "%", "nprop2a")(sb, "gs");          test!(  "%", "nprop2b")(sb, "r");
+    test!(  "&", "nprop2a")(sb, "gs");          test!(  "&", "nprop2b")(sb, "r");
+    test!(  "|", "nprop2a")(sb, "gs");          test!(  "|", "nprop2b")(sb, "r");
+    test!(  "^", "nprop2a")(sb, "gs");          test!(  "^", "nprop2b")(sb, "r");
+    test!( "<<", "nprop2a")(sb, "gs");          test!( "<<", "nprop2b")(sb, "r");
+    test!( ">>", "nprop2a")(sb, "gs");          test!( ">>", "nprop2b")(sb, "r");
+    test!(">>>", "nprop2a")(sb, "gs");          test!(">>>", "nprop2b")(sb, "r");
+    test!( "^^", "nprop2a")(sb, "gs");          test!( "^^", "nprop2b")(sb, "r");
+    test!(  "~", "aprop2a")(sb, "gs");          test!(  "~", "aprop2b")(sb, "r");   // use 'a'
+    // sb.x1(s.xprop2a!X op value)              // sb.xprop2b!X() op= value
+    test!(  "+", "tprop2a!int")(sb, "gs");      test!(  "+", "tprop2b!int")(sb, "r");
+    test!(  "-", "tprop2a!int")(sb, "gs");      test!(  "-", "tprop2b!int")(sb, "r");
+    test!(  "*", "tprop2a!int")(sb, "gs");      test!(  "*", "tprop2b!int")(sb, "r");
+    test!(  "/", "tprop2a!int")(sb, "gs");      test!(  "/", "tprop2b!int")(sb, "r");
+    test!(  "%", "tprop2a!int")(sb, "gs");      test!(  "%", "tprop2b!int")(sb, "r");
+    test!(  "&", "tprop2a!int")(sb, "gs");      test!(  "&", "tprop2b!int")(sb, "r");
+    test!(  "|", "tprop2a!int")(sb, "gs");      test!(  "|", "tprop2b!int")(sb, "r");
+    test!(  "^", "tprop2a!int")(sb, "gs");      test!(  "^", "tprop2b!int")(sb, "r");
+    test!( "<<", "tprop2a!int")(sb, "gs");      test!( "<<", "tprop2b!int")(sb, "r");
+    test!( ">>", "tprop2a!int")(sb, "gs");      test!( ">>", "tprop2b!int")(sb, "r");
+    test!(">>>", "tprop2a!int")(sb, "gs");      test!(">>>", "tprop2b!int")(sb, "r");
+    test!( "^^", "tprop2a!int")(sb, "gs");      test!( "^^", "tprop2b!int")(sb, "r");
+    test!(  "~", "tprop2a!(int[])")(sb, "gs");  test!(  "~", "tprop2b!(int[])")(sb, "r");
+}
+
+/*******************************************/
 // 7722
 
 class Foo7722 {}
@@ -570,6 +681,7 @@ void test10197()
 int main()
 {
     test1();
+    test2();
     test7722();
     test7722a();
     test7722b();
