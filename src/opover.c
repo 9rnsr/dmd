@@ -1496,7 +1496,7 @@ static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, 
 
         if (f->isThis())
         {
-            if (!MODimplicitConv(p->mod, tf->mod))
+            if (!MODmethodConv(p->mod, tf->mod))
                 m = MATCHnomatch;
             else if (p->mod != tf->mod)
                 m = MATCHconst;
@@ -1504,6 +1504,7 @@ static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, 
         if (!inferApplyArgTypesY(tf, p->arguments, 1))
             m = MATCHnomatch;
 
+    printf("L%d m = %d\n", __LINE__, m);
         if (m > p->match)
         {
             p->fd_best = f;
@@ -1554,6 +1555,7 @@ static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments, int flag
         goto Lnomatch;
     tf = (TypeFunction *)p->type->nextOf();
     assert(tf->ty == Tfunction);
+    printf("inferY tf = %s\n", tf->toChars());
 
     /* We now have tf, the type of the delegate. Match it against
      * the arguments, filling in missing argument types.
@@ -1564,6 +1566,7 @@ static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments, int flag
     if (arguments->dim != nparams)
         goto Lnomatch;          // not enough parameters
 
+    printf("L%d\n", __LINE__);
     for (size_t u = 0; u < nparams; u++)
     {
         Parameter *arg = (*arguments)[u];
@@ -1571,17 +1574,22 @@ static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments, int flag
         if (arg->type)
         {   if (!arg->type->equals(param->type))
                 goto Lnomatch;
+    printf("L%d\n", __LINE__);
         }
         else if (!flags)
         {
             arg->type = param->type;
             arg->type = arg->type->addStorageClass(arg->storageClass);
+    printf("L%d\n", __LINE__);
         }
+    printf("L%d\n", __LINE__);
     }
 Lmatch:
+    printf("L%d\n", __LINE__);
     return 1;
 
 Lnomatch:
+    printf("L%d\n", __LINE__);
     return 0;
 }
 

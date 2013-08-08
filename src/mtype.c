@@ -1965,7 +1965,7 @@ L1:
     return t;
 }
 
-Type *TypeFunction::substWildTo(unsigned)
+Type *TypeFunction::substWildTo(unsigned m)
 {
     if (!iswild && !(mod & MODwild))
         return this;
@@ -1973,7 +1973,7 @@ Type *TypeFunction::substWildTo(unsigned)
     // Substitude inout qualifier of function type to mutable or immutable
     // would break type system. Instead substitude inout to the most weak
     // qualifer - const.
-    unsigned m = MODconst;
+    //unsigned m = MODconst;
 
     assert(next);
     Type *tret = next->substWildTo(m);
@@ -2666,6 +2666,9 @@ MATCH TypeNext::constConv(Type *to)
 unsigned TypeNext::wildConvTo(Type *tprm)
 {
     if (ty == Tfunction)
+        return 0;
+    if (ty == Tdelegate ||
+        ty == Tpointer && next->ty == Tfunction)
         return 0;
 
     unsigned mod = 0;

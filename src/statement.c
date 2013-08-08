@@ -2034,6 +2034,9 @@ Lagain:
                 StorageClass stc = STCref;
                 Identifier *id;
 
+                printf("arg->type = %s\n", arg->type->toChars());
+                if (tab->ty != Tdelegate)
+                    arg->type = arg->type->substWildTo(tab->mod);
                 arg->type = arg->type->semantic(loc, sc);
                 arg->type = arg->type->addStorageClass(arg->storageClass);
                 if (tfld)
@@ -2067,6 +2070,7 @@ Lagain:
                 }
                 args->push(new Parameter(stc, arg->type, id, NULL));
             }
+            TypeFunction *tdld0 = tfld;
             tfld = new TypeFunction(args, Type::tint32, 0, LINKd);
             cases = new Statements();
             gotos = new CompoundStatements();
@@ -2075,6 +2079,12 @@ Lagain:
             Expression *flde = new FuncExp(loc, fld);
             flde = flde->semantic(sc);
             fld->tookAddressOf = 0;
+
+            if (tdld0 && tdld0->iswild)
+            {
+                flde = flde->castTo(sc, new TypeDelegate(tdld0)->merge());
+                printf("tfld = %s, flde = %s\n", tdld0->toChars(), flde->toChars());
+            }
 
             // Resolve any forward referenced goto's
             for (size_t i = 0; i < gotos->dim; i++)
