@@ -230,6 +230,29 @@ void test2()
 }
 
 /*******************************************/
+
+void test3()
+{
+    struct S3a
+    {
+        @property int nprop1()      { return 10; }
+        @property int nprop1(int n) { return n + 100; }
+    }
+    S3a sa;
+    assert((++sa.nprop1) == 111);
+    assert((--sa.nprop1) == 109);
+
+    struct S3b
+    {
+        int m_x;
+        @property ref int nprop2() { return m_x; }
+    }
+    S3b sb;
+    sb.m_x = 1; assert((++sb.nprop2) == 2 && sb.m_x == 2);
+    sb.m_x = 2; assert((--sb.nprop2) == 1 && sb.m_x == 1);
+}
+
+/*******************************************/
 // 7722
 
 class Foo7722 {}
@@ -682,6 +705,7 @@ int main()
 {
     test1();
     test2();
+    test3();
     test7722();
     test7722a();
     test7722b();

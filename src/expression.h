@@ -1387,6 +1387,7 @@ class PreExp : public UnaExp
 {
 public:
     PreExp(TOK op, Loc loc, Expression *e);
+    Expression *resolveProp(Scope *sc);
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };

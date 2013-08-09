@@ -6972,6 +6972,9 @@ Expression *makeBin(TOK op, Loc loc, Expression *e1, Expression *e2)
 Expression *BinAssignExp::resolveProp(Scope *sc)
 {
     //printf("BinAssign %s\n", toChars());
+    if (e1->op == TOKarray || e1->op == TOKslice)
+        return NULL;    // prefer operator overloading
+    
     Expression *e;
 
     /* With UFCS, e.f op= value
@@ -11074,9 +11077,119 @@ PreExp::PreExp(TOK op, Loc loc, Expression *e)
 {
 }
 
+Expression *PreExp::resolveProp(Scope *sc)
+{
+    //printf("PreExp %s\n", toChars());
+    if (e1->op == TOKarray || e1->op == TOKslice)
+        return NULL;    // prefer operator overloading
+
+    Expression *e;
+#if 0
+    /* With UFCS, opop e.f
+     * Could mean:
+     *      .f(e, .f(e) op- 1)
+     * or:
+     *      opop .f(e)
+     */
+    Identifier *ident;
+    if (e1->op == TOKdotti)
+    {
+        DotTemplateInstanceExp* dti = (DotTemplateInstanceExp *)e1;
+        e = dti->semanticY(sc, 1);
+        if (!e)
+        {
+            ident = dti->ti->name;
+            goto L1;
+        }
+        e1 = e;
+    }
+    else if (e1->op == TOKdot)
+    {
+        e = ((DotIdExp *)e1)->semanticY(sc, 1);
+        if (!e)
+        {
+            ident = ((DotIdExp *)e1)->ident;
+        L1:
+            Expression *ex = searchUFCS(sc, (UnaExp *)e1, ident);
+            if (ex->op == TOKerror)
+                return ex;
+            e = resolveUFCSProperties(sc, e1);
+            assert(e->op != TOKerror);
+
+            VarDeclaration *v = new VarDeclaration(loc, e->type,
+                Lexer::uniqueId("__binasstmp"), new ExpInitializer(loc, e));
+            v->storage_class |= STCref | STCforeach;
+            Expression *de = new DeclarationExp(e->loc, v);
+            Expression *ve = new VarExp(e->loc, v);
+            de = de->semantic(sc);
+
+            Expression *ethis = ((UnaExp *)e1)->e1;
+
+            // Rewrite as: ex(ethis, ve op e2)
+            e = new CallExp(ex->loc, ex, ethis, makeBin(op, loc, ve, e2), PROPufcset);
+            e = e->trySemantic(sc);
+            if (!e)
+            {
+                // Rewrite as: ve op= e2
+                e1 = ve;
+                e = this->semantic(sc);
+            }
+            e = combine(de, e);
+            //printf("-y> %s\n", e->toChars());
+            return e;
+        }
+        e1 = e;
+    }
+    else
+#endif
+        e1 = e1->semantic(sc);
+
+    /* We have opop f
+     * Could mean:
+     *      f(f() op value)
+     * or:
+     *      opop f()
+     */
+    //if (e1->op == TOKdotvar)
+    //    ethis = ((DotVarExp *)e1)->e1;
+
+    Expression *ex = e1;
+    e = resolvePropertiesOnly(sc, ex);
+    if (e == ex)
+        return NULL;
+    if (e->op == TOKerror)
+        return e;
+
+    VarDeclaration *v = new VarDeclaration(loc, e->type,
+        Lexer::uniqueId("__binasstmp"), new ExpInitializer(loc, e));
+    v->storage_class |= STCref | STCforeach;
+    Expression *de = new DeclarationExp(e->loc, v);
+    Expression *ve = new VarExp(e->loc, v);
+    de = de->semantic(sc);
+
+    // Rewrite as: ex(ve op e2)
+    if (op == TOKpreplusplus)
+        e = new AddAssignExp(loc, ve, new IntegerExp(loc, 1, Type::tint32));
+    else
+        e = new MinAssignExp(loc, ve, new IntegerExp(loc, 1, Type::tint32));
+    e = new CallExp(ex->loc, ex->syntaxCopy(), e, PROPmemset);
+    e = e->trySemantic(sc);
+    if (!e)
+    {
+        // Rewrite as: ve op= e2
+        e1 = ve;
+        e = this->semantic(sc);
+    }
+    e = combine(de, e);
+    //printf("-2> %s\n", e->toChars());
+    return e;
+}
+
 Expression *PreExp::semantic(Scope *sc)
 {
-    Expression *e;
+    Expression *e = resolveProp(sc);
+    if (e)
+        return e;
 
     e = op_overload(sc);
     if (e)
