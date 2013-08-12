@@ -5544,7 +5544,7 @@ int Parser::skipParens(Token *t, Token **pt)
     }
 
   Ldone:
-    if (*pt)
+    if (pt)
         *pt = t;
     return 1;
 
@@ -5651,7 +5651,7 @@ int Parser::skipAttributes(Token *t, Token **pt)
     }
 
   Ldone:
-    if (*pt)
+    if (pt)
         *pt = t;
     return 1;
 
