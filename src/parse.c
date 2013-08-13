@@ -264,7 +264,8 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
                 {
                     t = peek(t);
                     if (t->value == TOKlcurly || t->value == TOKcolon ||
-                        t->value == TOKsemicolon)
+                        t->value == TOKsemicolon ||
+                        (skipParens(t, &t) && t->value != TOKassign))
                         s = parseEnum();
                     else
                         goto Ldeclaration;
@@ -1905,11 +1906,13 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
 /*************************************
  */
 
-EnumDeclaration *Parser::parseEnum()
+Dsymbol *Parser::parseEnum()
 {
     EnumDeclaration *e;
     Identifier *id;
     Type *memtype;
+    TemplateParameters *tpl = NULL;
+    Expression *constraint = NULL;
     Loc loc = token.loc;
 
     //printf("Parser::parseEnum()\n");
@@ -1918,6 +1921,12 @@ EnumDeclaration *Parser::parseEnum()
     {
         id = token.ident;
         nextToken();
+
+        if (token.value == TOKlparen)
+        {
+            tpl = parseTemplateParameterList();
+            constraint = parseConstraint();
+        }
     }
     else
         id = NULL;
@@ -1927,9 +1936,27 @@ EnumDeclaration *Parser::parseEnum()
         nextToken();
         memtype = parseBasicType();
         memtype = parseDeclarator(memtype, NULL, NULL);
+
+        if (tpl)
+        {
+            Expression *tempCons = parseConstraint();
+            if (tempCons)
+            {
+                if (constraint)
+                    error("members expected");
+                else
+                    constraint = tempCons;
+            }
+        }
     }
     else
         memtype = NULL;
+
+    if (tpl && token.value != TOKlcurly)
+    {
+        error("members of template enum declaration expected");
+        return NULL;
+    }
 
     e = new EnumDeclaration(loc, id, memtype);
     if (token.value == TOKsemicolon && id)
@@ -2007,8 +2034,18 @@ EnumDeclaration *Parser::parseEnum()
     else
         error("enum declaration is invalid");
 
-    //printf("-parseEnum() %s\n", e->toChars());
-    return e;
+    Dsymbol *s = e;
+    if (tpl)
+    {
+        Dsymbols *a2 = new Dsymbols();
+        a2->push(e);
+        TemplateDeclaration *tempdecl =
+            new TemplateDeclaration(loc, id, tpl, NULL/*constraint*/, a2, 0);
+        s = tempdecl;
+    }
+
+    //printf("-parseEnum() %s\n", s->toChars());
+    return s;
 }
 
 /********************************
@@ -4514,7 +4551,8 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
             {
                 t = peek(t);
                 if (t->value == TOKlcurly || t->value == TOKcolon ||
-                    t->value == TOKsemicolon)
+                    t->value == TOKsemicolon ||
+                    (skipParens(t, &t) && t->value != TOKassign))
                     d = parseEnum();
                 else
                     goto Ldeclaration;
