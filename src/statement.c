@@ -351,11 +351,13 @@ Statement *ExpStatement::semantic(Scope *sc)
             }
         }
 #endif
+        bool isCall = exp->op == TOKcall;
 
         exp = exp->semantic(sc);
         exp = exp->addDtorHook(sc);
         exp = resolveProperties(sc, exp);
-        discardValue(exp);
+        if (!isCall)
+            discardValue(exp);
         exp = exp->optimize(0);
         if (exp->op == TOKerror)
             return new ErrorStatement();
