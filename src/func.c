@@ -1459,6 +1459,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 se = se->semantic(sc);
                 se->type = Type::tchar->arrayOf();
                 e = new AssertExp(loc, v, se);
+                e->type = Type::tvoid;
             }
             if (e)
                 fpreinv = new ExpStatement(Loc(), e);
