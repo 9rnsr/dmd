@@ -28,10 +28,10 @@
 #include "template.h"
 #include "module.h"
 
-static Expression *expandInline(FuncDeclaration *fd, FuncDeclaration *parent,
+int canInline(FuncDeclaration *fd, int hasthis, int hdrscan, int statementsToo);
+Expression *expandInline(FuncDeclaration *fd, FuncDeclaration *parent,
     Expression *eret, Expression *ethis, Expressions *arguments, Statement **ps);
 bool walkPostorder(Expression *e, StoppableVisitor *v);
-int canInline(FuncDeclaration *fd, int hasthis, int hdrscan, int statementsToo);
 
 /* ========== Compute cost of inlining =============== */
 
@@ -1732,7 +1732,7 @@ Lno:
     return 0;
 }
 
-static Expression *expandInline(FuncDeclaration *fd, FuncDeclaration *parent,
+Expression *expandInline(FuncDeclaration *fd, FuncDeclaration *parent,
         Expression *eret, Expression *ethis, Expressions *arguments, Statement **ps)
 {
     InlineDoState ids;
@@ -1837,7 +1837,7 @@ static Expression *expandInline(FuncDeclaration *fd, FuncDeclaration *parent,
         else
         {
             Identifier* tmp = Identifier::generateId("__nrvoretval");
-            VarDeclaration* vd = new VarDeclaration(fd->loc, fd->nrvo_var->type, tmp, NULL);
+            VarDeclaration* vd = new VarDeclaration(fd->loc, fd->nrvo_var->type, tmp, new VoidInitializer(fd->loc));
             assert(!tf->isref);
             vd->storage_class = STCtemp | STCrvalue;
             vd->linkage = tf->linkage;
