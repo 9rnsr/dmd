@@ -226,6 +226,7 @@ enum TOK
 struct Token
 {
     Token *next;
+    Loc loc;
     utf8_t *ptr;         // pointer to first character of this token within buffer
     TOK value;
     utf8_t *blockComment; // doc comment string prior to this token
@@ -270,6 +271,7 @@ public:
     static Token *freelist;
 
     Loc loc;                    // for error messages
+    Loc scanloc;
 
     utf8_t *base;        // pointer to start of buffer
     utf8_t *end;         // past end of buffer
