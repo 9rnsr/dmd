@@ -326,6 +326,20 @@ public:
 
 /**************************************************************/
 
+struct DeconsDeclaration : Declaration
+{
+    Ptn *ptn;
+    Initializer *init;
+
+    DeconsDeclaration(Loc loc, Ptn *ptn, Initializer *init);
+    void semantic(Scope *sc);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+
+    DeconsDeclaration *isDeconsDeclaration() { return this; }
+};
+
+/**************************************************************/
+
 // This is a shell around a back end symbol
 
 class SymbolDeclaration : public Declaration

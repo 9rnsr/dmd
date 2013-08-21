@@ -737,6 +737,37 @@ void AliasDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writenl();
 }
 
+/********************************* DeconsDeclaration ****************************/
+
+DeconsDeclaration::DeconsDeclaration(Loc loc, Ptn *ptn, Initializer *init)
+    : Declaration(NULL)
+{
+    this->loc = loc;
+    this->ptn = ptn;
+    this->init = init;
+}
+
+void DeconsDeclaration::semantic(Scope *sc)
+{
+    //printf("DeconsDeclaration::semantic(%s = %s)\n", ptn->toChars(), init->toChars());
+
+    Expression *ei = init->toExpression();
+    //Type *tb = ei->type->tobasetype();
+    //printf("+decompose = %s\n", ei->toChars());
+    Expression *e = ptn->decompose(sc, ei);
+    //printf("-decompose = %s\n", e->toChars());
+    e = e->semantic(sc);
+    init = new ExpInitializer(e->loc, e);
+}
+
+void DeconsDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    ptn->toCBuffer(buf, hgs);
+    buf->writestring(" = ");
+    init->toCBuffer(buf, hgs);
+    buf->writeByte(';');
+}
+
 /********************************* VarDeclaration ****************************/
 
 VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer *init)

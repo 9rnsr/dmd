@@ -49,6 +49,7 @@ class InvariantDeclaration;
 class UnitTestDeclaration;
 class NewDeclaration;
 class VarDeclaration;
+class DeconsDeclaration;
 class AttribDeclaration;
 struct Symbol;
 class Package;
@@ -242,6 +243,7 @@ public:
     virtual UnitTestDeclaration *isUnitTestDeclaration() { return NULL; }
     virtual NewDeclaration *isNewDeclaration() { return NULL; }
     virtual VarDeclaration *isVarDeclaration() { return NULL; }
+    virtual DeconsDeclaration *isDeconsDeclaration() { return NULL; }
     virtual ClassDeclaration *isClassDeclaration() { return NULL; }
     virtual StructDeclaration *isStructDeclaration() { return NULL; }
     virtual UnionDeclaration *isUnionDeclaration() { return NULL; }

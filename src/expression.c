@@ -13723,3 +13723,248 @@ Expression *BinExp::reorderSettingAAElem(Scope *sc)
     ec = new CommaExp(loc, ec, this);
     return ec->semantic(sc);
 }
+
+/**************************************************************/
+
+Expression *IdPtn::decompose(Scope *sc, Expression *e)
+{
+    e = e->semantic(sc);
+
+    ExpInitializer *ei = new ExpInitializer(e->loc, e);
+    VarDeclaration *v = new VarDeclaration(loc, type, ident, ei);
+    v->storage_class = stc;
+    return new DeclarationExp(loc, v);
+}
+
+Expression *ExpPtn::decompose(Scope *sc, Expression *e)
+{
+    return NULL;
+}
+
+Expression *RestPtn::decompose(Scope *sc, Expression *e)
+{
+    if (!ident)
+        return NULL;
+
+    e = e->semantic(sc);
+
+    ExpInitializer *ei = new ExpInitializer(e->loc, e);
+    VarDeclaration *v = new VarDeclaration(loc, type, ident, ei);
+    v->storage_class = stc;
+    return new DeclarationExp(loc, v);
+}
+
+Expression *TuplePtn::decompose(Scope *sc, Expression *e)
+{
+    size_t dim = elements->dim;
+    assert(dim > 0);    // guarantee in parser
+    RestPtn *prest = (*elements)[dim-1]->isRestPtn();
+    if (prest) --dim;
+
+    Expression *e0 = NULL;
+    Expression *ex = NULL;
+
+    e = e->semantic(sc);
+
+    Type *tb = e->type->toBasetype();
+    Expressions *exps = NULL;
+    //printf("tb = %s, e = %s %s\n", tb->toChars(), Token::toChars(e->op), e->toChars());
+#if 0
+    if (tb->ty == Ttuple)
+    {
+        TypeTuple *tt = (TypeTuple *)tb;
+    }
+    else
+#endif
+    if (e->op == TOKtuple)
+    {
+        TupleExp* te = (TupleExp *)e;
+        e0 = te->e0;
+        exps = te->exps;
+
+        if (prest)  assert(exps->dim >= dim);
+        else        assert(exps->dim == dim);
+
+        Expression *ev;
+        for (size_t i = 0; i < dim; i++)
+        {
+            ev = (*exps)[i];
+            ev = ev->semantic(sc);
+            //printf("[%d] ev = %s\n", i, ev->toChars());
+            ex = Expression::combine(ex, (*elements)[i]->decompose(sc, ev));
+        }
+    }
+#if 0
+    else if (isAliasThisTuple(e))
+    {
+        Identifier *id = Lexer::uniqueId("__tup");
+        ExpInitializer *ei = new ExpInitializer(e->loc, e);
+        VarDeclaration *v = new VarDeclaration(loc, NULL, id, ei);
+        v->storage_class = STCctfe | STCref | STCforeach;
+
+        e0 = new DeclarationExp(loc, v);
+        e0 = e0->semantic(sc);
+        VarExp *ve = new VarExp(loc, v);
+        ve->type = e->type;
+
+        if (prest)  assert(exps->dim >= dim);
+        else        assert(exps->dim == dim);
+
+        Expression *ev;
+        for (size_t i = 0; i < dim; i++)
+        {
+            ev = new IntegerExp(loc, i, Type::tsize_t);
+            ev = new IndexExp(loc, ve, ev);
+            ev = ev->semantic(sc);
+            ex = Expression::combine(ex, (*elements)[i]->decompose(sc, ev));
+        }
+    }
+#endif
+    else
+    {
+        assert(0);  // TODO
+    }
+
+    if (prest && prest->ident)
+    {
+        assert(exps);
+        Expressions *iexps = new Expressions();
+        iexps->setDim(exps->dim - dim);
+        for (size_t i = dim; i < exps->dim; i++)
+            (*iexps)[i - dim] = (*exps)[i];
+        e = new TupleExp(loc, NULL, iexps);
+        ex = Expression::combine(ex, prest->decompose(sc, e));
+    }
+    if (e0)
+        ex = Expression::combine(e0, ex);
+    return ex;
+}
+
+Expression *ArrayPtn::decompose(Scope *sc, Expression *e)
+{
+    size_t dim = elements->dim;
+    assert(dim > 0);    // guarantee in parser
+    RestPtn *prest = (*elements)[dim-1]->isRestPtn();
+    if (prest) --dim;
+
+    e = e->semantic(sc);
+
+    Type *tb = e->type->toBasetype();
+    if (tb->ty == Tsarray)
+    {
+        uinteger_t edim = ((TypeSArray *)tb)->dim->toUInteger();
+        if (prest)  assert(edim >= dim);
+        else        assert(edim == dim);
+    }
+    else if (tb->ty == Tarray)
+    {
+    }
+    else
+        assert(0);
+
+    Expression *e0 = NULL;
+    Expression *ex = NULL;
+    Expression *ev = e;
+    if (elements->dim > 1 && ev->hasSideEffect())
+    {
+        Identifier *id = Lexer::uniqueId("__arr");
+        ExpInitializer *ei = new ExpInitializer(e->loc, e);
+        VarDeclaration *v = new VarDeclaration(e->loc, e->type, id, ei);
+        v->storage_class |= STCctfe | STCref | STCforeach;
+        e0 = new DeclarationExp(e->loc, v);
+        ev = new VarExp(e->loc, v);
+        e0 = e0->semantic(sc);
+        ev = ev->semantic(sc);
+    }
+    for (size_t i = 0; i < dim; i++)
+    {
+        e = new IntegerExp(loc, i, Type::tsize_t);
+        e = new IndexExp(loc, ev, e);
+        e = e->semantic(sc);
+        ex = Expression::combine(ex, (*elements)[i]->decompose(sc, e));
+    }
+    if (prest)
+    {
+        e = new IntegerExp(loc, dim, Type::tsize_t);
+        e = new SliceExp(loc, ev, e, new DollarExp(loc));
+        ex = Expression::combine(ex, prest->decompose(sc, e));
+    }
+    else if (!prest)
+    {
+        e = new DotIdExp(loc, ev, Id::length);
+        e = new EqualExp(TOKequal, loc, e, new IntegerExp(loc, dim, Type::tsize_t));
+        e = new AssertExp(loc, e);
+        e0 = Expression::combine(e0, e);
+    }
+    if (e0)
+        ex = Expression::combine(e0, ex);
+
+    return ex;
+}
+
+char *Ptn::toChars()
+{
+    HdrGenState hgs;
+    memset(&hgs, 0, sizeof(hgs));
+
+    OutBuffer buf;
+    toCBuffer(&buf, &hgs);
+    buf.writeByte(0);
+    char *p = (char *)buf.data;
+    buf.data = NULL;
+    return p;
+}
+
+void IdPtn::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    if (stc)
+        StorageClassDeclaration::stcToCBuffer(buf, stc);
+    if (type)
+        type->toCBuffer(buf, ident, hgs);
+    else
+        buf->writestring(ident->toChars());
+}
+
+void ExpPtn::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    exp->toCBuffer(buf, hgs);
+}
+
+void RestPtn::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    if (stc)
+        StorageClassDeclaration::stcToCBuffer(buf, stc);
+    if (type)
+        type->toCBuffer(buf, ident, hgs);
+    else if (ident)
+        buf->writestring(ident->toChars());
+    buf->writestring("...");
+}
+
+void TuplePtn::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    if (stc)
+        StorageClassDeclaration::stcToCBuffer(buf, stc);
+    buf->writeByte('{');
+    for (size_t i = 0; i < elements->dim; i++)
+    {
+        if (i > 0)
+            buf->writestring(", ");
+        (*elements)[i]->toCBuffer(buf, hgs);
+    }
+    buf->writeByte('}');
+}
+
+void ArrayPtn::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    if (stc)
+        StorageClassDeclaration::stcToCBuffer(buf, stc);
+    buf->writeByte('[');
+    for (size_t i = 0; i < elements->dim; i++)
+    {
+        if (i > 0)
+            buf->writestring(", ");
+        (*elements)[i]->toCBuffer(buf, hgs);
+    }
+    buf->writeByte(']');
+}

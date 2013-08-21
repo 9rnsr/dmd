@@ -1225,6 +1225,7 @@ elem *Dsymbol_toElem(Dsymbol *s, IRState *irs)
     Symbol *sp;
     AttribDeclaration *ad;
     VarDeclaration *vd;
+    DeconsDeclaration *dd;
     ClassDeclaration *cd;
     StructDeclaration *sd;
     FuncDeclaration *fd;
@@ -1282,6 +1283,10 @@ elem *Dsymbol_toElem(Dsymbol *s, IRState *irs)
                 irs->varsInScope->push(vd);
             }
         }
+    }
+    else if ((dd = s->isDeconsDeclaration()) != NULL)
+    {
+        e = dd->init->isExpInitializer()->exp->toElem(irs);
     }
     else if ((cd = s->isClassDeclaration()) != NULL)
     {
