@@ -397,6 +397,52 @@ Token *Lexer::peekPastParen(Token *tk)
     }
 }
 
+int Lexer::skipPastParen(Token **pt)
+{
+    //printf("skipPastParen()\n");
+    Token *t = *pt;
+
+    TOK endtok;
+    switch (t->value)
+    {
+        case TOKlparen:     endtok = TOKrparen;     break;
+        case TOKlbracket:   endtok = TOKrbracket;   break;
+        case TOKlcurly:     endtok = TOKrcurly;     break;
+        default:            assert(0);
+    }
+
+    t = peek(t);
+    for (;; t = peek(t))
+    {
+        switch (t->value)
+        {
+            case TOKlparen:
+            case TOKlbracket:
+            case TOKlcurly:
+                if (skipPastParen(&t))
+                    continue;
+                return FALSE;
+
+            case TOKrparen:
+            case TOKrbracket:
+            case TOKrcurly:
+                if (t->value == endtok)
+                    break;
+                return FALSE;
+
+            case TOKeof:
+                return FALSE;
+
+            default:
+                continue;
+        }
+        break;
+    }
+
+    *pt = t;
+    return TRUE;
+}
+
 /**********************************
  * Determine if string is a valid Identifier.
  * Placed here because of commonality with Lexer functionality.

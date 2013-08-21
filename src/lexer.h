@@ -297,6 +297,7 @@ public:
     void scan(Token *t);
     Token *peek(Token *t);
     Token *peekPastParen(Token *t);
+    int skipPastParen(Token **pt);
     unsigned escapeSequence();
     TOK wysiwygStringConstant(Token *t, int tc);
     TOK hexStringConstant(Token *t);

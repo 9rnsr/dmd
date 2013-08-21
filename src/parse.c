@@ -3235,7 +3235,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, utf8_t *comment)
     if (storage_class &&
         (token.value == TOKlcurly   && peekNext() != TOKrcurly ||
          token.value == TOKlbracket && peekNext() != TOKrbracket) &&
-        (tk = &token, skipParens(tk, &tk)) &&
+        (tk = &token, Lexer::skipPastParen(&tk)/*skipParens(tk, &tk)*/) &&
         (peek(tk)->value == TOKassign))
     {
         if (udas)
@@ -4071,7 +4071,7 @@ Statement *Parser::parseStatement(int flags, utf8_t** endPtr)
         case TOKlbracket:
         {
             Token *tk = &token;
-            if (skipParens(tk, &tk) && peek(tk)->value == TOKassign)
+            if (Lexer::skipPastParen(&tk)/*skipParens(tk, &tk)*/ && peek(tk)->value == TOKassign)
                 goto Ldeclaration;
         }
         case TOKassert:
@@ -4268,11 +4268,10 @@ Statement *Parser::parseStatement(int flags, utf8_t** endPtr)
         case TOKlcurly:
         {
         #if 1
-        {
+          {
             Token *tk = &token;
-            if (skipParens(tk, &tk) && peek(tk)->value == TOKassign)
+            if (Lexer::skipPastParen(&tk)/*skipParens(tk, &tk)*/ && peek(tk)->value == TOKassign)
                 goto Ldeclaration;
-        }
         #else
             if (isDeclaration(&token, 2, TOKreserved, NULL))
             {
@@ -4280,6 +4279,7 @@ Statement *Parser::parseStatement(int flags, utf8_t** endPtr)
                 goto Ldeclaration;
             }
         #endif
+          }
 
             Loc lookingForElseSave = lookingForElse;
             lookingForElse = Loc();
@@ -5863,14 +5863,14 @@ int Parser::skipParens(Token *t, Token **pt)
         switch (t->value)
         {
             case TOKlparen:
-            case TOKlcurly:
-            case TOKlbracket:
+            //case TOKlcurly:
+            //case TOKlbracket:
                 parens++;
                 break;
 
             case TOKrparen:
-            case TOKrcurly:
-            case TOKrbracket:
+            //case TOKrcurly:
+            //case TOKrbracket:
                 parens--;
                 if (parens < 0)
                     goto Lfalse;
