@@ -45,6 +45,7 @@ struct ModuleDeclaration;
 class TemplateDeclaration;
 class TemplateInstance;
 class StaticAssert;
+struct Ptn;
 
 /************************************
  * These control how parseStatement() works.
@@ -74,6 +75,9 @@ public:
     Dsymbols *parseModule();
     Dsymbols *parseDeclDefs(int once, Dsymbol **pLastDecl = NULL);
     Dsymbols *parseAutoDeclarations(StorageClass storageClass, utf8_t *comment);
+    //Dsymbols *parseMultiVarDeclaration(StorageClass storageClass, utf8_t *comment);
+    Ptn *parsePtn(StorageClass storageClass);
+    Dsymbols *parseDeconstDeclaration(StorageClass storageClass, utf8_t *comment);
     Dsymbols *parseBlock(Dsymbol **pLastDecl);
     void composeStorageClass(StorageClass stc);
     StorageClass parseAttribute(Expressions **pexps);

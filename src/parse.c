@@ -2888,6 +2888,8 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, utf8_t *comment)
     Loc loc = this->loc;
     Expressions *udas = NULL;
 
+    Token *tk;
+
     //printf("parseDeclarations() %s\n", token.toChars());
     if (!comment)
         comment = token.blockComment;
@@ -3065,6 +3067,15 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, utf8_t *comment)
             tok = token.value;
             nextToken();
             break;
+        case TOKlcurly:
+        case TOKlbracket:
+            //if (peek(&token)->value != TOKrcurly)
+            //{
+                return parseDeconstDeclaration(storage_class, comment);
+                //printf("parseDeclarations { ... } = \n");
+                //fatal();//return parseMultiVarDeclaration(storage_class, comment);
+            //}
+            break;
         default: break;
     }
 
@@ -3218,10 +3229,29 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, utf8_t *comment)
         return parseAutoDeclarations(storage_class, comment);
     }
 
+    /* Look for multiple var declaration:
+     *  storage_class { patterns ... } = initializer;
+     */
+    if (storage_class &&
+        (token.value == TOKlcurly   && peekNext() != TOKrcurly ||
+         token.value == TOKlbracket && peekNext() != TOKrbracket) &&
+        (tk = &token, skipParens(tk, &tk)) &&
+        (peek(tk)->value == TOKassign))
+    {
+        if (udas)
+        {
+            // Need to improve this
+            error("user defined attributes not allowed for auto declarations");
+        }
+        //printf("parseDeclarations stc {...} = \n");
+        //fatal();
+        return parseDeconstDeclaration(storage_class, comment);
+        //return parseMultiVarDeclaration(storage_class, comment);
+    }
+
     /* Look for return type inference for template functions.
      */
     {
-    Token *tk;
     if (storage_class &&
         token.value == TOKidentifier &&
         (tk = peek(&token))->value == TOKlparen &&
@@ -3467,6 +3497,162 @@ Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, utf8_t *comme
     return a;
 }
 #endif
+
+Ptn *Parser::parsePtn(StorageClass storageClass)
+{
+    //printf("Parse::parsePtn storageClass = x%llx\n", storageClass);
+    Loc loc = this->loc;
+    StorageClass storage_class = 0;//storageClass;
+    StorageClass stc;
+    while (1)
+    {
+        switch (token.value)
+        {
+            case TOKconst:
+                if (peek(&token)->value == TOKlparen)
+                    break;              // const as type constructor
+                stc = STCconst;         // const as storage class
+                goto L1;
+            case TOKinvariant:
+            case TOKimmutable:
+                if (peek(&token)->value == TOKlparen)
+                    break;
+                stc = STCimmutable;
+                goto L1;
+            case TOKshared:
+                if (peek(&token)->value == TOKlparen)
+                    break;
+                stc = STCshared;
+                goto L1;
+            case TOKwild:
+                if (peek(&token)->value == TOKlparen)
+                    break;
+                stc = STCwild;
+                goto L1;
+        //  case TOKstatic:     stc = STCstatic;         goto L1;
+            case TOKauto:       stc = STCauto;           goto L1;
+            case TOKscope:      stc = STCscope;          goto L1;
+            L1:
+                if (storage_class & stc)
+                    error("redundant storage class '%s'", token.toChars());
+                storage_class = storage_class | stc;
+                composeStorageClass(storage_class);
+                nextToken();
+                continue;
+            default:
+                break;
+        }
+        break;
+    }
+    //printf("\tsorage_class = x%llx\n", storage_class);
+
+    enum TOK endtok;
+    Ptn *p;
+    if (token.value == TOKlcurly)
+    {
+        endtok = TOKrcurly;
+        goto L2;
+    }
+    else if (token.value == TOKlbracket)
+    {
+        endtok = TOKrbracket;
+    L2:
+        Ptns *elements = new Ptns();
+
+        nextToken();
+        while (1)
+        {
+            p = parsePtn(storage_class);
+
+            elements->push(p);
+            //printf("CompoundPrn token == %s\n", token.toChars());
+
+            if (token.value == TOKcomma)
+                nextToken();
+            if (token.value == endtok)
+                break;
+        }
+        check(endtok);
+        if (endtok == TOKrcurly)
+            p = new TuplePtn(loc, storage_class, elements);
+        else
+            p = new ArrayPtn(loc, storage_class, elements);
+    }
+    else if (token.value == TOKdotdotdot)
+    {
+        nextToken();
+        p = new RestPtn(loc, 0, NULL, NULL);
+    }
+    else
+    {
+        Identifier *ai = NULL;
+        Type *at;
+        Token *t;
+        int haveId = FALSE;
+        if (token.value == TOKidentifier)
+        {
+            t = peek(&token);
+            if (t->value == TOKcomma || t->value == TOKdotdotdot ||
+                t->value == TOKrcurly || t->value == TOKrbracket)
+            {   ai = token.ident;
+                //printf("no ti, ai = %s\n", ai->toChars());
+                at = NULL;              // infer argument type
+                nextToken();
+                goto Larg;
+            }
+        }
+        t = &token;
+        if (isBasicType(&t) &&// (printf("isBasicType! t = %s\n", t->toChars()), 1) &&
+            isDeclarator(&t, &haveId, NULL/**/, TOKreserved) &&// (printf("isDeclarator! t = %s\n", t->toChars()), 1) &&
+            haveId)    // must have identifier
+        {
+            at = parseType(&ai);
+            if (!ai)
+                error("no identifier for declarator %s", at->toChars());
+          Larg:
+            if (token.value == TOKdotdotdot)
+            {
+                nextToken();
+                p = new RestPtn(loc, storage_class, at, ai);
+            }
+            else
+                p = new IdPtn(loc, storage_class, at, ai);
+        }
+        else
+        {
+            Expression *exp = parseExpression();
+            p = new ExpPtn(loc, exp);
+        }
+    }
+
+    return p;
+}
+
+Dsymbols *Parser::parseDeconstDeclaration(StorageClass storageClass, utf8_t *comment)
+{
+    //printf("parseDeconstDeclaration, stc = %x\n", storageClass);
+
+    Ptns *elements = new Ptns();
+    Loc loc = this->loc;
+
+    // storageClass { Patterns } = Initializer ;
+    assert(token.value == TOKlcurly || token.value == TOKlbracket);
+    Ptn *p = parsePtn(storageClass);
+    ((TuplePtn *)p)->stc |= storageClass;
+
+    check(TOKassign);
+
+    Initializer *init = parseInitializer();
+
+    if (token.value != TOKsemicolon)
+        error("semicolon expected following tuple declaration, not '%s'", token.toChars());
+    nextToken();
+
+    //printf("OK! %s = %s;\n", p->toChars(), init->toChars());
+    Dsymbols *a = new Dsymbols;
+    a->push(new DeconsDeclaration(loc, p, init));
+    return a;
+}
 
 /*****************************************
  * Parse contracts following function declaration.
@@ -3882,6 +4068,12 @@ Statement *Parser::parseStatement(int flags, utf8_t** endPtr)
                 goto Lexp;
             break;
 
+        case TOKlbracket:
+        {
+            Token *tk = &token;
+            if (skipParens(tk, &tk) && peek(tk)->value == TOKassign)
+                goto Ldeclaration;
+        }
         case TOKassert:
         case TOKthis:
         case TOKsuper:
@@ -3917,7 +4109,6 @@ Statement *Parser::parseStatement(int flags, utf8_t** endPtr)
         case TOKfunction:
         case TOKtypeid:
         case TOKis:
-        case TOKlbracket:
 #if DMDV2
         case TOKtraits:
         case TOKfile:
@@ -4076,11 +4267,19 @@ Statement *Parser::parseStatement(int flags, utf8_t** endPtr)
 
         case TOKlcurly:
         {
+        #if 1
+        {
+            Token *tk = &token;
+            if (skipParens(tk, &tk) && peek(tk)->value == TOKassign)
+                goto Ldeclaration;
+        }
+        #else
             if (isDeclaration(&token, 2, TOKreserved, NULL))
             {
                 //printf("stmt curly at %s\n", loc.toChars());
                 goto Ldeclaration;
             }
+        #endif
 
             Loc lookingForElseSave = lookingForElse;
             lookingForElse = Loc();
@@ -5319,7 +5518,7 @@ int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
                     return TRUE;
                 }
                 // fallthrough
-            case TOKrcurly:     // for TypeTuple
+            case TOKrcurly:     // for TypeTuple and TuplePtn
             case TOKrparen:
             case TOKrbracket:
             case TOKassign:
@@ -5664,10 +5863,14 @@ int Parser::skipParens(Token *t, Token **pt)
         switch (t->value)
         {
             case TOKlparen:
+            case TOKlcurly:
+            case TOKlbracket:
                 parens++;
                 break;
 
             case TOKrparen:
+            case TOKrcurly:
+            case TOKrbracket:
                 parens--;
                 if (parens < 0)
                     goto Lfalse;
