@@ -6447,7 +6447,7 @@ Expression *Parser::parsePrimaryExp()
         case TOKlcurly:
         {
             Token *tk = &token;
-            if (isTupleExp(&tk))    // { ... }
+            if (peekNext() != TOKrcurly && isTupleExp(&tk))    // { ... }
             {
                 nextToken();
                 Expressions *exps = new Expressions();

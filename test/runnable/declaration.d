@@ -282,7 +282,7 @@ void test_tuple1()
 {
     auto tup0 = {};
     pragma(msg, typeof(tup0));
-    tup0 = {};
+    //tup0 = {};
 
     auto tup1 = {10};
     pragma(msg, typeof(tup1));
