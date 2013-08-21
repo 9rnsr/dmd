@@ -5490,6 +5490,137 @@ int Parser::isExpression(Token **pt)
     return TRUE;
 }
 
+int Parser::isTupleExp(Token **pt)
+{
+    Token *t = *pt;
+    int brnest = 0;
+    int panest = 0;
+    int curlynest = 0;
+
+    assert(t->value == TOKlcurly);
+    for (;; t = peek(t))
+    {
+        switch (t->value)
+        {
+            case TOKlbracket:
+                brnest++;
+                continue;
+
+            case TOKrbracket:
+                if (brnest == 0)
+                    return FALSE;
+                --brnest;
+                continue;
+
+            case TOKlparen:
+                panest++;
+                continue;
+
+            case TOKcomma:
+                if (brnest || panest || curlynest)
+                    continue;
+                break;
+
+            case TOKrparen:
+                if (panest == 0)
+                    return FALSE;
+                --panest;
+                continue;
+
+            case TOKlcurly:
+                curlynest++;
+                continue;
+
+            case TOKrcurly:
+                if (curlynest == 0)
+                    return FALSE;
+                --curlynest;
+                if (curlynest == 0)
+                    break;
+                continue;
+
+            case TOKslice:
+                if (brnest)
+                    continue;
+                break;
+
+            case TOKsemicolon:
+                if (curlynest == 1)
+                    return FALSE;
+                continue;
+
+            case TOKeof:
+                return FALSE;
+
+            // workaround
+            case TOKenum:
+            case TOKimport:
+            case TOKtemplate:
+            case TOKalias:
+            case TOKtypedef:
+            case TOKstruct:
+            case TOKunion:
+            case TOKclass:
+            case TOKinterface:
+            case TOKunittest:
+            case TOKstatic:
+
+            case TOKfinal:
+            case TOKauto:
+            case TOKscope:
+            case TOKoverride:
+            case TOKabstract:
+            case TOKsynchronized:
+            case TOKdeprecated:
+            case TOKnothrow:
+            case TOKpure:
+            case TOKref:
+            case TOKgshared:
+            case TOKat:
+
+            case TOKextern:
+            case TOKprivate:
+            case TOKpackage:
+            case TOKprotected:
+            case TOKpublic:
+            case TOKexport:
+            case TOKalign:
+            case TOKpragma:
+            case TOKdebug:
+            case TOKversion:
+
+            case TOKwhile:
+            case TOKdo:
+            case TOKfor:
+            case TOKforeach:
+            case TOKforeach_reverse:
+            case TOKif:
+            case TOKswitch:
+            case TOKcase:
+            case TOKdefault:
+            case TOKreturn:
+            case TOKbreak:
+            case TOKcontinue:
+            case TOKgoto:
+            case TOKwith:
+            case TOKtry:
+            case TOKthrow:
+            case TOKvolatile:
+            case TOKasm:
+                return FALSE;
+
+            default:
+                continue;
+        }
+        break;
+    }
+    if (t->value != TOKrcurly)
+        return FALSE;
+
+    *pt = t;
+    return TRUE;
+}
+
 /*******************************************
  * Skip parens, brackets.
  * Input:
@@ -6101,6 +6232,26 @@ Expression *Parser::parsePrimaryExp()
         }
 
         case TOKlcurly:
+        {
+            Token *tk = &token;
+            if (peekNext() != TOKrcurly && isTupleExp(&tk))    // { ... }
+            {
+                nextToken();
+                Expressions *exps = new Expressions();
+                while (token.value != TOKrcurly && token.value != TOKeof)
+                {
+                    Expression *arg = parseAssignExp();
+                    exps->push(arg);
+                    if (token.value == TOKrcurly)
+                        break;
+                    check(TOKcomma);
+                }
+                check(TOKrcurly);
+                e = new TupleExp(loc, exps);
+                break;
+            }
+            goto case_delegate;
+        }
         case TOKfunction:
         case TOKdelegate:
         case_delegate:

@@ -260,6 +260,28 @@ void test10142()
 }
 
 /***************************************************/
+// DIP32
+
+void test_tuple()
+{
+    auto tup0a = {};
+    pragma(msg, typeof(tup0a));
+    //tup0a = {};
+
+    auto tup1a = {10};
+    pragma(msg, typeof(tup1a));
+    assert(tup1a[0] == 10);
+    tup1a = {20};
+    assert(tup1a[0] == 20);
+
+    auto tup2a = {10, "str"};
+    pragma(msg, typeof(tup2a));
+    assert(tup2a[0] == 10 && tup2a[1] == "str");
+    tup2a = {20, "ing"};
+    assert(tup2a[0] == 20 && tup2a[1] == "ing");
+}
+
+/***************************************************/
 
 int main()
 {
@@ -272,6 +294,7 @@ int main()
     test8410();
     test8942();
     test10142();
+    test_tuple();
 
     printf("Success\n");
     return 0;
