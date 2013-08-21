@@ -737,6 +737,77 @@ void AliasDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writenl();
 }
 
+/********************************* DeconsDeclaration ****************************/
+
+DeconsDeclaration::DeconsDeclaration(Loc loc, Ptn *ptn, Initializer *init)
+    : Declaration(NULL)
+{
+    this->loc = loc;
+    this->ptn = ptn;
+    this->init = init;
+}
+
+void DeconsDeclaration::semantic(Scope *sc)
+{
+    //printf("DeconsDeclaration::semantic(%s = %s)\n", ptn->toChars(), init->toChars());
+
+    if (init->isVoidInitializer())
+    {
+        error("void initializer is not allowed for deconstruct declaration");
+        init = new ErrorInitializer();
+        return;
+    }
+
+    Expression *ie;
+#if 1   // see built-in tuple syntax
+    if (StructInitializer *si = init->isStructInitializer())
+    {
+        Expression *e;
+        bool hasId = false;
+        for (size_t i = 0; !hasId && i < si->field.dim; i++)
+        {
+            hasId = (si->field[i] != NULL);
+        }
+        if (!hasId)
+        {
+            Expressions *exps = new Expressions();
+            for (size_t i = 0; i < si->value.dim; i++)
+            {
+                e = si->value[i]->toExpression();
+                exps->push(e);
+            }
+            exps = arrayExpressionSemantic(exps, sc);
+            expandTuples(exps);
+            for (size_t i = 0; i < exps->dim; i++)
+            {
+                (*exps)[i] = resolveProperties(sc, (*exps)[i]);
+            }
+            ie = new TupleExp(init->loc, exps);
+        }
+        else
+            ie = init->toExpression();
+    }
+    else
+#endif
+        ie = init->toExpression();
+    assert(ie);
+
+    //Type *tb = ie->type->tobasetype();
+    //printf("+decompose = %s\n", ie->toChars());
+    Expression *e = ptn->decompose(sc, ie);
+    //printf("-decompose = %s\n", e->toChars());
+    e = e->semantic(sc);
+    init = new ExpInitializer(e->loc, e);
+}
+
+void DeconsDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    ptn->toCBuffer(buf, hgs);
+    buf->writestring(" = ");
+    init->toCBuffer(buf, hgs);
+    buf->writeByte(';');
+}
+
 /********************************* VarDeclaration ****************************/
 
 VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer *init)
