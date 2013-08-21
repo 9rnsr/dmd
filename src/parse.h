@@ -45,6 +45,7 @@ struct ModuleDeclaration;
 class TemplateDeclaration;
 class TemplateInstance;
 class StaticAssert;
+struct Ptn;
 
 /************************************
  * These control how parseStatement() works.
@@ -112,6 +113,8 @@ public:
     Type *parseBasicType2(Type *t);
     Type *parseDeclarator(Type *t, Identifier **pident, TemplateParameters **tpl = NULL, StorageClass storage_class = 0, int* pdisable = NULL);
     Dsymbols *parseDeclarations(StorageClass storage_class, utf8_t *comment);
+    Ptn *parsePtn(StorageClass storageClass);
+    Dsymbol *parseDeconstDeclaration(StorageClass storageClass, utf8_t *comment);
     void parseContracts(FuncDeclaration *f);
     void checkDanglingElse(Loc elseloc);
     /** endPtr used for documented unittests */
@@ -130,6 +133,7 @@ public:
     int isTupleExp(Token **pt);
     int skipParens(Token *t, Token **pt);
     int skipParensIf(Token *t, Token **pt);
+    int skipParens2(Token *t, Token **pt);
     int skipAttributes(Token *t, Token **pt);
 
     Expression *parseExpression();
