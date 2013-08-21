@@ -9121,6 +9121,15 @@ Type *TypeTuple::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeTuple::semantic(this = %p)\n", this);
     //printf("TypeTuple::semantic() %p, %s\n", this, toChars());
+
+    size_t dim = Parameter::dim(arguments);
+    for (size_t i = 0; i < dim; i++)
+    {
+        Parameter *arg = Parameter::getNth(arguments, i);
+        if (!arg->type->deco)
+            arg->type = arg->type->semantic(loc, sc);
+    }
+
     if (!deco)
         deco = merge()->deco;
 
