@@ -868,7 +868,8 @@ void VarDeclaration::semantic(Scope *sc)
         //printf("inferring type for %s with init %s\n", toChars(), init->toChars());
         ArrayInitializer *ai = init->isArrayInitializer();
         if (ai)
-        {   Expression *e;
+        {
+            Expression *e;
             if (ai->isAssociativeArray())
                 e = ai->toAssocArrayLiteral();
             else
@@ -882,6 +883,35 @@ void VarDeclaration::semantic(Scope *sc)
             type = init->inferType(sc);
             if (type->ty == Tsarray)
                 type = type->nextOf()->arrayOf();
+        }
+        else if (StructInitializer *si = init->isStructInitializer())
+        {
+            Expression *e;
+            bool hasId = false;
+            for (size_t i = 0; !hasId && i < si->field.dim; i++)
+            {
+                hasId = (si->field[i] != NULL);
+            }
+            if (!hasId)
+            {
+                Expressions *exps = new Expressions();
+                for (size_t i = 0; i < si->value.dim; i++)
+                {
+                    e = si->value[i]->toExpression();
+                    exps->push(e);
+                }
+                exps = arrayExpressionSemantic(exps, sc);
+                expandTuples(exps);
+                for (size_t i = 0; i < exps->dim; i++)
+                {
+                    (*exps)[i] = resolveProperties(sc, (*exps)[i]);
+                }
+                e = new TupleExp(init->loc, exps);
+                init = new ExpInitializer(e->loc, e);
+                type = new TypeTuple(exps);
+            }
+            else
+                type = init->inferType(sc);
         }
         else
             type = init->inferType(sc);
