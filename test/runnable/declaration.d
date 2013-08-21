@@ -260,6 +260,15 @@ void test10142()
 }
 
 /***************************************************/
+// XXXXX
+
+void testXXXXX()
+{
+    void delegate() dg = {};    // OK
+    void function() fp = {};    // currently NG, why?
+}
+
+/***************************************************/
 // DIP32
 
 void test_tuple()

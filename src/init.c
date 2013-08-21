@@ -270,12 +270,15 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
             fieldi++;
         }
     }
-    else if (t->ty == Tdelegate && value.dim == 0)
-    {   /* Rewrite as empty delegate literal { }
+    else if ((t->ty == Tdelegate ||
+              t->ty == Tpointer && t->nextOf()->ty == Tfunction) &&
+             value.dim == 0)
+    {   /* Rewrite as empty function literal { }
          */
         Parameters *arguments = new Parameters;
         Type *tf = new TypeFunction(arguments, NULL, 0, LINKd);
-        FuncLiteralDeclaration *fd = new FuncLiteralDeclaration(loc, Loc(), tf, TOKdelegate, NULL);
+        FuncLiteralDeclaration *fd = new FuncLiteralDeclaration(loc, Loc(), tf,
+            t->ty == Tdelegate ? TOKdelegate : TOKfunction, NULL);
         fd->fbody = new CompoundStatement(loc, new Statements());
         fd->endloc = loc;
         Expression *e = new FuncExp(loc, fd);
