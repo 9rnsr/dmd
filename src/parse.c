@@ -2591,6 +2591,24 @@ Type *Parser::parseBasicType()
                 t = t->makeWild();
             break;
 
+        case TOKlcurly:
+            nextToken();
+            Parameters *arguments = new Parameters();
+            while (1)
+            {
+                if (token.value == TOKrcurly)
+                    break;
+                t = parseType();
+                //printf("L%d t = %s\n", __LINE__, t->toChars());
+                Parameter *a = new Parameter(STCundefined, t, NULL, NULL);
+                arguments->push(a);
+                if (token.value == TOKcomma)
+                    nextToken();
+            }
+            check(TOKrcurly);
+            t = new TypeTuple(arguments);
+            break;
+
         default:
             error("basic type expected, not %s", token.toChars());
             t = Type::tint32;
@@ -3238,6 +3256,7 @@ L2:
         ident = NULL;
         t = parseDeclarator(ts, &ident, &tpl, storage_class, &disable);
         assert(t);
+        //printf("declaration-N t = %s\n", t->toChars());
         if (!tfirst)
             tfirst = t;
         else if (t != tfirst)
@@ -4057,6 +4076,12 @@ Statement *Parser::parseStatement(int flags, utf8_t** endPtr)
 
         case TOKlcurly:
         {
+            if (isDeclaration(&token, 2, TOKreserved, NULL))
+            {
+                //printf("stmt curly at %s\n", loc.toChars());
+                goto Ldeclaration;
+            }
+
             Loc lookingForElseSave = lookingForElse;
             lookingForElse = Loc();
 
@@ -4962,8 +4987,10 @@ int Parser::isDeclaration(Token *t, int needId, TOK endtok, Token **pt)
     {
         goto Lisnot;
     }
+    //printf("L%d t = %s\n", __LINE__, t->toChars());
     if (!isDeclarator(&t, &haveId, &haveTpl, endtok))
         goto Lisnot;
+    //printf("L%d t = %s\n", __LINE__, t->toChars());
     if ( needId == 1 ||
         (needId == 0 && !haveId) ||
         (needId == 2 &&  haveId))
@@ -5092,6 +5119,30 @@ int Parser::isBasicType(Token **pt)
             }
             t = peek(t);
             break;
+
+        case TOKlcurly: // TypeTuple
+        {
+            t = peek(t);
+            //printf("L%d t = %s\n", __LINE__, t->toChars());
+            while (1)
+            {
+                if (t->value == TOKrcurly)
+                    break;
+                if (!isDeclaration(t, 0, TOKrcurly, &t))
+                    goto Lfalse;
+                //printf("L%d t = %s\n", __LINE__, t->toChars());
+                if (t->value == TOKcomma)
+                    t = peek(t);
+            }
+            //printf("L%d t = %s\n", __LINE__, t->toChars());
+            t = peek(t);
+            if (t->value == TOKassign)     // { ... } = exp;
+                goto Lfalse;
+            if (t->value == TOKsemicolon)
+                goto Lfalse;
+            //printf("L%d t = %s\n", __LINE__, t->toChars());
+            break;
+        }
 
         default:
             goto Lfalse;
@@ -5262,10 +5313,16 @@ int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
                 continue;
 
             // Valid tokens that follow a declaration
+            case TOKcomma:
+                if (!parens && endtok == TOKrcurly)
+                {   *pt = t;
+                    return TRUE;
+                }
+                // fallthrough
+            case TOKrcurly:     // for TypeTuple
             case TOKrparen:
             case TOKrbracket:
             case TOKassign:
-            case TOKcomma:
             case TOKdotdotdot:
             case TOKsemicolon:
             case TOKlcurly:
@@ -5583,7 +5640,7 @@ int Parser::isTupleExp(Token **pt)
     if (t->value != TOKrcurly)
         return FALSE;
 
-    *pt = t;
+    *pt = peek(t);
     return TRUE;
 }
 

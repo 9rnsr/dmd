@@ -1031,7 +1031,41 @@ void VarDeclaration::semantic(Scope *sc)
         size_t nelems = Parameter::dim(tt->arguments);
         Objects *exps = new Objects();
         exps->setDim(nelems);
-        Expression *ie = (init && !init->isVoidInitializer()) ? init->toExpression() : NULL;
+        Expression *ie = NULL;
+        if (init)
+        {
+            if (StructInitializer *si = init->isStructInitializer())
+            {
+                Expression *e;
+                bool hasId = false;
+                for (size_t i = 0; !hasId && i < si->field.dim; i++)
+                {
+                    hasId = (si->field[i] != NULL);
+                }
+                if (!hasId)
+                {
+                    Expressions *exps = new Expressions();
+                    for (size_t i = 0; i < si->value.dim; i++)
+                    {
+                        e = si->value[i]->toExpression();
+                        exps->push(e);
+                    }
+                    exps = arrayExpressionSemantic(exps, sc);
+                    expandTuples(exps);
+                    for (size_t i = 0; i < exps->dim; i++)
+                    {
+                        (*exps)[i] = resolveProperties(sc, (*exps)[i]);
+                    }
+                    ie = new TupleExp(init->loc, exps);
+                }
+                else
+                    ie = init->toExpression();
+            }
+            else if (!init->isVoidInitializer())
+                ie = init->toExpression();
+            else
+                ie = NULL;
+        }
         if (ie) ie = ie->semantic(sc);
 
         if (nelems > 0 && ie)

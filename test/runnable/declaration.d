@@ -264,6 +264,13 @@ void test10142()
 
 void test_tuple()
 {
+    test_tuple1();
+    test_tuple2();
+    test_tuple3();
+}
+
+void test_tuple1()
+{
     auto tup0 = {};
     pragma(msg, typeof(tup0));
     tup0 = {};
@@ -279,6 +286,43 @@ void test_tuple()
     assert(tup2[0] == 10 && tup2[1] == "str");
     tup2 = {20, "ing"};
     assert(tup2[0] == 20 && tup2[1] == "ing");
+}
+
+void test_tuple2()
+{
+    {} tup0 = {};
+    pragma(msg, typeof(tup0));
+    tup0 = {};
+
+    {int} tup1 = {10};
+    pragma(msg, typeof(tup1));
+    assert(tup1[0] == 10);
+    tup1 = {20};
+    assert(tup1[0] == 20);
+
+    {int, immutable(char)[]} tup2 = {10, "str"};
+    pragma(msg, typeof(tup2));
+    assert(tup2[0] == 10 && tup2[1] == "str");
+    tup2 = {20, "ing"};
+    assert(tup2[0] == 20 && tup2[1] == "ing");
+}
+
+void test_tuple3()
+{
+    alias X0 = {};
+    static assert(X0.length == 0);
+    static assert(is(X0 == {}));
+
+    alias X1 = {int};
+    static assert(X1.length == 1);
+    static assert(is(X1[0] == int));
+    static assert(is(X1 == {int}));
+
+    alias X2 = {int, string};
+    static assert(X2.length == 2);
+    static assert(is(X2[0] == int));
+    static assert(is(X2[1] == string));
+    static assert(is(X2 == {int, string}));
 }
 
 /***************************************************/
