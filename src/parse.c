@@ -2456,6 +2456,24 @@ Type *Parser::parseType(Identifier **pident, TemplateParameters **tpl)
         t = t->makeWild();
         return t;
     }
+    else if (token.value == TOKlcurly)
+    {
+        nextToken();
+        Parameters *arguments = new Parameters();
+        while (1)
+        {
+            if (token.value == TOKrcurly)
+                break;
+            t = parseType();
+            //printf("L%d t = %s\n", __LINE__, t->toChars());
+            Parameter *a = new Parameter(STCundefined, t, NULL, NULL);
+            arguments->push(a);
+            if (token.value == TOKcomma)
+                nextToken();
+        }
+        check(TOKrcurly);
+        t = new TypeTuple(arguments);
+    }
     else
         t = parseBasicType();
     t = parseDeclarator(t, pident, tpl);
@@ -2589,24 +2607,6 @@ Type *Parser::parseBasicType()
                 t = t->makeSharedWild();
             else
                 t = t->makeWild();
-            break;
-
-        case TOKlcurly:
-            nextToken();
-            Parameters *arguments = new Parameters();
-            while (1)
-            {
-                if (token.value == TOKrcurly)
-                    break;
-                t = parseType();
-                //printf("L%d t = %s\n", __LINE__, t->toChars());
-                Parameter *a = new Parameter(STCundefined, t, NULL, NULL);
-                arguments->push(a);
-                if (token.value == TOKcomma)
-                    nextToken();
-            }
-            check(TOKrcurly);
-            t = new TypeTuple(arguments);
             break;
 
         default:
@@ -5119,7 +5119,7 @@ int Parser::isBasicType(Token **pt)
             }
             t = peek(t);
             break;
-
+#if 0
         case TOKlcurly: // TypeTuple
         {
             t = peek(t);
@@ -5143,7 +5143,7 @@ int Parser::isBasicType(Token **pt)
             //printf("L%d t = %s\n", __LINE__, t->toChars());
             break;
         }
-
+#endif
         default:
             goto Lfalse;
     }

@@ -290,21 +290,21 @@ void test_tuple1()
 
 void test_tuple2()
 {
-    {} tup0 = {};
-    pragma(msg, typeof(tup0));
-    tup0 = {};
+//    {} tup0 = {};
+//    pragma(msg, typeof(tup0));
+//    tup0 = {};
 
-    {int} tup1 = {10};
-    pragma(msg, typeof(tup1));
-    assert(tup1[0] == 10);
-    tup1 = {20};
-    assert(tup1[0] == 20);
+//    {int} tup1 = {10};
+//    pragma(msg, typeof(tup1));
+//    assert(tup1[0] == 10);
+//    tup1 = {20};
+//    assert(tup1[0] == 20);
 
-    {int, immutable(char)[]} tup2 = {10, "str"};
-    pragma(msg, typeof(tup2));
-    assert(tup2[0] == 10 && tup2[1] == "str");
-    tup2 = {20, "ing"};
-    assert(tup2[0] == 20 && tup2[1] == "ing");
+//    {int, immutable(char)[]} tup2 = {10, "str"};
+//    pragma(msg, typeof(tup2));
+//    assert(tup2[0] == 10 && tup2[1] == "str");
+//    tup2 = {20, "ing"};
+//    assert(tup2[0] == 20 && tup2[1] == "ing");
 }
 
 void test_tuple3()
