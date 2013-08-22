@@ -216,6 +216,9 @@ public:
     virtual elem *toElem(IRState *irs);
     elem *toElemDtor(IRState *irs);
     virtual dt_t **toDt(dt_t **pdt);
+
+    // Parse
+    virtual Type *toType();
 };
 
 class IntegerExp : public Expression
@@ -318,6 +321,9 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
+
+    // Parse
+    virtual Type *toType();
 };
 
 class DollarExp : public IdentifierExp
@@ -590,6 +596,9 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *optimize(int result, bool keepLvalue = false);
     elem *toElem(IRState *irs);
+
+    // Parse
+    virtual Type *toType();
 };
 
 class ScopeExp : public Expression
@@ -602,6 +611,9 @@ public:
     Expression *semantic(Scope *sc);
     elem *toElem(IRState *irs);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+
+    // Parse
+    virtual Type *toType();
 };
 
 class TemplateExp : public Expression
@@ -983,6 +995,9 @@ public:
     Expression *semanticY(Scope *sc, int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void dump(int i);
+
+    // Parse
+    virtual Type *toType();
 };
 
 class DotTemplateExp : public UnaExp
@@ -1025,6 +1040,9 @@ public:
     Expression *semanticY(Scope *sc, int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void dump(int indent);
+
+    // Parse
+    virtual Type *toType();
 };
 
 class DelegateExp : public UnaExp
@@ -1263,6 +1281,9 @@ public:
 
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
+
+    // Parse
+    virtual Type *toType();
 };
 
 class ArrayLengthExp : public UnaExp
@@ -1301,6 +1322,9 @@ public:
 
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
+
+    // Parse
+    virtual Type *toType();
 };
 
 /****************************************************************/

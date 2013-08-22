@@ -6316,6 +6316,13 @@ Expression *Parser::parsePrimaryExp()
 
         case BASIC_TYPES_X(t):
             nextToken();
+#if 0
+            if (token.value != TOKdot)
+            {
+                e = new TypeExp(loc, t);
+                break;
+            }
+#endif
             check(TOKdot, t->toChars());
             if (token.value != TOKidentifier)
             {   error("found '%s' when expecting identifier following '%s.'", token.toChars(), t->toChars());
@@ -6786,6 +6793,52 @@ Expression *Parser::parsePostExp(Expression *e)
                 }
                 continue;
             }
+
+#if 0
+            case TOKmul:
+            {
+                // BAD!?   exp **p  == exp * *p
+                TOK tk = peekNext();
+                if (tk == TOKcomma ||
+                    tk == TOKrparen ||
+                    tk == TOKrbracket ||
+                    tk == TOKrcurly)
+                {
+                    if (Type *t = e->toType())
+                    {
+                        nextToken();
+                        e = new TypeExp(loc, t->pointerTo());
+                        continue;
+                    }
+                }
+                return e;
+            }
+
+            case TOKfunction:
+            case TOKdelegate:
+            {
+                TOK tk = peekNext();
+                if (tk == TOKcomma ||
+                    tk == TOKrparen ||
+                    tk == TOKrbracket ||
+                    tk == TOKrcurly)
+                {
+                    if (Type *t = e->toType())
+                    {
+                        nextToken();
+
+                        LINK linkage = LINKd;   // todo?>
+                        int varargs;
+                        Parameters *parameters = parseParameters(&varargs);
+                        StorageClass stc = parsePostfix();
+                        Type *tf = new TypeFunction(parameters, NULL, varargs, linkage, stc);   // RetrunType -> auto
+
+                        e = new TypeExp(loc, tf);
+                    }
+                }
+                return e;
+            }
+#endif
 
             default:
                 return e;
@@ -7782,3 +7835,82 @@ void initPrecedence()
     precedence[TOKdeclaration] = PREC_expr;
 }
 
+/**********************************************
+ */
+
+Type *Expression::toType()
+{
+    assert(0);
+    return NULL;
+}
+
+Type *TypeExp::toType()
+{
+    return type;
+}
+
+Type *IdentifierExp::toType()
+{
+    return new TypeIdentifier(loc, ident);
+}
+
+Type *SliceExp::toType()
+{
+    Type *t = e1->toType();
+    if (t)
+        t = new TypeSlice(t, lwr, upr);
+    return t;
+}
+
+Type *ScopeExp::toType()
+{
+    TemplateInstance *ti = sds->isTemplateInstance();
+    assert(ti);
+    return new TypeInstance(loc, ti);
+}
+
+Type *ArrayExp::toType()
+{
+    if (arguments->dim != 1)
+        return NULL;
+    Type *t = e1->toType();
+    if (t)
+        t = new TypeSArray(t, (*arguments)[0]);
+    return t;
+}
+
+Type *DotIdExp::toType()
+{
+    if (e1->op != TOKidentifier &&      // ix.ident
+        e1->op != TOKdot &&             // ix.iy.ident
+        e1->op != TOKimport &&          // templat!(tiargs).ident
+        e1->op != TOKdotti)             // ex.templat!(tiargs).ident
+    {
+        return NULL;
+    }
+    Type *t = e1->toType();
+    if (t)
+    {
+        assert(t->ty == Tident || t->ty == Tinstance);
+        ((TypeQualified *)t)->addIdent(ident);
+    }
+    return t;
+}
+
+Type *DotTemplateInstanceExp::toType()
+{
+    if (e1->op != TOKidentifier &&      // ix.ident
+        e1->op != TOKdot &&             // ix.iy.ident
+        e1->op != TOKimport &&          // templat!(tiargs).ident
+        e1->op != TOKdotti)             // ex.templat!(tiargs).ident
+    {
+        return NULL;
+    }
+    Type *t = e1->toType();
+    if (t)
+    {
+        assert(t->ty == Tident || t->ty == Tinstance);
+        ((TypeQualified *)t)->addInst(ti);
+    }
+    return t;
+}
