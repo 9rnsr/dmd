@@ -3467,7 +3467,7 @@ void genCmain(Scope *sc)
         ";
 
     Parser p(sc->module, code, sizeof(code) / sizeof(code[0]), 0);
-    p.loc = Loc();
+    p.scanloc = Loc();
     p.nextToken();
     Dsymbols *decl = p.parseDeclDefs(0);
     assert(p.token.value == TOKeof);
