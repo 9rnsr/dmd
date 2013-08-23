@@ -9038,7 +9038,7 @@ int TypeClass::hasPointers()
 
 /***************************** TypeTuple *****************************/
 
-TypeTuple::TypeTuple(Parameters *arguments)
+TypeTuple::TypeTuple(Parameters *arguments, bool literal)
     : Type(Ttuple)
 {
     //printf("TypeTuple(this = %p)\n", this);
@@ -9054,6 +9054,26 @@ TypeTuple::TypeTuple(Parameters *arguments)
         }
     }
 #endif
+    if (literal)
+    {
+        // flatten first
+        for (size_t i = 0; i < arguments->dim; i++)
+        {
+        Lagain:
+            Parameter *arg = (*arguments)[i];
+            if (arg->type->ty == Ttuple)
+            {
+                TypeTuple *tt = (TypeTuple *)arg->type;
+                arguments->remove(i);
+                arguments->insert(i, tt->arguments);
+                if (i < arguments->dim)
+                    goto Lagain;
+            }
+        }
+        // don't set deco. //deco = NULL;
+    }
+    else
+        deco = merge()->deco;
 }
 
 /****************
@@ -9078,6 +9098,7 @@ TypeTuple::TypeTuple(Expressions *exps)
     }
     this->arguments = arguments;
     //printf("TypeTuple() %p, %s\n", this, toChars());
+    deco = merge()->deco;
 }
 
 /*******************************************
@@ -9086,7 +9107,8 @@ TypeTuple::TypeTuple(Expressions *exps)
 TypeTuple::TypeTuple()
     : Type(Ttuple)
 {
-    arguments = new Parameters();
+    arguments = new Parameters(); // redundant?
+    deco = merge()->deco;
 }
 
 TypeTuple::TypeTuple(Type *t1)
@@ -9094,6 +9116,7 @@ TypeTuple::TypeTuple(Type *t1)
 {
     arguments = new Parameters();
     arguments->push(new Parameter(0, t1, NULL, NULL));
+    deco = merge()->deco;
 }
 
 TypeTuple::TypeTuple(Type *t1, Type *t2)
@@ -9102,6 +9125,7 @@ TypeTuple::TypeTuple(Type *t1, Type *t2)
     arguments = new Parameters();
     arguments->push(new Parameter(0, t1, NULL, NULL));
     arguments->push(new Parameter(0, t2, NULL, NULL));
+    deco = merge()->deco;
 }
 
 const char *TypeTuple::kind()
@@ -9112,26 +9136,94 @@ const char *TypeTuple::kind()
 Type *TypeTuple::syntaxCopy()
 {
     Parameters *args = Parameter::arraySyntaxCopy(arguments);
-    Type *t = new TypeTuple(args);
+    Type *t = new TypeTuple(args, true);
     t->mod = mod;
     return t;
+}
+
+void TypeTuple::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps)
+{
+    if (deco)
+    {
+        *pe = NULL;
+        *pt = this;
+        *ps = NULL;
+        return;
+    }
+
+    //printf("TypeTuple::resolve() %p, %s, %s\n", this, toChars(), loc.toChars());
+
+    // Rough flatten is already done in constructor
+    Objects *objects = new Objects;
+    for (size_t i = 0; i < arguments->dim; i++)
+    {
+        Parameter *arg = (*arguments)[i];
+        Expression *e;
+        Type *t;
+        Dsymbol *s;
+        arg->type->resolve(loc, sc, &e, &t, &s);
+        //printf(" -> e t s = %p %p %p\n", e, t, s);
+        if (t)
+        {
+            if (t->ty == Ttuple)
+            {
+                TypeTuple *tt = (TypeTuple *)t;
+                if (tt->arguments)
+                {
+                    for (size_t j = 0; j < tt->arguments->dim; j++)
+                        objects->push((*tt->arguments)[j]->type);
+                }
+            }
+            else
+                objects->push(t);
+        }
+        else if (s)
+        {
+            if (TupleDeclaration *td2 = s->isTupleDeclaration())
+            {
+                objects->insert(i, td2->objects);
+            }
+            else
+                objects->push(s);
+        }
+        else
+        {
+            //if (e->op == TOKtuple)
+            //    objects->push(((TupleExp *)e)->exps);
+            //else
+                objects->push(e);
+        }
+    }
+    *pe = NULL;
+    *pt = NULL;
+    *ps = new TupleDeclaration(loc, Id::empty, objects);
 }
 
 Type *TypeTuple::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeTuple::semantic(this = %p)\n", this);
     //printf("TypeTuple::semantic() %p, %s\n", this, toChars());
-
-    size_t dim = Parameter::dim(arguments);
-    for (size_t i = 0; i < dim; i++)
-    {
-        Parameter *arg = Parameter::getNth(arguments, i);
-        if (!arg->type->deco)
-            arg->type = arg->type->semantic(loc, sc);
-    }
-
     if (!deco)
+    {
+        Expression *e;
+        Type *t;
+        Dsymbol *s;
+        resolve(loc, sc, &e, &t, &s);
+        if (s)
+        {
+            t = s->getType();
+            if (!t)
+            {
+                error(loc, "%s is used as a type", toChars());
+                t = Type::terror;
+            }
+            return t;
+        }
+        assert(t == this);
         deco = merge()->deco;
+    }
+    else
+        assert(deco);
 
     /* Don't return merge(), because a tuple with one type has the
      * same deco as that type.
@@ -9148,12 +9240,16 @@ bool TypeTuple::equals(RootObject *o)
     if (t->ty == Ttuple)
     {
         TypeTuple *tt = (TypeTuple *)t;
+        //printf("\targs = %d, tt->args = %d\n", arguments->dim, tt->arguments->dim);
         if (arguments->dim == tt->arguments->dim)
         {
             for (size_t i = 0; i < tt->arguments->dim; i++)
             {
                 Parameter *arg1 = (*arguments)[i];
                 Parameter *arg2 = (*tt->arguments)[i];
+                //printf("\t[%d] arg1 = %d %s arg2 = %d %s\n", i,
+                //    arg1->type->ty, arg1->type->toChars(),
+                //    arg2->type->ty, arg2->type->toChars());
                 if (!arg1->type->equals(arg2->type))
                     return false;
             }

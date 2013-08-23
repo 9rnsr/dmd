@@ -2637,7 +2637,7 @@ Type *Parser::parseBasicType()
                 }
             }
             check(TOKrcurly);
-            t = new TypeTuple(arguments);
+            t = new TypeTuple(arguments, 1);
             break;
 
         default:

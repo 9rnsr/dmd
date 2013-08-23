@@ -1017,13 +1017,14 @@ class TypeTuple : public Type
 public:
     Parameters *arguments;      // types making up the tuple
 
-    TypeTuple(Parameters *arguments);
+    TypeTuple(Parameters *arguments, bool literal = false);
     TypeTuple(Expressions *exps);
     TypeTuple();
     TypeTuple(Type *t1);
     TypeTuple(Type *t1, Type *t2);
     const char *kind();
     Type *syntaxCopy();
+    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     Type *semantic(Loc loc, Scope *sc);
     bool equals(RootObject *o);
     Type *reliesOnTident(TemplateParameters *tparams = NULL);

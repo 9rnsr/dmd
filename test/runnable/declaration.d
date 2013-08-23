@@ -264,6 +264,8 @@ void test10142()
 
 void test_tuple()
 {
+    alias Seq(TL...) = TL;
+
     alias X0 = {};
     static assert(X0.length == 0);
     static assert(is(X0 == {}));
@@ -322,6 +324,31 @@ void test_tuple()
             static assert(!__traits(compiles, { static assert(T == 1); }));
             assert(T == 1);
         }
+    }
+
+    version(all) if (1)
+    {
+        alias X4a = {int, {long, {string, Object}}};
+        static assert(X4a.length == 4);
+
+        alias X4b = Seq!(int, Seq!(long, Seq!(string, Object)));
+        static assert(is(X4a == X4b));
+    }
+
+    version(all) if (1)
+    {
+        int v1, v2;
+        alias  X = {v1, v2};
+
+        assert(v1 == 0 && v2 == 0);
+        X[0] = 1, X[1] = 2;
+        assert(v1 == 1 && v2 == 2);
+
+        X = {v2, v1};
+        assert(v1 == 2 && v2 == 2);
+
+        assert(X.length == 2);
+        static assert(is(typeof(X) == Seq!(int, int)));
     }
 }
 
