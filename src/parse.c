@@ -4083,16 +4083,6 @@ Statement *Parser::parseStatement(int flags, utf8_t** endPtr)
                 goto Ldeclaration;
             goto Lexp;
 
-        case TOKlbracket:
-        {
-            Token *t = &token;
-            if (skipParens2(t, &t) && t->value == TOKassign)
-            {
-                Dsymbol *d = parseDeconstDeclaration(STCundefined, NULL);
-                s = new ExpStatement(loc, d);
-                break;
-            }
-        }
         case TOKassert:
         case TOKthis:
         case TOKsuper:
@@ -4288,18 +4278,53 @@ Statement *Parser::parseStatement(int flags, utf8_t** endPtr)
             break;
         }
 
+        case TOKlbracket:
         case TOKlcurly:
         {
-            Token *t = &token;
-            //if (isDeclaration(t, 2, TOKreserved, NULL))
-            if (isBasicType(&t))    // TypeTuple?
-                goto Ldeclaration;
-            if (skipParens2(t, &t) && t->value == TOKassign)
+            Token *t = peek(&token);
+            if (t->value == TOKauto ||
+                t->value == TOKconst ||
+                t->value == TOKinvariant ||
+                t->value == TOKimmutable ||
+                t->value == TOKshared ||
+                t->value == TOKwild)
             {
-                Dsymbol *d = parseDeconstDeclaration(STCundefined, NULL);
-                s = new ExpStatement(loc, d);
-                break;
+                // { auto ... } = ...
+                // [ auto ... ] = ...
+                goto Ldecons;
             }
+            else if (isDeclaration(t, 2, TOKreserved/*TOKrcurly*/, NULL))
+            {
+                // { Type ident ... } = ...
+                // [ Type ident ... ] = ...
+            Ldecons:
+                if (token.value == TOKlbracket ||
+                    skipParens2(&token, &t) && t->value == TOKassign)   // want to be unnecessary...
+                {
+                    Dsymbol *d = parseDeconstDeclaration(STCundefined, NULL);
+                    s = new ExpStatement(loc, d);
+                    break;
+                }
+            }
+            t = &token;
+            if (t->value == TOKlbracket)    // ArrayLiteral
+                goto Lexp;
+            if (isBasicType(&t))            // TypeTuple
+                goto Ldeclaration;
+            t = &token;
+            //if (isTupleExp(&t))
+            //    goto Lexp;
+
+        //    Token *t = &token;
+        //    //if (isDeclaration(t, 2, TOKreserved, NULL))
+        //    if (isBasicType(&t))    // TypeTuple?
+        //        goto Ldeclaration;
+        //    if (skipParens2(t, &t) && t->value == TOKassign)
+        //    {
+        //        Dsymbol *d = parseDeconstDeclaration(STCundefined, NULL);
+        //        s = new ExpStatement(loc, d);
+        //        break;
+        //    }
 
             Loc lookingForElseSave = lookingForElse;
             lookingForElse = Loc();
