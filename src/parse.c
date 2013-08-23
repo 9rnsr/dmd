@@ -1548,7 +1548,11 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
                         nextToken();
                     }
                     else
-                        at = parseType(&ai);
+                    {
+                        at = parseBasicType();
+                        at = parseDeclarator(at, &ai, NULL);
+                        // don't allow empty tuple for parameter type
+                    }
 
                     ae = NULL;
                     if (token.value == TOKassign)       // = defaultArg
@@ -2408,7 +2412,8 @@ Import *Parser::parseImport(Dsymbols *decldefs, int isstatic)
 
 #if DMDV2
 Type *Parser::parseType(Identifier **pident, TemplateParameters **tpl)
-{   Type *t;
+{
+    Type *t;
 
     /* Take care of the storage class prefixes that
      * serve as type attributes:
@@ -2472,6 +2477,12 @@ Type *Parser::parseType(Identifier **pident, TemplateParameters **tpl)
         t = parseType(pident, tpl);
         t = t->makeWild();
         return t;
+    }
+    else if (token.value == TOKlcurly && peekNext() == TOKrcurly)
+    {
+        nextToken();
+        check(TOKrcurly);
+        t = new TypeTuple();
     }
     else
         t = parseBasicType();
@@ -2610,15 +2621,20 @@ Type *Parser::parseBasicType()
         case TOKlcurly:
             nextToken();
             Parameters *arguments = new Parameters();
-            while (1)
+            if (token.value == TOKrcurly)
+                error("BasicType expected, not empty tuple");
+            else
             {
-                if (token.value == TOKrcurly)
-                    break;
-                t = parseType();
-                Parameter *a = new Parameter(STCundefined, t, NULL, NULL);
-                arguments->push(a);
-                if (token.value == TOKcomma)
-                    nextToken();
+                while (1)
+                {
+                    if (token.value == TOKrcurly)
+                        break;
+                    t = parseType();
+                    Parameter *a = new Parameter(STCundefined, t, NULL, NULL);
+                    arguments->push(a);
+                    if (token.value == TOKcomma)
+                        nextToken();
+                }
             }
             check(TOKrcurly);
             t = new TypeTuple(arguments);
@@ -5153,6 +5169,8 @@ int Parser::isBasicType(Token **pt)
         case TOKlcurly:     // TypeTuple
         {
             t = peek(t);
+            if (t->value == TOKrcurly)
+                goto Lfalse;
             while (1)
             {
                 if (t->value == TOKrcurly)

@@ -272,8 +272,8 @@ void test_tuple()
     static assert(is(typeof(tup0a) == X0));
     //tup0a = {};
 
-    {} tup0b = {};
-    static assert(is(typeof(tup0b) == X0));
+    //{} tup0b = {};
+    //static assert(is(typeof(tup0b) == X0));
     //tup0b = {};
 
     alias X1 = {int};
