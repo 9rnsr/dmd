@@ -129,7 +129,9 @@ public:
     int isBasicType(Token **pt);
     int isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok);
     int isParameters(Token **pt);
-    int isExpression(Token **pt);
+    int isExpression(Token **pt, TOK endtok = TOKreserved);
+    int isTuple(Token *t, Token **pt);
+    Expression *parseTuple();
     int isTupleExp(Token **pt);
     int skipParens(Token *t, Token **pt);
     int skipParensIf(Token *t, Token **pt);

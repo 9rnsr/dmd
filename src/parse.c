@@ -4531,7 +4531,8 @@ Statement *Parser::parseStatement(int flags, utf8_t** endPtr)
             }
             check(TOKsemicolon);
 
-            Expression *aggr = parseExpression();
+            Expression *aggr = isTuple(&token, NULL) ? parseTuple()
+                                                     : parseExpression();
             if (token.value == TOKslice && arguments->dim == 1)
             {
                 Parameter *a = (*arguments)[0];
@@ -5701,7 +5702,7 @@ int Parser::isParameters(Token **pt)
     return TRUE;
 }
 
-int Parser::isExpression(Token **pt)
+int Parser::isExpression(Token **pt, TOK endtok)
 {
     // This is supposed to determine if something is an expression.
     // What it actually does is scan until a closing right bracket
@@ -5746,6 +5747,8 @@ int Parser::isExpression(Token **pt)
             case TOKrcurly:
                 if (--curlynest >= 0)
                     continue;
+                if (endtok == TOKrcurly)
+                    break;
                 return FALSE;
 
             case TOKslice:
@@ -5769,6 +5772,85 @@ int Parser::isExpression(Token **pt)
 
     *pt = t;
     return TRUE;
+}
+
+int Parser::isTuple(Token *t, Token **pt)
+{
+    if (t->value != TOKlcurly)
+        return FALSE;
+    t = peek(t);
+    if (t->value == TOKrcurly)
+        goto Lis;
+    while (1)
+    {
+#if 0
+        if (isTuple(t, &t))
+        {
+            printf("\ttuple t = %s\n", t->toChars());
+        }
+        else if (isDeclaration(t, 0, TOKreserved/*TOKrcurly*/, &t))
+        {
+            printf("\tdecl t = %s\n", t->toChars());
+        }
+        else if ((printf("exp?\n")) && isExpression(&t, TOKrcurly))
+        {
+            printf("\texpr t = %s\n", t->toChars());
+        }
+        else
+            goto Lisnot;
+#else
+        if (!isTuple(t, &t) &&
+            !isDeclaration(t, 0, TOKreserved/*TOKrcurly*/, &t) &&
+            !isExpression(&t, TOKrcurly))
+        {
+            goto Lisnot;
+        }
+#endif
+        if (t->value == TOKrcurly)
+            goto Lis;
+        if (t->value != TOKcomma)
+            goto Lisnot;
+        t = peek(t);
+    }
+
+Lis:
+    if (pt)
+        *pt = t;
+    return TRUE;
+
+Lisnot:
+    return FALSE;
+}
+
+Expression *Parser::parseTuple()
+{
+    //printf("Parser::parseTuple()\n");
+    Expressions *exps = new Expressions();
+    Loc loc = token.loc;
+
+    nextToken();
+    if (token.value != TOKrcurly)
+    {
+        while (1)
+        {
+            // See if it is an Expression or a Type
+            Expression *ea;
+            if (isDeclaration(&token, 0, TOKreserved, NULL))
+            {
+                Loc loc = token.loc;
+                ea = new TypeExp(loc, parseType());
+            }
+            else
+                ea = parseAssignExp();
+            exps->push(ea);
+            if (token.value == TOKrcurly)
+                break;
+            check(TOKcomma);
+        }
+    }
+    check(TOKrcurly, "tuple elements");
+
+    return new TupleExp(loc, exps);
 }
 
 int Parser::isTupleExp(Token **pt)

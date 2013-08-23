@@ -310,6 +310,19 @@ void test_tuple()
     assert(tup2b[0] == 10 && tup2b[1] == "str");
     tup2b = {20, "ing"};
     assert(tup2b[0] == 20 && tup2b[1] == "ing");
+
+    struct S {}
+    int foo() { return 1; }
+    foreach (T; {int, long, S, int[], int*, int**, void delegate(), foo(), int[int]})
+    {
+        static if (is(T))
+            pragma(msg, T);
+        else
+        {
+            static assert(!__traits(compiles, { static assert(T == 1); }));
+            assert(T == 1);
+        }
+    }
 }
 
 /***************************************************/
