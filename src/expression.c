@@ -13765,17 +13765,10 @@ Expression *TuplePtn::decompose(Scope *sc, Expression *e)
     Expression *ex = NULL;
 
     e = e->semantic(sc);
-
+Lagain:
     Type *tb = e->type->toBasetype();
     Expressions *exps = NULL;
     //printf("tb = %s, e = %s %s\n", tb->toChars(), Token::toChars(e->op), e->toChars());
-#if 0
-    if (tb->ty == Ttuple)
-    {
-        TypeTuple *tt = (TypeTuple *)tb;
-    }
-    else
-#endif
     if (e->op == TOKtuple)
     {
         TupleExp* te = (TupleExp *)e;
@@ -13794,35 +13787,16 @@ Expression *TuplePtn::decompose(Scope *sc, Expression *e)
             ex = Expression::combine(ex, (*elements)[i]->decompose(sc, ev));
         }
     }
-#if 0
     else if (isAliasThisTuple(e))
     {
-        Identifier *id = Lexer::uniqueId("__tup");
-        ExpInitializer *ei = new ExpInitializer(e->loc, e);
-        VarDeclaration *v = new VarDeclaration(loc, NULL, id, ei);
-        v->storage_class = STCctfe | STCref | STCforeach;
-
-        e0 = new DeclarationExp(loc, v);
-        e0 = e0->semantic(sc);
-        VarExp *ve = new VarExp(loc, v);
-        ve->type = e->type;
-
-        if (prest)  assert(exps->dim >= dim);
-        else        assert(exps->dim == dim);
-
-        Expression *ev;
-        for (size_t i = 0; i < dim; i++)
-        {
-            ev = new IntegerExp(loc, i, Type::tsize_t);
-            ev = new IndexExp(loc, ve, ev);
-            ev = ev->semantic(sc);
-            ex = Expression::combine(ex, (*elements)[i]->decompose(sc, ev));
-        }
+        e = resolveAliasThis(sc, e);
+        goto Lagain;
     }
-#endif
     else
     {
-        assert(0);  // TODO
+        ::error(loc, "cannot decompose expression (%s) type %s with tuple pattern '%s'",
+                e->toChars(), e->type->toChars(), toChars());
+        return new ErrorExp();
     }
 
     if (prest && prest->ident)
@@ -13848,7 +13822,7 @@ Expression *ArrayPtn::decompose(Scope *sc, Expression *e)
     if (prest) --dim;
 
     e = e->semantic(sc);
-
+Lagain:
     Type *tb = e->type->toBasetype();
     if (tb->ty == Tsarray)
     {
@@ -13859,8 +13833,17 @@ Expression *ArrayPtn::decompose(Scope *sc, Expression *e)
     else if (tb->ty == Tarray)
     {
     }
+    else if (isAliasThisTuple(e))
+    {
+        e = resolveAliasThis(sc, e);
+        goto Lagain;
+    }
     else
-        assert(0);
+    {
+        ::error(loc, "cannot decompose expression (%s) type %s with array pattern '%s'",
+                e->toChars(), e->type->toChars(), toChars());
+        return new ErrorExp();
+    }
 
     Expression *e0 = NULL;
     Expression *ex = NULL;
@@ -13881,7 +13864,9 @@ Expression *ArrayPtn::decompose(Scope *sc, Expression *e)
         e = new IntegerExp(loc, i, Type::tsize_t);
         e = new IndexExp(loc, ev, e);
         e = e->semantic(sc);
-        ex = Expression::combine(ex, (*elements)[i]->decompose(sc, e));
+        e = (*elements)[i]->decompose(sc, e);
+        //e = e->optimize(WANTvalue);
+        ex = Expression::combine(ex, e);
     }
     if (prest)
     {

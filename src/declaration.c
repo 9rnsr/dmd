@@ -797,7 +797,7 @@ void DeconsDeclaration::semantic(Scope *sc)
     Expression *e = ptn->decompose(sc, ie);
     //printf("-decompose = %s\n", e->toChars());
     e = e->semantic(sc);
-    init = new ExpInitializer(e->loc, e);
+    init = new ExpInitializer(e->loc, e);   // not good...
 }
 
 void DeconsDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
