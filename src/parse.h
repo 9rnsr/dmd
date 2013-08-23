@@ -85,7 +85,6 @@ public:
     Dsymbol *parseMixin();
     Objects *parseTemplateArgumentList();
     Objects *parseTemplateArgumentList2();
-    Objects *parseTemplateArgument();
     StaticAssert *parseStaticAssert();
     TypeQualified *parseTypeof();
     Type *parseVector();
