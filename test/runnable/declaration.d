@@ -314,72 +314,48 @@ void test_tuple()
 
 /***************************************************/
 
-template Seq(T...) { alias Seq = T; }
-
 void test_decons()
 {
-    test_decons1();
-    test_decons2();
-}
+    alias seq(T...) = T;
 
-void test_decons1()
-{
-    {
-        auto {x} = Seq!(1);
-        assert(x == 1);
-    }
-    {
-        auto {int x} = Seq!(1);
-        assert(x == 1);
-    }
-    {
-        auto {int x, ...} = Seq!(1, "a", []);
-        assert(x == 1);
-    }
-    {
-        auto {int x, r...} = Seq!(1, "a", []);
-        assert(x == 1);
-        assert(r == Seq!("a", []));
-    }
-//  auto {...} = 1;
-//  auto {r...} = 1;
-//  auto {{...}} = 1;   //?
-//  //auto {{}} = 1;  //NG?
-//  auto [x, {int a, b}] = 1;
-//
-//  {auto x} = 1;
-//  {int[] x, r...} = 1;
-//  {const int[] x} = 1;
-//
-//  [x] = 1;
-}
-
-void test_decons2()
-{
     int[] a1 = [1];
-    int[] a3 = [1, 2, 3];
+    int[] a3 = [1,2,3];
+
+    void test(string decl, alias expect)()
     {
-        auto [int x] = a1;
-        assert(x == 1);
+        static if (is(typeof(expect) : string))
+        {
+            mixin(decl);
+            assert(mixin(expect));
+        }
+        else static if (is(expect : Throwable))
+        {
+            bool c = false;
+            try { mixin(decl); }
+            catch (expect e) { c = true; }
+            assert(c);
+        }
+        else
+            static assert(0);
     }
-    {
-        bool c = false;
-        try             { auto [int y, z] = a1; }   // assertion failure
-        catch (Error e) { c = true; }
-        assert(c);
-    }
-    {
-        auto [int x, ...] = a3;
-        assert(x == 1);
-    }
-    {
-        auto [int x, r...] = a3;
-        assert(x == 1);
-        assert(r == [2, 3]);
-    }
-//  auto [int x, int[] r...] = 1;
-//  auto [...] = 1;
-//  auto [r...] = 1;
+
+    test!(q{ auto {x}           = seq!(1);          }, q{ x == 1 });
+    test!(q{ auto {int x}       = seq!(1);          }, q{ x == 1 });
+    test!(q{ auto {int x, ...}  = seq!(1, "a", []); }, q{ x == 1 });
+    test!(q{ auto {int x, r...} = seq!(1, "a", []); }, q{ x == 1 && r == {"a", []} });
+
+    test!(q{ auto {x}           = {1};          }, q{ x == 1 });
+    test!(q{ auto {int x}       = {1};          }, q{ x == 1 });
+    test!(q{ auto {int x, ...}  = {1, "a", []}; }, q{ x == 1 });
+    test!(q{ auto {int x, r...} = {1, "a", []}; }, q{ x == 1 && r == {"a", []} });
+
+    test!(q{ auto [int x]       = a1; }, q{ x == 1 });
+    test!(q{ auto [int y, z]    = a1; }, Error);
+    test!(q{ auto [int x, ...]  = a3; }, q{ x == 1 });
+    test!(q{ auto [int x, r...] = a3; }, q{ x == 1 && r == [2, 3] });
+
+//  //auto {{}} = 1;  //NG?
+//  [x] = 1;
 //  [const int[] x] = 1;
 //  [const int[] x] = 1;
 //  [immutable int[] x, immutable(int[]) r...] = 1;
