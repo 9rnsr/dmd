@@ -132,7 +132,6 @@ public:
     int isExpression(Token **pt, TOK endtok = TOKreserved);
     int isTuple(Token *t, Token **pt);
     Expression *parseTuple();
-    int isTupleExp(Token **pt);
     int skipParens(Token *t, Token **pt);
     int skipParensIf(Token *t, Token **pt);
     int skipParens2(Token *t, Token **pt);
