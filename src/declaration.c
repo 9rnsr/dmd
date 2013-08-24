@@ -1099,7 +1099,7 @@ void VarDeclaration::semantic(Scope *sc)
          * and add those.
          */
         TypeTuple *tt = (TypeTuple *)tb;
-        size_t nelems = Parameter::dim(tt->arguments);
+        size_t nelems = Parameter::dim((Parameters *)tt->arguments);
         Objects *exps = new Objects();
         exps->setDim(nelems);
         Expression *ie = NULL;
@@ -1150,7 +1150,7 @@ void VarDeclaration::semantic(Scope *sc)
             {
             Lexpand1:
                 Expression *e = (*iexps)[pos];
-                Parameter *arg = Parameter::getNth(tt->arguments, pos);
+                Parameter *arg = Parameter::getNth((Parameters *)tt->arguments, pos);
                 arg->type = arg->type->semantic(loc, sc);
                 //printf("[%d] iexps->dim = %d, ", pos, iexps->dim);
                 //printf("e = (%s %s, %s), ", Token::tochars[e->op], e->toChars(), e->type->toChars());
@@ -1192,7 +1192,7 @@ void VarDeclaration::semantic(Scope *sc)
                     {
                     Lexpand2:
                         Expression *ee = (*exps)[u];
-                        Parameter *arg = Parameter::getNth(tt->arguments, pos + u);
+                        Parameter *arg = Parameter::getNth((Parameters *)tt->arguments, pos + u);
                         arg->type = arg->type->semantic(loc, sc);
                         //printf("[%d+%d] exps->dim = %d, ", pos, u, exps->dim);
                         //printf("ee = (%s %s, %s), ", Token::tochars[ee->op], ee->toChars(), ee->type->toChars());
@@ -1239,7 +1239,8 @@ Lnomatch:
         }
 
         for (size_t i = 0; i < nelems; i++)
-        {   Parameter *arg = Parameter::getNth(tt->arguments, i);
+        {
+            Parameter *arg = Parameter::getNth((Parameters *)tt->arguments, i);
 
             OutBuffer buf;
             buf.printf("_%s_field_%llu", ident->toChars(), (ulonglong)i);

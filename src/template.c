@@ -1581,7 +1581,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
                 size_t tt_dim = tt->arguments->dim;
                 for (size_t j = 0; j < tt_dim; j++, ++argi)
                 {
-                    Parameter *p = (*tt->arguments)[j];
+                    Parameter *p = isParameter((*tt->arguments)[j]);
                     if (j == tt_dim - 1 && fvarargs == 2 && parami + 1 == nfparams && argi < nfargs)
                     {
                         prmtype = p->type;
@@ -5860,7 +5860,8 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                 if (dim)
                 {   tiargs->reserve(dim);
                     for (size_t i = 0; i < dim; i++)
-                    {   Parameter *arg = (*tt->arguments)[i];
+                    {
+                        Parameter *arg = isParameter((*tt->arguments)[i]);
                         if (flags & 2 && arg->ident)
                             tiargs->insert(j + i, arg);
                         else

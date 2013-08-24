@@ -339,14 +339,14 @@ TypeTuple *TypeStruct::toArgTypes()
             switch (dim)
             {
                 case 2:
-                    ft1 = (*tup->arguments)[0]->type;
-                    ft2 = (*tup->arguments)[1]->type;
+                    ft1 = isParameter((*tup->arguments)[0])->type;
+                    ft2 = isParameter((*tup->arguments)[1])->type;
                     break;
                 case 1:
                     if (f->offset < 8)
-                        ft1 = (*tup->arguments)[0]->type;
+                        ft1 = isParameter((*tup->arguments)[0])->type;
                     else
-                        ft2 = (*tup->arguments)[0]->type;
+                        ft2 = isParameter((*tup->arguments)[0])->type;
                     break;
                 default:
                     goto Lmemory;

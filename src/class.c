@@ -312,7 +312,6 @@ void ClassDeclaration::semantic(Scope *sc)
     for (size_t i = 0; i < baseclasses->dim; )
     {
         BaseClass *b = (*baseclasses)[i];
-
         unsigned oldgag = global.gag;
         if (global.isSpeculativeGagging() && !isSpeculative())
             global.gag = 0;
@@ -322,12 +321,14 @@ void ClassDeclaration::semantic(Scope *sc)
         Type *tb = b->type->toBasetype();
 
         if (tb->ty == Ttuple)
-        {   TypeTuple *tup = (TypeTuple *)tb;
+        {
+            TypeTuple *tup = (TypeTuple *)tb;
             PROT protection = b->protection;
             baseclasses->remove(i);
-            size_t dim = Parameter::dim(tup->arguments);
+            size_t dim = Parameter::dim((Parameters *)tup->arguments);
             for (size_t j = 0; j < dim; j++)
-            {   Parameter *arg = Parameter::getNth(tup->arguments, j);
+            {
+                Parameter *arg = Parameter::getNth((Parameters *)tup->arguments, j);
                 b = new BaseClass(arg->type, protection);
                 baseclasses->insert(i + j, b);
             }
@@ -1291,17 +1292,20 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
     // Expand any tuples in baseclasses[]
     for (size_t i = 0; i < baseclasses->dim; )
-    {   BaseClass *b = (*baseclasses)[i];
+    {
+        BaseClass *b = (*baseclasses)[i];
         b->type = b->type->semantic(loc, sc);
         Type *tb = b->type->toBasetype();
 
         if (tb->ty == Ttuple)
-        {   TypeTuple *tup = (TypeTuple *)tb;
+        {
+            TypeTuple *tup = (TypeTuple *)tb;
             PROT protection = b->protection;
             baseclasses->remove(i);
-            size_t dim = Parameter::dim(tup->arguments);
+            size_t dim = Parameter::dim((Parameters *)tup->arguments);
             for (size_t j = 0; j < dim; j++)
-            {   Parameter *arg = Parameter::getNth(tup->arguments, j);
+            {
+                Parameter *arg = Parameter::getNth((Parameters *)tup->arguments, j);
                 b = new BaseClass(arg->type, protection);
                 baseclasses->insert(i + j, b);
             }

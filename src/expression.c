@@ -10234,34 +10234,41 @@ Lagain:
         TypeTuple *tup;
 
         if (e1->op == TOKtuple)         // slicing an expression tuple
-        {   te = (TupleExp *)e1;
+        {
+            te = (TupleExp *)e1;
             length = te->exps->dim;
         }
         else if (e1->op == TOKtype)     // slicing a type tuple
-        {   tup = (TypeTuple *)t;
-            length = Parameter::dim(tup->arguments);
+        {
+            tup = (TypeTuple *)t;
+            length = Parameter::dim((Parameters *)tup->arguments);
         }
         else
             assert(0);
 
         if (i1 <= i2 && i2 <= length)
-        {   size_t j1 = (size_t) i1;
+        {
+            size_t j1 = (size_t) i1;
             size_t j2 = (size_t) i2;
 
             if (e1->op == TOKtuple)
-            {   Expressions *exps = new Expressions;
+            {
+                Expressions *exps = new Expressions;
                 exps->setDim(j2 - j1);
                 for (size_t i = 0; i < j2 - j1; i++)
-                {   Expression *e = (*te->exps)[j1 + i];
+                {
+                    Expression *e = (*te->exps)[j1 + i];
                     (*exps)[i] = e;
                 }
                 e = new TupleExp(loc, te->e0, exps);
             }
             else
-            {   Parameters *args = new Parameters;
+            {
+                Parameters *args = new Parameters;
                 args->reserve(j2 - j1);
                 for (size_t i = j1; i < j2; i++)
-                {   Parameter *arg = Parameter::getNth(tup->arguments, i);
+                {
+                    Parameter *arg = Parameter::getNth((Parameters *)tup->arguments, i);
                     args->push(arg);
                 }
                 e = new TypeExp(e1->loc, new TypeTuple(args));
@@ -10758,13 +10765,14 @@ Expression *IndexExp::semantic(Scope *sc)
             TypeTuple *tup;
 
             if (e1->op == TOKtuple)
-            {   te = (TupleExp *)e1;
+            {
+                te = (TupleExp *)e1;
                 length = te->exps->dim;
             }
             else if (e1->op == TOKtype)
             {
                 tup = (TypeTuple *)t1;
-                length = Parameter::dim(tup->arguments);
+                length = Parameter::dim((Parameters *)tup->arguments);
             }
             else
                 assert(0);
@@ -10778,7 +10786,7 @@ Expression *IndexExp::semantic(Scope *sc)
                     e = combine(te->e0, e);
                 }
                 else
-                    e = new TypeExp(e1->loc, Parameter::getNth(tup->arguments, (size_t)index)->type);
+                    e = new TypeExp(e1->loc, Parameter::getNth((Parameters *)tup->arguments, (size_t)index)->type);
             }
             else
             {
@@ -11259,7 +11267,7 @@ Ltupleassign:
             Lexpand:
                 Expression *e = (*iexps)[u];
 
-                Parameter *arg = Parameter::getNth(tt->arguments, u);
+                Parameter *arg = Parameter::getNth((Parameters *)tt->arguments, u);
                 //printf("[%d] iexps->dim = %d, ", u, iexps->dim);
                 //printf("e = (%s %s, %s), ", Token::tochars[e->op], e->toChars(), e->type->toChars());
                 //printf("arg = (%s, %s)\n", arg->toChars(), arg->type->toChars());
