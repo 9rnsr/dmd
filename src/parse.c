@@ -2627,10 +2627,15 @@ Type *Parser::parseBasicType()
             {
                 while (1)
                 {
+                    Parameter *a = new Parameter(STCundefined, NULL, NULL, NULL);
                     if (token.value == TOKrcurly)
                         break;
-                    t = parseType();
-                    Parameter *a = new Parameter(STCundefined, t, NULL, NULL);
+                    if (isDeclaration(&token, 0, TOKreserved, NULL))
+                    {
+                        a->type = parseType();
+                    }
+                    else
+                        a->defaultArg = parseAssignExp();   // hacky!
                     arguments->push(a);
                     if (token.value == TOKcomma)
                         nextToken();

@@ -9050,7 +9050,8 @@ TypeTuple::TypeTuple(Parameters *arguments, bool literal)
         for (size_t i = 0; i < arguments->dim; i++)
         {
             Parameter *arg = (*arguments)[i];
-            assert(arg && arg->type);
+            if (!literal)
+                assert(arg && arg->type);
         }
     }
 #endif
@@ -9061,7 +9062,7 @@ TypeTuple::TypeTuple(Parameters *arguments, bool literal)
         {
         Lagain:
             Parameter *arg = (*arguments)[i];
-            if (arg->type->ty == Ttuple)
+            if (arg->type && arg->type->ty == Ttuple)
             {
                 TypeTuple *tt = (TypeTuple *)arg->type;
                 arguments->remove(i);
@@ -9143,11 +9144,13 @@ Type *TypeTuple::syntaxCopy()
 
 void TypeTuple::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps)
 {
+    *pe = NULL;
+    *pt = NULL;
+    *ps = NULL;
+
     if (deco)
     {
-        *pe = NULL;
         *pt = this;
-        *ps = NULL;
         return;
     }
 
@@ -9155,6 +9158,26 @@ void TypeTuple::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol 
 
     // Rough flatten is already done in constructor
     Objects *objects = new Objects;
+    objects->setDim(arguments->dim);
+    for (size_t i = 0; i < arguments->dim; i++)
+    {
+        Parameter *arg = (*arguments)[i];
+        if (arg->type)
+        {
+            (*objects)[i] = arg->type;
+        }
+        else
+            (*objects)[i] = arg->defaultArg;
+    }
+    TemplateInstance::semanticTiargs(loc, sc, objects, 0);
+
+    if (arrayObjectIsError(objects))
+    {
+        *pt = Type::terror;
+        return;
+    }
+
+#if 0
     for (size_t i = 0; i < arguments->dim; i++)
     {
         Parameter *arg = (*arguments)[i];
@@ -9194,8 +9217,7 @@ void TypeTuple::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol 
                 objects->push(e);
         }
     }
-    *pe = NULL;
-    *pt = NULL;
+#endif
     *ps = new TupleDeclaration(loc, Id::empty, objects);
 }
 
