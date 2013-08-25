@@ -1015,7 +1015,7 @@ public:
 class TypeTuple : public Type
 {
 public:
-    Objects *arguments;         // types making up the tuple
+    Parameters *arguments;      // types making up the tuple
 
     TypeTuple(Parameters *arguments, bool literal = false);
     TypeTuple(Expressions *exps);

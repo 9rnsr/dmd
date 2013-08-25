@@ -1479,7 +1479,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 goto Lerror;
         }
 
-        TypeTuple *tt = (TypeTuple *)tab;
+        TypeTuple *tuple = (TypeTuple *)tab;
         Statements *statements = new Statements();
         //printf("aggr: op = %d, %s\n", aggr->op, aggr->toChars());
         size_t n;
@@ -1490,7 +1490,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
         }
         else if (aggr->op == TOKtype)   // type tuple
         {
-            n = Parameter::dim((Parameters *)tt->arguments);
+            n = Parameter::dim(tuple->arguments);
         }
         else
             assert(0);
@@ -1501,7 +1501,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
             if (te)
                 e = (*te->exps)[k];
             else
-                t = Parameter::getNth((Parameters *)tt->arguments, k)->type;
+                t = Parameter::getNth(tuple->arguments, k)->type;
             Parameter *arg = (*arguments)[0];
             Statements *st = new Statements();
 

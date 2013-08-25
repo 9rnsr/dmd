@@ -1625,8 +1625,8 @@ Type *stripDefaultArgs(Type *t)
     else if (t->ty == Ttuple)
     {
         TypeTuple *tt = (TypeTuple *)t;
-        Parameters *args = N::stripParams((Parameters *)tt->arguments);
-        if (args == (Parameters *)tt->arguments)
+        Parameters *args = N::stripParams(tt->arguments);
+        if (args == tt->arguments)
             goto Lnot;
         t = new TypeTuple(args);
     }
@@ -4025,7 +4025,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
             {   error(loc, "tuple index %llu exceeds %u", d, tt->arguments->dim);
                 goto Lerror;
             }
-            Parameter *arg = isParameter((*tt->arguments)[(size_t)d]);
+            Parameter *arg = (*tt->arguments)[(size_t)d];
             return arg->type->addMod(this->mod);
         }
         case Tfunction:
@@ -5754,8 +5754,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                     Parameters *newparams = new Parameters();
                     newparams->setDim(tdim);
                     for (size_t j = 0; j < tdim; j++)
-                    {
-                        Parameter *narg = isParameter((*tt->arguments)[j]);
+                    {   Parameter *narg = (*tt->arguments)[j];
                         (*newparams)[j] = new Parameter(narg->storageClass | fparam->storageClass,
                                 narg->type, narg->ident, narg->defaultArg);
                     }
@@ -9043,7 +9042,7 @@ TypeTuple::TypeTuple(Parameters *arguments, bool literal)
     : Type(Ttuple)
 {
     //printf("TypeTuple(this = %p)\n", this);
-    this->arguments = (Objects *)arguments;
+    this->arguments = arguments;
     //printf("TypeTuple() %p, %s\n", this, toChars());
 #ifdef DEBUG
     if (arguments)
@@ -9066,7 +9065,7 @@ TypeTuple::TypeTuple(Parameters *arguments, bool literal)
             {
                 TypeTuple *tt = (TypeTuple *)arg->type;
                 arguments->remove(i);
-                arguments->insert(i, (Parameters *)tt->arguments);
+                arguments->insert(i, tt->arguments);
                 if (i < arguments->dim)
                     goto Lagain;
             }
@@ -9097,7 +9096,7 @@ TypeTuple::TypeTuple(Expressions *exps)
             (*arguments)[i] = arg;
         }
     }
-    this->arguments = (Objects *)arguments;
+    this->arguments = arguments;
     //printf("TypeTuple() %p, %s\n", this, toChars());
     deco = merge()->deco;
 }
@@ -9108,14 +9107,14 @@ TypeTuple::TypeTuple(Expressions *exps)
 TypeTuple::TypeTuple()
     : Type(Ttuple)
 {
-    arguments = (Objects *)new Parameters(); // redundant?
+    arguments = new Parameters(); // redundant?
     deco = merge()->deco;
 }
 
 TypeTuple::TypeTuple(Type *t1)
     : Type(Ttuple)
 {
-    arguments = (Objects *)new Parameters();
+    arguments = new Parameters();
     arguments->push(new Parameter(0, t1, NULL, NULL));
     deco = merge()->deco;
 }
@@ -9123,7 +9122,7 @@ TypeTuple::TypeTuple(Type *t1)
 TypeTuple::TypeTuple(Type *t1, Type *t2)
     : Type(Ttuple)
 {
-    arguments = (Objects *)new Parameters();
+    arguments = new Parameters();
     arguments->push(new Parameter(0, t1, NULL, NULL));
     arguments->push(new Parameter(0, t2, NULL, NULL));
     deco = merge()->deco;
@@ -9136,7 +9135,7 @@ const char *TypeTuple::kind()
 
 Type *TypeTuple::syntaxCopy()
 {
-    Parameters *args = Parameter::arraySyntaxCopy((Parameters *)arguments);
+    Parameters *args = Parameter::arraySyntaxCopy(arguments);
     Type *t = new TypeTuple(args, true);
     t->mod = mod;
     return t;
@@ -9158,7 +9157,7 @@ void TypeTuple::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol 
     Objects *objects = new Objects;
     for (size_t i = 0; i < arguments->dim; i++)
     {
-        Parameter *arg = isParameter((*arguments)[i]);
+        Parameter *arg = (*arguments)[i];
         Expression *e;
         Type *t;
         Dsymbol *s;
@@ -9172,7 +9171,7 @@ void TypeTuple::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol 
                 if (tt->arguments)
                 {
                     for (size_t j = 0; j < tt->arguments->dim; j++)
-                        objects->push(isParameter((*tt->arguments)[j])->type);
+                        objects->push((*tt->arguments)[j]->type);
                 }
             }
             else
@@ -9246,8 +9245,8 @@ bool TypeTuple::equals(RootObject *o)
         {
             for (size_t i = 0; i < tt->arguments->dim; i++)
             {
-                Parameter *arg1 = isParameter((*    arguments)[i]);
-                Parameter *arg2 = isParameter((*tt->arguments)[i]);
+                Parameter *arg1 = (*arguments)[i];
+                Parameter *arg2 = (*tt->arguments)[i];
                 //printf("\t[%d] arg1 = %d %s arg2 = %d %s\n", i,
                 //    arg1->type->ty, arg1->type->toChars(),
                 //    arg2->type->ty, arg2->type->toChars());
@@ -9266,7 +9265,7 @@ Type *TypeTuple::reliesOnTident(TemplateParameters *tparams)
     {
         for (size_t i = 0; i < arguments->dim; i++)
         {
-            Parameter *arg = isParameter((*arguments)[i]);
+            Parameter *arg = (*arguments)[i];
             Type *t = arg->type->reliesOnTident(tparams);
             if (t)
                 return t;
@@ -9295,7 +9294,7 @@ Type *TypeTuple::makeConst()
 
 void TypeTuple::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
-    Parameter::argsToCBuffer(buf, hgs, (Parameters *)arguments, 0);
+    Parameter::argsToCBuffer(buf, hgs, arguments, 0);
 }
 
 void TypeTuple::toDecoBuffer(OutBuffer *buf, int flag)
@@ -9304,7 +9303,7 @@ void TypeTuple::toDecoBuffer(OutBuffer *buf, int flag)
     Type::toDecoBuffer(buf, flag);
     OutBuffer buf2;
     buf2.reserve(32);
-    Parameter::argsToDecoBuffer(&buf2, (Parameters *)arguments);
+    Parameter::argsToDecoBuffer(&buf2, arguments);
     int len = (int)buf2.offset;
     buf->printf("%d%.*s", len, len, (char *)buf2.extractData());
 }
@@ -9341,7 +9340,7 @@ Expression *TypeTuple::defaultInit(Loc loc)
     exps->setDim(arguments->dim);
     for (size_t i = 0; i < arguments->dim; i++)
     {
-        Parameter *p = isParameter((*arguments)[i]);
+        Parameter *p = (*arguments)[i];
         assert(p->type);
         Expression *e = p->type->defaultInitLiteral(loc);
         if (e->op == TOKerror)
@@ -9405,8 +9404,7 @@ Type *TypeSlice::semantic(Loc loc, Scope *sc)
     Parameters *args = new Parameters;
     args->reserve(i2 - i1);
     for (size_t i = i1; i < i2; i++)
-    {
-        Parameter *arg = isParameter((*tt->arguments)[i]);
+    {   Parameter *arg = (*tt->arguments)[i];
         args->push(arg);
     }
 
@@ -9828,9 +9826,8 @@ int Parameter::foreach(Parameters *args, Parameter::ForeachDg dg, void *ctx, siz
         Type *t = arg->type->toBasetype();
 
         if (t->ty == Ttuple)
-        {
-            TypeTuple *tu = (TypeTuple *)t;
-            result = foreach((Parameters *)tu->arguments, dg, ctx, &n);
+        {   TypeTuple *tu = (TypeTuple *)t;
+            result = foreach(tu->arguments, dg, ctx, &n);
         }
         else
             result = dg(ctx, n++, arg);

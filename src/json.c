@@ -598,7 +598,7 @@ void TypeClass::toJson(JsonOut *json)
 
 void TypeTuple::toJson(JsonOut *json)
 {
-    json->property("arguments", (Parameters *)arguments);
+    json->property("arguments", arguments);
 }
 
 void TypeSlice::toJson(JsonOut *json)

@@ -756,8 +756,7 @@ void TypeInfoTupleDeclaration::toDt(dt_t **pdt)
 
     dt_t *d = NULL;
     for (size_t i = 0; i < dim; i++)
-    {
-        Parameter *arg = ::isParameter((*tu->arguments)[i]);
+    {   Parameter *arg = (*tu->arguments)[i];
         Expression *e = arg->type->getTypeInfo(NULL);
         e = e->optimize(WANTvalue);
         e->toDt(&d);

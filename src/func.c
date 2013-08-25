@@ -1112,19 +1112,17 @@ void FuncDeclaration::semantic3(Scope *sc)
         if (f->parameters)
         {
             for (size_t i = 0; i < f->parameters->dim; i++)
-            {
-                Parameter *arg = (*f->parameters)[i];
+            {   Parameter *arg = (*f->parameters)[i];
+
                 if (!arg->ident)
                     continue;                   // never used, so ignore
                 if (arg->type->ty == Ttuple)
-                {
-                    TypeTuple *tt = (TypeTuple *)arg->type;
-                    size_t dim = Parameter::dim((Parameters *)tt->arguments);
+                {   TypeTuple *t = (TypeTuple *)arg->type;
+                    size_t dim = Parameter::dim(t->arguments);
                     Objects *exps = new Objects();
                     exps->setDim(dim);
                     for (size_t j = 0; j < dim; j++)
-                    {
-                        Parameter *narg = Parameter::getNth((Parameters *)tt->arguments, j);
+                    {   Parameter *narg = Parameter::getNth(t->arguments, j);
                         assert(narg->ident);
                         VarDeclaration *v = sc2->search(Loc(), narg->ident, NULL)->isVarDeclaration();
                         assert(v);

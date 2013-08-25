@@ -759,9 +759,9 @@ void StructDeclaration::semantic(Scope *sc)
     size_t dim = tup->arguments->dim;
     if (dim >= 1)
     {   assert(dim <= 2);
-        arg1type = isParameter((*tup->arguments)[0])->type;
+        arg1type = (*tup->arguments)[0]->type;
         if (dim == 2)
-            arg2type = isParameter((*tup->arguments)[1])->type;
+            arg2type = (*tup->arguments)[1]->type;
     }
 
     if (sc->func)
