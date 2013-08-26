@@ -2619,30 +2619,9 @@ Type *Parser::parseBasicType()
             break;
 
         case TOKlcurly:
-            nextToken();
-            Parameters *arguments = new Parameters();
-            if (token.value == TOKrcurly)
+            if (peekNext() == TOKrcurly)
                 error("BasicType expected, not empty tuple");
-            else
-            {
-                while (1)
-                {
-                    Parameter *a = new Parameter(STCundefined, NULL, NULL, NULL);
-                    if (token.value == TOKrcurly)
-                        break;
-                    if (isDeclaration(&token, 0, TOKreserved, NULL))
-                    {
-                        a->type = parseType();
-                    }
-                    else
-                        a->defaultArg = parseAssignExp();   // hacky!
-                    arguments->push(a);
-                    if (token.value == TOKcomma)
-                        nextToken();
-                }
-            }
-            check(TOKrcurly);
-            t = new TypeTuple(arguments, 1);
+            t = parseTypeTuple();
             break;
 
         default:
@@ -5881,31 +5860,56 @@ Lisnot:
     return FALSE;
 }
 
-Expression *Parser::parseTuple()
+Type *Parser::parseTypeTuple()
 {
-    //printf("Parser::parseTuple()\n");
+    //printf("Parser::parseTypeTuple()\n");
+    Objects *objs = new Objects();
+
+    nextToken();
+    while (1)
+    {
+        if (token.value == TOKrcurly)
+            break;
+        // See if it is an Expression or a Type
+        RootObject *o;
+        if (isDeclaration(&token, 0, TOKreserved, NULL))
+        {
+            o = parseType();
+        }
+        else
+            o = parseAssignExp();
+        objs->push(o);
+        if (token.value == TOKcomma)
+            nextToken();
+    }
+    check(TOKrcurly, "tuple elements");
+
+    return new TypeTuple(objs);
+}
+
+Expression *Parser::parseTupleExp()
+{
+    //printf("Parser::parseTupleExp()\n");
     Expressions *exps = new Expressions();
     Loc loc = token.loc;
 
     nextToken();
-    if (token.value != TOKrcurly)
+    while (1)
     {
-        while (1)
+        if (token.value == TOKrcurly)
+            break;
+        // See if it is an Expression or a Type
+        Expression *ea;
+        if (isDeclaration(&token, 0, TOKreserved, NULL))
         {
-            // See if it is an Expression or a Type
-            Expression *ea;
-            if (isDeclaration(&token, 0, TOKreserved, NULL))
-            {
-                Loc loc = token.loc;
-                ea = new TypeExp(loc, parseType());
-            }
-            else
-                ea = parseAssignExp();
-            exps->push(ea);
-            if (token.value == TOKrcurly)
-                break;
-            check(TOKcomma);
+            Loc loc = token.loc;
+            ea = new TypeExp(loc, parseType());
         }
+        else
+            ea = parseAssignExp();
+        exps->push(ea);
+        if (token.value == TOKcomma)
+            nextToken();
     }
     check(TOKrcurly, "tuple elements");
 
@@ -6578,7 +6582,7 @@ Expression *Parser::parsePrimaryExp()
         {
             if (peekNext() != TOKrcurly && isTuple(&token, NULL))
             {
-                e = parseTuple();
+                e = parseTupleExp();
                 break;
             }
             goto case_delegate;

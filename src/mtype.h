@@ -1017,8 +1017,9 @@ class TypeTuple : public Type
 public:
     Parameters *arguments;      // types making up the tuple
 
-    TypeTuple(Parameters *arguments, bool literal = false);
+    TypeTuple(Parameters *arguments);
     TypeTuple(Expressions *exps);
+    TypeTuple(Objects *objects);
     TypeTuple();
     TypeTuple(Type *t1);
     TypeTuple(Type *t1, Type *t2);
