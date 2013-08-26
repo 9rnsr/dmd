@@ -4295,11 +4295,11 @@ Statement *Parser::parseStatement(int flags, utf8_t** endPtr)
                 goto Lexp;
             if (isBasicType(&t))            // TypeTuple
                 goto Ldeclaration;
-            //if (peekNext() != TOKrcurly && isTuple(t, &t) && peek(t)->value == TOKassign)
-            //{
-            //    printf("[%s] token = %s\n", t->loc.toChars(), t->toChars());
-            //    goto Lexp;
-            //}
+            if (peekNext() != TOKrcurly && isTuple(t, &t) && peek(t)->value == TOKassign)
+            {
+                //printf("[%s] token = %s\n", t->loc.toChars(), t->toChars());
+                goto Lexp;
+            }
 
         //    Token *t = &token;
         //    //if (isDeclaration(t, 2, TOKreserved, NULL))
@@ -5823,6 +5823,10 @@ int Parser::isTuple(Token *t, Token **pt)
         goto Lis;
     while (1)
     {
+        // disallow { ... {...} ... }
+        // tuple cannot contain bare function literal and tuple
+        if (t->value == TOKlcurly)
+            goto Lisnot;
 #if 0
         if (isTuple(t, &t))
         {

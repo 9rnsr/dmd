@@ -335,6 +335,19 @@ void test_tuple()
         ({v, 1, bar()})[0] = 10;
         assert({v, 1, bar()}[2] == 10);
     }
+
+    {
+        auto makeTuple()
+        {
+            import std.typecons;
+            return tuple(1, "str");
+        }
+        auto {n, s} = makeTuple();
+        assert(n == 1 && s == "str");
+
+        {n, s} = {10, "ing"};
+        assert(n == 10 && s == "ing");
+    }
 }
 
 /***************************************************/
