@@ -972,24 +972,28 @@ void expandTuples(Expressions *exps)
     if (exps)
     {
         for (size_t i = 0; i < exps->dim; i++)
-        {   Expression *arg = (*exps)[i];
+        {
+            Expression *arg = (*exps)[i];
             if (!arg)
                 continue;
 
-            // Look for tuple with 0 members
+            // Look for TypeExp of TypeTuple
             if (arg->op == TOKtype)
-            {   TypeExp *e = (TypeExp *)arg;
+            {
+                TypeExp *e = (TypeExp *)arg;
                 if (e->type->toBasetype()->ty == Ttuple)
-                {   TypeTuple *tt = (TypeTuple *)e->type->toBasetype();
-
-                    if (!tt->arguments || tt->arguments->dim == 0)
+                {
+                    TypeTuple *tt = (TypeTuple *)e->type->toBasetype();
+                    exps->remove(i);
+                    if ((!tt->arguments || tt->arguments->dim == 0) && (i == exps->dim))
+                        return;
+                    //printf("expandTuples [%d] tt = %s\n", i, tt->toChars());
+                    for (size_t j = 0; j < tt->arguments->dim; j++)
                     {
-                        exps->remove(i);
-                        if (i == exps->dim)
-                            return;
-                        i--;
-                        continue;
+                        exps->insert(i + j, new TypeExp(arg->loc, (*tt->arguments)[j]->type));
                     }
+                    i--;
+                    continue;
                 }
             }
 
