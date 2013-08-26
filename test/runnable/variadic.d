@@ -1,6 +1,7 @@
 
 import std.stdio;
 import std.typetuple;
+template TypeTuple(TL...) { alias TL TypeTuple; }
 import std.traits;
 
 class A { }

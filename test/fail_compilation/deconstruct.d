@@ -51,4 +51,13 @@ fail_compilation/deconstruct.d(53): Error: cannot decompose expression (1) type 
     [const int[] x] = 1;
     [const int[] x] = 1;
     [immutable int[] x, immutable(int[]) r...] = 1;
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation\deconstruct.d(62): Error: tuple {1, 2} is used as a type
+---
+*/
+    alias X = {1, 2};
+    X t;
 }

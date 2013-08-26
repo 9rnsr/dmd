@@ -323,6 +323,18 @@ void test_tuple()
             assert(T == 1);
         }
     }
+
+    {
+        int v;
+        auto bar() { return v; }
+        static assert(!__traits(compiles, {
+            alias X = {v, 1, bar()};  // compile error, because bar() is not evaluated in compile time
+        }));
+        assert({v, 1, bar()}[2] == 0);
+        //{v, 1, bar()}[0] = 10;    // should be accepted?
+        ({v, 1, bar()})[0] = 10;
+        assert({v, 1, bar()}[2] == 10);
+    }
 }
 
 /***************************************************/
