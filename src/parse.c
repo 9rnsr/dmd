@@ -4295,9 +4295,11 @@ Statement *Parser::parseStatement(int flags, utf8_t** endPtr)
                 goto Lexp;
             if (isBasicType(&t))            // TypeTuple
                 goto Ldeclaration;
-            t = &token;
-            //if (isTupleExp(&t))
+            //if (peekNext() != TOKrcurly && isTuple(t, &t) && peek(t)->value == TOKassign)
+            //{
+            //    printf("[%s] token = %s\n", t->loc.toChars(), t->toChars());
             //    goto Lexp;
+            //}
 
         //    Token *t = &token;
         //    //if (isDeclaration(t, 2, TOKreserved, NULL))
