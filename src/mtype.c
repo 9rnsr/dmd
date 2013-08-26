@@ -268,6 +268,8 @@ void Type::init()
 
     mangleChar[Tnull] = 'n';    // same as TypeNone
 
+    mangleChar[Talias] = '@';
+
     for (size_t i = 0; i < TMAX; i++)
     {   if (!mangleChar[i])
             fprintf(stderr, "ty = %llu\n", (ulonglong)i);
@@ -9121,7 +9123,7 @@ Type *TypeTuple::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeTuple::semantic(this = %p)\n", this);
     //printf("TypeTuple::semantic() %p, %s\n", this, toChars());
-
+#if 0
     size_t dim = Parameter::dim(arguments);
     for (size_t i = 0; i < dim; i++)
     {
@@ -9129,7 +9131,7 @@ Type *TypeTuple::semantic(Loc loc, Scope *sc)
         if (!arg->type->deco)
             arg->type = arg->type->semantic(loc, sc);
     }
-
+#endif
     if (!deco)
         deco = merge()->deco;
 
@@ -9450,6 +9452,69 @@ void TypeNull::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 
 d_uns64 TypeNull::size(Loc loc) { return tvoidptr->size(loc); }
 Expression *TypeNull::defaultInit(Loc loc) { return new NullExp(Loc(), Type::tnull); }
+
+/***************************** TypeAlias *****************************/
+
+TypeAlias::TypeAlias(Objects *objects)
+    : Type(Talias)
+{
+    this->tup = new TupleDeclaration(Loc(), Id::empty, objects);
+}
+
+const char *TypeAlias::kind()
+{
+    return "alias";
+}
+
+Type *TypeAlias::syntaxCopy()
+{
+    return new TypeAlias(TemplateInstance::arraySyntaxCopy(tup->objects));
+}
+
+void TypeAlias::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps)
+{
+    *pe = NULL;
+    *pt = NULL;
+    *ps = NULL;
+
+    TemplateInstance::semanticTiargs(loc, sc, tup->objects, 0);
+
+    if (arrayObjectIsError(tup->objects))
+    {
+        *pt = Type::terror;
+        return;
+    }
+    *ps = tup;
+}
+
+Type *TypeAlias::semantic(Loc loc, Scope *sc)
+{
+    Expression *e;
+    Type *t;
+    Dsymbol *s;
+    resolve(loc, sc, &e, &t, &s);
+    if (s)
+    {
+        t = s->getType();
+        if (!t)
+        {
+            error(loc, "%s is used as a type", toChars());
+            t = Type::terror;
+        }
+        return t;
+    }
+    return t->semantic(loc, sc);
+}
+
+void TypeAlias::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+{
+    if (mod != this->mod)
+    {
+        toCBuffer3(buf, hgs, mod);
+        return;
+    }
+    tup->toCBuffer(buf, hgs);
+}
 
 /***************************** Parameter *****************************/
 

@@ -253,6 +253,34 @@ Type *TupleDeclaration::getType()
     return tupletype;
 }
 
+char *TupleDeclaration::toChars()
+{
+    if (ident && ident != Id::empty)
+        return ident->toChars();
+
+    OutBuffer buf;
+    HdrGenState hgs;
+    char *s;
+
+    toCBuffer(&buf, &hgs);
+    s = buf.toChars();
+    buf.data = NULL;
+    return s;
+}
+
+void TupleDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writeByte('{');
+    for (size_t i = 0; i < objects->dim; i++)
+    {
+        if (i)
+            buf->writestring(", ");
+        RootObject *oarg = (*objects)[i];
+        ObjectToCBuffer(buf, hgs, oarg);
+    }
+    buf->writeByte('}');
+}
+
 bool TupleDeclaration::needThis()
 {
     //printf("TupleDeclaration::needThis(%s)\n", toChars());

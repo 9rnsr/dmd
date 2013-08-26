@@ -101,6 +101,7 @@ enum ENUMTY
     Tvector,
     Tint128,
     Tuns128,
+    Talias,
     TMAX
 };
 typedef unsigned char TY;       // ENUMTY
@@ -1066,6 +1067,19 @@ public:
 
     d_uns64 size(Loc loc);
     Expression *defaultInit(Loc loc);
+};
+
+class TypeAlias : Type
+{
+public:
+    TupleDeclaration *tup;
+
+    TypeAlias(Objects *objects);
+    const char *kind();
+    Type *syntaxCopy();
+    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
+    Type *semantic(Loc loc, Scope *sc);
+    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
 };
 
 /**************************************************************/

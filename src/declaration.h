@@ -186,6 +186,8 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
     const char *kind();
     Type *getType();
+    char *toChars();
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     bool needThis();
 
     TupleDeclaration *isTupleDeclaration() { return this; }
