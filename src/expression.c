@@ -2147,15 +2147,6 @@ bool Expression::isLvalue()
     return false;
 }
 
-/***************************************
- * Return true if expression is unique
- */
-
-bool Expression::isUvalue()
-{
-    return false;
-}
-
 /*******************************
  * Give error if we're not an lvalue.
  * If we can, convert expression to be an lvalue.
@@ -2834,11 +2825,6 @@ Expression *IntegerExp::toLvalue(Scope *sc, Expression *e)
     return new ErrorExp();
 }
 
-bool IntegerExp::isUvalue()
-{
-    return true;
-}
-
 void IntegerExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     dinteger_t v = toInteger();
@@ -3049,11 +3035,6 @@ complex_t RealExp::toComplex()
 #else
     return complex_t(toReal(), toImaginary());
 #endif
-}
-
-bool RealExp::isUvalue()
-{
-    return false;
 }
 
 /********************************
@@ -3305,11 +3286,6 @@ void ComplexExp::toMangleBuffer(OutBuffer *buf)
     buf->writeByte('c');        // separate the two
     r = toImaginary();
     realToMangleBuffer(buf, r);
-}
-
-bool ComplexExp::isUvalue()
-{
-    return true;
 }
 
 /******************************** IdentifierExp **************************/
@@ -3951,11 +3927,6 @@ void NullExp::toMangleBuffer(OutBuffer *buf)
     buf->writeByte('n');
 }
 
-bool NullExp::isUvalue()
-{
-    return true;
-}
-
 /******************************** StringExp **************************/
 
 StringExp::StringExp(Loc loc, char *string)
@@ -4501,18 +4472,6 @@ void ArrayLiteralExp::toMangleBuffer(OutBuffer *buf)
     }
 }
 
-bool ArrayLiteralExp::isUvalue()
-{
-    size_t dim = elements ? elements->dim : 0;
-    for (size_t i = 0; i < dim; i++)
-    {
-        Expression *e = (*elements)[i];
-        if (!e->isUvalue())
-            return false;
-    }
-    return true;
-}
-
 /************************ AssocArrayLiteralExp ************************************/
 
 // [ key0 : value0, key1 : value1, ... ]
@@ -4600,19 +4559,6 @@ void AssocArrayLiteralExp::toMangleBuffer(OutBuffer *buf)
         key->toMangleBuffer(buf);
         value->toMangleBuffer(buf);
     }
-}
-
-bool AssocArrayLiteralExp::isUvalue()
-{
-    size_t dim = keys->dim;
-    for (size_t i = 0; i < dim; i++)
-    {
-        Expression *ek = (*keys)[i];
-        Expression *ev = (*values)[i];
-        if (!ek->isUvalue() || !ev->isUvalue())
-            return false;
-    }
-    return true;
 }
 
 /************************ StructLiteralExp ************************************/
@@ -4929,18 +4875,6 @@ void StructLiteralExp::toMangleBuffer(OutBuffer *buf)
     }
 }
 
-bool StructLiteralExp::isUvalue()
-{
-    size_t dim = elements ? elements->dim : 0;
-    for (size_t i = 0; i < dim; i++)
-    {
-        Expression *e = (*elements)[i];
-        if (!e->isUnique())
-            return false;
-    }
-    return true;
-}
-
 /************************ TypeDotIdExp ************************************/
 
 /* Things like:
@@ -5204,6 +5138,7 @@ Expression *NewExp::syntaxCopy()
         arraySyntaxCopy(newargs),
         newtype->syntaxCopy(), arraySyntaxCopy(arguments));
 }
+
 
 Expression *NewExp::semantic(Scope *sc)
 {
@@ -5558,6 +5493,7 @@ Lerr:
     return new ErrorExp();
 }
 
+
 void NewExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (thisexp)
@@ -5577,26 +5513,6 @@ void NewExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         buf->writeByte('(');
         argsToCBuffer(buf, arguments, hgs);
         buf->writeByte(')');
-    }
-}
-
-bool NewExp::isUvalue()
-{
-    if (member)
-    {
-        assert(0);  // todo
-        return true;
-    }
-    else
-    {
-        size_t dim = arguments ? arguments->dim : 0:
-        for (size_t i = 0; i < dim; i++)
-        {
-            Expression *e = (*arguments)[i];
-            if (!e->isUvalue())
-                return false;
-        }
-        return true;
     }
 }
 
@@ -5739,11 +5655,6 @@ void SymOffExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         buf->printf("(& %s+%u)", var->toChars(), offset);
     else
         buf->printf("& %s", var->toChars());
-}
-
-bool SymOffExp::isUvalue()
-{
-    return true;
 }
 
 /******************************** VarExp **************************/
@@ -5890,13 +5801,6 @@ Expression *VarExp::modifiableLvalue(Scope *sc, Expression *e)
     }
     // See if this expression is a modifiable lvalue (i.e. not const)
     return Expression::modifiableLvalue(sc, e);
-}
-
-bool VarExp::isUvalue()
-{
-    if (var->storage_class & STCmanifest)
-        return true;
-    return false;
 }
 
 
@@ -6065,17 +5969,6 @@ void TupleExp::checkEscape()
     {   Expression *e = (*exps)[i];
         e->checkEscape();
     }
-}
-
-bool TupleExp::isUvalue()
-{
-    for (size_t i = 0; i < exps->dim; i++)
-    {
-        Expression *e = (*exps)[i];
-        if (!e->isUvalue())
-            return false;
-    }
-    return true;
 }
 
 /******************************** FuncExp *********************************/
@@ -6273,10 +6166,6 @@ void FuncExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     //buf->writestring(fd->toChars());
 }
 
-bool FuncExp::isUvalue()
-{
-    return true;
-}
 
 /******************************** DeclarationExp **************************/
 
@@ -9262,6 +9151,8 @@ Lagain:
     return this;
 }
 
+
+
 bool CallExp::isLvalue()
 {
     Type *tb = e1->type->toBasetype();
@@ -9335,20 +9226,6 @@ void CallExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writeByte(')');
 }
 
-bool CallExp::isUvalue()
-{
-    if (f)
-    {
-        if (f->isPure())
-            return true;    // todo
-    }
-    else
-    {
-        if (tf->purity)
-            return true;
-    }
-    return false;
-}
 
 /************************************************************/
 
