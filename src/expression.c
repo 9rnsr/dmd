@@ -2147,12 +2147,12 @@ void Expression::toMangleBuffer(OutBuffer *buf)
 }
 
 /***************************************
- * Return !=0 if expression is an lvalue.
+ * Return true if expression is an lvalue.
  */
 
-int Expression::isLvalue()
+bool Expression::isLvalue()
 {
-    return 0;
+    return false;
 }
 
 /*******************************
@@ -3436,9 +3436,9 @@ void IdentifierExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 }
 
 
-int IdentifierExp::isLvalue()
+bool IdentifierExp::isLvalue()
 {
-    return 1;
+    return true;
 }
 
 Expression *IdentifierExp::toLvalue(Scope *sc, Expression *e)
@@ -3681,9 +3681,9 @@ void DsymbolExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 }
 
 
-int DsymbolExp::isLvalue()
+bool DsymbolExp::isLvalue()
 {
-    return 1;
+    return true;
 }
 
 Expression *DsymbolExp::toLvalue(Scope *sc, Expression *e)
@@ -3767,9 +3767,9 @@ void ThisExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 }
 
 
-int ThisExp::isLvalue()
+bool ThisExp::isLvalue()
 {
-    return 1;
+    return true;
 }
 
 Expression *ThisExp::toLvalue(Scope *sc, Expression *e)
@@ -4202,7 +4202,7 @@ int StringExp::isBool(int result)
 }
 
 
-int StringExp::isLvalue()
+bool StringExp::isLvalue()
 {
     /* string literal is rvalue in default, but
      * conversion to reference of static array is only allowed.
@@ -5110,7 +5110,7 @@ int TemplateExp::rvalue()
     return 0;
 }
 
-int TemplateExp::isLvalue()
+bool TemplateExp::isLvalue()
 {
     return fd != NULL;
 }
@@ -5769,11 +5769,11 @@ void VarExp::checkEscapeRef()
     }
 }
 
-int VarExp::isLvalue()
+bool VarExp::isLvalue()
 {
     if (var->storage_class & (STClazy | STCtemp | STCmanifest))
-        return 0;
-    return 1;
+        return false;
+    return true;
 }
 
 Expression *VarExp::toLvalue(Scope *sc, Expression *e)
@@ -5825,9 +5825,9 @@ OverExp::OverExp(Loc loc, OverloadSet *s)
     type = Type::tvoid;
 }
 
-int OverExp::isLvalue()
+bool OverExp::isLvalue()
 {
-    return 1;
+    return true;
 }
 
 Expression *OverExp::toLvalue(Scope *sc, Expression *e)
@@ -7129,9 +7129,9 @@ Expression *BinAssignExp::semantic(Scope *sc)
 }
 
 #if DMDV2
-int BinAssignExp::isLvalue()
+bool BinAssignExp::isLvalue()
 {
-    return 1;
+    return true;
 }
 
 Expression *BinAssignExp::toLvalue(Scope *sc, Expression *ex)
@@ -7905,9 +7905,9 @@ Lerr:
     return new ErrorExp();
 }
 
-int DotVarExp::isLvalue()
+bool DotVarExp::isLvalue()
 {
-    return 1;
+    return true;
 }
 
 Expression *DotVarExp::toLvalue(Scope *sc, Expression *e)
@@ -9163,7 +9163,7 @@ Lagain:
 
 
 
-int CallExp::isLvalue()
+bool CallExp::isLvalue()
 {
     Type *tb = e1->type->toBasetype();
     if (tb->ty == Tdelegate || tb->ty == Tpointer)
@@ -9172,10 +9172,10 @@ int CallExp::isLvalue()
     {
         if (e1->op == TOKdotvar)
             if (((DotVarExp *)e1)->var->isCtorDeclaration())
-                return 0;
-        return 1;               // function returns a reference
+                return false;
+        return true;            // function returns a reference
     }
-    return 0;
+    return false;
 }
 
 Expression *CallExp::toLvalue(Scope *sc, Expression *e)
@@ -9484,9 +9484,9 @@ void PtrExp::checkEscapeRef()
     e1->checkEscape();
 }
 
-int PtrExp::isLvalue()
+bool PtrExp::isLvalue()
 {
-    return 1;
+    return true;
 }
 
 Expression *PtrExp::toLvalue(Scope *sc, Expression *e)
@@ -10343,7 +10343,7 @@ int SliceExp::checkModifiable(Scope *sc, int flag)
     return 1;
 }
 
-int SliceExp::isLvalue()
+bool SliceExp::isLvalue()
 {
     /* slice expression is rvalue in default, but
      * conversion to reference of static array is only allowed.
@@ -10528,11 +10528,11 @@ Lerr:
 }
 
 
-int ArrayExp::isLvalue()
+bool ArrayExp::isLvalue()
 {
     if (type && type->toBasetype()->ty == Tvoid)
-        return 0;
-    return 1;
+        return false;
+    return true;
 }
 
 Expression *ArrayExp::toLvalue(Scope *sc, Expression *e)
@@ -10615,7 +10615,7 @@ void CommaExp::checkEscapeRef()
     e2->checkEscapeRef();
 }
 
-int CommaExp::isLvalue()
+bool CommaExp::isLvalue()
 {
     return e2->isLvalue();
 }
@@ -10842,9 +10842,9 @@ Lerr:
     return new ErrorExp();
 }
 
-int IndexExp::isLvalue()
+bool IndexExp::isLvalue()
 {
-    return 1;
+    return true;
 }
 
 Expression *IndexExp::toLvalue(Scope *sc, Expression *e)
@@ -13364,7 +13364,7 @@ Expression *CondExp::semantic(Scope *sc)
     return this;
 }
 
-int CondExp::isLvalue()
+bool CondExp::isLvalue()
 {
     return e1->isLvalue() && e2->isLvalue();
 }
