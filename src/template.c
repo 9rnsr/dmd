@@ -942,9 +942,9 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
 
         sc->pop();
         e = e->ctfeInterpret();
-        if (e->isBool(TRUE))
+        if (e->isBool(true))
             ;
-        else if (e->isBool(FALSE))
+        else if (e->isBool(false))
             goto Lnomatch;
         else
         {
@@ -2015,9 +2015,9 @@ Lmatch:
             goto Lnomatch;
 
         e = e->ctfeInterpret();
-        if (e->isBool(TRUE))
+        if (e->isBool(true))
             ;
-        else if (e->isBool(FALSE))
+        else if (e->isBool(false))
             goto Lnomatch;
         else
         {

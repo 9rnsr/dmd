@@ -7618,7 +7618,7 @@ int TypeEnum::isZeroInit(Loc loc)
         error(loc, "enum %s is forward referenced", sym->toChars());
         return 0;
     }
-    return sym->defaultval->isBool(FALSE);
+    return sym->defaultval->isBool(false);
 }
 
 int TypeEnum::hasPointers()
@@ -7897,7 +7897,7 @@ int TypeTypedef::isZeroInit(Loc loc)
         if (sym->init->isVoidInitializer())
             return 1;           // initialize voids to 0
         Expression *e = sym->init->toExpression();
-        if (e && e->isBool(FALSE))
+        if (e && e->isBool(false))
             return 1;
         return 0;               // assume not
     }

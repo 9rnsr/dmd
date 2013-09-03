@@ -2571,9 +2571,9 @@ Expression *Expression::deref()
  * Does this expression statically evaluate to a boolean TRUE or FALSE?
  */
 
-int Expression::isBool(int result)
+bool Expression::isBool(bool result)
 {
-    return FALSE;
+    return false;
 }
 
 /********************************
@@ -2788,9 +2788,9 @@ complex_t IntegerExp::toComplex()
     return (complex_t)toReal();
 }
 
-int IntegerExp::isBool(int result)
+bool IntegerExp::isBool(bool result)
 {
-    int r = toInteger() != 0;
+    bool r = toInteger() != 0;
     return result ? r : !r;
 }
 
@@ -3074,7 +3074,7 @@ Expression *RealExp::semantic(Scope *sc)
     return this;
 }
 
-int RealExp::isBool(int result)
+bool RealExp::isBool(bool result)
 {
     return result ? (value != 0)
                   : (value == 0);
@@ -3258,7 +3258,7 @@ Expression *ComplexExp::semantic(Scope *sc)
     return this;
 }
 
-int ComplexExp::isBool(int result)
+bool ComplexExp::isBool(bool result)
 {
     if (result)
         return (bool)(value);
@@ -3746,9 +3746,9 @@ Lerr:
     return new ErrorExp();
 }
 
-int ThisExp::isBool(int result)
+bool ThisExp::isBool(bool result)
 {
-    return result ? TRUE : FALSE;
+    return result ? true : false;
 }
 
 void ThisExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -3901,9 +3901,9 @@ Expression *NullExp::semantic(Scope *sc)
     return this;
 }
 
-int NullExp::isBool(int result)
+bool NullExp::isBool(bool result)
 {
-    return result ? FALSE : TRUE;
+    return result ? false : true;
 }
 
 StringExp *NullExp::toString()
@@ -4186,9 +4186,9 @@ int StringExp::compare(RootObject *obj)
     return (int)(len1 - len2);
 }
 
-int StringExp::isBool(int result)
+bool StringExp::isBool(bool result)
 {
-    return result ? TRUE : FALSE;
+    return result ? true : false;
 }
 
 
@@ -4411,7 +4411,7 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
     return this;
 }
 
-int ArrayLiteralExp::isBool(int result)
+bool ArrayLiteralExp::isBool(bool result)
 {
     size_t dim = elements ? elements->dim : 0;
     return result ? (dim != 0) : (dim == 0);
@@ -4526,7 +4526,7 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
 }
 
 
-int AssocArrayLiteralExp::isBool(int result)
+bool AssocArrayLiteralExp::isBool(bool result)
 {
     size_t dim = keys->dim;
     return result ? (dim != 0) : (dim == 0);
@@ -5627,9 +5627,9 @@ Expression *SymOffExp::semantic(Scope *sc)
     return this;
 }
 
-int SymOffExp::isBool(int result)
+bool SymOffExp::isBool(bool result)
 {
-    return result ? TRUE : FALSE;
+    return result ? true : false;
 }
 
 void SymOffExp::checkEscape()
@@ -7339,7 +7339,7 @@ Expression *AssertExp::semantic(Scope *sc)
         msg = msg->implicitCastTo(sc, Type::tchar->constOf()->arrayOf());
         msg = msg->optimize(WANTvalue);
     }
-    if (e1->isBool(FALSE))
+    if (e1->isBool(false))
     {
         FuncDeclaration *fd = sc->parent->isFuncDeclaration();
         if (fd)
@@ -10346,7 +10346,7 @@ Expression *SliceExp::modifiableLvalue(Scope *sc, Expression *e)
     return this;
 }
 
-int SliceExp::isBool(int result)
+bool SliceExp::isBool(bool result)
 {
     return e1->isBool(result);
 }
@@ -10619,7 +10619,7 @@ Expression *CommaExp::modifiableLvalue(Scope *sc, Expression *e)
     return this;
 }
 
-int CommaExp::isBool(int result)
+bool CommaExp::isBool(bool result)
 {
     return e2->isBool(result);
 }
@@ -12698,7 +12698,7 @@ Expression *OrOrExp::semantic(Scope *sc)
         /* If in static if, don't evaluate e2 if we don't have to.
          */
         e1 = e1->optimize(WANTflags);
-        if (e1->isBool(TRUE))
+        if (e1->isBool(true))
         {
             return new IntegerExp(loc, 1, Type::tboolean);
         }
@@ -12762,7 +12762,7 @@ Expression *AndAndExp::semantic(Scope *sc)
         /* If in static if, don't evaluate e2 if we don't have to.
          */
         e1 = e1->optimize(WANTflags);
-        if (e1->isBool(FALSE))
+        if (e1->isBool(false))
         {
             return new IntegerExp(loc, 0, Type::tboolean);
         }

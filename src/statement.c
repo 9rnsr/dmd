@@ -403,7 +403,7 @@ int ExpStatement::blockExit(bool mustNotThrow)
         if (exp->op == TOKassert)
         {   AssertExp *a = (AssertExp *)exp;
 
-            if (a->e1->isBool(FALSE))   // if it's an assert(0)
+            if (a->e1->isBool(false))   // if it's an assert(0)
                 return BEhalt;
         }
         if (exp->canThrow(mustNotThrow))
@@ -1208,7 +1208,7 @@ int DoStatement::blockExit(bool mustNotThrow)
     {
         if (condition->canThrow(mustNotThrow))
             result |= BEthrow;
-        if (!(result & BEbreak) && condition->isBool(TRUE))
+        if (!(result & BEbreak) && condition->isBool(true))
             result &= ~BEfallthru;
     }
     result &= ~(BEbreak | BEcontinue);
@@ -1352,9 +1352,9 @@ int ForStatement::blockExit(bool mustNotThrow)
     if (condition)
     {   if (condition->canThrow(mustNotThrow))
             result |= BEthrow;
-        if (condition->isBool(TRUE))
+        if (condition->isBool(true))
             result &= ~BEfallthru;
-        else if (condition->isBool(FALSE))
+        else if (condition->isBool(false))
             return result;
     }
     else
@@ -2672,14 +2672,14 @@ int IfStatement::blockExit(bool mustNotThrow)
     int result = BEnone;
     if (condition->canThrow(mustNotThrow))
         result |= BEthrow;
-    if (condition->isBool(TRUE))
+    if (condition->isBool(true))
     {
         if (ifbody)
             result |= ifbody->blockExit(mustNotThrow);
         else
             result |= BEfallthru;
     }
-    else if (condition->isBool(FALSE))
+    else if (condition->isBool(false))
     {
         if (elsebody)
             result |= elsebody->blockExit(mustNotThrow);

@@ -190,7 +190,7 @@ public:
     virtual Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
 
     virtual int isConst();
-    virtual int isBool(int result);
+    virtual bool isBool(bool result);
     virtual int isBit();
     bool hasSideEffect();
     void discardValue();
@@ -236,7 +236,7 @@ public:
     real_t toImaginary();
     complex_t toComplex();
     int isConst();
-    int isBool(int result);
+    bool isBool(bool result);
     MATCH implicitConvTo(Type *t);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
@@ -274,7 +274,7 @@ public:
     complex_t toComplex();
     Expression *castTo(Scope *sc, Type *t);
     int isConst();
-    int isBool(int result);
+    bool isBool(bool result);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
     elem *toElem(IRState *irs);
@@ -298,7 +298,7 @@ public:
     complex_t toComplex();
     Expression *castTo(Scope *sc, Type *t);
     int isConst();
-    int isBool(int result);
+    bool isBool(bool result);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
     elem *toElem(IRState *irs);
@@ -349,7 +349,7 @@ public:
     ThisExp(Loc loc);
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-    int isBool(int result);
+    bool isBool(bool result);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -381,7 +381,7 @@ public:
     NullExp(Loc loc, Type *t = NULL);
     bool equals(RootObject *o);
     Expression *semantic(Scope *sc);
-    int isBool(int result);
+    bool isBool(bool result);
     int isConst();
     StringExp *toString();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -417,7 +417,7 @@ public:
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
     int compare(RootObject *obj);
-    int isBool(int result);
+    bool isBool(bool result);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -474,7 +474,7 @@ public:
     int apply(apply_fp_t fp, void *param);
     bool equals(RootObject *o);
     Expression *semantic(Scope *sc);
-    int isBool(int result);
+    bool isBool(bool result);
     elem *toElem(IRState *irs);
     StringExp *toString();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -502,7 +502,7 @@ public:
     Expression *syntaxCopy();
     int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
-    int isBool(int result);
+    bool isBool(bool result);
     elem *toElem(IRState *irs);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
@@ -692,7 +692,7 @@ public:
     void checkEscape();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int isConst();
-    int isBool(int result);
+    bool isBool(bool result);
     Expression *doInline(InlineDoState *ids);
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
@@ -1249,7 +1249,7 @@ public:
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
-    int isBool(int result);
+    bool isBool(bool result);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Type *toStaticArrayType();
     MATCH implicitConvTo(Type *t);
@@ -1325,7 +1325,7 @@ public:
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
-    int isBool(int result);
+    bool isBool(bool result);
     MATCH implicitConvTo(Type *t);
     Expression *addDtorHook(Scope *sc);
     Expression *castTo(Scope *sc, Type *t);

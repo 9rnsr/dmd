@@ -372,9 +372,9 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
         {   exp = e;
             inc = 0;
         }
-        else if (e->isBool(TRUE))
+        else if (e->isBool(true))
             inc = 1;
-        else if (e->isBool(FALSE))
+        else if (e->isBool(false))
             inc = 2;
         else
         {

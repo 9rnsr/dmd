@@ -116,7 +116,7 @@ Expression *Not(Type *type, Expression *e1)
 {   Expression *e;
     Loc loc = e1->loc;
 
-    e = new IntegerExp(loc, e1->isBool(0), type);
+    e = new IntegerExp(loc, e1->isBool(false) ? 1 : 0, type);
     return e;
 }
 
@@ -124,7 +124,7 @@ Expression *Bool(Type *type, Expression *e1)
 {   Expression *e;
     Loc loc = e1->loc;
 
-    e = new IntegerExp(loc, e1->isBool(1), type);
+    e = new IntegerExp(loc, e1->isBool(true) ? 1 : 0, type);
     return e;
 }
 
@@ -1401,8 +1401,9 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
             Expression *ex = Equal(TOKequal, Type::tbool, ekey, e2);
             if (ex == EXP_CANT_INTERPRET)
                 return ex;
-            if (ex->isBool(TRUE))
-            {   e = (*ae->values)[i];
+            if (ex->isBool(true))
+            {
+                e = (*ae->values)[i];
                 e->type = type;
                 e->loc = loc;
                 if (e->hasSideEffect())
