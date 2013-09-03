@@ -2061,19 +2061,20 @@ void Expression::deprecation(const char *format, ...)
     }
 }
 
-int Expression::rvalue()
+bool Expression::rvalue()
 {
     if (type && type->toBasetype()->ty == Tvoid)
-    {   error("expression %s is void and has no value", toChars());
+    {
+        error("expression %s is void and has no value", toChars());
 #if 0
         dump(0);
         halt();
 #endif
         if (!global.gag)
             type = Type::terror;
-        return 0;
+        return false;
     }
-    return 1;
+    return true;
 }
 
 Expression *Expression::combine(Expression *e1, Expression *e2)
@@ -4937,10 +4938,10 @@ Expression *TypeExp::semantic(Scope *sc)
     return e;
 }
 
-int TypeExp::rvalue()
+bool TypeExp::rvalue()
 {
     error("type %s has no value", toChars());
-    return 0;
+    return false;
 }
 
 void TypeExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -5093,10 +5094,10 @@ void TemplateExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring(td->toChars());
 }
 
-int TemplateExp::rvalue()
+bool TemplateExp::rvalue()
 {
     error("template %s has no value", toChars());
-    return 0;
+    return false;
 }
 
 bool TemplateExp::isLvalue()
