@@ -1827,9 +1827,9 @@ Expression *Type::defaultInitLiteral(Loc loc)
     return defaultInit(loc);
 }
 
-int Type::isZeroInit(Loc loc)
+bool Type::isZeroInit(Loc loc)
 {
-    return 0;           // assume not
+    return false;       // assume not
 }
 
 int Type::isBaseOf(Type *t, int *poffset)
@@ -3278,7 +3278,7 @@ Expression *TypeBasic::defaultInit(Loc loc)
     return new IntegerExp(loc, value, this);
 }
 
-int TypeBasic::isZeroInit(Loc loc)
+bool TypeBasic::isZeroInit(Loc loc)
 {
     switch (ty)
     {
@@ -3294,9 +3294,9 @@ int TypeBasic::isZeroInit(Loc loc)
         case Tcomplex32:
         case Tcomplex64:
         case Tcomplex80:
-            return 0;           // no
+            return false;       // no
         default:
-            return 1;           // yes
+            return true;        // yes
     }
 }
 
@@ -3553,7 +3553,7 @@ Expression *TypeVector::defaultInitLiteral(Loc loc)
     return basetype->defaultInitLiteral(loc);
 }
 
-int TypeVector::isZeroInit(Loc loc)
+bool TypeVector::isZeroInit(Loc loc)
 {
     return basetype->isZeroInit(loc);
 }
@@ -4220,7 +4220,7 @@ Expression *TypeSArray::defaultInit(Loc loc)
     return next->defaultInit(loc);
 }
 
-int TypeSArray::isZeroInit(Loc loc)
+bool TypeSArray::isZeroInit(Loc loc)
 {
     return next->isZeroInit(loc);
 }
@@ -4493,9 +4493,9 @@ Expression *TypeDArray::defaultInit(Loc loc)
     return new NullExp(loc, this);
 }
 
-int TypeDArray::isZeroInit(Loc loc)
+bool TypeDArray::isZeroInit(Loc loc)
 {
-    return 1;
+    return true;
 }
 
 int TypeDArray::checkBoolean()
@@ -4767,9 +4767,9 @@ Expression *TypeAArray::defaultInit(Loc loc)
     return new NullExp(loc, this);
 }
 
-int TypeAArray::isZeroInit(Loc loc)
+bool TypeAArray::isZeroInit(Loc loc)
 {
-    return TRUE;
+    return true;
 }
 
 int TypeAArray::checkBoolean()
@@ -5025,9 +5025,9 @@ Expression *TypePointer::defaultInit(Loc loc)
     return new NullExp(loc, this);
 }
 
-int TypePointer::isZeroInit(Loc loc)
+bool TypePointer::isZeroInit(Loc loc)
 {
-    return 1;
+    return true;
 }
 
 int TypePointer::hasPointers()
@@ -5106,9 +5106,9 @@ Expression *TypeReference::defaultInit(Loc loc)
     return new NullExp(loc, this);
 }
 
-int TypeReference::isZeroInit(Loc loc)
+bool TypeReference::isZeroInit(Loc loc)
 {
-    return 1;
+    return true;
 }
 
 
@@ -6378,9 +6378,9 @@ Expression *TypeDelegate::defaultInit(Loc loc)
     return new NullExp(loc, this);
 }
 
-int TypeDelegate::isZeroInit(Loc loc)
+bool TypeDelegate::isZeroInit(Loc loc)
 {
-    return 1;
+    return true;
 }
 
 int TypeDelegate::checkBoolean()
@@ -7607,16 +7607,17 @@ Expression *TypeEnum::defaultInit(Loc loc)
     return e;
 }
 
-int TypeEnum::isZeroInit(Loc loc)
+bool TypeEnum::isZeroInit(Loc loc)
 {
     if (!sym->defaultval && sym->scope)
-    {   // Enum is forward referenced. We need to resolve the whole thing.
+    {
+        // Enum is forward referenced. We need to resolve the whole thing.
         sym->semantic(NULL);
     }
     if (!sym->defaultval)
     {
         error(loc, "enum %s is forward referenced", sym->toChars());
-        return 0;
+        return false;
     }
     return sym->defaultval->isBool(false);
 }
@@ -7890,16 +7891,16 @@ Expression *TypeTypedef::defaultInitLiteral(Loc loc)
     return e;
 }
 
-int TypeTypedef::isZeroInit(Loc loc)
+bool TypeTypedef::isZeroInit(Loc loc)
 {
     if (sym->init)
     {
         if (sym->init->isVoidInitializer())
-            return 1;           // initialize voids to 0
+            return true;        // initialize voids to 0
         Expression *e = sym->init->toExpression();
         if (e && e->isBool(false))
-            return 1;
-        return 0;               // assume not
+            return true;
+        return false;           // assume not
     }
     if (sym->inuse)
     {
@@ -7907,7 +7908,7 @@ int TypeTypedef::isZeroInit(Loc loc)
         sym->basetype = Type::terror;
     }
     sym->inuse = 1;
-    int result = sym->basetype->isZeroInit(loc);
+    bool result = sym->basetype->isZeroInit(loc);
     sym->inuse = 0;
     return result;
 }
@@ -8304,7 +8305,7 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
 }
 
 
-int TypeStruct::isZeroInit(Loc loc)
+bool TypeStruct::isZeroInit(Loc loc)
 {
     return sym->zeroInit;
 }
@@ -9025,9 +9026,9 @@ Expression *TypeClass::defaultInit(Loc loc)
     return new NullExp(loc, this);
 }
 
-int TypeClass::isZeroInit(Loc loc)
+bool TypeClass::isZeroInit(Loc loc)
 {
-    return 1;
+    return true;
 }
 
 int TypeClass::checkBoolean()

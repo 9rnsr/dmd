@@ -317,7 +317,7 @@ public:
     virtual Expression *defaultInit(Loc loc = Loc());
     virtual Expression *defaultInitLiteral(Loc loc);
     virtual Expression *voidInitLiteral(VarDeclaration *var);
-    virtual int isZeroInit(Loc loc = Loc());                // if initializer is 0
+    virtual bool isZeroInit(Loc loc = Loc());               // if initializer is 0
     virtual dt_t **toDt(dt_t **pdt);
     Identifier *getTypeInfoIdent(int internal);
     virtual MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
@@ -416,7 +416,7 @@ public:
     int isunsigned();
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
-    int isZeroInit(Loc loc);
+    bool isZeroInit(Loc loc);
     int builtinTypeInfo();
     TypeTuple *toArgTypes();
 
@@ -455,7 +455,7 @@ public:
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
     TypeBasic *elementType();
-    int isZeroInit(Loc loc);
+    bool isZeroInit(Loc loc);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     TypeTuple *toArgTypes();
 
@@ -487,7 +487,7 @@ public:
     void toJson(JsonOut *json);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     int isString();
-    int isZeroInit(Loc loc);
+    bool isZeroInit(Loc loc);
     structalign_t alignment();
     MATCH constConv(Type *to);
     MATCH implicitConvTo(Type *to);
@@ -529,7 +529,7 @@ public:
     void toJson(JsonOut *json);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     int isString();
-    int isZeroInit(Loc loc);
+    bool isZeroInit(Loc loc);
     int checkBoolean();
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
@@ -567,7 +567,7 @@ public:
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
-    int isZeroInit(Loc loc);
+    bool isZeroInit(Loc loc);
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Type *reliesOnTident(TemplateParameters *tparams);
@@ -600,7 +600,7 @@ public:
     MATCH constConv(Type *to);
     int isscalar();
     Expression *defaultInit(Loc loc);
-    int isZeroInit(Loc loc);
+    bool isZeroInit(Loc loc);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
     TypeTuple *toArgTypes();
@@ -623,7 +623,7 @@ public:
     void toJson(JsonOut *json);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
-    int isZeroInit(Loc loc);
+    bool isZeroInit(Loc loc);
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
@@ -717,7 +717,7 @@ public:
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toJson(JsonOut *json);
     Expression *defaultInit(Loc loc);
-    int isZeroInit(Loc loc);
+    bool isZeroInit(Loc loc);
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
@@ -853,7 +853,7 @@ public:
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
     Expression *voidInitLiteral(VarDeclaration *var);
-    int isZeroInit(Loc loc);
+    bool isZeroInit(Loc loc);
     int isAssignable();
     int checkBoolean();
     int needsDestruction();
@@ -908,7 +908,7 @@ public:
     MATCH constConv(Type *to);
     Type *toBasetype();
     Expression *defaultInit(Loc loc);
-    int isZeroInit(Loc loc);
+    bool isZeroInit(Loc loc);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
@@ -957,7 +957,7 @@ public:
     Type *toHeadMutable();
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
-    int isZeroInit(Loc loc);
+    bool isZeroInit(Loc loc);
     dt_t **toDt(dt_t **pdt);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
     TypeInfoDeclaration *getTypeInfoDeclaration();
@@ -996,7 +996,7 @@ public:
     unsigned wildConvTo(Type *tprm);
     Type *toHeadMutable();
     Expression *defaultInit(Loc loc);
-    int isZeroInit(Loc loc);
+    bool isZeroInit(Loc loc);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
     int isscope();
     int checkBoolean();
