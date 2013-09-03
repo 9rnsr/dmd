@@ -1868,17 +1868,17 @@ Lagain:
              *        ...
              *    }
              */
-            AggregateDeclaration *ad = (tab->ty == Tclass)
-                        ? (AggregateDeclaration *)((TypeClass  *)tab)->sym
-                        : (AggregateDeclaration *)((TypeStruct *)tab)->sym;
+            AggregateDeclaration *ad = isAggregate(tab);
             Identifier *idfront;
             Identifier *idpopFront;
             if (op == TOKforeach)
-            {   idfront = Id::Ffront;
+            {
+                idfront = Id::Ffront;
                 idpopFront = Id::FpopFront;
             }
             else
-            {   idfront = Id::Fback;
+            {
+                idfront = Id::Fback;
                 idpopFront = Id::FpopBack;
             }
             Dsymbol *sfront = ad->search(Loc(), idfront, 0);

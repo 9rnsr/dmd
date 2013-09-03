@@ -3290,7 +3290,7 @@ int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool a2b = true)
         c.prev = ctxt;
         c.type = tb;
 
-        AggregateDeclaration *sym = tb->toDsymbol(NULL)->isAggregateDeclaration();
+        AggregateDeclaration *sym = isAggregate(tb);
         for (size_t i = 0; i < sym->fields.dim; i++)
         {
             VarDeclaration *v = sym->fields[i];
@@ -3706,7 +3706,8 @@ bool FuncDeclaration::needsClosure()
         tret = tret->toBasetype();
         //printf("\t\treturning %s\n", tret->toChars());
         if (tret->ty == Tclass || tret->ty == Tstruct)
-        {   Dsymbol *st = tret->toDsymbol(NULL);
+        {
+            Dsymbol *st = isAggregate(tret);
             //printf("\t\treturning class/struct %s\n", tret->toChars());
             for (Dsymbol *s = st->parent; s; s = s->parent)
             {

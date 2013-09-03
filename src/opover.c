@@ -168,13 +168,9 @@ AggregateDeclaration *isAggregate(Type *t)
 {
     t = t->toBasetype();
     if (t->ty == Tclass)
-    {
         return ((TypeClass *)t)->sym;
-    }
-    else if (t->ty == Tstruct)
-    {
+    if (t->ty == Tstruct)
         return ((TypeStruct *)t)->sym;
-    }
     return NULL;
 }
 

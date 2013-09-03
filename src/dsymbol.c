@@ -1399,18 +1399,10 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
             }
             else if (ce->type && (t = ce->type->toBasetype()) != NULL &&
                      (t->ty == Tstruct || t->ty == Tclass))
-            {   // Look for opDollar
+            {
+                // Look for opDollar
                 assert(exp->op == TOKarray || exp->op == TOKslice);
-                AggregateDeclaration *ad = NULL;
-
-                if (t->ty == Tclass)
-                {
-                    ad = ((TypeClass *)t)->sym;
-                }
-                else if (t->ty == Tstruct)
-                {
-                    ad = ((TypeStruct *)t)->sym;
-                }
+                AggregateDeclaration *ad = isAggregate(t);
                 assert(ad);
 
                 Dsymbol *s = ad->search(loc, Id::opDollar, 0);

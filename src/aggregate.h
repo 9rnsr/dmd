@@ -35,6 +35,8 @@ class TypeInfoClassDeclaration;
 class VarDeclaration;
 struct dt_t;
 
+AggregateDeclaration *isAggregate(Type *t);
+
 enum Sizeok
 {
     SIZEOKnone,         // size of aggregate is not computed yet

@@ -1016,17 +1016,8 @@ TupleDeclaration *isAliasThisTuple(Expression *e)
 {
     if (e->type)
     {
-        Type *t = e->type->toBasetype();
-        AggregateDeclaration *ad;
-        if (t->ty == Tstruct)
+        if (AggregateDeclaration *ad = isAggregate(e->type))
         {
-            ad = ((TypeStruct *)t)->sym;
-            goto L1;
-        }
-        else if (t->ty == Tclass)
-        {
-            ad = ((TypeClass *)t)->sym;
-          L1:
             Dsymbol *s = ad->aliasthis;
             if (s && s->isVarDeclaration())
             {
@@ -3461,8 +3452,6 @@ DsymbolExp::DsymbolExp(Loc loc, Dsymbol *s, bool hasOverloads)
     this->s = s;
     this->hasOverloads = hasOverloads;
 }
-
-AggregateDeclaration *isAggregate(Type *t);
 
 Expression *DsymbolExp::semantic(Scope *sc)
 {
@@ -10098,8 +10087,8 @@ Expression *SliceExp::syntaxCopy()
 }
 
 Expression *SliceExp::semantic(Scope *sc)
-{   Expression *e;
-    AggregateDeclaration *ad;
+{
+    Expression *e;
     //FuncDeclaration *fd;
     ScopeDsymbol *sym;
 
@@ -10161,16 +10150,8 @@ Lagain:
     else if (t->ty == Tsarray)
     {
     }
-    else if (t->ty == Tclass)
+    else if (AggregateDeclaration *ad = isAggregate(t))
     {
-        ad = ((TypeClass *)t)->sym;
-        goto L1;
-    }
-    else if (t->ty == Tstruct)
-    {
-        ad = ((TypeStruct *)t)->sym;
-
-    L1:
         if (search_function(ad, Id::slice))
         {
             // Rewrite as e1.slice(lwr, upr)
@@ -11059,14 +11040,8 @@ Expression *AssignExp::semantic(Scope *sc)
         ae->e1 = resolveProperties(sc, ae->e1);
         Expression *e1 = ae->e1;
         Type *t1 = ae->e1->type->toBasetype();
-        if (t1->ty == Tstruct)
+        if ((ad = isAggregate(t1)) != NULL)
         {
-            ad = ((TypeStruct *)t1)->sym;
-            goto L1;
-        }
-        else if (t1->ty == Tclass)
-        {
-            ad = ((TypeClass *)t1)->sym;
           L1:
             // Rewrite (a[i] = value) to (a.opIndexAssign(value, i))
             if (search_function(ad, Id::indexass))
@@ -11091,16 +11066,8 @@ Expression *AssignExp::semantic(Scope *sc)
                 att1 = t1;
             e1 = resolveAliasThis(sc, e1);
             t1 = e1->type->toBasetype();
-            if (t1->ty == Tstruct)
-            {
-                ad = ((TypeStruct *)t1)->sym;
+            if ((ad = isAggregate(t1)) != NULL)
                 goto L1;
-            }
-            else if (t1->ty == Tclass)
-            {
-                ad = ((TypeClass *)t1)->sym;
-                goto L1;
-            }
         }
     }
     /* Look for operator overloading of a[i..j]=value.
@@ -11116,14 +11083,8 @@ Expression *AssignExp::semantic(Scope *sc)
         ae->e1 = resolveProperties(sc, ae->e1);
         Expression *e1 = ae->e1;
         Type *t1 = ae->e1->type->toBasetype();
-        if (t1->ty == Tstruct)
+        if ((ad = isAggregate(t1)) != NULL)
         {
-            ad = ((TypeStruct *)t1)->sym;
-            goto L2;
-        }
-        else if (t1->ty == Tclass)
-        {
-            ad = ((TypeClass *)t1)->sym;
           L2:
             // Rewrite (a[i..j] = value) to (a.opSliceAssign(value, i, j))
             if (search_function(ad, Id::sliceass))
@@ -11152,16 +11113,8 @@ Expression *AssignExp::semantic(Scope *sc)
                 att1 = t1;
             e1 = resolveAliasThis(sc, e1);
             t1 = e1->type->toBasetype();
-            if (t1->ty == Tstruct)
-            {
-                ad = ((TypeStruct *)t1)->sym;
+            if ((ad = isAggregate(t1)) != NULL)
                 goto L2;
-            }
-            else if (t1->ty == Tclass)
-            {
-                ad = ((TypeClass *)t1)->sym;
-                goto L2;
-            }
         }
     }
 

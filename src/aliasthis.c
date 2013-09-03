@@ -24,17 +24,9 @@
 
 Expression *resolveAliasThis(Scope *sc, Expression *e)
 {
-    Type *t = e->type->toBasetype();
-    AggregateDeclaration *ad;
-
-    if (t->ty == Tclass)
-    {   ad = ((TypeClass *)t)->sym;
-        goto L1;
-    }
-    else if (t->ty == Tstruct)
-    {   ad = ((TypeStruct *)t)->sym;
-    L1:
-        if (ad && ad->aliasthis)
+    if (AggregateDeclaration *ad = isAggregate(e->type))
+    {
+        if (ad->aliasthis)
         {
             bool isstatic = (e->op == TOKtype);
             e = new DotIdExp(e->loc, e, ad->aliasthis->ident);
