@@ -4730,7 +4730,30 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
         {
             if (e->op == TOKslice)
                 e= resolveSlice(e);
-            e = paintTypeOntoLiteral(type, copyLiteral(e));
+            if (e->op == TOKstring)
+            {
+                StringExp *se = (StringExp *)e;
+                Type *tchar = se->type->nextOf()->mutableOf();
+                Expressions *elements = new Expressions();
+                elements->setDim(se->len);
+                for (size_t i = 0; i < se->len; i++)
+                {
+                    dinteger_t ch;
+                    switch (se->sz)
+                    {
+                        case 1:     ch = (dinteger_t)*(((unsigned char  *)se->string) + i); break;
+                        case 2:     ch = (dinteger_t)*(((unsigned short *)se->string) + i); break;
+                        case 4:     ch = (dinteger_t)*(((unsigned       *)se->string) + i); break;
+                        default:    assert(0);
+                    }
+                    (*elements)[i] = new IntegerExp(se->loc, ch, tchar);
+                }
+                e = new ArrayLiteralExp(se->loc, elements);
+                e->type = tchar->arrayOf();
+            }
+            else
+                e = copyLiteral(e);
+            e = paintTypeOntoLiteral(type, e);
         }
         return e;
     }
