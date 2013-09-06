@@ -1470,7 +1470,7 @@ STATIC void blident()
 
 STATIC void blreturn()
 {
-    if (!(mfoptim & MFtime))            /* if optimized for space       */
+    if (!(mfoptim & MFtime))            /* if optimized for space       */  // not
     {
         int retcount;                   /* number of return counts      */
         block *b;
@@ -1590,6 +1590,7 @@ STATIC void bltailmerge()
 {
     cmes("bltailmerge()\n");
     assert(!PARSER && OPTIMIZER);
+    // Applying this process even when -O specified will kill the bug 10966.
     if (!(mfoptim & MFtime))            /* if optimized for space       */
     {
         block *b;

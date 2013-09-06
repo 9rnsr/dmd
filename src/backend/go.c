@@ -116,6 +116,7 @@ int go_flag(char *cp)
             case GLO:
             case GLnone:
                 mfoptim |= MFall & ~MFvbe;      // inverse of -all
+                //mfoptim &= ~MFtime; // root cause
                 break;
             case GLspace:
                 mfoptim |= MFtime;      /* inverse of -time     */

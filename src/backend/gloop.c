@@ -582,8 +582,11 @@ STATIC int looprotate(loop *l)
     //if (debugc) { dbg_printf("looprotate: "); l->print(); }
 #endif
 
-    if ((mfoptim & MFtime) && head->BC != BCswitch && head->BC != BCasm)
-    {   // Duplicate the header past the tail (but doing
+    if ((mfoptim & MFtime) && head->BC != BCswitch && head->BC != BCasm)   // root!
+    {
+        //return FALSE;   // stop this optimization kills bug 10966.
+
+        // Duplicate the header past the tail (but doing
         // switches would be too expensive in terms of code
         // generated).
         register    block *head2;
@@ -592,13 +595,19 @@ STATIC int looprotate(loop *l)
         head2 = block_calloc(); // create new head block
         numblks++;                      // number of blocks in existence
         head2->Btry = head->Btry;
+        //vec_println(head->Bgen);
+        //if (head->Btry && head->Btry->Belem)
+        //    elem_print(head->Btry->Belem);
         head2->Bflags = head->Bflags;
         head->Bflags = BFLnomerg;       // move flags over to head2
         head2->Bflags |= BFLnomerg;
         head2->BC = head->BC;
         assert(head2->BC != BCswitch);
         if (head->Belem)                // copy expression tree
+        {
+            //elem_print(head->Belem);
             head2->Belem = el_copytree(head->Belem);
+        }
         head2->Bnext = tail->Bnext;
         tail->Bnext = head2;
 
