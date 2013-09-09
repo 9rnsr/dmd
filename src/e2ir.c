@@ -1743,7 +1743,8 @@ elem *NewExp::toElem(IRState *irs)
 //printf("cdp = %s\n", cdp->toChars());
 //printf("cdthis = %s\n", cdthis->toChars());
             if (cdp != cdthis)
-            {   int i = cdp->isClassDeclaration()->isBaseOf(cdthis, &offset);
+            {
+                bool i = cdp->isClassDeclaration()->isBaseOf(cdthis, &offset);
                 assert(i);
             }
             ethis = thisexp->toElem(irs);

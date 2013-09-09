@@ -868,25 +868,25 @@ void ClassDeclaration::defineRef(Dsymbol *s)
  * This is used to detect circular inheritance only.
  */
 
-int ClassDeclaration::isBaseOf2(ClassDeclaration *cd)
+bool ClassDeclaration::isBaseOf2(ClassDeclaration *cd)
 {
     if (!cd)
-        return 0;
+        return false;
     //printf("ClassDeclaration::isBaseOf2(this = '%s', cd = '%s')\n", toChars(), cd->toChars());
     for (size_t i = 0; i < cd->baseclasses->dim; i++)
-    {   BaseClass *b = (*cd->baseclasses)[i];
-
+    {
+        BaseClass *b = (*cd->baseclasses)[i];
         if (b->base == this || isBaseOf2(b->base))
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 /*******************************************
  * Determine if 'this' is a base class of cd.
  */
 
-int ClassDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
+bool ClassDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 {
     //printf("ClassDeclaration::isBaseOf(this = '%s', cd = '%s')\n", toChars(), cd->toChars());
     if (poffset)
@@ -903,11 +903,11 @@ int ClassDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
         }
 
         if (this == cd->baseClass)
-            return 1;
+            return true;
 
         cd = cd->baseClass;
     }
-    return 0;
+    return false;
 }
 
 /*********************************************
@@ -1504,7 +1504,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
  *      1       is a base
  */
 
-int InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
+bool InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 {
     //printf("%s.InterfaceDeclaration::isBaseOf(cd = '%s')\n", toChars(), cd->toChars());
     assert(!baseClass);
@@ -1517,29 +1517,31 @@ int InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
         {
             //printf("\tfound at offset %d\n", b->offset);
             if (poffset)
-            {   *poffset = b->offset;
+            {
+                *poffset = b->offset;
                 if (j && cd->isInterfaceDeclaration())
                     *poffset = OFFSET_RUNTIME;
             }
-            return 1;
+            return true;
         }
         if (isBaseOf(b, poffset))
-        {   if (j && poffset && cd->isInterfaceDeclaration())
+        {
+            if (j && poffset && cd->isInterfaceDeclaration())
                 *poffset = OFFSET_RUNTIME;
-            return 1;
+            return true;
         }
     }
 
     if (cd->baseClass && isBaseOf(cd->baseClass, poffset))
-        return 1;
+        return true;
 
     if (poffset)
         *poffset = 0;
-    return 0;
+    return false;
 }
 
 
-int InterfaceDeclaration::isBaseOf(BaseClass *bc, int *poffset)
+bool InterfaceDeclaration::isBaseOf(BaseClass *bc, int *poffset)
 {
     //printf("%s.InterfaceDeclaration::isBaseOf(bc = '%s')\n", toChars(), bc->base->toChars());
     for (size_t j = 0; j < bc->baseInterfaces_dim; j++)
@@ -1549,21 +1551,23 @@ int InterfaceDeclaration::isBaseOf(BaseClass *bc, int *poffset)
         if (this == b->base)
         {
             if (poffset)
-            {   *poffset = b->offset;
+            {
+                *poffset = b->offset;
                 if (j && bc->base->isInterfaceDeclaration())
                     *poffset = OFFSET_RUNTIME;
             }
-            return 1;
+            return true;
         }
         if (isBaseOf(b, poffset))
-        {   if (j && poffset && bc->base->isInterfaceDeclaration())
+        {
+            if (j && poffset && bc->base->isInterfaceDeclaration())
                 *poffset = OFFSET_RUNTIME;
-            return 1;
+            return true;
         }
     }
     if (poffset)
         *poffset = 0;
-    return 0;
+    return false;
 }
 
 /*********************************************

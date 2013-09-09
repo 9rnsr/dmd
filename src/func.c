@@ -649,7 +649,7 @@ void FuncDeclaration::semantic(Scope *sc)
                         unsigned errors = global.errors;
                         global.gag++;            // suppress printing of error messages
                         int offset;
-                        int baseOf = fdv->type->nextOf()->isBaseOf(type->nextOf(), &offset);
+                        bool baseOf = fdv->type->nextOf()->isBaseOf(type->nextOf(), &offset);
                         global.gag--;            // suppress printing of error messages
                         if (errors != global.errors)
                         {

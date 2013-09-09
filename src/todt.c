@@ -308,7 +308,7 @@ dt_t **CastExp::toDt(dt_t **pdt)
             ClassDeclaration *from = ((ClassReferenceExp*)e1)->originalClass();
             InterfaceDeclaration* to = ((TypeClass*)type)->sym->isInterfaceDeclaration();
             int off = 0;
-            int isbase = to->isBaseOf(from, &off);
+            bool isbase = to->isBaseOf(from, &off);
             assert(isbase);
             return ((ClassReferenceExp*)e1)->toDtI(pdt, off);
         }
@@ -958,7 +958,7 @@ dt_t **ClassReferenceExp::toDt(dt_t **pdt)
     {
         ClassDeclaration *from = originalClass();
         int off = 0;
-        int isbase = to->isBaseOf(from, &off);
+        bool isbase = to->isBaseOf(from, &off);
         assert(isbase);
         return toDtI(pdt, off);
     }
