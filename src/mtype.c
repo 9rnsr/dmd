@@ -1766,9 +1766,9 @@ bool Type::isString()
  *      a = b;
  * ?
  */
-int Type::isAssignable()
+bool Type::isAssignable()
 {
-    return TRUE;
+    return true;
 }
 
 bool Type::checkBoolean()
@@ -7545,7 +7545,7 @@ bool TypeEnum::isString()
     return sym->memtype->isString();
 }
 
-int TypeEnum::isAssignable()
+bool TypeEnum::isAssignable()
 {
     return sym->memtype->isAssignable();
 }
@@ -7774,7 +7774,7 @@ int TypeTypedef::isscalar()
     return sym->basetype->isscalar();
 }
 
-int TypeTypedef::isAssignable()
+bool TypeTypedef::isAssignable()
 {
     return sym->basetype->isAssignable();
 }
@@ -8335,16 +8335,17 @@ bool TypeStruct::needsNested()
     return false;
 }
 
-int TypeStruct::isAssignable()
+bool TypeStruct::isAssignable()
 {
-    int assignable = TRUE;
+    bool assignable = true;
     unsigned offset;
 
     /* If any of the fields are const or invariant,
      * then one cannot assign this struct.
      */
     for (size_t i = 0; i < sym->fields.dim; i++)
-    {   VarDeclaration *v = sym->fields[i];
+    {
+        VarDeclaration *v = sym->fields[i];
         //printf("%s [%d] v = (%s) %s, v->offset = %d, v->parent = %s", sym->toChars(), i, v->kind(), v->toChars(), v->offset, v->parent->kind());
         if (i == 0)
             ;
@@ -8360,7 +8361,7 @@ int TypeStruct::isAssignable()
         else
         {
             if (!assignable)
-                return FALSE;
+                return false;
         }
         assignable = v->type->isMutable() && v->type->isAssignable();
         offset = v->offset;
