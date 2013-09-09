@@ -264,7 +264,7 @@ public:
     virtual int isscope();
     virtual bool isString();
     virtual int isAssignable();
-    virtual int checkBoolean(); // if can be converted to boolean value
+    virtual bool checkBoolean(); // if can be converted to boolean value
     virtual void checkDeprecated(Loc loc, Scope *sc);
     int isConst()       { return mod & MODconst; }
     int isImmutable()   { return mod & MODimmutable; }
@@ -450,7 +450,7 @@ public:
     int isfloating();
     int isscalar();
     int isunsigned();
-    int checkBoolean();
+    bool checkBoolean();
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
@@ -530,7 +530,7 @@ public:
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     bool isString();
     bool isZeroInit(Loc loc);
-    int checkBoolean();
+    bool checkBoolean();
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
     int builtinTypeInfo();
@@ -568,7 +568,7 @@ public:
     Expression *defaultInit(Loc loc);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
     bool isZeroInit(Loc loc);
-    int checkBoolean();
+    bool checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Type *reliesOnTident(TemplateParameters *tparams);
     Expression *toExpression();
@@ -718,7 +718,7 @@ public:
     void toJson(JsonOut *json);
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc);
-    int checkBoolean();
+    bool checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     int hasPointers();
@@ -855,7 +855,7 @@ public:
     Expression *voidInitLiteral(VarDeclaration *var);
     bool isZeroInit(Loc loc);
     int isAssignable();
-    int checkBoolean();
+    bool checkBoolean();
     int needsDestruction();
     bool needsNested();
     dt_t **toDt(dt_t **pdt);
@@ -899,7 +899,7 @@ public:
     int iscomplex();
     int isscalar();
     int isunsigned();
-    int checkBoolean();
+    bool checkBoolean();
     bool isString();
     int isAssignable();
     int needsDestruction();
@@ -947,7 +947,7 @@ public:
     int iscomplex();
     int isscalar();
     int isunsigned();
-    int checkBoolean();
+    bool checkBoolean();
     int isAssignable();
     int needsDestruction();
     bool needsNested();
@@ -999,7 +999,7 @@ public:
     bool isZeroInit(Loc loc);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
     int isscope();
-    int checkBoolean();
+    bool checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
     TypeTuple *toArgTypes();
@@ -1060,7 +1060,7 @@ public:
     Type *syntaxCopy();
     void toDecoBuffer(OutBuffer *buf, int flag);
     MATCH implicitConvTo(Type *to);
-    int checkBoolean();
+    bool checkBoolean();
 
     void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
     void toJson(JsonOut *json);

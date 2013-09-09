@@ -1771,7 +1771,7 @@ int Type::isAssignable()
     return TRUE;
 }
 
-int Type::checkBoolean()
+bool Type::checkBoolean()
 {
     return isscalar();
 }
@@ -3483,9 +3483,9 @@ TypeBasic *TypeVector::elementType()
     return tb;
 }
 
-int TypeVector::checkBoolean()
+bool TypeVector::checkBoolean()
 {
-    return FALSE;
+    return false;
 }
 
 char *TypeVector::toChars()
@@ -4498,9 +4498,9 @@ bool TypeDArray::isZeroInit(Loc loc)
     return true;
 }
 
-int TypeDArray::checkBoolean()
+bool TypeDArray::checkBoolean()
 {
-    return TRUE;
+    return true;
 }
 
 int TypeDArray::hasPointers()
@@ -4772,9 +4772,9 @@ bool TypeAArray::isZeroInit(Loc loc)
     return true;
 }
 
-int TypeAArray::checkBoolean()
+bool TypeAArray::checkBoolean()
 {
-    return TRUE;
+    return true;
 }
 
 Expression *TypeAArray::toExpression()
@@ -6383,9 +6383,9 @@ bool TypeDelegate::isZeroInit(Loc loc)
     return true;
 }
 
-int TypeDelegate::checkBoolean()
+bool TypeDelegate::checkBoolean()
 {
-    return TRUE;
+    return true;
 }
 
 Expression *TypeDelegate::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
@@ -7550,7 +7550,7 @@ int TypeEnum::isAssignable()
     return sym->memtype->isAssignable();
 }
 
-int TypeEnum::checkBoolean()
+bool TypeEnum::checkBoolean()
 {
     return sym->memtype->checkBoolean();
 }
@@ -7779,7 +7779,7 @@ int TypeTypedef::isAssignable()
     return sym->basetype->isAssignable();
 }
 
-int TypeTypedef::checkBoolean()
+bool TypeTypedef::checkBoolean()
 {
     return sym->basetype->checkBoolean();
 }
@@ -8310,9 +8310,9 @@ bool TypeStruct::isZeroInit(Loc loc)
     return sym->zeroInit;
 }
 
-int TypeStruct::checkBoolean()
+bool TypeStruct::checkBoolean()
 {
-    return FALSE;
+    return false;
 }
 
 int TypeStruct::needsDestruction()
@@ -9031,9 +9031,9 @@ bool TypeClass::isZeroInit(Loc loc)
     return true;
 }
 
-int TypeClass::checkBoolean()
+bool TypeClass::checkBoolean()
 {
-    return TRUE;
+    return true;
 }
 
 int TypeClass::hasPointers()
@@ -9428,9 +9428,9 @@ MATCH TypeNull::implicitConvTo(Type *to)
     return MATCHnomatch;
 }
 
-int TypeNull::checkBoolean()
+bool TypeNull::checkBoolean()
 {
-    return TRUE;
+    return true;
 }
 
 void TypeNull::toDecoBuffer(OutBuffer *buf, int flag)
