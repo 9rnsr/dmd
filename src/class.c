@@ -915,16 +915,17 @@ bool ClassDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
  * This is used to detect forward references in covariant overloads.
  */
 
-int ClassDeclaration::isBaseInfoComplete()
+bool ClassDeclaration::isBaseInfoComplete()
 {
     if (!baseClass)
         return ident == Id::Object;
     for (size_t i = 0; i < baseclasses->dim; i++)
-    {   BaseClass *b = (*baseclasses)[i];
+    {
+        BaseClass *b = (*baseclasses)[i];
         if (!b->base || !b->base->isBaseInfoComplete())
-            return 0;
+            return false;
     }
-    return 1;
+    return true;
 }
 
 Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
@@ -1576,15 +1577,16 @@ bool InterfaceDeclaration::isBaseOf(BaseClass *bc, int *poffset)
  * This is used to detect forward references in covariant overloads.
  */
 
-int InterfaceDeclaration::isBaseInfoComplete()
+bool InterfaceDeclaration::isBaseInfoComplete()
 {
     assert(!baseClass);
     for (size_t i = 0; i < baseclasses->dim; i++)
-    {   BaseClass *b = (*baseclasses)[i];
+    {
+        BaseClass *b = (*baseclasses)[i];
         if (!b->base || !b->base->isBaseInfoComplete ())
-            return 0;
+            return false;
     }
-    return 1;
+    return true;
 }
 
 /****************************************

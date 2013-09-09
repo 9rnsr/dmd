@@ -278,7 +278,7 @@ public:
     #define OFFSET_RUNTIME 0x76543210
     virtual bool isBaseOf(ClassDeclaration *cd, int *poffset);
 
-    virtual int isBaseInfoComplete();
+    virtual bool isBaseInfoComplete();
     Dsymbol *search(Loc, Identifier *ident, int flags);
     ClassDeclaration *searchBase(Loc, Identifier *ident);
 #if DMDV2
@@ -325,7 +325,7 @@ public:
     bool isBaseOf(ClassDeclaration *cd, int *poffset);
     bool isBaseOf(BaseClass *bc, int *poffset);
     const char *kind();
-    int isBaseInfoComplete();
+    bool isBaseInfoComplete();
     int vtblOffset();
 #if DMDV2
     bool isCPPinterface();
