@@ -262,7 +262,7 @@ public:
     virtual int isscalar();
     virtual int isunsigned();
     virtual int isscope();
-    virtual int isString();
+    virtual bool isString();
     virtual int isAssignable();
     virtual int checkBoolean(); // if can be converted to boolean value
     virtual void checkDeprecated(Loc loc, Scope *sc);
@@ -486,7 +486,7 @@ public:
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toJson(JsonOut *json);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
-    int isString();
+    bool isString();
     bool isZeroInit(Loc loc);
     structalign_t alignment();
     MATCH constConv(Type *to);
@@ -528,7 +528,7 @@ public:
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toJson(JsonOut *json);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
-    int isString();
+    bool isString();
     bool isZeroInit(Loc loc);
     int checkBoolean();
     MATCH implicitConvTo(Type *to);
@@ -900,7 +900,7 @@ public:
     int isscalar();
     int isunsigned();
     int checkBoolean();
-    int isString();
+    bool isString();
     int isAssignable();
     int needsDestruction();
     bool needsNested();
