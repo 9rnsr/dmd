@@ -224,10 +224,10 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
 #endif
     }
 
-    com = 0;
-    cpp = 0;
-    isscope = 0;
-    isabstract = 0;
+    com = false;
+    cpp = false;
+    isscope = false;
+    isabstract = false;
     inuse = 0;
     doAncestorsSemantic = SemanticStart;
 }
@@ -308,7 +308,7 @@ void ClassDeclaration::semantic(Scope *sc)
     userAttributes = sc->userAttributes;
 
     if (sc->linkage == LINKcpp)
-        cpp = 1;
+        cpp = true;
 
     // Expand any tuples in baseclasses[]
     for (size_t i = 0; i < baseclasses->dim; )
@@ -513,7 +513,7 @@ void ClassDeclaration::semantic(Scope *sc)
         // Inherit properties from base class
         com = baseClass->isCOMclass();
         if (baseClass->isCPPclass())
-            cpp = 1;
+            cpp = true;
         isscope = baseClass->isscope;
         vthis = baseClass->vthis;
         enclosing = baseClass->enclosing;
@@ -575,9 +575,9 @@ void ClassDeclaration::semantic(Scope *sc)
     if (storage_class & STCauto)
         error("storage class 'auto' is invalid when declaring a class, did you mean to use 'scope'?");
     if (storage_class & STCscope)
-        isscope = 1;
+        isscope = true;
     if (storage_class & STCabstract)
-        isabstract = 1;
+        isabstract = true;
 
     sc = sc->push(this);
     //sc->stc &= ~(STCfinal | STCauto | STCscope | STCstatic | STCabstract | STCdeprecated | STC_TYPECTOR | STCtls | STCgshared);
@@ -1146,10 +1146,10 @@ void ClassDeclaration::interfaceSemantic(Scope *sc)
         // If this is an interface, and it derives from a COM interface,
         // then this is a COM interface too.
         if (b->base->isCOMinterface())
-            com = 1;
+            com = true;
 
         if (b->base->isCPPinterface())
-            cpp = 1;
+            cpp = true;
 
         vtblInterfaces->push(b);
         b->copyBaseInterfaces(vtblInterfaces);
@@ -1159,25 +1159,25 @@ void ClassDeclaration::interfaceSemantic(Scope *sc)
 /****************************************
  */
 
-int ClassDeclaration::isCOMclass()
+bool ClassDeclaration::isCOMclass()
 {
     return com;
 }
 
-int ClassDeclaration::isCOMinterface()
+bool ClassDeclaration::isCOMinterface()
 {
-    return 0;
+    return false;
 }
 
 #if DMDV2
-int ClassDeclaration::isCPPclass()
+bool ClassDeclaration::isCPPclass()
 {
     return cpp;
 }
 
-int ClassDeclaration::isCPPinterface()
+bool ClassDeclaration::isCPPinterface()
 {
-    return 0;
+    return false;
 }
 #endif
 
@@ -1196,7 +1196,7 @@ bool ClassDeclaration::isAbstract()
         //printf("\tvtbl[%d] = %p\n", i, fd);
         if (!fd || fd->isAbstract())
         {
-            isabstract |= 1;
+            isabstract = true;
             return true;
         }
     }
@@ -1238,8 +1238,9 @@ InterfaceDeclaration::InterfaceDeclaration(Loc loc, Identifier *id, BaseClasses 
     : ClassDeclaration(loc, id, baseclasses)
 {
     if (id == Id::IUnknown)     // IUnknown is the root of all COM interfaces
-    {   com = 1;
-        cpp = 1;                // IUnknown is also a C++ interface
+    {
+        com = true;
+        cpp = true;             // IUnknown is also a C++ interface
     }
 }
 
@@ -1323,7 +1324,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
     }
 
     if (!baseclasses->dim && sc->linkage == LINKcpp)
-        cpp = 1;
+        cpp = true;
 
     // Check for errors, handle forward references
     for (size_t i = 0; i < baseclasses->dim; )
@@ -1600,13 +1601,13 @@ int InterfaceDeclaration::vtblOffset()
     return 1;
 }
 
-int InterfaceDeclaration::isCOMinterface()
+bool InterfaceDeclaration::isCOMinterface()
 {
     return com;
 }
 
 #if DMDV2
-int InterfaceDeclaration::isCPPinterface()
+bool InterfaceDeclaration::isCPPinterface()
 {
     return cpp;
 }

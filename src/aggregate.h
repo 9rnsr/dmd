@@ -257,13 +257,13 @@ public:
                                         // their own vtbl[]
 
     TypeInfoClassDeclaration *vclassinfo;       // the ClassInfo object for this ClassDeclaration
-    int com;                            // !=0 if this is a COM class (meaning
+    bool com;                           // true if this is a COM class (meaning
                                         // it derives from IUnknown)
 #if DMDV2
-    int cpp;                            // !=0 if this is a C++ interface
+    bool cpp;                           // true if this is a C++ interface
 #endif
-    int isscope;                        // !=0 if this is an auto class
-    int isabstract;                     // !=0 if abstract class
+    bool isscope;                       // true if this is an scope class
+    bool isabstract;                    // true if abstract class
     int inuse;                          // to prevent recursive attempts
     Semantic doAncestorsSemantic;  // Before searching symbol, whole ancestors should finish
                                         // calling semantic() at least once, due to fill symtab
@@ -286,11 +286,11 @@ public:
 #endif
     FuncDeclaration *findFunc(Identifier *ident, TypeFunction *tf);
     void interfaceSemantic(Scope *sc);
-    int isCOMclass();
-    virtual int isCOMinterface();
+    bool isCOMclass();
+    virtual bool isCOMinterface();
 #if DMDV2
-    int isCPPclass();
-    virtual int isCPPinterface();
+    bool isCPPclass();
+    virtual bool isCPPinterface();
 #endif
     bool isAbstract();
     virtual int vtblOffset();
@@ -328,9 +328,9 @@ public:
     int isBaseInfoComplete();
     int vtblOffset();
 #if DMDV2
-    int isCPPinterface();
+    bool isCPPinterface();
 #endif
-    virtual int isCOMinterface();
+    virtual bool isCOMinterface();
 
     void toObjFile(int multiobj);                       // compile to .obj file
     Symbol *toSymbol();
