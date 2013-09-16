@@ -5819,6 +5819,11 @@ Expression *Parser::parsePrimaryExp()
 
         case BASIC_TYPES_X(t):
             nextToken();
+            if (token.value == TOKlbracket)
+            {
+                e = new TypeExp(loc, t);
+                break;
+            }
             check(TOKdot, t->toChars());
             if (token.value != TOKidentifier)
             {   error("found '%s' when expecting identifier following '%s.'", token.toChars(), t->toChars());
