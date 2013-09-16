@@ -123,21 +123,6 @@ Symbol *EnumDeclaration::toInitializer()
     return NULL;
 }
 
-Symbol *Module::toModuleAssert()
-{
-    return NULL;
-}
-
-Symbol *Module::toModuleUnittest()
-{
-    return NULL;
-}
-
-Symbol *Module::toModuleArray()
-{
-    return NULL;
-}
-
 Symbol *TypeAArray::aaGetSymbol(const char *func, int flags)
 {
     assert(0);

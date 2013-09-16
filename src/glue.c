@@ -125,9 +125,6 @@ void obj_write_deferred(Library *library)
             md->doppelganger = 1;       // identify this module as doppelganger
             md->md = m->md;
             md->aimports.push(m);       // it only 'imports' m
-            md->massert = m->massert;
-            md->munittest = m->munittest;
-            md->marray = m->marray;
 
             md->genobjfile(0);
         }
@@ -445,78 +442,11 @@ void Module::genobjfile(int multiobj)
         return;
     }
 
-    if (global.params.multiobj)
-    {   /* This is necessary because the main .obj for this module is written
-         * first, but determining whether marray or massert or munittest are needed is done
-         * possibly later in the doppelganger modules.
-         * Another way to fix it is do the main one last.
-         */
-        toModuleAssert();
-        toModuleUnittest();
-        toModuleArray();
-    }
-
     /* Always generate module info, because of templates and -cov.
      * But module info needs the runtime library, so disable it for betterC.
      */
     if (!global.params.betterC /*|| needModuleInfo()*/)
         genmoduleinfo();
-
-    // If module assert
-    for (int i = 0; i < 3; i++)
-    {
-        Symbol *ma;
-        unsigned rt;
-        unsigned bc;
-        switch (i)
-        {
-            case 0:     ma = marray;    rt = RTLSYM_DARRAY;     bc = BCexit; break;
-            case 1:     ma = massert;   rt = RTLSYM_DASSERTM;   bc = BCexit; break;
-            case 2:     ma = munittest; rt = RTLSYM_DUNITTESTM; bc = BCret;  break;
-            default:    assert(0);
-        }
-
-        if (ma)
-        {
-            elem *elinnum;
-
-            localgot = NULL;
-
-            // Call dassert(filename, line)
-            // Get sole parameter, linnum
-            {
-                Symbol *sp = symbol_calloc("linnum");
-                sp->Stype = type_fake(TYint);
-                sp->Stype->Tcount++;
-                sp->Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
-
-                FuncParamRegs fpr(TYjfunc);
-                fpr.alloc(sp->Stype, sp->Stype->Tty, &sp->Spreg, &sp->Spreg2);
-
-                sp->Sflags &= ~SFLspill;
-                sp->Sfl = (sp->Sclass == SCshadowreg) ? FLpara : FLfast;
-                cstate.CSpsymtab = &ma->Sfunc->Flocsym;
-                symbol_add(sp);
-
-                elinnum = el_var(sp);
-            }
-
-            elem *efilename = el_ptr(toSymbol());
-
-            elem *e = el_var(rtlsym[rt]);
-            e = el_bin(OPcall, TYvoid, e, el_param(elinnum, efilename));
-
-            block *b = block_calloc();
-            b->BC = bc;
-            b->Belem = e;
-            ma->Sfunc->Fstartline.Sfilename = arg;
-            ma->Sfunc->Fstartblock = b;
-            ma->Sclass = SCglobal;
-            ma->Sfl = 0;
-            ma->Sflags |= rtlsym[rt]->Sflags & SFLexit;
-            writefunc(ma);
-        }
-    }
 
     objmod->termfile();
 }
