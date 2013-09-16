@@ -807,6 +807,62 @@ static Symbol *assertexp_sfilename = NULL;
 static const char *assertexp_name = NULL;
 static Module *assertexp_mn = NULL;
 
+//elem *toEfilename(Module *m);
+
+elem *getEfilename(Loc loc, IRState *irs)
+{
+    Module *m = irs->blx->module;
+    const char *filename = loc.filename;
+    if (!filename)
+    {
+        filename = m->srcfile->toChars();
+    }
+
+    elem *efilename;
+
+    /* If the source file name has changed, probably due
+     * to a #line directive.
+     */
+    //if (loc.filename && strcmp(loc.filename, mname) != 0)
+    {
+        /* Cache values.
+         */
+        //static Symbol *assertexp_sfilename = NULL;
+        //static char *assertexp_name = NULL;
+        //static Module *assertexp_mn = NULL;
+
+        if (!assertexp_sfilename || strcmp(filename, assertexp_name) != 0 || assertexp_mn != m)
+        {
+            dt_t *dt = NULL;
+            const char *id;
+            int len;
+
+            id = filename;
+            len = strlen(id);
+            dtsize_t(&dt, len);
+            dtabytes(&dt,TYnptr, 0, len + 1, id);
+
+            assertexp_sfilename = symbol_generate(SCstatic, type_fake(TYdarray));
+            assertexp_sfilename->Sdt = dt;
+            assertexp_sfilename->Sfl = FLdata;
+            out_readonly(assertexp_sfilename);
+            outdata(assertexp_sfilename);
+
+            assertexp_mn = m;
+            assertexp_name = id;
+        }
+
+        efilename = (config.exe == EX_WIN64) ? el_ptr(assertexp_sfilename)
+                                             : el_var(assertexp_sfilename);
+    }
+    //else
+    //{
+    //    efilename = toEfilename(m);
+    //}
+
+    return efilename;
+}
+
 void clearStringTab()
 {
     //printf("clearStringTab()\n");
@@ -1742,78 +1798,35 @@ elem *toElem(Expression *e, IRState *irs)
                     einv = callfunc(ae->loc, irs, 1, inv->type->nextOf(), el_var(ts), ae->e1->type, inv, inv->type, NULL, NULL);
                 }
 
-                // Construct: (e1 || ModuleAssert(line))
-                Module *m = irs->blx->module;
-                char *mname = m->srcfile->toChars();
-
-                //printf("filename = '%s'\n", ae->loc.filename);
-                //printf("module = '%s'\n", m->srcfile->toChars());
-
                 /* Determine if we are in a unittest
                  */
                 FuncDeclaration *fd = irs->getFunc();
                 UnitTestDeclaration *ud = fd ? fd->isUnitTestDeclaration() : NULL;
 
-                /* If the source file name has changed, probably due
-                 * to a #line directive.
-                 */
+                // Construct: (e1 || _d_assert[_msg]([msg, ]fname, line))
+                //            (e1 || _d_unittest[_msg]([msg, ]fname, line))
                 elem *ea;
-                if (ae->loc.filename && (ae->msg || strcmp(ae->loc.filename, mname) != 0))
+                elem *efilename = getEfilename(ae->loc, irs);
+                if (ae->msg)
                 {
-                    /* Cache values.
+                    /* Bugzilla 8360: If the condition is evalated to true,
+                     * msg is not evaluated at all. so should use
+                     * toElemDtor(msg, irs) instead of msg->toElem(irs).
                      */
-                    //static Symbol *assertexp_sfilename = NULL;
-                    //static char *assertexp_name = NULL;
-                    //static Module *assertexp_mn = NULL;
+                    elem *emsg = toElemDtor(ae->msg, irs);
+                    emsg = array_toDarray(ae->msg->type, emsg);
+                    if (config.exe == EX_WIN64)
+                        emsg = addressElem(emsg, Type::tvoid->arrayOf(), false);
 
-                    if (!assertexp_sfilename || strcmp(ae->loc.filename, assertexp_name) != 0 || assertexp_mn != m)
-                    {
-
-                        const char *id = ae->loc.filename;
-                        int len = strlen(id);
-                        dt_t *dt = NULL;
-                        dtsize_t(&dt, len);
-                        dtabytes(&dt,TYnptr, 0, len + 1, id);
-
-                        assertexp_sfilename = symbol_generate(SCstatic,type_fake(TYdarray));
-                        assertexp_sfilename->Sdt = dt;
-                        assertexp_sfilename->Sfl = FLdata;
-                        out_readonly(assertexp_sfilename);
-                        outdata(assertexp_sfilename);
-
-                        assertexp_mn = m;
-                        assertexp_name = id;
-                    }
-
-                    elem *efilename = (config.exe == EX_WIN64) ? el_ptr(assertexp_sfilename)
-                                                               : el_var(assertexp_sfilename);
-
-                    if (ae->msg)
-                    {
-                        /* Bugzilla 8360: If the condition is evalated to true,
-                         * msg is not evaluated at all. so should use
-                         * toElemDtor(msg, irs) instead of msg->toElem(irs).
-                         */
-                        elem *emsg = toElemDtor(ae->msg, irs);
-                        emsg = array_toDarray(ae->msg->type, emsg);
-                        if (config.exe == EX_WIN64)
-                            emsg = addressElem(emsg, Type::tvoid->arrayOf(), false);
-
-                        ea = el_var(rtlsym[ud ? RTLSYM_DUNITTEST_MSG : RTLSYM_DASSERT_MSG]);
-                        ea = el_bin(OPcall, TYvoid, ea, el_params(el_long(TYint, ae->loc.linnum), efilename, emsg, NULL));
-                    }
-                    else
-                    {
-                        ea = el_var(rtlsym[ud ? RTLSYM_DUNITTEST : RTLSYM_DASSERT]);
-                        ea = el_bin(OPcall, TYvoid, ea, el_param(el_long(TYint, ae->loc.linnum), efilename));
-                    }
+                    ea = el_var(rtlsym[ud ? RTLSYM_DUNITTEST_MSG : RTLSYM_DASSERT_MSG]);
+                    ea = el_bin(OPcall, TYvoid, ea, el_params(el_long(TYint, ae->loc.linnum), efilename, emsg, NULL));
                 }
                 else
                 {
-                    Symbol *sassert = ud ? m->toModuleUnittest() : m->toModuleAssert();
-                    ea = el_bin(OPcall,TYvoid,el_var(sassert),
-                        el_long(TYint, ae->loc.linnum));
+                    ea = el_var(rtlsym[ud ? RTLSYM_DUNITTEST : RTLSYM_DASSERT]);
+                    ea = el_bin(OPcall, TYvoid, ea, el_param(el_long(TYint, ae->loc.linnum), efilename));
                 }
+
                 if (einv)
                 {
                     // tmp = e, e || assert, e->inv
@@ -2526,9 +2539,16 @@ elem *toElem(Expression *e, IRState *irs)
                         elem *c2 = el_bin(OPle, TYint, el_copytree(elwr), el_copytree(eupr));
                         c1 = el_bin(OPandand, TYint, c1, c2);
 
+#if 0
                         // Construct: (c1 || ModuleArray(line))
                         Symbol *sassert = irs->blx->module->toModuleArray();
-                        elem *ea = el_bin(OPcall,TYvoid,el_var(sassert), el_long(TYint, ae->loc.linnum));
+                        elem *ea = el_bin(OPcall, TYvoid, el_var(sassert), el_long(TYint, ae->loc.linnum));
+#else
+                        // Construct: (c1 || _d_arraybounds(fname, line))
+                        elem *efilename = getEfilename(ae->loc, irs);
+                        elem *ea = el_var(rtlsym[RTLSYM_DARRAY]);
+                        ea = el_bin(OPcall, TYvoid, ea, el_param(el_long(TYint, ae->loc.linnum), efilename));
+#endif
                         elem *eb = el_bin(OPoror,TYvoid,c1,ea);
                         einit = el_combine(einit, eb);
                     }
@@ -4337,9 +4357,16 @@ elem *toElem(Expression *e, IRState *irs)
                         c1 = el_bin(OPandand, TYint, c1, c2);   // (c1 && c2)
 
                     L2:
+#if 0
                         // Construct: (c1 || ModuleArray(line))
                         Symbol *sassert = irs->blx->module->toModuleArray();
-                        elem *ea = el_bin(OPcall,TYvoid,el_var(sassert), el_long(TYint, se->loc.linnum));
+                        elem *ea = el_bin(OPcall, TYvoid, el_var(sassert), el_long(TYint, se->loc.linnum));
+#else
+                        // Construct: (c1 || _d_arraybounds(fname, line))
+                        elem *efilename = getEfilename(se->loc, irs);
+                        elem *ea = el_var(rtlsym[RTLSYM_DARRAY]);
+                        ea = el_bin(OPcall, TYvoid, ea, el_param(el_long(TYint, se->loc.linnum), efilename));
+#endif
                         elem *eb = el_bin(OPoror,TYvoid,c1,ea);
                         elwr = el_combine(elwr, eb);
 
@@ -4420,11 +4447,16 @@ elem *toElem(Expression *e, IRState *irs)
                 if (irs->arrayBoundsCheck())
                 {
                     elem *n = el_same(&e);
-
-                    // Construct: ((e || ModuleAssert(line)),n)
+#if 0
+                    // Construct: ((e || ModuleArray(line)), n)
                     Symbol *sassert = irs->blx->module->toModuleArray();
-                    elem *ea = el_bin(OPcall,TYvoid,el_var(sassert),
-                        el_long(TYint, ie->loc.linnum));
+                    elem *ea = el_bin(OPcall, TYvoid, el_var(sassert), el_long(TYint, ie->loc.linnum));
+#else
+                    // Construct: ((e || _d_arraybounds(fname, line)), n)
+                    elem *efilename = getEfilename(ie->loc, irs);
+                    elem *ea = el_var(rtlsym[RTLSYM_DARRAY]);
+                    ea = el_bin(OPcall, TYvoid, ea, el_param(el_long(TYint, ie->loc.linnum), efilename));
+#endif
                     e = el_bin(OPoror,TYvoid,e,ea);
                     e = el_bin(OPcomma, TYnptr, e, n);
                 }
@@ -4458,12 +4490,17 @@ elem *toElem(Expression *e, IRState *irs)
                         elem *n2x = n2;
                         n2 = el_same(&n2x);
                         n2x = el_bin(OPlt, TYint, n2x, elength);
-
-                        // Construct: (n2x || ModuleAssert(line))
+#if 0
+                        // Construct: (n2x || ModuleArray(line))
                         Symbol *sassert = irs->blx->module->toModuleArray();
-                        elem *ea = el_bin(OPcall,TYvoid,el_var(sassert),
-                            el_long(TYint, ie->loc.linnum));
-                        eb = el_bin(OPoror,TYvoid,n2x,ea);
+                        elem *ea = el_bin(OPcall, TYvoid, el_var(sassert), el_long(TYint, ie->loc.linnum));
+#else
+                        // Construct: (n2x || _d_arraybounds(fname, line))
+                        elem *efilename = getEfilename(ie->loc, irs);
+                        elem *ea = el_var(rtlsym[RTLSYM_DARRAY]);
+                        ea = el_bin(OPcall, TYvoid, ea, el_param(el_long(TYint, ie->loc.linnum), efilename));
+#endif
+                        eb = el_bin(OPoror, TYvoid, n2x, ea);
                     }
                 }
 

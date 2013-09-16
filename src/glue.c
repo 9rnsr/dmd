@@ -130,9 +130,11 @@ void obj_write_deferred(Library *library)
             md->doppelganger = 1;       // identify this module as doppelganger
             md->md = m->md;
             md->aimports.push(m);       // it only 'imports' m
+#if 0
             md->massert = m->massert;
             md->munittest = m->munittest;
             md->marray = m->marray;
+#endif
 
             md->genobjfile(0);
         }
@@ -463,6 +465,7 @@ void Module::genobjfile(int multiobj)
         return;
     }
 
+#if 0
     if (global.params.multiobj)
     {   /* This is necessary because the main .obj for this module is written
          * first, but determining whether marray or massert or munittest are needed is done
@@ -473,6 +476,7 @@ void Module::genobjfile(int multiobj)
         toModuleUnittest();
         toModuleArray();
     }
+#endif
 
     /* Always generate module info, because of templates and -cov.
      * But module info needs the runtime library, so disable it for betterC.
@@ -480,6 +484,7 @@ void Module::genobjfile(int multiobj)
     if (!global.params.betterC /*|| needModuleInfo()*/)
         genmoduleinfo();
 
+#if 0
     // If module assert
     for (int i = 0; i < 3; i++)
     {
@@ -488,7 +493,7 @@ void Module::genobjfile(int multiobj)
         unsigned bc;
         switch (i)
         {
-            case 0:     ma = marray;    rt = RTLSYM_DARRAY;     bc = BCexit; break;
+            case 0:     ma = marray;    rt = RTLSYM_DARRAYM;    bc = BCexit; break;
             case 1:     ma = massert;   rt = RTLSYM_DASSERTM;   bc = BCexit; break;
             case 2:     ma = munittest; rt = RTLSYM_DUNITTESTM; bc = BCret;  break;
             default:    assert(0);
@@ -535,6 +540,7 @@ void Module::genobjfile(int multiobj)
             writefunc(ma);
         }
     }
+#endif
 
     objmod->termfile();
 }
@@ -1522,7 +1528,6 @@ Symbol *toSymbol(Type *t)
 
 elem *toEfilename(Module *m)
 {
-    elem *efilename;
     if (!m->sfilename)
     {
         dt_t *dt = NULL;
@@ -1538,8 +1543,7 @@ elem *toEfilename(Module *m)
         outdata(m->sfilename);
     }
 
-    efilename = (config.exe == EX_WIN64) ? el_ptr(m->sfilename) : el_var(m->sfilename);
-    return efilename;
+    return (config.exe == EX_WIN64) ? el_ptr(m->sfilename) : el_var(m->sfilename);
 }
 
 
