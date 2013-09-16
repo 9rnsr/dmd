@@ -1550,13 +1550,8 @@ Language changes listed by -transition=id:\n\
         fatal();
     if (global.params.useInline)
     {
-        /* The problem with useArrayBounds and useAssert is that the
-         * module being linked to may not have generated them, so if
-         * we inline functions from those modules, the symbols for them will
-         * not be found at link time.
-         * We must do this BEFORE generating the .deps file!
+        /* We must do this BEFORE generating the .deps file!
          */
-        if (!global.params.useArrayBounds && !global.params.useAssert)
         {
             // Do pass 3 semantic analysis on all imported modules,
             // since otherwise functions in them cannot be inlined
