@@ -579,29 +579,6 @@ void TemplateDeclaration::semantic(Scope *sc)
 #endif
     }
 
-    if (/*global.params.useArrayBounds &&*/ sc->module)
-    {
-        // Generate this function as it may be used
-        // when template is instantiated in other modules
-        sc->module->toModuleArray();
-    }
-
-    if (/*global.params.useAssert &&*/ sc->module)
-    {
-        // Generate this function as it may be used
-        // when template is instantiated in other modules
-        sc->module->toModuleAssert();
-    }
-
-#if DMDV2
-    if (sc->module)
-    {
-        // Generate this function as it may be used
-        // when template is instantiated in other modules
-        sc->module->toModuleUnittest();
-    }
-#endif
-
     /* Remember Scope for later instantiations, but make
      * a copy since attributes can change.
      */
