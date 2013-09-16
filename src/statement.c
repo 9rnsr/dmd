@@ -1199,7 +1199,7 @@ int DoStatement::blockExit(bool mustNotThrow)
     {   result = body->blockExit(mustNotThrow);
         if (result == BEbreak)
             return BEfallthru;
-        if (result & BEcontinue)
+        if (result & (BEcontinue | BEgoto))
             result |= BEfallthru;
     }
     else
