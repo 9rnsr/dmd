@@ -2130,10 +2130,16 @@ elem *AssertExp::toElem(IRState *irs)
         }
         else
         {
+#if 0
             Symbol *sassert = ud ? m->toModuleUnittest() : m->toModuleAssert();
-            ea = el_bin(OPcall,TYvoid,el_var(sassert),
-                el_long(TYint, loc.linnum));
+            ea = el_bin(OPcall, TYvoid, el_var(sassert), el_long(TYint, loc.linnum));
+#else
+            elem *efilename = m->toEfilename();
+            ea = el_var(rtlsym[ud ? RTLSYM_DUNITTEST : RTLSYM_DASSERT]);
+            ea = el_bin(OPcall, TYvoid, ea, el_param(el_long(TYint, loc.linnum), efilename));
+#endif
         }
+
         if (einv)
         {   // tmp = e, e || assert, e->inv
             elem *eassign = el_bin(OPeq, e->Ety, el_var(ts), e);
@@ -2956,12 +2962,17 @@ elem *AssignExp::toElem(IRState *irs)
                 c2 = el_bin(OPle, TYint, el_copytree(elwr), el_copytree(eupr));
                 c1 = el_bin(OPandand, TYint, c1, c2);
 
+#if 0
                 // Construct: (c1 || ModuleArray(line))
-                Symbol *sassert;
-
-                sassert = irs->blx->module->toModuleArray();
-                ea = el_bin(OPcall,TYvoid,el_var(sassert), el_long(TYint, loc.linnum));
-                eb = el_bin(OPoror,TYvoid,c1,ea);
+                Symbol *sassert = irs->blx->module->toModuleArray();
+                ea = el_bin(OPcall, TYvoid, el_var(sassert), el_long(TYint, loc.linnum));
+#else
+                // Construct: (c1 || _d_arraybounds(fname, line))
+                elem *efilename = irs->blx->module->toEfilename();
+                ea = el_var(rtlsym[RTLSYM_DARRAY]);
+                ea = el_bin(OPcall, TYvoid, ea, el_param(el_long(TYint, loc.linnum), efilename));
+#endif
+                eb = el_bin(OPoror, TYvoid, c1, ea);
                 einit = el_combine(einit, eb);
             }
 
@@ -4844,12 +4855,17 @@ elem *SliceExp::toElem(IRState *irs)
                 c1 = el_bin(OPandand, TYint, c1, c2);   // (c1 && c2)
 
             L2:
+#if 0
                 // Construct: (c1 || ModuleArray(line))
-                Symbol *sassert;
-
-                sassert = irs->blx->module->toModuleArray();
-                ea = el_bin(OPcall,TYvoid,el_var(sassert), el_long(TYint, loc.linnum));
-                eb = el_bin(OPoror,TYvoid,c1,ea);
+                Symbol *sassert = irs->blx->module->toModuleArray();
+                ea = el_bin(OPcall, TYvoid, el_var(sassert), el_long(TYint, loc.linnum));
+#else
+                // Construct: (c1 || _d_arraybounds(fname, line))
+                elem *efilename = irs->blx->module->toEfilename();
+                ea = el_var(rtlsym[RTLSYM_DARRAY]);
+                ea = el_bin(OPcall, TYvoid, ea, el_param(el_long(TYint, loc.linnum), efilename));
+#endif
+                eb = el_bin(OPoror, TYvoid, c1, ea);
                 elwr = el_combine(elwr, eb);
 
                 elwr2 = el_copytree(elwr2);
@@ -4929,12 +4945,17 @@ elem *IndexExp::toElem(IRState *irs)
             elem *ea;
 
             elem *n = el_same(&e);
-
-            // Construct: ((e || ModuleAssert(line)),n)
+#if 0
+            // Construct: ((e || ModuleArray(line)),n)
             Symbol *sassert = irs->blx->module->toModuleArray();
-            ea = el_bin(OPcall,TYvoid,el_var(sassert),
-                el_long(TYint, loc.linnum));
-            e = el_bin(OPoror,TYvoid,e,ea);
+            ea = el_bin(OPcall, TYvoid, el_var(sassert), el_long(TYint, loc.linnum));
+#else
+            // Construct: ((e || _d_arraybounds(fname, line)),n)
+            elem *efilename = irs->blx->module->toEfilename();
+            ea = el_var(rtlsym[RTLSYM_DARRAY]);
+            ea = el_bin(OPcall, TYvoid, ea, el_param(el_long(TYint, loc.linnum), efilename));
+#endif
+            e = el_bin(OPoror, TYvoid, e, ea);
             e = el_bin(OPcomma, TYnptr, e, n);
         }
         e = el_una(OPind, type->totym(), e);
@@ -4968,14 +4989,17 @@ elem *IndexExp::toElem(IRState *irs)
                 n2x = n2;
                 n2 = el_same(&n2x);
                 n2x = el_bin(OPlt, TYint, n2x, elength);
-
-                // Construct: (n2x || ModuleAssert(line))
-                Symbol *sassert;
-
-                sassert = irs->blx->module->toModuleArray();
-                ea = el_bin(OPcall,TYvoid,el_var(sassert),
-                    el_long(TYint, loc.linnum));
-                eb = el_bin(OPoror,TYvoid,n2x,ea);
+#if 0
+                // Construct: (n2x || ModuleArray(line))
+                Symbol *sassert = irs->blx->module->toModuleArray();
+                ea = el_bin(OPcall, TYvoid, el_var(sassert), el_long(TYint, loc.linnum));
+#else
+                // Construct: (n2x || _d_arraybounds(fname, line))
+                elem *efilename = irs->blx->module->toEfilename();
+                ea = el_var(rtlsym[RTLSYM_DARRAY]);
+                ea = el_bin(OPcall, TYvoid, ea, el_param(el_long(TYint, loc.linnum), efilename));
+#endif
+                eb = el_bin(OPoror, TYvoid, n2x, ea);
             }
         }
 

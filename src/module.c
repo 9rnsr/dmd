@@ -61,9 +61,11 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     selfimports = 0;
     insearch = 0;
     decldefs = NULL;
+#if 0
     massert = NULL;
     munittest = NULL;
     marray = NULL;
+#endif
     sictor = NULL;
     sctor = NULL;
     sdtor = NULL;
