@@ -604,7 +604,7 @@ Symbol *EnumDeclaration::toInitializer()
     return sinit;
 }
 
-
+#if 0
 /******************************************
  */
 
@@ -655,6 +655,7 @@ Symbol *Module::toModuleArray()
     }
     return marray;
 }
+#endif
 
 /********************************************
  * Determine the right symbol to look up

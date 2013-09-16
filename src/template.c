@@ -561,6 +561,7 @@ void TemplateDeclaration::semantic(Scope *sc)
             Type::rtinfo = this;
     }
 
+#if 0
     if (sc->module)
     {
         // Generate this function as it may be used
@@ -583,6 +584,7 @@ void TemplateDeclaration::semantic(Scope *sc)
         // when template is instantiated in other modules
         sc->module->toModuleUnittest();
     }
+#endif
 
     /* Remember Scope for later instantiations, but make
      * a copy since attributes can change.
