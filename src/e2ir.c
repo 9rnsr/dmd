@@ -72,6 +72,73 @@ bool ISWIN64REF(Declaration *var)
             !(var->isOut() || var->isRef());
 }
 
+elem *call_darray(Loc loc, Module *m)
+{
+#if 1
+    elem *e;
+    elem *efilename = m->toEfilename();
+    elem *elinnum = el_long(TYint, loc.linnum);
+    e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DARRAY]), el_param(elinnum, efilename));
+    return e;
+#else
+    // If module assert
+    for (int i = 0; i < 3; i++)
+    {
+//        Symbol *ma;
+        unsigned rt;
+        unsigned bc;
+        switch (i)
+        {
+            case 0:     /*ma = marray;    */rt = RTLSYM_DARRAY;     bc = BCexit; break;
+            case 1:     /*ma = massert;   */rt = RTLSYM_DASSERTM;   bc = BCexit; break;
+            case 2:     /*ma = munittest; */rt = RTLSYM_DUNITTESTM; bc = BCret;  break;
+            default:    assert(0);
+        }
+
+        //if (ma)
+        {
+            elem *elinnum;
+
+            localgot = NULL;
+
+            // Call dassert(filename, line)
+            // Get sole parameter, linnum
+            {
+                Symbol *sp = symbol_calloc("linnum");
+                sp->Stype = type_fake(TYint);
+                sp->Stype->Tcount++;
+                sp->Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
+
+                FuncParamRegs fpr(TYjfunc);
+                fpr.alloc(sp->Stype, sp->Stype->Tty, &sp->Spreg, &sp->Spreg2);
+
+                sp->Sflags &= ~SFLspill;
+                sp->Sfl = (sp->Sclass == SCshadowreg) ? FLpara : FLfast;
+                cstate.CSpsymtab = &ma->Sfunc->Flocsym;
+                symbol_add(sp);
+
+                elinnum = el_var(sp);
+            }
+
+            elem *efilename = el_ptr(toSymbol());
+
+            elem *e = el_var(rtlsym[rt]);
+            e = el_bin(OPcall, TYvoid, e, el_param(elinnum, efilename));
+
+            //block *b = block_calloc();
+            //b->BC = bc;
+            //b->Belem = e;
+            //ma->Sfunc->Fstartline.Sfilename = arg;
+            //ma->Sfunc->Fstartblock = b;
+            //ma->Sclass = SCglobal;
+            //ma->Sfl = 0;
+            //ma->Sflags |= rtlsym[rt]->Sflags & SFLexit;
+            //writefunc(ma);
+        }
+    }
+#endif
+}
+
 /******************************************
  * If argument to a function should use OPstrpar,
  * fix it so it does and return it.
@@ -2130,9 +2197,7 @@ elem *AssertExp::toElem(IRState *irs)
         }
         else
         {
-            elem *efilename = m->toEfilename();
-            ea = el_var(rtlsym[RTLSYM_DARRAY]);
-            ea = el_bin(OPcall, TYvoid, ea, el_param(el_long(TYint, loc.linnum), efilename));
+            ea = call_darray(loc, m);
         }
 
         if (einv)
@@ -2958,10 +3023,8 @@ elem *AssignExp::toElem(IRState *irs)
                 c1 = el_bin(OPandand, TYint, c1, c2);
 
                 // Construct: (c1 || _d_arraybounds(fname, line))
-                elem *efilename = irs->blx->module->toEfilename();
-                ea = el_var(rtlsym[RTLSYM_DARRAY]);
-                ea = el_bin(OPcall, TYvoid, ea, el_param(el_long(TYint, loc.linnum), efilename));
-                eb = el_bin(OPoror,TYvoid,c1,ea);
+                ea = call_darray(loc, irs->blx->module);
+                eb = el_bin(OPoror, TYvoid, c1, ea);
                 einit = el_combine(einit, eb);
             }
 
@@ -4845,10 +4908,8 @@ elem *SliceExp::toElem(IRState *irs)
 
             L2:
                 // Construct: (c1 || _d_arraybounds(fname, line))
-                elem *efilename = irs->blx->module->toEfilename();
-                ea = el_var(rtlsym[RTLSYM_DARRAY]);
-                ea = el_bin(OPcall, TYvoid, ea, el_param(el_long(TYint, loc.linnum), efilename));
-                eb = el_bin(OPoror,TYvoid,c1,ea);
+                ea = call_darray(loc, irs->blx->module);
+                eb = el_bin(OPoror, TYvoid, c1, ea);
                 elwr = el_combine(elwr, eb);
 
                 elwr2 = el_copytree(elwr2);
@@ -4930,10 +4991,8 @@ elem *IndexExp::toElem(IRState *irs)
             elem *n = el_same(&e);
 
             // Construct: ((e || _d_arraybounds(fname, line)),n)
-            elem *efilename = irs->blx->module->toEfilename();
-            ea = el_var(rtlsym[RTLSYM_DARRAY]);
-            ea = el_bin(OPcall, TYvoid, ea, el_param(el_long(TYint, loc.linnum), efilename));
-            e = el_bin(OPoror,TYvoid,e,ea);
+            ea = call_darray(loc, irs->blx->module);
+            e = el_bin(OPoror, TYvoid, e, ea);
             e = el_bin(OPcomma, TYnptr, e, n);
         }
         e = el_una(OPind, type->totym(), e);
@@ -4969,10 +5028,8 @@ elem *IndexExp::toElem(IRState *irs)
                 n2x = el_bin(OPlt, TYint, n2x, elength);
 
                 // Construct: (n2x || _d_arraybounds(fname, line))
-                elem *efilename = irs->blx->module->toEfilename();
-                ea = el_var(rtlsym[RTLSYM_DARRAY]);
-                ea = el_bin(OPcall, TYvoid, ea, el_param(el_long(TYint, loc.linnum), efilename));
-                eb = el_bin(OPoror,TYvoid,n2x,ea);
+                ea = call_darray(loc, irs->blx->module);
+                eb = el_bin(OPoror, TYvoid, n2x, ea);
             }
         }
 
