@@ -1,3 +1,4 @@
+// PERMUTE_ARGS: -inline -g -O
 
 void main()
 {
