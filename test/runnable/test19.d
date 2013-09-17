@@ -1,7 +1,5 @@
 // REQUIRED_ARGS: -unittest
 
-import std.string: cmp;
-
 extern(C) int printf(const char*, ...);
 
 /* ================================ */
@@ -284,7 +282,7 @@ void test13()
 
     s1 = s1.dup;
     s2 = tolower13(s1);
-    assert(cmp(s2, "fol") == 0);
+    assert(s2 == "fol");
     assert(s2 == s1);
 }
 
@@ -435,17 +433,18 @@ void test8128()
 
 /* ================================ */
 
-class C8635{
-	int x;
-	this(int x)
-	{
-		this.x = x;
-	}
+class C8635
+{
+    int x;
+    this(int x)
+    {
+        this.x = x;
+    }
 }
 void test8635()
 {
-	assert(new C8635(2).x==2);
-	assert(new C8635(3).x==3);
+    assert(new C8635(2).x==2);
+    assert(new C8635(3).x==3);
 }
 
 /* ================================ */
