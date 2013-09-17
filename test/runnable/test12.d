@@ -940,7 +940,7 @@ void test44()
 
 /**************************************/
 
-import std.algorithm;
+//import std.algorithm;
 
 struct Shell
 {
@@ -948,7 +948,12 @@ struct Shell
 
     const int opCmp(ref const Shell s)
     {
-	return std.algorithm.cmp(this.str, s.str);
+        //return std.algorithm.cmp(this.str, s.str);
+        if (this.str < s.str)
+            return -1;
+        if (this.str > s.str)
+            return +1;
+        return 0;
     }
 }
 
