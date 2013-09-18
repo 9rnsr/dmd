@@ -1328,8 +1328,7 @@ Symbol *TypeClass::toSymbol()
  */
 
 elem *Module::toEfilename()
-{   elem *efilename;
-
+{
     if (!sfilename)
     {
         dt_t *dt = NULL;
@@ -1345,8 +1344,7 @@ elem *Module::toEfilename()
         outdata(sfilename);
     }
 
-    efilename = (config.exe == EX_WIN64) ? el_ptr(sfilename) : el_var(sfilename);
-    return efilename;
+    return (config.exe == EX_WIN64) ? el_ptr(sfilename) : el_var(sfilename);
 }
 
 
