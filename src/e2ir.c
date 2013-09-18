@@ -4855,7 +4855,7 @@ elem *SliceExp::toElem(IRState *irs)
                 c1 = el_bin(OPandand, TYint, c1, c2);   // (c1 && c2)
 
             L2:
-#if 1
+#if 0
                 // Construct: (c1 || ModuleArray(line))
                 Symbol *sassert = irs->blx->module->toModuleArray();
                 ea = el_bin(OPcall, TYvoid, el_var(sassert), el_long(TYint, loc.linnum));
@@ -4989,7 +4989,7 @@ elem *IndexExp::toElem(IRState *irs)
                 n2x = n2;
                 n2 = el_same(&n2x);
                 n2x = el_bin(OPlt, TYint, n2x, elength);
-#if 1
+#if 0
                 // Construct: (n2x || ModuleArray(line))
                 Symbol *sassert = irs->blx->module->toModuleArray();
                 ea = el_bin(OPcall, TYvoid, el_var(sassert), el_long(TYint, loc.linnum));
