@@ -3914,6 +3914,11 @@ elem *CallExp::toElem(IRState *irs)
         }
     }
     ec = callfunc(loc, irs, directcall, type, ec, ectype, fd, t1, ehidden, arguments);
+    if (loc.filename)
+    {
+        printf("CallExp[%s] ", loc.toChars());
+        elem_print(ec);
+    }
     el_setLoc(ec,loc);
     if (eeq)
         ec = el_combine(eeq, ec);
@@ -4854,7 +4859,7 @@ elem *SliceExp::toElem(IRState *irs)
                 c1 = el_bin(OPandand, TYint, c1, c2);   // (c1 && c2)
 
             L2:
-#if 1   // fatal error LNK1235: corrupt or invalid COFF symbol table
+#if 0   // fatal error LNK1235: corrupt or invalid COFF symbol table
                 // Construct: (c1 || ModuleArray(line))
                 Symbol *sassert = irs->blx->module->toModuleArray();
                 ea = el_bin(OPcall, TYvoid, el_var(sassert), el_long(TYint, loc.linnum));
@@ -4863,6 +4868,8 @@ elem *SliceExp::toElem(IRState *irs)
                 elem *efilename = irs->blx->module->toEfilename();
                 ea = el_var(rtlsym[RTLSYM_DARRAY]);
                 ea = el_bin(OPcall, TYvoid, ea, el_param(el_long(TYint, loc.linnum), efilename));
+                printf("SliceExp[%s] ", loc.toChars());
+                elem_print(ea);
 #endif
                 eb = el_bin(OPoror, TYvoid, c1, ea);
                 elwr = el_combine(elwr, eb);
