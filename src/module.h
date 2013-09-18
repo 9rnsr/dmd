@@ -158,7 +158,8 @@ public:
     Symbol *stest;              // module unit test
 
     Symbol *sfilename;          // symbol for filename
-
+    elem *toEfilename();
+#if 1
     Symbol *massert;            // module assert function
     Symbol *toModuleAssert();   // get module assert function
 
@@ -167,9 +168,7 @@ public:
 
     Symbol *marray;             // module array bounds function
     Symbol *toModuleArray();    // get module array bounds function
-
-
-    elem *toEfilename();
+#endif
 
     Symbol *toSymbol();
     void genmoduleinfo();

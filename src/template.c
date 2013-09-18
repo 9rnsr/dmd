@@ -571,6 +571,7 @@ void TemplateDeclaration::semantic(Scope *sc)
 #endif
     }
 
+#if 1
     if (/*global.params.useArrayBounds &&*/ sc->module)
     {
         // Generate this function as it may be used
@@ -585,13 +586,14 @@ void TemplateDeclaration::semantic(Scope *sc)
         sc->module->toModuleAssert();
     }
 
-#if DMDV2
+  #if DMDV2
     if (sc->module)
     {
         // Generate this function as it may be used
         // when template is instantiated in other modules
         sc->module->toModuleUnittest();
     }
+  #endif
 #endif
 
     /* Remember Scope for later instantiations, but make
