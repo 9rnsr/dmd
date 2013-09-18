@@ -6392,25 +6392,12 @@ Expression *TypeidExp::semantic(Scope *sc)
 
     //printf("ta %p ea %p sa %p\n", ta, ea, sa);
 
-#if 1
-    if (ta)
-        ea = ta->toExpression();
-    else if (sa)
-        ea = new DsymbolExp(loc, sa);
-    if (ea)
-    {
-        ea = ea->semantic(sc);
-        ea = resolveProperties(sc, ea);
-        ta = ea->type;
-        if (ea->op == TOKtype)
-            ea = NULL;
-    }
-    else
-        ta->resolve(loc, sc, &ea, &ta, &sa);
-#else
     if (ta)
     {
-        ta->resolve(loc, sc, &ea, &ta, &sa);
+        if (ta->ty != Tsarray)
+            ea = ta->toExpression();
+        if (!ea)
+            ta->resolve(loc, sc, &ea, &ta, &sa);
     }
 
     if (ea)
@@ -6424,7 +6411,6 @@ Expression *TypeidExp::semantic(Scope *sc)
         if (ea->op == TOKtype)
             ea = NULL;
     }
-#endif
 
     if (!ta)
     {
@@ -10600,18 +10586,25 @@ Expression *ArrayExp::semantic(Scope *sc)
 
     t1 = e1->type->toBasetype();
     if (t1->ty != Tclass && t1->ty != Tstruct)
-    {   // Convert to IndexExp
+    {
+        // Convert to IndexExp
         if (arguments->dim != 1)
-        {   error("only one index allowed to index %s", t1->toChars());
+        {
+            error("only one index allowed to index %s", t1->toChars());
             goto Lerr;
         }
+    //Lindex:
         e = new IndexExp(loc, e1, (*arguments)[0]);
         return e->semantic(sc);
     }
 
     e = op_overload(sc);
+
     if (!e)
-    {   error("no [] operator overload for type %s", e1->type->toChars());
+    {
+        //if (e1->op == TOKtype && arguments->dim == 1)
+        //    goto Lindex;
+        error("no [] operator overload for type %s", e1->type->toChars());
         goto Lerr;
     }
     return e;
