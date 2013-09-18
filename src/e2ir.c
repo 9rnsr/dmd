@@ -2130,7 +2130,7 @@ elem *AssertExp::toElem(IRState *irs)
         }
         else
         {
-#if 1
+#if 0
             Symbol *sassert = ud ? m->toModuleUnittest() : m->toModuleAssert();
             ea = el_bin(OPcall, TYvoid, el_var(sassert), el_long(TYint, loc.linnum));
 #else
