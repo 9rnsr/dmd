@@ -4945,7 +4945,7 @@ elem *IndexExp::toElem(IRState *irs)
             elem *ea;
 
             elem *n = el_same(&e);
-#if 1
+#if 0
             // Construct: ((e || ModuleArray(line)),n)
             Symbol *sassert = irs->blx->module->toModuleArray();
             ea = el_bin(OPcall, TYvoid, el_var(sassert), el_long(TYint, loc.linnum));
