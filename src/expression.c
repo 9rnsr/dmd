@@ -6392,6 +6392,22 @@ Expression *TypeidExp::semantic(Scope *sc)
 
     //printf("ta %p ea %p sa %p\n", ta, ea, sa);
 
+#if 1
+    if (ta)
+        ea = ta->toExpression();
+    else if (sa)
+        ea = new DsymbolExp(loc, sa);
+    if (ea)
+    {
+        ea = ea->semantic(sc);
+        ea = resolveProperties(sc, ea);
+        ta = ea->type;
+        if (ea->op == TOKtype)
+            ea = NULL;
+    }
+    else
+        ta->resolve(loc, sc, &ea, &ta, &sa);
+#else
     if (ta)
     {
         ta->resolve(loc, sc, &ea, &ta, &sa);
@@ -6408,6 +6424,7 @@ Expression *TypeidExp::semantic(Scope *sc)
         if (ea->op == TOKtype)
             ea = NULL;
     }
+#endif
 
     if (!ta)
     {
@@ -6417,13 +6434,15 @@ Expression *TypeidExp::semantic(Scope *sc)
     }
 
     if (ea && ta->toBasetype()->ty == Tclass)
-    {   /* Get the dynamic type, which is .classinfo
+    {
+        /* Get the dynamic type, which is .classinfo
          */
         e = new DotIdExp(ea->loc, ea, Id::classinfo);
         e = e->semantic(sc);
     }
     else
-    {   /* Get the static type
+    {
+        /* Get the static type
          */
         e = ta->getTypeInfo(sc);
         if (e->loc.linnum == 0)
