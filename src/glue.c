@@ -1344,7 +1344,10 @@ elem *Module::toEfilename()
         outdata(sfilename);
     }
 
-    return (config.exe == EX_WIN64) ? el_ptr(sfilename) : el_var(sfilename);
+    elem *efilename = el_var(sfilename);
+    if (config.exe == EX_WIN64)
+        efilename = addressElem(efilename, Type::tstring);
+    return efilename;
 }
 
 
