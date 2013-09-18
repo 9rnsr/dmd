@@ -80,6 +80,7 @@ Symbol *toEfilename0(IRState *irs)
     {
         dt_t *dt = NULL;
         char *id = (char *)m->toPrettyChars();//m->srcfile->toChars();
+#if 1
         size_t len = strlen(id);
         dtsize_t(&dt, len);
         dtabytes(&dt,TYnptr, 0, len + 1, id);
@@ -89,13 +90,73 @@ Symbol *toEfilename0(IRState *irs)
         //m->sfilename = m->toSymbolX("__mname", SCstatic, type_fake(TYdarray), "Z");
         m->sfilename->Sdt = dt;
         m->sfilename->Sfl = FLdata;
-
+#else
+        m->sfilename = symbol_genauto(type_fake(TYdarray));
+#endif
         out_readonly(m->sfilename);
         outdata(m->sfilename);
 
         printf("#alloc %s = %s\n", m->sfilename->Sident, id);
     }
     return m->sfilename;
+}
+
+elem *toEfilename1(IRState *irs)
+{
+    Symbol *sfilename = toEfilename0(irs);
+    elem *efilename;
+    if (config.exe == EX_WIN64)
+    {
+#if 1
+        /// Backend internal error?
+        elem *e2 = el_ptr(sfilename);
+
+        // Convert to ((tmp=e2),tmp)
+        type *tx = type_fake(TYnptr);
+        Symbol *stmp = symbol_genauto(tx);
+        elem *eeq = el_bin(OPeq, e2->Ety, el_var(stmp), e2);
+        //if (tybasic(e2->Ety) == TYstruct)
+        //{
+        //    eeq->Eoper = OPstreq;
+        //    eeq->ET = e2->ET;
+        //}
+        //else 
+        if (tybasic(e2->Ety) == TYarray)
+        {
+            eeq->Eoper = OPstreq;
+            eeq->Ejty = eeq->Ety = TYstruct;
+            eeq->ET = tx;
+        }
+#else
+        elem *e2 = el_var(sfilename);
+        //efilename = el_var(sfilename);
+        //efilename = addressElem(efilename, Type::tstring, true);
+
+        // Convert to ((tmp=e2),tmp)
+        type *tx = type_fake(TYdarray);
+        Symbol *stmp = symbol_genauto(tx);
+        elem *eeq = el_bin(OPeq, e2->Ety, el_var(stmp), e2);
+        //if (tybasic(e2->Ety) == TYstruct)
+        //{
+        //    eeq->Eoper = OPstreq;
+        //    eeq->ET = e2->ET;
+        //}
+        //else 
+        if (tybasic(e2->Ety) == TYarray)
+        {
+            eeq->Eoper = OPstreq;
+            eeq->Ejty = eeq->Ety = TYstruct;
+            eeq->ET = tx;
+        }
+        efilename = el_bin(OPcomma, e2->Ety, eeq,el_var(stmp));
+        efilename = el_una(OPaddr, TYnptr, efilename);
+#endif
+    }
+    else
+    {
+        efilename = el_var(sfilename);
+    }
+    return efilename;
 }
 
 /******************************************
@@ -2161,17 +2222,19 @@ elem *AssertExp::toElem(IRState *irs)
             Symbol *sassert = ud ? m->toModuleUnittest() : m->toModuleAssert();
             ea = el_bin(OPcall, TYvoid, el_var(sassert), el_long(TYint, loc.linnum));
 #else
-                Symbol *sfilename = toEfilename0(irs);
-                elem *efilename;
-                if (config.exe == EX_WIN64)
-                {
-                    efilename = el_var(sfilename);
-                    efilename = addressElem(efilename, Type::tstring/*, true*/);
-                }
-                else
-                {
-                    efilename = el_var(sfilename);
-                }
+                elem *efilename = toEfilename1(irs);
+
+                //Symbol *sfilename = toEfilename0(irs);
+                //elem *efilename;
+                //if (config.exe == EX_WIN64)
+                //{
+                //    efilename = el_var(sfilename);
+                //    efilename = addressElem(efilename, Type::tstring/*, true*/);
+                //}
+                //else
+                //{
+                //    efilename = el_var(sfilename);
+                //}
             ea = el_var(rtlsym[ud ? RTLSYM_DUNITTEST : RTLSYM_DASSERT]);
             ea = el_bin(OPcall, TYvoid, ea, el_param(el_long(TYuint, loc.linnum), efilename));
 #endif
@@ -3005,17 +3068,19 @@ elem *AssignExp::toElem(IRState *irs)
                 ea = el_bin(OPcall, TYvoid, el_var(sassert), el_long(TYint, loc.linnum));
 #else
                 // Construct: (c1 || _d_arraybounds(fname, line))
-                Symbol *sfilename = toEfilename0(irs);
-                elem *efilename;
-                if (config.exe == EX_WIN64)
-                {
-                    efilename = el_var(sfilename);
-                    efilename = addressElem(efilename, Type::tstring/*, true*/);
-                }
-                else
-                {
-                    efilename = el_var(sfilename);
-                }
+                elem *efilename = toEfilename1(irs);
+
+                //Symbol *sfilename = toEfilename0(irs);
+                //elem *efilename;
+                //if (config.exe == EX_WIN64)
+                //{
+                //    efilename = el_var(sfilename);
+                //    efilename = addressElem(efilename, Type::tstring/*, true*/);
+                //}
+                //else
+                //{
+                //    efilename = el_var(sfilename);
+                //}
                 ea = el_var(rtlsym[RTLSYM_DARRAY]);
                 ea = el_bin(OPcall, TYvoid, ea, el_param(el_long(TYuint, loc.linnum), efilename));
 #endif
@@ -4908,17 +4973,19 @@ elem *SliceExp::toElem(IRState *irs)
                 ea = el_bin(OPcall, TYvoid, el_var(sassert), el_long(TYint, loc.linnum));
 #else
                 // Construct: (c1 || _d_arraybounds(fname, line))
-                Symbol *sfilename = toEfilename0(irs);
-                elem *efilename;
-                if (config.exe == EX_WIN64)
-                {
-                    efilename = el_var(sfilename);
-                    efilename = addressElem(efilename, Type::tstring/*, true*/);
-                }
-                else
-                {
-                    efilename = el_var(sfilename);
-                }
+                elem *efilename = toEfilename1(irs);
+
+                //Symbol *sfilename = toEfilename0(irs);
+                //elem *efilename;
+                //if (config.exe == EX_WIN64)
+                //{
+                //    efilename = el_var(sfilename);
+                //    efilename = addressElem(efilename, Type::tstring/*, true*/);
+                //}
+                //else
+                //{
+                //    efilename = el_var(sfilename);
+                //}
                 ea = el_var(rtlsym[RTLSYM_DARRAY]);
                 ea = el_bin(OPcall, TYvoid, ea, el_param(el_long(TYuint, loc.linnum), efilename));
 #endif
@@ -5008,17 +5075,19 @@ elem *IndexExp::toElem(IRState *irs)
             ea = el_bin(OPcall, TYvoid, el_var(sassert), el_long(TYint, loc.linnum));
 #else
             // Construct: ((e || _d_arraybounds(fname, line)),n)
-                Symbol *sfilename = toEfilename0(irs);
-                elem *efilename;
-                if (config.exe == EX_WIN64)
-                {
-                    efilename = el_var(sfilename);
-                    efilename = addressElem(efilename, Type::tstring/*, true*/);
-                }
-                else
-                {
-                    efilename = el_var(sfilename);
-                }
+                elem *efilename = toEfilename1(irs);
+
+                //Symbol *sfilename = toEfilename0(irs);
+                //elem *efilename;
+                //if (config.exe == EX_WIN64)
+                //{
+                //    efilename = el_var(sfilename);
+                //    efilename = addressElem(efilename, Type::tstring/*, true*/);
+                //}
+                //else
+                //{
+                //    efilename = el_var(sfilename);
+                //}
             ea = el_var(rtlsym[RTLSYM_DARRAY]);
             ea = el_bin(OPcall, TYvoid, ea, el_param(el_long(TYuint, loc.linnum), efilename));
 #endif
@@ -5062,17 +5131,19 @@ elem *IndexExp::toElem(IRState *irs)
                 ea = el_bin(OPcall, TYvoid, el_var(sassert), el_long(TYint, loc.linnum));
 #else
                 // Construct: (n2x || _d_arraybounds(fname, line))
-                Symbol *sfilename = toEfilename0(irs);
-                elem *efilename;
-                if (config.exe == EX_WIN64)
-                {
-                    efilename = el_var(sfilename);
-                    efilename = addressElem(efilename, Type::tstring/*, true*/);
-                }
-                else
-                {
-                    efilename = el_var(sfilename);
-                }
+                elem *efilename = toEfilename1(irs);
+
+                //Symbol *sfilename = toEfilename0(irs);
+                //elem *efilename;
+                //if (config.exe == EX_WIN64)
+                //{
+                //    efilename = el_var(sfilename);
+                //    efilename = addressElem(efilename, Type::tstring/*, true*/);
+                //}
+                //else
+                //{
+                //    efilename = el_var(sfilename);
+                //}
                 ea = el_var(rtlsym[RTLSYM_DARRAY]);
                 ea = el_bin(OPcall, TYvoid, ea, el_param(el_long(TYuint, loc.linnum), efilename));
                 //printf("IndexExp[%s] %s\n", loc.toChars(), toChars());
