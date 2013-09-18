@@ -650,7 +650,7 @@ Symbol *EnumDeclaration::toInitializer()
     return sinit;
 }
 
-#if 0
+#if 1
 /******************************************
  */
 

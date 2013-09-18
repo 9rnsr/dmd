@@ -123,7 +123,7 @@ Symbol *EnumDeclaration::toInitializer()
     return NULL;
 }
 
-#if 0
+#if 1
 Symbol *Module::toModuleAssert()
 {
     return NULL;

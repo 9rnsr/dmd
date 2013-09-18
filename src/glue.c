@@ -125,7 +125,7 @@ void obj_write_deferred(Library *library)
             md->doppelganger = 1;       // identify this module as doppelganger
             md->md = m->md;
             md->aimports.push(m);       // it only 'imports' m
-#if 0
+#if 1
             md->massert = m->massert;
             md->munittest = m->munittest;
             md->marray = m->marray;
@@ -447,7 +447,7 @@ void Module::genobjfile(int multiobj)
         return;
     }
 
-#if 0
+#if 1
     if (global.params.multiobj)
     {   /* This is necessary because the main .obj for this module is written
          * first, but determining whether marray or massert or munittest are needed is done
@@ -466,7 +466,7 @@ void Module::genobjfile(int multiobj)
     if (!global.params.betterC /*|| needModuleInfo()*/)
         genmoduleinfo();
 
-#if 0
+#if 1
     // If module assert
     for (int i = 0; i < 3; i++)
     {

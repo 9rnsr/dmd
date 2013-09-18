@@ -571,7 +571,7 @@ void TemplateDeclaration::semantic(Scope *sc)
 #endif
     }
 
-#if 0
+#if 1
     if (/*global.params.useArrayBounds &&*/ sc->module)
     {
         // Generate this function as it may be used

@@ -158,7 +158,7 @@ public:
     Symbol *stest;              // module unit test
 
     Symbol *sfilename;          // symbol for filename
-#if 0
+#if 1
     Symbol *massert;            // module assert function
     Symbol *toModuleAssert();   // get module assert function
 
