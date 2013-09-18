@@ -466,6 +466,20 @@ void Module::genobjfile(int multiobj)
     if (!global.params.betterC /*|| needModuleInfo()*/)
         genmoduleinfo();
 
+//    if (sfilename && sfilename->Sdt == NULL)
+//    {
+//        dt_t *dt = NULL;
+//        char *id = srcfile->toChars();
+//        size_t len = strlen(id);
+//        dtsize_t(&dt, len);
+//        dtabytes(&dt,TYnptr, 0, len + 1, id);
+//
+//        sfilename->Sdt = dt;
+//
+//        out_readonly(sfilename);
+//        outdata(sfilename);
+//    }
+
 #if 0
     // If module assert
     for (int i = 0; i < 3; i++)
