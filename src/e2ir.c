@@ -2130,7 +2130,7 @@ elem *AssertExp::toElem(IRState *irs)
         }
         else
         {
-#if 1
+#if 0
             Symbol *sassert = ud ? m->toModuleUnittest() : m->toModuleAssert();
             ea = el_bin(OPcall, TYvoid, el_var(sassert), el_long(TYint, loc.linnum));
 #else
@@ -2962,7 +2962,7 @@ elem *AssignExp::toElem(IRState *irs)
                 c2 = el_bin(OPle, TYint, el_copytree(elwr), el_copytree(eupr));
                 c1 = el_bin(OPandand, TYint, c1, c2);
 
-#if 1
+#if 0
                 // Construct: (c1 || ModuleArray(line))
                 Symbol *sassert = irs->blx->module->toModuleArray();
                 ea = el_bin(OPcall, TYvoid, el_var(sassert), el_long(TYint, loc.linnum));
