@@ -189,3 +189,23 @@ void unittest_aa()
 }
 
 #endif
+
+int _aaForeach(AA* aa, AAForeachDgV dg, void *ctx)
+{
+    int result = 0;
+    if (aa)
+    {
+        for (size_t i = 0; i < aa->b_length; i++)
+        {
+            aaA* e = aa->b[i];
+            while (e)
+            {
+                result = dg(ctx, e->value);
+                if (result)
+                    return result;
+                e = e->next;
+            }
+        }
+    }
+    return result;
+}

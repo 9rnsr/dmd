@@ -17,3 +17,6 @@ Value* _aaGet(AA** aa, Key key);
 Value _aaGetRvalue(AA* aa, Key key);
 void _aaRehash(AA** paa);
 
+typedef int (*AAForeachDgV)(void *ctx, Value v);
+int _aaForeach(AA* aa, AAForeachDgV dg, void *ctx);
+
