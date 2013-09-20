@@ -133,6 +133,22 @@ const char *lookForCorrespondingHeaderFile(Module *m)
     if (FileName::exists(sdi) == 1)
         return sdi;
 
+    if (FileName::absolute(filename))
+        return NULL;
+
+    if (!global.path)
+        return NULL;
+
+    for (size_t i = 0; i < global.path->dim; i++)
+    {
+        const char *p = (*global.path)[i];
+
+        const char *n = FileName::combine(p, sdi);
+        if (FileName::exists(n) == 1)
+            return n;
+        FileName::free(n);
+    }
+
     return NULL;
 }
 
