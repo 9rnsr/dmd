@@ -58,7 +58,7 @@ void Module::genmoduleinfo()
 
     //////////////////////////////////////////////
 
-    csym->Sclass = SCglobal;
+    csym->Sclass = SCcomdat;//SCglobal;
     csym->Sfl = FLdata;
 
     dt_t *dt = NULL;
@@ -68,7 +68,7 @@ void Module::genmoduleinfo()
     for (size_t i = 0; i < members->dim; i++)
     {   Dsymbol *member = (*members)[i];
 
-        //printf("\tmember '%s'\n", member->toChars());
+        printf("\tmember '%s'\n", member->toChars());
         member->addLocalClass(&aclasses);
     }
 

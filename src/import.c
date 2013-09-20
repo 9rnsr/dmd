@@ -99,6 +99,43 @@ Dsymbol *Import::syntaxCopy(Dsymbol *s)
     return si;
 }
 
+const char *lookForSourceFile(const char *filename);
+
+const char *lookForCorrespondingHeaderFile(Module *m)
+{
+    if (strcmp(FileName::ext(m->srcfile->toChars()), global.mars_ext) != 0)
+        return NULL;
+
+    Identifiers *packages = m->md ? m->md->packages : NULL;
+
+    char *filename = m->ident->toChars();
+    if (packages && packages->dim)
+    {
+        OutBuffer buf;
+
+        for (size_t i = 0; i < packages->dim; i++)
+        {
+            Identifier *pid = (*packages)[i];
+
+            buf.writestring(pid->toChars());
+#if _WIN32
+            buf.writeByte('\\');
+#else
+            buf.writeByte('/');
+#endif
+        }
+        buf.writestring(filename);
+        buf.writeByte(0);
+        filename = (char *)buf.extractData();
+    }
+
+    const char *sdi = FileName::forceExt(filename, global.hdr_ext);
+    if (FileName::exists(sdi) == 1)
+        return sdi;
+
+    return NULL;
+}
+
 void Import::load(Scope *sc)
 {
     //printf("Import::load('%s') %p\n", toPrettyChars(), this);
@@ -118,7 +155,21 @@ void Import::load(Scope *sc)
     if (s)
     {
         if (s->isModule())
+        {
             mod = (Module *)s;
+
+            if (strcmp(FileName::ext(mod->srcfile->toChars()), global.mars_ext) == 0)
+            {
+                printf("[%s] import s = '%s' (don't load file), isRoot = %d\n",
+                    loc.toChars(), mod->srcfile->toChars(), mod->importedFrom == mod);
+
+                if (lookForCorrespondingHeaderFile(mod))
+                {
+                    mod = Module::load(loc, packages, id);
+                    printf("\t--> correspond = '%s'\n", mod->srcfile->toChars());
+                }
+            }
+        }
         else
         {
             if (s->isAliasDeclaration())

@@ -183,23 +183,21 @@ const char *Module::kind()
 }
 
 Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
-{   Module *m;
-    char *filename;
-
+{
     //printf("Module::load(ident = '%s')\n", ident->toChars());
 
     // Build module filename by turning:
     //  foo.bar.baz
     // into:
     //  foo\bar\baz
-    filename = ident->toChars();
+    char *filename = ident->toChars();
     if (packages && packages->dim)
     {
         OutBuffer buf;
 
         for (size_t i = 0; i < packages->dim; i++)
-        {   Identifier *pid = (*packages)[i];
-
+        {
+            Identifier *pid = (*packages)[i];
             buf.writestring(pid->toChars());
 #if _WIN32
             buf.writeByte('\\');
@@ -212,7 +210,7 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
         filename = (char *)buf.extractData();
     }
 
-    m = new Module(filename, ident, 0, 0);
+    Module *m = new Module(filename, ident, 0, 0);
     m->loc = loc;
 
     /* Look for the source file
@@ -227,7 +225,8 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
         if (packages)
         {
             for (size_t i = 0; i < packages->dim; i++)
-            {   Identifier *pid = (*packages)[i];
+            {
+                Identifier *pid = (*packages)[i];
                 printf("%s.", pid->toChars());
             }
         }
