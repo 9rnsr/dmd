@@ -1089,6 +1089,7 @@ public:
     int inlineCost3(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
+    Expression *inlineScan(InlineScanState *iss, VarDeclaration *vret);
 };
 
 class AddrExp : public UnaExp

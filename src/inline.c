@@ -626,7 +626,6 @@ Expression *SymOffExp::doInline(InlineDoState *ids)
         if (var == ids->from[i])
         {
             SymOffExp *se = (SymOffExp *)copy();
-
             se->var = (Declaration *)ids->to[i];
             return se;
         }
@@ -642,7 +641,6 @@ Expression *VarExp::doInline(InlineDoState *ids)
         if (var == ids->from[i])
         {
             VarExp *ve = (VarExp *)copy();
-
             ve->var = (Declaration *)ids->to[i];
             return ve;
         }
@@ -763,7 +761,17 @@ Expression *DeclarationExp::doInline(InlineDoState *ids)
         else
         {
             VarDeclaration *vto;
-
+            if (ids->fd && vd == ids->fd->nrvo_var)
+            {
+                for (size_t i = 0; i < ids->from.dim; i++)
+                {
+                    if (vd == ids->from[i])
+                    {
+                        vto = (VarDeclaration *)ids->to[i];
+                        goto L1;
+                    }
+                }
+            }
             vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->init);
             memcpy((void*)vto, (void*)vd, sizeof(VarDeclaration));
             vto->parent = ids->parent;
@@ -773,6 +781,7 @@ Expression *DeclarationExp::doInline(InlineDoState *ids)
             ids->from.push(vd);
             ids->to.push(vto);
 
+        L1:
             if (vd->init)
             {
                 if (vd->init->isVoidInitializer())
@@ -1028,7 +1037,7 @@ Statement *ExpStatement::inlineScan(InlineScanState *iss)
                 if (fd && fd != iss->fd && fd->canInline(0, 0, 1))
                 {
                     Statement *s;
-                    fd->expandInline(iss, NULL, ce->arguments, &s);
+                    fd->expandInline(iss, NULL, NULL, ce->arguments, &s);
                     return s;
                 }
             }
@@ -1258,7 +1267,7 @@ Expression *Expression::inlineScan(InlineScanState *iss)
     return this;
 }
 
-void scanVar(Dsymbol *s, InlineScanState *iss)
+Expression *scanVar(Dsymbol *s, InlineScanState *iss)
 {
     //printf("scanVar(%s %s)\n", s->kind(), s->toPrettyChars());
     VarDeclaration *vd = s->isVarDeclaration();
@@ -1268,7 +1277,8 @@ void scanVar(Dsymbol *s, InlineScanState *iss)
         if (td)
         {
             for (size_t i = 0; i < td->objects->dim; i++)
-            {   DsymbolExp *se = (DsymbolExp *)(*td->objects)[i];
+            {
+                DsymbolExp *se = (DsymbolExp *)(*td->objects)[i];
                 assert(se->op == TOKdsymbol);
                 scanVar(se->s, iss);
             }
@@ -1276,39 +1286,36 @@ void scanVar(Dsymbol *s, InlineScanState *iss)
         else
         {
             // Scan initializer (vd->init)
-            if (vd->init)
+            ExpInitializer *ie = vd->init ? vd->init->isExpInitializer() : NULL;
+            if (ie)
             {
-                ExpInitializer *ie = vd->init->isExpInitializer();
-
-                if (ie)
-                {
+                Expression *iexp = ie->exp;
 #if DMDV2
-                    if (vd->type)
-                    {   Type *tb = vd->type->toBasetype();
-                        if (tb->ty == Tstruct)
-                        {   StructDeclaration *sd = ((TypeStruct *)tb)->sym;
-                            if (sd->cpctor)
-                            {   /* The problem here is that if the initializer is a
-                                 * function call that returns a struct S with a cpctor:
-                                 *   S s = foo();
-                                 * the postblit is done by the return statement in foo()
-                                 * in s2ir.c, the intermediate code generator.
-                                 * But, if foo() is inlined and now the code looks like:
-                                 *   S s = x;
-                                 * the postblit is not there, because such assignments
-                                 * are rewritten as s.cpctor(&x) by the front end.
-                                 * So, the inlining won't get the postblit called.
-                                 * Work around by not inlining these cases.
-                                 * A proper fix would be to move all the postblit
-                                 * additions to the front end.
-                                 */
-                                return;
-                            }
-                        }
+                Type *tb = vd->type ? vd->type->toBasetype() : NULL;
+                if (tb && tb->ty == Tstruct &&
+                    (((TypeStruct *)tb)->sym)->cpctor)
+                {
+                    /* Inlining function call with NRVO.
+                     */
+                    if (iexp->op == TOKconstruct &&
+                        ((ConstructExp *)iexp)->e2->op == TOKcall)
+                    {
+                        ConstructExp *ae = (ConstructExp *)iexp;
+                        ae->e2 = ((CallExp *)ae->e2)->inlineScan(iss, vd);
+                        //printf("call => %s\n", ae->e2->toChars());
+
+                        Expression *e = ae->e2;
+                        while (e->op == TOKcomma)
+                            e = ((CommaExp *)e)->e2;
+                        if (e->op == TOKvar && ((VarExp *)e)->var == s)
+                            return ae->e2;
+
+                        ie->exp = iexp;
+                        return NULL;
                     }
-#endif
-                    ie->exp = ie->exp->inlineScan(iss);
                 }
+#endif
+                ie->exp = iexp->inlineScan(iss);
             }
         }
     }
@@ -1316,13 +1323,14 @@ void scanVar(Dsymbol *s, InlineScanState *iss)
     {
         s->inlineScan();
     }
+    return NULL;
 }
 
 Expression *DeclarationExp::inlineScan(InlineScanState *iss)
 {
     //printf("DeclarationExp::inlineScan()\n");
-    scanVar(declaration, iss);
-    return this;
+    Expression *e = scanVar(declaration, iss);
+    return e ? e : this;
 }
 
 Expression *UnaExp::inlineScan(InlineScanState *iss)
@@ -1348,7 +1356,13 @@ Expression *BinExp::inlineScan(InlineScanState *iss)
 
 
 Expression *CallExp::inlineScan(InlineScanState *iss)
-{   Expression *e = this;
+{
+    return inlineScan(iss, NULL);
+}
+
+Expression *CallExp::inlineScan(InlineScanState *iss, VarDeclaration *vret)
+{
+    Expression *e = this;
 
     //printf("CallExp::inlineScan()\n");
     e1 = e1->inlineScan(iss);
@@ -1361,7 +1375,7 @@ Expression *CallExp::inlineScan(InlineScanState *iss)
 
         if (fd && fd != iss->fd && fd->canInline(0, 0, 0))
         {
-            e = fd->expandInline(iss, NULL, arguments, NULL);
+            e = fd->expandInline(iss, vret, NULL, arguments, NULL);
         }
     }
     else if (e1->op == TOKdotvar)
@@ -1381,7 +1395,7 @@ Expression *CallExp::inlineScan(InlineScanState *iss)
                 ;
             }
             else
-                e = fd->expandInline(iss, dve->e1, arguments, NULL);
+                e = fd->expandInline(iss, vret, dve->e1, arguments, NULL);
         }
     }
 
@@ -1647,7 +1661,8 @@ Lno:
     return 0;
 }
 
-Expression *FuncDeclaration::expandInline(InlineScanState *iss, Expression *ethis, Expressions *arguments, Statement **ps)
+Expression *FuncDeclaration::expandInline(InlineScanState *iss,
+        VarDeclaration *vret, Expression *ethis, Expressions *arguments, Statement **ps)
 {
     InlineDoState ids;
     DeclarationExp *de;
@@ -1713,15 +1728,23 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss, Expression *ethi
 
     if (!ps && nrvo_var)
     {
-        Identifier* tmp = Identifier::generateId("__nrvoretval");
-        VarDeclaration* vd = new VarDeclaration(loc, nrvo_var->type, tmp, NULL);
-        assert(!tf->isref);
-        vd->storage_class = STCtemp;
-        vd->linkage = tf->linkage;
-        vd->parent = iss->fd;
+        if (vret)
+        {
+            ids.from.push(nrvo_var);
+            ids.to.push(vret);
+        }
+        else
+        {
+            Identifier* tmp = Identifier::generateId("__nrvoretval");
+            VarDeclaration* vd = new VarDeclaration(loc, nrvo_var->type, tmp, NULL);
+            assert(!tf->isref);
+            vd->storage_class = STCtemp;
+            vd->linkage = tf->linkage;
+            vd->parent = iss->fd;
 
-        ids.from.push(nrvo_var);
-        ids.to.push(vd);
+            ids.from.push(nrvo_var);
+            ids.to.push(vd);
+        }
     }
     if (arguments && arguments->dim)
     {
