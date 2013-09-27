@@ -1653,6 +1653,7 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss, Expression *ethi
     DeclarationExp *de;
     Expression *e = NULL;
     Statements *as = NULL;
+    TypeFunction *tf = (TypeFunction*)type;
 
 #if LOG || CANINLINE_LOG
     printf("FuncDeclaration::expandInline('%s')\n", toChars());
@@ -1710,6 +1711,18 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss, Expression *ethi
             as->push(new ExpStatement(e->loc, e));
     }
 
+    if (!ps && nrvo_var)
+    {
+        Identifier* tmp = Identifier::generateId("__nrvoretval");
+        VarDeclaration* vd = new VarDeclaration(loc, nrvo_var->type, tmp, NULL);
+        assert(!tf->isref);
+        vd->storage_class = STCtemp;
+        vd->linkage = tf->linkage;
+        vd->parent = iss->fd;
+
+        ids.from.push(nrvo_var);
+        ids.to.push(vd);
+    }
     if (arguments && arguments->dim)
     {
         assert(parameters->dim == arguments->dim);
@@ -1737,9 +1750,9 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss, Expression *ethi
 
             ei->exp = new ConstructExp(vto->loc, ve, arg);
             ei->exp->type = ve->type;
-//ve->type->print();
-//arg->type->print();
-//ei->exp->print();
+            //ve->type->print();
+            //arg->type->print();
+            //ei->exp->print();
 
             ids.from.push(vfrom);
             ids.to.push(vto);
@@ -1783,8 +1796,7 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss, Expression *ethi
      * This only happens with struct returns.
      * See Bugzilla 2127 for an example.
      */
-    TypeFunction *tf = (TypeFunction*)type;
-    if (!ps && tf->next->ty == Tstruct)
+    if (!ps && tf->next->ty == Tstruct && !nrvo_var)
     {
         /* Generate a new variable to hold the result and initialize it with the
          * inlined body of the function:
