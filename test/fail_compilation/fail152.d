@@ -1,3 +1,10 @@
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail152.d(15): Error: cannot use type double as an operand
+---
+*/
+
 // 1028 Segfault using tuple inside asm code.
 
 void a(X...)(X expr)
