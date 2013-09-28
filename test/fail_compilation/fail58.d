@@ -1,3 +1,11 @@
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail58.d(25): Error: function fail58.SomeFunc (dchar[] pText, out int pStopPosn) is not callable using argument types (string, int)
+fail_compilation/fail58.d(29): Error: function fail58.SomeFunc (dchar[] pText, out int pStopPosn) is not callable using argument types (string, int)
+---
+*/
+
 debug(1) import std.stdio;
 const int anything = -1000; // Line #2
 dchar[] SomeFunc( dchar[] pText, out int pStopPosn)
