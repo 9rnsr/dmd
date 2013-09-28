@@ -1,3 +1,10 @@
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail12.d(18): Error: fail12.main.Foo!(y).abc at fail_compilation/fail12.d(10) conflicts with fail12.main.Foo!(y).abc at fail_compilation/fail12.d(10)
+---
+*/
+
 template Foo(alias b)
 {
     int abc() { return b; }
