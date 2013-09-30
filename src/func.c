@@ -1295,6 +1295,8 @@ void FuncDeclaration::semantic3(Scope *sc)
                     //type = type->semantic(loc, sc);   // Removed with 6902
                 }
             }
+            if (f->retStyle() != RETstack)
+                nrvo_can = 0;
             if (returns && f->next->ty != Tvoid)
             {
                 for (size_t i = 0; i < returns->dim; i++)

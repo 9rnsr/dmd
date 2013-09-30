@@ -3753,7 +3753,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
             else if (fd->nrvo_var != v)
                 fd->nrvo_can = 0;
         }
-        else if (exp->isLvalue())
+        else if (fd->nrvo_can && exp->isLvalue())
         {
             fd->nrvo_can = 0;
         }
