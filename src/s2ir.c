@@ -778,14 +778,16 @@ void ReturnStatement::toIR(IRState *irs)
             assert(e);
 
             if (exp->op == TOKstructliteral ||
-                (func->nrvo_can && func->nrvo_var))
+                (func->nrvo_can && func->nrvo_var && exp->op == TOKvar))
             {
+                //printf("1func = %s, exp = %s\n", func->toChars(), exp->toChars());
                 // Return value via hidden pointer passed as parameter
                 // Write exp; return shidden;
                 es = e;
             }
             else
             {
+                //printf("2func = %s, exp = %s\n", func->toChars(), exp->toChars());
                 // Return value via hidden pointer passed as parameter
                 // Write *shidden=exp; return shidden;
                 int op;

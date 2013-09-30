@@ -3091,6 +3091,35 @@ void fun7474(T...)() { T x; }
 void test7474() { fun7474!S7474(); }
 
 /**********************************/
+// XXXXX
+
+struct SXXXXX
+{
+    static int count = 0;
+
+    this(int) { count++; }
+    ~this()   { count--; }
+    this(this) { assert(0); }
+}
+
+SXXXXX funXXXXX()
+{
+    auto ret = SXXXXX(1);
+    if (true)
+        return ret;     // should be NRVO
+    return SXXXXX.init; // directly moved in *shidden
+}
+
+void testXXXXX()
+{
+    {
+        SXXXXX t = funXXXXX();
+        assert(SXXXXX.count == 1);
+    }
+    assert(SXXXXX.count == 0);
+}
+
+/**********************************/
 
 int main()
 {
@@ -3187,6 +3216,7 @@ int main()
     test11134();
     test11197();
     test7474();
+    testXXXXX();
 
     printf("Success\n");
     return 0;
