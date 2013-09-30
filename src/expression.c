@@ -5257,7 +5257,6 @@ Lagain:
         {   error("default construction is disabled for type %s", cd->type->toChars());
             goto Lerr;
         }
-        checkDeprecated(sc, cd);
         if (cd->isNested())
         {   /* We need a 'this' pointer for the nested class.
              * Ensure we have the right one.
