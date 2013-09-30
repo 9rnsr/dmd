@@ -1,8 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail115.d(18): Error: mixin Foo!y cannot resolve forward reference
-fail_compilation/fail115.d(18): Error: mixin Foo!y cannot resolve forward reference
+fail_compilation/fail115.d(17): Error: mixin Foo!y cannot resolve forward reference
 ---
 */
 

@@ -6190,12 +6190,19 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
         Ldsym:
             //printf("dsym %s %s\n", sa->kind(), sa->toChars());
             if (!flags && isPseudoDsymbol(sa))
-            {   (*tiargs)[j] = new ErrorExp();
+            {
+                (*tiargs)[j] = new ErrorExp();
+                continue;
+            }
+            if (sa->errors)
+            {
+                (*tiargs)[j] = new ErrorExp();
                 continue;
             }
             TupleDeclaration *d = sa->toAlias()->isTupleDeclaration();
             if (d)
-            {   // Expand tuple
+            {
+                // Expand tuple
                 size_t dim = d->objects->dim;
                 tiargs->remove(j);
                 tiargs->insert(j, d->objects);
