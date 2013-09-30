@@ -6955,26 +6955,19 @@ void TypeInstance::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymb
 {
     // Note close similarity to TypeIdentifier::resolve()
 
-    Dsymbol *s;
-
     *pe = NULL;
     *pt = NULL;
     *ps = NULL;
 
-#if 0
-    if (!idents.dim)
-    {
-        error(loc, "template instance '%s' has no identifier", toChars());
-        return;
-    }
-#endif
-    //id = (Identifier *)idents.data[0];
-    //printf("TypeInstance::resolve(sc = %p, idents = '%s')\n", sc, id->toChars());
+    //printf("TypeInstance::resolve(sc = %p, inst = '%s')\n", sc, tempinst->toChars());
+    Dsymbol *s;
     s = tempinst;
     if (s)
     {
         //printf("s = %s\n", s->toChars());
         s->semantic(sc);
+        if (!s->errors)
+            s = s->toAlias();
     }
     resolveHelper(loc, sc, s, NULL, pe, pt, ps, intypeid);
     if (*pt)
