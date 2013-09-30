@@ -7641,8 +7641,18 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
             if (Declaration *d = s->isDeclaration())
                 accessCheck(loc, sc, NULL, d);
 
+        #if 1
+            if (!s->isFuncDeclaration())        // functions are checked after overloading
+                checkDeprecated(sc, s);
+            Dsymbol *olds = s;
+            s = s->toAlias();
+            //printf("s = '%s', s->kind = '%s', s->needThis() = %p\n", s->toChars(), s->kind(), s->needThis());
+            if (s != olds && !s->isFuncDeclaration())
+                checkDeprecated(sc, s);
+        #else
             s = s->toAlias();
             checkDeprecated(sc, s);
+        #endif
 
             EnumMember *em = s->isEnumMember();
             if (em)
