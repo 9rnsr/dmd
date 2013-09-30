@@ -354,18 +354,6 @@ void ClassDeclaration::semantic(Scope *sc)
         else
         {
             TypeClass *tc = (TypeClass *)(tb);
-
-            if (tc->sym->isDeprecated())
-            {
-                if (!isDeprecated())
-                {
-                    // Deriving from deprecated class makes this one deprecated too
-                    isdeprecated = true;
-
-                    tc->checkDeprecated(loc, sc);
-                }
-            }
-
             if (tc->sym->isInterfaceDeclaration())
                 ;
             else
@@ -427,17 +415,6 @@ void ClassDeclaration::semantic(Scope *sc)
         }
         else
         {
-            if (tc->sym->isDeprecated())
-            {
-                if (!isDeprecated())
-                {
-                    // Deriving from deprecated class makes this one deprecated too
-                    isdeprecated = true;
-
-                    tc->checkDeprecated(loc, sc);
-                }
-            }
-
             // Check for duplicate interfaces
             for (size_t j = (baseClass ? 1 : 0); j < i; j++)
             {
