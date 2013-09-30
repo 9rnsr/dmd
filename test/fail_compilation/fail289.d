@@ -1,6 +1,13 @@
-alias void delegate() dg;
-void fun(){}
-void gun(){
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail289.d(12): Error: cannot cast from function pointer to delegate
+---
+*/
 
-  dg d=cast(void delegate())&fun;
+alias void delegate() dg;
+void fun() {}
+void gun()
+{
+    dg d = cast(void delegate())&fun;
 }

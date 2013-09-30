@@ -1,4 +1,11 @@
-import std.stdio;
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail261.d(19): Error: invalid foreach aggregate range
+---
+*/
+
+//import std.stdio;
 
 struct MyRange
 {
@@ -11,6 +18,6 @@ void main()
 
     foreach (r; range)
     {
-        writefln("%s", r.toString());
+        //writefln("%s", r.toString());
     }
 }
