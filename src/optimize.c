@@ -605,8 +605,14 @@ Expression *CastExp::optimize(int result, bool keepLvalue)
     // We can convert 'head const' to mutable
     if (to->mutableOf()->constOf()->equals(e1->type->mutableOf()->constOf()))
     {
-        if (X) printf(" returning5 %s\n", e1->toChars());
-        goto L1;
+        Type *tv = e1->type->baseElemOf();
+        if (tv->ty == Tstruct && ((TypeStruct *)tv)->sym->postblit)
+            ;
+        else
+        {
+            if (X) printf(" returning5 %s\n", e1->toChars());
+            goto L1;
+        }
     }
 
     Expression *e;

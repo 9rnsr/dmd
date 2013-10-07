@@ -1127,7 +1127,7 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
             e = new ErrorExp();
         }
 
-        e = e->isLvalue() ? callCpCtor(sc, e) : valueNoDtor(e);
+        e = e->isLvalue() ? callCpCtor(sc, e->type, e) : valueNoDtor(e);
 
         if (t0)
         {
@@ -1321,7 +1321,7 @@ bool Expression::checkPostblit(Scope *sc, Type *t)
  * Input:
  *      sc      just used to specify the scope of created temporary variable
  */
-Expression *callCpCtor(Scope *sc, Expression *e)
+Expression *callCpCtor(Scope *sc, Type *t, Expression *e)
 {
     Type *tv = e->type->baseElemOf();
     if (tv->ty == Tstruct)
@@ -1336,7 +1336,7 @@ Expression *callCpCtor(Scope *sc, Expression *e)
              * directly onto the stack.
              */
             Identifier *idtmp = Lexer::uniqueId("__cpcttmp");
-            VarDeclaration *tmp = new VarDeclaration(e->loc, e->type, idtmp, new ExpInitializer(e->loc, e));
+            VarDeclaration *tmp = new VarDeclaration(e->loc, t, idtmp, new ExpInitializer(e->loc, e));
             tmp->storage_class |= STCtemp | STCctfe;
             tmp->noscope = 1;
             tmp->semantic(sc);
@@ -1650,7 +1650,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             }
             else
             {
-                arg = arg->isLvalue() ? callCpCtor(sc, arg) : valueNoDtor(arg);
+                arg = arg->isLvalue() ? callCpCtor(sc, p->type, arg) : valueNoDtor(arg);
             }
 
             //printf("arg: %s\n", arg->toChars());
@@ -1735,7 +1735,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             }
 
 #if 0
-            arg = arg->isLvalue() ? callCpCtor(sc, arg) : valueNoDtor(arg);
+            arg = arg->isLvalue() ? callCpCtor(sc, arg->type, arg) : valueNoDtor(arg);
 #else
             // Convert static arrays to dynamic arrays
             // BUG: I don't think this is right for D2
@@ -1751,7 +1751,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             }
             if (tb->ty == Tstruct)
             {
-                arg = callCpCtor(sc, arg);
+                arg = callCpCtor(sc, arg->type, arg);
             }
 #endif
 
@@ -2207,6 +2207,161 @@ Lerror:
     return new ErrorExp();
 }
 
+
+/***************************************
+ *
+ */
+
+int Expression::isUniqData()
+{
+    if (!type->hasPointers() ||
+        type->implicitConvTo(type->immutableOf()))
+    {
+        return true;
+    }
+
+    //Type *tb = type->toBasetype();
+    //tb->ty == Tstruct && !to->isImmutable() &&
+    return false;   // not unique
+}
+
+int CommaExp::isUniqData()
+{
+    return e2->isUniqData();
+}
+
+int DotVarExp::isUniqData()
+{
+    if (Expression::isUniqData())
+        return true;
+    return e1->isUniqData();
+}
+
+int IndexExp::isUniqData()
+{
+    if (Expression::isUniqData())
+        return true;
+    return e1->isUniqData();
+}
+
+int SliceExp::isUniqData()
+{
+    if (Expression::isUniqData())
+        return true;
+    return e1->isUniqData();
+}
+
+int CatExp::isUniqData()
+{
+    Type *tn = type->nextOf();
+    if (!tn->hasPointers() ||
+        tn->implicitConvTo(tn->immutableOf()))
+    {
+        return true;
+    }
+    return e1->isUniqData() && e2->isUniqData();
+}
+
+int CallExp::isUniqData()
+{
+    if (Expression::isUniqData())
+        return true;
+
+    // arr.(dup|idup)
+    if (!f && e1->op == TOKvar && ((VarExp *)e1)->var->ident == Id::adDup &&
+        type->ty == Tarray)
+    {
+        return !type->nextOf()->hasPointers();
+    }
+
+    if (f && f->isCtorDeclaration())
+    {
+        TypeFunction *tf = (TypeFunction *)f->type;
+        if (tf->iswild == 2)    // unique ctor
+            return true;
+    }
+
+    Type *tb = e1->type->toBasetype();
+    if (tb->ty == Tdelegate || tb->ty == Tpointer)
+        tb = tb->nextOf();
+    if (tb->ty == Tfunction && ((TypeFunction *)tb)->purity)
+    {
+        if (f && f->isolateReturn())
+            return true;
+        //if (all of arguments are unique data)
+        //    return true;
+    }
+
+    return false;
+}
+
+int ArrayLiteralExp::isUniqData()
+{
+    if (elements)
+    {
+        for (size_t i = 0; i < elements->dim; ++i)
+        {
+            Expression *e = (*elements)[i];
+            if (!e->isUniqData())
+                return false;
+        }
+    }
+    return true;
+}
+
+int AssocArrayLiteralExp::isUniqData()
+{
+    if (values)
+    {
+        for (size_t i = 0; i < values->dim; ++i)
+        {
+            Expression *e = (*values)[i];
+            if (!e->isUniqData())
+                return false;
+        }
+    }
+    return true;
+}
+
+int StructLiteralExp::isUniqData()
+{
+    if (elements)
+    {
+        for (size_t i = 0; i < elements->dim; ++i)
+        {
+            Expression *e = (*elements)[i];
+            if (!e->isUniqData())
+                return false;
+        }
+    }
+    return true;
+}
+
+int NewExp::isUniqData()
+{
+    Type *tb = type->toBasetype();
+    if (tb->ty == Tclass)
+    {
+        // default ctor call || unique ctor call || pure ctor call && all arguments are unique
+        return false;
+    }
+    else if (tb->ty == Tstruct)
+    {
+        // ctor call -> unique ctor call || pure ctor call && all arguments are unique
+        // literal && all arguments are unique
+        return false;
+    }
+    else if (tb->ty == Tarray/* && tb->nextOf()->isscalar()*/)
+    {
+        return true;
+    }
+    return true;
+}
+
+int CondExp::isUniqData()
+{
+    return e1->isUniqData() && e2->isUniqData();
+}
 
 /************************************
  * Detect cases where pointers to the stack can 'escape' the
@@ -4611,11 +4766,13 @@ Expression *StructLiteralExp::semantic(Scope *sc)
         if (!e->implicitConvTo(telem))
             telem = origType;  // restore type for better diagnostic
 
+        e = e->isLvalue() ? callCpCtor(sc, telem, e) : valueNoDtor(e);
+
         e = e->implicitCastTo(sc, telem);
         if (e->op == TOKerror)
             return e;
 
-        (*elements)[i] = e->isLvalue() ? callCpCtor(sc, e) : valueNoDtor(e);
+        (*elements)[i] = e;
     }
 
     /* Fill out remainder of elements[] with default initializers for fields[]
@@ -7868,6 +8025,7 @@ int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1)
             fd = s->isFuncDeclaration();
         if (fd &&
             ((fd->isCtorDeclaration() && var->isField()) ||
+             (fd->isPostBlitDeclaration() && var->isField()) ||
              (fd->isStaticCtorDeclaration() && !var->isField())) &&
             fd->toParent2() == var->toParent2() &&
             (!e1 || e1->op == TOKthis)
@@ -8721,7 +8879,13 @@ Lagain:
         }
 
         // Do overload resolution
-        f = resolveFuncCall(loc, sc, s, tiargs, ue1 ? ue1->type : NULL, arguments);
+        if (s->ident == Id::cpctor ||
+            s->isPostBlitDeclaration())
+        {
+            f = s->isFuncDeclaration(); // hack
+        }
+        else
+            f = resolveFuncCall(loc, sc, s, tiargs, ue1 ? ue1->type : NULL, arguments);
         if (!f)
             return new ErrorExp();
 
@@ -11286,6 +11450,25 @@ Ltupleassign:
     {
         //printf("[%s] change to init - %s\n", loc.toChars(), toChars());
         op = TOKconstruct;
+
+        TypeFunction *tf = (TypeFunction *)sc->func->type;
+        if (sc->func->isPostBlitDeclaration() && tf->mod == MODwild)
+        {
+            // Regard inout postblit as unique postblit
+            assert(t1->isWild() || t1->isImmutable());
+
+            //printf("[%s] init-assign %s, t1 = %s\n", loc.toChars(), toChars(), t1->toChars());
+            if (e2->type->implicitConvTo(e2->type->immutableOf()))
+            {
+                // doesn't have any non-immutable indirections
+            }
+            else if (e2->isUniqData())
+            {
+                e2 = e2->castTo(sc, e1->type);
+            }
+            else
+                error("initializing should be done by unique data");
+        }
     }
 
     /* If it is an assignment from a 'foreign' type,
@@ -11365,10 +11548,13 @@ Ltupleassign:
                         /* Rewrite as:
                          *  e1.cpctor(e2);
                          */
-                        if (!e2->type->implicitConvTo(e1->type))
+                        FuncDeclaration *cpctor = resolveCpCtor(e2->type->mod, e1->type->mod, sd->cpctor);
+                        if (!cpctor)
+                        {
                             error("conversion error from %s to %s", e2->type->toChars(), e1->type->toChars());
-
-                        Expression *e = new DotVarExp(loc, e1, sd->cpctor, 0);
+                            return new ErrorExp();
+                        }
+                        Expression *e = new DotVarExp(loc, e1, cpctor, 0);
                         e = new CallExp(loc, e, e2);
                         return e->semantic(sc);
                     }
@@ -11947,7 +12133,8 @@ Expression *CatAssignExp::semantic(Scope *sc)
              tb1next->ty == Tchar || tb1next->ty == Twchar || tb1next->ty == Tdchar))
         )
        )
-    {   // Append array
+    {
+        // Append array
         e1->checkPostblit(sc, tb1next);
         e2 = e2->castTo(sc, e1->type);
         type = e1->type;
@@ -11955,10 +12142,11 @@ Expression *CatAssignExp::semantic(Scope *sc)
     else if ((tb1->ty == Tarray) &&
         e2->implicitConvTo(tb1next)
        )
-    {   // Append element
+    {
+        // Append element
         e2->checkPostblit(sc, tb2);
+        e2 = e2->isLvalue() ? callCpCtor(sc, tb1next, e2) : valueNoDtor(e2);
         e2 = e2->castTo(sc, tb1next);
-        e2 = e2->isLvalue() ? callCpCtor(sc, e2) : valueNoDtor(e2);
         type = e1->type;
     }
     else if (tb1->ty == Tarray &&
@@ -11966,7 +12154,8 @@ Expression *CatAssignExp::semantic(Scope *sc)
         e2->type->ty != tb1next->ty &&
         e2->implicitConvTo(Type::tdchar)
        )
-    {   // Append dchar to char[] or wchar[]
+    {
+        // Append dchar to char[] or wchar[]
         e2 = e2->castTo(sc, Type::tdchar);
         type = e1->type;
 
@@ -12390,7 +12579,8 @@ Expression *CatExp::semantic(Scope *sc)
             e2 = e2->implicitCastTo(sc, tb1next);
             type = tb1next->arrayOf();
             if (tb2->ty == Tarray || tb2->ty == Tsarray)
-            {   // Make e2 into [e2]
+            {
+                // Make e2 into [e2]
                 e2 = new ArrayLiteralExp(e2->loc, e2);
                 e2->type = type;
             }
@@ -12404,7 +12594,8 @@ Expression *CatExp::semantic(Scope *sc)
             e1 = e1->implicitCastTo(sc, tb2next);
             type = tb2next->arrayOf();
             if (tb1->ty == Tarray || tb1->ty == Tsarray)
-            {   // Make e1 into [e1]
+            {
+                // Make e1 into [e1]
                 e1 = new ArrayLiteralExp(e1->loc, e1);
                 e1->type = type;
             }

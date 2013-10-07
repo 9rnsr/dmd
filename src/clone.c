@@ -690,7 +690,7 @@ FuncDeclaration *StructDeclaration::buildXopCmp(Scope *sc)
  *      - no fields are overlooked
  */
 
-FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
+FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc, FuncDeclaration *postblit)
 {
     /* Copy constructor is only necessary if there is a postblit function,
      * otherwise the code generator will just do a bit copy.
@@ -698,7 +698,7 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
     if (!postblit)
         return NULL;
 
-    //printf("StructDeclaration::buildCpCtor() %s\n", toChars());
+    //printf("StructDeclaration::buildCpCtor() %s, postblit = %s\n", toChars(), postblit->type->toChars());
     StorageClass stc = STCsafe | STCnothrow | STCpure;
     Loc declLoc = postblit->loc;
     Loc loc = Loc();    // internal code should have no loc to prevent coverage
@@ -708,13 +708,13 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
         stc = (stc & ~STCsafe) | STCtrusted;
 
     Parameters *fparams = new Parameters;
-    fparams->push(new Parameter(STCref, type->constOf(), Id::p, NULL));
+    fparams->push(new Parameter(STCref, type->addMod(postblit->type->mod), Id::p, NULL));
     Type *tf = new TypeFunction(fparams, Type::tvoid, 0, LINKd, stc);
-    tf->mod = MODconst;
+    tf->mod = postblit->type->mod;
 
     FuncDeclaration *fcp = new FuncDeclaration(declLoc, Loc(), Id::cpctor, stc, tf);
 
-    if (!(stc & STCdisable))
+    if ((stc & STCdisable) == 0)
     {
         // Build *this = p;
         Expression *e = new ThisExp(loc);
@@ -749,6 +749,82 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
 }
 
 /*****************************************
+ *
+ */
+
+FuncDeclaration *resolveCpCtor(unsigned srcMod, unsigned dstMod, FuncDeclaration *fd)
+{
+  struct ParamCpCtor
+  {
+    unsigned srcMod, dstMod;
+    FuncDeclaration *lastf;
+    FuncDeclaration *anyf;
+
+    static int fp(void *param, Dsymbol *s)
+    {
+        if (FuncDeclaration *fd = s->isFuncDeclaration())
+            return ((ParamCpCtor *)param)->fp(fd);
+        return 0;
+    }
+    int fp(FuncDeclaration *fd)
+    {
+        TypeFunction *tf = (TypeFunction *)fd->type;
+        if (srcMod == dstMod)
+        {
+            if (tf->mod == dstMod)
+                lastf = fd, anyf = NULL;
+            else if (tf->mod == MODconst)
+            {
+                if (!lastf || lastf->type->mod != dstMod)
+                    lastf = fd, anyf = NULL;
+            }
+            else if (tf->mod == MODwild)
+            {
+                if (!lastf)
+                    lastf = fd;
+            }
+        }
+        else if (MODimplicitConv(srcMod, dstMod))
+        {
+            if (MODimplicitConv(srcMod, tf->mod) &&
+                MODimplicitConv(tf->mod, dstMod))
+            {
+                if (tf->mod == dstMod)
+                    lastf = fd, anyf = NULL;
+                else
+                    (lastf ? anyf : lastf) = fd;
+            }
+            else if (tf->mod == MODwild)
+            {
+                if (!lastf)
+                    lastf = fd;
+            }
+        }
+        else
+        {
+            // distinct copy
+            if (tf->mod == MODwild)
+                lastf = fd;
+        }
+        return 0;
+    }
+  };
+    ParamCpCtor p;
+    // context
+    p.srcMod = srcMod;
+    p.dstMod = dstMod;
+
+    // result
+    p.lastf = NULL;
+    p.anyf = NULL;
+
+    overloadApply(fd, &p, &ParamCpCtor::fp);
+    //printf("%s resolveCpCtor %d to %d, p.lastf = %s\n", fd->isMember2()->toChars(), srcMod, dstMod, p.lastf ? p.lastf->type->toChars() : NULL);
+
+    return p.lastf;
+}
+
+/*****************************************
  * Create inclusive postblit for struct by aggregating
  * all the postblits in postblits[] with the postblits for
  * all the members.
@@ -756,11 +832,67 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
  * and the ordering changes (runs forward instead of backwards).
  */
 
-FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
+FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc, PostBlitDeclaration *postblit)
 {
-    //printf("StructDeclaration::buildPostBlit() %s\n", toChars());
+    //printf("StructDeclaration::buildPostBlit() %s, pbl = %s\n", toChars(), postblit ? postblit->type->toChars() : NULL);
+    StorageClass stc = postblit->storage_class;
+    Loc declLoc = postblit->loc;
+    Loc loc = Loc();    // internal code should have no loc to prevent coverage
+
+    if (stc & STCdisable)
+        return postblit;
+
+    unsigned mod = postblit->type->mod;
+    FuncDeclaration *dd = buildFieldPostBlit(sc, mod, &postblit->mustInit);
+    if (postblit->mustInit)
+        postblit->mustInit_dim = fields.dim;
+    if (!dd)
+        return postblit;
+
+    stc = mergeFuncAttrs(stc, dd->storage_class);
+    //printf("--> fieldPostBlit e = %s\n", dd && dd->fbody ? dd->fbody->isExpStatement()->exp->toChars() : NULL);
+
+    /* Merge __fieldPostBlit and user-defined postblit into __aggrPostBlit
+     */
+    Expression *e = NULL;
+    if ((stc & STCdisable) == 0)
+    {
+        if (dd)
+        {
+            e = new ThisExp(loc);
+            e = new DotVarExp(loc, e, dd, 0);
+            e = new CallExp(loc, e);
+        }
+
+        Expression *ex = new ThisExp(loc);
+        ex = new DotVarExp(loc, ex, postblit, 0);
+        ex = new CallExp(loc, ex);
+
+        e = Expression::combine(e, ex);
+    }
+    if (mod == MODimmutable)
+        stc |= STCimmutable;
+    else if (mod == MODconst)
+        stc |= STCconst;
+    else if (mod == MODwild)
+        stc |= STCwild;
+    dd = new PostBlitDeclaration(declLoc, Loc(), stc, Lexer::idPool("__aggrPostBlit"));
+    dd->fbody = new ExpStatement(loc, e);
+    members->push(dd);
+    dd->semantic(sc);
+    //printf("--> aggrPostBlit fbody = %s, type = %s\n", e ? e->toChars() : NULL, dd->type->toChars());
+
+    return dd;
+}
+
+/*****************************************
+ *
+ */
+
+FuncDeclaration *StructDeclaration::buildFieldPostBlit(Scope *sc, unsigned mod, unsigned **pMustInit)
+{
     StorageClass stc = STCsafe | STCnothrow | STCpure;
-    Loc declLoc = postblits.dim ? postblits[0]->loc : this->loc;
+    Loc declLoc = this->loc;
     Loc loc = Loc();    // internal code should have no loc to prevent coverage
 
     Expression *e = NULL;
@@ -769,94 +901,131 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
         VarDeclaration *v = fields[i];
         if (v->storage_class & STCref)
             continue;
-        Type *tv = v->type->toBasetype();
-        dinteger_t dim = 1;
-        while (tv->ty == Tsarray)
+        Type *tv = v->type->baseElemOf();
+        if (tv->ty != Tstruct)
+            continue;
+        StructDeclaration *sd = ((TypeStruct *)tv)->sym;
+        if (!sd->postblit/* || sd->sizeok != SIZEOKdone*/ || v->type->size() == 0)
+            continue;
+
+        //printf("\tcall postblit of field %s\n", v->toChars());
+        FuncDeclaration *pd = resolvePostBlit(mod, sd->postblit);
+        if (!pd)
         {
-            TypeSArray *tsa = (TypeSArray *)tv;
-            dim *= tsa->dim->toInteger();
-            tv = tsa->next->toBasetype();
-        }
-        if (tv->ty == Tstruct)
-        {
-            TypeStruct *ts = (TypeStruct *)tv;
-            StructDeclaration *sd = ts->sym;
-            if (sd->postblit && dim)
+            //printf("\tno callable pd\n");
+            if (pMustInit)
             {
-                stc = mergeFuncAttrs(stc, sd->postblit->storage_class);
-                if (stc & STCdisable)
+                // Manual re-initializing by unique expression is necessary
+                if (*pMustInit == NULL)
                 {
-                    e = NULL;
-                    break;
+                    *pMustInit = new unsigned[fields.dim];
+                    for (size_t j = 0; j < fields.dim; j++)
+                        (*pMustInit)[j] = 0;
                 }
-
-                // this.v
-                Expression *ex = new ThisExp(loc);
-                ex = new DotVarExp(loc, ex, v, 0);
-
-                if (v->type->toBasetype()->ty == Tstruct)
-                {   // this.v.postblit()
-                    ex = new DotVarExp(loc, ex, sd->postblit, 0);
-                    ex = new CallExp(loc, ex);
-                }
-                else
-                {
-                    // Typeinfo.postblit(cast(void*)&this.v);
-                    Expression *ea = new AddrExp(loc, ex);
-                    ea = new CastExp(loc, ea, Type::tvoid->pointerTo());
-
-                    Expression *et = v->type->getTypeInfo(sc);
-                    et = new DotIdExp(loc, et, Id::postblit);
-
-                    ex = new CallExp(loc, et, ea);
-                }
-                e = Expression::combine(e, ex); // combine in forward order
+                (*pMustInit)[i] = 1;
+                continue;
+            }
+            else
+            {
+                // cannot build valid postblit implicitly.
+                e = NULL;
+                break;
             }
         }
+        //printf("\tpd = %s\n", pd->type->toChars());
+
+        stc = mergeFuncAttrs(stc, pd->storage_class);
+        if (stc & STCdisable)
+        {
+            e = NULL;
+            break;
+        }
+
+        // this.v
+        Expression *ex = new ThisExp(loc);
+        ex = new DotVarExp(loc, ex, v, 0);
+
+        if (v->type->toBasetype()->ty == Tstruct)
+        {
+            // this.v.postblit()
+            ex = new DotVarExp(loc, ex, pd, 0);
+            ex = new CallExp(loc, ex);
+        }
+        else
+        {
+            // Typeinfo.postblit(cast(void*)&this.v);
+            Expression *ea = new AddrExp(loc, ex);
+            ea = new CastExp(loc, ea, Type::tvoid->pointerTo());
+
+            Expression *et = v->type->castMod(pd->type->mod)->getTypeInfo(sc);  // TODO
+            et = new DotIdExp(loc, et, Id::postblit);
+            ex = new CallExp(loc, et, ea);
+        }
+        e = Expression::combine(e, ex); // combine in forward order
     }
 
     /* Build our own "postblit" which executes e
      */
+    PostBlitDeclaration *dd = NULL;
     if (e || (stc & STCdisable))
-    {   //printf("Building __fieldPostBlit()\n");
-        PostBlitDeclaration *dd = new PostBlitDeclaration(declLoc, Loc(), stc, Lexer::idPool("__fieldPostBlit"));
+    {
+        if (mod == MODimmutable)
+            stc |= STCimmutable;
+        else if (mod == MODconst)
+            stc |= STCconst;
+        else if (mod == MODwild)
+            stc |= STCwild;
+        dd = new PostBlitDeclaration(declLoc, Loc(), stc, Lexer::idPool("__fieldPostBlit"));
         dd->fbody = new ExpStatement(loc, e);
-        postblits.shift(dd);
         members->push(dd);
         dd->semantic(sc);
+        //printf("Building __fieldPostBlit() dd = %s\n", dd->type->toChars());
     }
+    return dd;
+}
 
-    switch (postblits.dim)
+/*****************************************
+ *
+ */
+
+FuncDeclaration *resolvePostBlit(unsigned dstMod, FuncDeclaration *fd)
+{
+  struct ParamPostBlit
+  {
+    unsigned dstMod;
+    FuncDeclaration *lastf;
+
+    static int fp(void *param, Dsymbol *s)
     {
-        case 0:
-            return NULL;
-
-        case 1:
-            return postblits[0];
-
-        default:
-            e = NULL;
-            stc = STCsafe | STCnothrow | STCpure;
-            for (size_t i = 0; i < postblits.dim; i++)
-            {
-                FuncDeclaration *fd = postblits[i];
-                stc = mergeFuncAttrs(stc, fd->storage_class);
-                if (stc & STCdisable)
-                {
-                    e = NULL;
-                    break;
-                }
-                Expression *ex = new ThisExp(loc);
-                ex = new DotVarExp(loc, ex, fd, 0);
-                ex = new CallExp(loc, ex);
-                e = Expression::combine(e, ex);
-            }
-            PostBlitDeclaration *dd = new PostBlitDeclaration(declLoc, Loc(), stc, Lexer::idPool("__aggrPostBlit"));
-            dd->fbody = new ExpStatement(loc, e);
-            members->push(dd);
-            dd->semantic(sc);
-            return dd;
+        if (FuncDeclaration *fd = s->isFuncDeclaration())
+            return ((ParamPostBlit *)param)->fp(fd);
+        return 0;
     }
+    int fp(FuncDeclaration *fd)
+    {
+        TypeFunction *tf = (TypeFunction *)fd->type;
+        if (tf->mod == dstMod)
+            lastf = fd;
+        else if (tf->mod == MODconst)
+        {
+            if (!lastf || lastf->type->mod != dstMod)
+                lastf = fd;
+        }
+        else if (tf->mod == MODwild)
+        {
+            if (!lastf)
+                lastf = fd;
+        }
+        return 0;
+    }
+  };
+    ParamPostBlit p;
+    p.dstMod = dstMod;
+    p.lastf = NULL;
+
+    overloadApply(fd, &p, &ParamPostBlit::fp);
+
+    return p.lastf;
 }
 
 /*****************************************
@@ -929,7 +1098,8 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
     /* Build our own "destructor" which executes e
      */
     if (e || (stc & STCdisable))
-    {   //printf("Building __fieldDtor()\n");
+    {
+        //printf("Building __fieldDtor()\n");
         DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc, Lexer::idPool("__fieldDtor"));
         dd->fbody = new ExpStatement(loc, e);
         dtors.shift(dd);

@@ -35,6 +35,9 @@ class TypeInfoClassDeclaration;
 class VarDeclaration;
 struct dt_t;
 
+FuncDeclaration *resolveCpCtor(unsigned srcMod, unsigned dstMod, FuncDeclaration *fd);
+FuncDeclaration *resolvePostBlit(unsigned dstMod, FuncDeclaration *fd);
+
 enum Sizeok
 {
     SIZEOKnone,         // size of aggregate is not computed yet
@@ -170,11 +173,12 @@ public:
     int needOpAssign();
     int needOpEquals();
     FuncDeclaration *buildOpAssign(Scope *sc);
-    FuncDeclaration *buildPostBlit(Scope *sc);
-    FuncDeclaration *buildCpCtor(Scope *sc);
     FuncDeclaration *buildOpEquals(Scope *sc);
     FuncDeclaration *buildXopEquals(Scope *sc);
     FuncDeclaration *buildXopCmp(Scope *sc);
+    FuncDeclaration *buildCpCtor(Scope *sc, FuncDeclaration *postblit);
+    FuncDeclaration *buildPostBlit(Scope *sc, PostBlitDeclaration *postblit);
+    FuncDeclaration *buildFieldPostBlit(Scope *sc, unsigned mod, unsigned **pMustInit = NULL);
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     PROT getAccess(Dsymbol *smember);   // determine access to smember

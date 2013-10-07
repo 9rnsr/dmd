@@ -214,9 +214,10 @@ void AggregateDeclaration::accessCheck(Loc loc, Scope *sc, Dsymbol *smember)
     //assert(smember->parent->isBaseOf(this, NULL));
 
     if (smemberparent == this)
-    {   PROT access2 = smember->prot();
-
+    {
+        PROT access2 = smember->prot();
         result = access2 >= PROTpublic ||
+                smember->isPostBlitDeclaration() || smember->ident == Id::cpctor || // hack
                 hasPrivateAccess(f) ||
                 isFriendOf(cdscope) ||
                 (access2 == PROTpackage && hasPackageAccess(sc, this)) ||

@@ -117,7 +117,7 @@ int lambdaCanThrow(Expression *e, void *param)
             if (tv->ty != Tstruct)
                 break;
             StructDeclaration *sd = ((TypeStruct *)tv)->sym;
-            if (!sd->postblit || sd->postblit->type->ty != Tfunction)
+            if (!sd->postblit || sd->postblit->type->ty != Tfunction)   // TODO
                 break;
 
             if (((TypeFunction *)sd->postblit->type)->isnothrow)

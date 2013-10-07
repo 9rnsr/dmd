@@ -635,7 +635,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
         dtsize_t(pdt, 0);                        // xdtor
 
     // xpostblit
-    FuncDeclaration *spostblit = sd->postblit;
+    FuncDeclaration *spostblit = sd->postblit;  // TODO
     if (spostblit && !(spostblit->storage_class & STCdisable))
         dtxoff(pdt, spostblit->toSymbol(), 0);
     else

@@ -680,6 +680,7 @@ public:
     Type *addStorageClass(StorageClass stc);
 
     Type *substWildTo(unsigned mod);
+    MATCH modMatch(Type *tthis);
     MATCH callMatch(Type *tthis, Expressions *toargs, int flag = 0);
     type *toCtype();
     RET retStyle();

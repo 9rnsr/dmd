@@ -38,6 +38,10 @@ Expression *Expression::implicitCastTo(Scope *sc, Type *t)
     {
         if (match == MATCHconst && type->constConv(t))
         {
+            Type *tv = t->baseElemOf();
+            if (tv->ty == Tstruct && ((TypeStruct *)tv)->sym->postblit)
+                return this;    // [hack] keep original type...
+
             Expression *e = copy();
             e->type = t;
             return e;
