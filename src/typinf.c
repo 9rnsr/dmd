@@ -648,7 +648,7 @@ public:
             dtsize_t(pdt, 0);                        // xdtor
 
         // xpostblit
-        FuncDeclaration *spostblit = sd->postblit;
+        FuncDeclaration *spostblit = sd->postblit;  // TODO
         if (spostblit && !(spostblit->storage_class & STCdisable))
             dtxoff(pdt, toSymbol(spostblit), 0);
         else

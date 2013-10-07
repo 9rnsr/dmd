@@ -50,6 +50,9 @@ enum StructPOD
     ISPODfwd,           // POD not yet computed
 };
 
+FuncDeclaration *resolveCpCtor(unsigned srcMod, unsigned dstMod, FuncDeclaration *fd);
+FuncDeclaration *resolvePostBlit(unsigned dstMod, FuncDeclaration *fd);
+
 FuncDeclaration *hasIdentityOpAssign(AggregateDeclaration *ad, Scope *sc);
 FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc);
 bool needOpEquals(StructDeclaration *sd);
@@ -57,8 +60,9 @@ FuncDeclaration *buildOpEquals(StructDeclaration *sd, Scope *sc);
 FuncDeclaration *buildXopEquals(StructDeclaration *sd, Scope *sc);
 FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc);
 FuncDeclaration *buildXtoHash(StructDeclaration *ad, Scope *sc);
-FuncDeclaration *buildCpCtor(StructDeclaration *sd, Scope *sc);
-FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc);
+FuncDeclaration *buildCpCtor(StructDeclaration *sd, Scope *sc, FuncDeclaration *postblit);
+FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc, PostBlitDeclaration *postblit);
+FuncDeclaration *buildFieldPostBlit(StructDeclaration *sd, Scope *sc, unsigned mod, unsigned **pMustInit = NULL);
 FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc);
 FuncDeclaration *buildInv(AggregateDeclaration *ad, Scope *sc);
 

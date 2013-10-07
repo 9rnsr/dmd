@@ -1902,37 +1902,30 @@ void test60()
 
     {
               S1  ms;
-              S1  ms2 = ms; // mutable to mutable
-        const(S1) cs2 = ms; // mutable to const                         // NG -> OK
-    }
-    {
         const(S1) cs;
-        static assert(!__traits(compiles,{                              // NG -> OK
-              S1 ms2 = cs;  // field has reference, then const to mutable is invalid
-        }));
-        const(S1) cs2 = cs; // const to const                           // NG -> OK
+        static assert( __traits(compiles,{       S1  ms2 = ms; })); // mutable to mutable
+        static assert( __traits(compiles,{ const(S1) cs2 = ms; })); // mutable to const
+        static assert(!__traits(compiles,{       S1  ms2 = cs; })); // const to mutable
+        static assert(!__traits(compiles,{ const(S1) cs2 = cs; })); // const to const
     }
     static assert( isImplicitlyConvertible!(      S1 ,       S1 ) );
-    static assert( isImplicitlyConvertible!(      S1 , const(S1)) );    // NG -> OK
+    static assert( isImplicitlyConvertible!(      S1 , const(S1)) );
     static assert(!isImplicitlyConvertible!(const(S1),       S1 ) );
-    static assert( isImplicitlyConvertible!(const(S1), const(S1)) );    // NG -> OK
+    static assert(!isImplicitlyConvertible!(const(S1), const(S1)) );
 
 
     {
               S2  ms;
-              S2  ms2 = ms; // mutable to mutable
-        const(S2) cs2 = ms; // mutable to const                         // NG -> OK
-    }
-    {
         const(S2) cs;
-              S2  ms2 = cs; // all fields are value, then const to mutable is OK
-        const(S2) cs2 = cs; // const to const                           // NG -> OK
+        static assert( __traits(compiles,{       S2  ms2 = ms; })); // mutable to mutable
+        static assert( __traits(compiles,{ const(S2) cs2 = ms; })); // mutable to const
+        static assert(!__traits(compiles,{       S2  ms2 = cs; })); // const to mutable
+        static assert(!__traits(compiles,{ const(S2) cs2 = cs; })); // const to const
     }
-
     static assert( isImplicitlyConvertible!(      S2 ,       S2 ) );
-    static assert( isImplicitlyConvertible!(      S2 , const(S2)) );    // NG -> OK
-    static assert( isImplicitlyConvertible!(const(S2),       S2 ) );
-    static assert( isImplicitlyConvertible!(const(S2), const(S2)) );    // NG -> OK
+    static assert( isImplicitlyConvertible!(      S2 , const(S2)) );
+    static assert(!isImplicitlyConvertible!(const(S2),       S2 ) );
+    static assert(!isImplicitlyConvertible!(const(S2), const(S2)) );
 }
 
 /**********************************/

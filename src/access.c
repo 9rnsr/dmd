@@ -198,6 +198,7 @@ void accessCheck(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember)
     {
         PROT access2 = smember->prot();
         result = access2 >= PROTpublic ||
+                smember->isPostBlitDeclaration() || smember->ident == Id::cpctor || // hack
                 hasPrivateAccess(ad, f) ||
                 isFriendOf(ad, cdscope) ||
                 (access2 == PROTpackage && hasPackageAccess(sc, ad)) ||

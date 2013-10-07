@@ -582,8 +582,14 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             // We can convert 'head const' to mutable
             if (e->to->mutableOf()->constOf()->equals(e->e1->type->mutableOf()->constOf()))
             {
-                //printf(" returning5 %s\n", e->e1->toChars());
-                goto L1;
+                Type *tv = e->e1->type->baseElemOf();
+                if (tv->ty == Tstruct && ((TypeStruct *)tv)->sym->postblit)
+                    ;
+                else
+                {
+                    //printf(" returning5 %s\n", e->e1->toChars());
+                    goto L1;
+                }
             }
 
             if (e->e1->isConst())

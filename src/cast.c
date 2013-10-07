@@ -61,6 +61,13 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
                     (e->type->constConv(t) ||
                      !e->isLvalue() && e->type->immutableOf()->equals(t->immutableOf())))
                 {
+                    Type *tv = t->baseElemOf();
+                    if (tv->ty == Tstruct && ((TypeStruct *)tv)->sym->postblit)
+                    {
+                        result = e;     // [hack] keep original type...
+                        return;
+                    }
+
                     /* Do not emit CastExp for const conversions and
                      * unique conversions on rvalue.
                      */

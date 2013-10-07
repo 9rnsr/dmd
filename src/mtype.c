@@ -5912,6 +5912,29 @@ void TypeFunction::purityLevel()
     }
 }
 
+MATCH TypeFunction::modMatch(Type *tthis)
+{
+    assert(tthis);
+
+    {
+        Type *t = tthis;
+        if (t->toBasetype()->ty == Tpointer)
+            t = t->toBasetype()->nextOf();      // change struct* to struct
+        if (t->mod != mod)
+        {
+            if (MODimplicitConv(t->mod, mod))
+                return MATCHconst;
+            else if ((mod & MODwild)
+                && MODimplicitConv(t->mod, (mod & ~MODwild) | MODconst))
+            {
+                return MATCHconst;
+            }
+            else
+                return MATCHnomatch;
+        }
+    }
+    return MATCHexact;
+}
 
 /********************************
  * 'args' are being matched to function 'this'
@@ -8261,7 +8284,8 @@ int TypeStruct::hasPointers()
 }
 
 MATCH TypeStruct::implicitConvTo(Type *to)
-{   MATCH m;
+{
+    MATCH m;
 
     //printf("TypeStruct::implicitConvTo(%s => %s)\n", toChars(), to->toChars());
 
@@ -8272,7 +8296,15 @@ MATCH TypeStruct::implicitConvTo(Type *to)
         {
             m = MATCHconst;
             if (MODimplicitConv(mod, to->mod))
-                ;
+            {
+                // Receiving an lvalue by 'const ref' should be accepted, so don't make error here
+                // even if the defined postblit does not support this qualifier conversion.
+            }
+            else if (sym->cpctor)
+            {
+                if (!resolveCpCtor(mod, to->mod, sym->cpctor))
+                    m = MATCHnomatch;
+            }
             else
             {
                 /* Check all the fields. If they can all be converted,
@@ -8292,7 +8324,7 @@ MATCH TypeStruct::implicitConvTo(Type *to)
                     else
                     {
                         if (m <= MATCHnomatch)
-                            return m;
+                            break;
                     }
 
                     // 'from' type
@@ -8305,10 +8337,11 @@ MATCH TypeStruct::implicitConvTo(Type *to)
                     MATCH mf = tvf->implicitConvTo(tv);
                     //printf("\t%s => %s, match = %d\n", v->type->toChars(), tv->toChars(), mf);
 
-                    if (mf <= MATCHnomatch)
-                        return mf;
                     if (mf < m)         // if field match is worse
                         m = mf;
+                    if (m <= MATCHnomatch)
+                        break;
+
                     offset = v->offset;
                 }
             }

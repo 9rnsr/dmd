@@ -825,8 +825,64 @@ void StructDeclaration::semantic(Scope *sc)
     }
 
     dtor = buildDtor(this, sc2);
-    postblit = buildPostBlit(this, sc2);
-    cpctor = buildCpCtor(this, sc2);
+    if (postblits.dim == 0)
+    {
+        unsigned mods[4] = { 0, MODconst, MODimmutable, MODwild };
+        Dsymbol **cpctor = (Dsymbol **)&this->cpctor;
+        for (size_t i = 0; i < 4; i++)
+        {
+            FuncDeclaration *dd = buildFieldPostBlit(this, sc2, mods[i]);
+            if (!dd)
+                continue;
+            if (postblits.dim)
+                postblits[postblits.dim - 1]->overnext = dd;
+            postblits.push(dd);
+            *cpctor = buildCpCtor(this, sc2, dd);
+            cpctor = (Dsymbol **)&((FuncDeclaration *)(*cpctor))->overnext;
+        }
+        if (postblits.dim)
+            postblit = postblits[0];
+        else
+        {
+            for (size_t i = 0; i < fields.dim; i++)
+            {
+                VarDeclaration *v = fields[i];
+                if (v->storage_class & STCref)
+                    continue;
+                Type *tv = v->type->baseElemOf();
+                if (tv->ty != Tstruct)
+                    continue;
+                StructDeclaration *sd = ((TypeStruct *)tv)->sym;
+                if (!sd->postblit/* || sd->sizeok != SIZEOKdone*/ || v->type->size() == 0)
+                    continue;
+
+                StorageClass stc = STCsafe | STCnothrow | STCpure | STCwild | STCdisable;
+                postblit = new PostBlitDeclaration(loc, Loc(), stc, Lexer::idPool("__fieldPostBlit"));
+                postblit->fbody = new ExpStatement(loc, (Expression *)NULL);
+                members->push(postblit);
+                postblit->semantic(sc2);
+
+                this->cpctor = buildCpCtor(this, sc2, postblit);
+                break;
+            }
+        }
+    }
+    else
+    {
+        Dsymbol **cpctor = (Dsymbol **)&this->cpctor;
+        for (size_t i = 0; i < postblits.dim; i++)
+        {
+            //printf("%s postblit[%d] = %s\n", toChars(), i, postblits[i]->type->toChars());
+            PostBlitDeclaration *dd = postblits[i]->isPostBlitDeclaration();
+            assert(dd);
+            if (i > 0)
+                postblits[i - 1]->overnext = dd;
+            postblits[i] = buildPostBlit(this, sc2, dd);
+            *cpctor = buildCpCtor(this, sc2, postblits[i]);
+            cpctor = (Dsymbol **)&((FuncDeclaration *)(*cpctor))->overnext;
+        }
+        postblit = postblits[0];
+    }
 
     buildOpAssign(this, sc2);
     buildOpEquals(this, sc2);
@@ -1023,6 +1079,8 @@ bool StructDeclaration::fit(Loc loc, Scope *sc, Expressions *elements, Type *sty
             telem = telem->toBasetype()->nextOf();
         }
 
+        e = e->isLvalue() ? callCpCtor(sc, telem, e) : valueNoDtor(e);
+
         if (!e->implicitConvTo(telem))
             telem = origType;  // restore type for better diagnostic
 
@@ -1030,7 +1088,7 @@ bool StructDeclaration::fit(Loc loc, Scope *sc, Expressions *elements, Type *sty
         if (e->op == TOKerror)
             return false;
 
-        (*elements)[i] = e->isLvalue() ? callCpCtor(sc, e) : valueNoDtor(e);
+        (*elements)[i] = e;
     }
     return true;
 }

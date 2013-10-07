@@ -129,7 +129,7 @@ bool canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow)
             if (tv->ty != Tstruct)
                 return;
             StructDeclaration *sd = ((TypeStruct *)tv)->sym;
-            if (!sd->postblit || sd->postblit->type->ty != Tfunction)
+            if (!sd->postblit || sd->postblit->type->ty != Tfunction)   // TODO
                 return;
 
             if (((TypeFunction *)sd->postblit->type)->isnothrow)

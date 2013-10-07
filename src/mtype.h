@@ -657,6 +657,7 @@ public:
     int attributesApply(void *param, int (*fp)(void *, const char *), TRUSTformat trustFormat = TRUSTformatDefault);
 
     Type *substWildTo(unsigned mod);
+    MATCH modMatch(Type *tthis);
     MATCH callMatch(Type *tthis, Expressions *toargs, int flag = 0);
 
     Expression *defaultInit(Loc loc);

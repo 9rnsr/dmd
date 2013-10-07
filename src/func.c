@@ -214,7 +214,7 @@ public:
              * If NRVO is not possible, all returned lvalues should call their postblits.
              */
             if (!fd->nrvo_can && !tf->isref && exp->isLvalue())
-                exp = callCpCtor(sc, exp);
+                exp = callCpCtor(sc, tf->next, exp);
 
             /* Bugzilla 8665:
              * If auto function has multiple return statements, returned values
@@ -1552,9 +1552,9 @@ void FuncDeclaration::semantic3(Scope *sc)
             AggregateDeclaration *ad2 = isAggregateMember2();
             unsigned *fieldinit = NULL;
 
-            /* If this is a class constructor
+            /* If this is a constructor or postblit
              */
-            if (ad2 && isCtorDeclaration())
+            if (ad2 && (isCtorDeclaration() || isPostBlitDeclaration()))
             {
                 fieldinit = (unsigned *)mem.malloc(sizeof(unsigned) * ad2->fields.dim);
                 sc2->fieldinit = fieldinit;
@@ -1680,7 +1680,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 // Check for errors related to 'nothrow'.
                 unsigned int nothrowErrors = global.errors;
                 int blockexit = fbody->blockExit(this, f->isnothrow);
-                if (f->isnothrow && (global.errors != nothrowErrors) )
+                if (f->isnothrow && (global.errors != nothrowErrors))
                     ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
                 if (flags & FUNCFLAGnothrowInprocess)
                 {
@@ -1703,12 +1703,43 @@ void FuncDeclaration::semantic3(Scope *sc)
                     fbody = new CompoundStatement(loc, fbody, s);
                 }
             }
+            else if (ad2 && isPostBlitDeclaration())
+            {
+                PostBlitDeclaration *p = isPostBlitDeclaration();
+
+                // Check for errors related to 'nothrow'.
+                unsigned int nothrowErrors = global.errors;
+                int blockexit = fbody->blockExit(this, f->isnothrow);
+                if (f->isnothrow && (global.errors != nothrowErrors))
+                    ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
+                if (flags & FUNCFLAGnothrowInprocess)
+                {
+                    if (type == f) f = (TypeFunction *)f->copy();
+                    f->isnothrow = !(blockexit & BEthrow);
+                }
+
+                // Verify that all the ctorinit fields got initialized
+                if (p->mustInit)
+                {
+                    for (size_t i = 0; i < ad2->fields.dim; i++)
+                    {
+                        VarDeclaration *v = ad2->fields[i];
+                        if (p->mustInit[i] && !(sc2->fieldinit[i] & CSXthis_ctor))
+                        {
+                            error("field %s must be initialized but skipped", v->toChars());
+                        }
+                    }
+                }
+                delete[] sc2->fieldinit;
+                sc2->fieldinit = NULL;
+                sc2->fieldinit_dim = 0;
+            }
             else if (fes)
             {
                 // Check for errors related to 'nothrow'.
                 int nothrowErrors = global.errors;
                 int blockexit = fbody->blockExit(this, f->isnothrow);
-                if (f->isnothrow && (global.errors != nothrowErrors) )
+                if (f->isnothrow && (global.errors != nothrowErrors))
                     ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
                 if (flags & FUNCFLAGnothrowInprocess)
                 {
@@ -1727,7 +1758,9 @@ void FuncDeclaration::semantic3(Scope *sc)
                 assert(!returnLabel);
             }
             else if (!hasReturnExp && type->nextOf()->ty != Tvoid)
+            {
                 error("has no return statement, but is expected to return a value of type %s", type->nextOf()->toChars());
+            }
             else if (hasReturnExp & 8)               // if inline asm
             {
                 flags &= ~FUNCFLAGnothrowInprocess;
@@ -2946,6 +2979,126 @@ bool FuncDeclaration::inUnittest()
     } while (f);
 
     return false;
+}
+
+/********************************************
+ * Decide which function matches the modifier.
+ */
+
+FuncDeclaration *FuncDeclaration::overloadModMatch(Loc loc, Type *tthis, Type *&t, int flags)
+{
+    //printf("FuncDeclaration::overloadModMatch('%s')\n", toChars());
+    Match m;
+    memset(&m, 0, sizeof(m));
+    m.last = MATCHnomatch;
+
+  struct ParamMod
+  {
+    Match *m;
+    Type *tthis;
+
+    static int fp(void *param, Dsymbol *s)
+    {
+        if (FuncDeclaration *fd = s->isFuncDeclaration())
+            return ((ParamMod *)param)->fp(fd);
+        return 0;
+    }
+    int fp(FuncDeclaration *f)
+    {
+        if (f == m->lastf)          // skip duplicates
+            return 0;
+
+        m->anyf = f;
+        TypeFunction *tf = (TypeFunction *)f->type;
+        //printf("tf = %s\n", tf->toChars());
+
+        MATCH match;
+        if (tthis)  // non-static functions are preferred than static ones
+        {
+            if (f->needThis())
+                match = f->isCtorDeclaration() ? MATCHexact : tf->modMatch(tthis);
+            else
+                match = MATCHconst; // keep static funciton in overload candidates
+        }
+        else        // static functions are preferred than non-static ones
+        {
+            if (f->needThis())
+                match = MATCHconvert;
+            else
+                match = MATCHexact;
+        }
+        if (match != MATCHnomatch)
+        {
+            if (match > m->last) goto LfIsBetter;
+            if (match < m->last) goto LlastIsBetter;
+
+            /* See if one of the matches overrides the other.
+             */
+            if (m->lastf->overrides(f)) goto LlastIsBetter;
+            if (f->overrides(m->lastf)) goto LfIsBetter;
+
+        Lambiguous:
+            //printf("\tambiguous\n");
+            m->nextf = f;
+            m->count++;
+            return 0;
+
+        LlastIsBetter:
+            //printf("\tlastbetter\n");
+            return 0;
+
+        LfIsBetter:
+            //printf("\tisbetter\n");
+            if (m->last <= MATCHconvert)
+            {
+                // clear last secondary matching
+                m->nextf = NULL;
+                m->count = 0;
+            }
+            m->last = match;
+            m->lastf = f;
+            m->count++;     // count up
+            return 0;
+        }
+        return 0;
+    }
+  };
+    ParamMod p;
+    p.m = &m;
+    p.tthis = tthis;
+    overloadApply(this, &p, &ParamMod::fp);
+
+    if (m.count == 1)       // exact match
+    {
+        t = m.lastf->type;
+    }
+    else if (m.count > 1)
+    {
+        if (!m.nextf)       // better match
+            t = m.lastf->type;
+        else                // ambiguous match
+            t = NULL;//Type::tambig;
+        m.lastf = NULL;
+    }
+    else                    // no match
+    {
+        if (flags & 1)
+            return NULL;
+
+        t = NULL;
+        TypeFunction *tf = (TypeFunction *)this->type;
+        assert(tthis);
+        assert(!MODimplicitConv(tthis->mod, tf->mod));  // modifier mismatch
+        {
+            OutBuffer thisBuf, funcBuf;
+            MODMatchToBuffer(&thisBuf, tthis->mod, tf->mod);
+            MODMatchToBuffer(&funcBuf, tf->mod, tthis->mod);
+            ::error(loc, "%smethod %s is not callable using a %sobject",
+                funcBuf.peekString(), this->toPrettyChars(), thisBuf.peekString());
+        }
+    }
+
+    return m.lastf;
 }
 
 /********************************************
@@ -4617,6 +4770,8 @@ bool CtorDeclaration::addPostInvariant()
 PostBlitDeclaration::PostBlitDeclaration(Loc loc, Loc endloc, StorageClass stc, Identifier *id)
     : FuncDeclaration(loc, endloc, id, stc, NULL)
 {
+    mustInit = NULL;
+    mustInit_dim = 0;
 }
 
 Dsymbol *PostBlitDeclaration::syntaxCopy(Dsymbol *s)
@@ -4633,7 +4788,8 @@ void PostBlitDeclaration::semantic(Scope *sc)
     //printf("ident: %s, %s, %p, %p\n", ident->toChars(), Id::dtor->toChars(), ident, Id::dtor);
     //printf("stc = x%llx\n", sc->stc);
     if (scope)
-    {   sc = scope;
+    {
+        sc = scope;
         scope = NULL;
     }
     parent = sc->parent;
@@ -4656,11 +4812,6 @@ void PostBlitDeclaration::semantic(Scope *sc)
     FuncDeclaration::semantic(sc);
 
     sc->pop();
-}
-
-bool PostBlitDeclaration::overloadInsert(Dsymbol *s)
-{
-    return false;       // cannot overload postblits
 }
 
 bool PostBlitDeclaration::addPreInvariant()

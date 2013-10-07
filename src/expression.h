@@ -82,7 +82,7 @@ TemplateDeclaration *getFuncTemplateDecl(Dsymbol *s);
 Expression *valueNoDtor(Expression *e);
 int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1);
 Expression *resolveAliasThis(Scope *sc, Expression *e);
-Expression *callCpCtor(Scope *sc, Expression *e);
+Expression *callCpCtor(Scope *sc, Type *t, Expression *e);
 Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, Expression **pe0);
 Expression *resolveOpDollar(Scope *sc, SliceExp *se, Expression **pe0);
 Expression *integralPromotions(Expression *e, Scope *sc);
@@ -213,6 +213,7 @@ public:
     void checkNogc(Scope *sc, FuncDeclaration *f);
     bool checkPostblit(Scope *sc, Type *t);
     virtual int checkModifiable(Scope *sc, int flag = 0);
+    virtual int isUniqData();
     virtual Expression *checkToBoolean(Scope *sc);
     virtual Expression *addDtorHook(Scope *sc);
     Expression *checkToPointer();
@@ -464,6 +465,7 @@ public:
     bool equals(RootObject *o);
     Expression *semantic(Scope *sc);
     int isBool(int result);
+    int isUniqData();
     StringExp *toStringExp();
     void toMangleBuffer(OutBuffer *buf);
 
@@ -482,6 +484,7 @@ public:
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     int isBool(int result);
+    int isUniqData();
     void toMangleBuffer(OutBuffer *buf);
 
     void accept(Visitor *v) { v->visit(this); }
@@ -536,6 +539,7 @@ public:
     Expression *semantic(Scope *sc);
     Expression *getField(Type *type, unsigned offset);
     int getFieldIndex(Type *type, unsigned offset);
+    int isUniqData();
     void toMangleBuffer(OutBuffer *buf);
     Expression *addDtorHook(Scope *sc);
     Symbol *toSymbol();
@@ -598,6 +602,7 @@ public:
         Type *newtype, Expressions *arguments);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
+    int isUniqData();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -892,6 +897,7 @@ public:
     int checkModifiable(Scope *sc, int flag);
     bool checkReadModifyWrite();
     int isLvalue();
+    int isUniqData();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
@@ -950,6 +956,7 @@ public:
 
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
+    int isUniqData();
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *addDtorHook(Scope *sc);
@@ -1075,6 +1082,7 @@ public:
     void checkEscapeRef();
     int checkModifiable(Scope *sc, int flag);
     int isLvalue();
+    int isUniqData();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     int isBool(int result);
@@ -1161,6 +1169,7 @@ public:
     void checkEscapeRef();
     int checkModifiable(Scope *sc, int flag);
     int isLvalue();
+    int isUniqData();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     int isBool(int result);
@@ -1179,6 +1188,7 @@ public:
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     int checkModifiable(Scope *sc, int flag);
+    int isUniqData();
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -1350,6 +1360,7 @@ class CatExp : public BinExp
 public:
     CatExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
+    int isUniqData();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1523,6 +1534,7 @@ public:
     void checkEscapeRef();
     int checkModifiable(Scope *sc, int flag);
     int isLvalue();
+    int isUniqData();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     Expression *checkToBoolean(Scope *sc);

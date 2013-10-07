@@ -223,12 +223,140 @@ void test11246()
 }
 
 /***************************************************/
+// unique postblit
+
+void test1()
+{
+    static struct X
+    {
+        int[] arr;
+        this(this) {}
+    }
+
+    static string res;
+    void checkCalledPostblit(string expect, void delegate() dg, uint ln = __LINE__)
+    {
+        res = null;
+        dg();
+        import core.exception;
+        //printf("m,c,i,u = %d,%d,%d,%d\n", m, c, i, u);
+        if (res != expect)
+            throw new AssertError(__FILE__, ln);
+    }
+
+    static struct S1
+    {
+        X x;
+        this(this)       { res ~= 'm'; }
+        this(this) const { res ~= 'c'; x = X([1,2,3]); }
+        this(this) inout { res ~= 'u'; x = X([1,2,3]); }
+    }
+    {
+                  S1 sm;
+            const S1 sc;
+        immutable S1 si;
+
+        // assignment
+        checkCalledPostblit("m", {           S1 s = sm; });
+        checkCalledPostblit("c", {     const S1 s = sm; });
+        checkCalledPostblit("u", { immutable S1 s = sm; });
+        checkCalledPostblit("u", {           S1 s = sc; });
+        checkCalledPostblit("c", {     const S1 s = sc; });
+        checkCalledPostblit("u", { immutable S1 s = sc; });
+        checkCalledPostblit("u", {           S1 s = si; });
+        checkCalledPostblit("c", {     const S1 s = si; });
+        checkCalledPostblit("c", { immutable S1 s = si; });
+    }
+
+    static struct S2
+    {
+        X x;
+        this(this) immutable { res ~= 'i'; x = X([1,2,3]); }
+        this(this) inout     { res ~= 'u'; x = X([1,2,3]); }
+    }
+    {
+                  S2 sm;
+            const S2 sc;
+        immutable S2 si;
+
+        // assignment
+        checkCalledPostblit("u", {           S2 s = sm; });
+        checkCalledPostblit("u", {     const S2 s = sm; });
+        checkCalledPostblit("u", { immutable S2 s = sm; });
+        checkCalledPostblit("u", {           S2 s = sc; });
+        checkCalledPostblit("u", {     const S2 s = sc; });
+        checkCalledPostblit("u", { immutable S2 s = sc; });
+        checkCalledPostblit("u", {           S2 s = si; });
+        checkCalledPostblit("i", {     const S2 s = si; });
+        checkCalledPostblit("i", { immutable S2 s = si; });
+    }
+
+    static struct S3
+    {
+        X x;
+        this(this) const     { res ~= 'c'; x = X([1,2,3]); }
+        this(this) immutable { res ~= 'i'; x = X([1,2,3]); }
+    }
+    {
+                  S3 sm;
+            const S3 sc;
+        immutable S3 si;
+
+        // assignment
+        checkCalledPostblit("c", {           S3 s = sm; });
+        checkCalledPostblit("c", {     const S3 s = sm; });
+        static assert(!is(typeof({ immutable S3 s = sm; })));
+        static assert(!is(typeof({           S3 s = sc; })));
+        checkCalledPostblit("c", {     const S3 s = sc; });
+        static assert(!is(typeof({ immutable S3 s = sc; })));
+        static assert(!is(typeof({           S3 s = si; })));
+        checkCalledPostblit("c", {     const S3 s = si; });
+        checkCalledPostblit("i", { immutable S3 s = si; });
+    }
+
+    {
+        static struct SX { this(this) {} }
+        static struct SSX { SX s; }
+
+        SSX sm;
+        SSX sm2 = sm;
+        const SSX sc = sm;
+        static assert(!__traits(compiles, { immutable si = sm; }));
+    }
+    {
+        static struct YA
+        {
+            this(this) {}
+        }
+        static struct YB
+        {
+            this(this) immutable {}
+        }
+        static struct SY
+        {
+            YA ma;
+            immutable YB ib;
+        }
+
+        SY sm;
+        immutable SY si;
+        static assert(!__traits(compiles, {           SY s = sm; }));
+        static assert(!__traits(compiles, {     const SY s = sm; }));
+        static assert(!__traits(compiles, { immutable SY s = sm; }));
+        static assert(!__traits(compiles, {           SY s = si; }));
+        static assert(!__traits(compiles, {     const SY s = si; }));
+        static assert(!__traits(compiles, { immutable SY s = si; }));
+    }
+}
+
+/***************************************************/
 
 int main()
 {
     test8117();
     test9665();
     test11246();
+    test1();
 
     printf("Success\n");
     return 0;

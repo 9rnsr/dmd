@@ -655,6 +655,7 @@ public:
     int findVtblIndex(Dsymbols *vtbl, int dim);
     bool overloadInsert(Dsymbol *s);
     FuncDeclaration *overloadExactMatch(Type *t);
+    FuncDeclaration *overloadModMatch(Loc loc, Type *tthis, Type *&t, int flags = 0);
     TemplateDeclaration *findTemplateDeclRoot();
     bool inUnittest();
     MATCH leastAsSpecialized(FuncDeclaration *g);
@@ -783,6 +784,9 @@ public:
 class PostBlitDeclaration : public FuncDeclaration
 {
 public:
+    unsigned *mustInit;
+    unsigned mustInit_dim;
+
     PostBlitDeclaration(Loc loc, Loc endloc, StorageClass stc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
@@ -790,7 +794,6 @@ public:
     bool isVirtual();
     bool addPreInvariant();
     bool addPostInvariant();
-    bool overloadInsert(Dsymbol *s);
 
     PostBlitDeclaration *isPostBlitDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
