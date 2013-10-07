@@ -224,11 +224,95 @@ void test11246()
 
 /***************************************************/
 
+struct S1X
+{
+    int[] arr;
+}
+
+struct S1Y
+{
+    int[] arr;
+    this(int) inout { arr = new int[](3); }
+}
+
+struct S1Z
+{
+    int[] a1;
+
+    const int[][] aoa;
+
+    int n;      int[] na;
+    double r;   double[] ra;
+    cdouble c;  cdouble[] ca;
+
+    void function() fp;
+    void delegate() dg;
+
+    void function()[] fps;
+    void delegate()[] dgs;
+
+    S1X sx;
+    S1Y sy;
+
+    int[][string] aa1, aa2;
+
+    int[] cat1, cat2, cat3;
+    int[][] cat4;
+
+    int[] dotvar1, dotvar2;
+
+    int[] slice1, slice2;
+
+    this(int[] a) inout
+    {
+        static assert(!__traits(compiles, a1 = a));
+        aoa = [[1, a[0]], [], a.dup, new int[](5)];
+
+        n = 1024;  na = [1024];
+        r = 3.14;  ra = [3.14];
+        c = 2+3i;  ca = [2+3i];
+
+        static void func() {}
+        void nest() {}
+        fp = &func;  fps = [&func];
+        dg = &nest;  dgs = [&nest];
+
+        sx = S1X([1,2,3]);
+        sy = S1Y(1024);
+
+        aa1 = ["1":[1,2,3], "2":a.dup];
+        static assert(!__traits(compiles, aa2 = ["x":a]));
+
+        cat1 = [1,2] ~ [3,4] ~ a;
+        cat2 = a ~ 1 ~ [2,3];
+        cat3 = [1,2] ~ 3 ~ a;
+        static assert(!__traits(compiles, cat4 = a ~ [[1]]));
+
+        dotvar1 = S1X([1,2,3]).arr;
+        dotvar2 = S1Y(1024).arr;
+
+        slice1 = [1,2,3][2..$];
+        slice2 = S1Y(1).arr[0..$-1];
+    }
+}
+
+void test1()
+{
+              S1Z sm =           S1Z([1]);
+        const S1Z sc =     const S1Z([1]);
+    immutable S1Z si = immutable S1Z([1]);
+    static assert(!__traits(compiles, { shared       S1Z ssm = shared       S1Z([]); }));
+    static assert(!__traits(compiles, { shared const S1Z ssc = shared const S1Z([]); }));
+}
+
+/***************************************************/
+
 int main()
 {
     test8117();
     test9665();
     test11246();
+    test1();
 
     printf("Success\n");
     return 0;

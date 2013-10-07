@@ -850,6 +850,51 @@ Expression *TraitsExp::semantic(Scope *sc)
         ptrdiff_t result = fd->isVirtual() ? fd->vtblIndex : -1;
         return new IntegerExp(loc, fd->vtblIndex, Type::tptrdiff_t);
     }
+#if 0
+    else if(ident == Id::isUnique)
+    {
+        if (dim != 1)
+            goto Ldimerror;
+        RootObject *o = (*args)[0];
+        Expression *e = isExpression(o);
+        if (!e || e->op == TOKtype)
+        {
+            error("is not an expression");
+            goto Lfalse;
+        }
+        if (e->type->ty == Tvoid)
+            goto Lfalse;
+        switch (e->op)
+        {
+            case TOKint64:      // IntegerExp
+            case TOKfloat64:    // RealExp
+            case TOKcomplex80:  // ComplexExp
+            //DollarExp?
+            case TOKnull:       // NullExp
+            case TOKstring:     // StringExp
+            case TOKoverloadset:
+            case TOKfunction:
+            case TOKtypeid:
+                goto Ltrue;
+            case TOKthis:
+                // need check?
+            case TOKsuper:
+                // ???
+            case TOKtuple:
+            case TOKarrayliteral:
+            case TOKassocarrayliteral:
+            case TOKstructliteral:
+            case TOKnew:
+                // see each elements/arguments
+            case TOKsymoff:
+            case TOKvar:
+                // true if var is a function
+            default:
+                break;
+        }
+        goto Lfalse;
+    }
+#endif
     else
     {
         error("unrecognized trait %s", ident->toChars());

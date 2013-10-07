@@ -327,6 +327,7 @@ Msgtable msgtable[] =
     { "isRef" },
     { "isOut" },
     { "isLazy" },
+    { "isUnique" },
     { "hasMember" },
     { "identifier" },
     { "getProtection" },

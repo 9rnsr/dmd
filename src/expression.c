@@ -1781,13 +1781,14 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
         //printf("[%s] fd = %s %s, %d %d %d\n", loc.toChars(), fd->toChars(), fd->type->toChars(),
         //    wildmatch, tf->isWild(), fd->isolateReturn());
         if (!tthis)
-        {   assert(sc->intypeof || global.errors);
+        {
+            assert(sc->intypeof || global.errors);
             tthis = fd->isThis()->type->addMod(fd->type->mod);
         }
-        if (tf->isWild() && !fd->isolateReturn())
+        //printf("tf = %s, iswild = %d, wildmatch = x%x\n", tf->toChars(), tf->iswild, wildmatch);
+        if (tf->iswild == 3 && wildmatch)
         {
-            if (wildmatch)
-                tret = tret->substWildTo(wildmatch);
+            tret = tret->substWildTo(wildmatch);
             if (!tret->implicitConvTo(tthis))
             {
                 const char* s1 = tret ->isNaked() ? " mutable" : tret ->modToChars();
@@ -2202,6 +2203,161 @@ Lerror:
     return new ErrorExp();
 }
 
+
+/***************************************
+ *
+ */
+
+int Expression::isUniqData()
+{
+    if (!type->hasPointers() ||
+        type->implicitConvTo(type->immutableOf()))
+    {
+        return true;
+    }
+
+    //Type *tb = type->toBasetype();
+    //tb->ty == Tstruct && !to->isImmutable() &&
+    return false;   // not unique
+}
+
+int CommaExp::isUniqData()
+{
+    return e2->isUniqData();
+}
+
+int DotVarExp::isUniqData()
+{
+    if (Expression::isUniqData())
+        return true;
+    return e1->isUniqData();
+}
+
+int IndexExp::isUniqData()
+{
+    if (Expression::isUniqData())
+        return true;
+    return e1->isUniqData();
+}
+
+int SliceExp::isUniqData()
+{
+    if (Expression::isUniqData())
+        return true;
+    return e1->isUniqData();
+}
+
+int CatExp::isUniqData()
+{
+    Type *tn = type->nextOf();
+    if (!tn->hasPointers() ||
+        tn->implicitConvTo(tn->immutableOf()))
+    {
+        return true;
+    }
+    return e1->isUniqData() && e2->isUniqData();
+}
+
+int CallExp::isUniqData()
+{
+    if (Expression::isUniqData())
+        return true;
+
+    // arr.(dup|idup)
+    if (!f && e1->op == TOKvar && ((VarExp *)e1)->var->ident == Id::adDup &&
+        type->ty == Tarray)
+    {
+        return !type->nextOf()->hasPointers();
+    }
+
+    if (f && f->isCtorDeclaration())
+    {
+        TypeFunction *tf = (TypeFunction *)f->type;
+        if (tf->iswild == 2)    // unique ctor
+            return true;
+    }
+
+    Type *tb = e1->type->toBasetype();
+    if (tb->ty == Tdelegate || tb->ty == Tpointer)
+        tb = tb->nextOf();
+    if (tb->ty == Tfunction && ((TypeFunction *)tb)->purity)
+    {
+        if (f && f->isolateReturn())
+            return true;
+        //if (all of arguments are unique data)
+        //    return true;
+    }
+
+    return false;
+}
+
+int ArrayLiteralExp::isUniqData()
+{
+    if (elements)
+    {
+        for (size_t i = 0; i < elements->dim; ++i)
+        {
+            Expression *e = (*elements)[i];
+            if (!e->isUniqData())
+                return false;
+        }
+    }
+    return true;
+}
+
+int AssocArrayLiteralExp::isUniqData()
+{
+    if (values)
+    {
+        for (size_t i = 0; i < values->dim; ++i)
+        {
+            Expression *e = (*values)[i];
+            if (!e->isUniqData())
+                return false;
+        }
+    }
+    return true;
+}
+
+int StructLiteralExp::isUniqData()
+{
+    if (elements)
+    {
+        for (size_t i = 0; i < elements->dim; ++i)
+        {
+            Expression *e = (*elements)[i];
+            if (!e->isUniqData())
+                return false;
+        }
+    }
+    return true;
+}
+
+int NewExp::isUniqData()
+{
+    Type *tb = type->toBasetype();
+    if (tb->ty == Tclass)
+    {
+        // default ctor call || unique ctor call || pure ctor call && all arguments are unique
+        return false;
+    }
+    else if (tb->ty == Tstruct)
+    {
+        // ctor call -> unique ctor call || pure ctor call && all arguments are unique
+        // literal && all arguments are unique
+        return false;
+    }
+    else if (tb->ty == Tarray/* && tb->nextOf()->isscalar()*/)
+    {
+        return true;
+    }
+    return true;
+}
+
+int CondExp::isUniqData()
+{
+    return e1->isUniqData() && e2->isUniqData();
+}
 
 /************************************
  * Detect cases where pointers to the stack can 'escape' the
@@ -11293,6 +11449,35 @@ Ltupleassign:
     {
         //printf("[%s] change to init - %s\n", loc.toChars(), toChars());
         op = TOKconstruct;
+
+        TypeFunction *tf = (TypeFunction *)sc->func->type;
+        if (tf->iswild == 2)    // no inout parameter
+        {
+            // inout ctor but don't have inout parameter --> unique ctor
+            assert(tf->mod == MODwild);
+            assert(sc->func->isCtorDeclaration()/* || sc->func->isPostBlitDeclaration()*/);
+            assert(t1->isWild() || t1->isImmutable());
+
+            //printf("[%s] init-assign %s, t1 = %s\n", loc.toChars(), toChars(), t1->toChars());
+            if (e2->type->implicitConvTo(e2->type->immutableOf()))
+            {
+                // doesn't have any non-immutable indirections
+            }
+            else if (e2->type->implicitConvTo(e1->type))
+            {
+                // inout const field <-- immutable data
+                //   immutable field <-- immutable data
+                // --> Won't break type system
+            }
+            else if (e2->isUniqData())
+            {
+                e2 = e2->castTo(sc, e1->type);
+            }
+            else
+                error("initializing should be done by unique data");
+        }
+    Lskipuniq:
+        ;
     }
 
     /* If it is an assignment from a 'foreign' type,

@@ -170,6 +170,7 @@ public:
     void checkSafety(Scope *sc, FuncDeclaration *f);
     bool checkPostblit(Scope *sc, Type *t);
     virtual int checkModifiable(Scope *sc, int flag = 0);
+    virtual int isUniqData();
     virtual Expression *checkToBoolean(Scope *sc);
     virtual Expression *addDtorHook(Scope *sc);
     Expression *checkToPointer();
@@ -474,7 +475,7 @@ public:
     bool equals(RootObject *o);
     Expression *semantic(Scope *sc);
     int isBool(int result);
-    elem *toElem(IRState *irs);
+    int isUniqData();
     StringExp *toString();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
@@ -483,6 +484,7 @@ public:
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
     Expression *inferType(Type *t, int flag = 0, Scope *sc = NULL, TemplateParameters *tparams = NULL);
+    elem *toElem(IRState *irs);
     dt_t **toDt(dt_t **pdt);
 
     void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
@@ -505,6 +507,7 @@ public:
     int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
     int isBool(int result);
+    int isUniqData();
     elem *toElem(IRState *irs);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
@@ -564,6 +567,7 @@ public:
     Expression *getField(Type *type, unsigned offset);
     int getFieldIndex(Type *type, unsigned offset);
     elem *toElem(IRState *irs);
+    int isUniqData();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
     Expression *optimize(int result, bool keepLvalue = false);
@@ -642,6 +646,7 @@ public:
     Expression *optimize(int result, bool keepLvalue = false);
     MATCH implicitConvTo(Type *t);
     elem *toElem(IRState *irs);
+    int isUniqData();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     //int inlineCost3(InlineCostState *ics);
@@ -1004,6 +1009,7 @@ public:
     Expression *semantic(Scope *sc);
     int checkModifiable(Scope *sc, int flag);
     int isLvalue();
+    int isUniqData();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     Expression *optimize(int result, bool keepLvalue = false);
@@ -1075,6 +1081,7 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void dump(int indent);
     elem *toElem(IRState *irs);
+    int isUniqData();
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *addDtorHook(Scope *sc);
@@ -1249,6 +1256,7 @@ public:
     void checkEscapeRef();
     int checkModifiable(Scope *sc, int flag);
     int isLvalue();
+    int isUniqData();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     int isBool(int result);
@@ -1325,6 +1333,7 @@ public:
     int checkModifiable(Scope *sc, int flag);
     IntRange getIntRange();
     int isLvalue();
+    int isUniqData();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     int isBool(int result);
@@ -1347,6 +1356,7 @@ public:
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     int checkModifiable(Scope *sc, int flag);
+    int isUniqData();
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -1555,6 +1565,8 @@ public:
     Identifier *opId_r();
 
     elem *toElem(IRState *irs);
+
+    int isUniqData();
 };
 
 class MulExp : public BinExp
@@ -1823,6 +1835,7 @@ public:
     void checkEscapeRef();
     int checkModifiable(Scope *sc, int flag);
     int isLvalue();
+    int isUniqData();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     Expression *checkToBoolean(Scope *sc);
