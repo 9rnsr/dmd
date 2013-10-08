@@ -131,12 +131,14 @@ public:
      * Naked == no MOD bits
      */
 
-    Type *cto;          // MODconst ? naked version of this type : const version
-    Type *ito;          // MODimmutable ? naked version of this type : immutable version
-    Type *sto;          // MODshared ? naked version of this type : shared mutable version
-    Type *scto;         // MODshared|MODconst ? naked version of this type : shared const version
-    Type *wto;          // MODwild ? naked version of this type : wild version
-    Type *swto;         // MODshared|MODwild ? naked version of this type : shared wild version
+    Type *cto;          // MODconst                   ? naked version of this type : const version
+    Type *ito;          // MODimmutable               ? naked version of this type : immutable version
+    Type *sto;          // MODshared                  ? naked version of this type : shared mutable version
+    Type *scto;         // MODshared|MODconst         ? naked version of this type : shared const version
+    Type *wto;          // MODwild                    ? naked version of this type : wild version
+    Type *wcto;         // MODwild|MODconst           ? naked version of this type : wild const version
+    Type *swto;         // MODshared|MODwild          ? naked version of this type : shared wild version
+    Type *swcto;        // MODshared|MODwild|MODconst ? naked version of this type : shared wild const version
 
     Type *pto;          // merged pointer to this type
     Type *rto;          // reference to this type
@@ -264,14 +266,15 @@ public:
     virtual int isAssignable();
     virtual int checkBoolean(); // if can be converted to boolean value
     virtual void checkDeprecated(Loc loc, Scope *sc);
-    int isConst()       { return mod & MODconst; }
-    int isImmutable()   { return mod & MODimmutable; }
-    int isMutable()     { return !(mod & (MODconst | MODimmutable | MODwild)); }
-    int isShared()      { return mod & MODshared; }
-    int isSharedConst() { return mod == (MODshared | MODconst); }
-    int isWild()        { return mod & MODwild; }
-    int isSharedWild()  { return mod == (MODshared | MODwild); }
-    int isNaked()       { return mod == 0; }
+    bool isConst()       { return (mod & MODconst) != 0; }
+    bool isImmutable()   { return (mod & MODimmutable) != 0; }
+    bool isMutable()     { return (mod & (MODconst | MODimmutable | MODwild)) == 0; }
+    bool isShared()      { return (mod & MODshared) != 0; }
+    bool isSharedConst() { return (mod & (MODshared | MODconst)) == (MODshared | MODconst); }
+    bool isWild()        { return (mod & MODwild) != 0; }
+    bool isWildConst()   { return (mod & (MODwild | MODconst)) == (MODwild | MODconst); }
+    bool isSharedWild()  { return (mod & (MODshared | MODwild)) == (MODshared | MODwild); }
+    bool isNaked()       { return mod == 0; }
     Type *nullAttributes();
     Type *constOf();
     Type *immutableOf();
@@ -280,7 +283,9 @@ public:
     Type *sharedConstOf();
     Type *unSharedOf();
     Type *wildOf();
+    Type *wildConstOf();
     Type *sharedWildOf();
+    Type *sharedWildConstOf();
     void fixTo(Type *t);
     void check();
     Type *addSTC(StorageClass stc);
@@ -298,7 +303,9 @@ public:
     virtual Type *makeShared();
     virtual Type *makeSharedConst();
     virtual Type *makeWild();
+    virtual Type *makeWildConst();
     virtual Type *makeSharedWild();
+    virtual Type *makeSharedWildConst();
     virtual Type *makeMutable();
     virtual Dsymbol *toDsymbol(Scope *sc);
     virtual Type *toBasetype();
@@ -384,7 +391,9 @@ public:
     Type *makeShared();
     Type *makeSharedConst();
     Type *makeWild();
+    Type *makeWildConst();
     Type *makeSharedWild();
+    Type *makeSharedWildConst();
     Type *makeMutable();
     MATCH constConv(Type *to);
     unsigned deduceWild(Type *t, bool isRef);
@@ -667,7 +676,7 @@ public:
     LINK linkage;  // calling convention
     TRUST trust;   // level of trust
     PURE purity;   // PURExxxx
-    bool iswild;        // is inout function
+    unsigned char iswild;   // bit0: inout on params, bit1: inout on qualifier
     Expressions *fargs; // function arguments
 
     int inuse;
