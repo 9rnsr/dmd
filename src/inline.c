@@ -1293,26 +1293,26 @@ Expression *scanVar(Dsymbol *s, InlineScanState *iss)
 #if DMDV2
                 Type *tb = vd->type ? vd->type->toBasetype() : NULL;
                 if (tb && tb->ty == Tstruct &&
-                    (((TypeStruct *)tb)->sym)->cpctor)
+                    iexp->op == TOKconstruct &&
+                    ((ConstructExp *)iexp)->e2->op == TOKcall &&
+                    (vd->storage_class & STCref) == 0)
                 {
-                    /* Inlining function call with NRVO.
+                    /* Inlining:
+                     *   S s = foo();   // function call with NRVO
+                     *   S s = S(1);    // constrcutor call
                      */
-                    if (iexp->op == TOKconstruct &&
-                        ((ConstructExp *)iexp)->e2->op == TOKcall)
-                    {
-                        ConstructExp *ae = (ConstructExp *)iexp;
-                        ae->e2 = ((CallExp *)ae->e2)->inlineScan(iss, vd);
-                        //printf("call => %s\n", ae->e2->toChars());
+                    ConstructExp *ae = (ConstructExp *)iexp;
+                    ae->e2 = ((CallExp *)ae->e2)->inlineScan(iss, vd);
+                    //printf("call => %s\n", ae->e2->toChars());
 
-                        Expression *e = ae->e2;
-                        while (e->op == TOKcomma)
-                            e = ((CommaExp *)e)->e2;
-                        if (e->op == TOKvar && ((VarExp *)e)->var == s)
-                            return ae->e2;
+                    Expression *e = ae->e2;
+                    while (e->op == TOKcomma)
+                        e = ((CommaExp *)e)->e2;
+                    if (e->op == TOKvar && ((VarExp *)e)->var == s)
+                        return ae->e2;
 
-                        ie->exp = iexp;
-                        return NULL;
-                    }
+                    ie->exp = iexp;
+                    return NULL;
                 }
 #endif
                 ie->exp = iexp->inlineScan(iss);
@@ -1818,8 +1818,12 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss,
      * lvalue, it will work.
      * This only happens with struct returns.
      * See Bugzilla 2127 for an example.
+     *
+     * On constructor call making __inlineretval is merely redundant, because
+     * the returned reference is exactly same as vthis, and the 'this' variable
+     * already exists at the caller side.
      */
-    if (!ps && tf->next->ty == Tstruct && !nrvo_var)
+    if (!ps && tf->next->ty == Tstruct && !nrvo_var && !isCtorDeclaration())
     {
         /* Generate a new variable to hold the result and initialize it with the
          * inlined body of the function:
