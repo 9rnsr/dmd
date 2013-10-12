@@ -5966,7 +5966,8 @@ Expression *Parser::parsePrimaryExp()
 #endif
                          token.value == TOKfunction ||
                          token.value == TOKdelegate ||
-                         token.value == TOKreturn))
+                         token.value == TOKreturn ||
+                         token.value == TOKthis))
                     {
                         tok2 = token.value;
                         if (token.value == TOKinvariant)

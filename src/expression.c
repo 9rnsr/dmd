@@ -6786,6 +6786,17 @@ Expression *IsExp::semantic(Scope *sc)
                     goto Lno;           // not valid for a parameter
                 break;
 
+            case TOKthis:
+                Type *at = targ->aliasthisOf();
+                if (!at || at->ty == Ttuple)
+                    goto Lno;
+
+                Parameters *args = new Parameters;
+                args->push(new Parameter(0, at, NULL, NULL));
+                tded = new TypeTuple(args);
+
+                break;
+
             default:
                 assert(0);
         }
