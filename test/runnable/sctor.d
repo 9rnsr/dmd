@@ -307,12 +307,194 @@ void test1()
 
 /***************************************************/
 
+template Rebindable(T) if (is(T == class)/* || is(T == interface) || isArray!T*/)
+{
+    static if (!is(T X == const U, U) && !is(T X == immutable U, U))
+    {
+        static assert(0);   // test
+        alias T Rebindable;
+    }
+    //else static if (isArray!T)
+    //{
+    //    alias const(ElementType!T)[] Rebindable;
+    //}
+    else
+    {
+        pure nothrow
+        struct Rebindable
+        {
+            private union
+            {
+                T original;
+                U stripped;
+            }
+
+            this(inout T initializer) inout
+            {
+                original = initializer;
+            }
+            void opAssign(T another) @trusted
+            {
+                stripped = *cast(U*) &another;
+            }
+            void opAssign(Rebindable another) @trusted
+            {
+                stripped = another.stripped;
+            }
+
+            // safely construction/assignment
+            // from Rebindable!(immutable U) to Rebindable!(const U)
+            static if (is(T == const U))
+            {
+                this(Rebindable!(immutable U) another) inout
+                {
+                    original = another.original;
+                }
+                void opAssign(Rebindable!(immutable U) another)
+                {
+                    // safely assign immutable to const
+                    stripped = another.stripped;
+                }
+            }
+
+            // safely construction/assignment
+            // from immutable Rebindable!(const U) to Rebindable!(immutable U)
+            static if (is(T == immutable U))
+            {
+                this(immutable Rebindable!(const U) another) inout
+                {
+                    original = another.original;
+                }
+                void opAssign(immutable Rebindable!(const U) another) @trusted
+                {
+                    stripped = cast(U)another.stripped;
+                }
+            }
+
+            @property ref inout(T) get() inout
+            {
+                return original;
+            }
+            alias get this;
+        }
+    }
+}
+
+void test2a()
+{
+    // this(inout T initializer) inout
+
+    alias C = Object;
+    alias R = Rebindable;
+
+    C make(C)()
+    {
+        static int c; auto p = &c;  // mark impure
+        return new C();
+    }
+
+    static assert( __traits(compiles, {           R!(    const C) r = make!(          C); }));  // this(    const C);   // OK
+    static assert(!__traits(compiles, {           R!(immutable C) r = make!(          C); }));  // this(immutbale C);   // NG
+    static assert( __traits(compiles, {           R!(    const C) r = make!(    const C); }));  // this(    const C);   // OK
+    static assert(!__traits(compiles, {           R!(immutable C) r = make!(    const C); }));  // this(immutbale C);   // NG
+    static assert( __traits(compiles, {           R!(    const C) r = make!(immutable C); }));  // this(    const C);   // OK
+    static assert( __traits(compiles, {           R!(immutable C) r = make!(immutable C); }));  // this(immutbale C);   // OK
+
+    static assert( __traits(compiles, {     const R!(    const C) r = make!(          C); }));  // this(    const C) const;   // OK
+    static assert(!__traits(compiles, {     const R!(immutable C) r = make!(          C); }));  // this(immutbale C) const;   // NG
+    static assert( __traits(compiles, {     const R!(    const C) r = make!(    const C); }));  // this(    const C) const;   // OK
+    static assert(!__traits(compiles, {     const R!(immutable C) r = make!(    const C); }));  // this(immutbale C) const;   // NG
+    static assert( __traits(compiles, {     const R!(    const C) r = make!(immutable C); }));  // this(    const C) const;   // OK
+    static assert( __traits(compiles, {     const R!(immutable C) r = make!(immutable C); }));  // this(immutbale C) const;   // NG
+
+    static assert(!__traits(compiles, { immutable R!(    const C) r = make!(          C); }));  // this(immutable C) immutable;   // NG
+    static assert(!__traits(compiles, { immutable R!(immutable C) r = make!(          C); }));  // this(immutable C) immutable;   // NG
+    static assert(!__traits(compiles, { immutable R!(    const C) r = make!(    const C); }));  // this(immutable C) immutable;   // NG
+    static assert(!__traits(compiles, { immutable R!(immutable C) r = make!(    const C); }));  // this(immutable C) immutable;   // NG
+    static assert( __traits(compiles, { immutable R!(    const C) r = make!(immutable C); }));  // this(immutable C) immutable;   // OK
+    static assert( __traits(compiles, { immutable R!(immutable C) r = make!(immutable C); }));  // this(immutable C) immutable;   // OK
+}
+
+void test2b()
+{
+    alias C = Object;
+    alias R = Rebindable;
+
+    ref R make(R)()
+    {
+        static R r; // mark impure
+        return r;   // enforce copying
+    }
+
+    static assert( __traits(compiles, {           R!(const C) r = make!(          R!(const C)); }));  // m -> m
+    static assert( __traits(compiles, {     const R!(const C) r = make!(          R!(const C)); }));  // m -> c
+    static assert(!__traits(compiles, { immutable R!(const C) r = make!(          R!(const C)); }));  // m -> i
+    static assert( __traits(compiles, {           R!(const C) r = make!(    const R!(const C)); }));  // c -> m
+    static assert( __traits(compiles, {     const R!(const C) r = make!(    const R!(const C)); }));  // c -> c
+    static assert(!__traits(compiles, { immutable R!(const C) r = make!(    const R!(const C)); }));  // c -> i
+    static assert( __traits(compiles, {           R!(const C) r = make!(immutable R!(const C)); }));  // i -> m
+    static assert( __traits(compiles, {     const R!(const C) r = make!(immutable R!(const C)); }));  // i -> c
+    static assert( __traits(compiles, { immutable R!(const C) r = make!(immutable R!(const C)); }));  // i -> i
+
+    static assert( __traits(compiles, {           R!(immutable C) r = make!(          R!(immutable C)); }));  // m -> m
+    static assert( __traits(compiles, {     const R!(immutable C) r = make!(          R!(immutable C)); }));  // m -> c
+    static assert( __traits(compiles, { immutable R!(immutable C) r = make!(          R!(immutable C)); }));  // m -> i
+    static assert( __traits(compiles, {           R!(immutable C) r = make!(    const R!(immutable C)); }));  // c -> m
+    static assert( __traits(compiles, {     const R!(immutable C) r = make!(    const R!(immutable C)); }));  // c -> c
+    static assert( __traits(compiles, { immutable R!(immutable C) r = make!(    const R!(immutable C)); }));  // c -> i
+    static assert( __traits(compiles, {           R!(immutable C) r = make!(immutable R!(immutable C)); }));  // i -> m
+    static assert( __traits(compiles, {     const R!(immutable C) r = make!(immutable R!(immutable C)); }));  // i -> c
+    static assert( __traits(compiles, { immutable R!(immutable C) r = make!(immutable R!(immutable C)); }));  // i -> i
+}
+
+void test2c()
+{
+    alias C = Object;
+    alias R = Rebindable;
+
+    R make(R)()
+    {
+        static int c; auto p = &c;  // mark impure
+        return R();
+    }
+
+    static assert( __traits(compiles, {           R!(const C) r = make!(          R!(immutable C)); }));  // m -> m
+    static assert( __traits(compiles, {     const R!(const C) r = make!(          R!(immutable C)); }));  // m -> c
+    static assert( __traits(compiles, { immutable R!(const C) r = make!(          R!(immutable C)); }));  // m -> i
+    static assert( __traits(compiles, {           R!(const C) r = make!(    const R!(immutable C)); }));  // c -> m
+    static assert( __traits(compiles, {     const R!(const C) r = make!(    const R!(immutable C)); }));  // c -> c
+    static assert( __traits(compiles, { immutable R!(const C) r = make!(    const R!(immutable C)); }));  // c -> i
+    static assert( __traits(compiles, {           R!(const C) r = make!(immutable R!(immutable C)); }));  // i -> m
+    static assert( __traits(compiles, {     const R!(const C) r = make!(immutable R!(immutable C)); }));  // i -> c
+    static assert( __traits(compiles, { immutable R!(const C) r = make!(immutable R!(immutable C)); }));  // i -> i
+
+    static assert(!__traits(compiles, {           R!(immutable C) r = make!(          R!(const C)); }));  // m -> m
+    static assert(!__traits(compiles, {     const R!(immutable C) r = make!(          R!(const C)); }));  // m -> c
+    static assert(!__traits(compiles, { immutable R!(immutable C) r = make!(          R!(const C)); }));  // m -> i
+    static assert(!__traits(compiles, {           R!(immutable C) r = make!(    const R!(const C)); }));  // c -> m
+    static assert(!__traits(compiles, {     const R!(immutable C) r = make!(    const R!(const C)); }));  // c -> c
+    static assert(!__traits(compiles, { immutable R!(immutable C) r = make!(    const R!(const C)); }));  // c -> i
+    static assert( __traits(compiles, {           R!(immutable C) r = make!(immutable R!(const C)); }));  // i -> m
+    static assert( __traits(compiles, {     const R!(immutable C) r = make!(immutable R!(const C)); }));  // i -> c
+    static assert( __traits(compiles, { immutable R!(immutable C) r = make!(immutable R!(const C)); }));  // i -> i
+}
+
+void test2()
+{
+    test2a();
+    test2b();
+    test2c();
+}
+
+/**********************************/
+
 int main()
 {
     test8117();
     test9665();
     test11246();
     test1();
+    test2();
 
     printf("Success\n");
     return 0;
