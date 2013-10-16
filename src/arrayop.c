@@ -232,6 +232,7 @@ ArrayOp *buildArrayOp(Identifier *ident, BinExp *exp, Scope *sc, Loc loc)
 {
     Parameters *fparams = new Parameters();
     Expression *loopbody = exp->buildArrayLoop(fparams);
+    //printf("loopbody = %s\n", loopbody->toChars());
 
     ArrayOp *op = new ArrayOp;
     if (isDruntimeArrayOp(ident))
@@ -307,7 +308,7 @@ ArrayOp *buildArrayOp(Identifier *ident, BinExp *exp, Scope *sc, Loc loc)
  */
 bool isArrayOpValid(Expression *e)
 {
-    if (e->op == TOKslice)
+    if (e->op == TOKslice || e->op == TOKarrayliteral)
         return true;
     Type *tb = e->type->toBasetype();
 
@@ -368,15 +369,7 @@ Expression *BinExp::arrayOp(Scope *sc)
         return new ErrorExp();
     }
 
-    if (e2->op == TOKarrayliteral)
-    {
-        // Redundant slicing on `[1, 2, 3][]` is already removed
-        // in SliceExp, so add it again.
-        Expression *e = new SliceExp(e2->loc, e2, NULL, NULL);
-        e->type = e2->type->toBasetype()->nextOf()->arrayOf();
-        this->e2 = e;
-    }
-    else if (!isArrayOpValid(e2))
+    if (!isArrayOpValid(e2))
     {
         e2->error("invalid array operation %s (did you forget a [] ?)", toChars());
         return new ErrorExp();
@@ -417,6 +410,7 @@ Expression *BinExp::arrayOp(Scope *sc)
     Expression *ec = new VarExp(loc, fd);
     Expression *e = new CallExp(loc, ec, arguments);
 
+    //printf("--> e = %s\n", e->toChars());
     return e->semantic(sc);
 }
 
@@ -457,6 +451,12 @@ void CastExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
     }
     else
         Expression::buildArrayIdent(buf, arguments);
+}
+
+void ArrayLiteralExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
+{
+    buf->writestring("Slice");
+    arguments->shift(this);
 }
 
 void SliceExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
@@ -564,6 +564,19 @@ Expression *CastExp::buildArrayLoop(Parameters *fparams)
     }
     else
         return Expression::buildArrayLoop(fparams);
+}
+
+Expression *ArrayLiteralExp::buildArrayLoop(Parameters *fparams)
+{
+    Identifier *id = Identifier::generateId("p", fparams->dim);
+    Parameter *param = new Parameter(STCconst, type, id, NULL);
+    fparams->shift(param);
+    Expression *e = new IdentifierExp(Loc(), id);
+    Expressions *arguments = new Expressions();
+    Expression *index = new IdentifierExp(Loc(), Id::p);
+    arguments->push(index);
+    e = new ArrayExp(Loc(), e, arguments);
+    return e;
 }
 
 Expression *SliceExp::buildArrayLoop(Parameters *fparams)
@@ -677,7 +690,7 @@ Expression *BinExp::buildArrayLoop(Parameters *fparams)
 int Expression::isArrayOperand()
 {
     //printf("Expression::isArrayOperand() %s\n", toChars());
-    if (op == TOKslice)
+    if (op == TOKslice || op == TOKarrayliteral)
         return 1;
     if (type->toBasetype()->ty == Tarray)
     {
