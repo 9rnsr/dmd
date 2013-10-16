@@ -297,9 +297,9 @@ Dsymbol *Dsymbol::toParent2()
 
 TemplateInstance *Dsymbol::inTemplateInstance()
 {
-    for (Dsymbol *parent = this->parent; parent; parent = parent->parent)
+    for (Dsymbol *s = this->parent; s; s = s->parent)
     {
-        TemplateInstance *ti = parent->isTemplateInstance();
+        TemplateInstance *ti = s->isTemplateInstance();
         if (ti)
             return ti;
     }
