@@ -875,11 +875,14 @@ bool hasNonConstPointers(Expression *e)
     }
     if (e->type->ty== Tpointer && e->type->nextOf()->ty != Tfunction)
     {
+        printf("e = %s %s\n", Token::toChars(e->op), e->toChars());
         if (e->op == TOKsymoff) // address of a global is OK
             return false;
         if (e->op == TOKint64)  // cast(void *)int is OK
             return false;
         if (e->op == TOKstring) // "abc".ptr is OK
+            return false;
+        if (e->op == TOKindex && ((IndexExp *)e)->e1->op == TOKstring) // "abc"[0].ptr is OK
             return false;
         return true;
     }
@@ -922,12 +925,12 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
         return new ErrorInitializer();
     }
 
-    // Make sure all pointers are constants
-    if (needInterpret && hasNonConstPointers(exp))
-    {
-        exp->error("cannot use non-constant CTFE pointer in an initializer '%s'", exp->toChars());
-        return new ErrorInitializer();
-    }
+//    // Make sure all pointers are constants
+//    if (needInterpret && hasNonConstPointers(exp))
+//    {
+//        exp->error("cannot use non-constant CTFE pointer in an initializer '%s'", exp->toChars());
+//        return new ErrorInitializer();
+//    }
 
     Type *tb = t->toBasetype();
     Type *ti = exp->type->toBasetype();

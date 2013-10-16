@@ -4929,7 +4929,7 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
     Expression *e1 = NULL;
     Expression *e2;
 
-#if LOG
+#if 1//LOG
     printf("%s IndexExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
     if (this->e1->type->toBasetype()->ty == Tpointer)

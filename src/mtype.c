@@ -4435,6 +4435,7 @@ Expression *TypeDArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
     else if (ident == Id::ptr)
     {
         e = e->castTo(sc, next->pointerTo());
+        printf("a.ptr e = %s %s\n", Token::toChars(e->op), e->toChars());
         return e;
     }
     else
