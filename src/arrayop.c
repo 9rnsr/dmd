@@ -368,7 +368,15 @@ Expression *BinExp::arrayOp(Scope *sc)
         return new ErrorExp();
     }
 
-    if (!isArrayOpValid(e2))
+    if (e2->op == TOKarrayliteral)
+    {
+        // Redundant slicing on `[1, 2, 3][]` is already removed
+        // in SliceExp, so add it again.
+        Expression *e = new SliceExp(e2->loc, e2, NULL, NULL);
+        e->type = e2->type->toBasetype()->nextOf()->arrayOf();
+        this->e2 = e;
+    }
+    else if (!isArrayOpValid(e2))
     {
         e2->error("invalid array operation %s (did you forget a [] ?)", toChars());
         return new ErrorExp();
