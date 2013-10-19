@@ -4768,19 +4768,6 @@ Expression *StructLiteralExp::fill(bool ctorinit)
                 break;
             }
 
-#if 1
-            /* Prefer first found non-void-initialized field
-             * union U { int a; int b = 2; }
-             * U u;    // Error: overlapping initialization for field a and b
-             */
-            if (!vx)
-                vx = v2, fieldi = j;
-            else if (v2->init)
-            {
-                error("overlapping initialization for field %s and %s",
-                    v2->toChars(), vd->toChars());
-            }
-#else   // fix Bugzilla 1432
             /* Prefer explicitly initialized field
              * union U { int a; int b = 2; }
              * U u;    // OK (u.b == 2)
@@ -4800,7 +4787,6 @@ Expression *StructLiteralExp::fill(bool ctorinit)
             }
             else
                 assert(vx->init || !vx->init && !v2->init);
-#endif
         }
         if (vx)
         {

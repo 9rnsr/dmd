@@ -851,15 +851,49 @@ void test6937()
 }
 
 /********************************************/
+// 1432
+
+union U1432a
+{
+    float[2] a;
+    struct
+    {
+        union { float i = 1; float x; }
+        union { float j = 2; float y; }
+    }
+}
+
+union U1432b
+{
+    float[2] a;
+    struct
+    {
+        union { float i; float x = 1; }
+        union { float j; float y = 2; }
+    }
+}
+
+void test1432()
+{
+    U1432a ua;
+    assert(ua.a[0] == 1 && &ua.a[0] == &ua.i);
+    assert(ua.a[1] == 2 && &ua.a[1] == &ua.j);
+
+    U1432b ub;
+    assert(ub.a[0] == 1 && &ub.a[0] == &ub.i);
+    assert(ub.a[1] == 2 && &ub.a[1] == &ub.j);
+}
+
+/********************************************/
 // 7727
 
 union U7727A1 { int i;       double d;       }
 union U7727A2 { int i = 123; double d;       }
-//union U7727A3 { int i;       double d = 2.5; }
+union U7727A3 { int i;       double d = 2.5; }
 
 union U7727B1 { double d;       int i;       }
 union U7727B2 { double d = 2.5; int i;       }
-//union U7727B3 { double d;       int i = 123; }
+union U7727B3 { double d;       int i = 123; }
 
 void test7727()
 {
@@ -879,13 +913,12 @@ void test7727()
     { U7727A2 u = { i: 1024, d: 1.225 }; }
   ));
 
-// Blocked by issue 1432
-//    { U7727A3 u;                assert(u.d == 2.5); }
-//    { U7727A3 u = { i: 1024 };  assert(u.i == 1024); }
-//    { U7727A3 u = { d: 1.225 }; assert(u.d == 1.225); }
-//  static assert(!__traits(compiles,
-//    { U7727A3 u = { i: 1024, d: 1.225 }; }
-//  ));
+    { U7727A3 u;                assert(u.d == 2.5); }
+    { U7727A3 u = { i: 1024 };  assert(u.i == 1024); }
+    { U7727A3 u = { d: 1.225 }; assert(u.d == 1.225); }
+  static assert(!__traits(compiles,
+    { U7727A3 u = { i: 1024, d: 1.225 }; }
+  ));
 
     { U7727B1 u;                assert(isnan(u.d)); }
     { U7727B1 u = { i: 1024 };  assert(u.i == 1024); }
@@ -901,13 +934,12 @@ void test7727()
     { U7727B2 u = { i: 1024, d: 1.225 }; }
   ));
 
-// Blocked by issue 1432
-//    { U7727B3 u;                assert(u.i == 123); }
-//    { U7727B3 u = { i: 1024 };  assert(u.i == 1024); }
-//    { U7727B3 u = { d: 1.225 }; assert(u.d == 1.225); }
-//  static assert(!__traits(compiles,
-//    { U7727B3 u = { i: 1024, d: 1.225 }; }
-//  ));
+    { U7727B3 u;                assert(u.i == 123); }
+    { U7727B3 u = { i: 1024 };  assert(u.i == 1024); }
+    { U7727B3 u = { d: 1.225 }; assert(u.d == 1.225); }
+  static assert(!__traits(compiles,
+    { U7727B3 u = { i: 1024, d: 1.225 }; }
+  ));
 
 
     test7727a();
@@ -1237,6 +1269,7 @@ int main()
     test5889();
     test4247();
     test6937();
+    test1432();
     test7727();
     test7929();
     test7021();
