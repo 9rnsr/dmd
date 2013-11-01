@@ -5,6 +5,8 @@ extern (C) int printf(const(char*) fmt, ...);
 
 template TypeTuple(T...) { alias TypeTuple = T; }
 
+debug = NRVO;
+
 /**********************************/
 
 int sdtor;
@@ -3109,6 +3111,40 @@ void test11286()
 }
 
 /**********************************/
+// 11394
+
+static void* p11394a, p11394b, p11394c;
+
+static int[3] make11394(in int x) pure
+{
+    //debug(NRVO) printf("x\n");
+    typeof(return) a;
+    a[0] = x;
+    a[1] = x + 1;
+    a[2] = x + 2;
+    debug(NRVO) p11394a = cast(void*)a.ptr;
+    return a;
+}
+struct Bar11394
+{
+    immutable int[3] arr;
+
+    this(int x)
+    {
+        this.arr = make11394(x);    // NRVO should work
+        debug(NRVO) p11394b = cast(void*)this.arr.ptr;
+    }
+}
+void test11394()
+{
+    auto b = Bar11394(5);
+    debug(NRVO) p11394c = cast(void*)b.arr.ptr;
+    //debug(NRVO) printf("p1 = %p\np2 = %p\np3 = %p\n", p11394a, p11394b, p11394c);
+    assert(p11394a == p11394b);
+    assert(p11394b == p11394c);
+}
+
+/**********************************/
 
 int main()
 {
@@ -3205,6 +3241,7 @@ int main()
     test11134();
     test11197();
     test7474();
+    test11394();
 
     printf("Success\n");
     return 0;
