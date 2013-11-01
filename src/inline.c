@@ -1610,7 +1610,7 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
 #endif
         isSynchronized() ||
         isImportedSymbol() ||
-        //hasNestedFrameRefs() ||      // no nested references to this frame
+        hasNestedFrameRefs() ||      // no nested references to this frame
         (isVirtual() && !isFinalFunc())
        ))
     {
