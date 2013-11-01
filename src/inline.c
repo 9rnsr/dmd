@@ -736,11 +736,9 @@ Expression *SuperExp::doInline(InlineDoState *ids)
 }
 
 Expression *DeclarationExp::doInline(InlineDoState *ids)
-{   DeclarationExp *de = (DeclarationExp *)copy();
-    VarDeclaration *vd;
-
+{
     //printf("DeclarationExp::doInline(%s)\n", toChars());
-    vd = declaration->isVarDeclaration();
+    VarDeclaration *vd = declaration->isVarDeclaration();
     if (vd)
     {
 #if 0
@@ -768,12 +766,26 @@ Expression *DeclarationExp::doInline(InlineDoState *ids)
                     if (vd == ids->from[i])
                     {
                         vto = (VarDeclaration *)ids->to[i];
+                        if ((vd->storage_class & STCref) == 0 &&
+                            (vto->storage_class & STCref))
+                        {
+                            Expression *e;
+                            if (vd->init && !vd->init->isVoidInitializer())
+                            {
+                                e = vd->init->toExpression();
+                                assert(e);
+                                e = e->doInline(ids);
+                            }
+                            else
+                                e = new IntegerExp(vd->init->loc, 0, Type::tint32);
+                            return e;
+                        }
                         goto L1;
                     }
                 }
             }
             vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->init);
-            memcpy((void*)vto, (void*)vd, sizeof(VarDeclaration));
+            memcpy((void *)vto, (void *)vd, sizeof(VarDeclaration));
             vto->parent = ids->parent;
             vto->csym = NULL;
             vto->isym = NULL;
@@ -795,13 +807,15 @@ Expression *DeclarationExp::doInline(InlineDoState *ids)
                     vto->init = new ExpInitializer(e->loc, e->doInline(ids));
                 }
             }
+            DeclarationExp *de = (DeclarationExp *)copy();
             de->declaration = (Dsymbol *) (void *)vto;
+            return de;
         }
     }
     /* This needs work, like DeclarationExp::toElem(), if we are
      * to handle TemplateMixin's. For now, we just don't inline them.
      */
-    return de;
+    return Expression::doInline(ids);
 }
 
 Expression *NewExp::doInline(InlineDoState *ids)
@@ -1283,40 +1297,10 @@ Expression *scanVar(Dsymbol *s, InlineScanState *iss)
                 scanVar(se->s, iss);
             }
         }
-        else
+        else if (vd->init)
         {
-            // Scan initializer (vd->init)
-            ExpInitializer *ie = vd->init ? vd->init->isExpInitializer() : NULL;
-            if (ie)
-            {
-                Expression *iexp = ie->exp;
-#if DMDV2
-                Type *tb = vd->type ? vd->type->toBasetype() : NULL;
-                if (tb && tb->ty == Tstruct &&
-                    iexp->op == TOKconstruct &&
-                    ((ConstructExp *)iexp)->e2->op == TOKcall &&
-                    (vd->storage_class & STCref) == 0)
-                {
-                    /* Inlining:
-                     *   S s = foo();   // function call with NRVO
-                     *   S s = S(1);    // constrcutor call
-                     */
-                    ConstructExp *ae = (ConstructExp *)iexp;
-                    ae->e2 = ((CallExp *)ae->e2)->inlineScan(iss, vd);
-                    //printf("call => %s\n", ae->e2->toChars());
-
-                    Expression *e = ae->e2;
-                    while (e->op == TOKcomma)
-                        e = ((CommaExp *)e)->e2;
-                    if (e->op == TOKvar && ((VarExp *)e)->var == s)
-                        return ae->e2;
-
-                    ie->exp = iexp;
-                    return NULL;
-                }
-#endif
-                ie->exp = iexp->inlineScan(iss);
-            }
+            if (ExpInitializer *ie = vd->init->isExpInitializer())
+                ie->exp = ie->exp->inlineScan(iss);
         }
     }
     else
@@ -1354,6 +1338,59 @@ Expression *BinExp::inlineScan(InlineScanState *iss)
     return this;
 }
 
+Expression *AssignExp::inlineScan(InlineScanState *iss)
+{
+    if (op == TOKconstruct && e2->op == TOKcall)
+    {
+        CallExp *ce = (CallExp *)e2;
+        Type *t1 = ce->e1->type->toBasetype();
+        if (t1->ty == Tfunction &&
+            ((TypeFunction *)t1)->retStyle() == RETstack)   // NRVO
+        {
+            VarDeclaration *vd;
+            Expression *e0;
+            if (e1->op == TOKvar)
+            {
+                /* Inlining:
+                 *   S s = foo();   // initializing by rvalue
+                 *   S s = S(1);    // constrcutor call
+                 */
+                vd = ((VarExp *)e1)->var->isVarDeclaration();
+                if (vd->storage_class & (STCout | STCref))  // refinit
+                    goto L1;
+                e0 = NULL;
+            }
+            else
+            {
+                /* Inlining:
+                 *   this.field = foo();   // inside constructor
+                 */
+                vd = new VarDeclaration(loc, e1->type, Lexer::uniqueId("_satmp"), NULL);
+                vd->storage_class |= STCforeach | STCref;
+                vd->linkage = LINKd;
+                vd->parent = iss->fd;
+
+                Expression *de;
+                de = new DeclarationExp(loc, vd);
+                de->type = Type::tvoid;
+
+                Expression *ex;
+                ex = new VarExp(loc, vd);
+                ex->type = vd->type;
+                ex = new ConstructExp(loc, ex, e1->inlineScan(iss));
+                ex->type = vd->type;
+
+                e0 = Expression::combine(de, ex);
+            }
+            Expression *e = ce->inlineScan(iss, vd);
+            e = Expression::combine(e0, e);
+            //printf("call with nrvo: %s\n", e->toChars());
+            return e;
+        }
+    }
+L1:
+    return BinExp::inlineScan(iss);
+}
 
 Expression *CallExp::inlineScan(InlineScanState *iss)
 {

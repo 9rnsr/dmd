@@ -1398,6 +1398,9 @@ public:
     Identifier *opId();    // For operator overloading
     void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     Expression *buildArrayLoop(Parameters *fparams);
+
+    Expression *inlineScan(InlineScanState *iss);
+
     elem *toElem(IRState *irs);
 };
 
