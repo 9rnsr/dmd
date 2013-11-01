@@ -1343,49 +1343,32 @@ Expression *AssignExp::inlineScan(InlineScanState *iss)
     if (op == TOKconstruct && e2->op == TOKcall)
     {
         CallExp *ce = (CallExp *)e2;
-        Type *t1 = ce->e1->type->toBasetype();
-        if (t1->ty == Tfunction &&
-            ((TypeFunction *)t1)->retStyle() == RETstack)   // NRVO
+        if (ce->f && ce->f->nrvo_var)   // NRVO
         {
-            VarDeclaration *vd;
-            Expression *e0;
             if (e1->op == TOKvar)
             {
                 /* Inlining:
                  *   S s = foo();   // initializing by rvalue
                  *   S s = S(1);    // constrcutor call
                  */
-                vd = ((VarExp *)e1)->var->isVarDeclaration();
-                if (vd->storage_class & (STCout | STCref))  // refinit
+                Declaration *d = ((VarExp *)e1)->var;
+                if (d->storage_class & (STCout | STCref))  // refinit
                     goto L1;
-                e0 = NULL;
             }
             else
             {
                 /* Inlining:
                  *   this.field = foo();   // inside constructor
                  */
-                vd = new VarDeclaration(loc, e1->type, Lexer::uniqueId("_satmp"), NULL);
-                vd->storage_class |= STCforeach | STCref;
-                vd->linkage = LINKd;
-                vd->parent = iss->fd;
-
-                Expression *de;
-                de = new DeclarationExp(loc, vd);
-                de->type = Type::tvoid;
-
-                Expression *ex;
-                ex = new VarExp(loc, vd);
-                ex->type = vd->type;
-                ex = new ConstructExp(loc, ex, e1->inlineScan(iss));
-                ex->type = vd->type;
-
-                e0 = Expression::combine(de, ex);
+                e1 = e1->inlineScan(iss);
             }
-            Expression *e = ce->inlineScan(iss, vd);
-            e = Expression::combine(e0, e);
-            //printf("call with nrvo: %s\n", e->toChars());
-            return e;
+
+            Expression *e = ce->inlineScan(iss, e1);
+            if (e != ce)
+            {
+                //printf("call with nrvo: %s ==> %s\n", toChars(), e->toChars());
+                return e;
+            }
         }
     }
 L1:
@@ -1397,7 +1380,7 @@ Expression *CallExp::inlineScan(InlineScanState *iss)
     return inlineScan(iss, NULL);
 }
 
-Expression *CallExp::inlineScan(InlineScanState *iss, VarDeclaration *vret)
+Expression *CallExp::inlineScan(InlineScanState *iss, Expression *eret)
 {
     Expression *e = this;
 
@@ -1412,7 +1395,7 @@ Expression *CallExp::inlineScan(InlineScanState *iss, VarDeclaration *vret)
 
         if (fd && fd != iss->fd && fd->canInline(0, 0, 0))
         {
-            e = fd->expandInline(iss, vret, NULL, arguments, NULL);
+            e = fd->expandInline(iss, eret, NULL, arguments, NULL);
         }
     }
     else if (e1->op == TOKdotvar)
@@ -1432,7 +1415,7 @@ Expression *CallExp::inlineScan(InlineScanState *iss, VarDeclaration *vret)
                 ;
             }
             else
-                e = fd->expandInline(iss, vret, dve->e1, arguments, NULL);
+                e = fd->expandInline(iss, eret, dve->e1, arguments, NULL);
         }
     }
 
@@ -1699,7 +1682,7 @@ Lno:
 }
 
 Expression *FuncDeclaration::expandInline(InlineScanState *iss,
-        VarDeclaration *vret, Expression *ethis, Expressions *arguments, Statement **ps)
+        Expression *eret, Expression *ethis, Expressions *arguments, Statement **ps)
 {
     InlineDoState ids;
     DeclarationExp *de;
@@ -1717,6 +1700,38 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss,
 
     if (ps)
         as = new Statements();
+
+    VarDeclaration *vret = NULL;
+    if (eret)
+    {
+        if (eret->op == TOKvar)
+        {
+            vret = ((VarExp *)eret)->var->isVarDeclaration();
+            assert(!(vret->storage_class & (STCout | STCref)));
+        }
+        else
+        {
+            /* Inlining:
+             *   this.field = foo();   // inside constructor
+             */
+            vret = new VarDeclaration(loc, eret->type, Lexer::uniqueId("_satmp"), NULL);
+            vret->storage_class |= STCforeach | STCref;
+            vret->linkage = LINKd;
+            vret->parent = iss->fd;
+
+            Expression *de;
+            de = new DeclarationExp(loc, vret);
+            de->type = Type::tvoid;
+            e = Expression::combine(e, de);
+
+            Expression *ex;
+            ex = new VarExp(loc, vret);
+            ex->type = vret->type;
+            ex = new ConstructExp(loc, ex, eret);
+            ex->type = vret->type;
+            e = Expression::combine(e, ex);
+        }
+    }
 
     // Set up vthis
     if (ethis)
@@ -1757,10 +1772,9 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss,
     // Set up parameters
     if (ethis)
     {
-        e = new DeclarationExp(Loc(), ids.vthis);
-        e->type = Type::tvoid;
-        if (as)
-            as->push(new ExpStatement(e->loc, e));
+        Expression *de = new DeclarationExp(Loc(), ids.vthis);
+        de->type = Type::tvoid;
+        e = Expression::combine(e, de);
     }
 
     if (!ps && nrvo_var)
@@ -1820,15 +1834,14 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss,
             de = new DeclarationExp(Loc(), vto);
             de->type = Type::tvoid;
 
-            if (as)
-                as->push(new ExpStatement(Loc(), de));
-            else
-                e = Expression::combine(e, de);
+            e = Expression::combine(e, de);
         }
     }
 
     if (ps)
     {
+        if (e)
+            as->push(new ExpStatement(Loc(), e));
         inlineNest++;
         Statement *s = fbody->doInlineStatement(&ids);
         as->push(s);
@@ -1844,51 +1857,51 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss,
         //eb->type->print();
         //eb->print();
         //eb->dump(0);
+
+        /* There's a problem if what the function returns is used subsequently as an
+         * lvalue, as in a struct return that is then used as a 'this'.
+         * If we take the address of the return value, we will be taking the address
+         * of the original, not the copy. Fix this by assigning the return value to
+         * a temporary, then returning the temporary. If the temporary is used as an
+         * lvalue, it will work.
+         * This only happens with struct returns.
+         * See Bugzilla 2127 for an example.
+         *
+         * On constructor call making __inlineretval is merely redundant, because
+         * the returned reference is exactly same as vthis, and the 'this' variable
+         * already exists at the caller side.
+         */
+        if (tf->next->ty == Tstruct && !nrvo_var && !isCtorDeclaration())
+        {
+            /* Generate a new variable to hold the result and initialize it with the
+             * inlined body of the function:
+             *   tret __inlineretval = e;
+             */
+            ExpInitializer* ei = new ExpInitializer(loc, e);
+
+            Identifier* tmp = Identifier::generateId("__inlineretval");
+            VarDeclaration* vd = new VarDeclaration(loc, tf->next, tmp, ei);
+            vd->storage_class = (tf->isref ? STCref : 0) | STCtemp;
+            vd->linkage = tf->linkage;
+            vd->parent = iss->fd;
+
+            VarExp *ve = new VarExp(loc, vd);
+            ve->type = tf->next;
+
+            ei->exp = new ConstructExp(loc, ve, e);
+            ei->exp->type = ve->type;
+
+            DeclarationExp* de = new DeclarationExp(Loc(), vd);
+            de->type = Type::tvoid;
+
+            // Chain the two together:
+            //   ( typeof(return) __inlineretval = ( inlined body )) , __inlineretval
+            e = Expression::combine(de, ve);
+
+            //fprintf(stderr, "CallExp::inlineScan: e = "); e->print();
+        }
     }
     //printf("%s->expandInline = { %s }\n", toChars(), e->toChars());
-
-    /* There's a problem if what the function returns is used subsequently as an
-     * lvalue, as in a struct return that is then used as a 'this'.
-     * If we take the address of the return value, we will be taking the address
-     * of the original, not the copy. Fix this by assigning the return value to
-     * a temporary, then returning the temporary. If the temporary is used as an
-     * lvalue, it will work.
-     * This only happens with struct returns.
-     * See Bugzilla 2127 for an example.
-     *
-     * On constructor call making __inlineretval is merely redundant, because
-     * the returned reference is exactly same as vthis, and the 'this' variable
-     * already exists at the caller side.
-     */
-    if (!ps && tf->next->ty == Tstruct && !nrvo_var && !isCtorDeclaration())
-    {
-        /* Generate a new variable to hold the result and initialize it with the
-         * inlined body of the function:
-         *   tret __inlineretval = e;
-         */
-        ExpInitializer* ei = new ExpInitializer(loc, e);
-
-        Identifier* tmp = Identifier::generateId("__inlineretval");
-        VarDeclaration* vd = new VarDeclaration(loc, tf->next, tmp, ei);
-        vd->storage_class = (tf->isref ? STCref : 0) | STCtemp;
-        vd->linkage = tf->linkage;
-        vd->parent = iss->fd;
-
-        VarExp *ve = new VarExp(loc, vd);
-        ve->type = tf->next;
-
-        ei->exp = new ConstructExp(loc, ve, e);
-        ei->exp->type = ve->type;
-
-        DeclarationExp* de = new DeclarationExp(Loc(), vd);
-        de->type = Type::tvoid;
-
-        // Chain the two together:
-        //   ( typeof(return) __inlineretval = ( inlined body )) , __inlineretval
-        e = Expression::combine(de, ve);
-
-        //fprintf(stderr, "CallExp::inlineScan: e = "); e->print();
-    }
 
     // Need to reevaluate whether parent can now be inlined
     // in expressions, as we might have inlined statements
