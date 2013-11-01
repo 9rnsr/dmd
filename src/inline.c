@@ -313,7 +313,7 @@ int DeclarationExp::inlineCost3(InlineCostState *ics)
     // These can contain functions, which when copied, get output twice.
     if (declaration->isStructDeclaration() ||
         declaration->isClassDeclaration() ||
-        declaration->isFuncDeclaration() ||
+        //declaration->isFuncDeclaration() ||
         declaration->isTypedefDeclaration() ||
 #if DMDV2
         declaration->isAttribDeclaration() ||
@@ -1610,7 +1610,7 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
 #endif
         isSynchronized() ||
         isImportedSymbol() ||
-        hasNestedFrameRefs() ||      // no nested references to this frame
+        //hasNestedFrameRefs() ||      // no nested references to this frame
         (isVirtual() && !isFinalFunc())
        ))
     {
