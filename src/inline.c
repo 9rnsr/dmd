@@ -1304,9 +1304,13 @@ Expression *scanVar(Dsymbol *s, InlineScanState *iss)
                 //printf("+de ie =%p, vd->init = %p\n", ie, vd->init);
                 Expression *e = ie->exp->inlineScan(iss);
                 //vd->init = ie;
-                printf("-de ie->exp = %s, ie =%p, vd->init = %p, vd->init = %s\n", e->toChars(), ie, vd->init, vd->init->toChars());
-                vd->init = new ExpInitializer(ie->loc, e);
+                if (vd->init != ie)     // DeclareExp with vd appears in e
+                    return e;
+                //printf("-de ie->exp = %p, e = %p\n", ie->exp, e);
+                //printf("-de ie->exp = %s, ie =%p, vd->init = %p, vd->init = %s\n", e->toChars(), ie, vd->init, vd->init->toChars());
+                //vd->init = new ExpInitializer(ie->loc, e);
                 //return ie->exp;
+                ie->exp = e;
 
                 // TODO: runnable/sdtor.d test9985()
             }
@@ -1376,7 +1380,7 @@ Expression *AssignExp::inlineScan(InlineScanState *iss)
             Expression *e = ce->inlineScan(iss, e1);
             if (e != ce)
             {
-                printf("call with nrvo: %s ==> %s\n", toChars(), e->toChars());
+                //printf("call with nrvo: %s ==> %s\n", toChars(), e->toChars());
                 return e;
             }
         }

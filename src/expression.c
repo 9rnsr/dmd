@@ -1840,6 +1840,9 @@ void expToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e, PREC pr)
     assert(precedence[e->op] != PREC_zero);
     assert(pr != PREC_zero);
 
+#if 0   // for debugging AST
+    buf->printf("[tok:%s](", Token::toChars(e->op));
+#endif
     //if (precedence[e->op] == 0) e->dump(0);
     if (precedence[e->op] < pr ||
         /* Despite precedence, we don't allow a<b<c expressions.
@@ -1853,6 +1856,7 @@ void expToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e, PREC pr)
     }
     else
         e->toCBuffer(buf, hgs);
+    //buf->writeByte(')');
 }
 
 void sizeToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e)
