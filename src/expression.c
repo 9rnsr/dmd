@@ -6511,8 +6511,7 @@ Expression *IsExp::syntaxCopy()
 }
 
 Expression *IsExp::semantic(Scope *sc)
-{   Type *tded;
-
+{
     /* is(targ id tok tspec)
      * is(targ id :  tok2)
      * is(targ id == tok2)
@@ -6520,10 +6519,12 @@ Expression *IsExp::semantic(Scope *sc)
 
     //printf("IsExp::semantic(%s)\n", toChars());
     if (id && !(sc->flags & (SCOPEstaticif | SCOPEstaticassert)))
-    {   error("can only declare type aliases within static if conditionals or static asserts");
+    {
+        error("can only declare type aliases within static if conditionals or static asserts");
         return new ErrorExp();
     }
 
+    Type *tded;
     Type *t = targ->trySemantic(loc, sc);
     if (!t)
         goto Lno;                       // errors, so condition is false
@@ -6598,13 +6599,15 @@ Expression *IsExp::semantic(Scope *sc)
                 if (targ->ty != Tclass)
                     goto Lno;
                 else
-                {   ClassDeclaration *cd = ((TypeClass *)targ)->sym;
+                {
+                    ClassDeclaration *cd = ((TypeClass *)targ)->sym;
                     Parameters *args = new Parameters;
                     args->reserve(cd->baseclasses->dim);
                     if (cd->scope && !cd->symtab)
                         cd->semantic(cd->scope);
                     for (size_t i = 0; i < cd->baseclasses->dim; i++)
-                    {   BaseClass *b = (*cd->baseclasses)[i];
+                    {
+                        BaseClass *b = (*cd->baseclasses)[i];
                         args->push(new Parameter(STCin, b->type, NULL, NULL));
                     }
                     tded = new TypeTuple(args);
@@ -6643,7 +6646,8 @@ Expression *IsExp::semantic(Scope *sc)
                 Parameters *args = new Parameters;
                 args->reserve(dim);
                 for (size_t i = 0; i < dim; i++)
-                {   Parameter *arg = Parameter::getNth(params, i);
+                {
+                    Parameter *arg = Parameter::getNth(params, i);
                     assert(arg && arg->type);
                     /* If one of the default arguments was an error,
                        don't return an invalid tuple
@@ -6665,12 +6669,14 @@ Expression *IsExp::semantic(Scope *sc)
                 if (targ->ty == Tfunction)
                     tded = ((TypeFunction *)targ)->next;
                 else if (targ->ty == Tdelegate)
-                {   tded = ((TypeDelegate *)targ)->next;
+                {
+                    tded = ((TypeDelegate *)targ)->next;
                     tded = ((TypeFunction *)tded)->next;
                 }
                 else if (targ->ty == Tpointer &&
                          ((TypePointer *)targ)->next->ty == Tfunction)
-                {   tded = ((TypePointer *)targ)->next;
+                {
+                    tded = ((TypePointer *)targ)->next;
                     tded = ((TypeFunction *)tded)->next;
                 }
                 else
@@ -6703,17 +6709,16 @@ Expression *IsExp::semantic(Scope *sc)
         //printf("targ  = %s, %s\n", targ->toChars(), targ->deco);
         //printf("tspec = %s, %s\n", tspec->toChars(), tspec->deco);
         if (tok == TOKcolon)
-        {   if (targ->implicitConvTo(tspec))
-                goto Lyes;
-            else
+        {
+            if (!targ->implicitConvTo(tspec))
                 goto Lno;
         }
         else /* == */
-        {   if (targ->equals(tspec))
-                goto Lyes;
-            else
+        {
+            if (!targ->equals(tspec))
                 goto Lno;
         }
+        goto Lyes;
     }
     else if (tspec)
     {
@@ -6738,36 +6743,72 @@ Expression *IsExp::semantic(Scope *sc)
         //printf("targ: %s\n", targ->toChars());
         //printf("tspec: %s\n", tspec->toChars());
         if (m <= MATCHnomatch ||
-            (m != MATCHexact && tok == TOKequal))
+            (m != MATCHexact && tok == TOKequal))   // TODO for alias this
         {
             goto Lno;
         }
-        else
-        {
-            tded = (Type *)dedtypes[0];
-            if (!tded)
-                tded = targ;
-            Objects tiargs;
-            tiargs.setDim(1);
-            tiargs[0] = targ;
 
-            /* Declare trailing parameters
-             */
-            for (size_t i = 1; i < parameters->dim; i++)
-            {   TemplateParameter *tp = (*parameters)[i];
-                Declaration *s = NULL;
+        tded = (Type *)dedtypes[0];
+        if (!tded)
+            tded = targ;
+        Objects tiargs;
+        tiargs.setDim(1);
+        tiargs[0] = targ;
 
-                m = tp->matchArg(loc, sc, &tiargs, i, parameters, &dedtypes, &s);
-                if (m <= MATCHnomatch)
-                    goto Lno;
-                s->semantic(sc);
-                if (sc->sd)
-                    s->addMember(sc, sc->sd, 1);
-                else if (!sc->insert(s))
-                    error("declaration %s is already defined", s->toChars());
-            }
-            goto Lyes;
+        /* Declare trailing parameters
+         */
+        for (size_t i = 1; i < parameters->dim; i++)
+        {   TemplateParameter *tp = (*parameters)[i];
+            Declaration *s = NULL;
+
+            m = tp->matchArg(loc, sc, &tiargs, i, parameters, &dedtypes, &s);
+            if (m <= MATCHnomatch)
+                goto Lno;
+            s->semantic(sc);
+            if (sc->sd)
+                s->addMember(sc, sc->sd, 1);
+            else if (!sc->insert(s))
+                error("declaration %s is already defined", s->toChars());
         }
+
+        // workaround for alias this
+        if (tok == TOKequal)
+        {
+            // Aggregate/enum type vs structural pattern should be unmatched.
+            if ((isAggregate(targ) || targ->ty == Tenum) &&
+                (tspec->ty == Tsarray || tspec->ty == Taarray ||
+                 tspec->ty == Tarray || tspec->ty == Tpointer))
+            {
+                goto Lno;
+            }
+        }
+#if 0
+void main()
+{
+    struct S
+    {
+        int[3] sa;
+        alias sa this;
+    }
+    pragma(msg, is(S :  int[3]));   // true
+    pragma(msg, is(S == int[3]));   // false
+
+    { pragma(msg, is(S :  T[n], T, size_t n)); }    // true
+    { pragma(msg, is(S == T[n], T, size_t n)); }    // true -> false
+
+    enum E : int[3] { a = [1,2,3] }
+    { pragma(msg, is(E :  T[n], T, size_t n)); }    // true
+    { pragma(msg, is(E == T[n], T, size_t n)); }    // true -> false
+
+    alias SA = int[3];
+    { pragma(msg, is(SA :  T[n], T, size_t n)); }    // true
+    { pragma(msg, is(SA == T[n], T, size_t n)); }    // true
+
+    { pragma(msg, is(SA :  T[], T)); }    // true
+    { pragma(msg, is(SA == T[], T)); }    // false
+}
+#endif
+        goto Lyes;
     }
     else if (id)
     {
