@@ -853,6 +853,15 @@ void StructDeclaration::toObjFile(bool multiobj)
             toDebug(this);
 
         type->genTypeInfo(NULL);
+        if (postblit)
+        {
+            if (resolvePostBlit(MODconst, postblit))
+                type->constOf()->getTypeInfo(NULL);
+            if (resolvePostBlit(MODimmutable, postblit))
+                type->immutableOf()->getTypeInfo(NULL);
+            if (resolvePostBlit(MODwild, postblit))
+                type->wildOf()->getTypeInfo(NULL);
+        }
 
         if (1)
         {

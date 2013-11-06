@@ -673,6 +673,26 @@ StructDeclaration *needsPostblit(Type *t)
     return NULL;
 }
 
+Type *getCopyType(Type *t1, Type *t2)
+{
+    Type *tv = t1->baseElemOf();
+    if (tv->ty == Tstruct)
+    {
+        StructDeclaration *sd = ((TypeStruct *)tv)->sym;
+        if (sd->postblit)
+        {
+            FuncDeclaration *cpctor = resolveCpCtor(t2->mod, t1->mod, sd->cpctor);
+            if (cpctor && (cpctor->storage_class & STCdisable) == 0)
+            {
+                TypeFunction *tf = (TypeFunction *)cpctor->type;
+                unsigned char mod = (*tf->parameters)[0]->type->mod;
+                t1 = t1->castMod(mod);
+            }
+        }
+    }
+    return t1;
+}
+
 /*******************************************
  * Set an array pointed to by eptr to evalue:
  *      eptr[0..edim] = evalue;
@@ -684,7 +704,8 @@ StructDeclaration *needsPostblit(Type *t)
  */
 
 elem *setArray(elem *eptr, elem *edim, Type *tb, elem *evalue, IRState *irs, int op)
-{   int r;
+{
+    int r;
     elem *e;
     unsigned sz = tb->size();
 
@@ -718,7 +739,8 @@ Lagain:
             if (I32)
                 goto Ldefault;
 
-        {   TypeStruct *tc = (TypeStruct *)tb;
+        {
+            TypeStruct *tc = (TypeStruct *)tb;
             StructDeclaration *sd = tc->sym;
             if (sd->arg1type && !sd->arg2type)
             {
@@ -746,7 +768,8 @@ Lagain:
             {
                 StructDeclaration *sd = needsPostblit(tb);
                 if (sd)
-                {   /* Need to do postblit.
+                {
+                    /* Need to do postblit.
                      *   void *_d_arraysetassign(void *p, void *value, int dim, TypeInfo ti);
                      */
                     r = (op == TOKconstruct) ? RTLSYM_ARRAYSETCTOR : RTLSYM_ARRAYSETASSIGN;
@@ -1963,7 +1986,7 @@ elem *toElem(Expression *e, IRState *irs)
                                el_long(TYsize_t, n),
                                ta->getTypeInfo(NULL)->toElem(irs),
                                NULL);
-                e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYCATNT]), ep);
+                e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYCATNT]), ep);    // TODO
                 e->Eflags |= EFLAGS_variadic;
             }
             else
@@ -1971,7 +1994,7 @@ elem *toElem(Expression *e, IRState *irs)
                 elem *e1 = eval_Darray(ce->e1);
                 elem *e2 = eval_Darray(ce->e2);
                 elem *ep = el_params(e2, e1, ta->getTypeInfo(NULL)->toElem(irs), NULL);
-                e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYCATT]), ep);
+                e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYCATT]), ep);     // TODO
             }
             el_setLoc(e,ce->loc);
             result = e;
@@ -2349,6 +2372,13 @@ elem *toElem(Expression *e, IRState *irs)
                 Type *t2 = ae->e2->type->toBasetype();
                 Type *ta = are->e1->type->toBasetype();
 
+                // Get 'original' expression of e2
+                Expression *e2org = ae->e2;
+                if (e2org->op == TOKcast)
+                    e2org = ((CastExp *)e2org)->e1;
+                if (e2org->op == TOKslice)
+                    e2org = ((SliceExp *)e2org)->e1;
+
                 // which we do if the 'next' types match
                 if (ae->ismemset)
                 {
@@ -2446,7 +2476,7 @@ elem *toElem(Expression *e, IRState *irs)
                     }
                     else
                         elength = el_copytree(enbytes);
-                    e = setArray(n1, enbytes, tb, evalue, irs, ae->op);
+                    e = setArray(n1, enbytes, getCopyType(tb, e2org->type->toBasetype()), evalue, irs, ae->op);
                     e = el_pair(TYdarray, elength, e);
                     e = el_combine(einit, e);
                     //elem_print(e);
@@ -2459,16 +2489,14 @@ elem *toElem(Expression *e, IRState *irs)
                     elem *eto = ae->e1->toElem(irs);
                     elem *efrom = ae->e2->toElem(irs);
 
-                    unsigned size = t1->nextOf()->size();
+                    Type *t1n = t1->nextOf();
+                    unsigned size = t1n->size();
                     elem *esize = el_long(TYsize_t, size);
 
                     /* Determine if we need to do postblit
                      */
                     int postblit = 0;
-                    if (needsPostblit(t1->nextOf()) &&
-                        (ae->e2->op == TOKslice && ((UnaExp *)ae->e2)->e1->isLvalue() ||
-                         ae->e2->op == TOKcast  && ((UnaExp *)ae->e2)->e1->isLvalue() ||
-                         ae->e2->op != TOKslice && ae->e2->isLvalue()))
+                    if (needsPostblit(t1n) && e2org->isLvalue())
                     {
                         postblit = 1;
                     }
@@ -2508,7 +2536,7 @@ elem *toElem(Expression *e, IRState *irs)
                          *      _d_arrayctor(ti, efrom, eto)
                          */
                         el_free(esize);
-                        Expression *ti = t1->nextOf()->toBasetype()->getTypeInfo(NULL);
+                        Expression *ti = getCopyType(t1n, e2org->type->toBasetype()->nextOf())->getTypeInfo(NULL);
                         if (config.exe == EX_WIN64)
                         {
                             eto   = addressElem(eto,   Type::tvoid->arrayOf());
@@ -2683,7 +2711,15 @@ elem *toElem(Expression *e, IRState *irs)
                 /* Implement:
                  *  (sarray = sarray)
                  */
-                assert(ae->e2->type->toBasetype()->ty == Tsarray);
+
+                // Get 'original' expression of e2
+                Expression *e2org = ae->e2;
+                if (e2org->op == TOKcast)
+                    e2org = ((CastExp *)e2org)->e1;
+                if (e2org->op == TOKslice)
+                    e2org = ((SliceExp *)e2org)->e1;
+
+                Type *t2b = e2org->type->toBasetype();
 
                 bool postblit = needsPostblit(t1b->nextOf()) != NULL;
 
@@ -2756,7 +2792,7 @@ elem *toElem(Expression *e, IRState *irs)
                         {
                             assert(j - i >= 2);
                             elem *edim = el_long(TYsize_t, j - i);
-                            ex = setArray(e1, edim, tn, en->toElem(irs), irs, ae->op);
+                            ex = setArray(e1, edim, getCopyType(tn, t2b->nextOf()), en->toElem(irs), irs, ae->op);
                         }
                         e = el_combine(e, ex);
                         i = j;
@@ -2766,10 +2802,7 @@ elem *toElem(Expression *e, IRState *irs)
 
                 /* Determine if we need to do postblit
                  */
-                if (postblit &&
-                    !(ae->e2->op == TOKslice && ((UnaExp *)ae->e2)->e1->isLvalue() ||
-                      ae->e2->op == TOKcast  && ((UnaExp *)ae->e2)->e1->isLvalue() ||
-                      ae->e2->op != TOKslice && ae->e2->isLvalue()))
+                if (postblit && !e2org->isLvalue())
                 {
                     postblit = false;
                 }
@@ -2796,7 +2829,7 @@ elem *toElem(Expression *e, IRState *irs)
                      * or:
                      *      _d_arrayctor(ti, efrom, eto)
                      */
-                    Expression *ti = t1b->nextOf()->toBasetype()->getTypeInfo(NULL);
+                    Expression *ti = getCopyType(t1b->nextOf(), t2b->nextOf())->getTypeInfo(NULL);
                     if (config.exe == EX_WIN64)
                     {
                         eto   = addressElem(eto,   Type::tvoid->arrayOf());
@@ -5043,6 +5076,7 @@ elem *toElem(Expression *e, IRState *irs)
                         else
                         {
                             elem *edim = el_long(TYsize_t, t1b->size() / t2b->size());
+                            t2b = t2b->castMod(getCopyType(t1b, t2b)->mod);
                             e1 = setArray(e1, edim, t2b, ep, irs, TOKconstruct);
                         }
                     }

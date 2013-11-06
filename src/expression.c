@@ -12562,7 +12562,7 @@ Expression *CatExp::semantic(Scope *sc)
         type = tb1next->arrayOf();
         if (tb2->ty == Tarray || tb2->ty == Tsarray)
         {
-            // Make e2 into [e2]
+            // Make e2 into [e2]    // TODO
             e2 = new ArrayLiteralExp(e2->loc, e2);
             e2->type = type;
         }
@@ -12577,7 +12577,7 @@ Expression *CatExp::semantic(Scope *sc)
         type = tb2next->arrayOf();
         if (tb1->ty == Tarray || tb1->ty == Tsarray)
         {
-            // Make e1 into [e1]
+            // Make e1 into [e1]    // TODO
             e1 = new ArrayLiteralExp(e1->loc, e1);
             e1->type = type;
         }
