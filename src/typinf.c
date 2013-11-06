@@ -54,7 +54,8 @@ void verifyStructSize(ClassDeclaration *typeclass, size_t expected)
  */
 
 Expression *Type::getInternalTypeInfo(Scope *sc)
-{   TypeInfoDeclaration *tid;
+{
+    TypeInfoDeclaration *tid;
     Expression *e;
     Type *t;
     static TypeInfoDeclaration *internalTI[TMAX];
@@ -88,7 +89,8 @@ Expression *Type::getInternalTypeInfo(Scope *sc)
         Linternal:
             tid = internalTI[t->ty];
             if (!tid)
-            {   tid = new TypeInfoDeclaration(t, 1);
+            {
+                tid = new TypeInfoDeclaration(t, 1);
                 internalTI[t->ty] = tid;
             }
             e = new VarExp(Loc(), tid);
@@ -261,6 +263,35 @@ void TypeInfoDeclaration::toDt(dt_t **pdt)
 
 void TypeInfoConstDeclaration::toDt(dt_t **pdt)
 {
+    if (tinfo->ty == Tstruct && ((TypeStruct *)tinfo)->sym->postblit)
+    {
+        static ClassDeclaration *ticd = NULL;
+        if (!ticd)
+        {
+            BaseClasses *baseclasses = new BaseClasses();
+            BaseClass *b = new BaseClass(Type::typeinfoclass->type, PROTpublic);
+            baseclasses->push(b);
+            ticd = new ClassDeclaration(Loc(), Lexer::idPool("TypeInfo_xS"), baseclasses);
+        }
+
+        dtxoff(pdt, ticd->toVtblSymbol(), 0);   // vtbl for TypeInfo_xS
+        dtsize_t(pdt, 0);                       // monitor
+
+        Type *tm = tinfo->mutableOf()->merge();
+        tm->getTypeInfo(NULL);
+        dtxoff(pdt, tm->vtinfo->toSymbol(), 0); // base
+
+        StructDeclaration *sd = ((TypeStruct *)tinfo)->sym;
+        FuncDeclaration *f = resolvePostBlit(tinfo->mod, sd->postblit);
+        //printf("TypeInfo_xS of %s, tinfo->mod = %d, f = %p\n", tinfo->toChars(), tinfo->mod, f);
+        if (f && (f->storage_class & STCdisable) == 0)
+            dtxoff(pdt, f->toSymbol(), 0);      // xpostblit
+        else
+            dtsize_t(pdt, 0);   // TODO: xErrPostBlit?
+
+        return;
+    }
+
     //printf("TypeInfoConstDeclaration::toDt() %s\n", toChars());
     verifyStructSize(Type::typeinfoconst, 3 * Target::ptrsize);
 
@@ -274,6 +305,34 @@ void TypeInfoConstDeclaration::toDt(dt_t **pdt)
 
 void TypeInfoInvariantDeclaration::toDt(dt_t **pdt)
 {
+    if (tinfo->ty == Tstruct && ((TypeStruct *)tinfo)->sym->postblit)
+    {
+        static ClassDeclaration *ticd;
+        if (!ticd)
+        {
+            BaseClasses *baseclasses = new BaseClasses();
+            BaseClass *b = new BaseClass(Type::typeinfoclass->type, PROTpublic);
+            baseclasses->push(b);
+            ticd = new ClassDeclaration(Loc(), Lexer::idPool("TypeInfo_yS"), baseclasses);
+        }
+
+        dtxoff(pdt, ticd->toVtblSymbol(), 0);   // vtbl for TypeInfo_yS
+        dtsize_t(pdt, 0);                       // monitor
+
+        Type *tm = tinfo->mutableOf()->merge();
+        tm->getTypeInfo(NULL);
+        dtxoff(pdt, tm->vtinfo->toSymbol(), 0); // base
+
+        StructDeclaration *sd = ((TypeStruct *)tinfo)->sym;
+        FuncDeclaration *f = resolvePostBlit(tinfo->mod, sd->postblit);
+        if (f && (f->storage_class & STCdisable) == 0)
+            dtxoff(pdt, f->toSymbol(), 0);      // xpostblit
+        else
+            dtsize_t(pdt, 0);   // TODO: xErrPostBlit?
+
+        return;
+    }
+
     //printf("TypeInfoInvariantDeclaration::toDt() %s\n", toChars());
     verifyStructSize(Type::typeinfoinvariant, 3 * Target::ptrsize);
 
@@ -300,6 +359,34 @@ void TypeInfoSharedDeclaration::toDt(dt_t **pdt)
 
 void TypeInfoWildDeclaration::toDt(dt_t **pdt)
 {
+    if (tinfo->ty == Tstruct && ((TypeStruct *)tinfo)->sym->postblit)
+    {
+        static ClassDeclaration *ticd;
+        if (!ticd)
+        {
+            BaseClasses *baseclasses = new BaseClasses();
+            BaseClass *b = new BaseClass(Type::typeinfoclass->type, PROTpublic);
+            baseclasses->push(b);
+            ticd = new ClassDeclaration(Loc(), Lexer::idPool("TypeInfo_NgS"), baseclasses);
+        }
+
+        dtxoff(pdt, ticd->toVtblSymbol(), 0);   // vtbl for TypeInfo_NgS
+        dtsize_t(pdt, 0);                       // monitor
+
+        Type *tm = tinfo->mutableOf()->merge();
+        tm->getTypeInfo(NULL);
+        dtxoff(pdt, tm->vtinfo->toSymbol(), 0); // base
+
+        StructDeclaration *sd = ((TypeStruct *)tinfo)->sym;
+        FuncDeclaration *f = resolvePostBlit(tinfo->mod, sd->postblit);
+        if (f && (f->storage_class & STCdisable) == 0)
+            dtxoff(pdt, f->toSymbol(), 0);      // xpostblit
+        else
+            dtsize_t(pdt, 0);   // TODO: xErrPostBlit?
+
+        return;
+    }
+
     //printf("TypeInfoWildDeclaration::toDt() %s\n", toChars());
     verifyStructSize(Type::typeinfowild, 3 * Target::ptrsize);
 
@@ -635,9 +722,15 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
         dtsize_t(pdt, 0);                        // xdtor
 
     // xpostblit
-    FuncDeclaration *spostblit = sd->postblit;  // TODO
-    if (spostblit && !(spostblit->storage_class & STCdisable))
-        dtxoff(pdt, spostblit->toSymbol(), 0);
+    FuncDeclaration *spostblit = sd->postblit;
+    if (sd->postblit)
+    {
+        FuncDeclaration *f = resolvePostBlit(0, sd->postblit);
+        if (f && (f->storage_class & STCdisable) == 0)
+            dtxoff(pdt, f->toSymbol(), 0);       // xpostblit
+        else
+            dtsize_t(pdt, 0);   // TODO: xErrPostBlit?
+    }
     else
         dtsize_t(pdt, 0);                        // xpostblit
 

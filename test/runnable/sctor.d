@@ -256,6 +256,10 @@ void test1()
             const S1 sc;
         immutable S1 si;
 
+                  S1[3] sam;
+            const S1[3] sac;
+        immutable S1[3] sai;
+
         // assignment
         checkCalledPostblit("m", {           S1 s = sm; });
         checkCalledPostblit("c", {     const S1 s = sm; });
@@ -266,6 +270,66 @@ void test1()
         checkCalledPostblit("u", {           S1 s = si; });
         checkCalledPostblit("c", {     const S1 s = si; });
         checkCalledPostblit("c", { immutable S1 s = si; });
+
+        // block assignment
+        checkCalledPostblit("mm", {           S1[2] sa = sm; });
+        checkCalledPostblit("cc", {     const S1[2] sa = sm; });
+        checkCalledPostblit("uu", { immutable S1[2] sa = sm; });
+        checkCalledPostblit("uu", {           S1[2] sa = sc; });
+        checkCalledPostblit("cc", {     const S1[2] sa = sc; });
+        checkCalledPostblit("uu", { immutable S1[2] sa = sc; });
+        checkCalledPostblit("uu", {           S1[2] sa = si; });
+        checkCalledPostblit("cc", {     const S1[2] sa = si; });
+        checkCalledPostblit("cc", { immutable S1[2] sa = si; });
+
+        // element-wise assignment
+        checkCalledPostblit("mmm", {           S1[3] sa = sam; });
+        checkCalledPostblit("ccc", {     const S1[3] sa = sam; });
+        checkCalledPostblit("uuu", { immutable S1[3] sa = sam; });
+        checkCalledPostblit("uuu", {           S1[3] sa = sac; });
+        checkCalledPostblit("ccc", {     const S1[3] sa = sac; });
+        checkCalledPostblit("uuu", { immutable S1[3] sa = sac; });
+        checkCalledPostblit("uuu", {           S1[3] sa = sai; });
+        checkCalledPostblit("ccc", {     const S1[3] sa = sai; });
+        checkCalledPostblit("ccc", { immutable S1[3] sa = sai; });
+
+        // CatExp (issues exists which comes from the current druntime internal I/F design)
+        checkCalledPostblit("mm", {           S1 [] a = sam[0..1]; a = a ~ sm; });
+        checkCalledPostblit("cc", {     const(S1)[] a = sac[0..1]; a = a ~ sm; });
+        checkCalledPostblit("cc", { immutable(S1)[] a = sai[0..1]; a = a ~ sm; });  // NG, should be "uc"
+        checkCalledPostblit("mm", {           S1 [] a = sam[0..1]; a = a ~ sc; });  // NG, should be "um"
+        checkCalledPostblit("cc", {     const(S1)[] a = sac[0..1]; a = a ~ sc; });
+        checkCalledPostblit("cc", { immutable(S1)[] a = sai[0..1]; a = a ~ sc; });  // NG, should be "uc"
+        checkCalledPostblit("mm", {           S1 [] a = sam[0..1]; a = a ~ si; });  // NG, should be "um"
+        checkCalledPostblit("cc", {     const(S1)[] a = sac[0..1]; a = a ~ si; });
+        checkCalledPostblit("cc", { immutable(S1)[] a = sai[0..1]; a = a ~ si; });
+
+        // AssignExp _d_arraysetlength -> __doPostblit
+        checkCalledPostblit("m", {           S1 [] a = sam[0..1]; a.length = 2; });
+        checkCalledPostblit("c", {     const(S1)[] a = sac[0..1]; a.length = 2; });
+        checkCalledPostblit("c", { immutable(S1)[] a = sai[0..1]; a.length = 2; });
+
+        // Append array, rt.lifetime.__doPostblit
+        checkCalledPostblit("mm", {           S1 [] a = sam[0..1]; a ~= sam[0..1]; });
+        checkCalledPostblit("cc", {     const(S1)[] a = sac[0..1]; a ~= sam[0..1]; });
+        checkCalledPostblit("cc", { immutable(S1)[] a = sai[0..1]; a ~= sam[0..1]; });
+        checkCalledPostblit("mm", {           S1 [] a = sam[0..1]; a ~= sac[0..1]; });
+        checkCalledPostblit("cc", {     const(S1)[] a = sac[0..1]; a ~= sac[0..1]; });
+        checkCalledPostblit("cc", { immutable(S1)[] a = sai[0..1]; a ~= sac[0..1]; });
+        checkCalledPostblit("mm", {           S1 [] a = sam[0..1]; a ~= sai[0..1]; });
+        checkCalledPostblit("cc", {     const(S1)[] a = sac[0..1]; a ~= sai[0..1]; });
+        checkCalledPostblit("cc", { immutable(S1)[] a = sai[0..1]; a ~= sai[0..1]; });
+
+        // Append element, callCpCtor + rt.lifetime.__doPostblit
+        checkCalledPostblit("mm", {           S1 [] a = sam[0..1]; a ~= sm; });
+        checkCalledPostblit("cc", {     const(S1)[] a = sac[0..1]; a ~= sm; });
+        checkCalledPostblit("uc", { immutable(S1)[] a = sai[0..1]; a ~= sm; });
+        checkCalledPostblit("um", {           S1 [] a = sam[0..1]; a ~= sc; });
+        checkCalledPostblit("cc", {     const(S1)[] a = sac[0..1]; a ~= sc; });
+        checkCalledPostblit("uc", { immutable(S1)[] a = sai[0..1]; a ~= sc; });
+        checkCalledPostblit("um", {           S1 [] a = sam[0..1]; a ~= si; });
+        checkCalledPostblit("cc", {     const(S1)[] a = sac[0..1]; a ~= si; });
+        checkCalledPostblit("cc", { immutable(S1)[] a = sai[0..1]; a ~= si; });
     }
 
     static struct S2
@@ -279,6 +343,10 @@ void test1()
             const S2 sc;
         immutable S2 si;
 
+                  S2[3] sam;
+            const S2[3] sac;
+        immutable S2[3] sai;
+
         // assignment
         checkCalledPostblit("u", {           S2 s = sm; });
         checkCalledPostblit("u", {     const S2 s = sm; });
@@ -289,6 +357,66 @@ void test1()
         checkCalledPostblit("u", {           S2 s = si; });
         checkCalledPostblit("i", {     const S2 s = si; });
         checkCalledPostblit("i", { immutable S2 s = si; });
+
+        // block assignment
+        checkCalledPostblit("uu", {           S2[2] sa = sm; });
+        checkCalledPostblit("uu", {     const S2[2] sa = sm; });
+        checkCalledPostblit("uu", { immutable S2[2] sa = sm; });
+        checkCalledPostblit("uu", {           S2[2] sa = sc; });
+        checkCalledPostblit("uu", {     const S2[2] sa = sc; });
+        checkCalledPostblit("uu", { immutable S2[2] sa = sc; });
+        checkCalledPostblit("uu", {           S2[2] sa = si; });
+        checkCalledPostblit("ii", {     const S2[2] sa = si; });
+        checkCalledPostblit("ii", { immutable S2[2] sa = si; });
+
+        // element-wise assignment
+        checkCalledPostblit("uuu", {           S2[3] sa = sam; });
+        checkCalledPostblit("uuu", {     const S2[3] sa = sam; });
+        checkCalledPostblit("uuu", { immutable S2[3] sa = sam; });
+        checkCalledPostblit("uuu", {           S2[3] sa = sac; });
+        checkCalledPostblit("uuu", {     const S2[3] sa = sac; });
+        checkCalledPostblit("uuu", { immutable S2[3] sa = sac; });
+        checkCalledPostblit("uuu", {           S2[3] sa = sai; });
+        checkCalledPostblit("iii", {     const S2[3] sa = sai; });
+        checkCalledPostblit("iii", { immutable S2[3] sa = sai; });
+
+        // CatExp (issues exists which comes from the current druntime internal I/F design)
+        checkCalledPostblit("uu", {           S2 [] a = sam[0..1]; a = a ~ sm; });
+        checkCalledPostblit("uu", {     const(S2)[] a = sac[0..1]; a = a ~ sm; });
+        checkCalledPostblit("ii", { immutable(S2)[] a = sai[0..1]; a = a ~ sm; });  // NG, should be "ui"
+        checkCalledPostblit("uu", {           S2 [] a = sam[0..1]; a = a ~ sc; });
+        checkCalledPostblit("uu", {     const(S2)[] a = sac[0..1]; a = a ~ sc; });
+        checkCalledPostblit("ii", { immutable(S2)[] a = sai[0..1]; a = a ~ sc; });  // NG, should be "ui"
+        checkCalledPostblit("uu", {           S2 [] a = sam[0..1]; a = a ~ si; });
+        checkCalledPostblit("uu", {     const(S2)[] a = sac[0..1]; a = a ~ si; });
+        checkCalledPostblit("ii", { immutable(S2)[] a = sai[0..1]; a = a ~ si; });
+
+        // AssignExp _d_arraysetlength -> __doPostblit
+        checkCalledPostblit("u", {           S2 [] a = sam[0..1]; a.length = 2; });
+        checkCalledPostblit("u", {     const(S2)[] a = sac[0..1]; a.length = 2; });
+        checkCalledPostblit("i", { immutable(S2)[] a = sai[0..1]; a.length = 2; });
+
+        // Append array, rt.lifetime.__doPostblit
+        checkCalledPostblit("uu", {           S2 [] a = sam[0..1]; a ~= sam[0..1]; });
+        checkCalledPostblit("uu", {     const(S2)[] a = sac[0..1]; a ~= sam[0..1]; });
+        checkCalledPostblit("ii", { immutable(S2)[] a = sai[0..1]; a ~= sam[0..1]; });
+        checkCalledPostblit("uu", {           S2 [] a = sam[0..1]; a ~= sac[0..1]; });
+        checkCalledPostblit("uu", {     const(S2)[] a = sac[0..1]; a ~= sac[0..1]; });
+        checkCalledPostblit("ii", { immutable(S2)[] a = sai[0..1]; a ~= sac[0..1]; });
+        checkCalledPostblit("uu", {           S2 [] a = sam[0..1]; a ~= sai[0..1]; });
+        checkCalledPostblit("uu", {     const(S2)[] a = sac[0..1]; a ~= sai[0..1]; });
+        checkCalledPostblit("ii", { immutable(S2)[] a = sai[0..1]; a ~= sai[0..1]; });
+
+        // Append element, callCpCtor + rt.lifetime.__doPostblit
+        checkCalledPostblit("uu", {           S2 [] a = sam[0..1]; a ~= sm; });
+        checkCalledPostblit("uu", {     const(S2)[] a = sac[0..1]; a ~= sm; });
+        checkCalledPostblit("ui", { immutable(S2)[] a = sai[0..1]; a ~= sm; });
+        checkCalledPostblit("uu", {           S2 [] a = sam[0..1]; a ~= sc; });
+        checkCalledPostblit("uu", {     const(S2)[] a = sac[0..1]; a ~= sc; });
+        checkCalledPostblit("ui", { immutable(S2)[] a = sai[0..1]; a ~= sc; });
+        checkCalledPostblit("uu", {           S2 [] a = sam[0..1]; a ~= si; });
+        checkCalledPostblit("iu", {     const(S2)[] a = sac[0..1]; a ~= si; });
+        checkCalledPostblit("ii", { immutable(S2)[] a = sai[0..1]; a ~= si; });
     }
 
     static struct S3
@@ -302,6 +430,10 @@ void test1()
             const S3 sc;
         immutable S3 si;
 
+                  S3[3] sam;
+            const S3[3] sac;
+        immutable S3[3] sai;
+
         // assignment
         checkCalledPostblit("c", {           S3 s = sm; });
         checkCalledPostblit("c", {     const S3 s = sm; });
@@ -312,6 +444,66 @@ void test1()
         static assert(!is(typeof({           S3 s = si; })));
         checkCalledPostblit("c", {     const S3 s = si; });
         checkCalledPostblit("i", { immutable S3 s = si; });
+
+        // block assignment
+        checkCalledPostblit("cc", {           S3[2] s = sm; });
+        checkCalledPostblit("cc", {     const S3[2] s = sm; });
+        static assert(!is(typeof( { immutable S3[2] s = sm; })));
+        static assert(!is(typeof( {           S3[2] s = sc; })));
+        checkCalledPostblit("cc", {     const S3[2] s = sc; });
+        static assert(!is(typeof( { immutable S3[2] s = sc; })));
+        static assert(!is(typeof( {           S3[2] s = si; })));
+        checkCalledPostblit("cc", {     const S3[2] s = si; });
+        checkCalledPostblit("ii", { immutable S3[2] s = si; });
+
+        // element-wise assignment
+        checkCalledPostblit("ccc", {           S3[3] sa = sam; });
+        checkCalledPostblit("ccc", {     const S3[3] sa = sam; });
+        static assert(! is(typeof( { immutable S3[3] sa = sam; })));
+        static assert(! is(typeof( {           S3[3] sa = sac; })));
+        checkCalledPostblit("ccc", {     const S3[3] sa = sac; });
+        static assert(! is(typeof( { immutable S3[3] sa = sac; })));
+        static assert(! is(typeof( {           S3[3] sa = sai; })));
+        checkCalledPostblit("ccc", {     const S3[3] sa = sai; });
+        checkCalledPostblit("iii", { immutable S3[3] sa = sai; });
+
+        // CatExp (issues exists which comes from the current druntime internal I/F design)
+        checkCalledPostblit("cc", {           S3 [] a = sam[0..1]; a = a ~ sm; });
+        checkCalledPostblit("cc", {     const(S3)[] a = sac[0..1]; a = a ~ sm; });
+        static assert(!is(typeof( { immutable(S3)[] a = sai[0..1]; a = a ~ sm; })));
+        static assert(!is(typeof( {           S3 [] a = sam[0..1]; a = a ~ sc; })));
+        checkCalledPostblit("cc", {     const(S3)[] a = sac[0..1]; a = a ~ sc; });
+        static assert(!is(typeof( { immutable(S3)[] a = sai[0..1]; a = a ~ sc; })));
+        static assert(!is(typeof( {           S3 [] a = sam[0..1]; a = a ~ si; })));
+        checkCalledPostblit("cc", {     const(S3)[] a = sac[0..1]; a = a ~ si; });  // NG, should be "ic"
+        checkCalledPostblit("ii", { immutable(S3)[] a = sai[0..1]; a = a ~ si; });
+
+        // AssignExp _d_arraysetlength -> __doPostblit
+        checkCalledPostblit("c", {           S3 [] a = sam[0..1]; a.length = 2; });
+        checkCalledPostblit("c", {     const(S3)[] a = sac[0..1]; a.length = 2; });
+        checkCalledPostblit("i", { immutable(S3)[] a = sai[0..1]; a.length = 2; });
+
+        // Append array, rt.lifetime.__doPostblit
+        checkCalledPostblit("cc", {           S3 [] a = sam[0..1]; a ~= sam[0..1]; });
+        checkCalledPostblit("cc", {     const(S3)[] a = sac[0..1]; a ~= sam[0..1]; });
+        static assert(!is(typeof( { immutable(S3)[] a = sai[0..1]; a ~= sam[0..1]; })));
+        static assert(!is(typeof( {           S3 [] a = sam[0..1]; a ~= sac[0..1]; })));
+        checkCalledPostblit("cc", {     const(S3)[] a = sac[0..1]; a ~= sac[0..1]; });
+        static assert(!is(typeof( { immutable(S3)[] a = sai[0..1]; a ~= sac[0..1]; })));
+        static assert(!is(typeof( {           S3 [] a = sam[0..1]; a ~= sai[0..1]; })));
+        checkCalledPostblit("cc", {     const(S3)[] a = sac[0..1]; a ~= sai[0..1]; });
+        checkCalledPostblit("ii", { immutable(S3)[] a = sai[0..1]; a ~= sai[0..1]; });
+
+        // Append element, callCpCtor + rt.lifetime.__doPostblit
+        checkCalledPostblit("cc", {           S3 [] a = sam[0..1]; a ~= sm; });
+        checkCalledPostblit("cc", {     const(S3)[] a = sac[0..1]; a ~= sm; });
+        static assert(!is(typeof( { immutable(S3)[] a = sai[0..1]; a ~= sm; })));
+        static assert(!is(typeof( {           S3 [] a = sam[0..1]; a ~= sc; })));
+        checkCalledPostblit("cc", {     const(S3)[] a = sac[0..1]; a ~= sc; });
+        static assert(!is(typeof( { immutable(S3)[] a = sai[0..1]; a ~= sc; })));
+        static assert(!is(typeof( {           S3 [] a = sam[0..1]; a ~= si; })));
+        checkCalledPostblit("cc", {     const(S3)[] a = sac[0..1]; a ~= si; });
+        checkCalledPostblit("ii", { immutable(S3)[] a = sai[0..1]; a ~= si; });
     }
 
     {
