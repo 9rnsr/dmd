@@ -4,7 +4,7 @@ extern(C) int printf(const char*, ...);
 
 class Abc : Throwable
 {
-    this() pure
+    this() /*shared*/ pure
     {
         super("");
     }

@@ -1786,10 +1786,12 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
         //printf("[%s] fd = %s %s, %d %d %d\n", loc.toChars(), fd->toChars(), fd->type->toChars(),
         //    wildmatch, tf->isWild(), fd->isolateReturn());
         if (!tthis)
-        {   assert(sc->intypeof || global.errors);
+        {
+            assert(sc->intypeof || global.errors);
             tthis = fd->isThis()->type->addMod(fd->type->mod);
         }
-        if (tf->isWild() && !fd->isolateReturn())
+        if (tf->isWild() &&
+            !(fd->isolateReturn() && tret->immutableOf()->implicitConvTo(tthis)))
         {
             if (wildmatch)
                 tret = tret->substWildTo(wildmatch);
