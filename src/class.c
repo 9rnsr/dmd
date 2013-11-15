@@ -255,8 +255,8 @@ void ClassDeclaration::semantic(Scope *sc)
     //{ static int n;  if (++n == 20) *(char*)0=0; }
 
     if (!ident)         // if anonymous class
-    {   const char *id = "__anonclass";
-
+    {
+        const char *id = "__anonclass";
         ident = Identifier::generateId(id);
     }
 
@@ -269,11 +269,13 @@ void ClassDeclaration::semantic(Scope *sc)
     handle = type;
 
     if (!members)               // if opaque declaration
-    {   //printf("\tclass '%s' is forward referenced\n", toChars());
+    {
+        //printf("\tclass '%s' is forward referenced\n", toChars());
         return;
     }
     if (symtab)
-    {   if (sizeok == SIZEOKdone || !scope)
+    {
+        if (sizeok == SIZEOKdone || !scope)
         {   //printf("\tsemantic for '%s' is already completed\n", toChars());
             return;             // semantic() already completed
         }
@@ -311,12 +313,14 @@ void ClassDeclaration::semantic(Scope *sc)
 
         Type *tb = b->type->toBasetype();
         if (tb->ty == Ttuple)
-        {   TypeTuple *tup = (TypeTuple *)tb;
+        {
+            TypeTuple *tup = (TypeTuple *)tb;
             PROT protection = b->protection;
             baseclasses->remove(i);
             size_t dim = Parameter::dim(tup->arguments);
             for (size_t j = 0; j < dim; j++)
-            {   Parameter *arg = Parameter::getNth(tup->arguments, j);
+            {
+                Parameter *arg = Parameter::getNth(tup->arguments, j);
                 b = new BaseClass(arg->type, protection);
                 baseclasses->insert(i + j, b);
             }
@@ -324,6 +328,8 @@ void ClassDeclaration::semantic(Scope *sc)
         else
             i++;
     }
+
+    bool baseFwdref = false;
 
     // See if there's a base class as first in baseclasses[]
     if (baseclasses->dim)
@@ -370,7 +376,8 @@ void ClassDeclaration::semantic(Scope *sc)
                     }
                 }
                 if (!tc->sym->symtab || tc->sym->sizeok == SIZEOKnone)
-                {   // Try to resolve forward reference
+                {
+                    // Try to resolve forward reference
                     if (/*doAncestorsSemantic == SemanticIn &&*/ tc->sym->scope)
                         tc->sym->semantic(NULL);
                 }
@@ -388,15 +395,9 @@ void ClassDeclaration::semantic(Scope *sc)
                 if (!tc->sym->symtab || tc->sym->scope || tc->sym->sizeok == SIZEOKnone)
                 {
                     //printf("%s: forward reference of base class %s\n", toChars(), tc->sym->toChars());
-                    //error("forward reference of base class %s", baseClass->toChars());
-                    // Forward reference of base class, try again later
-                    //printf("\ttry later, forward reference of base class %s\n", tc->sym->toChars());
-                    scope = scx ? scx : new Scope(*sc);
-                    scope->setNoFree();
+                    baseFwdref = true;
                     if (tc->sym->scope)
                         tc->sym->scope->module->addDeferredSemantic(tc->sym);
-                    scope->module->addDeferredSemantic(this);
-                    return;
                 }
              L7: ;
             }
@@ -444,7 +445,8 @@ void ClassDeclaration::semantic(Scope *sc)
             }
 
             if (!tc->sym->symtab)
-            {   // Try to resolve forward reference
+            {
+                // Try to resolve forward reference
                 if (/*doAncestorsSemantic == SemanticIn &&*/ tc->sym->scope)
                     tc->sym->semantic(NULL);
             }
@@ -452,18 +454,22 @@ void ClassDeclaration::semantic(Scope *sc)
             b->base = tc->sym;
             if (!b->base->symtab || b->base->scope)
             {
-                //error("forward reference of base class %s", baseClass->toChars());
-                // Forward reference of base, try again later
-                //printf("\ttry later, forward reference of base %s\n", baseClass->toChars());
-                scope = scx ? scx : new Scope(*sc);
-                scope->setNoFree();
+                //printf("%s: forward reference of base class %s\n", toChars(), tc->sym->toChars());
+                baseFwdref = true;
                 if (tc->sym->scope)
                     tc->sym->scope->module->addDeferredSemantic(tc->sym);
-                scope->module->addDeferredSemantic(this);
-                return;
             }
         }
         i++;
+    }
+    if (baseFwdref)
+    {
+        // Forward reference of base class, try again later
+        //printf("\ttry later, forward reference of base class %s\n", toChars());
+        scope = scx ? scx : new Scope(*sc);
+        scope->setNoFree();
+        scope->module->addDeferredSemantic(this);
+        return;
     }
     if (doAncestorsSemantic == SemanticIn)
         doAncestorsSemantic = SemanticDone;
@@ -861,8 +867,8 @@ int ClassDeclaration::isBaseOf2(ClassDeclaration *cd)
         return 0;
     //printf("ClassDeclaration::isBaseOf2(this = '%s', cd = '%s')\n", toChars(), cd->toChars());
     for (size_t i = 0; i < cd->baseclasses->dim; i++)
-    {   BaseClass *b = (*cd->baseclasses)[i];
-
+    {
+        BaseClass *b = (*cd->baseclasses)[i];
         if (b->base == this || isBaseOf2(b->base))
             return 1;
     }
@@ -907,7 +913,8 @@ int ClassDeclaration::isBaseInfoComplete()
     if (!baseClass)
         return ident == Id::Object;
     for (size_t i = 0; i < baseclasses->dim; i++)
-    {   BaseClass *b = (*baseclasses)[i];
+    {
+        BaseClass *b = (*baseclasses)[i];
         if (!b->base || !b->base->isBaseInfoComplete())
             return 0;
     }
@@ -1261,11 +1268,13 @@ void InterfaceDeclaration::semantic(Scope *sc)
     handle = type;
 
     if (!members)                       // if forward reference
-    {   //printf("\tinterface '%s' is forward referenced\n", toChars());
+    {
+        //printf("\tinterface '%s' is forward referenced\n", toChars());
         return;
     }
     if (symtab)                 // if already done
-    {   if (!scope)
+    {
+        if (!scope)
             return;
     }
     else
@@ -1315,6 +1324,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
     if (!baseclasses->dim && sc->linkage == LINKcpp)
         cpp = 1;
 
+    bool baseFwdref = false;
+
     // Check for errors, handle forward references
     for (size_t i = 0; i < baseclasses->dim; )
     {
@@ -1351,19 +1362,15 @@ void InterfaceDeclaration::semantic(Scope *sc)
                 continue;
             }
             if (!b->base->symtab)
-            {   // Try to resolve forward reference
+            {
+                // Try to resolve forward reference
                 if (doAncestorsSemantic == SemanticIn && b->base->scope)
                     b->base->semantic(NULL);
             }
             if (!b->base->symtab || b->base->scope || b->base->inuse)
             {
-                //error("forward reference of base class %s", baseClass->toChars());
-                // Forward reference of base, try again later
-                //printf("\ttry later, forward reference of base %s\n", b->base->toChars());
-                scope = scx ? scx : new Scope(*sc);
-                scope->setNoFree();
-                scope->module->addDeferredSemantic(this);
-                return;
+                //printf("%s: forward reference of base class %s\n", toChars(), tc->sym->toChars());
+                baseFwdref = true;
             }
         }
 #if 0
@@ -1371,6 +1378,15 @@ void InterfaceDeclaration::semantic(Scope *sc)
         storage_class |= b->base->storage_class & STC_TYPECTOR;
 #endif
         i++;
+    }
+    if (baseFwdref)
+    {
+        // Forward reference of base, try again later
+        //printf("\ttry later, forward reference of base class %s\n", toChars());
+        scope = scx ? scx : new Scope(*sc);
+        scope->setNoFree();
+        scope->module->addDeferredSemantic(this);
+        return;
     }
     if (doAncestorsSemantic == SemanticIn)
         doAncestorsSemantic = SemanticDone;
@@ -1385,7 +1401,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
     // Cat together the vtbl[]'s from base interfaces
     for (size_t i = 0; i < interfaces_dim; i++)
-    {   BaseClass *b = interfaces[i];
+    {
+        BaseClass *b = interfaces[i];
 
         // Skip if b has already appeared
         for (size_t k = 0; k < i; k++)
@@ -1396,7 +1413,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
         // Copy vtbl[] from base class
         if (b->base->vtblOffset())
-        {   size_t d = b->base->vtbl.dim;
+        {
+            size_t d = b->base->vtbl.dim;
             if (d > 1)
             {
                 vtbl.reserve(d - 1);
@@ -1442,7 +1460,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
      * resolve individual members like enums.
      */
     for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (*members)[i];
+    {
+        Dsymbol *s = (*members)[i];
         /* There are problems doing this in the general case because
          * Scope keeps track of things like 'offset'
          */
@@ -1463,7 +1482,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
     }
 
     if (global.errors != errors)
-    {   // The type is no good.
+    {
+        // The type is no good.
         type = Type::terror;
     }
 
@@ -1505,14 +1525,16 @@ int InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
         {
             //printf("\tfound at offset %d\n", b->offset);
             if (poffset)
-            {   *poffset = b->offset;
+            {
+                *poffset = b->offset;
                 if (j && cd->isInterfaceDeclaration())
                     *poffset = OFFSET_RUNTIME;
             }
             return 1;
         }
         if (isBaseOf(b, poffset))
-        {   if (j && poffset && cd->isInterfaceDeclaration())
+        {
+            if (j && poffset && cd->isInterfaceDeclaration())
                 *poffset = OFFSET_RUNTIME;
             return 1;
         }
@@ -1537,14 +1559,16 @@ int InterfaceDeclaration::isBaseOf(BaseClass *bc, int *poffset)
         if (this == b->base)
         {
             if (poffset)
-            {   *poffset = b->offset;
+            {
+                *poffset = b->offset;
                 if (j && bc->base->isInterfaceDeclaration())
                     *poffset = OFFSET_RUNTIME;
             }
             return 1;
         }
         if (isBaseOf(b, poffset))
-        {   if (j && poffset && bc->base->isInterfaceDeclaration())
+        {
+            if (j && poffset && bc->base->isInterfaceDeclaration())
                 *poffset = OFFSET_RUNTIME;
             return 1;
         }
@@ -1563,7 +1587,8 @@ int InterfaceDeclaration::isBaseInfoComplete()
 {
     assert(!baseClass);
     for (size_t i = 0; i < baseclasses->dim; i++)
-    {   BaseClass *b = (*baseclasses)[i];
+    {
+        BaseClass *b = (*baseclasses)[i];
         if (!b->base || !b->base->isBaseInfoComplete ())
             return 0;
     }
