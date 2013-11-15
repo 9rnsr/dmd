@@ -1421,7 +1421,7 @@ public:
             !e->type->equals(eresult->type) &&
             eresult->type->hasWild() && !e->type->hasWild())
         {
-            eresult = eresult->copy();
+            eresult = new CastExp(eresult->loc, eresult, e->type);
             eresult->type = e->type;
         }
     }
