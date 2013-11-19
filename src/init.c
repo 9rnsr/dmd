@@ -879,6 +879,8 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
 
     // Look for the case of statically initializing an array
     // with a single member.
+    if (tb->ty == Tvector)
+        tb = ((TypeVector *)tb)->basetype;
     if (tb->ty == Tsarray &&
         !tb->nextOf()->equals(ti->toBasetype()->nextOf()) &&
         exp->implicitConvTo(tb->nextOf())
@@ -959,6 +961,8 @@ Expression *ExpInitializer::toExpression(Type *t)
     if (t)
     {
         Type *tb = t->toBasetype();
+        if (tb->ty == Tvector)
+            tb = ((TypeVector *)t)->basetype;
         if (tb->ty == Tsarray && exp->implicitConvTo(tb->nextOf()))
         {
             TypeSArray *tsa = (TypeSArray *)tb;
