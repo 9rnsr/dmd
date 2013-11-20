@@ -5735,12 +5735,20 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             }
 
             if (fparam->defaultArg)
-            {   Expression *e = fparam->defaultArg;
-                Initializer *init = new ExpInitializer(e->loc, e);
-                init = init->semantic(argsc, fparam->type, INITnointerpret);
-                e = init->toExpression();
+            {
+                Expression *e = fparam->defaultArg;
+
+                e = e->inferType(fparam->type);
+                e = e->semantic(argsc);
+                e = resolveProperties(argsc, e);
+
+                //Initializer *init = new ExpInitializer(e->loc, e);
+                //init = init->semantic(argsc, fparam->type, INITnointerpret);
+                //e = init->toExpression();
+
                 if (e->op == TOKfunction)               // see Bugzilla 4820
-                {   FuncExp *fe = (FuncExp *)e;
+                {
+                    FuncExp *fe = (FuncExp *)e;
                     // Replace function literal with a function symbol,
                     // since default arg expression must be copied when used
                     // and copying the literal itself is wrong.
@@ -5748,7 +5756,11 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                     e = new AddrExp(e->loc, e);
                     e = e->semantic(argsc);
                 }
-                e = e->implicitCastTo(argsc, fparam->type);
+                unsigned wm = e->type->wildConvTo(fparam->type);
+                if (wm)
+                    e = e->implicitCastTo(argsc, fparam->type->substWildTo(wm));
+                else
+                    e = e->implicitCastTo(argsc, fparam->type);
 
                 // default arg must be an lvalue
                 if (fparam->storageClass & (STCout | STCref))
