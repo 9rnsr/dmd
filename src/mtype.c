@@ -1227,8 +1227,16 @@ Type *Type::aliasthisOf()
         if (s->isAliasDeclaration())
             s = s->toAlias();
         Declaration *d = s->isDeclaration();
-        if (d && !d->isTupleDeclaration())
+        if (d)
         {
+            if (TupleDeclaration *td = d->isTupleDeclaration())
+            {
+                Type *t = td->getType();
+                if (t)
+                    return t;
+                else
+                    return Type::terror;
+            }
             assert(d->type);
             Type *t = d->type;
             if (d->isVarDeclaration() && d->needThis())
@@ -7972,7 +7980,7 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
 {
     Dsymbol *s;
 
-#if LOGDOTEXP
+#if 1//LOGDOTEXP
     printf("TypeStruct::dotExp(e = '%s', ident = '%s')\n", e->toChars(), ident->toChars());
 #endif
     if (!sym->members)

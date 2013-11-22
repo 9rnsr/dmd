@@ -30,6 +30,7 @@ Expression *resolveAliasThis(Scope *sc, Expression *e)
         bool isstatic = (e->op == TOKtype);
         e = new DotIdExp(e->loc, e, ad->aliasthis->ident);
         e = e->semantic(sc);
+        printf("dotid e = %s\n", e->toChars());
         if (isstatic && ad->aliasthis->needThis())
         {
             /* non-@property function is not called inside typeof(),
@@ -115,6 +116,8 @@ void AliasThis::semantic(Scope *sc)
                 ::error(loc, "alias this is not reachable as %s already converts to %s", ad->toChars(), t->toChars());
             }
         }
+        printf("s  = %s %s\n", s->kind(), s->toChars());
+        printf("sx = %s %s\n", sx->kind(), sx->toChars());
 
         ad->aliasthis = s;
     }

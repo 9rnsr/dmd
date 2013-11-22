@@ -1016,13 +1016,19 @@ Lagain:
     if (Dsymbol *s = t->toDsymbol(NULL))
     {
         AggregateDeclaration *ad = s->isAggregateDeclaration();
-        if (ad)
+        if (ad && ad->aliasthis)
         {
-            s = ad->aliasthis;
-            if (s && s->isVarDeclaration())
+            s = ad->aliasthis->toAlias();
+            if (s->isVarDeclaration())
             {
                 TupleDeclaration *td = s->isVarDeclaration()->toAlias()->isTupleDeclaration();
                 if (td && td->isexp)
+                    return td;
+            }
+            if (TupleDeclaration *td = s->isTupleDeclaration())
+            {
+                printf("ad = %s, s = %s %s, td->isexp = %d\n", ad->toChars(), s->kind(), s->toChars(), td->isexp);
+                //if (td->isexp)
                     return td;
             }
             if (Type *att = t->aliasthisOf())

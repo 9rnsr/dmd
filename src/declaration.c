@@ -981,9 +981,9 @@ void VarDeclaration::semantic(Scope *sc)
                 Expression *e = (*iexps)[pos];
                 Parameter *arg = Parameter::getNth(tt->arguments, pos);
                 arg->type = arg->type->semantic(loc, sc);
-                //printf("[%d] iexps->dim = %d, ", pos, iexps->dim);
-                //printf("e = (%s %s, %s), ", Token::tochars[e->op], e->toChars(), e->type->toChars());
-                //printf("arg = (%s, %s)\n", arg->toChars(), arg->type->toChars());
+                printf("[%d] iexps->dim = %d, ", pos, iexps->dim);
+                printf("e = (%s %s, %s), ", Token::tochars[e->op], e->toChars(), e->type->toChars());
+                printf("arg = (%s, %s)\n", arg->toChars(), arg->type->toChars());
 
                 if (e != ie)
                 {
