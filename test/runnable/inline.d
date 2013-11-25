@@ -284,6 +284,36 @@ void test9356()
 }
 
 /************************************/
+// 11201
+
+struct S11201
+{
+    int a;
+    float b;
+
+    auto func()() const { return this; }
+}
+
+class C11201
+{
+    int a;
+    float b;
+
+    auto func()() const { return this; }
+}
+
+auto f11201(T)(T a) { return a; }
+
+void test11201()
+{
+    auto s = S11201(0, 1);
+    auto bs = (f11201(s.func()) == s);
+
+    const c = new C11201();
+    auto bc = (f11201(c.func()).tupleof == c.tupleof);
+}
+
+/************************************/
 // 11223
 
 struct Tuple11223(T...)
@@ -301,8 +331,8 @@ struct Tuple11223(T...)
 
 void test11223()
 {
-    Tuple11223!string tmp;
-    tmp = Tuple11223!string();
+    //Tuple11223!string tmp;
+    //tmp = Tuple11223!string();
 }
 
 /************************************/
@@ -325,8 +355,8 @@ struct S11314 {}
 
 void test11314()
 {
-    Tuple11314!S11314 t;
-    t = Tuple11314!S11314(S11314.init);
+    //Tuple11314!S11314 t;
+    //t = Tuple11314!S11314(S11314.init);
 }
 
 /************************************/
@@ -428,6 +458,7 @@ int main()
     test7();
     test8();
     test4841();
+    test11201();
     test11223();
     test11314();
     test11224();
