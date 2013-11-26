@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail93.d(13): Error: is shadowing declaration fail93.main.i
+fail_compilation/fail93.d(13): Error: variable i is shadowing variable fail93.main.i
 ---
 */
 
@@ -12,4 +12,3 @@ void main()
     int i = 1;
     synchronized int i = 2; // should fail to compile
 }
-
