@@ -2,7 +2,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail4269e.d(10): Error: undefined identifier Y, did you mean typedef X5?
+fail_compilation/fail4269e.d(10): Error: undefined identifier Y
 ---
 */
 

@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail4269d.d(9): Error: undefined identifier Y, did you mean alias X6?
+fail_compilation/fail4269d.d(9): Error: undefined identifier Y
 ---
 */
 
