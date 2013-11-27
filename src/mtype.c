@@ -2247,8 +2247,10 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
                 printf("L%d\n", __LINE__);
                 return NULL;
             }
-            if (m == MATCHnomatch)
-                return flag ? NULL : new ErrorExp();
+            printf("L%d m = %d\n", __LINE__, m);
+            if (flag && m == MATCHnomatch)
+                return NULL;
+                //return flag ? NULL : new ErrorExp();
 
             ti->semantic(sc);
             if (!ti->inst)                  // if template failed to expand
