@@ -1,4 +1,9 @@
-// Error: pure function 'h' cannot call impure function 'g'
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail348.d(15): Error: pure function 'fail348.f.g.h' cannot call impure function 'fail348.f.g'
+---
+*/
 
 void f() pure
 {

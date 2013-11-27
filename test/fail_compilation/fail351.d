@@ -1,3 +1,10 @@
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail351.d(16): Error: cast(uint)this.num[index] is not an lvalue
+---
+*/
+
 // Issue 2780 - ref Return Allows modification of immutable data
 
 struct Immutable
