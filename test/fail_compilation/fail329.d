@@ -6,7 +6,7 @@ fail_compilation/fail329.d(29): Error: variable fail329.A.foo.__ensure.result ca
 ---
 */
 
-import std.c.stdio;
+//import std.c.stdio;
 
 /*******************************************/
 
@@ -17,10 +17,10 @@ class A
     int foo(int i)
     in
     {
-        printf("A.foo.in %d\n", i);
+        //printf("A.foo.in %d\n", i);
         assert(i == 2);
         assert(x == 7);
-        printf("A.foo.in pass\n");
+        //printf("A.foo.in pass\n");
     }
     out (result)
     {
@@ -40,7 +40,7 @@ class B : A
     in
     {
         float f;
-        printf("B.foo.in %d\n", i);
+        //printf("B.foo.in %d\n", i);
         assert(i == 4);
         assert(x == 7);
         f = f + i;

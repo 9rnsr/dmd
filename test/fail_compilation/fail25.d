@@ -14,4 +14,3 @@ class Qwert
         return Qwert.yuiop + 105;
     }
 }
-

@@ -15,4 +15,4 @@ template MYP(T)
     void foo(T);
 }
 
-X!( MYP!(int) ) x;
+X!(MYP!(int)) x;

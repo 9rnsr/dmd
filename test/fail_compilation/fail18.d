@@ -10,7 +10,6 @@ fail_compilation/fail18.d(14): Error: need upper and lower bound to slice pointe
 
 void main ()
 {
- int x=3;
- int[] a = (&x)[];
+    int x = 3;
+    int[] a = (&x)[];
 }
-

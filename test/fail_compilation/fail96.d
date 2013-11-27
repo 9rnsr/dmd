@@ -20,4 +20,3 @@ void main()
 {
     foo!(long);
 }
-

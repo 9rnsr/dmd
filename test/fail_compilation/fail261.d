@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail261.d(19): Error: invalid foreach aggregate range
+fail_compilation/fail261.d(18): Error: invalid foreach aggregate range
 ---
 */
 
@@ -10,7 +10,6 @@ fail_compilation/fail261.d(19): Error: invalid foreach aggregate range
 struct MyRange
 {
 }
-
 
 void main()
 {

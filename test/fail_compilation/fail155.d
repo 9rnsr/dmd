@@ -17,7 +17,3 @@ struct S
 }
 
 S s = S( 1, 2, 3, 4 );
-
-void main()
-{
-}

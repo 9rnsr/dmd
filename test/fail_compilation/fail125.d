@@ -25,4 +25,3 @@ void main()
     int a, b;
     recMove!(0, a, b);
 }
-

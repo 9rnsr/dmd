@@ -7,7 +7,7 @@ fail_compilation/fail95.d(20): Error: template fail95.A(alias T)(T) cannot deduc
 ---
 */
 
-// 142
+// Issue 142 - Assertion failure: '0' on line 610 in file 'template.c'
 
 template A(alias T)
 {

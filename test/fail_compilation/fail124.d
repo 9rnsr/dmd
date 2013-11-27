@@ -22,4 +22,3 @@ void main()
     CC cc = new CC();
     cc.f();
 }
-

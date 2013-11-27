@@ -16,4 +16,3 @@ void fn()
     foreach (MyClass mc; myarray)
         return mc;
 }
-

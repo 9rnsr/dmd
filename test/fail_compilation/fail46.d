@@ -19,4 +19,3 @@ int main()
     assert(MyStruct.bug() == 3);
     return 0;
 }
-

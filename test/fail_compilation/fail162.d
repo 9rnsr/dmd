@@ -21,7 +21,7 @@ template testHelper(A ...)
     }
 }
 
-template test(A ...)
+template test(A...)
 {
     const char[] test = testHelper(A);
 }

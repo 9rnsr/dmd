@@ -11,4 +11,3 @@ void main()
 {
     alias Foo!(int) Foo;
 }
-

@@ -1,10 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail273.d(11): Error: alias fail273.b recursive alias declaration
+fail_compilation/fail273.d(10): Error: alias fail273.b recursive alias declaration
 ---
 */
-
 
 // Issue 1054 - regression: circular aliases cause compiler stack overflow
 

@@ -1,22 +1,21 @@
 
 template Vector(T)
 {
-	int x;
+    int x;
 
-	class Vector
-	{
-	}
+    class Vector
+    {
+    }
 }
 
+struct Sorter
+{
+}
 
-	struct Sorter
-	{
-	}
-
-	void Vector_test_int()
-	{
-		alias Vector!(int).Vector		vector_t;
-		vector_t v;
-		Sorter	sorter;
-		v.sort_with!(int)(sorter);
-	}
+void Vector_test_int()
+{
+    alias Vector!(int).Vector vector_t;
+    vector_t v;
+    Sorter sorter;
+    v.sort_with!(int)(sorter);
+}

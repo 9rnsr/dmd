@@ -15,4 +15,3 @@ enum foo : type
 }
 
 enum foo2 : void { a, b }
-

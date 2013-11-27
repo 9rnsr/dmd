@@ -17,4 +17,3 @@ void main()
                      // is no opCmp() defined instead 
                      // of crashing.
 }
-

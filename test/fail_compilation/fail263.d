@@ -17,4 +17,3 @@ void func()
 {
     f(A.ptr);
 }
-

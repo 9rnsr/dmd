@@ -7,7 +7,7 @@ fail_compilation/fail222.d(20): Error: template instance fail222.Thing!() error 
 ---
 */
 
-string getMixin(TArg..., int i = 0) ()
+string getMixin(TArg..., int i = 0)()
 {
     return ``;
 }

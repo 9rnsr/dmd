@@ -11,4 +11,3 @@ enum Bool : bool
     True,
     Unknown
 }
-

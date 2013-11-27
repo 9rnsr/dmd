@@ -5,9 +5,9 @@ fail_compilation/fail289.d(12): Error: cannot cast from function pointer to dele
 ---
 */
 
-alias void delegate() dg;
+alias void delegate() Dg;
 void fun() {}
 void gun()
 {
-    dg d = cast(void delegate())&fun;
+    Dg d = cast(void delegate())&fun;
 }

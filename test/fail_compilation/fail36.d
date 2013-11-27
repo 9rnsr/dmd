@@ -17,4 +17,3 @@ void func()
 {
     mixin t!(10);
 }
-

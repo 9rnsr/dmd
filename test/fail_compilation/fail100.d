@@ -36,4 +36,3 @@ void main()
     assert(c.x == 0);
     assert(c.foo[0].x == 0);
 }
-

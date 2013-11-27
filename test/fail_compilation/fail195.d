@@ -21,4 +21,3 @@ void bla()
     Foo next;
     next(); // Error: structliteral has no effect in expression (Foo(0))
 }
-

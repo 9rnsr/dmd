@@ -35,4 +35,3 @@ void main()
     int a = foo.geta;
     int b = foo.getb;
 }
-

@@ -18,4 +18,3 @@ pure int foo(int x)
     int function(int) a = &impure_evil_function;
     return a(x);
 }
-

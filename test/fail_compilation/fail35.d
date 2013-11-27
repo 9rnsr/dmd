@@ -10,7 +10,7 @@ fail_compilation/fail35.d(15): Error: variable t cannot be read at compile time
 
 void main()
 {
-    for (int t=0; t<33; t++)
+    for (int t = 0; t < 33; t++)
     {
         size_t n = (bool[t]).sizeof;
     }

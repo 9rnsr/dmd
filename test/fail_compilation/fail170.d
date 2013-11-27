@@ -6,4 +6,3 @@ fail_compilation/fail170.d(8): Error: variable fail170.foo.x final cannot be app
 */
 
 void foo(final out int x) { }
-

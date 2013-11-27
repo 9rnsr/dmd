@@ -24,5 +24,5 @@ void main()
 {
     Foo f = new Foo;
     foreach (int i; f.oldIterMix.Iter) {}
-    foreach (i; f.oldIterMix.Iter) {}
+    foreach (    i; f.oldIterMix.Iter) {}
 }

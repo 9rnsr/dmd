@@ -10,6 +10,5 @@ fail_compilation/fail122.d(12): Error: undefined identifier y
 void main()
 {
     y = 2;
-    auto x = function() {};
+    auto x = function(){};
 }
-

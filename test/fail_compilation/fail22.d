@@ -10,6 +10,5 @@ fail_compilation/fail22.d(13): Error: no identifier for declarator char
 void main()
 {
     char[] bug = "Crash";
-    foreach(char ; bug){}
+    foreach(char ; bug) {}
 }
-
