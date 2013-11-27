@@ -654,7 +654,7 @@ Expression *resolvePropertiesOnly(Scope *sc, Expression *e1)
  * Find symbol in accordance with the UFCS name look up rule
  */
 
-Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident, int flags = 0)
+Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
 {
     Loc loc = ue->loc;
     Dsymbol *s = NULL;
@@ -683,12 +683,7 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident, int flags = 0)
         s = NULL;
     }
     if (!s)
-    {
-        //if (flags)
-        //    return NULL;
-        //return ue->e1->type->/*Type::*/getProperty(loc, ident, 0);
         return ue->e1->type->noMember(sc, ue->e1, ident, 0);
-    }
 
     FuncDeclaration *f = s->isFuncDeclaration();
     if (f)
@@ -860,17 +855,7 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
     {
         DotIdExp *die = (DotIdExp *)e1;
         eleft = die->e1;
-//        Expression *edisp = eleft->type->dotExp(sc, eleft, Id::opDispatch, 1);
-//        //if (edisp) printf("L%d edisp = %s\n", __LINE__, edisp->toChars());
-//        if (edisp && edisp->op == TOKdottd)
-//        {
-//        printf("L%d global.gag = %d\n", __LINE__, global.gag);
-//            e = searchUFCS(sc, die, die->ident, 1);
-//            if (!e)
-//                return eleft->type->dotExp(sc, eleft, die->ident, 0);
-//        }
-//        else
-            e = searchUFCS(sc, die, die->ident);
+        e = searchUFCS(sc, die, die->ident);
     }
     else if (e1->op == TOKdotti)
     {
@@ -7432,7 +7417,7 @@ DotIdExp::DotIdExp(Loc loc, Expression *e, Identifier *ident)
 
 Expression *DotIdExp::semantic(Scope *sc)
 {
-#if 1//LOGSEMANTIC
+#if LOGSEMANTIC
     printf("DotIdExp::semantic(this = %p, '%s')\n", this, toChars());
     //printf("e1->op = %d, '%s'\n", e1->op, Token::toChars(e1->op));
 #endif
@@ -8125,7 +8110,7 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc)
 // If flag == 1, stop "not a property" error and return NULL.
 Expression *DotTemplateInstanceExp::semanticY(Scope *sc, int flag)
 {
-#if 1//LOGSEMANTIC
+#if LOGSEMANTIC
     printf("DotTemplateInstanceExpY::semantic('%s')\n", toChars());
 #endif
 
@@ -8146,9 +8131,7 @@ Expression *DotTemplateInstanceExp::semanticY(Scope *sc, int flag)
             if (flag)
                 return NULL;
         }
-        printf("  +dti ==> die->sematnicY = %s\n", die->toChars());
         e = die->semanticY(sc, flag);
-        printf("  -dti ==> die->sematnicY = %s\n", e->toChars());
         if (flag && e && isDotOpDispatch(e))
         {
             /* opDispatch!tiargs would be a function template that needs IFTI,

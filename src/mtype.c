@@ -2219,10 +2219,11 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
                 return new ErrorExp();
             }
             Loc loc = e->loc;
+
             StringExp *se = new StringExp(loc, ident->toChars());
             Objects *tiargs = new Objects();
             tiargs->push(se);
-#if 1
+
             // Emulate DotTemplateInstanceExp::semanticY
             TemplateInstance *ti = new TemplateInstance(loc, Id::opDispatch);
             ti->tiargs = tiargs;
@@ -2277,23 +2278,6 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
             e = new DotExp(loc, e, e);
             e = e->semantic(sc);
             return e;
-#else
-            DotTemplateInstanceExp *dti = new DotTemplateInstanceExp(e->loc, e, Id::opDispatch, tiargs);
-            dti->ti->tempdecl = td;
-
-            /* opDispatch, which doesn't need IFTI,  may occur instantiate error.
-             * It should be gagged if flag != 0.
-             * e.g.
-             *  tempalte opDispatch(name) if (isValid!name) { ... }
-             */
-            unsigned errors = flag ? global.startGagging() : 0;
-            printf("+dotExp opDispatch errors = %d, flag = %d\n", global.errors, flag);
-            e = dti->semanticY(sc, 0);
-            printf("-dotExp opDispatch errors = %d\n", global.errors);
-            if (flag && global.endGagging(errors))
-                e = NULL;
-            return e;
-#endif
         }
 
         /* See if we should forward to the alias this.
