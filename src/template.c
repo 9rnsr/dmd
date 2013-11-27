@@ -6549,9 +6549,14 @@ bool TemplateInstance::needsTypeInference(Scope *sc, int flag)
             return 0;
         if (TemplateDeclaration *td2 = td->onemember->isTemplateDeclaration())
         {
-            if (!td2->onemember || !td2->onemember->isFuncDeclaration())
+            if (!td2->onemember)
+                return 0;
+            FuncDeclaration *fd2 = td2->onemember->isFuncDeclaration();
+            if (!fd2)
                 return 0;
             if (ti->tiargs->dim > td->parameters->dim && !td->isVariadic())
+                return 0;
+            if (td2->parameters->dim == 0 || Parameter::dim(((TypeFunction *)fd2->type)->parameters) == 0)
                 return 0;
             return 1;
         }

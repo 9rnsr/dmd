@@ -8110,7 +8110,7 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc)
 // If flag == 1, stop "not a property" error and return NULL.
 Expression *DotTemplateInstanceExp::semanticY(Scope *sc, int flag)
 {
-#if LOGSEMANTIC
+#if 1//LOGSEMANTIC
     printf("DotTemplateInstanceExpY::semantic('%s')\n", toChars());
 #endif
 
@@ -8134,6 +8134,7 @@ Expression *DotTemplateInstanceExp::semanticY(Scope *sc, int flag)
         e = die->semanticY(sc, flag);
         if (flag && e && isDotOpDispatch(e))
         {
+        printf("e = %s\n", e->toChars());
             /* opDispatch!tiargs would be a function template that needs IFTI,
              * so it's not a template
              */
@@ -8179,24 +8180,29 @@ L1:
     {
         if (ti->errors)
             return new ErrorExp();
+        printf("dti => dottd = %s\n", e->toChars());
         DotTemplateExp *dte = (DotTemplateExp *)e;
         Expression *eleft = dte->e1;
         ti->tempdecl = dte->td;
         if (!ti->semanticTiargs(sc))
         {
+        printf("\tL%d\n", __LINE__);
             ti->inst = ti;
             ti->inst->errors = true;
             return new ErrorExp();
         }
         if (ti->needsTypeInference(sc))
         {
+        printf("\tL%d\n", __LINE__);
             e1 = eleft;                 // save result of semantic()
             return this;
         }
         else
             ti->semantic(sc);
+        printf("\tL%d\n", __LINE__);
         if (!ti->inst)                  // if template failed to expand
             return new ErrorExp();
+        printf("\tti = %s\n", ti->toChars());
         Dsymbol *s = ti->inst->toAlias();
         Declaration *v = s->isDeclaration();
         if (v && (v->isFuncDeclaration() || v->isVarDeclaration()))

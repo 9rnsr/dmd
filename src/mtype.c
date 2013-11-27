@@ -2223,6 +2223,7 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
             tiargs->push(se);
             DotTemplateInstanceExp *dti = new DotTemplateInstanceExp(e->loc, e, Id::opDispatch, tiargs);
             dti->ti->tempdecl = td;
+            printf("+noMem flag = %d, dti = %s\n", flag, dti->toChars());
 
             /* opDispatch, which doesn't need IFTI,  may occur instantiate error.
              * It should be gagged if flag != 0.
@@ -2235,6 +2236,9 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
                 e = NULL;
             else if (!flag && errors != global.errors)
                 e = new ErrorExp();
+
+            printf("-noMem flag = %d, e = %s\n", flag, e->toChars());
+
             return e;
         }
 
