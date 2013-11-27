@@ -1,3 +1,10 @@
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail276.d(13): Error: variable this forward referenced
+fail_compilation/fail276.d(13): Error: variable this forward referenced
+---
+*/
 
 class C
 {

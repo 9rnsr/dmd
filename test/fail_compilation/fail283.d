@@ -1,3 +1,12 @@
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail283.d(13): Error: pure nested function 'do_sqr' cannot access mutable data 'y'
+fail_compilation/fail283.d(13): Error: pure nested function 'do_sqr' cannot access mutable data 'y'
+fail_compilation/fail283.d(13): Error: pure nested function 'do_sqr' cannot access mutable data 'y'
+---
+*/
+
 pure int double_sqr(int x)
 {
     int y = x;
