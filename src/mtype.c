@@ -2230,7 +2230,7 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
 
             ti->semanticTiargs(sc);
 
-            if (ti->needsTypeInference(sc))
+            if (flag && ti->needsTypeInference(sc))
             {
                 DotTemplateInstanceExp *dti = new DotTemplateInstanceExp(loc, e, ti);
                 return dti;

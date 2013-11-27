@@ -684,9 +684,10 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident, int flags = 0)
     }
     if (!s)
     {
-        if (flags)
-            return NULL;
-        return ue->e1->type->Type::getProperty(loc, ident, 0);
+        //if (flags)
+        //    return NULL;
+        //return ue->e1->type->/*Type::*/getProperty(loc, ident, 0);
+        return ue->e1->type->noMember(sc, ue->e1, ident, 0);
     }
 
     FuncDeclaration *f = s->isFuncDeclaration();
@@ -859,16 +860,16 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
     {
         DotIdExp *die = (DotIdExp *)e1;
         eleft = die->e1;
-        Expression *edisp = eleft->type->dotExp(sc, eleft, Id::opDispatch, 1);
-        //if (edisp) printf("L%d edisp = %s\n", __LINE__, edisp->toChars());
-        if (edisp && edisp->op == TOKdottd)
-        {
-        printf("L%d global.gag = %d\n", __LINE__, global.gag);
-            e = searchUFCS(sc, die, die->ident, 1);
-            if (!e)
-                return eleft->type->dotExp(sc, eleft, die->ident, 0);
-        }
-        else
+//        Expression *edisp = eleft->type->dotExp(sc, eleft, Id::opDispatch, 1);
+//        //if (edisp) printf("L%d edisp = %s\n", __LINE__, edisp->toChars());
+//        if (edisp && edisp->op == TOKdottd)
+//        {
+//        printf("L%d global.gag = %d\n", __LINE__, global.gag);
+//            e = searchUFCS(sc, die, die->ident, 1);
+//            if (!e)
+//                return eleft->type->dotExp(sc, eleft, die->ident, 0);
+//        }
+//        else
             e = searchUFCS(sc, die, die->ident);
     }
     else if (e1->op == TOKdotti)
