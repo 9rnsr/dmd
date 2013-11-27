@@ -2228,8 +2228,8 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
             TemplateInstance *ti = new TemplateInstance(loc, Id::opDispatch);
             ti->tiargs = tiargs;
             ti->tempdecl = td;
-
-            ti->semanticTiargs(sc);
+            if (!ti->semanticTiargs(sc))
+                assert(0);
 
             if (flag && ti->needsTypeInference(sc))
             {
@@ -2237,29 +2237,20 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
                 return dti;
             }
 
+            // If flag != 0, returns NULL just only for the opDispatch template signature mismatch
             unsigned errors = flag ? global.startGagging() : 0;
-
             Objects dedtypes;
             dedtypes.setDim(1);
             MATCH m = td->matchWithInstance(sc, ti, &dedtypes, NULL, 0);
-
-            if (flag && global.endGagging(errors))
-            {
-                printf("L%d\n", __LINE__);
+            if (flag && (global.endGagging(errors) || m == MATCHnomatch))
                 return NULL;
-            }
-            printf("L%d m = %d\n", __LINE__, m);
-            if (flag && m == MATCHnomatch)
-                return NULL;
-                //return flag ? NULL : new ErrorExp();
-
+#if 1
+            DotTemplateInstanceExp *dti = new DotTemplateInstanceExp(loc, e, ti);
+            return dti->semanticY(sc, 0);
+#else
             ti->semantic(sc);
             if (!ti->inst)                  // if template failed to expand
-            {
-                printf("L%d\n", __LINE__);
                 return new ErrorExp();
-            }
-
             Dsymbol *s = ti->inst->toAlias();
             Declaration *v = s->isDeclaration();
             if (v && (v->isFuncDeclaration() || v->isVarDeclaration()))
@@ -2278,6 +2269,7 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
             e = new DotExp(loc, e, e);
             e = e->semantic(sc);
             return e;
+#endif
         }
 
         /* See if we should forward to the alias this.
