@@ -654,7 +654,7 @@ Expression *resolvePropertiesOnly(Scope *sc, Expression *e1)
  * Find symbol in accordance with the UFCS name look up rule
  */
 
-Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
+Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident, int flag = 0)
 {
     Loc loc = ue->loc;
     Dsymbol *s = NULL;
@@ -683,7 +683,7 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
         s = NULL;
     }
     if (!s)
-        return ue->e1->type->dotExp(sc, ue->e1, ident, 0);
+        return flag ? NULL : ue->e1->type->dotExp(sc, ue->e1, ident, 0);
 
     FuncDeclaration *f = s->isFuncDeclaration();
     if (f)
@@ -746,6 +746,8 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
         }
         eleft = die->e1;
 
+        Expression *ey = NULL;
+
         Type *t = eleft->type->toBasetype();
         if (t->ty == Tarray || t->ty == Tsarray ||
             t->ty == Tnull  || (t->isTypeBasic() && t->ty != Tvoid))
@@ -800,7 +802,8 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
         }
         else
         {
-            if (Expression *ey = die->semanticY(sc, 1))
+            ey = die->semanticY(sc, 1);
+            if (ey)
             {
                 ce->e1 = ey;
                 if (isDotOpDispatch(ey))
@@ -816,7 +819,15 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
                     return NULL;
             }
         }
-        e = searchUFCS(sc, die, ident);
+        printf("L%d\n", __LINE__);
+        e = searchUFCS(sc, die, ident, 1);
+        if (!e)
+        {
+            printf("L%d\n", __LINE__);
+            ce->e1 = ey ? ey : die;
+            return NULL;
+        }
+        printf("L%d e = %s\n", __LINE__, e->toChars());
     }
     else if (ce->e1->op == TOKdotti)
     {
@@ -8812,6 +8823,7 @@ Lagain:
         f = resolveFuncCall(loc, sc, s, tiargs, ue1 ? ue1->type : NULL, arguments);
         if (!f)
             return new ErrorExp();
+        printf("dotvar/dottd f = %s, f->type = %s, fargs = %s\n", f->toChars(), f->type->toChars(), arguments->toChars());
 
         if (f->needThis())
         {
