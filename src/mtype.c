@@ -2218,58 +2218,24 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
                 fd->error("must be a template opDispatch(string s), not a %s", fd->kind());
                 return new ErrorExp();
             }
-            Loc loc = e->loc;
-
-            StringExp *se = new StringExp(loc, ident->toChars());
+            StringExp *se = new StringExp(e->loc, ident->toChars());
             Objects *tiargs = new Objects();
             tiargs->push(se);
+            DotTemplateInstanceExp *dti = new DotTemplateInstanceExp(e->loc, e, Id::opDispatch, tiargs);
+            dti->ti->tempdecl = td;
 
-            // Emulate DotTemplateInstanceExp::semanticY
-            TemplateInstance *ti = new TemplateInstance(loc, Id::opDispatch);
-            ti->tiargs = tiargs;
-            ti->tempdecl = td;
-            if (!ti->semanticTiargs(sc))
-                assert(0);
-
-            if (flag && ti->needsTypeInference(sc))
-            {
-                DotTemplateInstanceExp *dti = new DotTemplateInstanceExp(loc, e, ti);
-                return dti;
-            }
-
-            // If flag != 0, returns NULL just only for the opDispatch template signature mismatch
-            unsigned errors = flag ? global.startGagging() : 0;
-            Objects dedtypes;
-            dedtypes.setDim(1);
-            MATCH m = td->matchWithInstance(sc, ti, &dedtypes, NULL, 0);
-            if (flag && (global.endGagging(errors) || m == MATCHnomatch))
-                return NULL;
-#if 1
-            DotTemplateInstanceExp *dti = new DotTemplateInstanceExp(loc, e, ti);
-            return dti->semanticY(sc, 0);
-#else
-            ti->semantic(sc);
-            if (!ti->inst)                  // if template failed to expand
-                return new ErrorExp();
-            Dsymbol *s = ti->inst->toAlias();
-            Declaration *v = s->isDeclaration();
-            if (v && (v->isFuncDeclaration() || v->isVarDeclaration()))
-            {
-                e = new DotVarExp(loc, e, v);
-                e = e->semantic(sc);
-                return e;
-            }
-            if (e->op == TOKtype)
-            {
-                e = new DsymbolExp(loc, s);
-                e = e->semantic(sc);
-                return e;
-            }
-            e = new ScopeExp(loc, ti);
-            e = new DotExp(loc, e, e);
-            e = e->semantic(sc);
+            /* opDispatch, which doesn't need IFTI,  may occur instantiate error.
+             * It should be gagged if flag != 0.
+             * e.g.
+             *  tempalte opDispatch(name) if (isValid!name) { ... }
+             */
+            unsigned errors = flag ? global.startGagging() : global.errors;
+            e = dti->semanticY(sc, 0);
+            if (flag && global.endGagging(errors))
+                e = NULL;
+            else if (!flag && errors != global.errors)
+                e = new ErrorExp();
             return e;
-#endif
         }
 
         /* See if we should forward to the alias this.
