@@ -2218,9 +2218,64 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
                 fd->error("must be a template opDispatch(string s), not a %s", fd->kind());
                 return new ErrorExp();
             }
-            StringExp *se = new StringExp(e->loc, ident->toChars());
+            Loc loc = e->loc;
+            StringExp *se = new StringExp(loc, ident->toChars());
             Objects *tiargs = new Objects();
             tiargs->push(se);
+#if 1
+            // Emulate DotTemplateInstanceExp::semanticY
+            TemplateInstance *ti = new TemplateInstance(loc, Id::opDispatch);
+            ti->tiargs = tiargs;
+            ti->tempdecl = td;
+
+            ti->semanticTiargs(sc);
+
+            if (ti->needsTypeInference(sc))
+            {
+                DotTemplateInstanceExp *dti = new DotTemplateInstanceExp(loc, e, ti);
+                return dti;
+            }
+
+            unsigned errors = flag ? global.startGagging() : 0;
+
+            Objects dedtypes;
+            dedtypes.setDim(1);
+            MATCH m = td->matchWithInstance(sc, ti, &dedtypes, NULL, 0);
+
+            if (flag && global.endGagging(errors))
+            {
+                printf("L%d\n", __LINE__);
+                return NULL;
+            }
+            if (m == MATCHnomatch)
+                return flag ? NULL : new ErrorExp();
+
+            ti->semantic(sc);
+            if (!ti->inst)                  // if template failed to expand
+            {
+                printf("L%d\n", __LINE__);
+                return new ErrorExp();
+            }
+
+            Dsymbol *s = ti->inst->toAlias();
+            Declaration *v = s->isDeclaration();
+            if (v && (v->isFuncDeclaration() || v->isVarDeclaration()))
+            {
+                e = new DotVarExp(loc, e, v);
+                e = e->semantic(sc);
+                return e;
+            }
+            if (e->op == TOKtype)
+            {
+                e = new DsymbolExp(loc, s);
+                e = e->semantic(sc);
+                return e;
+            }
+            e = new ScopeExp(loc, ti);
+            e = new DotExp(loc, e, e);
+            e = e->semantic(sc);
+            return e;
+#else
             DotTemplateInstanceExp *dti = new DotTemplateInstanceExp(e->loc, e, Id::opDispatch, tiargs);
             dti->ti->tempdecl = td;
 
@@ -2230,10 +2285,13 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
              *  tempalte opDispatch(name) if (isValid!name) { ... }
              */
             unsigned errors = flag ? global.startGagging() : 0;
+            printf("+dotExp opDispatch errors = %d, flag = %d\n", global.errors, flag);
             e = dti->semanticY(sc, 0);
+            printf("-dotExp opDispatch errors = %d\n", global.errors);
             if (flag && global.endGagging(errors))
                 e = NULL;
             return e;
+#endif
         }
 
         /* See if we should forward to the alias this.

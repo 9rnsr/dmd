@@ -8051,6 +8051,13 @@ DotTemplateInstanceExp::DotTemplateInstanceExp(Loc loc, Expression *e, Identifie
     this->ti->tiargs = tiargs;
 }
 
+// only used for opDispatch
+DotTemplateInstanceExp::DotTemplateInstanceExp(Loc loc, Expression *e, TemplateInstance *ti)
+        : UnaExp(loc, TOKdotti, sizeof(DotTemplateInstanceExp), e)
+{
+    this->ti = ti;
+}
+
 Expression *DotTemplateInstanceExp::syntaxCopy()
 {
     DotTemplateInstanceExp *de = new DotTemplateInstanceExp(loc,
@@ -8103,7 +8110,7 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc)
 // If flag == 1, stop "not a property" error and return NULL.
 Expression *DotTemplateInstanceExp::semanticY(Scope *sc, int flag)
 {
-#if LOGSEMANTIC
+#if 1//LOGSEMANTIC
     printf("DotTemplateInstanceExpY::semantic('%s')\n", toChars());
 #endif
 
@@ -8124,7 +8131,9 @@ Expression *DotTemplateInstanceExp::semanticY(Scope *sc, int flag)
             if (flag)
                 return NULL;
         }
+        printf("  +dti ==> die->sematnicY = %s\n", die->toChars());
         e = die->semanticY(sc, flag);
+        printf("  -dti ==> die->sematnicY = %s\n", e->toChars());
         if (flag && e && isDotOpDispatch(e))
         {
             /* opDispatch!tiargs would be a function template that needs IFTI,
