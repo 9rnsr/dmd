@@ -2229,10 +2229,12 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
              * e.g.
              *  tempalte opDispatch(name) if (isValid!name) { ... }
              */
-            unsigned errors = flag ? global.startGagging() : 0;
+            unsigned errors = flag ? global.startGagging() : global.errors;
             e = dti->semanticY(sc, 0);
             if (flag && global.endGagging(errors))
                 e = NULL;
+            else if (!flag && errors != global.errors)
+                e = new ErrorExp();
             return e;
         }
 

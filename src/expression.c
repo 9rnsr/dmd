@@ -654,7 +654,7 @@ Expression *resolvePropertiesOnly(Scope *sc, Expression *e1)
  * Find symbol in accordance with the UFCS name look up rule
  */
 
-Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
+Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident, int flag = 0)
 {
     Loc loc = ue->loc;
     Dsymbol *s = NULL;
@@ -683,7 +683,7 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
         s = NULL;
     }
     if (!s)
-        return ue->e1->type->Type::getProperty(loc, ident, 0);
+        return flag ? NULL : ue->e1->type->dotExp(sc, ue->e1, ident, 0);
 
     FuncDeclaration *f = s->isFuncDeclaration();
     if (f)
@@ -746,6 +746,8 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
         }
         eleft = die->e1;
 
+        Expression *ce1 = die;
+
         Type *t = eleft->type->toBasetype();
         if (t->ty == Tarray || t->ty == Tsarray ||
             t->ty == Tnull  || (t->isTypeBasic() && t->ty != Tvoid))
@@ -802,7 +804,7 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
         {
             if (Expression *ey = die->semanticY(sc, 1))
             {
-                ce->e1 = ey;
+                ce->e1 = ce1 = ey;
                 if (isDotOpDispatch(ey))
                 {
                     unsigned errors = global.startGagging();
@@ -816,7 +818,12 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
                     return NULL;
             }
         }
-        e = searchUFCS(sc, die, ident);
+        e = searchUFCS(sc, die, ident, 1);
+        if (!e)
+        {
+            ce->e1 = ce1;
+            return NULL;
+        }
     }
     else if (ce->e1->op == TOKdotti)
     {
