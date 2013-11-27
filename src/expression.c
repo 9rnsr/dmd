@@ -746,7 +746,7 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
         }
         eleft = die->e1;
 
-        Expression *ey = NULL;
+        Expression *ce1 = die;
 
         Type *t = eleft->type->toBasetype();
         if (t->ty == Tarray || t->ty == Tsarray ||
@@ -802,10 +802,9 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
         }
         else
         {
-            ey = die->semanticY(sc, 1);
-            if (ey)
+            if (Expression *ey = die->semanticY(sc, 1))
             {
-                ce->e1 = ey;
+                ce->e1 = ce1 = ey;
                 if (isDotOpDispatch(ey))
                 {
                     unsigned errors = global.startGagging();
@@ -822,7 +821,7 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
         e = searchUFCS(sc, die, ident, 1);
         if (!e)
         {
-            ce->e1 = ey ? ey : die;
+            ce->e1 = ce1;
             return NULL;
         }
     }
