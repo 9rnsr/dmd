@@ -819,15 +819,12 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
                     return NULL;
             }
         }
-        printf("L%d\n", __LINE__);
         e = searchUFCS(sc, die, ident, 1);
         if (!e)
         {
-            printf("L%d\n", __LINE__);
             ce->e1 = ey ? ey : die;
             return NULL;
         }
-        printf("L%d e = %s\n", __LINE__, e->toChars());
     }
     else if (ce->e1->op == TOKdotti)
     {
@@ -8823,7 +8820,6 @@ Lagain:
         f = resolveFuncCall(loc, sc, s, tiargs, ue1 ? ue1->type : NULL, arguments);
         if (!f)
             return new ErrorExp();
-        printf("dotvar/dottd f = %s, f->type = %s, fargs = %s\n", f->toChars(), f->type->toChars(), arguments->toChars());
 
         if (f->needThis())
         {
