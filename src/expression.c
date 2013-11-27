@@ -683,15 +683,7 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
         s = NULL;
     }
     if (!s)
-    {
-        //Type *t1 = ue->e1->type;
-        //Type *t1b = t1->toBasetype();
-        //if (t1->ty == Tstruct || t1->ty == Tclass)
-        //    return t1b->noMember(sc, ue->e1, ident, 0);
-        //else
-        //    return t1->Type::getProperty(loc, ident, 0);
         return ue->e1->type->dotExp(sc, ue->e1, ident, 0);
-    }
 
     FuncDeclaration *f = s->isFuncDeclaration();
     if (f)
@@ -8057,13 +8049,6 @@ DotTemplateInstanceExp::DotTemplateInstanceExp(Loc loc, Expression *e, Identifie
     //printf("DotTemplateInstanceExp()\n");
     this->ti = new TemplateInstance(loc, name);
     this->ti->tiargs = tiargs;
-}
-
-// only used for opDispatch
-DotTemplateInstanceExp::DotTemplateInstanceExp(Loc loc, Expression *e, TemplateInstance *ti)
-        : UnaExp(loc, TOKdotti, sizeof(DotTemplateInstanceExp), e)
-{
-    this->ti = ti;
 }
 
 Expression *DotTemplateInstanceExp::syntaxCopy()
