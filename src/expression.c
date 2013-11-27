@@ -654,7 +654,7 @@ Expression *resolvePropertiesOnly(Scope *sc, Expression *e1)
  * Find symbol in accordance with the UFCS name look up rule
  */
 
-Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
+Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident, int flags = 0)
 {
     Loc loc = ue->loc;
     Dsymbol *s = NULL;
@@ -683,7 +683,11 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
         s = NULL;
     }
     if (!s)
+    {
+        if (flags)
+            return NULL;
         return ue->e1->type->Type::getProperty(loc, ident, 0);
+    }
 
     FuncDeclaration *f = s->isFuncDeclaration();
     if (f)
@@ -7417,17 +7421,41 @@ DotIdExp::DotIdExp(Loc loc, Expression *e, Identifier *ident)
 
 Expression *DotIdExp::semantic(Scope *sc)
 {
-#if LOGSEMANTIC
+#if 1//LOGSEMANTIC
     printf("DotIdExp::semantic(this = %p, '%s')\n", this, toChars());
     //printf("e1->op = %d, '%s'\n", e1->op, Token::toChars(e1->op));
 #endif
     Expression *e = semanticY(sc, 1);
     if (e && isDotOpDispatch(e))
     {
+        assert(e->op == TOKdotti);
+        DotTemplateInstanceExp *edisp = (DotTemplateInstanceExp *)e;
         unsigned errors = global.startGagging();
         e = resolvePropertiesX(sc, e);
         if (global.endGagging(errors))
-            e = NULL;   /* fall down to UFCS */
+        {
+            printf("L%d fail1\n", __LINE__);
+            e = searchUFCS(sc, this, ident, 1);
+            if (e)
+                return e;
+
+            printf("L%d fail2 (ufcs)\n", __LINE__);
+
+            // show errors of opDispatch instantiation failure
+            TemplateDeclaration *td = edisp->ti->tempdecl->isTemplateDeclaration();
+            Objects dedtypes;
+            MATCH m = td->matchWithInstance(sc, edisp->ti, &dedtypes, NULL, 0);
+            assert(m == MATCHnomatch);
+            return new ErrorExp();
+//
+//            unsigned errors = global.startGagging();
+//            e = resolveUFCSProperties(sc, this);
+//            if (global.endGagging(errors))
+//            {
+//            }
+//            else
+//                return e;
+        }
         else
             return e;
     }

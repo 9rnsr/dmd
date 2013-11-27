@@ -2230,7 +2230,9 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
              *  tempalte opDispatch(name) if (isValid!name) { ... }
              */
             unsigned errors = flag ? global.startGagging() : 0;
+            printf("+dotExp opDispatch errors = %d, flag = %d\n", global.errors, flag);
             e = dti->semanticY(sc, 0);
+            printf("-dotExp opDispatch errors = %d\n", global.errors);
             if (flag && global.endGagging(errors))
                 e = NULL;
             return e;
