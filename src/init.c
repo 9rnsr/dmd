@@ -392,20 +392,16 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
     {
         case Tsarray:
         case Tarray:
+        case Taarray:
             break;
 
         case Tvector:
             t = ((TypeVector *)t)->basetype;
             break;
 
-        case Taarray:
         case Tstruct:   // consider implicit constructor call
         {
-            Expression *e;
-            if (t->ty == Taarray || isAssociativeArray())
-                e = toAssocArrayLiteral();
-            else
-                e = toExpression();
+            Expression *e = toExpression();
             ExpInitializer *ei = new ExpInitializer(e->loc, e);
             return ei->semantic(sc, t, needInterpret);
         }
@@ -419,6 +415,55 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
     }
 
     type = t;
+
+    if (t->ty == Taarray)
+    {
+        TypeAArray *taa = (TypeAArray *)t;
+
+        Expressions *ekeys = new Expressions();
+        Expressions *evals = new Expressions();
+        ekeys->reserve(value.dim);
+        evals->reserve(value.dim);
+        for (size_t i = 0; i < value.dim; i++)
+        {
+            Expression *ek = index[i];
+            if (!ek)
+            {
+                error(loc, "missing AA key for value %s", value[i]->toChars());
+                errors = true;
+                continue;
+            }
+
+            if (needInterpret) sc = sc->startCTFE();
+            sc = sc->startCTFE();
+            ek = ek->semantic(sc);
+            ek = resolveProperties(sc, ek);
+            if (needInterpret) sc = sc->endCTFE();
+
+            if (needInterpret)
+                ek = ek->ctfeInterpret();
+            else
+                ek = ek->optimize(WANTvalue);
+
+            Initializer *val = value[i];
+            val = val->semantic(sc, taa->next, needInterpret);
+            Expression *ev = val->toExpression();
+
+            if (ek->op == TOKerror || ev->op == TOKerror)
+                errors = true;
+            else
+            {
+                ekeys->push(ek);
+                evals->push(ev);
+            }
+        }
+        if (errors)
+            return new ErrorInitializer();
+
+        Expression *e = new AssocArrayLiteralExp(loc, ekeys, evals);
+        ExpInitializer *ei = new ExpInitializer(loc, e);
+        return ei->semantic(sc, taa, needInterpret);
+    }
 
     length = 0;
     for (size_t i = 0; i < index.dim; i++)
@@ -532,6 +577,9 @@ Expression *ArrayInitializer::toExpression(Type *tx)
     }
     else
     {
+        if (isAssociativeArray())
+            return toAssocArrayLiteral();
+
         edim = value.dim;
         for (size_t i = 0, j = 0; i < value.dim; i++, j++)
         {
@@ -989,6 +1037,3 @@ void ExpInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     exp->toCBuffer(buf, hgs);
 }
-
-
-

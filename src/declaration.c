@@ -834,11 +834,7 @@ void VarDeclaration::semantic(Scope *sc)
         ArrayInitializer *ai = init->isArrayInitializer();
         if (ai)
         {
-            Expression *e;
-            if (ai->isAssociativeArray())
-                e = ai->toAssocArrayLiteral();
-            else
-                e = init->toExpression();
+            Expression *e = init->toExpression();
             if (!e)
             {
                 error("cannot infer type from initializer");
@@ -846,6 +842,8 @@ void VarDeclaration::semantic(Scope *sc)
             }
             init = new ExpInitializer(e->loc, e);
             type = init->inferType(sc);
+
+            // Prefer array literals to give a T[] type rather than a T[dim]
             if (type->ty == Tsarray)
                 type = type->nextOf()->arrayOf();
         }
@@ -855,16 +853,10 @@ void VarDeclaration::semantic(Scope *sc)
         }
 
         if (needctfe) sc = sc->endCTFE();
-//      type = type->semantic(loc, sc);
+        //type = type->semantic(loc, sc);
 
         inuse--;
         inferred = 1;
-
-        if (init->isArrayInitializer() && type->toBasetype()->ty == Tsarray)
-        {
-            // Prefer array literals to give a T[] type rather than a T[dim]
-            type = type->toBasetype()->nextOf()->arrayOf();
-        }
 
         /* This is a kludge to support the existing syntax for RAII
          * declarations.
@@ -1416,28 +1408,20 @@ Lnomatch:
                 !init->isVoidInitializer())
             {
                 //printf("fd = '%s', var = '%s'\n", fd->toChars(), toChars());
-                if (!ei)
+                if (!inferred && !ei)
                 {
-                    ArrayInitializer *ai = init->isArrayInitializer();
-                    Expression *e;
-                    if (ai && (tb->ty == Taarray || tb->ty == Tstruct && ai->isAssociativeArray()))
-                        e = ai->toAssocArrayLiteral();
-                    else
-                        e = init->toExpression();
+                    // Run semantic, but don't need to interpret
+                    init = init->semantic(sc, type, INITnointerpret);
+                    Expression *e = init->toExpression();
                     if (!e)
                     {
-                        // Run semantic, but don't need to interpret
-                        init = init->semantic(sc, type, INITnointerpret);
-                        e = init->toExpression();
-                        if (!e)
-                        {
-                            error("is not a static and cannot have static initializer");
-                            return;
-                        }
+                        error("is not a static and cannot have static initializer");    // ?
+                        return;
                     }
                     ei = new ExpInitializer(init->loc, e);
                     init = ei;
                 }
+                assert(ei);
 
                 Expression *e1 = new VarExp(loc, this);
                 ei->exp = new AssignExp(loc, e1, ei->exp);
