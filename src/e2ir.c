@@ -4850,17 +4850,25 @@ elem *tree_insert(Elems *args, size_t low, size_t high)
 }
 
 elem *ArrayLiteralExp::toElem(IRState *irs)
-{   elem *e;
+{
+    elem *e;
     size_t dim;
-    elem *earg = NULL;
 
     //printf("ArrayLiteralExp::toElem() %s, type = %s\n", toChars(), type->toChars());
     Type *tb = type->toBasetype();
     if (tb->ty == Tsarray && tb->nextOf()->toBasetype()->ty == Tvoid)
-    {   // Convert void[n] to ubyte[n]
+    {
+        // Convert void[n] to ubyte[n]
         tb = TypeSArray::makeType(loc, Type::tuns8, ((TypeSArray *)tb)->dim->toUInteger());
     }
-    if (elements)
+    if (!elements || elements->dim == 0)
+    {
+        dim = 0;
+        StringExp *se = new StringExp(loc, "", 0, 'c');
+        se->type = Type::tchar->pointerTo();
+        e = se->toElem(irs);
+    }
+    else if (elements)
     {
         /* Instead of passing the initializers on the stack, allocate the
          * array and assign the members inline.
@@ -4906,7 +4914,8 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
         e = el_combine(e, el_var(stmp));
     }
     else
-    {   dim = 0;
+    {
+        dim = 0;
         e = el_long(TYsize_t, 0);
     }
     if (tb->ty == Tarray)
@@ -4923,7 +4932,6 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
     }
 
     el_setLoc(e,loc);
-    e = el_combine(earg, e);
     return e;
 }
 

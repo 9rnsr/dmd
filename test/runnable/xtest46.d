@@ -6807,6 +6807,30 @@ void test11317()
 
 /***************************************************/
 
+void main()
+{
+    int[] a1 = [];
+    double[] a2 = [];
+
+    assert(a1.length == 0);
+    assert(a2.length == 0);
+
+    // important changed point
+    assert(a1.ptr !is null);
+    assert(a2.ptr !is null);
+
+    assert(a1 == []);
+    assert(a2 == []);
+
+    static assert(!is(typeof(a1.ptr == a2.ptr)));
+    assert(a1 == a2);
+    //assert(cast(void*)a1.ptr == cast(void*)a2.ptr);
+    // implementation specific
+    // and, if two empty arrays came from shared libraries, they may be different
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
