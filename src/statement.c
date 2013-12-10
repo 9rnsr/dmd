@@ -2777,20 +2777,26 @@ Statement *ConditionalStatement::syntaxCopy()
 
 Statement *ConditionalStatement::semantic(Scope *sc)
 {
-    //printf("ConditionalStatement::semantic()\n");
+    printf("ConditionalStatement::semantic()\n");
 
     // If we can short-circuit evaluate the if statement, don't do the
     // semantic analysis of the skipped code.
     // This feature allows a limited form of conditional compilation.
     if (condition->include(sc))
     {
-        DebugCondition *dc = condition->isDebugCondition();
-        if (dc)
+        if (DebugCondition *dc = condition->isDebugCondition())
         {
             sc = sc->push();
             sc->flags |= SCOPEdebug;
             ifbody = ifbody->semantic(sc);
-            sc->pop();
+            sc = sc->pop();
+        }
+        else if (StaticIfCondition *sifc = condition->isStaticIfCondition())
+        {
+            sc = sc->push(sifc->sym);
+            printf("then block of ConditionalStatement semantic\n");
+            ifbody = ifbody->semantic(sc);
+            sc = sc->pop();
         }
         else
             ifbody = ifbody->semantic(sc);
@@ -2808,12 +2814,21 @@ Statements *ConditionalStatement::flatten(Scope *sc)
 {
     Statement *s;
 
-    //printf("ConditionalStatement::flatten()\n");
+    printf("ConditionalStatement::flatten()\n");
     if (condition->include(sc))
     {
-        DebugCondition *dc = condition->isDebugCondition();
-        if (dc)
+        if (DebugCondition *dc = condition->isDebugCondition())
+        {
             s = new DebugStatement(loc, ifbody);
+        }
+        else if (StaticIfCondition *sifc = condition->isStaticIfCondition())
+        {
+            sifc->sym->parent = sc->parent;
+            sc = sc->push(sifc->sym);
+            s = ifbody->semantic(sc);
+            printf("then block of ConditionalStatement flatten, s = %s\n", s->toChars());
+            sc = sc->pop();
+        }
         else
             s = ifbody;
     }

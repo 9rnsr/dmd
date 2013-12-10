@@ -345,6 +345,7 @@ int StaticIfCondition::include(Scope *sc)
         ++nest;
         ScopeDsymbol *sym = new ScopeDsymbol();
         //sym->parent = sc->scopesym;   // harmful
+        printf("StaticIfCondition\n");
         sym->parent = sc->parent;   // good?
         sc = sc->push(sym);
         sc->flags |= SCOPEstaticif;

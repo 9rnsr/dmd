@@ -1476,9 +1476,9 @@ Dsymbols *StaticIfDeclaration::include(Scope *sc)
             if (condition->inc == 1)
             {
                 printf("then block, update scope\n");
-                StaticIfCondition *scondition = (StaticIfCondition *)condition;
-                assert(scondition->sym);
-                Scope *scx = scope->push(scondition->sym);
+                StaticIfCondition *cond = condition->isStaticIfCondition();
+                assert(cond->sym);
+                Scope *scx = scope->push(cond->sym);
                 scope = scx;
             }
             for (size_t i = 0; i < d->dim; i++)
@@ -1547,11 +1547,11 @@ void StaticIfDeclaration::semantic(Scope *sc)
             addisdone = 1;
         }
 
-        StaticIfCondition *scondition = (StaticIfCondition *)condition;
+        StaticIfCondition *cond = condition->isStaticIfCondition();
         if (sc && condition->inc == 1)
         {
-            assert(scondition->sym);
-            sc = sc->push(scondition->sym);
+            assert(cond->sym);
+            sc = sc->push(cond->sym);
             printf("then block semantic\n");
         }
 
@@ -1573,11 +1573,11 @@ void StaticIfDeclaration::semantic2(Scope *sc)
 
     if (d)
     {
-        StaticIfCondition *scondition = (StaticIfCondition *)condition;
+        StaticIfCondition *cond = condition->isStaticIfCondition();
         if (sc && condition->inc == 1)
         {
-            assert(scondition->sym);
-            sc = sc->push(scondition->sym);
+            assert(cond->sym);
+            sc = sc->push(cond->sym);
             printf("then block semantic2\n");
         }
 
@@ -1598,11 +1598,11 @@ void StaticIfDeclaration::semantic3(Scope *sc)
 
     if (d)
     {
-        StaticIfCondition *scondition = (StaticIfCondition *)condition;
+        StaticIfCondition *cond = condition->isStaticIfCondition();
         if (sc && condition->inc == 1)
         {
-            assert(scondition->sym);
-            sc = sc->push(scondition->sym);
+            assert(cond->sym);
+            sc = sc->push(cond->sym);
             printf("then block semantic3\n");
         }
 
