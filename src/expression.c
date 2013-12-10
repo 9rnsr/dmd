@@ -6761,8 +6761,8 @@ Expression *IsExp::semantic(Scope *sc)
                 s->semantic(sc);
                 if (sc->sd)
                     s->addMember(sc, sc->sd, 1);
-                else if (!sc->insert(s))
-                    error("declaration %s is already defined", s->toChars());
+                //else// if (!sc->insert(s))
+                //    error("cannot declare identifier %s", s->toChars());
             }
             goto Lyes;
         }
@@ -6789,10 +6789,12 @@ Lyes:
         /* The reason for the !tup is unclear. It fails Phobos unittests if it is not there.
          * More investigation is needed.
          */
-        if (!tup && !sc->insert(s))
+        if (!tup && !sc->insert(s)) // ?
             error("declaration %s is already defined", s->toChars());
         if (sc->sd)
             s->addMember(sc, sc->sd, 1);
+        else
+            error("cannot declare identifier %s", s->toChars());
     }
     //printf("Lyes\n");
     return new IntegerExp(loc, 1, Type::tbool);

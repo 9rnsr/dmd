@@ -33,7 +33,7 @@ public:
     Dsymbols *decl;     // array of Dsymbol's
 
     AttribDeclaration(Dsymbols *decl);
-    virtual Dsymbols *include(Scope *sc, ScopeDsymbol *s);
+    virtual Dsymbols *include(Scope *sc);
     int apply(Dsymbol_apply_ft_t fp, void *param);
     int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     void setScopeNewSc(Scope *sc,
@@ -171,7 +171,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     bool oneMember(Dsymbol **ps, Identifier *ident);
     void emitComment(Scope *sc);
-    Dsymbols *include(Scope *sc, ScopeDsymbol *s);
+    Dsymbols *include(Scope *sc);
     void addComment(const utf8_t *comment);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toJson(JsonOut *json);
@@ -187,7 +187,7 @@ public:
 
     StaticIfDeclaration(Condition *condition, Dsymbols *decl, Dsymbols *elsedecl);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    Dsymbols *include(Scope *sc, ScopeDsymbol *s);
+    Dsymbols *include(Scope *sc);
     int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     void semantic(Scope *sc);
     void importAll(Scope *sc);

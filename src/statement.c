@@ -2782,7 +2782,7 @@ Statement *ConditionalStatement::semantic(Scope *sc)
     // If we can short-circuit evaluate the if statement, don't do the
     // semantic analysis of the skipped code.
     // This feature allows a limited form of conditional compilation.
-    if (condition->include(sc, NULL))
+    if (condition->include(sc))
     {
         DebugCondition *dc = condition->isDebugCondition();
         if (dc)
@@ -2809,7 +2809,7 @@ Statements *ConditionalStatement::flatten(Scope *sc)
     Statement *s;
 
     //printf("ConditionalStatement::flatten()\n");
-    if (condition->include(sc, NULL))
+    if (condition->include(sc))
     {
         DebugCondition *dc = condition->isDebugCondition();
         if (dc)

@@ -35,7 +35,7 @@ public:
     Condition(Loc loc);
 
     virtual Condition *syntaxCopy() = 0;
-    virtual int include(Scope *sc, ScopeDsymbol *s) = 0;
+    virtual int include(Scope *sc) = 0;
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
     virtual DebugCondition *isDebugCondition() { return NULL; }
 };
@@ -60,7 +60,7 @@ public:
 
     DebugCondition(Module *mod, unsigned level, Identifier *ident);
 
-    int include(Scope *sc, ScopeDsymbol *s);
+    int include(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     DebugCondition *isDebugCondition() { return this; }
 };
@@ -80,7 +80,7 @@ public:
 
     VersionCondition(Module *mod, unsigned level, Identifier *ident);
 
-    int include(Scope *sc, ScopeDsymbol *s);
+    int include(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
@@ -92,7 +92,7 @@ public:
 
     StaticIfCondition(Loc loc, Expression *exp);
     Condition *syntaxCopy();
-    int include(Scope *sc, ScopeDsymbol *s);
+    int include(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 

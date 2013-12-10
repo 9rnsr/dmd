@@ -1151,7 +1151,7 @@ void TypeInfoDeclaration::toObjFile(int multiobj)
 
 void AttribDeclaration::toObjFile(int multiobj)
 {
-    Dsymbols *d = include(NULL, NULL);
+    Dsymbols *d = include(NULL);
 
     if (d)
     {

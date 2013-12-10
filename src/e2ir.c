@@ -1128,7 +1128,7 @@ elem *Dsymbol_toElem(Dsymbol *s, IRState *irs)
     ad = s->isAttribDeclaration();
     if (ad)
     {
-        Dsymbols *decl = ad->include(NULL, NULL);
+        Dsymbols *decl = ad->include(NULL);
         if (decl && decl->dim)
         {
             for (size_t i = 0; i < decl->dim; i++)

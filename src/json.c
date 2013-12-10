@@ -784,7 +784,7 @@ void Import::toJson(JsonOut *json)
 
 void AttribDeclaration::toJson(JsonOut *json)
 {
-    Dsymbols *d = include(NULL, NULL);
+    Dsymbols *d = include(NULL);
 
     if (d)
     {

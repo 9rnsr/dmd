@@ -39,14 +39,14 @@ AttribDeclaration::AttribDeclaration(Dsymbols *decl)
     this->decl = decl;
 }
 
-Dsymbols *AttribDeclaration::include(Scope *sc, ScopeDsymbol *sd)
+Dsymbols *AttribDeclaration::include(Scope *sc)
 {
     return decl;
 }
 
 int AttribDeclaration::apply(Dsymbol_apply_ft_t fp, void *param)
 {
-    Dsymbols *d = include(scope, NULL);
+    Dsymbols *d = include(scope);
 
     if (d)
     {
@@ -65,12 +65,13 @@ int AttribDeclaration::apply(Dsymbol_apply_ft_t fp, void *param)
 int AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
     int m = 0;
-    Dsymbols *d = include(sc, sd);
+    Dsymbols *d = include(sc);
 
     if (d)
     {
         for (size_t i = 0; i < d->dim; i++)
-        {   Dsymbol *s = (*d)[i];
+        {
+            Dsymbol *s = (*d)[i];
             //printf("\taddMember %s to %s\n", s->toChars(), sd->toChars());
             m |= s->addMember(sc, sd, m | memnum);
         }
@@ -150,7 +151,7 @@ void AttribDeclaration::semanticNewSc(Scope *sc,
 
 void AttribDeclaration::semantic(Scope *sc)
 {
-    Dsymbols *d = include(sc, NULL);
+    Dsymbols *d = include(sc);
 
     //printf("\tAttribDeclaration::semantic '%s', d = %p\n",toChars(), d);
     if (d)
@@ -158,7 +159,6 @@ void AttribDeclaration::semantic(Scope *sc)
         for (size_t i = 0; i < d->dim; i++)
         {
             Dsymbol *s = (*d)[i];
-
             s->semantic(sc);
         }
     }
@@ -166,12 +166,13 @@ void AttribDeclaration::semantic(Scope *sc)
 
 void AttribDeclaration::semantic2(Scope *sc)
 {
-    Dsymbols *d = include(sc, NULL);
+    Dsymbols *d = include(sc);
 
     if (d)
     {
         for (size_t i = 0; i < d->dim; i++)
-        {   Dsymbol *s = (*d)[i];
+        {
+            Dsymbol *s = (*d)[i];
             s->semantic2(sc);
         }
     }
@@ -179,12 +180,13 @@ void AttribDeclaration::semantic2(Scope *sc)
 
 void AttribDeclaration::semantic3(Scope *sc)
 {
-    Dsymbols *d = include(sc, NULL);
+    Dsymbols *d = include(sc);
 
     if (d)
     {
         for (size_t i = 0; i < d->dim; i++)
-        {   Dsymbol *s = (*d)[i];
+        {
+            Dsymbol *s = (*d)[i];
             s->semantic3(sc);
         }
     }
@@ -192,12 +194,13 @@ void AttribDeclaration::semantic3(Scope *sc)
 
 void AttribDeclaration::inlineScan()
 {
-    Dsymbols *d = include(NULL, NULL);
+    Dsymbols *d = include(NULL);
 
     if (d)
     {
         for (size_t i = 0; i < d->dim; i++)
-        {   Dsymbol *s = (*d)[i];
+        {
+            Dsymbol *s = (*d)[i];
             //printf("AttribDeclaration::inlineScan %s\n", s->toChars());
             s->inlineScan();
         }
@@ -209,12 +212,13 @@ void AttribDeclaration::addComment(const utf8_t *comment)
     //printf("AttribDeclaration::addComment %s\n", comment);
     if (comment)
     {
-        Dsymbols *d = include(NULL, NULL);
+        Dsymbols *d = include(NULL);
 
         if (d)
         {
             for (size_t i = 0; i < d->dim; i++)
-            {   Dsymbol *s = (*d)[i];
+            {
+                Dsymbol *s = (*d)[i];
                 //printf("AttribDeclaration::addComment %s\n", s->toChars());
                 s->addComment(comment);
             }
@@ -234,12 +238,13 @@ void AttribDeclaration::emitComment(Scope *sc)
      * Hence, Ddoc omits attributes from template members.
      */
 
-    Dsymbols *d = include(NULL, NULL);
+    Dsymbols *d = include(NULL);
 
     if (d)
     {
         for (size_t i = 0; i < d->dim; i++)
-        {   Dsymbol *s = (*d)[i];
+        {
+            Dsymbol *s = (*d)[i];
             //printf("AttribDeclaration::emitComment %s\n", s->toChars());
             s->emitComment(sc);
         }
@@ -248,12 +253,13 @@ void AttribDeclaration::emitComment(Scope *sc)
 
 void AttribDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion)
 {
-    Dsymbols *d = include(NULL, NULL);
+    Dsymbols *d = include(NULL);
 
     if (d)
     {
         for (size_t i = 0; i < d->dim; i++)
-        {   Dsymbol *s = (*d)[i];
+        {
+            Dsymbol *s = (*d)[i];
             s->setFieldOffset(ad, poffset, isunion);
         }
     }
@@ -261,7 +267,7 @@ void AttribDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffs
 
 bool AttribDeclaration::hasPointers()
 {
-    Dsymbols *d = include(NULL, NULL);
+    Dsymbols *d = include(NULL);
 
     if (d)
     {
@@ -277,7 +283,7 @@ bool AttribDeclaration::hasPointers()
 
 bool AttribDeclaration::hasStaticCtorOrDtor()
 {
-    Dsymbols *d = include(NULL, NULL);
+    Dsymbols *d = include(NULL);
 
     if (d)
     {
@@ -298,14 +304,14 @@ const char *AttribDeclaration::kind()
 
 bool AttribDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
 {
-    Dsymbols *d = include(NULL, NULL);
+    Dsymbols *d = include(NULL);
 
     return Dsymbol::oneMembers(d, ps, ident);
 }
 
 void AttribDeclaration::checkCtorConstInit()
 {
-    Dsymbols *d = include(NULL, NULL);
+    Dsymbols *d = include(NULL);
 
     if (d)
     {
@@ -321,7 +327,7 @@ void AttribDeclaration::checkCtorConstInit()
 
 void AttribDeclaration::addLocalClass(ClassDeclarations *aclasses)
 {
-    Dsymbols *d = include(NULL, NULL);
+    Dsymbols *d = include(NULL);
 
     if (d)
     {
@@ -974,12 +980,14 @@ static unsigned setMangleOverride(Dsymbol *s, char *sym)
 
     if (ad)
     {
-        Dsymbols *decls = ad->include(NULL, NULL);
+        Dsymbols *decls = ad->include(NULL);
         unsigned nestedCount = 0;
 
         if (decls && decls->dim)
+        {
             for (size_t i = 0; i < decls->dim; ++i)
                 nestedCount += setMangleOverride((*decls)[i], sym);
+        }
 
         return nestedCount;
     }
@@ -1283,7 +1291,7 @@ bool ConditionalDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
     //printf("ConditionalDeclaration::oneMember(), inc = %d\n", condition->inc);
     if (condition->inc)
     {
-        Dsymbols *d = condition->include(NULL, NULL) ? decl : elsedecl;
+        Dsymbols *d = condition->include(NULL) ? decl : elsedecl;
         return Dsymbol::oneMembers(d, ps, ident);
     }
     else
@@ -1305,7 +1313,7 @@ void ConditionalDeclaration::emitComment(Scope *sc)
     else if (sc->docbuf)
     {
         /* If generating doc comment, be careful because if we're inside
-         * a template, then include(NULL, NULL) will fail.
+         * a template, then include(NULL) will fail.
          */
         Dsymbols *d = decl ? decl : elsedecl;
         for (size_t i = 0; i < d->dim; i++)
@@ -1317,16 +1325,16 @@ void ConditionalDeclaration::emitComment(Scope *sc)
 
 // Decide if 'then' or 'else' code should be included
 
-Dsymbols *ConditionalDeclaration::include(Scope *sc, ScopeDsymbol *sd)
+Dsymbols *ConditionalDeclaration::include(Scope *sc)
 {
     //printf("ConditionalDeclaration::include(sc = %p) scope = %p\n", sc, scope);
     assert(condition);
-    return condition->include(scope ? scope : sc, sd) ? decl : elsedecl;
+    return condition->include(scope ? scope : sc) ? decl : elsedecl;
 }
 
 void ConditionalDeclaration::setScope(Scope *sc)
 {
-    Dsymbols *d = include(sc, NULL);
+    Dsymbols *d = include(sc);
 
     //printf("\tConditionalDeclaration::setScope '%s', d = %p\n",toChars(), d);
     if (d)
@@ -1334,7 +1342,6 @@ void ConditionalDeclaration::setScope(Scope *sc)
        for (size_t i = 0; i < d->dim; i++)
        {
            Dsymbol *s = (*d)[i];
-
            s->setScope(sc);
        }
     }
@@ -1342,7 +1349,7 @@ void ConditionalDeclaration::setScope(Scope *sc)
 
 void ConditionalDeclaration::importAll(Scope *sc)
 {
-    Dsymbols *d = include(sc, NULL);
+    Dsymbols *d = include(sc);
 
     //printf("\tConditionalDeclaration::importAll '%s', d = %p\n",toChars(), d);
     if (d)
@@ -1350,7 +1357,6 @@ void ConditionalDeclaration::importAll(Scope *sc)
        for (size_t i = 0; i < d->dim; i++)
        {
            Dsymbol *s = (*d)[i];
-
            s->importAll(sc);
        }
     }
@@ -1431,7 +1437,6 @@ StaticIfDeclaration::StaticIfDeclaration(Condition *condition,
         : ConditionalDeclaration(condition, decl, elsedecl)
 {
     //printf("StaticIfDeclaration::StaticIfDeclaration()\n");
-    sd = NULL;
     addisdone = 0;
 }
 
@@ -1447,7 +1452,7 @@ Dsymbol *StaticIfDeclaration::syntaxCopy(Dsymbol *s)
     return dd;
 }
 
-Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol *sd)
+Dsymbols *StaticIfDeclaration::include(Scope *sc)
 {
     //printf("StaticIfDeclaration::include(sc = %p) scope = %p\n", sc, scope);
 
@@ -1458,7 +1463,7 @@ Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol *sd)
          */
         bool x = !scope && sc;
         if (x) scope = sc;
-        Dsymbols *d = ConditionalDeclaration::include(sc, sd);
+        Dsymbols *d = ConditionalDeclaration::include(sc);
         if (x) scope = NULL;
 
         // Set the scopes lazily.
@@ -1467,7 +1472,6 @@ Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol *sd)
            for (size_t i = 0; i < d->dim; i++)
            {
                Dsymbol *s = (*d)[i];
-
                s->setScope(scope);
            }
         }
@@ -1475,7 +1479,7 @@ Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol *sd)
     }
     else
     {
-        return ConditionalDeclaration::include(sc, sd);
+        return ConditionalDeclaration::include(sc);
     }
 }
 
@@ -1493,11 +1497,12 @@ int StaticIfDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
      *         const int k;
      * }
      */
-    this->sd = sd;
+    this->sd = sd;  // todo
     int m = 0;
 
     if (memnum == 0)
-    {   m = AttribDeclaration::addMember(sc, sd, memnum);
+    {
+        m = AttribDeclaration::addMember(sc, sd, memnum);
         addisdone = 1;
     }
     return m;
@@ -1519,13 +1524,14 @@ void StaticIfDeclaration::setScope(Scope *sc)
 
 void StaticIfDeclaration::semantic(Scope *sc)
 {
-    Dsymbols *d = include(sc, sd);
+    Dsymbols *d = include(sc);
 
     //printf("\tStaticIfDeclaration::semantic '%s', d = %p\n",toChars(), d);
     if (d)
     {
         if (!addisdone)
-        {   AttribDeclaration::addMember(sc, sd, 1);
+        {
+            AttribDeclaration::addMember(sc, sd, 1);
             addisdone = 1;
         }
 
@@ -1571,7 +1577,7 @@ int CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
     if (compiled)
         return 1;
 
-    this->sd = sd;
+    this->sd = sd;  // todo
     if (memnum == 0)
     {
         /* No members yet, so parse the mixin now
