@@ -6759,8 +6759,8 @@ Expression *IsExp::semantic(Scope *sc)
                 if (m == MATCHnomatch)
                     goto Lno;
                 s->semantic(sc);
-                if (sc->sd)
-                    s->addMember(sc, sc->sd, 1);
+                if (sc->sd) // should replace to (sc->flags & SCOPEstaticif) ?
+                    s->addMember(sc, sc->sd, 1);    // TOOD, don't use addMember
                 //else// if (!sc->insert(s))
                 //    error("cannot declare identifier %s", s->toChars());
             }
@@ -6791,8 +6791,12 @@ Lyes:
          */
         if (!tup && !sc->insert(s)) // ?
             error("declaration %s is already defined", s->toChars());
-        if (sc->sd)
-            s->addMember(sc, sc->sd, 1);
+        if (sc->sd) // should replace to (sc->flags & SCOPEstaticif) ?
+        {
+            //s->addMember(sc, sc->sd, 1);    // TOOD, don't use addMember
+            printf("IsExp s = %s %s\n", s->kind(), s->toChars());
+            sc->insert(s);
+        }
         else
             error("cannot declare identifier %s", s->toChars());
     }

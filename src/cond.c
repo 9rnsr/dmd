@@ -313,6 +313,7 @@ StaticIfCondition::StaticIfCondition(Loc loc, Expression *exp)
 {
     this->exp = exp;
     this->nest = 0;
+    this->sym = NULL;
 }
 
 Condition *StaticIfCondition::syntaxCopy()
@@ -342,11 +343,14 @@ int StaticIfCondition::include(Scope *sc)
         }
 
         ++nest;
-        sc = sc->push(sc->scopesym);
-        sc->sd = s;                     // s gets any addMember()
+        ScopeDsymbol *sym = new ScopeDsymbol();
+        //sym->parent = sc->scopesym;   // harmful
+        sym->parent = sc->parent;   // good?
+        sc = sc->push(sym);
         sc->flags |= SCOPEstaticif;
 
         sc = sc->startCTFE();
+        sc->sd = sym;                     // s gets any addMember()
         Expression *e = exp->semantic(sc);
         e = resolveProperties(sc, e);
         sc = sc->endCTFE();
@@ -374,6 +378,8 @@ int StaticIfCondition::include(Scope *sc)
             e->error("expression %s is not constant or does not evaluate to a bool", e->toChars());
             goto Lerror;
         }
+
+        this->sym = sym; // store result
     }
     return (inc == 1);
 

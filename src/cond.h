@@ -89,6 +89,7 @@ class StaticIfCondition : public Condition
 public:
     Expression *exp;
     int nest;         // limit circular dependencies
+    ScopeDsymbol *sym;
 
     StaticIfCondition(Loc loc, Expression *exp);
     Condition *syntaxCopy();

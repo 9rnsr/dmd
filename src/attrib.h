@@ -190,6 +190,8 @@ public:
     Dsymbols *include(Scope *sc);
     int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     void semantic(Scope *sc);
+    void semantic2(Scope *sc);
+    void semantic3(Scope *sc);
     void importAll(Scope *sc);
     void setScope(Scope *sc);
     const char *kind();

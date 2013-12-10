@@ -1463,17 +1463,29 @@ Dsymbols *StaticIfDeclaration::include(Scope *sc)
          */
         bool x = !scope && sc;
         if (x) scope = sc;
-        Dsymbols *d = ConditionalDeclaration::include(sc);
+        //Dsymbols *d = ConditionalDeclaration::include(sc);
+
+        assert(condition);
+        Dsymbols *d = condition->include(scope ? scope : sc) ? decl : elsedecl;
+
         if (x) scope = NULL;
 
         // Set the scopes lazily.
         if (scope && d)
         {
-           for (size_t i = 0; i < d->dim; i++)
-           {
-               Dsymbol *s = (*d)[i];
-               s->setScope(scope);
-           }
+            if (condition->inc == 1)
+            {
+                printf("then block, update scope\n");
+                StaticIfCondition *scondition = (StaticIfCondition *)condition;
+                assert(scondition->sym);
+                Scope *scx = scope->push(scondition->sym);
+                scope = scx;
+            }
+            for (size_t i = 0; i < d->dim; i++)
+            {
+                Dsymbol *s = (*d)[i];
+                s->setScope(scope);
+            }
         }
         return d;
     }
@@ -1535,12 +1547,73 @@ void StaticIfDeclaration::semantic(Scope *sc)
             addisdone = 1;
         }
 
+        StaticIfCondition *scondition = (StaticIfCondition *)condition;
+        if (sc && condition->inc == 1)
+        {
+            assert(scondition->sym);
+            sc = sc->push(scondition->sym);
+            printf("then block semantic\n");
+        }
+
         for (size_t i = 0; i < d->dim; i++)
         {
             Dsymbol *s = (*d)[i];
 
             s->semantic(sc);
         }
+
+        if (sc && condition->inc == 1)
+            sc->pop();
+    }
+}
+
+void StaticIfDeclaration::semantic2(Scope *sc)
+{
+    Dsymbols *d = include(sc);
+
+    if (d)
+    {
+        StaticIfCondition *scondition = (StaticIfCondition *)condition;
+        if (sc && condition->inc == 1)
+        {
+            assert(scondition->sym);
+            sc = sc->push(scondition->sym);
+            printf("then block semantic2\n");
+        }
+
+        for (size_t i = 0; i < d->dim; i++)
+        {
+            Dsymbol *s = (*d)[i];
+            s->semantic2(sc);
+        }
+
+        if (sc && condition->inc == 1)
+            sc->pop();
+    }
+}
+
+void StaticIfDeclaration::semantic3(Scope *sc)
+{
+    Dsymbols *d = include(sc);
+
+    if (d)
+    {
+        StaticIfCondition *scondition = (StaticIfCondition *)condition;
+        if (sc && condition->inc == 1)
+        {
+            assert(scondition->sym);
+            sc = sc->push(scondition->sym);
+            printf("then block semantic3\n");
+        }
+
+        for (size_t i = 0; i < d->dim; i++)
+        {
+            Dsymbol *s = (*d)[i];
+            s->semantic3(sc);
+        }
+
+        if (sc && condition->inc == 1)
+            sc->pop();
     }
 }
 
