@@ -2026,14 +2026,10 @@ bool VarDeclaration::hasPointers()
  * Return true if variable needs to call the destructor.
  */
 
-bool VarDeclaration::needsAutoDtor()
+bool VarDeclaration::needsScopeDtor()
 {
-    //printf("VarDeclaration::needsAutoDtor() %s\n", toChars());
-
-    if (noscope || !edtor)
-        return false;
-
-    return true;
+    //printf("VarDeclaration::needsScopeDtor() %s\n", toChars());
+    return edtor != NULL;
 }
 
 

@@ -278,7 +278,7 @@ public:
     bool isCTFE();
     bool hasPointers();
     bool canTakeAddressOf();
-    bool needsAutoDtor();
+    bool needsScopeDtor();
     Expression *callScopeDtor(Scope *sc);
     ExpInitializer *getExpInitializer();
     Expression *getConstInitializer(bool needFullType = true);
