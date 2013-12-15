@@ -45,7 +45,6 @@ Expression *Expression::implicitCastTo(Scope *sc, Type *t)
             e->type = t;
             return e;
         }
-//printf("\timplicitCastTo -> castTo this = %s, t = %s\n", toChars(), t->toChars());
         return castTo(sc, t);
     }
 
@@ -1087,12 +1086,9 @@ Expression *Expression::castTo(Scope *sc, Type *t)
                     /* Forward the cast to our alias this member, rewrite to:
                      *   cast(to)e1.aliasthis
                      */
-                    Expression *e2 = resolveAliasThis(sc, this);
-                    //Expression *e2 = new CastExp(loc, e1, tb);
-//printf("\t+Exp::castTo e2 = %s\n", e2->toChars());
-                    e2 = e2->semantic(sc);
-//printf("\t-Exp::castTo e2 = %s\n", e2->toChars());
-                    return e2->castTo(sc, t);
+                    Expression *ex = resolveAliasThis(sc, this);
+                    ex = ex->semantic(sc);
+                    return ex->castTo(sc, t);
                 }
             }
             else if (typeb->ty == Tclass)

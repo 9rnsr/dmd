@@ -1600,7 +1600,6 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 }
                 else if (!p->type->equals(arg->type))
                 {
-//printf("0arg = %s %s, p = %s\n", Token::toChars(arg->op), arg->toChars(), p->type->toChars());
                     //printf("arg->type = %s, p->type = %s\n", arg->type->toChars(), p->type->toChars());
                     if (arg->op == TOKtype)
                     {
@@ -1615,7 +1614,6 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             }
             if (p->storageClass & STCref)
             {
-//printf("arg = %s %s, p = %s\n", Token::toChars(arg->op), arg->toChars(), p->type->toChars());
                 arg = arg->toLvalue(sc, arg);
             }
             else if (p->storageClass & STCout)
@@ -6772,20 +6770,6 @@ Expression *IsExp::semantic(Scope *sc)
                 s->addMember(sc, sc->sd, 1);
             else if (!sc->insert(s))
                 error("declaration %s is already defined", s->toChars());
-        }
-
-        // Bugzilla 11499: workaround for alias this
-        if (0 && tok == TOKequal)
-        {
-            // Aggregate/enum type vs structural pattern should be unmatched.
-            if ((isAggregate(targ) || targ->ty == Tenum) &&
-                (tspec->ty == Tsarray || tspec->ty == Taarray ||
-                 tspec->ty == Tarray || tspec->ty == Tpointer/* ||
-                 tspecs->ty == Tinstance && ((TypeInstance *)tspecs)->ti->tempdecl*/
-                 ))
-            {
-                goto Lno;
-            }
         }
         goto Lyes;
     }
