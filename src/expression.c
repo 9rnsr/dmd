@@ -6743,7 +6743,7 @@ Expression *IsExp::semantic(Scope *sc)
         //printf("targ: %s\n", targ->toChars());
         //printf("tspec: %s\n", tspec->toChars());
         if (m <= MATCHnomatch ||
-            (m != MATCHexact && tok == TOKequal))   // TODO for alias this
+            (m != MATCHexact && tok == TOKequal))
         {
             goto Lno;
         }
@@ -6771,43 +6771,19 @@ Expression *IsExp::semantic(Scope *sc)
                 error("declaration %s is already defined", s->toChars());
         }
 
-        // workaround for alias this
+        // Bugzilla 11499: workaround for alias this
         if (tok == TOKequal)
         {
             // Aggregate/enum type vs structural pattern should be unmatched.
             if ((isAggregate(targ) || targ->ty == Tenum) &&
                 (tspec->ty == Tsarray || tspec->ty == Taarray ||
-                 tspec->ty == Tarray || tspec->ty == Tpointer))
+                 tspec->ty == Tarray || tspec->ty == Tpointer/* ||
+                 tspecs->ty == Tinstance && ((TypeInstance *)tspecs)->ti->tempdecl*/
+                 ))
             {
                 goto Lno;
             }
         }
-#if 0
-void main()
-{
-    struct S
-    {
-        int[3] sa;
-        alias sa this;
-    }
-    pragma(msg, is(S :  int[3]));   // true
-    pragma(msg, is(S == int[3]));   // false
-
-    { pragma(msg, is(S :  T[n], T, size_t n)); }    // true
-    { pragma(msg, is(S == T[n], T, size_t n)); }    // true -> false
-
-    enum E : int[3] { a = [1,2,3] }
-    { pragma(msg, is(E :  T[n], T, size_t n)); }    // true
-    { pragma(msg, is(E == T[n], T, size_t n)); }    // true -> false
-
-    alias SA = int[3];
-    { pragma(msg, is(SA :  T[n], T, size_t n)); }    // true
-    { pragma(msg, is(SA == T[n], T, size_t n)); }    // true
-
-    { pragma(msg, is(SA :  T[], T)); }    // true
-    { pragma(msg, is(SA == T[], T)); }    // false
-}
-#endif
         goto Lyes;
     }
     else if (id)
