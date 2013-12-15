@@ -3363,7 +3363,11 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
         {
             Type *at = aliasthisOf();
             if (at)
+            {
                 m = at->deduceType(sc, tparam, parameters, dedtypes, wildmatch);
+                if (m > MATCHnomatch)
+                    m = MATCHconvert;
+            }
         }
         return m;
     }
@@ -3912,7 +3916,10 @@ MATCH TypeEnum::deduceType(Scope *sc, Type *tparam, TemplateParameters *paramete
     if (tb->ty == tparam->ty ||
         tb->ty == Tsarray && tparam->ty == Taarray)
     {
-        return tb->deduceType(sc, tparam, parameters, dedtypes, wildmatch);
+        MATCH m = tb->deduceType(sc, tparam, parameters, dedtypes, wildmatch);
+        if (m > MATCHnomatch)
+            m = MATCHconvert;
+        return m;
     }
     return Type::deduceType(sc, tparam, parameters, dedtypes, wildmatch);
 }

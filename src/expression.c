@@ -6772,7 +6772,7 @@ Expression *IsExp::semantic(Scope *sc)
         }
 
         // Bugzilla 11499: workaround for alias this
-        if (tok == TOKequal)
+        if (0 && tok == TOKequal)
         {
             // Aggregate/enum type vs structural pattern should be unmatched.
             if ((isAggregate(targ) || targ->ty == Tenum) &&
