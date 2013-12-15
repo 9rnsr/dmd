@@ -1600,7 +1600,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 }
                 else if (!p->type->equals(arg->type))
                 {
-printf("0arg = %s %s, p = %s\n", Token::toChars(arg->op), arg->toChars(), p->type->toChars());
+//printf("0arg = %s %s, p = %s\n", Token::toChars(arg->op), arg->toChars(), p->type->toChars());
                     //printf("arg->type = %s, p->type = %s\n", arg->type->toChars(), p->type->toChars());
                     if (arg->op == TOKtype)
                     {
@@ -1615,7 +1615,7 @@ printf("0arg = %s %s, p = %s\n", Token::toChars(arg->op), arg->toChars(), p->typ
             }
             if (p->storageClass & STCref)
             {
-printf("arg = %s %s, p = %s\n", Token::toChars(arg->op), arg->toChars(), p->type->toChars());
+//printf("arg = %s %s, p = %s\n", Token::toChars(arg->op), arg->toChars(), p->type->toChars());
                 arg = arg->toLvalue(sc, arg);
             }
             else if (p->storageClass & STCout)

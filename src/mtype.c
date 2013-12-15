@@ -5998,7 +5998,7 @@ void TypeFunction::purityLevel()
 
 MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
 {
-    printf("TypeFunction::callMatch() %s\n", toChars());
+    //printf("TypeFunction::callMatch() %s\n", toChars());
     MATCH match = MATCHexact;           // assume exact match
     unsigned wildmatch = 0;
 
@@ -6120,12 +6120,12 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
         {
             Type *targb = targ->toBasetype();
             Type *tprmb = tprm->toBasetype();
-            printf("%s\n", targb->toChars());
-            printf("%s\n", tprmb->toChars());
+            //printf("%s\n", targb->toChars());
+            //printf("%s\n", tprmb->toChars());
 
             if (m && !arg->isLvalue())
             {
-printf("L%d\n", __LINE__);
+//printf("L%d\n", __LINE__);
                 if (arg->op == TOKstring && tprmb->ty == Tsarray)
                 {
                     if (targb->ty != Tsarray)
@@ -6159,7 +6159,7 @@ printf("L%d\n", __LINE__);
                 targb = tat;
             }
 
-printf("L%d\n", __LINE__);
+//printf("L%d\n", __LINE__);
             /* Don't allow static arrays to be passed to mutable references
              * to static arrays if the argument cannot be modified.
              */
@@ -6167,11 +6167,11 @@ printf("L%d\n", __LINE__);
                 !MODimplicitConv(targb->nextOf()->mod, tprmb->nextOf()->mod))
                 goto Nomatch;
 
-printf("L%d\n", __LINE__);
+//printf("L%d\n", __LINE__);
             // ref variable behaves like head-const reference
             if (!targb->constConv(tprmb))
                 goto Nomatch;
-printf("L%d\n", __LINE__);
+//printf("L%d\n", __LINE__);
         }
         else if (p->storageClass & STCout)
         {   if (m && !arg->isLvalue())
@@ -6185,7 +6185,7 @@ printf("L%d\n", __LINE__);
         if (varargs == 2 && u + 1 == nparams && nargs > nparams)
             goto L1;
 
-        printf("\tm = %d\n", m);
+        //printf("\tm = %d\n", m);
         if (m == MATCHnomatch)                  // if no match
         {
           L1:
@@ -6257,7 +6257,7 @@ printf("L%d\n", __LINE__);
     }
 
 Ldone:
-    printf("match = %d\n", match);
+    //printf("match = %d\n", match);
     return match;
 
 Nomatch:
