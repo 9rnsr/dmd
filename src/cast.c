@@ -45,6 +45,7 @@ Expression *Expression::implicitCastTo(Scope *sc, Type *t)
             e->type = t;
             return e;
         }
+printf("\timplicitCastTo -> castTo this = %s, t = %s\n", toChars(), t->toChars());
         return castTo(sc, t);
     }
 
@@ -1045,7 +1046,7 @@ MATCH SliceExp::implicitConvTo(Type *t)
 
 Expression *Expression::castTo(Scope *sc, Type *t)
 {
-    //printf("Expression::castTo(this=%s, t=%s)\n", toChars(), t->toChars());
+    printf("Expression::castTo(this=%s, t=%s)\n", toChars(), t->toChars());
 #if 0
     printf("Expression::castTo(this=%s, type=%s, t=%s)\n",
         toChars(), type->toChars(), t->toChars());
@@ -1078,16 +1079,20 @@ Expression *Expression::castTo(Scope *sc, Type *t)
         else
         {
             if (typeb->ty == Tstruct)
-            {   TypeStruct *ts = (TypeStruct *)typeb;
+            {
+                TypeStruct *ts = (TypeStruct *)typeb;
                 if (!(tb->ty == Tstruct && ts->sym == ((TypeStruct *)tb)->sym) &&
                     ts->sym->aliasthis)
-                {   /* Forward the cast to our alias this member, rewrite to:
+                {
+                    /* Forward the cast to our alias this member, rewrite to:
                      *   cast(to)e1.aliasthis
                      */
-                    Expression *e1 = resolveAliasThis(sc, this);
-                    Expression *e2 = new CastExp(loc, e1, tb);
+                    Expression *e2 = resolveAliasThis(sc, this);
+                    //Expression *e2 = new CastExp(loc, e1, tb);
+printf("\t+Exp::castTo e2 = %s\n", e2->toChars());
                     e2 = e2->semantic(sc);
-                    return e2;
+printf("\t-Exp::castTo e2 = %s\n", e2->toChars());
+                    return e2->castTo(sc, t);
                 }
             }
             else if (typeb->ty == Tclass)
