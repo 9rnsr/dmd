@@ -8496,6 +8496,8 @@ MATCH TypeStruct::implicitConvTo(Type *to)
         att = (AliasThisRec)(att | RECtracing);
         m = aliasthisOf()->implicitConvTo(to);
         att = (AliasThisRec)(att & ~RECtracing);
+        if (m > MATCHnomatch)
+            m = MATCHconvert;
     }
     else
         m = MATCHnomatch;       // no match
@@ -9026,6 +9028,8 @@ MATCH TypeClass::implicitConvTo(Type *to)
         att = (AliasThisRec)(att | RECtracing);
         m = aliasthisOf()->implicitConvTo(to);
         att = (AliasThisRec)(att & ~RECtracing);
+        if (m > MATCHnomatch)
+            m = MATCHconvert;
     }
 
     return m;
