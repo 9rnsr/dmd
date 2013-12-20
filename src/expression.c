@@ -11451,14 +11451,14 @@ Ltupleassign:
         op = TOKconstruct;
 
         TypeFunction *tf = (TypeFunction *)sc->func->type;
-        if (tf->iswild == 2)    // no inout parameter
+        //if (tf->iswild == 2)    // no inout parameter
+        if (tf->isWild())  // inout or inout const constructor
         {
-            // inout ctor but don't have inout parameter --> unique ctor
-            assert(tf->mod == MODwild);
+            assert(tf->mod & MODwild);
             assert(sc->func->isCtorDeclaration()/* || sc->func->isPostBlitDeclaration()*/);
-            assert(t1->isWild() || t1->isImmutable());
+            assert(t1->isWild() || t1->isImmutable()); // const, inout + const, immutable
 
-            //printf("[%s] init-assign %s, t1 = %s\n", loc.toChars(), toChars(), t1->toChars());
+            printf("[%s] init-assign %s, t1 = %s\n", loc.toChars(), toChars(), t1->toChars());
             if (e2->type->implicitConvTo(e2->type->immutableOf()))
             {
                 // doesn't have any non-immutable indirections
