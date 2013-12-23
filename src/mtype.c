@@ -9794,7 +9794,10 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
                 argbuf.writestring(arg->ident->toChars());
             }
             else
-                arg->type->toCBuffer(&argbuf, arg->ident, hgs);
+            {
+                Identifier *id = memcmp(arg->ident->string, "_param_", 7) == 0 ? NULL : arg->ident;
+                arg->type->toCBuffer(&argbuf, id, hgs);
+            }
             if (arg->defaultArg)
             {
                 argbuf.writestring(" = ");
