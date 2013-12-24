@@ -1111,15 +1111,19 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
 
     ntargs = 0;
     if (tiargs)
-    {   // Set initial template arguments
-
+    {
+        // Set initial template arguments
         ntargs = tiargs->dim;
         size_t n = parameters->dim;
         if (tp)
             n--;
         if (ntargs > n)
-        {   if (!tp)
+        {
+            if (!tp)
+            {
+                matchTiargs = MATCHnomatch;
                 goto Lnomatch;
+            }
 
             /* The extra initial template arguments
              * now form the tuple argument.
@@ -1150,13 +1154,19 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
             m = (*parameters)[i]->matchArg(loc, paramscope, dedargs, i, parameters, &dedtypes, &sparam);
             //printf("\tdeduceType m = %d\n", m);
             if (m <= MATCHnomatch)
+            {
+                matchTiargs = MATCHnomatch;
                 goto Lnomatch;
+            }
             if (m < matchTiargs)
                 matchTiargs = m;
 
             sparam->semantic(paramscope);
             if (!paramscope->insert(sparam))
+            {
+                matchTiargs = MATCHnomatch;
                 goto Lnomatch;
+            }
         }
         if (n < parameters->dim && !tp_is_declared)
         {
@@ -1242,7 +1252,8 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
         {
             TemplateThisParameter *ttp = (*parameters)[i]->isTemplateThisParameter();
             if (ttp)
-            {   hasttp = true;
+            {
+                hasttp = true;
 
                 Type *t = new TypeIdentifier(Loc(), ttp->ident);
                 MATCH m = tthis->deduceType(paramscope, t, parameters, &dedtypes);
@@ -1701,7 +1712,8 @@ Lretry:
                 }
             }
             if (m > MATCHnomatch && (fparam->storageClass & STCout))
-            {   if (!farg->isLvalue())
+            {
+                if (!farg->isLvalue())
                     goto Lnomatch;
             }
             if (m == MATCHnomatch && (fparam->storageClass & STClazy) && prmtype->ty == Tvoid &&
@@ -1709,7 +1721,8 @@ Lretry:
                 m = MATCHconvert;
 
             if (m != MATCHnomatch)
-            {   if (m < match)
+            {
+                if (m < match)
                     match = m;          // pick worst match
                 argi++;
                 continue;
@@ -1731,20 +1744,23 @@ Lretry:
             // 6764 fix - TypeAArray may be TypeSArray have not yet run semantic().
             case Tsarray:
             case Taarray:
-            {   // Perhaps we can do better with this, see TypeFunction::callMatch()
+            {
+                // Perhaps we can do better with this, see TypeFunction::callMatch()
                 if (tb->ty == Tsarray)
-                {   TypeSArray *tsa = (TypeSArray *)tb;
+                {
+                    TypeSArray *tsa = (TypeSArray *)tb;
                     dinteger_t sz = tsa->dim->toInteger();
                     if (sz != nfargs - argi)
                         goto Lnomatch;
                 }
                 else if (tb->ty == Taarray)
-                {   TypeAArray *taa = (TypeAArray *)tb;
+                {
+                    TypeAArray *taa = (TypeAArray *)tb;
                     Expression *dim = new IntegerExp(loc, nfargs - argi, Type::tsize_t);
-
                     size_t i = templateParameterLookup(taa->index, parameters);
                     if (i == IDX_NOTFOUND)
-                    {   Expression *e;
+                    {
+                        Expression *e;
                         Type *t;
                         Dsymbol *s;
                         taa->index->resolve(loc, sc, &e, &t, &s);
@@ -1757,7 +1773,8 @@ Lretry:
                             goto Lnomatch;
                     }
                     else
-                    {   // This code matches code in TypeInstance::deduceType()
+                    {
+                        // This code matches code in TypeInstance::deduceType()
                         TemplateParameter *tprm = (*parameters)[i];
                         TemplateValueParameter *tvp = tprm->isTemplateValueParameter();
                         if (!tvp)
@@ -1781,15 +1798,16 @@ Lretry:
                 /* fall through */
             }
             case Tarray:
-            {   TypeArray *ta = (TypeArray *)tb;
+            {
+                TypeArray *ta = (TypeArray *)tb;
                 for (; argi < nfargs; argi++)
                 {
                     Expression *arg = (*fargs)[argi];
                     assert(arg);
 
                     if (arg->op == TOKfunction)
-                    {   FuncExp *fe = (FuncExp *)arg;
-
+                    {
+                        FuncExp *fe = (FuncExp *)arg;
                         Expression *e = fe->inferType(tb->nextOf(), 1, paramscope, inferparams);
                         if (!e)
                             goto Lnomatch;
@@ -1804,7 +1822,8 @@ Lretry:
                     if (tret)
                     {
                         if (ta->next->equals(arg->type))
-                        {   m = MATCHexact;
+                        {
+                            m = MATCHexact;
                         }
                         else
                         {
@@ -1868,7 +1887,10 @@ Lmatch:
                     MATCH m2 = tparam->matchArg(loc, paramscope, dedargs, i, parameters, &dedtypes, NULL);
                     //printf("m2 = %d\n", m2);
                     if (m2 <= MATCHnomatch)
+                    {
+                        matchTiargs = MATCHnomatch;
                         goto Lnomatch;
+                    }
                     if (m2 < matchTiargs)
                         matchTiargs = m2;             // pick worst match
                     if (dedtypes[i] != oded)
@@ -1891,7 +1913,10 @@ Lmatch:
                         oded = (RootObject *)new Tuple();
                     }
                     else
+                    {
+                        matchTiargs = MATCHnomatch;
                         goto Lnomatch;
+                    }
                 }
             }
             oded = declareParameter(paramscope, tparam, oded);
@@ -1992,7 +2017,7 @@ Lmatch:
 Lnomatch:
     paramscope->pop();
     //printf("\tnomatch\n");
-    return MATCHnomatch;
+    return (MATCH)(MATCHnomatch | (matchTiargs<<4));
 }
 
 /**************************************************
@@ -2358,7 +2383,22 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             MATCH mfa = (MATCH)(x & 0xF);
             //printf("match:t/f = %d/%d\n", mta, mfa);
             if (mfa <= MATCHnomatch)               // if no match
+            {
+                if (mta > MATCHnomatch)
+                {
+                    FuncDeclaration *fd = f;
+                    TypeFunction *tf = (TypeFunction *)fd->type;
+                    // Find error candidate which close to the argument count.
+                    size_t dim = tf->parameters->dim - (tf->varargs ? 1 : 0);
+                    if (tf->varargs)
+                        fd = fargs->dim >= dim ? fd : NULL;
+                    else
+                        fd = fargs->dim == dim ? fd : NULL;
+                    if (fd)
+                        m->anyf = fd;
+                }
                 continue;
+            }
 
             Type *tthis_fd = NULL;
             if (f->isCtorDeclaration())
