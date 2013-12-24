@@ -9793,7 +9793,7 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
                 // print parameter name, instead of undetermined type parameter
                 argbuf.writestring(arg->ident->toChars());
             }
-            else if (arg->ident && memcmp(arg->ident->string, "_param_", 7) == 0)
+            else if (arg->ident && arg->ident->len >= 7 && memcmp(arg->ident->string, "_param_", 7) == 0)
             {
                 arg->type->toCBuffer(&argbuf, NULL, hgs);
             }
