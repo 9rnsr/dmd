@@ -300,9 +300,8 @@ int hasPackageAccess(Scope *sc, Dsymbol *s)
             Dsymbol *s2 = dst->lookup(m->ident);
             assert(s2);
             Package *p = s2->isPackage();
-            if (p && p->isPkgMod == PKGmodule)
+            if (p && p->isPackageMod())
             {
-                assert(p->mod == m);
                 pkg = p;
                 break;
             }
@@ -324,7 +323,7 @@ int hasPackageAccess(Scope *sc, Dsymbol *s)
 #endif
             return 1;
         }
-        if (pkg->isPkgMod == PKGmodule && pkg->mod == sc->module)
+        if (pkg->isPackageMod() == sc->module)
         {
 #if LOG
             printf("\ts is in same package.d module as sc\n");
