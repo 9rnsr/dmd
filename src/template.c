@@ -2171,7 +2171,6 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             return 0;
 
         //printf("fd = %s %s\n", fd->toChars(), fd->type->toChars());
-        m->anyf = fd;
         TypeFunction *tf = (TypeFunction *)fd->type;
 
         int prop = (tf->isproperty) ? 1 : 2;
@@ -2258,6 +2257,17 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             m->count = 1;
             tdargs->setDim(0);
             return 0;
+        }
+        else
+        {
+            // Find error candidate which close to the argument count.
+            size_t dim = tf->parameters->dim - (tf->varargs ? 1 : 0);
+            if (tf->varargs)
+                fd = fargs->dim >= dim ? fd : NULL;
+            else
+                fd = fargs->dim == dim ? fd : NULL;
+            if (fd)
+                m->anyf = fd;
         }
         return 0;
     }

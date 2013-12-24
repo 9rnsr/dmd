@@ -9793,11 +9793,13 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
                 // print parameter name, instead of undetermined type parameter
                 argbuf.writestring(arg->ident->toChars());
             }
-            else
+            else if (arg->ident && memcmp(arg->ident->string, "_param_", 7) == 0)
             {
-                Identifier *id = memcmp(arg->ident->string, "_param_", 7) == 0 ? NULL : arg->ident;
-                arg->type->toCBuffer(&argbuf, id, hgs);
+                arg->type->toCBuffer(&argbuf, NULL, hgs);
             }
+            else
+                arg->type->toCBuffer(&argbuf, arg->ident, hgs);
+
             if (arg->defaultArg)
             {
                 argbuf.writestring(" = ");

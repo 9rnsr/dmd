@@ -2803,9 +2803,14 @@ Lerror:
 
     if (!m.lastf && !(flags & 1))   // no match
     {
-        if (td)
+        if (td && !fd)  // all of overloads are template
         {
-            if (!fd)    // all of overloads are template
+            if (!td->overnext)
+            {
+                ::error(loc, "%s %s.%s does not match function template declaration",
+                        td->kind(), td->parent->toPrettyChars(), td->ident->toChars());
+            }
+            else
             {
                 ::error(loc, "%s %s.%s does not match any function template declaration. Candidates are:",
                         td->kind(), td->parent->toPrettyChars(), td->ident->toChars());
@@ -2834,6 +2839,8 @@ Lerror:
         else
         {
             assert(fd);
+            if (m.anyf)
+                fd = m.anyf;
             TypeFunction *tf = (TypeFunction *)fd->type;
             if (tthis && !MODimplicitConv(tthis->mod, tf->mod)) // modifier mismatch
             {
