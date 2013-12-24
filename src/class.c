@@ -26,6 +26,7 @@
 #include "mtype.h"
 #include "scope.h"
 #include "module.h"
+#include "import.h"
 #include "expression.h"
 #include "statement.h"
 #include "template.h"
@@ -617,6 +618,28 @@ void ClassDeclaration::semantic(Scope *sc)
     size_t members_dim = members->dim;
     sizeok = SIZEOKnone;
 
+    // Merge base class imports in this class
+    for (size_t i = 0; i < baseclasses->dim; i++)
+    {
+        ClassDeclaration *cd = (*baseclasses)[i]->base;
+        if (cd && cd->imports)
+        {
+            for (size_t j = 0; j < cd->imports->dim; j++)
+            {
+                Import *imp = (*cd->imports)[j]->isImport();
+                PROT prot = cd->prots[j];
+                if (imp && (prot == PROTpublic || prot == PROTprotected))
+                {
+                    imp = imp->copy();
+                    imp->protection = prot;
+                    imp->isstatic = true;   // Don't insert to sc->scopesym->imports
+                    imp->overnext = NULL;
+                    imp->importScope(sc);
+                }
+            }
+        }
+    }
+
     /* Set scope so if there are forward references, we still might be able to
      * resolve individual members like enums.
      */
@@ -951,7 +974,9 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
                     error("base %s is forward referenced", b->base->ident->toChars());
                 else
                 {
-                    s = b->base->search(loc, ident, flags);
+                    int flags2 = flags | IgnoreImportedFQN;
+                    if (!isFriendOf(b->base)) flags2 |= IgnorePrivateImports;
+                    s = b->base->search(loc, ident, flags2);
                     if (s == this)      // happens if s is nested in this and derives from this
                         s = NULL;
                     else if (s)

@@ -443,7 +443,7 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
     switch (id->dyncast())
     {
         case DYNCAST_IDENTIFIER:
-            sm = s->search(loc, (Identifier *)id);
+            sm = s->search(loc, (Identifier *)id, IgnoreImportedFQN);
             break;
 
         case DYNCAST_DSYMBOL:
@@ -451,7 +451,7 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
             //printf("\ttemplate instance id\n");
             Dsymbol *st = (Dsymbol *)id;
             TemplateInstance *ti = st->isTemplateInstance();
-            sm = s->search(loc, ti->name);
+            sm = s->search(loc, ti->name, IgnoreImportedFQN);
             if (!sm)
             {
                 sm = s->search_correct(ti->name);
@@ -828,6 +828,7 @@ ScopeDsymbol::ScopeDsymbol()
     symtab = NULL;
     imports = NULL;
     prots = NULL;
+    pkgtab = NULL;
 }
 
 ScopeDsymbol::ScopeDsymbol(Identifier *id)
@@ -837,6 +838,7 @@ ScopeDsymbol::ScopeDsymbol(Identifier *id)
     symtab = NULL;
     imports = NULL;
     prots = NULL;
+    pkgtab = NULL;
 }
 
 Dsymbol *ScopeDsymbol::syntaxCopy(Dsymbol *s)
@@ -867,7 +869,10 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
     //printf("\ts1 = %p, imports = %p, %d\n", s1, imports, imports ? imports->dim : 0);
     if (s1)
     {
-        //printf("\ts = '%s.%s'\n",toChars(),s1->toChars());
+        //printf("\ts = '%s.%s', prot = %d\n", toChars(), s1->toChars(), s1->prot());
+        // The found symbol which has private access should be invisible
+        if ((flags & IgnorePrivateMembers) && !s1->isOverloadable() && s1->prot() == PROTprivate)
+            s1 = NULL;
         return s1;
     }
 
@@ -880,15 +885,13 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
         for (size_t i = 0; i < imports->dim; i++)
         {
             // If private import, don't search it
-            if ((flags & IgnorePrivateMembers) && prots[i] == PROTprivate)
+            if ((flags & IgnorePrivateSymbols) && prots[i] == PROTprivate)
                 continue;
 
             Dsymbol *ss = (*imports)[i];
 
-            //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
-            /* Don't find private members if ss is a module
-             */
-            Dsymbol *s2 = ss->search(loc, ident, ss->isModule() ? IgnorePrivateMembers : IgnoreNone);
+            //printf("\tscanning imports[%d] : %s '%s', prots = %d\n", i, ss->kind(), ss->toChars(), prots[i]);
+            Dsymbol *s2 = ss->search(loc, ident);
             if (!s)
                 s = s2;
             else if (s2 && s != s2)
@@ -975,7 +978,8 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                 s = a;
             }
 
-            if (!(flags & IgnoreErrors) && s->prot() == PROTprivate && !s->parent->isTemplateMixin())
+            if (!(flags & IgnoreErrors) && !s->isOverloadable() &&
+                s->prot() == PROTprivate && !s->parent->isTemplateMixin())
             {
                 if (!s->isImport())
                     error(loc, "%s %s is private", s->kind(), s->toPrettyChars());
@@ -984,6 +988,11 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
         }
     }
 
+    if (!(flags & IgnoreImportedFQN) && pkgtab)
+    {
+        // find leftmost package/module name for FQN access
+        s1 = pkgtab->lookup(ident);
+    }
     return s1;
 }
 

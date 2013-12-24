@@ -29,6 +29,7 @@
 #include "parse.h"
 #include "template.h"
 #include "attrib.h"
+#include "module.h"
 #include "import.h"
 
 Identifier *fixupLabelName(Scope *sc, Identifier *ident)
@@ -5360,6 +5361,8 @@ Statement *ImportStatement::semantic(Scope *sc)
     {
         Import *s = (*imports)[i]->isImport();
 
+        AliasDeclarations aliasdecls;
+
         for (size_t j = 0; j < s->names.dim; j++)
         {
             Identifier *name = s->names[j];
@@ -5372,16 +5375,18 @@ Statement *ImportStatement::semantic(Scope *sc)
             AliasDeclaration *ad = new AliasDeclaration(s->loc, alias, tname);
             ad->import = s;
 
-            s->aliasdecls.push(ad);
+            aliasdecls.push(ad);
         }
 
         s->semantic(sc);
         s->semantic2(sc);
         sc->insert(s);
 
-        for (size_t j = 0; j < s->aliasdecls.dim; j++)
+        for (size_t j = 0; j < s->names.dim; j++)
         {
-            sc->insert(s->aliasdecls[j]);
+            sc = sc->push(s->mod);
+            aliasdecls[j]->semantic(sc);
+            sc = sc->pop();
         }
     }
     return this;
