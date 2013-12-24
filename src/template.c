@@ -2286,11 +2286,12 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         else
         {
             // Find error candidate which close to the argument count.
-            size_t dim = tf->parameters->dim - (tf->varargs ? 1 : 0);
+            size_t adim = fargs ? fargs->dim : 0;
+            size_t pdim = tf->parameters->dim - (tf->varargs ? 1 : 0);
             if (tf->varargs)
-                fd = fargs->dim >= dim ? fd : NULL;
+                fd = adim >= pdim ? fd : NULL;
             else
-                fd = fargs->dim == dim ? fd : NULL;
+                fd = adim == pdim ? fd : NULL;
             if (fd)
                 m->anyf = fd;
         }
@@ -2389,11 +2390,12 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
                     FuncDeclaration *fd = f;
                     TypeFunction *tf = (TypeFunction *)fd->type;
                     // Find error candidate which close to the argument count.
-                    size_t dim = tf->parameters->dim - (tf->varargs ? 1 : 0);
+                    size_t adim = fargs ? fargs->dim : 0;
+                    size_t pdim = tf->parameters->dim - (tf->varargs ? 1 : 0);
                     if (tf->varargs)
-                        fd = fargs->dim >= dim ? fd : NULL;
+                        fd = adim >= pdim ? fd : NULL;
                     else
-                        fd = fargs->dim == dim ? fd : NULL;
+                        fd = adim == pdim ? fd : NULL;
                     if (fd)
                         m->anyf = fd;
                 }
