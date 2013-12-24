@@ -2842,7 +2842,7 @@ Lerror:
             if (m.anyf)
                 fd = m.anyf;
             TypeFunction *tf = (TypeFunction *)fd->type;
-            if (!m.anyf && tthis && !MODimplicitConv(tthis->mod, tf->mod)) // modifier mismatch
+            if (/*!m.anyf && */tthis && !MODimplicitConv(tthis->mod, tf->mod)) // modifier mismatch
             {
                 OutBuffer thisBuf, funcBuf;
                 MODMatchToBuffer(&thisBuf, tthis->mod, tf->mod);

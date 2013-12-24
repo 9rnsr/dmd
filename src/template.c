@@ -2293,7 +2293,23 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             else
                 fd = adim == pdim ? fd : NULL;
             if (fd)
-                m->anyf = fd;
+            {
+                if (!m->anyf)
+                    m->anyf = fd;
+                else
+                {
+                    TypeFunction *tf0 = (TypeFunction *)m->anyf->type;
+                    if (tf0->parameters->dim == tf->parameters->dim &&
+                        tf0->varargs == tf->varargs &&
+                        tthis)
+                    {
+                        int m0 = MODimplicitConv(tf0->mod, tthis->mod);
+                        int m1 = MODimplicitConv(tf->mod, tthis->mod);
+                        if (m1 && (!m0 || tf0->mod != tthis->mod && tf->mod == tthis->mod))
+                            m->anyf = fd;
+                    }
+                }
+            }
         }
         return 0;
     }

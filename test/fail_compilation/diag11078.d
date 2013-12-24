@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag11078.d(17): Error: function diag11078.S1.value () is not callable using argument types (double)
+fail_compilation/diag11078.d(17): Error: function diag11078.S1.value (int n) is not callable using argument types (double)
 ---
 */
 
