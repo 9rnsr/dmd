@@ -2815,12 +2815,12 @@ Lerror:
                 for (TemplateDeclaration *tdx = td; tdx; tdx = tdx->overnext)
                 {
                     ::errorSupplemental(tdx->loc, "%s", tdx->toPrettyChars());
-                    if (!global.params.verbose && --numToDisplay == 0)
+                    if (!global.params.verbose && --numToDisplay == 0 && tdx->overnext)
                     {
                         // Too many overloads to sensibly display.
                         // Just show count of remaining overloads.
                         int remaining = 0;
-                        for (; tdx; tdx = tdx->overnext)
+                        for (TemplateDeclaration *tdy = tdx->overnext; tdy; tdy = tdx->overnext)
                             ++remaining;
                         if (remaining > 0)
                             ::errorSupplemental(loc, "... (%d more, -v to show) ...", remaining);
