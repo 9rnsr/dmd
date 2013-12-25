@@ -2882,7 +2882,7 @@ char *TemplateDeclaration::toChars()
     HdrGenState hgs;
 
     memset(&hgs, 0, sizeof(hgs));
-    buf.writestring(ident->toChars());
+    buf.writestring(ident->toHChars2());
     buf.writeByte('(');
     for (size_t i = 0; i < parameters->dim; i++)
     {
@@ -7198,7 +7198,7 @@ void TemplateInstance::inlineScan()
 void TemplateInstance::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     Identifier *id = name;
-    buf->writestring(id->toChars());
+    buf->writestring(id->toHChars2());
     toCBufferTiargs(buf, hgs);
 }
 

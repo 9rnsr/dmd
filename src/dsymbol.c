@@ -204,23 +204,19 @@ char *Dsymbol::toChars()
 }
 
 const char *Dsymbol::toPrettyChars()
-{   Dsymbol *p;
-    char *s;
-    char *q;
-    size_t len;
-
+{
     //printf("Dsymbol::toPrettyChars() '%s'\n", toChars());
     if (!parent)
         return toChars();
 
-    len = 0;
-    for (p = this; p; p = p->parent)
+    size_t len = 0;
+    for (Dsymbol *p = this; p; p = p->parent)
         len += strlen(p->toChars()) + 1;
 
-    s = (char *)mem.malloc(len);
-    q = s + len - 1;
+    char *s = (char *)mem.malloc(len);
+    char *q = s + len - 1;
     *q = 0;
-    for (p = this; p; p = p->parent)
+    for (Dsymbol *p = this; p; p = p->parent)
     {
         char *t = p->toChars();
         len = strlen(t);

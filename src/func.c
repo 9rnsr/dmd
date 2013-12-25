@@ -2807,7 +2807,7 @@ Lerror:
         {
             {
                 ::error(loc, "%s %s.%s cannot deduce template function from argument types !(%s)%s, Candidates are:",
-                        td->kind(), td->parent->toPrettyChars(), td->ident->toChars(),
+                        td->kind(), td->parent->toPrettyChars(), td->ident->toHChars2(),
                         tiargsBuf.toChars(), fargsBuf.toChars());
 
                 // Display candidate template functions
