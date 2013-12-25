@@ -2618,7 +2618,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
     {
     Lerror:
         m->lastf = NULL;
-        m->count = 0;
+        //m->count = 0; // leave it to distinguish "no match" and "matched instance error"
         m->last = MATCHnomatch;
     }
 }

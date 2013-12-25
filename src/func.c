@@ -2756,9 +2756,8 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
 
     functionResolve(&m, s, loc, sc, tiargs, tthis, fargs);
 
-    if (m.count == 1)   // exactly one match
+    if (m.lastf && m.count == 1)   // exactly one match
     {
-        assert(m.lastf);
         if (!(flags & 1))
             m.lastf->functionSemantic();
         return m.lastf;
@@ -2772,8 +2771,9 @@ Lerror:
     /* Failed to find a best match.
      * Do nothing or print error.
      */
-    if (m.last <= MATCHnomatch && (flags & 1))
-    {   // if do not print error messages
+    if (m.last <= MATCHnomatch && ((flags & 1) || m.count > 0))
+    {
+        // if do not print error messages, or error was caused on matched function
         return NULL;    // no match
     }
 
