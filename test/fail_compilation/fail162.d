@@ -1,8 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail162.d(25): Error: template fail162.testHelper does not match function template declaration
-fail_compilation/fail162.d(25): Error: template fail162.testHelper(A...)() cannot deduce template function from argument types !()(string, string)
+fail_compilation/fail162.d(25): Error: template fail162.testHelper cannot deduce template function from argument types !()(string, string), Candidates are:
+fail_compilation/fail162.d(10):        fail162.testHelper(A...)()
 fail_compilation/fail162.d(30): Error: template instance fail162.test!("hello", "world") error instantiating
 ---
 */

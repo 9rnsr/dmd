@@ -1,8 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag9004.d(8): Error: template diag9004.bar does not match function template declaration
-fail_compilation/diag9004.d(8): Error: template diag9004.bar(FooT)(FooT foo, FooT.T x) cannot deduce template function from argument types !()(Foo!int, int)
+fail_compilation/diag9004.d(8): Error: template diag9004.bar cannot deduce template function from argument types !()(Foo!int, int), Candidates are:
+fail_compilation/diag9004.d(4):        diag9004.bar(FooT)(FooT foo, FooT.T x)
 ---
 */
 

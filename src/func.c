@@ -2805,15 +2805,10 @@ Lerror:
     {
         if (td && !fd)  // all of overloads are template
         {
-            if (!td->overnext)
             {
-                ::error(loc, "%s %s.%s does not match function template declaration",
-                        td->kind(), td->parent->toPrettyChars(), td->ident->toChars());
-            }
-            else
-            {
-                ::error(loc, "%s %s.%s does not match any function template declaration. Candidates are:",
-                        td->kind(), td->parent->toPrettyChars(), td->ident->toChars());
+                ::error(loc, "%s %s.%s cannot deduce template function from argument types !(%s)%s, Candidates are:",
+                        td->kind(), td->parent->toPrettyChars(), td->ident->toChars(),
+                        tiargsBuf.toChars(), fargsBuf.toChars());
 
                 // Display candidate template functions
                 int numToDisplay = 5; // sensible number to display
@@ -2833,8 +2828,6 @@ Lerror:
                     }
                 }
             }
-            td->error(loc, "cannot deduce template function from argument types !(%s)%s",
-                  tiargsBuf.toChars(), fargsBuf.toChars());
         }
         else
         {

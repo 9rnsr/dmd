@@ -10,8 +10,8 @@ template isIntegral(T) { enum bool isIntegral = true; }
 TEST_OUTPUT:
 ---
 fail_compilation/ice6538.d(17): Error: cannot take a not yet instantiated symbol 'sizes' inside template constraint
-fail_compilation/ice6538.d(22): Error: template ice6538.foo does not match function template declaration
-fail_compilation/ice6538.d(22): Error: template ice6538.foo(I...)(I sizes) if (allSatisfy!(isIntegral, sizes)) cannot deduce template function from argument types !()(int, int)
+fail_compilation/ice6538.d(22): Error: template ice6538.foo cannot deduce template function from argument types !()(int, int), Candidates are:
+fail_compilation/ice6538.d(17):        ice6538.foo(I...)(I sizes) if (allSatisfy!(isIntegral, sizes))
 ---
 */
 void foo(I...)(I sizes)
@@ -27,8 +27,8 @@ TEST_OUTPUT:
 ---
 fail_compilation/ice6538.d(34): Error: cannot take a not yet instantiated symbol 't1' inside template constraint
 fail_compilation/ice6538.d(34): Error: cannot take a not yet instantiated symbol 't2' inside template constraint
-fail_compilation/ice6538.d(39): Error: template ice6538.bar does not match function template declaration
-fail_compilation/ice6538.d(39): Error: template ice6538.bar(T1, T2)(T1 t1, T2 t2) if (allSatisfy!(isIntegral, t1, t2)) cannot deduce template function from argument types !()(int, int)
+fail_compilation/ice6538.d(39): Error: template ice6538.bar cannot deduce template function from argument types !()(int, int), Candidates are:
+fail_compilation/ice6538.d(34):        ice6538.bar(T1, T2)(T1 t1, T2 t2) if (allSatisfy!(isIntegral, t1, t2))
 ---
 */
 void bar(T1, T2)(T1 t1, T2 t2)
@@ -51,8 +51,8 @@ template Sym(alias A)
 TEST_OUTPUT:
 ---
 fail_compilation/ice6538.d(60): Error: cannot take a not yet instantiated symbol 'this' inside template constraint
-fail_compilation/ice6538.d(66): Error: template ice6538.S.foo does not match function template declaration
-fail_compilation/ice6538.d(66): Error: template ice6538.S.foo()() if (Sym!this) cannot deduce template function from argument types !()()
+fail_compilation/ice6538.d(66): Error: template ice6538.S.foo cannot deduce template function from argument types !()(), Candidates are:
+fail_compilation/ice6538.d(60):        ice6538.S.foo()() if (Sym!this)
 ---
 */
 struct S
@@ -71,8 +71,8 @@ void test9361a()
 TEST_OUTPUT:
 ---
 fail_compilation/ice6538.d(81): Error: cannot take a not yet instantiated symbol 'super' inside template constraint
-fail_compilation/ice6538.d(86): Error: template ice6538.D.foo does not match function template declaration
-fail_compilation/ice6538.d(86): Error: template ice6538.D.foo()() if (Sym!(super)) cannot deduce template function from argument types !()()
+fail_compilation/ice6538.d(86): Error: template ice6538.D.foo cannot deduce template function from argument types !()(), Candidates are:
+fail_compilation/ice6538.d(81):        ice6538.D.foo()() if (Sym!(super))
 ---
 */
 class C {}

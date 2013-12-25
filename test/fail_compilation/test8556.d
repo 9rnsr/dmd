@@ -3,8 +3,8 @@ TEST_OUTPUT:
 ---
 fail_compilation/test8556.d(24): Error: template instance Grab!(Circle!(uint[])) does not match template declaration Grab(Range) if (!isSliceable!Range)
 fail_compilation/test8556.d(55): Error: template instance test8556.grab!(Circle!(uint[])) error instantiating
-fail_compilation/test8556.d(55): Error: template test8556.grab does not match function template declaration
-fail_compilation/test8556.d(55): Error: template test8556.grab(R)(R input) cannot deduce template function from argument types !()(Circle!(uint[]))
+fail_compilation/test8556.d(55): Error: template test8556.grab cannot deduce template function from argument types !()(Circle!(uint[])), Candidates are:
+fail_compilation/test8556.d(24):        test8556.grab(R)(R input)
 ---
 */
 
