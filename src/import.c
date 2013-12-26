@@ -475,6 +475,7 @@ void Import::semantic(Scope *sc)
                         if (!isstatic || imp->isstatic)
                         {
                             imp = imp->copy();
+                            imp->loc = loc;  // test
                             imp->protection = protection;
                             imp->isstatic = true;   // Don't insert to sc->scopesym->imports
                             imp->overnext = NULL;
@@ -626,7 +627,11 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
 
     Dsymbol *s = NULL;
 
-    if (names.dim)
+    if (protection == PROTprivate && (flags & IgnorePrivateImports))
+    {
+        //printf("\t-->! supress\n");
+    }
+    else if (names.dim)
     {
         for (size_t i = 0; i < names.dim; i++)
         {
@@ -635,7 +640,7 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
             if ((alias ? alias : name) == ident)
             {
                 // Forward it to the module
-                s = mod->search(loc, name, flags);
+                s = mod->search(loc, name, flags | IgnorePrivateImports);
                 break;
             }
         }
@@ -643,7 +648,7 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
     else
     {
         // Forward it to the module
-        s = mod->search(loc, ident, flags);
+        s = mod->search(loc, ident, flags | IgnorePrivateImports);
     }
     if (!s && overnext)
     {

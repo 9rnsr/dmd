@@ -892,7 +892,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             Dsymbol *ss = (*imports)[i];
 
             //printf("\tscanning imports[%d] : %s '%s', prots = %d\n", i, ss->kind(), ss->toChars(), prots[i]);
-            Dsymbol *s2 = ss->search(loc, ident);
+            Dsymbol *s2 = ss->search(loc, ident, flags & IgnorePrivateImports);
             if (!s)
                 s = s2;
             else if (s2 && s != s2)
