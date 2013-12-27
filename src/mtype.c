@@ -3853,6 +3853,8 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
     }
     else if (ident == Id::sort && (n->ty == Tchar || n->ty == Twchar))
     {
+        warning(e->loc, "built-in sort will be deprecated. Please use std.algorithm.sort instead.");
+
         static const char *sortName[2] = { "_adSortChar", "_adSortWchar" };
         static FuncDeclaration *sortFd[2] = { NULL, NULL };
 
@@ -3937,6 +3939,8 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
     }
     else if (ident == Id::sort)
     {
+        warning(e->loc, "built-in sort will be deprecated. Please use std.algorithm.sort instead.");
+
         static FuncDeclaration *fd = NULL;
         Expression *ec;
         Expressions *arguments;
