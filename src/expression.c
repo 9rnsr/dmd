@@ -10148,6 +10148,8 @@ Lagain:
             if (!se->lwr && !se->upr)
                 return se;
         }
+        if (isArrayOpValid(e1))
+            return e1;
     }
 
     e = this;
