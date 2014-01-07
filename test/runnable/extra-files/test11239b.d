@@ -1,5 +1,3 @@
-// REQUIRED_ARGS:
-
 int foo(T)(T x)
 {
     return 3;
