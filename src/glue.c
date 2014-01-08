@@ -1540,14 +1540,20 @@ elem *toEfilename(Module *m)
         dtsize_t(&dt, len);
         dtabytes(&dt,TYnptr, 0, len + 1, id);
 
-        m->sfilename = symbol_generate(SCstatic,type_fake(TYdarray));
+        m->sfilename = symbol_generate(SCstatic, type_fake(TYdarray));
         m->sfilename->Sdt = dt;
         m->sfilename->Sfl = FLdata;
         out_readonly(m->sfilename);
         outdata(m->sfilename);
     }
 
-    return (config.exe == EX_WIN64) ? el_ptr(m->sfilename) : el_var(m->sfilename);
+    //return (config.exe == EX_WIN64) ? el_ptr(m->sfilename) : el_var(m->sfilename);
+
+    elem *e = el_var(m->sfilename);
+    if (config.exe == EX_WIN64)
+        e = addressElem(e, Type::tstring);  // not good
+
+    return e;
 }
 
 
