@@ -1977,6 +1977,7 @@ elem *AssertExp::toElem(IRState *irs)
             einv = callfunc(loc, irs, 1, inv->type->nextOf(), el_var(ts), e1->type, inv, inv->type, NULL, NULL);
         }
 
+        // Construct: (e1 || ModuleAssert(line))
         if (global.params.betterC)
         {
             // Use HLT for assertion failure.
@@ -1988,7 +1989,6 @@ elem *AssertExp::toElem(IRState *irs)
         else
         {
 
-        // Construct: (e1 || ModuleAssert(line))
         Module *m = irs->blx->module;
         char *mname = m->srcfile->toChars();
 
@@ -2865,16 +2865,26 @@ elem *AssignExp::toElem(IRState *irs)
                 c1 = el_bin(OPandand, TYint, c1, c2);
 
                 // Construct: (c1 || ModuleArray(line))
-                Symbol *sassert;
-
-                sassert = irs->blx->module->toModuleArray();
-                ea = el_bin(OPcall,TYvoid,el_var(sassert), el_long(TYint, loc.linnum));
+                if (global.params.betterC)
+                {
+                    // Use HLT for range violation.
+                    ea = el_calloc();
+                    ea->Ety = TYvoid;
+                    ea->Eoper = OPhalt;
+                    el_setLoc(ea, loc);
+                }
+                else
+                {
+                    Symbol *sassert = irs->blx->module->toModuleArray();
+                    ea = el_bin(OPcall,TYvoid,el_var(sassert), el_long(TYint, loc.linnum));
+                }
                 eb = el_bin(OPoror,TYvoid,c1,ea);
                 einit = el_combine(einit, eb);
             }
 
             if (elwr)
-            {   elem *elwr2;
+            {
+                elem *elwr2;
 
                 el_free(enbytes);
                 elwr2 = el_copytree(elwr);
@@ -4727,10 +4737,19 @@ elem *SliceExp::toElem(IRState *irs)
 
             L2:
                 // Construct: (c1 || ModuleArray(line))
-                Symbol *sassert;
-
-                sassert = irs->blx->module->toModuleArray();
-                ea = el_bin(OPcall,TYvoid,el_var(sassert), el_long(TYint, loc.linnum));
+                if (global.params.betterC)
+                {
+                    // Use HLT for range violation.
+                    ea = el_calloc();
+                    ea->Ety = TYvoid;
+                    ea->Eoper = OPhalt;
+                    el_setLoc(ea, loc);
+                }
+                else
+                {
+                    Symbol *sassert = irs->blx->module->toModuleArray();
+                    ea = el_bin(OPcall,TYvoid,el_var(sassert), el_long(TYint, loc.linnum));
+                }
                 eb = el_bin(OPoror,TYvoid,c1,ea);
                 elwr = el_combine(elwr, eb);
 
@@ -4764,7 +4783,8 @@ elem *SliceExp::toElem(IRState *irs)
 }
 
 elem *IndexExp::toElem(IRState *irs)
-{   elem *e;
+{
+    elem *e;
     elem *n1 = e1->toElem(irs);
     elem *eb = NULL;
 
@@ -4852,11 +4872,20 @@ elem *IndexExp::toElem(IRState *irs)
                 n2x = el_bin(OPlt, TYint, n2x, elength);
 
                 // Construct: (n2x || ModuleAssert(line))
-                Symbol *sassert;
-
-                sassert = irs->blx->module->toModuleArray();
-                ea = el_bin(OPcall,TYvoid,el_var(sassert),
-                    el_long(TYint, loc.linnum));
+                if (global.params.betterC)
+                {
+                    // Use HLT for range violation.
+                    ea = el_calloc();
+                    ea->Ety = TYvoid;
+                    ea->Eoper = OPhalt;
+                    el_setLoc(ea, loc);
+                }
+                else
+                {
+                    Symbol *sassert = irs->blx->module->toModuleArray();
+                    ea = el_bin(OPcall,TYvoid,el_var(sassert),
+                        el_long(TYint, loc.linnum));
+                }
                 eb = el_bin(OPoror,TYvoid,n2x,ea);
             }
         }
