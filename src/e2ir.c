@@ -827,6 +827,12 @@ elem *SymbolExp::toElem(IRState *irs)
 
     //printf("SymbolExp::toElem('%s') %p, %s\n", toChars(), this, type->toChars());
     //printf("\tparent = '%s'\n", var->parent ? var->parent->toChars() : "null");
+    if (global.params.betterC && op == TOKsymoff && var->isTypeInfoDeclaration())
+    {
+        error("cannot use typeid expression under the -betterC");
+        return el_long(TYsize_t, 0);
+    }
+
     if (op == TOKvar && var->needThis())
     {
         error("need 'this' to access member %s", toChars());
@@ -1537,9 +1543,16 @@ elem *StringExp::toElem(IRState *irs)
 }
 
 elem *NewExp::toElem(IRState *irs)
-{   elem *e;
+{
+    elem *e;
     Type *t;
     Type *ectype;
+
+    if (global.params.betterC)
+    {
+        error("cannot use new expression under the -betterC");
+        return el_long(TYsize_t, 0);
+    }
 
     //printf("NewExp::toElem() %s\n", toChars());
     t = type->toBasetype();
@@ -1921,9 +1934,16 @@ elem *HaltExp::toElem(IRState *irs)
  */
 
 elem *AssertExp::toElem(IRState *irs)
-{   elem *e;
+{
+    elem *e;
     elem *ea;
     Type *t1 = e1->type->toBasetype();
+
+    if (global.params.betterC)
+    {
+        error("cannot use assert expression under the -betterC");
+        return el_long(TYsize_t, 0);
+    }
 
     //printf("AssertExp::toElem() %s\n", toChars());
     if (global.params.useAssert)

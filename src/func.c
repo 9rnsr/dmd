@@ -1232,8 +1232,9 @@ void FuncDeclaration::semantic3(Scope *sc)
                     e = e->semantic(sc2);
                 }
             }
-            else
-            {   // Call invariant virtually
+            else if (!global.params.betterC)
+            {
+                // Call invariant virtually
                 Expression *v = new ThisExp(Loc());
                 v->type = vthis->type;
                 if (ad->isStructDeclaration())
