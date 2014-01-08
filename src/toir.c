@@ -604,7 +604,8 @@ elem *resolveLengthVar(VarDeclaration *lengthVar, elem **pe, Type *t1)
 void FuncDeclaration::buildClosure(IRState *irs)
 {
     if (needsClosure())
-    {   // Generate closure on the heap
+    {
+        // Generate closure on the heap
         // BUG: doesn't capture variadic arguments passed to this function
 
         /* BUG: doesn't handle destructors for the local variables.
@@ -628,20 +629,29 @@ void FuncDeclaration::buildClosure(IRState *irs)
 
         unsigned offset = Target::ptrsize;      // leave room for previous sthis
         for (size_t i = 0; i < closureVars.dim; i++)
-        {   VarDeclaration *v = closureVars[i];
+        {
+            VarDeclaration *v = closureVars[i];
             //printf("closure var %s\n", v->toChars());
             assert(v->isVarDeclaration());
 
+            if (global.params.betterC)
+            {
+                v->error("cannot define closure variable under the -betterC");
+            }
             if (v->needsAutoDtor())
+            {
                 /* Because the value needs to survive the end of the scope!
                  */
                 v->error("has scoped destruction, cannot build closure");
+            }
             if (v->isargptr)
+            {
                 /* See Bugzilla 2479
                  * This is actually a bug, but better to produce a nice
                  * message at compile time rather than memory corruption at runtime
                  */
                 v->error("cannot reference variadic arguments from closure");
+            }
             /* Align and allocate space for v in the closure
              * just like AggregateDeclaration::addField() does.
              */
@@ -664,7 +674,8 @@ void FuncDeclaration::buildClosure(IRState *irs)
                 xalign = v->alignment;
             }
             else if (ISREF(v, NULL))
-            {    // reference parameters are just pointers
+            {
+                // reference parameters are just pointers
                 memsize = Target::ptrsize;
                 memalignsize = memsize;
                 xalign = STRUCTALIGN_DEFAULT;
@@ -711,8 +722,8 @@ void FuncDeclaration::buildClosure(IRState *irs)
 
         // Copy function parameters into closure
         for (size_t i = 0; i < closureVars.dim; i++)
-        {   VarDeclaration *v = closureVars[i];
-
+        {
+            VarDeclaration *v = closureVars[i];
             if (!v->isParameter())
                 continue;
             tym_t tym = v->type->totym();

@@ -1921,9 +1921,8 @@ elem *NotExp::toElem(IRState *irs)
  */
 
 elem *HaltExp::toElem(IRState *irs)
-{   elem *e;
-
-    e = el_calloc();
+{
+    elem *e = el_calloc();
     e->Ety = TYvoid;
     e->Eoper = OPhalt;
     el_setLoc(e,loc);
@@ -1939,12 +1938,6 @@ elem *AssertExp::toElem(IRState *irs)
     elem *ea;
     Type *t1 = e1->type->toBasetype();
 
-    if (global.params.betterC)
-    {
-        error("cannot use assert expression under the -betterC");
-        return el_long(TYsize_t, 0);
-    }
-
     //printf("AssertExp::toElem() %s\n", toChars());
     if (global.params.useAssert)
     {
@@ -1959,6 +1952,12 @@ elem *AssertExp::toElem(IRState *irs)
             !((TypeClass *)t1)->sym->isInterfaceDeclaration() &&
             !((TypeClass *)t1)->sym->isCPPclass())
         {
+            if (global.params.betterC)
+            {
+                error("cannot assert class invariant under the -betterC");
+                return el_long(TYsize_t, 0);
+            }
+
             ts = symbol_genauto(t1->toCtype());
             int rtl;
             if (global.params.isLinux || global.params.isFreeBSD || global.params.isSolaris ||
@@ -1977,6 +1976,17 @@ elem *AssertExp::toElem(IRState *irs)
             ts = symbol_genauto(t1->toCtype());
             einv = callfunc(loc, irs, 1, inv->type->nextOf(), el_var(ts), e1->type, inv, inv->type, NULL, NULL);
         }
+
+        if (global.params.betterC)
+        {
+            // Use HLT for assertion failure.
+            ea = el_calloc();
+            ea->Ety = TYvoid;
+            ea->Eoper = OPhalt;
+            el_setLoc(ea, loc);
+        }
+        else
+        {
 
         // Construct: (e1 || ModuleAssert(line))
         Module *m = irs->blx->module;
@@ -2051,8 +2061,11 @@ elem *AssertExp::toElem(IRState *irs)
             ea = el_bin(OPcall,TYvoid,el_var(sassert),
                 el_long(TYint, loc.linnum));
         }
+        }
+
         if (einv)
-        {   // tmp = e, e || assert, e->inv
+        {
+            // tmp = e, e || assert, e->inv
             elem *eassign = el_bin(OPeq, e->Ety, el_var(ts), e);
             e = el_combine(eassign, el_bin(OPoror, TYvoid, el_var(ts), ea));
             e = el_combine(e, einv);
@@ -2061,7 +2074,7 @@ elem *AssertExp::toElem(IRState *irs)
             e = el_bin(OPoror,TYvoid,e,ea);
     }
     else
-    {   // BUG: should replace assert(0); with a HLT instruction
+    {
         e = el_long(TYint, 0);
     }
     el_setLoc(e,loc);
@@ -2143,18 +2156,25 @@ elem *eval_Darray(IRState *irs, Expression *e, bool alwaysCopy)
  */
 
 elem *CatExp::toElem(IRState *irs)
-{   elem *e;
-
+{
 #if 0
     printf("CatExp::toElem()\n");
     print();
 #endif
+
+    if (global.params.betterC)
+    {
+        error("cannot use array concatenation under the -betterC");
+        return el_long(TYsize_t, 0);
+    }
 
     Type *tb1 = e1->type->toBasetype();
     Type *tb2 = e2->type->toBasetype();
 
     Type *ta = (tb1->ty == Tarray || tb1->ty == Tsarray) ? tb1 : tb2;
     Type *tn = ta->nextOf();
+
+    elem *e;
 
     if (e1->op == TOKcat)
     {
@@ -3120,6 +3140,12 @@ elem *CatAssignExp::toElem(IRState *irs)
     elem *e;
     Type *tb1 = e1->type->toBasetype();
     Type *tb2 = e2->type->toBasetype();
+
+    if (global.params.betterC)
+    {
+        error("cannot use array appending under the -betterC");
+        return el_long(TYsize_t, 0);
+    }
 
     if (tb1->ty == Tarray && tb2->ty == Tdchar &&
         (tb1->nextOf()->ty == Tchar || tb1->nextOf()->ty == Twchar))
@@ -4882,7 +4908,8 @@ elem *tree_insert(Elems *args, size_t low, size_t high)
 }
 
 elem *ArrayLiteralExp::toElem(IRState *irs)
-{   elem *e;
+{
+    elem *e;
     size_t dim;
 
     //printf("ArrayLiteralExp::toElem() %s, type = %s\n", toChars(), type->toChars());
@@ -4900,6 +4927,12 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
     }
     else if (elements)
     {
+        if (global.params.betterC)
+        {
+            error("cannot use array literal expression under the -betterC");
+            return el_long(TYsize_t, 0);
+        }
+
         /* Instead of passing the initializers on the stack, allocate the
          * array and assign the members inline.
          * Avoids the whole variadic arg mess.
@@ -4944,7 +4977,8 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
         e = el_combine(e, el_var(stmp));
     }
     else
-    {   dim = 0;
+    {
+        dim = 0;
         e = el_long(TYsize_t, 0);
     }
     if (tb->ty == Tarray)

@@ -511,9 +511,9 @@ int tryMain(size_t argc, const char *argv[])
     Strings files;
     Strings libmodules;
     size_t argcstart = argc;
-    int setdebuglib = 0;
     char noboundscheck = 0;
-        int setdefaultlib = 0;
+    int setdebuglib = 0;
+    int setdefaultlib = 0;
     const char *inifilename = NULL;
     global.init();
 
@@ -1092,6 +1092,18 @@ Language changes listed by -transition=id:\n\
         return EXIT_FAILURE;
     }
 
+#if 0
+    if (global.params.betterC)
+    {
+        // Disable features which require runtime
+        //global.params.release = 1;
+        //noboundscheck = 1;    // range check should be implemented by if and HLT, for SafeD guarantee?
+        //setdefaultlib = 1;
+        //global.params.defaultlibname = "";
+        //setdebuglib = 1;
+        //global.params.debuglibname = "";
+    }
+#endif
     if (!setdebuglib)
         global.params.debuglibname = global.params.defaultlibname;
 
@@ -1105,7 +1117,8 @@ Language changes listed by -transition=id:\n\
 #endif
 
     if (global.params.release)
-    {   global.params.useInvariants = 0;
+    {
+        global.params.useInvariants = 0;
         global.params.useIn = 0;
         global.params.useOut = 0;
         global.params.useAssert = 0;

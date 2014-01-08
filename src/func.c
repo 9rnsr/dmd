@@ -1232,7 +1232,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     e = e->semantic(sc2);
                 }
             }
-            else if (!global.params.betterC)
+            else
             {
                 // Call invariant virtually
                 Expression *v = new ThisExp(Loc());
