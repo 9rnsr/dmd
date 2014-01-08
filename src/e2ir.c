@@ -1431,7 +1431,7 @@ elem *getEfilename(Loc loc, IRState *irs)
     char *mname = m->srcfile->toChars();
 
     elem *efilename;
-
+#if 1
     /* If the source file name has changed, probably due
      * to a #line directive.
      */
@@ -1468,8 +1468,24 @@ elem *getEfilename(Loc loc, IRState *irs)
                                              : el_var(assertexp_sfilename);
     }
     else
+#endif
     {
+#if 0
         efilename = m->toEfilename();
+#else
+        StringExp *se = new StringExp(Loc(), m->srcfile->toChars());
+        se->type = Type::tstring;
+        efilename = se->toElem(irs);
+
+        if (config.exe == EX_WIN64)
+        {
+            /* Copy to a temporary, and make the argument a pointer
+             * to that temporary.
+             */
+            efilename = addressElem(efilename, Type::tstring);
+            //elem_print(efilename);
+        }
+#endif
     }
 
     return efilename;
@@ -1489,7 +1505,7 @@ void clearStringTab()
 elem *StringExp::toElem(IRState *irs)
 {
     elem *e;
-    Type *tb= type->toBasetype();
+    Type *tb = type->toBasetype();
 
 
 #if 0
@@ -2033,6 +2049,7 @@ elem *AssertExp::toElem(IRState *irs)
         else
         {
             ea = el_var(rtlsym[ud ? RTLSYM_DUNITTEST : RTLSYM_DASSERT]);
+            //ea = el_bin(OPcall, TYvoid, ea, el_param(efilename, el_long(TYuint, loc.linnum)));
             ea = el_bin(OPcall, TYvoid, ea, el_param(el_long(TYint, loc.linnum), efilename));
         }
 
