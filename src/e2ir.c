@@ -830,7 +830,7 @@ elem *SymbolExp::toElem(IRState *irs)
     if (global.params.betterC && op == TOKsymoff && var->isTypeInfoDeclaration())
     {
         error("cannot use typeid expression under the -betterC");
-        return el_long(TYsize_t, 0);
+        return el_long(TYint, 0);
     }
 
     if (op == TOKvar && var->needThis())
@@ -1551,7 +1551,7 @@ elem *NewExp::toElem(IRState *irs)
     if (global.params.betterC)
     {
         error("cannot use new expression under the -betterC");
-        return el_long(TYsize_t, 0);
+        return el_long(TYint, 0);
     }
 
     //printf("NewExp::toElem() %s\n", toChars());
@@ -1934,61 +1934,64 @@ elem *HaltExp::toElem(IRState *irs)
 
 elem *AssertExp::toElem(IRState *irs)
 {
-    elem *e;
+    //printf("AssertExp::toElem() %s\n", toChars());
+    if (!global.params.useAssert)
+    {
+        elem *e = el_long(TYint, 0);
+        el_setLoc(e,loc);
+        return e;
+    }
+
+    elem *e = e1->toElem(irs);
     elem *ea;
     Type *t1 = e1->type->toBasetype();
 
-    //printf("AssertExp::toElem() %s\n", toChars());
-    if (global.params.useAssert)
+    symbol *ts = NULL;
+    elem *einv = NULL;
+
+    FuncDeclaration *inv;
+
+    // If e1 is a class object, call the class invariant on it
+    if (global.params.useInvariants && t1->ty == Tclass &&
+        !((TypeClass *)t1)->sym->isInterfaceDeclaration() &&
+        !((TypeClass *)t1)->sym->isCPPclass())
     {
-        e = e1->toElem(irs);
-        symbol *ts = NULL;
-        elem *einv = NULL;
-
-        FuncDeclaration *inv;
-
-        // If e1 is a class object, call the class invariant on it
-        if (global.params.useInvariants && t1->ty == Tclass &&
-            !((TypeClass *)t1)->sym->isInterfaceDeclaration() &&
-            !((TypeClass *)t1)->sym->isCPPclass())
-        {
-            if (global.params.betterC)
-            {
-                error("cannot assert class invariant under the -betterC");
-                return el_long(TYsize_t, 0);
-            }
-
-            ts = symbol_genauto(t1->toCtype());
-            int rtl;
-            if (global.params.isLinux || global.params.isFreeBSD || global.params.isSolaris ||
-                I64 && global.params.isWindows)
-                rtl = RTLSYM__DINVARIANT;
-            else
-                rtl = RTLSYM_DINVARIANT;
-            einv = el_bin(OPcall, TYvoid, el_var(rtlsym[rtl]), el_var(ts));
-        }
-        // If e1 is a struct object, call the struct invariant on it
-        else if (global.params.useInvariants &&
-            t1->ty == Tpointer &&
-            t1->nextOf()->ty == Tstruct &&
-            (inv = ((TypeStruct *)t1->nextOf())->sym->inv) != NULL)
-        {
-            ts = symbol_genauto(t1->toCtype());
-            einv = callfunc(loc, irs, 1, inv->type->nextOf(), el_var(ts), e1->type, inv, inv->type, NULL, NULL);
-        }
-
-        // Construct: (e1 || ModuleAssert(line))
         if (global.params.betterC)
         {
-            // Use HLT for assertion failure.
-            ea = el_calloc();
-            ea->Ety = TYvoid;
-            ea->Eoper = OPhalt;
-            el_setLoc(ea, loc);
+            error("cannot assert class invariant under the -betterC");
+            return el_long(TYint, 0);
         }
-        else
-        {
 
+        ts = symbol_genauto(t1->toCtype());
+        int rtl;
+        if (global.params.isLinux || global.params.isFreeBSD || global.params.isSolaris ||
+            I64 && global.params.isWindows)
+            rtl = RTLSYM__DINVARIANT;
+        else
+            rtl = RTLSYM_DINVARIANT;
+        einv = el_bin(OPcall, TYvoid, el_var(rtlsym[rtl]), el_var(ts));
+    }
+    // If e1 is a struct object, call the struct invariant on it
+    else if (global.params.useInvariants &&
+        t1->ty == Tpointer &&
+        t1->nextOf()->ty == Tstruct &&
+        (inv = ((TypeStruct *)t1->nextOf())->sym->inv) != NULL)
+    {
+        ts = symbol_genauto(t1->toCtype());
+        einv = callfunc(loc, irs, 1, inv->type->nextOf(), el_var(ts), e1->type, inv, inv->type, NULL, NULL);
+    }
+
+    // Construct: (e1 || ModuleAssert(line))
+    if (global.params.betterC)
+    {
+        // Use HLT for assertion failure.
+        ea = el_calloc();
+        ea->Ety = TYvoid;
+        ea->Eoper = OPhalt;
+        el_setLoc(ea, loc);
+    }
+    else
+    {
         Module *m = irs->blx->module;
         char *mname = m->srcfile->toChars();
 
@@ -2061,22 +2064,18 @@ elem *AssertExp::toElem(IRState *irs)
             ea = el_bin(OPcall,TYvoid,el_var(sassert),
                 el_long(TYint, loc.linnum));
         }
-        }
+    }
 
-        if (einv)
-        {
-            // tmp = e, e || assert, e->inv
-            elem *eassign = el_bin(OPeq, e->Ety, el_var(ts), e);
-            e = el_combine(eassign, el_bin(OPoror, TYvoid, el_var(ts), ea));
-            e = el_combine(e, einv);
-        }
-        else
-            e = el_bin(OPoror,TYvoid,e,ea);
+    if (einv)
+    {
+        // tmp = e, e || assert, e->inv
+        elem *eassign = el_bin(OPeq, e->Ety, el_var(ts), e);
+        e = el_combine(eassign, el_bin(OPoror, TYvoid, el_var(ts), ea));
+        e = el_combine(e, einv);
     }
     else
-    {
-        e = el_long(TYint, 0);
-    }
+        e = el_bin(OPoror, TYvoid, e, ea);
+
     el_setLoc(e,loc);
     return e;
 }
@@ -2165,7 +2164,7 @@ elem *CatExp::toElem(IRState *irs)
     if (global.params.betterC)
     {
         error("cannot use array concatenation under the -betterC");
-        return el_long(TYsize_t, 0);
+        return el_long(TYint, 0);
     }
 
     Type *tb1 = e1->type->toBasetype();
@@ -3154,7 +3153,7 @@ elem *CatAssignExp::toElem(IRState *irs)
     if (global.params.betterC)
     {
         error("cannot use array appending under the -betterC");
-        return el_long(TYsize_t, 0);
+        return el_long(TYint, 0);
     }
 
     if (tb1->ty == Tarray && tb2->ty == Tdchar &&
@@ -4959,7 +4958,7 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
         if (global.params.betterC)
         {
             error("cannot use array literal expression under the -betterC");
-            return el_long(TYsize_t, 0);
+            return el_long(TYint, 0);
         }
 
         /* Instead of passing the initializers on the stack, allocate the
