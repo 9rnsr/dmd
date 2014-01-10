@@ -2730,6 +2730,8 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
     return MATCHnomatch;
 }
 
+#include <math.h>
+
 /*******************************************
  * Given a symbol that could be either a FuncDeclaration or
  * a function template, resolve it to a function symbol.
@@ -2840,9 +2842,19 @@ Lerror:
 
             // Display candidate template functions
             int numToDisplay = 5; // sensible number to display
+            const char *filename;
+            unsigned linnum_col = 0;
             for (TemplateDeclaration *tdx = td; tdx; tdx = tdx->overnext)
             {
-                ::errorSupplemental(tdx->loc, "%s", tdx->toPrettyChars());
+                if (filename != tdx->loc.filename)
+                {
+                    Module *m = tdx->getModule();
+                    filename = tdx->loc.filename;
+                    linnum_col = log10(m->numlines);
+                    ::errorSupplemental(Loc(), "%s (module %s):", filename, m->toPrettyChars());
+                }
+                ::errorSupplemental(Loc(), "(%*d): %s", linnum_col, tdx->loc.linnum, tdx->toChars());
+
                 if (!global.params.verbose && --numToDisplay == 0 && tdx->overnext)
                 {
                     // Too many overloads to sensibly display.
@@ -2851,7 +2863,7 @@ Lerror:
                     for (TemplateDeclaration *tdy = tdx->overnext; tdy; tdy = tdy->overnext)
                         ++remaining;
                     if (remaining > 0)
-                        ::errorSupplemental(loc, "... (%d more, -v to show) ...", remaining);
+                        ::errorSupplemental(Loc(), "... (%d more, -v to show) ...", remaining);
                     break;
                 }
             }
