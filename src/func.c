@@ -206,7 +206,8 @@ void FuncDeclaration::semantic(Scope *sc)
          */
         if (tf->trust == TRUSTdefault &&
             !(//isFuncLiteralDeclaration() ||
-              isInstantiated()))
+              parent->isTemplateInstance() ||
+              ad && ad->parent && ad->parent->isTemplateInstance()))
         {
             for (Dsymbol *p = sc->func; p; p = p->toParent2())
             {
@@ -891,12 +892,13 @@ Ldone:
     /* Purity and safety can be inferred for some functions by examining
      * the function body.
      */
-    TemplateInstance *ti;
     if (fbody &&
         (isFuncLiteralDeclaration() ||
-         isInstantiated() && !isVirtualMethod() &&
-         !(ti = parent->isTemplateInstance(), ti && !ti->isTemplateMixin() && ti->name != ident)))
+         parent->isTemplateInstance() ||
+         ad && ad->parent && ad->parent->isTemplateInstance() && !isVirtualMethod()))
     {
+        /* isVirtualMethod() needs setting correct foverrides
+         */
         if (f->purity == PUREimpure)        // purity not specified
             flags |= FUNCFLAGpurityInprocess;
 
@@ -1840,7 +1842,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         f->deco = NULL;
 
     // Do semantic type AFTER pure/nothrow inference.
-    if (!f->deco && ident != Id::xopEquals && ident != Id::xopCmp)
+    if (!f->deco)
     {
         sc = sc->push();
         sc->stc = 0;
@@ -1895,12 +1897,14 @@ bool FuncDeclaration::functionSemantic()
     if (inferRetType && type && !type->nextOf())
         return functionSemantic3();
 
-    TemplateInstance *ti;
-    if (isInstantiated() && !isVirtualMethod() &&
-        !(ti = parent->isTemplateInstance(), ti && !ti->isTemplateMixin() && ti->name != ident))
+    TemplateInstance *ti = parent->isTemplateInstance();
+    if (ti && !ti->isTemplateMixin() && ti->name == ident)
+        return functionSemantic3();
+
+    AggregateDeclaration *ad = isThis();
+    if (ad && ad->parent && ad->parent->isTemplateInstance() && !isVirtualMethod())
     {
-        AggregateDeclaration *ad = isThis();
-        if (ad && ad->sizeok != SIZEOKdone)
+        if (ad->sizeok != SIZEOKdone)
         {
             /* Currently dmd cannot resolve forward references per methods,
              * then setting SIZOKfwd is too conservative and would break existing code.
