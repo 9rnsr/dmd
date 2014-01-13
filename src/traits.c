@@ -449,7 +449,15 @@ Expression *TraitsExp::semantic(Scope *sc)
          */
         Dsymbol *sym = getDsymbol(o);
         if (sym)
-        {   e = new DsymbolExp(loc, sym);
+        {
+            // TODO: should use same check with allMembers/derivedMembers ?
+            if (sym->isFuncDeclaration())
+            {
+                // avoid unnecessary forward reference errors, see also fail_compilation/xxx.d
+                error("%s %s has no members", sym->kind(), sym->toChars());
+                goto Lfalse;
+            }
+            e = new DsymbolExp(loc, sym);
             e = new DotIdExp(loc, e, id);
         }
         else if (Type *t = isType(o))

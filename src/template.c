@@ -6312,7 +6312,16 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             }
             FuncDeclaration *fd = sa->isFuncDeclaration();
             if (fd)
-                fd->functionSemantic();
+            {
+                if (flags)
+                //if (flags & 1)
+                {
+                //    printf("avoid functionSemantic %s\n", fd->toChars());
+                    fd->semantic(fd->scope);
+                }
+                else
+                    fd->functionSemantic();
+            }
         }
         else if (isParameter(o))
         {
