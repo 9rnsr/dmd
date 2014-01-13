@@ -115,7 +115,8 @@ Dsymbol *FuncDeclaration::syntaxCopy(Dsymbol *s)
 // Do the semantic analysis on the external interface to the function.
 
 void FuncDeclaration::semantic(Scope *sc)
-{   TypeFunction *f;
+{
+    TypeFunction *f;
     AggregateDeclaration *ad;
     ClassDeclaration *cd;
     InterfaceDeclaration *id;
@@ -943,7 +944,8 @@ void FuncDeclaration::semantic2(Scope *sc)
 // Do the semantic analysis on the internals of the function.
 
 void FuncDeclaration::semantic3(Scope *sc)
-{   TypeFunction *f;
+{
+    TypeFunction *f;
     VarDeclaration *argptr = NULL;
     VarDeclaration *_arguments = NULL;
     int nerrors = global.errors;

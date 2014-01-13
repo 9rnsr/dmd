@@ -6142,14 +6142,17 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
 
         Ltype:
             if (ta->ty == Ttuple)
-            {   // Expand tuple
+            {
+                // Expand tuple
                 TypeTuple *tt = (TypeTuple *)ta;
                 size_t dim = tt->arguments->dim;
                 tiargs->remove(j);
                 if (dim)
-                {   tiargs->reserve(dim);
+                {
+                    tiargs->reserve(dim);
                     for (size_t i = 0; i < dim; i++)
-                    {   Parameter *arg = (*tt->arguments)[i];
+                    {
+                        Parameter *arg = (*tt->arguments)[i];
                         if (flags & 2 && arg->ident)
                             tiargs->insert(j + i, arg);
                         else
@@ -6184,7 +6187,8 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                 }
             }
             else if (ea->op == TOKvar)
-            {   /* This test is to skip substituting a const var with
+            {
+                /* This test is to skip substituting a const var with
                  * its initializer. The problem is the initializer won't
                  * match with an 'alias' parameter. Instead, do the
                  * const substitution in TemplateValueParameter::matchArg().
@@ -6200,16 +6204,19 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             }
             //printf("-[%d] ea = %s %s\n", j, Token::toChars(ea->op), ea->toChars());
             if (!flags && isPseudoDsymbol(ea))
-            {   (*tiargs)[j] = new ErrorExp();
+            {
+                (*tiargs)[j] = new ErrorExp();
                 continue;
             }
             if (ea->op == TOKtuple)
-            {   // Expand tuple
+            {
+                // Expand tuple
                 TupleExp *te = (TupleExp *)ea;
                 size_t dim = te->exps->dim;
                 tiargs->remove(j);
                 if (dim)
-                {   tiargs->reserve(dim);
+                {
+                    tiargs->reserve(dim);
                     for (size_t i = 0; i < dim; i++)
                         tiargs->insert(j + i, (*te->exps)[i]);
                 }
@@ -6219,42 +6226,50 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             (*tiargs)[j] = ea;
 
             if (ea->op == TOKtype)
-            {   ta = ea->type;
+            {
+                ta = ea->type;
                 goto Ltype;
             }
             if (ea->op == TOKimport)
-            {   sa = ((ScopeExp *)ea)->sds;
+            {
+                sa = ((ScopeExp *)ea)->sds;
                 goto Ldsym;
             }
             if (ea->op == TOKfunction)
-            {   FuncExp *fe = (FuncExp *)ea;
+            {
+                FuncExp *fe = (FuncExp *)ea;
                 /* A function literal, that is passed to template and
                  * already semanticed as function pointer, never requires
                  * outer frame. So convert it to global function is valid.
                  */
                 if (fe->fd->tok == TOKreserved && fe->type->ty == Tpointer)
-                {   // change to non-nested
+                {
+                    // change to non-nested
                     fe->fd->tok = TOKfunction;
                     fe->fd->vthis = NULL;
                 }
                 else if (fe->td)
-                {   /* If template argument is a template lambda,
+                {
+                    /* If template argument is a template lambda,
                      * get template declaration itself. */
                     //sa = fe->td;
                     //goto Ldsym;
                 }
             }
             if (ea->op == TOKdotvar)
-            {   // translate expression to dsymbol.
+            {
+                // translate expression to dsymbol.
                 sa = ((DotVarExp *)ea)->var;
                 goto Ldsym;
             }
             if (ea->op == TOKtemplate)
-            {   sa = ((TemplateExp *)ea)->td;
+            {
+                sa = ((TemplateExp *)ea)->td;
                 goto Ldsym;
             }
             if (ea->op == TOKdottd)
-            {   // translate expression to dsymbol.
+            {
+                // translate expression to dsymbol.
                 sa = ((DotTemplateExp *)ea)->td;
                 goto Ldsym;
             }
@@ -6264,12 +6279,14 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
         Ldsym:
             //printf("dsym %s %s\n", sa->kind(), sa->toChars());
             if (!flags && isPseudoDsymbol(sa))
-            {   (*tiargs)[j] = new ErrorExp();
+            {
+                (*tiargs)[j] = new ErrorExp();
                 continue;
             }
             TupleDeclaration *d = sa->toAlias()->isTupleDeclaration();
             if (d)
-            {   // Expand tuple
+            {
+                // Expand tuple
                 size_t dim = d->objects->dim;
                 tiargs->remove(j);
                 tiargs->insert(j, d->objects);

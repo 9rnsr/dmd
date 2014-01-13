@@ -261,8 +261,8 @@ Expression *TraitsExp::semantic(Scope *sc)
             error("type expected as second argument of __traits %s instead of %s", ident->toChars(), o->toChars());
             goto Lfalse;
         }
-        if (t->toBasetype()->ty == Tstruct
-              && ((sd = (StructDeclaration *)(((TypeStruct *)t->toBasetype())->sym)) != NULL))
+        if (t->toBasetype()->ty == Tstruct &&
+            ((sd = (StructDeclaration *)(((TypeStruct *)t->toBasetype())->sym)) != NULL))
         {
             if (sd->isPOD())
                 goto Ltrue;
@@ -280,7 +280,9 @@ Expression *TraitsExp::semantic(Scope *sc)
         AggregateDeclaration *a;
         FuncDeclaration *f;
 
-        if (!s) { }
+        if (!s)
+        {
+        }
         else if ((a = s->isAggregateDeclaration()) != NULL)
         {
             if (a->isNested())
@@ -336,7 +338,8 @@ Expression *TraitsExp::semantic(Scope *sc)
         return isDeclX(&isDeclLazy);
     }
     else if (ident == Id::identifier)
-    {   // Get identifier for symbol as a string literal
+    {
+        // Get identifier for symbol as a string literal
 
         /* Specify 0 for bit 0 of the flags argument to semanticTiargs() so that
          * a symbol should not be folded to a constant.
@@ -350,7 +353,8 @@ Expression *TraitsExp::semantic(Scope *sc)
         Parameter *po = isParameter(o);
         Identifier *id;
         if (po)
-        {   id = po->ident;
+        {
+            id = po->ident;
             assert(id);
         }
         else
@@ -453,7 +457,8 @@ Expression *TraitsExp::semantic(Scope *sc)
         else if (Expression *ex = isExpression(o))
             e = new DotIdExp(loc, ex, id);
         else
-        {   error("invalid first argument");
+        {
+            error("invalid first argument");
             goto Lfalse;
         }
 
