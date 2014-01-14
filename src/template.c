@@ -7297,14 +7297,14 @@ int TemplateMixin::addMember(Scope *sc, ScopeDsymbol *s, int memnum)
 //void TemplateMixin::setScope(Scope *sc)
 {
     //printf("%s addMember sc = %p\n", toChars(), sc);
-    for (Scope *sce = sc; 1; sce = sce->enclosing)
+    //for (Scope *sce = sc; 1; sce = sce->enclosing)
     {
-        ScopeDsymbol *sds = (ScopeDsymbol *)sce->scopesym;
+        ScopeDsymbol *sds = s;//(ScopeDsymbol *)sce->scopesym;
         if (sds)
         {
-            //printf("--> %p importScope\n", sds);
+            //printf("--> sds = %s importScope\n", sds->toChars());
             sds->importScope(this, PROTpublic);
-            break;
+            //break;
         }
     }
     //TemplateInstance::setScope(sc);
@@ -7314,7 +7314,7 @@ int TemplateMixin::addMember(Scope *sc, ScopeDsymbol *s, int memnum)
 
 Dsymbol *TemplateMixin::search(Loc loc, Identifier *ident, int flags)
 {
-    //printf("+Mixin::search id = %s, scope = %p, semanticRun = %d\n", ident->toChars(), scope, semanticRun);
+    //printf("+%s Mixin::search id = %s, scope = %p, semanticRun = %d\n", toChars(), ident->toChars(), scope, semanticRun);
 
     if (scope)
     {
@@ -7584,13 +7584,13 @@ void TemplateMixin::semantic(Scope *sc)
         return;
 
     symtab = new DsymbolTable();
-#if 1
+#if 0
     for (Scope *sce = sc; 1; sce = sce->enclosing)
     {
         ScopeDsymbol *sds = (ScopeDsymbol *)sce->scopesym;
         if (sds)
         {
-            //printf("--> %p importScope\n", sds);
+            //printf("-2> sds = %s importScope\n", sds->toChars());
             sds->importScope(this, PROTpublic);
             break;
         }
