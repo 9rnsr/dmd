@@ -661,7 +661,7 @@ void Module::importAll(Scope *prevsc)
         for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (*members)[i];
-            s->addMember(NULL, sc->scopesym, 1);
+            s->addMember(sc, sc->scopesym, 1);
         }
     }
     // anything else should be run after addMember, so version/debug symbols are defined
@@ -720,7 +720,7 @@ void Module::semantic()
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (Dsymbol *)members->data[i];
-        s->addMember(NULL, sc->scopesym, 1);
+        s->addMember(sc, sc->scopesym, 1);
     }
 
     /* Set scope for the symbols so that if we forward reference

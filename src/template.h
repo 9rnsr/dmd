@@ -366,10 +366,13 @@ public:
 
     TemplateMixin(Loc loc, Identifier *ident, TypeQualified *tqual, Objects *tiargs);
     Dsymbol *syntaxCopy(Dsymbol *s);
+    //void setScope(Scope *sc);
+    int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
     void inlineScan();
+    Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
     const char *kind();
     bool oneMember(Dsymbol **ps, Identifier *ident);
     int apply(Dsymbol_apply_ft_t fp, void *param);

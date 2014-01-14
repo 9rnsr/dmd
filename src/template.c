@@ -7293,6 +7293,54 @@ Dsymbol *TemplateMixin::syntaxCopy(Dsymbol *s)
     return tm;
 }
 
+int TemplateMixin::addMember(Scope *sc, ScopeDsymbol *s, int memnum)
+//void TemplateMixin::setScope(Scope *sc)
+{
+    //printf("%s addMember sc = %p\n", toChars(), sc);
+    for (Scope *sce = sc; 1; sce = sce->enclosing)
+    {
+        ScopeDsymbol *sds = (ScopeDsymbol *)sce->scopesym;
+        if (sds)
+        {
+            //printf("--> %p importScope\n", sds);
+            sds->importScope(this, PROTpublic);
+            break;
+        }
+    }
+    //TemplateInstance::setScope(sc);
+    return TemplateInstance::addMember(sc, s, memnum);
+    //return 1;
+}
+
+Dsymbol *TemplateMixin::search(Loc loc, Identifier *ident, int flags)
+{
+    //printf("+Mixin::search id = %s, scope = %p, semanticRun = %d\n", ident->toChars(), scope, semanticRun);
+
+    if (scope)
+    {
+        size_t dim = Module::amodules.dim;
+        char *insearch = (char *)mem.malloc(sizeof(char) * dim);
+        for (size_t i = 0; i < dim; ++i)
+        {
+            Module *m = Module::amodules[i];
+            insearch[i] = m->insearch;
+            m->insearch = 0;
+        }
+
+        semantic(scope);
+
+        for (size_t i = 0; i < dim; ++i)
+        {
+            Module *m = Module::amodules[i];
+            m->insearch = insearch[i];
+        }
+        mem.free(insearch);
+    }
+    //printf("-Mixin::search id = %s, scope = %p, semanticRun = %d\n", ident->toChars(), scope, semanticRun);
+
+    return TemplateInstance::search(loc, ident, flags);
+}
+
 bool TemplateMixin::findTemplateDeclaration(Scope *sc)
 {
     // Follow qualifications to find the TemplateDeclaration
@@ -7536,17 +7584,18 @@ void TemplateMixin::semantic(Scope *sc)
         return;
 
     symtab = new DsymbolTable();
-
+#if 1
     for (Scope *sce = sc; 1; sce = sce->enclosing)
     {
         ScopeDsymbol *sds = (ScopeDsymbol *)sce->scopesym;
         if (sds)
         {
+            //printf("--> %p importScope\n", sds);
             sds->importScope(this, PROTpublic);
             break;
         }
     }
-
+#endif
 #if LOG
     printf("\tcreate scope for template parameters '%s'\n", toChars());
 #endif

@@ -680,6 +680,7 @@ void StructDeclaration::semantic(Scope *sc)
 
         // Ungag errors when not speculative
         Ungag ungag = ungagSpeculative();
+        //printf("struct: semantic %s %s\n", s->kind(), s->toChars());
         s->semantic(sc2);
     }
     finalizeSize(sc2);
