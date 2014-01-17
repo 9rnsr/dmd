@@ -825,6 +825,10 @@ Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2)
                 cmp = 0;
         }
     }
+    else if (e1->op == TOKfunction && e2->op == TOKfunction)
+    {
+        cmp = e1->equals(e2);
+    }
     else if (e1->isConst() != 1 || e2->isConst() != 1)
         return EXP_CANT_INTERPRET;
     else if (e1->type->isreal())

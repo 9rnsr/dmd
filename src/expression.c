@@ -5983,6 +5983,21 @@ void FuncExp::genIdent(Scope *sc)
     }
 }
 
+bool FuncExp::equals(RootObject *o)
+{
+    if (this == o)
+        return true;
+    if (o && o->dyncast() == DYNCAST_EXPRESSION &&
+        ((Expression *)o)->op == TOKfunction)
+    {
+        FuncExp *fe = (FuncExp *)o;
+        //printf("this = %s, o = %s\n", type->toChars(), fe->type->toChars());
+        return type->equals(fe->type);
+        //return true;
+    }
+    return false;
+}
+
 Expression *FuncExp::syntaxCopy()
 {
     TemplateDeclaration *td2;
@@ -13606,6 +13621,28 @@ Expression *EqualExp::semantic(Scope *sc)
         assert(e);
         e = combine(combine(tup1->e0, tup2->e0), e);
         return e->semantic(sc);
+    }
+
+    if (e1->op == TOKfunction && e2->op == TOKfunction)
+    {
+        if (e1->type->nextOf() && e2->type->ty == Tvoid)
+        {
+            ((FuncExp *)e1)->fd->isPure();
+            e2 = e2->inferType(e1->type);
+            e2 = e2->semantic(sc);
+            printf("equ funcs e2 => %s %s\n", e2->type->toChars(), e2->toChars());
+            if (e2->op == TOKfunction)
+                ((FuncExp *)e2)->fd->isPure();
+        }
+        else if (e1->type->ty == Tvoid && e2->type->nextOf())
+        {
+            ((FuncExp *)e2)->fd->isPure();
+            e1 = e1->inferType(e2->type);
+            e1 = e1->semantic(sc);
+            printf("equ funcs e1 => %s %s\n", e1->type->toChars(), e1->toChars());
+            if (e1->op == TOKfunction)
+                ((FuncExp *)e1)->fd->isPure();
+        }
     }
 
     e = typeCombine(sc);
