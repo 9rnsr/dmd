@@ -1147,6 +1147,8 @@ void TemplateInstance::toObjFile(int multiobj)
 #endif
     if (!isError(this) && members)
     {
+        if (speculative)
+            return;
         if (multiobj)
             // Append to list of object files to be written later
             obj_append(this);
