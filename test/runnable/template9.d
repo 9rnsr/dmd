@@ -204,6 +204,13 @@ void test1780()
 }
 
 /**********************************/
+// 3043
+
+struct Temp3043(alias a) {}
+template sym3043() {}
+static assert(Temp3043!(sym3043).mangleof == "S7breaker30__T8Temp3043S7breaker7sym3043Z8Temp3043");
+
+/**********************************/
 // 3608
 
 template foo3608(T, U){}

@@ -2325,8 +2325,8 @@ void f9525(T)(in T*) { }
 
 void test9525()
 {
-    enum result1 = "S6nested8test9525FZv26__T5test1S136nested5f9525Z5test1MFZ1S";
-    enum result2 = "S6nested8test9525FZv26__T5test2S136nested5f9525Z5test2MFNaNbZ1S";
+    enum result1 = "S6nested8test9525FZv24__T5test1S6nested5f9525Z5test1MFZ1S";
+    enum result2 = "S6nested8test9525FZv24__T5test2S6nested5f9525Z5test2MFNaNbZ1S";
 
     void test1(alias a)()
     {
@@ -2368,8 +2368,7 @@ void test11718()
         enum s = "_D6nested36__T7fn11718T"~
                  "S6nested9test11718FZv1AZ7fn11718"~paramPart~"1a"~
                  "S6nested9test11718FZv1A";
-        enum int len = s.length;
-        return len.stringof ~ s;
+        return s;
     }
     enum result1 = TyName!("S" ~ fnName!("F"~"S6nested9test11718FZv1A"~"Z") ~ "Z") ~ "7Ty11718";
     enum result2 = TyName!("S" ~ fnName!("F"~""                       ~"Z") ~ "Z") ~ "7Ty11718";
@@ -2394,8 +2393,8 @@ void test11776()
         {
             auto s = S11776!(a => 1)();
             static assert(typeof(s).mangleof ==
-                "S"~"6nested"~"57"~(
-                    "__T"~"6S11776"~"S43"~("6nested"~"9test11776"~"FZv"~"9__lambda1MFZ"~"9__lambda1")~"Z"
+                "S"~"6nested"~"55"~(
+                    "__T"~"6S11776"~"S"~("6nested"~"9test11776"~"FZv"~"9__lambda1MFZ"~"9__lambda1")~"Z"
                 )~"6S11776");
         }
     };
