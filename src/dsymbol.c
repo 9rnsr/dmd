@@ -34,7 +34,7 @@
 #include "enum.h"
 
 const char* Pprotectionnames[] = {NULL, "none", "private", "package", "protected", "public", "export"};
-
+const char* LinkageNames[] = {NULL, "D", "C", "C++", "Windows", "Pascal"};
 
 /****************************** Dsymbol ******************************/
 

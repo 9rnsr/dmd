@@ -96,6 +96,9 @@ enum PROT
 // this is used for printing the protection in json, traits, docs, etc.
 extern const char* Pprotectionnames[];
 
+// this is used for printing the protection in json, traits, docs, etc.
+extern const char* LinkageNames[];
+
 /* State of symbol in winding its way through the passes of the compiler
  */
 enum PASS

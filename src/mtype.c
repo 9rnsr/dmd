@@ -5669,18 +5669,8 @@ void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, Hd
 
     if (hgs->ddoc != 1)
     {
-        const char *p = NULL;
-        switch (attrs->linkage)
-        {
-            case LINKd:         p = NULL;       break;
-            case LINKc:         p = "C";        break;
-            case LINKwindows:   p = "Windows";  break;
-            case LINKpascal:    p = "Pascal";   break;
-            case LINKcpp:       p = "C++";      break;
-            default:
-                assert(0);
-        }
-        if (!hgs->hdrgen && p)
+        const char *p = LinkageNames[attrs->linkage];
+        if (!hgs->hdrgen && attrs->linkage != LINKd)
         {
             buf->writestring("extern (");
             buf->writestring(p);

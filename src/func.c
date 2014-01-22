@@ -2378,8 +2378,16 @@ int FuncDeclaration::findVtblIndex(Dsymbols *vtbl, int dim)
         //printf("%s %s\n", type->deco, mismatch->type->deco);
         //printf("stc = %llx\n", mismatchstc);
         if (mismatchstc)
-        {   // Fix it by modifying the type to add the storage classes
+        {
+            // Fix it by modifying the type to add the storage classes
             type = type->addStorageClass(mismatchstc);
+            bestvi = mismatchvi;
+        }
+        else if (((TypeFunction *)mismatch->type)->linkage != ((TypeFunction *)type)->linkage)
+        {
+            error("extern(%s) does not override extern(%s) function",
+                LinkageNames[((TypeFunction *)type)->linkage],
+                LinkageNames[((TypeFunction *)mismatch->type)->linkage]);
             bestvi = mismatchvi;
         }
     }

@@ -653,19 +653,10 @@ void LinkDeclaration::semantic3(Scope *sc)
 }
 
 void LinkDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{   const char *p;
+{
+    const char *p = LinkageNames[linkage];
+    assert(p);
 
-    switch (linkage)
-    {
-        case LINKd:             p = "D";                break;
-        case LINKc:             p = "C";                break;
-        case LINKcpp:           p = "C++";              break;
-        case LINKwindows:       p = "Windows";          break;
-        case LINKpascal:        p = "Pascal";           break;
-        default:
-            assert(0);
-            break;
-    }
     buf->writestring("extern (");
     buf->writestring(p);
     buf->writestring(") ");
