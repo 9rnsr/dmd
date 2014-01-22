@@ -2368,7 +2368,8 @@ void test11718()
         enum s = "_D6nested36__T7fn11718T"~
                  "S6nested9test11718FZv1AZ7fn11718"~paramPart~"1a"~
                  "S6nested9test11718FZv1A";
-        return s;
+        enum int len = s.length;
+        return len.stringof ~ s;
     }
     enum result1 = TyName!("S" ~ fnName!("F"~"S6nested9test11718FZv1A"~"Z") ~ "Z") ~ "7Ty11718";
     enum result2 = TyName!("S" ~ fnName!("F"~""                       ~"Z") ~ "Z") ~ "7Ty11718";

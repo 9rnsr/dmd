@@ -6831,7 +6831,10 @@ Identifier *TemplateInstance::genIdent(Objects *args)
             }
 #endif
             const char *p = sa->mangle();
-            buf.printf("%s", p);
+            if (sa->isFuncDeclaration() || sa->isVarDeclaration())
+                buf.printf("%llu%s", (ulonglong)strlen(p), p);
+            else
+                buf.printf("%s", p);
         }
         else if (va)
         {
