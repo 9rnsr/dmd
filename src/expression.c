@@ -6089,9 +6089,6 @@ Expression *FuncExp::semantic(Scope *sc)
         {
             if (fd->type && fd->type->ty == Tfunction && !fd->type->nextOf())
                 ((TypeFunction *)fd->type)->next = Type::terror;
-            //printf("\terr!\n");
-            //printf("[%s] fd->type = %s, sem3err = %d, err = %d => %d\n",
-            //    loc.toChars(), fd->type->toChars(), fd->semantic3Errors, olderrors, global.errors);
             return new ErrorExp();
         }
 
@@ -8475,10 +8472,7 @@ Expression *CallExp::semantic(Scope *sc)
         FuncExp *fe = (FuncExp *)e1;
         e1 = fe->semantic(sc, arguments);
         if (e1->op == TOKerror)
-        {
-        //printf("\tL%d call error: %s\n", __LINE__, toChars());
             return e1;
-        }
     }
 
     {
@@ -8595,10 +8589,7 @@ Lagain:
             UnaExp::semantic(sc);
             --nest;
             if (e1->op == TOKerror)
-            {
-        //printf("\tL%d call error: %s\n", __LINE__, toChars());
                 return e1;
-            }
         }
 
         /* Look for e1 being a lazy parameter
@@ -8680,10 +8671,7 @@ Lagain:
     }
 
     if (e1->op == TOKerror)
-    {
-        //printf("\tL%d call error: %s\n", __LINE__, toChars());
         return e1;
-    }
     if (arrayExpressionSemantic(arguments, sc) ||
         preFunctionParameters(loc, sc, arguments))
     {
@@ -9196,14 +9184,6 @@ Lagain:
         arguments = new Expressions();
     int olderrors = global.errors;
     type = functionParameters(loc, sc, (TypeFunction *)(t1), tthis, arguments, f);
-    if (global.errors && type)
-    {
-        //printf("%s: f->errors = %d, sem3err = %d, type = %s\n", toChars(), f->errors, f->semantic3Errors, f->type->toChars());
-        Dsymbol *s = type->toDsymbol(NULL);
-        AggregateDeclaration *ad = s ? s->isAggregateDeclaration() : NULL;
-        //if (ad)
-        //    printf("\tad->errors = %d, ad->type = %s\n", ad->errors, ad->type->toChars());
-    }
     if (olderrors != global.errors)
         return new ErrorExp();
 
