@@ -873,6 +873,8 @@ void VarDeclaration::semantic(Scope *sc)
 
         if (needctfe) sc = sc->endCTFE();
 //      type = type->semantic(loc, sc);
+        //if (global.errors)
+        //    printf("-- [%s] init - %s %s\n", loc.toChars(), type->toChars(), init->toChars());
 
         inuse--;
         inferred = 1;

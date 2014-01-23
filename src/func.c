@@ -1331,6 +1331,9 @@ void FuncDeclaration::semantic3(Scope *sc)
             fbody = fbody->semantic(sc2);
             if (!fbody)
                 fbody = new CompoundStatement(Loc(), new Statements());
+            //printf("%s: fbody->isErrorStatement = %d\n", toPrettyChars(), fbody->isErrorStatement() != NULL);
+            if (fbody->isErrorStatement() != NULL)
+                ++nerrors;
 
             if (inferRetType)
             {
@@ -1864,7 +1867,10 @@ void FuncDeclaration::semantic3(Scope *sc)
     semantic3Errors = (global.errors != nerrors);
     if (type->ty == Terror)
         errors = true;
-    //printf("-FuncDeclaration::semantic3('%s.%s', sc = %p, loc = %s)\n", parent->toChars(), toChars(), sc, loc.toChars());
+
+    //if (errors || semantic3Errors)
+    //if (global.errors)
+    //    printf("-FuncDeclaration::semantic3('%s.%s', sc = %p, loc = %s, errors = %d, semantic3Errors = %d)\n", parent->toChars(), toChars(), sc, loc.toChars(), errors, semantic3Errors);
     //fflush(stdout);
 }
 
