@@ -471,12 +471,16 @@ MATCH StringExp::implicitConvTo(Type *t)
                     }
                     else if (type->ty == Tarray)
                     {
+                        TY tynto = t->nextOf()->ty;
+                        if (tynto == tyn)
+                        {
+                            if (this->len > ((TypeSArray *)t)->dim->toInteger())
+                                return MATCHnomatch;
+                            return MATCHexact;
+                        }
                         if (length() >
                             ((TypeSArray *)t)->dim->toInteger())
                             return MATCHnomatch;
-                        TY tynto = t->nextOf()->ty;
-                        if (tynto == tyn)
-                            return MATCHexact;
                         if (!committed && (tynto == Tchar || tynto == Twchar || tynto == Tdchar))
                             return MATCHexact;
                     }
