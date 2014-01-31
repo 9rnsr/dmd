@@ -780,6 +780,30 @@ void test11291()
 }
 
 /***************************************/
+// XXXXX
+
+void testXXXXX()
+{
+    struct S
+    {
+        int x;
+        double y;
+    }
+
+    string result;
+    size_t[] offset;
+    foreach (i, v; S.tupleof)
+    {
+        static if (i > 0)
+            result ~= ", ";
+        result ~= typeof(v).stringof ~ " " ~ __traits(identifier, v);
+        offset ~= v.offsetof;
+    }
+    assert(result == "int x, double y");
+    assert(offset == [S.x.offsetof, S.y.offsetof]);
+}
+
+/***************************************/
 
 int main()
 {
@@ -803,6 +827,7 @@ int main()
     test10475a();
     test10475b();
     test11291();
+    testXXXXX();
 
     printf("Success\n");
     return 0;
