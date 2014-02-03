@@ -5327,6 +5327,12 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         error("mixin templates are not regular templates");
 
     hasNestedArgs(tiargs, tempdecl->isstatic);
+    if (enclosing)
+    {
+        AggregateDeclaration *ad = enclosing->isAggregateDeclaration();
+        if (ad && !sc->func)
+            enclosing = NULL;
+    }
 
     /* See if there is an existing TemplateInstantiation that already
      * implements the typeargs. If so, just refer to that one instead.
@@ -6622,22 +6628,6 @@ bool TemplateInstance::hasNestedArgs(Objects *args, bool isstatic)
                 if (isstatic)
                 {
                     Dsymbol *dparent = sa->toParent2();
-                    if (dparent->isAggregateDeclaration())
-                    {
-                        /* If 'sa' is a field or a member function, to capture the object reference
-                         * 'dparent' should appear in lexical scope of this template declaration.
-                         * If not, there is no way to supply context to the template instance, so
-                         * we can elide 'enclosing' pointer.
-                         */
-                        Dsymbol *p = tempdecl->parent;
-                        for (; p; p = p->parent)
-                        {
-                            if (p == dparent)
-                                break;
-                        }
-                        if (!p)
-                            continue;
-                    }
                     if (!enclosing)
                         enclosing = dparent;
                     else if (enclosing != dparent)
