@@ -1280,10 +1280,6 @@ bool Expression::checkPostblit(Scope *sc, Type *t)
     t = t->baseElemOf();
     if (t->ty == Tstruct)
     {
-        // Bugzilla 11395: Require TypeInfo generation for array concatenation
-        if (!t->vtinfo)
-            t->getTypeInfo(sc);
-
         StructDeclaration *sd = ((TypeStruct *)t)->sym;
         if (sd->postblit)
         {
@@ -4996,8 +4992,8 @@ Lagain:
         goto Lerr;
     }
 
-//printf("NewExp: '%s'\n", toChars());
-//printf("NewExp:type '%s'\n", type->toChars());
+    //printf("NewExp: '%s'\n", toChars());
+    //printf("NewExp:type '%s'\n", type->toChars());
 
     return this;
 
@@ -5806,13 +5802,15 @@ Expression *TypeidExp::semantic(Scope *sc)
     }
 
     if (ea && ta->toBasetype()->ty == Tclass)
-    {   /* Get the dynamic type, which is .classinfo
+    {
+        /* Get the dynamic type, which is .classinfo
          */
         e = new DotIdExp(ea->loc, ea, Id::classinfo);
         e = e->semantic(sc);
     }
     else
-    {   /* Get the static type
+    {
+        /* Get the static type
          */
         e = ta->getTypeInfo(sc);
         if (e->loc.linnum == 0)
@@ -8989,8 +8987,6 @@ DeleteExp::DeleteExp(Loc loc, Expression *e)
 
 Expression *DeleteExp::semantic(Scope *sc)
 {
-    Type *tb;
-
     UnaExp::semantic(sc);
     e1 = resolveProperties(sc, e1);
     e1 = e1->modifiableLvalue(sc, NULL);
@@ -8998,7 +8994,7 @@ Expression *DeleteExp::semantic(Scope *sc)
         return e1;
     type = Type::tvoid;
 
-    tb = e1->type->toBasetype();
+    Type *tb = e1->type->toBasetype();
     switch (tb->ty)
     {   case Tclass:
         {   TypeClass *tc = (TypeClass *)tb;
@@ -12681,7 +12677,8 @@ Expression *EqualExp::semantic(Scope *sc)
         (t2->ty == Tarray || t2->ty == Tsarray))
     {
         if (needDirectEq(t1, t2))
-        {   /* Rewrite as:
+        {
+            /* Rewrite as:
              * _ArrayEq(e1, e2)
              */
             Expression *eq = new IdentifierExp(loc, Id::_ArrayEq);

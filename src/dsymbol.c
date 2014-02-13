@@ -851,6 +851,12 @@ bool Dsymbol::needsCodegen()
             s = fd->toParent2();
             continue;
         }
+        AggregateDeclaration *ad = s->isAggregateDeclaration();
+        if (ad && ad->isNested())
+        {
+            s = ad->toParent2();
+            continue;
+        }
         break;
     }
 
@@ -912,6 +918,13 @@ Lagain:
          * code generation.
          */
         s = fd->toParent2();
+        if (s)
+            goto Lagain;
+    }
+    AggregateDeclaration *ad = s->isAggregateDeclaration();
+    if (ad && ad->isNested())
+    {
+        s = ad->toParent2();
         if (s)
             goto Lagain;
     }
