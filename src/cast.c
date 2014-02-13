@@ -119,6 +119,19 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
             //printf("FuncExp::implicitCastTo type = %p %s, t = %s\n", e->type, e->type ? e->type->toChars() : NULL, t->toChars());
             visit((Expression *)e->inferType(t));
         }
+
+        void visit(ArrayLiteralExp *e)
+        {
+            visit((Expression *)e);
+
+            Type *tb = result->type->toBasetype();
+            if (tb->ty == Tarray)
+            {
+                tb = ((TypeDArray *)tb)->next->toBasetype();
+                if (tb->ty == Tstruct)
+                    makeTypeInfo(sc, tb);
+            }
+        }
     };
 
     ImplicitCastTo v(sc, t);

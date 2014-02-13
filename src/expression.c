@@ -1257,11 +1257,13 @@ Expression *valueNoDtor(Expression *e)
 /********************************************
  * Determine if t is an array of structs that need a default construction.
  */
-bool checkDefCtor(Loc loc, Type *t)
+bool checkDefCtor(Loc loc, Scope *sc, Type *t)
 {
     t = t->baseElemOf();
     if (t->ty == Tstruct)
     {
+        if (sc) makeTypeInfo(sc, t);
+
         StructDeclaration *sd = ((TypeStruct *)t)->sym;
         if (sd->noDefaultCtor)
         {
@@ -1615,7 +1617,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 if (!t->isMutable() || !t->isAssignable())  // check blit assignable
                     arg->error("cannot modify struct %s with immutable members", arg->toChars());
                 else
-                    checkDefCtor(arg->loc, t);
+                    checkDefCtor(arg->loc, NULL, t);
                 arg = arg->toLvalue(sc, arg);
             }
             else if (p->storageClass & STClazy)
@@ -3979,6 +3981,10 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
         return new ErrorExp();
     }
 
+    Type *tb = t0->toBasetype();
+    if (tb->ty == Tstruct)
+        makeTypeInfo(sc, tb);
+
     return this;
 }
 
@@ -4979,6 +4985,7 @@ Lagain:
             (*arguments)[i] =  arg;
             tb = ((TypeDArray *)tb)->next->toBasetype();
         }
+        makeTypeInfo(sc, tb);
     }
     else if (tb->isscalar())
     {
@@ -5805,15 +5812,17 @@ Expression *TypeidExp::semantic(Scope *sc)
     }
 
     if (ea && ta->toBasetype()->ty == Tclass)
-    {   /* Get the dynamic type, which is .classinfo
+    {
+        /* Get the dynamic type, which is .classinfo
          */
         e = new DotIdExp(ea->loc, ea, Id::classinfo);
         e = e->semantic(sc);
     }
     else
-    {   /* Get the static type
+    {
+        /* Get the static type
          */
-        e = getTypeInfo(sc, ta);
+        e = getFullTypeInfo(sc, ta);
         if (e->loc.linnum == 0)
             e->loc = loc;               // so there's at least some line number info
         if (ea)
@@ -10923,7 +10932,7 @@ Ltupleassign:
         if (ale->e1->op == TOKerror)
             return ale->e1;
 
-        checkDefCtor(ale->loc, ale->e1->type->toBasetype()->nextOf());
+        checkDefCtor(ale->loc, sc, ale->e1->type->toBasetype()->nextOf());
     }
     else if (e1->op == TOKslice)
     {
