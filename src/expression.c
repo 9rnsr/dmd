@@ -12613,7 +12613,7 @@ EqualExp::EqualExp(TOK op, Loc loc, Expression *e1, Expression *e2)
     assert(op == TOKequal || op == TOKnotequal);
 }
 
-int needDirectEq(Type *t1, Type *t2)
+int needDirectEq(Scope *sc, Type *t1, Type *t2)
 {
     assert(t1->ty == Tarray || t1->ty == Tsarray);
     assert(t2->ty == Tarray || t2->ty == Tsarray);
@@ -12637,6 +12637,7 @@ int needDirectEq(Type *t1, Type *t2)
     if (t->ty != Tstruct)
         return false;
 
+    makeTypeInfo(sc, t);
     return ((TypeStruct *)t)->sym->hasIdentityEquals;
 }
 
@@ -12688,8 +12689,9 @@ Expression *EqualExp::semantic(Scope *sc)
     if ((t1->ty == Tarray || t1->ty == Tsarray) &&
         (t2->ty == Tarray || t2->ty == Tsarray))
     {
-        if (needDirectEq(t1, t2))
-        {   /* Rewrite as:
+        if (needDirectEq(sc, t1, t2))
+        {
+            /* Rewrite as:
              * _ArrayEq(e1, e2)
              */
             Expression *eq = new IdentifierExp(loc, Id::_ArrayEq);
