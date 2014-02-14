@@ -741,7 +741,7 @@ void StructDeclaration::semantic(Scope *sc)
     //if ((xeq && xeq != xerreq || xcmp && xcmp != xerrcmp) && isImportedSym(this))
     //    Module::addDeferredSemantic3(this);
     /* Defer requesting semantic3 until TypeInfo generation is actually invoked.
-     * See Type::getTypeInfo().
+     * See getTypeInfo().
      */
     inv = buildInv(sc2);
 

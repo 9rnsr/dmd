@@ -899,15 +899,6 @@ Expression *Type::getInternalTypeInfo(Scope *sc)
     return NULL;
 }
 
-Expression *Type::getTypeInfo(Scope *sc)
-{
-    Declaration *ti = new TypeInfoDeclaration(this, 1);
-    Expression *e = new VarExp(Loc(), ti);
-    e = e->addressOf(sc);
-    e->type = ti->type;
-    return e;
-}
-
 TypeInfoDeclaration *Type::getTypeInfoDeclaration()
 {
     assert(0);
@@ -1025,7 +1016,7 @@ Expression *createTypeInfoArray(Scope *sc, Expression *exps[], size_t dim)
         (*args)[i] = arg;
     }
     TypeTuple *tup = new TypeTuple(args);
-    Expression *e = tup->getTypeInfo(sc);
+    Expression *e = getTypeInfo(sc, tup);
     e = e->optimize(WANTvalue);
     assert(e->op == TOKsymoff);         // should be SymOffExp
 

@@ -50,6 +50,10 @@ typedef struct TYPE type;
 struct Symbol;
 class TypeTuple;
 
+void makeTypeInfo(Scope *sc, Type *t);
+Expression *getTypeInfo(Scope *sc, Type *t);
+Expression *getFullTypeInfo(Scope *sc, Type *t);
+
 enum ENUMTY
 {
     Tarray,             // slice array, aka T[]
@@ -326,7 +330,6 @@ public:
     virtual MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL);
     virtual void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     Expression *getInternalTypeInfo(Scope *sc);
-    Expression *getTypeInfo(Scope *sc);
     virtual TypeInfoDeclaration *getTypeInfoDeclaration();
     virtual int builtinTypeInfo();
     virtual Type *reliesOnTident(TemplateParameters *tparams = NULL);

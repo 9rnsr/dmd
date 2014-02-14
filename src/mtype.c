@@ -2133,7 +2133,7 @@ Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
     else if (ident == Id::typeinfo)
     {
         error(loc, ".typeinfo deprecated, use typeid(type)");
-        e = getTypeInfo(NULL);
+        e = getTypeInfo(NULL, this);
     }
     else if (ident == Id::init)
     {
@@ -2243,7 +2243,7 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
     if (ident == Id::typeinfo)
     {
         error(e->loc, ".typeinfo deprecated, use typeid(type)");
-        e = getTypeInfo(sc);
+        e = getTypeInfo(sc, this);
     }
     else if (ident == Id::stringof)
     {   /* Bugzilla 3796: this should demangle e->type->deco rather than
@@ -3817,7 +3817,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         e = e->castTo(sc, n->arrayOf());        // convert to dynamic array
         arguments = new Expressions();
         if (dup)
-            arguments->push(getTypeInfo(sc));
+            arguments->push(getTypeInfo(sc, this));
         arguments->push(e);
         if (!dup)
             arguments->push(new IntegerExp(Loc(), size, Type::tsize_t));
@@ -3861,7 +3861,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         arguments = new Expressions();
         arguments->push(e);
         arguments->push(n->ty == Tsarray
-                    ? n->getTypeInfo(sc)        // don't convert to dynamic array
+                    ? getTypeInfo(sc, n)        // don't convert to dynamic array
                     : n->getInternalTypeInfo(sc));
         e = new CallExp(e->loc, ec, arguments);
         e->type = next->arrayOf();
@@ -8459,7 +8459,7 @@ L1:
         if (ident == Id::typeinfo)
         {
             error(e->loc, ".typeinfo deprecated, use typeid(type)");
-            return getTypeInfo(sc);
+            return getTypeInfo(sc, this);
         }
         if (ident == Id::outer && sym->vthis)
         {

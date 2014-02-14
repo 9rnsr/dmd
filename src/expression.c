@@ -1281,8 +1281,7 @@ bool Expression::checkPostblit(Scope *sc, Type *t)
     if (t->ty == Tstruct)
     {
         // Bugzilla 11395: Require TypeInfo generation for array concatenation
-        if (!t->vtinfo)
-            t->getTypeInfo(sc);
+        makeTypeInfo(sc, t);
 
         StructDeclaration *sd = ((TypeStruct *)t)->sym;
         if (sd->postblit)
@@ -5814,7 +5813,7 @@ Expression *TypeidExp::semantic(Scope *sc)
     else
     {   /* Get the static type
          */
-        e = ta->getTypeInfo(sc);
+        e = getTypeInfo(sc, ta);
         if (e->loc.linnum == 0)
             e->loc = loc;               // so there's at least some line number info
         if (ea)

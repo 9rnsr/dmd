@@ -805,7 +805,7 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
                     Expression *ea = new AddrExp(loc, ex);
                     ea = new CastExp(loc, ea, Type::tvoid->pointerTo());
 
-                    Expression *et = v->type->getTypeInfo(sc);
+                    Expression *et = getTypeInfo(sc, v->type);
                     et = new DotIdExp(loc, et, Id::postblit);
 
                     ex = new CallExp(loc, et, ea);
@@ -916,7 +916,7 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
                     Expression *ea = new AddrExp(loc, ex);
                     ea = new CastExp(loc, ea, Type::tvoid->pointerTo());
 
-                    Expression *et = v->type->getTypeInfo(sc);
+                    Expression *et = getTypeInfo(sc, v->type);
                     et = new DotIdExp(loc, et, Id::destroy);
 
                     ex = new CallExp(loc, et, ea);

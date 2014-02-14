@@ -2059,7 +2059,7 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
                 Expressions *args = new Expressions();
                 args->push(ea);
 
-                Expression *et = type->getTypeInfo(sc);
+                Expression *et = getTypeInfo(sc, type);
                 et = new DotIdExp(loc, et, Id::destroy);
 
                 e = new CallExp(loc, et, args);
