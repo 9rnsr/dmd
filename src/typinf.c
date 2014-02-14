@@ -100,10 +100,30 @@ FuncDeclaration *search_toString(StructDeclaration *sd);
 
 void makeTypeInfo(Scope *sc, Type *t)
 {
+                if (t->ty == Tstruct)
+                {
+                    Dsymbol *s;
+                    StructDeclaration *sd = ((TypeStruct *)t)->sym;
+                    if ((sd->xeq  && sd->xeq  != sd->xerreq  ||
+                         sd->xcmp && sd->xcmp != sd->xerrcmp ||
+                         (sd->postblit && !(sd->postblit->storage_class & STCdisable)) ||
+                         sd->dtor ||
+                         search_toHash(sd) ||
+                         search_toString(sd)
+                        ) && sd->inNonRoot())
+                    {
+                        //printf("deferred sem3 for TypeInfo - sd = %s, inNonRoot = %d\n", sd->toChars(), sd->inNonRoot());
+                        Module::addDeferredSemantic3(sd);
+                    }
+                }
+}
+
+void makeTypeInfoX(Scope *sc, Type *t)
+{
     Type *t2 = t->merge2(); // do this since not all Type's are merge'd
     if (t2 != t)            // Types aren't merged, but we can share the vtinfo's
     {
-        makeTypeInfo(sc, t2);
+        makeTypeInfoX(sc, t2);
         t->vtinfo = t2->vtinfo;
     }
     if (!t->vtinfo)
@@ -132,22 +152,7 @@ void makeTypeInfo(Scope *sc, Type *t)
                 Module *m = sc->module->importedFrom;
                 m->members->push(t->vtinfo);
 
-                if (t->ty == Tstruct)
-                {
-                    Dsymbol *s;
-                    StructDeclaration *sd = ((TypeStruct *)t)->sym;
-                    if ((sd->xeq  && sd->xeq  != sd->xerreq  ||
-                         sd->xcmp && sd->xcmp != sd->xerrcmp ||
-                         (sd->postblit && !(sd->postblit->storage_class & STCdisable)) ||
-                         sd->dtor ||
-                         search_toHash(sd) ||
-                         search_toString(sd)
-                        ) && sd->inNonRoot())
-                    {
-                        //printf("deferred sem3 for TypeInfo - sd = %s, inNonRoot = %d\n", sd->toChars(), sd->inNonRoot());
-                        Module::addDeferredSemantic3(sd);
-                    }
-                }
+                makeTypeInfo(sc, t);
             }
             else                        // if in obj generation pass
             {
@@ -167,7 +172,7 @@ Expression *getTypeInfo(Scope *sc, Type *t)
         fatal();
     }
 
-    makeTypeInfo(sc, t);
+    makeTypeInfoX(sc, t);
     Expression *e = VarExp::create(Loc(), t->vtinfo);
     e = e->addressOf(sc);
     e->type = t->vtinfo->type;  // do this so we don't get redundant dereference
@@ -193,7 +198,7 @@ Expression *getFullTypeInfo(Scope *sc, Type *t)
         }
         void visit(TypeStruct *t)
         {
-            makeTypeInfo(sc, t);
+            makeTypeInfoX(sc, t);
         }
         void visit(TypeEnum *t) { t->sym->getMemtype(Loc())->accept(this); }
         void visit(TypeTypedef *t) { t->sym->basetype->accept(this); }
@@ -334,7 +339,7 @@ public:
         dtsize_t(pdt, 0);                        // monitor
         Type *tm = d->tinfo->mutableOf();
         tm = tm->merge();
-        makeTypeInfo(NULL, tm);
+        makeTypeInfoX(NULL, tm);
         dtxoff(pdt, tm->vtinfo->toSymbol(), 0);
     }
 
@@ -347,7 +352,7 @@ public:
         dtsize_t(pdt, 0);                        // monitor
         Type *tm = d->tinfo->mutableOf();
         tm = tm->merge();
-        makeTypeInfo(NULL, tm);
+        makeTypeInfoX(NULL, tm);
         dtxoff(pdt, tm->vtinfo->toSymbol(), 0);
     }
 
@@ -360,7 +365,7 @@ public:
         dtsize_t(pdt, 0);                        // monitor
         Type *tm = d->tinfo->unSharedOf();
         tm = tm->merge();
-        makeTypeInfo(NULL, tm);
+        makeTypeInfoX(NULL, tm);
         dtxoff(pdt, tm->vtinfo->toSymbol(), 0);
     }
 
@@ -373,7 +378,7 @@ public:
         dtsize_t(pdt, 0);                        // monitor
         Type *tm = d->tinfo->mutableOf();
         tm = tm->merge();
-        makeTypeInfo(NULL, tm);
+        makeTypeInfoX(NULL, tm);
         dtxoff(pdt, tm->vtinfo->toSymbol(), 0);
     }
 
@@ -398,7 +403,7 @@ public:
          */
 
         sd->basetype = sd->basetype->merge();
-        makeTypeInfo(NULL, sd->basetype);            // generate vtinfo
+        makeTypeInfoX(NULL, sd->basetype);            // generate vtinfo
         assert(sd->basetype->vtinfo);
         dtxoff(pdt, sd->basetype->vtinfo->toSymbol(), 0);   // TypeInfo for basetype
 
@@ -442,7 +447,7 @@ public:
 
         if (sd->memtype)
         {
-            makeTypeInfo(NULL, sd->memtype);
+            makeTypeInfoX(NULL, sd->memtype);
             dtxoff(pdt, sd->memtype->vtinfo->toSymbol(), 0);        // TypeInfo for enum members
         }
         else
@@ -479,7 +484,7 @@ public:
 
         TypePointer *tc = (TypePointer *)d->tinfo;
 
-        makeTypeInfo(NULL, tc->next);
+        makeTypeInfoX(NULL, tc->next);
         dtxoff(pdt, tc->next->vtinfo->toSymbol(), 0); // TypeInfo for type being pointed to
     }
 
@@ -495,7 +500,7 @@ public:
 
         TypeDArray *tc = (TypeDArray *)d->tinfo;
 
-        makeTypeInfo(NULL, tc->next);
+        makeTypeInfoX(NULL, tc->next);
         dtxoff(pdt, tc->next->vtinfo->toSymbol(), 0); // TypeInfo for array of type
     }
 
@@ -511,7 +516,7 @@ public:
 
         TypeSArray *tc = (TypeSArray *)d->tinfo;
 
-        makeTypeInfo(NULL, tc->next);
+        makeTypeInfoX(NULL, tc->next);
         dtxoff(pdt, tc->next->vtinfo->toSymbol(), 0); // TypeInfo for array of type
 
         dtsize_t(pdt, tc->dim->toInteger());         // length
@@ -529,7 +534,7 @@ public:
 
         TypeVector *tc = (TypeVector *)d->tinfo;
 
-        makeTypeInfo(NULL, tc->basetype);
+        makeTypeInfoX(NULL, tc->basetype);
         dtxoff(pdt, tc->basetype->vtinfo->toSymbol(), 0); // TypeInfo for equivalent static array
     }
 
@@ -545,10 +550,10 @@ public:
 
         TypeAArray *tc = (TypeAArray *)d->tinfo;
 
-        makeTypeInfo(NULL, tc->next);
+        makeTypeInfoX(NULL, tc->next);
         dtxoff(pdt, tc->next->vtinfo->toSymbol(), 0); // TypeInfo for array of type
 
-        makeTypeInfo(NULL, tc->index);
+        makeTypeInfoX(NULL, tc->index);
         dtxoff(pdt, tc->index->vtinfo->toSymbol(), 0); // TypeInfo for array of type
     }
 
@@ -564,7 +569,7 @@ public:
 
         TypeFunction *tc = (TypeFunction *)d->tinfo;
 
-        makeTypeInfo(NULL, tc->next);
+        makeTypeInfoX(NULL, tc->next);
         dtxoff(pdt, tc->next->vtinfo->toSymbol(), 0); // TypeInfo for function return value
 
         const char *name = d->tinfo->deco;
@@ -586,7 +591,7 @@ public:
 
         TypeDelegate *tc = (TypeDelegate *)d->tinfo;
 
-        makeTypeInfo(NULL, tc->next->nextOf());
+        makeTypeInfoX(NULL, tc->next->nextOf());
         dtxoff(pdt, tc->next->nextOf()->vtinfo->toSymbol(), 0); // TypeInfo for delegate return value
 
         const char *name = d->tinfo->deco;
@@ -717,7 +722,7 @@ public:
                 // m_argi
                 if (t)
                 {
-                    makeTypeInfo(NULL, t);
+                    makeTypeInfoX(NULL, t);
                     dtxoff(pdt, t->vtinfo->toSymbol(), 0);
                 }
                 else

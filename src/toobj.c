@@ -40,6 +40,7 @@
 extern bool obj_includelib(const char *name);
 void obj_startaddress(Symbol *s);
 void obj_lzext(Symbol *s1,Symbol *s2);
+void makeTypeInfoX(Scope *sc, Type *t);
 
 void TypeInfo_toDt(dt_t **pdt, TypeInfoDeclaration *d);
 dt_t *Initializer_toDt(Initializer *init);
@@ -252,7 +253,7 @@ void ClassDeclaration::toObjFile(int multiobj)
     //////////////////////////////////////////////
 
     // Put out the TypeInfo
-    makeTypeInfo(NULL, type);
+    makeTypeInfoX(NULL, type);
     //type->vtinfo->toObjFile(multiobj);
 
     //////////////////////////////////////////////
@@ -661,7 +662,7 @@ void InterfaceDeclaration::toObjFile(int multiobj)
     //////////////////////////////////////////////
 
     // Put out the TypeInfo
-    makeTypeInfo(NULL, type);
+    makeTypeInfoX(NULL, type);
     type->vtinfo->toObjFile(multiobj);
 
     //////////////////////////////////////////////
@@ -821,7 +822,7 @@ void StructDeclaration::toObjFile(int multiobj)
         if (global.params.symdebug)
             toDebug();
 
-        makeTypeInfo(NULL, type);        // generate TypeInfo
+        makeTypeInfoX(NULL, type);        // generate TypeInfo
 
         if (1)
         {
@@ -990,7 +991,7 @@ void TypedefDeclaration::toObjFile(int multiobj)
     if (global.params.symdebug)
         toDebug();
 
-    makeTypeInfo(NULL, type);    // generate TypeInfo
+    makeTypeInfoX(NULL, type);    // generate TypeInfo
 
     TypeTypedef *tc = (TypeTypedef *)type;
     if (type->isZeroInit() || !tc->sym->init)
@@ -1030,7 +1031,7 @@ void EnumDeclaration::toObjFile(int multiobj)
     if (global.params.symdebug)
         toDebug();
 
-    makeTypeInfo(NULL, type);    // generate TypeInfo
+    makeTypeInfoX(NULL, type);    // generate TypeInfo
 
     TypeEnum *tc = (TypeEnum *)type;
     if (!tc->sym->members || type->isZeroInit())
