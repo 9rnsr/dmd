@@ -707,7 +707,6 @@ public:
     void toObjFile(int multiobj);                       // compile to .obj file
     int cvMember(unsigned char *p);
     void buildClosure(IRState *irs);
-    bool needsCodegen();
 
     FuncDeclaration *isFuncDeclaration() { return this; }
 

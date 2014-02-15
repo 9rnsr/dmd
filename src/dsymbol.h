@@ -216,6 +216,7 @@ public:
     void emitDitto(Scope *sc);
 
     bool inNonRoot();
+    bool needsCodegen();
 
     // Backend
 
