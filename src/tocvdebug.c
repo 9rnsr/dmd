@@ -72,7 +72,7 @@ unsigned PROTtoATTR(PROT prot)
 
 unsigned cv4_memfunctypidx(FuncDeclaration *fd)
 {
-    //printf("cv4_memfunctypidx(fd = '%s')\n", fd->toChars());
+    printf("cv4_memfunctypidx(fd = '%s')\n", fd->toChars());
 
     type *t = Type_toCtype(fd->type);
     AggregateDeclaration *ad = fd->isMember2();
@@ -385,7 +385,7 @@ void StructDeclaration::toDebug()
 {
     idx_t typidx = 0;
 
-    //printf("StructDeclaration::toDebug('%s')\n", toChars());
+    printf("StructDeclaration::toDebug('%s')\n", toChars());
 
     assert(config.fulltypes >= CV4);
     if (isAnonymous())
@@ -547,7 +547,7 @@ void ClassDeclaration::toDebug()
 {
     idx_t typidx = 0;
 
-    //printf("ClassDeclaration::toDebug('%s')\n", toChars());
+    printf("ClassDeclaration::toDebug('%s')\n", toChars());
 
     assert(config.fulltypes >= CV4);
     if (isAnonymous())
@@ -854,7 +854,7 @@ int FuncDeclaration::cvMember(unsigned char *p)
 {
     int nwritten = 0;
 
-    //printf("FuncDeclaration::cvMember() '%s'\n", toChars());
+    printf("FuncDeclaration::cvMember() '%s' semanticRun = %d, %s\n", toPrettyChars(), semanticRun, mangle());
 
     if (!type)                  // if not compiled in,
         return 0;               // skip it
@@ -964,7 +964,7 @@ int VarDeclaration::cvMember(unsigned char *p)
 {
     int nwritten = 0;
 
-    //printf("VarDeclaration::cvMember(p = %p) '%s'\n", p, toChars());
+    printf("VarDeclaration::cvMember(p = %p) '%s'\n", p, toPrettyChars());
 
     if (type->toBasetype()->ty == Ttuple)
         return 0;

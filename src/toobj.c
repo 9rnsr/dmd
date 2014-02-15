@@ -1085,11 +1085,80 @@ void TypeInfoDeclaration::toObjFile(int multiobj)
         objmod->export_symbol(s,0);
 }
 
+bool needsCodegen(Dsymbol *sym)
+{
+    for (Dsymbol *s = sym; s; )
+    {
+        if (!s->isInstantiated() && s->inNonRoot())
+            return false;
+        AggregateDeclaration *ad = s->isAggregateDeclaration();
+        if (ad && ad->isNested())
+            s = ad->toParent2();
+        else
+            break;
+    }
+
+    Dsymbol *s = sym;
+Lagain:
+    TemplateInstance *ti = s->isInstantiated();
+    if (ti && ti->instantiatingModule && !ti->instantiatingModule->isRoot())
+    {
+        Module *mi = ti->instantiatingModule;
+
+        // If mi imports any root modules, we still need to generate the code.
+        for (size_t i = 0; i < Module::amodules.dim; ++i)
+        {
+            Module *m = Module::amodules[i];
+            m->insearch = 0;
+        }
+        bool importsRoot = false;
+        for (size_t i = 0; i < Module::amodules.dim; ++i)
+        {
+            Module *m = Module::amodules[i];
+            if (m->isRoot() && mi->imports(m))
+            {
+                importsRoot = true;
+                break;
+            }
+        }
+        for (size_t i = 0; i < Module::amodules.dim; ++i)
+        {
+            Module *m = Module::amodules[i];
+            m->insearch = 0;
+        }
+        if (!importsRoot)
+        {
+            //printf("instantiated by %s   %s\n", ti->instantiatingModule->toChars(), ti->toChars());
+            return false;
+        }
+    }
+
+    AggregateDeclaration *ad = s->isAggregateDeclaration();
+    if (ad && ad->isNested())
+    {
+        s = ad->toParent2();
+        s = ad->toParent2();
+        if (s)
+            goto Lagain;
+    }
+
+    return true;
+}
+
 void TypeInfoStructDeclaration::toObjFile(int multiobj)
 {
     StructDeclaration *sd = ((TypeStruct *)tinfo)->sym;
-    if (sd->inNonRoot())
-        return;
+    //if (sd->inNonRoot())
+    {
+        /* BUG: Even if sd is an instantiated struct, some TypeInfo generation
+         * could be elded like function templates (refer FuncDeclaration::needsCodegen).
+         * But currently the "non-root" detection mechanism is bug-prone, so
+         * skip TypeInfo generation only for non-root non-instantiated structs.
+         */
+        //if (!sd->isInstantiated())
+        if (!needsCodegen(sd))
+            return;
+    }
 
     TypeInfoDeclaration::toObjFile(multiobj);
 }
@@ -1097,8 +1166,14 @@ void TypeInfoStructDeclaration::toObjFile(int multiobj)
 void TypeInfoClassDeclaration::toObjFile(int multiobj)
 {
     ClassDeclaration *cd = ((TypeClass *)tinfo)->sym;
-    if (cd->inNonRoot())
-        return;
+    //if (cd->inNonRoot())
+    {
+        /* BUG: as same as TypeInfoStructDeclaration::toObjFile().
+         */
+        //if (!cd->isInstantiated())
+        if (!needsCodegen(cd))
+            return;
+    }
 
     TypeInfoDeclaration::toObjFile(multiobj);
 }
@@ -1106,8 +1181,14 @@ void TypeInfoClassDeclaration::toObjFile(int multiobj)
 void TypeInfoInterfaceDeclaration::toObjFile(int multiobj)
 {
     ClassDeclaration *cd = ((TypeClass *)tinfo)->sym;
-    if (cd->inNonRoot())
-        return;
+    //if (cd->inNonRoot())
+    {
+        /* BUG: as same as TypeInfoStructDeclaration::toObjFile().
+         */
+        //if (!cd->isInstantiated())
+        if (!needsCodegen(cd))
+            return;
+    }
 
     TypeInfoDeclaration::toObjFile(multiobj);
 }
@@ -1115,8 +1196,14 @@ void TypeInfoInterfaceDeclaration::toObjFile(int multiobj)
 void TypeInfoEnumDeclaration::toObjFile(int multiobj)
 {
     EnumDeclaration *ed = ((TypeEnum *)tinfo)->sym;
-    if (ed->inNonRoot())
-        return;
+    //if (ed->inNonRoot())
+    {
+        /* BUG: as same as TypeInfoStructDeclaration::toObjFile().
+         */
+        //if (!ed->isInstantiated())
+        if (!needsCodegen(ed))
+            return;
+    }
 
     TypeInfoDeclaration::toObjFile(multiobj);
 }
