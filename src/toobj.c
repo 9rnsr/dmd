@@ -1085,6 +1085,42 @@ void TypeInfoDeclaration::toObjFile(int multiobj)
         objmod->export_symbol(s,0);
 }
 
+void TypeInfoStructDeclaration::toObjFile(int multiobj)
+{
+    StructDeclaration *sd = ((TypeStruct *)tinfo)->sym;
+    if (sd->inNonRoot())
+        return;
+
+    TypeInfoDeclaration::toObjFile(multiobj);
+}
+
+void TypeInfoClassDeclaration::toObjFile(int multiobj)
+{
+    ClassDeclaration *cd = ((TypeClass *)tinfo)->sym;
+    if (cd->inNonRoot())
+        return;
+
+    TypeInfoDeclaration::toObjFile(multiobj);
+}
+
+void TypeInfoInterfaceDeclaration::toObjFile(int multiobj)
+{
+    ClassDeclaration *cd = ((TypeClass *)tinfo)->sym;
+    if (cd->inNonRoot())
+        return;
+
+    TypeInfoDeclaration::toObjFile(multiobj);
+}
+
+void TypeInfoEnumDeclaration::toObjFile(int multiobj)
+{
+    EnumDeclaration *ed = ((TypeEnum *)tinfo)->sym;
+    if (ed->inNonRoot())
+        return;
+
+    TypeInfoDeclaration::toObjFile(multiobj);
+}
+
 /* ================================================================== */
 
 void AttribDeclaration::toObjFile(int multiobj)

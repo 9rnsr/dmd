@@ -133,8 +133,6 @@ void Type::genTypeInfo(Scope *sc)
                 // Find module that will go all the way to an object file
                 Module *m = sc->module->importedFrom;
                 m->members->push(t->vtinfo);
-
-                semanticTypeInfo(sc, t);
             }
             else                        // if in obj generation pass
             {

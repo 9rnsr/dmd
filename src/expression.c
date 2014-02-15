@@ -1280,9 +1280,6 @@ bool Expression::checkPostblit(Scope *sc, Type *t)
     t = t->baseElemOf();
     if (t->ty == Tstruct)
     {
-        // Bugzilla 11395: Require TypeInfo generation for array concatenation
-        semanticTypeInfo(sc, t);
-
         StructDeclaration *sd = ((TypeStruct *)t)->sym;
         if (sd->postblit)
         {
@@ -3979,8 +3976,6 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
         return new ErrorExp();
     }
 
-    semanticTypeInfo(sc, t0);
-
     return this;
 }
 
@@ -4118,9 +4113,6 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
 
     type = new TypeAArray(tvalue, tkey);
     type = type->semantic(loc, sc);
-
-    semanticTypeInfo(sc, type);
-
     return this;
 }
 
@@ -5002,7 +4994,6 @@ Lagain:
 
     //printf("NewExp: '%s'\n", toChars());
     //printf("NewExp:type '%s'\n", type->toChars());
-    semanticTypeInfo(sc, type);
 
     return this;
 
@@ -9070,17 +9061,10 @@ Expression *DeleteExp::semantic(Scope *sc)
             break;
 
         case Tarray:
-        {
-            Type *tv = tb->nextOf()->baseElemOf();
-            if (tv->ty == Tstruct)
-            {
-                TypeStruct *ts = (TypeStruct *)tv;
-                StructDeclaration *sd = ts->sym;
-                if (sd->dtor)
-                    semanticTypeInfo(sc, ts);
-            }
+            /* BUG: look for deleting arrays of structs with dtors.
+             */
             break;
-        }
+
         default:
             if (e1->op == TOKindex)
             {
@@ -10936,9 +10920,7 @@ Ltupleassign:
         if (ale->e1->op == TOKerror)
             return ale->e1;
 
-        Type *tn = ale->e1->type->toBasetype()->nextOf();
-        checkDefCtor(ale->loc, tn);
-        semanticTypeInfo(sc, tn);
+        checkDefCtor(ale->loc, ale->e1->type->toBasetype()->nextOf());
     }
     else if (e1->op == TOKslice)
     {
@@ -12619,7 +12601,7 @@ EqualExp::EqualExp(TOK op, Loc loc, Expression *e1, Expression *e2)
     assert(op == TOKequal || op == TOKnotequal);
 }
 
-int needDirectEq(Scope *sc, Type *t1, Type *t2)
+int needDirectEq(Type *t1, Type *t2)
 {
     assert(t1->ty == Tarray || t1->ty == Tsarray);
     assert(t2->ty == Tarray || t2->ty == Tsarray);
@@ -12643,7 +12625,6 @@ int needDirectEq(Scope *sc, Type *t1, Type *t2)
     if (t->ty != Tstruct)
         return false;
 
-    semanticTypeInfo(sc, t);
     return ((TypeStruct *)t)->sym->hasIdentityEquals;
 }
 
@@ -12695,7 +12676,7 @@ Expression *EqualExp::semantic(Scope *sc)
     if ((t1->ty == Tarray || t1->ty == Tsarray) &&
         (t2->ty == Tarray || t2->ty == Tsarray))
     {
-        if (needDirectEq(sc, t1, t2))
+        if (needDirectEq(t1, t2))
         {
             /* Rewrite as:
              * _ArrayEq(e1, e2)
@@ -12812,8 +12793,6 @@ Expression *EqualExp::semantic(Scope *sc)
             e2 = e2->castTo(sc, Type::tcomplex80);
         }
     }
-    if (e1->type->toBasetype()->ty == Taarray)
-        semanticTypeInfo(sc, e1->type->toBasetype());
 
     if (e1->type->toBasetype()->ty == Tvector)
         return incompatibleTypes();
