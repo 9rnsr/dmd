@@ -1085,6 +1085,58 @@ void TypeInfoDeclaration::toObjFile(int multiobj)
         objmod->export_symbol(s,0);
 }
 
+FuncDeclaration *search_toHash(StructDeclaration *sd);
+FuncDeclaration *search_toString(StructDeclaration *sd);
+
+void TypeInfoStructDeclaration::toObjFile(int multiobj)
+{
+    StructDeclaration *sd = ((TypeStruct *)tinfo)->sym;
+    if (!sd->inNonRoot() && !sd->isInstantiated())
+        return;
+
+    if (sd->xeq && sd->xeq != sd->xerreq)
+        assert(sd->xeq->semanticRun >= PASSsemantic3done);
+    if (sd->xcmp && sd->xcmp != sd->xerrcmp)
+        assert(sd->xcmp->semanticRun >= PASSsemantic3done);
+    if (sd->postblit && !(sd->postblit->storage_class & STCdisable))
+        assert(sd->postblit->semanticRun >= PASSsemantic3done);
+    if (sd->dtor)
+        assert(sd->dtor->semanticRun >= PASSsemantic3done);
+    if (FuncDeclaration *ftohash = search_toHash(sd))
+        assert(ftohash->semanticRun >= PASSsemantic3done);
+    if (FuncDeclaration *ftostr = search_toString(sd))
+        assert(ftostr->semanticRun >= PASSsemantic3done);
+
+    TypeInfoDeclaration::toObjFile(multiobj);
+}
+
+void TypeInfoClassDeclaration::toObjFile(int multiobj)
+{
+    ClassDeclaration *cd = ((TypeClass *)tinfo)->sym;
+    if (!cd->inNonRoot() && !cd->isInstantiated())
+        return;
+
+    TypeInfoDeclaration::toObjFile(multiobj);
+}
+
+void TypeInfoInterfaceDeclaration::toObjFile(int multiobj)
+{
+    ClassDeclaration *cd = ((TypeClass *)tinfo)->sym;
+    if (!cd->inNonRoot() && !cd->isInstantiated())
+        return;
+
+    TypeInfoDeclaration::toObjFile(multiobj);
+}
+
+void TypeInfoEnumDeclaration::toObjFile(int multiobj)
+{
+    EnumDeclaration *ed = ((TypeEnum *)tinfo)->sym;
+    if (!ed->inNonRoot() && !ed->isInstantiated())
+        return;
+
+    TypeInfoDeclaration::toObjFile(multiobj);
+}
+
 /* ================================================================== */
 
 void AttribDeclaration::toObjFile(int multiobj)

@@ -371,6 +371,8 @@ public:
     TypeInfoStructDeclaration(Type *tinfo);
     static TypeInfoStructDeclaration *create(Type *tinfo);
 
+    void toObjFile(int multiobj);
+
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -381,6 +383,8 @@ public:
     static TypeInfoClassDeclaration *create(Type *tinfo);
     Symbol *toSymbol();
 
+    void toObjFile(int multiobj);
+
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -389,6 +393,8 @@ class TypeInfoInterfaceDeclaration : public TypeInfoDeclaration
 public:
     TypeInfoInterfaceDeclaration(Type *tinfo);
     static TypeInfoInterfaceDeclaration *create(Type *tinfo);
+
+    void toObjFile(int multiobj);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -443,6 +449,8 @@ class TypeInfoEnumDeclaration : public TypeInfoDeclaration
 public:
     TypeInfoEnumDeclaration(Type *tinfo);
     static TypeInfoEnumDeclaration *create(Type *tinfo);
+
+    void toObjFile(int multiobj);
 
     void accept(Visitor *v) { v->visit(this); }
 };

@@ -133,23 +133,6 @@ void Type::genTypeInfo(Scope *sc)
                 // Find module that will go all the way to an object file
                 Module *m = sc->module->importedFrom;
                 m->members->push(t->vtinfo);
-
-                if (ty == Tstruct)
-                {
-                    Dsymbol *s;
-                    StructDeclaration *sd = ((TypeStruct *)this)->sym;
-                    if ((sd->xeq  && sd->xeq  != sd->xerreq  ||
-                         sd->xcmp && sd->xcmp != sd->xerrcmp ||
-                         (sd->postblit && !(sd->postblit->storage_class & STCdisable)) ||
-                         sd->dtor ||
-                         search_toHash(sd) ||
-                         search_toString(sd)
-                        ) && sd->inNonRoot())
-                    {
-                        //printf("deferred sem3 for TypeInfo - sd = %s, inNonRoot = %d\n", sd->toChars(), sd->inNonRoot());
-                        Module::addDeferredSemantic3(sd);
-                    }
-                }
             }
             else                        // if in obj generation pass
             {
