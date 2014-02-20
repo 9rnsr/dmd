@@ -2114,8 +2114,12 @@ L1:
 Expression *CallExp::inferType(Type *t, int flag, Scope *sc, TemplateParameters *tparams)
 {
     //printf("CallExp::interType('%s'), t = %s\n", toChars(), t->toChars());
-    treq = t;
-    return this;
+    CallExp *ce = this;
+    if (flag)
+        ce = (CallExp *)copy();
+    ce->treq = t;
+
+    return ce;
 }
 
 Expression *CondExp::inferType(Type *t, int flag, Scope *sc, TemplateParameters *tparams)

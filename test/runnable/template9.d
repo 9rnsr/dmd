@@ -3094,6 +3094,42 @@ void test12122()
 
 /******************************************/
 
+R foo1(R)       () { pragma(msg, "R = ", R); return R.init; }
+R foo2(R=string)() { pragma(msg, "R = ", R); return R.init; }
+R foo3(R:int[]*)() { pragma(msg, "R = ", R); return R.init; }
+
+void nfunc1(int) {}
+T tfunc1(T)(T) { return T.init; }
+
+int tfunc2(T : long  )(T) { return 1; }
+int tfunc2(T : string)(T) { return 2; }
+
+void test()
+{
+    int n1 = foo1();
+    int n2 = foo2();
+    static assert(!__traits(compiles, { int n3 = foo3(); }));
+
+    static assert(!__traits(compiles, { auto x1 = foo1(); }));
+    auto x2 = foo2();   static assert(is(typeof(x2) == string));
+
+/+
+    nfunc1(foo1());
+    nfunc1(foo2());
+    static assert(!__traits(compiles, { nfunc1(foo2()); }));
+
+    auto t1 = tfunc1(foo1());   static assert(is(typeof(t1) == int));
+    auto t2 = tfunc1(foo2());   static assert(is(typeof(t2) == string));
+    static assert(!__traits(compiles, { tfunc1(foo3()); }));
+
+    static assert(!__traits(compiles, { tfunc2(foo1()): }));
+    assert(tfunc2(foo2()) == 2);
+    static assert(!__traits(compiles, { tfunc2(foo3()): }));
++/
+}
+
+/******************************************/
+
 int main()
 {
     test1();
