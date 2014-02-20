@@ -569,12 +569,12 @@ Expression *op_overload(Expression *e, Scope *sc)
                 m.last = MATCHnomatch;
 
                 if (s)
-                    functionResolve(&m, s, e->loc, sc, tiargs, e->e1->type, &args2);
+                    functionResolve(&m, s, e->loc, sc, NULL, tiargs, e->e1->type, &args2);
 
                 FuncDeclaration *lastf = m.lastf;
 
                 if (s_r)
-                    functionResolve(&m, s_r, e->loc, sc, tiargs, e->e2->type, &args1);
+                    functionResolve(&m, s_r, e->loc, sc, NULL, tiargs, e->e2->type, &args1);
 
                 if (m.count > 1)
                 {
@@ -650,12 +650,12 @@ Expression *op_overload(Expression *e, Scope *sc)
                     m.last = MATCHnomatch;
 
                     if (s_r)
-                        functionResolve(&m, s_r, e->loc, sc, tiargs, e->e1->type, &args2);
+                        functionResolve(&m, s_r, e->loc, sc, NULL, tiargs, e->e1->type, &args2);
 
                     FuncDeclaration *lastf = m.lastf;
 
                     if (s)
-                        functionResolve(&m, s, e->loc, sc, tiargs, e->e2->type, &args1);
+                        functionResolve(&m, s, e->loc, sc, NULL, tiargs, e->e2->type, &args1);
 
                     if (m.count > 1)
                     {
@@ -971,7 +971,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                 m.last = MATCHnomatch;
 
                 if (s)
-                    functionResolve(&m, s, e->loc, sc, tiargs, e->e1->type, &args2);
+                    functionResolve(&m, s, e->loc, sc, NULL, tiargs, e->e1->type, &args2);
 
                 if (m.count > 1)
                 {
@@ -1094,13 +1094,13 @@ Expression *compare_overload(BinExp *e, Scope *sc, Identifier *id)
         }
 
         if (s)
-            functionResolve(&m, s, e->loc, sc, tiargs, e->e1->type, &args2);
+            functionResolve(&m, s, e->loc, sc, NULL, tiargs, e->e1->type, &args2);
 
         FuncDeclaration *lastf = m.lastf;
         int count = m.count;
 
         if (s_r)
-            functionResolve(&m, s_r, e->loc, sc, tiargs, e->e2->type, &args1);
+            functionResolve(&m, s_r, e->loc, sc, NULL, tiargs, e->e2->type, &args1);
 
         if (m.count > 1)
         {

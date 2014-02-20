@@ -293,7 +293,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
 
             for (size_t i = 0; i < os->a.dim; i++)
             {
-                FuncDeclaration *f = resolveFuncCall(loc, sc, os->a[i], tiargs, tthis, &a, 1);
+                FuncDeclaration *f = resolveFuncCall(loc, sc, os->a[i], NULL, tiargs, tthis, &a, 1);
                 if (f)
                 {
                     fd = f;
@@ -312,7 +312,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
         {
             for (size_t i = 0; i < os->a.dim; i++)
             {
-                FuncDeclaration *f = resolveFuncCall(loc, sc, os->a[i], tiargs, tthis, NULL, 1);
+                FuncDeclaration *f = resolveFuncCall(loc, sc, os->a[i], NULL, tiargs, tthis, NULL, 1);
                 if (f)
                 {
                     fd = f;
@@ -416,7 +416,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
             Expressions a;
             a.push(e2);
 
-            FuncDeclaration *fd = resolveFuncCall(loc, sc, s, tiargs, tthis, &a, 1);
+            FuncDeclaration *fd = resolveFuncCall(loc, sc, s, NULL, tiargs, tthis, &a, 1);
             if (fd && fd->type)
             {
                 assert(fd->type->ty == Tfunction);
@@ -428,7 +428,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
             }
         }
         {
-            FuncDeclaration *fd = resolveFuncCall(loc, sc, s, tiargs, tthis, NULL, 1);
+            FuncDeclaration *fd = resolveFuncCall(loc, sc, s, NULL, tiargs, tthis, NULL, 1);
             if (fd && fd->type)
             {
                 assert(fd->type->ty == Tfunction);
@@ -4811,7 +4811,7 @@ Lagain:
 
         FuncDeclaration *f = NULL;
         if (cd->ctor)
-            f = resolveFuncCall(loc, sc, cd->ctor, NULL, tb, arguments, 0);
+            f = resolveFuncCall(loc, sc, cd->ctor, NULL, NULL, tb, arguments, 0);
         if (f)
         {
             checkDeprecated(sc, f);
@@ -4847,7 +4847,7 @@ Lagain:
                 newargs = new Expressions();
             newargs->shift(e);
 
-            f = resolveFuncCall(loc, sc, cd->aggNew, NULL, tb, newargs);
+            f = resolveFuncCall(loc, sc, cd->aggNew, NULL, NULL, tb, newargs);
             if (!f)
                 goto Lerr;
             allocator = f->isNewDeclaration();
@@ -4886,7 +4886,7 @@ Lagain:
                 newargs = new Expressions();
             newargs->shift(e);
 
-            FuncDeclaration *f = resolveFuncCall(loc, sc, sd->aggNew, NULL, tb, newargs);
+            FuncDeclaration *f = resolveFuncCall(loc, sc, sd->aggNew, NULL, NULL, tb, newargs);
             if (!f)
                 goto Lerr;
             allocator = f->isNewDeclaration();
@@ -4908,7 +4908,7 @@ Lagain:
 
         FuncDeclaration *f = NULL;
         if (sd->ctor && nargs)
-            f = resolveFuncCall(loc, sc, sd->ctor, NULL, tb, arguments, 0);
+            f = resolveFuncCall(loc, sc, sd->ctor, NULL, NULL, tb, arguments, 0);
         if (f)
         {
             checkDeprecated(sc, f);
@@ -7660,12 +7660,15 @@ CallExp::CallExp(Loc loc, Expression *e, Expressions *exps)
 {
     this->arguments = exps;
     this->f = NULL;
+    this->treq = NULL;
 }
 
 CallExp::CallExp(Loc loc, Expression *e)
         : UnaExp(loc, TOKcall, sizeof(CallExp), e)
 {
     this->arguments = NULL;
+    this->f = NULL;
+    this->treq = NULL;
 }
 
 CallExp::CallExp(Loc loc, Expression *e, Expression *earg1)
@@ -7677,6 +7680,8 @@ CallExp::CallExp(Loc loc, Expression *e, Expression *earg1)
         (*arguments)[0] = earg1;
     }
     this->arguments = arguments;
+    this->f = NULL;
+    this->treq = NULL;
 }
 
 CallExp::CallExp(Loc loc, Expression *e, Expression *earg1, Expression *earg2)
@@ -7688,6 +7693,8 @@ CallExp::CallExp(Loc loc, Expression *e, Expression *earg1, Expression *earg2)
     (*arguments)[1] = earg2;
 
     this->arguments = arguments;
+    this->f = NULL;
+    this->treq = NULL;
 }
 
 CallExp *CallExp::create(Loc loc, Expression *e, Expressions *exps)
@@ -8084,7 +8091,7 @@ Lagain:
         }
 
         // Do overload resolution
-        f = resolveFuncCall(loc, sc, s, tiargs, ue1 ? ue1->type : NULL, arguments);
+        f = resolveFuncCall(loc, sc, s, NULL, tiargs, ue1 ? ue1->type : NULL, arguments);
         if (!f || f->type->ty == Terror)
             return new ErrorExp();
 
@@ -8191,7 +8198,7 @@ Lagain:
                 }
 
                 tthis = cd->type->addMod(sc->func->type->mod);
-                f = resolveFuncCall(loc, sc, cd->baseClass->ctor, NULL, tthis, arguments, 0);
+                f = resolveFuncCall(loc, sc, cd->baseClass->ctor, NULL, NULL, tthis, arguments, 0);
                 if (!f)
                     return new ErrorExp();
                 accessCheck(loc, sc, NULL, f);
@@ -8230,7 +8237,7 @@ Lagain:
             }
 
             tthis = cd->type->addMod(sc->func->type->mod);
-            f = resolveFuncCall(loc, sc, cd->ctor, NULL, tthis, arguments, 0);
+            f = resolveFuncCall(loc, sc, cd->ctor, NULL, NULL, tthis, arguments, 0);
             if (!f)
                 return new ErrorExp();
             checkDeprecated(sc, f);
@@ -8257,7 +8264,7 @@ Lagain:
         {   s = eo->vars->a[i];
             if (tiargs && s->isFuncDeclaration())
                 continue;
-            FuncDeclaration *f2 = resolveFuncCall(loc, sc, s, tiargs, tthis, arguments, 1);
+            FuncDeclaration *f2 = resolveFuncCall(loc, sc, s, NULL, tiargs, tthis, arguments, 1);
             if (f2)
             {
                 if (f)
@@ -8318,7 +8325,7 @@ Lagain:
         else if (e1->op == TOKtemplate)
         {
             TemplateExp *te = (TemplateExp *)e1;
-            f = resolveFuncCall(loc, sc, te->td, tiargs, NULL, arguments);
+            f = resolveFuncCall(loc, sc, te->td, this->treq, tiargs, NULL, arguments);
             if (!f)
                 return new ErrorExp();
             if (f->needThis())
@@ -8411,7 +8418,7 @@ Lagain:
         tiargs = NULL;
 
         if (ve->hasOverloads)
-            f = resolveFuncCall(loc, sc, f, tiargs, NULL, arguments, 2);
+            f = resolveFuncCall(loc, sc, f, NULL, tiargs, NULL, arguments, 2);
         else
         {
             f = f->toAliasFunc();

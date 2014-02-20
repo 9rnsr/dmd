@@ -914,6 +914,7 @@ class CallExp : public UnaExp
 public:
     Expressions *arguments;     // function arguments
     FuncDeclaration *f;         // symbol to call
+    Type *treq;
 
     CallExp(Loc loc, Expression *e, Expressions *exps);
     CallExp(Loc loc, Expression *e);
@@ -929,6 +930,7 @@ public:
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *addDtorHook(Scope *sc);
+    Expression *inferType(Type *t, int flag = 0, Scope *sc = NULL, TemplateParameters *tparams = NULL);
 
     void accept(Visitor *v) { v->visit(this); }
 };

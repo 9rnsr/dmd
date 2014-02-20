@@ -1630,7 +1630,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     sc2->callSuper = 0;
 
                     // Insert implicit super() at start of fbody
-                    if (!resolveFuncCall(Loc(), sc2, cd->baseClass->ctor, NULL, NULL, NULL, 1))
+                    if (!resolveFuncCall(Loc(), sc2, cd->baseClass->ctor, NULL, NULL, NULL, NULL, 1))
                     {
                         error("no match for implicit super() call in constructor");
                     }
@@ -2935,6 +2935,7 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
  * a function template, resolve it to a function symbol.
  *      loc             instantiation location
  *      sc              instantiation scope
+ *      tret
  *      tiargs          initial list of template arguments
  *      tthis           if !NULL, the 'this' pointer argument
  *      fargs           arguments to function
@@ -2943,6 +2944,7 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
  */
 
 FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
+        Type *tret,
         Objects *tiargs,
         Type *tthis,
         Expressions *fargs,
@@ -2975,7 +2977,7 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
     memset(&m, 0, sizeof(m));
     m.last = MATCHnomatch;
 
-    functionResolve(&m, s, loc, sc, tiargs, tthis, fargs);
+    functionResolve(&m, s, loc, sc, tret, tiargs, tthis, fargs);
 
     if (m.last > MATCHnomatch && m.lastf)
     {

@@ -1069,7 +1069,7 @@ MATCH TemplateDeclaration::leastAsSpecialized(Scope *sc, TemplateDeclaration *td
 
 MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
         TemplateInstance *ti, Scope *sc,
-        FuncDeclaration *&fd, Type *tthis, Expressions *fargs)
+        FuncDeclaration *&fd, Type *tret, Type *tthis, Expressions *fargs)
 {
     size_t nfparams;
     size_t nfargs;
@@ -1097,6 +1097,8 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
     }
     printf("fd = %s\n", fd->toChars());
     printf("fd->type = %s\n", fd->type->toChars());
+    if (tret)
+        printf("tret = %s\n", tret->toChars());
     if (tthis)
         printf("tthis = %s\n", tthis->toChars());
 #endif
@@ -1748,6 +1750,18 @@ Lretry:
 
 Lmatch:
 
+    if (tret)
+    {
+        Type *t = fd->type->nextOf();
+        size_t i = templateParameterLookup(t, parameters);
+        if (i != IDX_NOTFOUND && dedtypes[i] == NULL)
+        {
+            MATCH m = tret->deduceType(paramscope, t, parameters, &dedtypes);
+            if (m <= MATCHnomatch)
+                goto Lnomatch;
+        }
+    }
+
     for (size_t i = ntargs; i < dedargs->dim; i++)
     {
         TemplateParameter *tparam = (*parameters)[i];
@@ -1958,13 +1972,14 @@ bool TemplateDeclaration::isOverloadable()
  *      dstart          the root of overloaded function templates
  *      loc             instantiation location
  *      sc              instantiation scope
+ *      tret
  *      tiargs          initial list of template arguments
  *      tthis           if !NULL, the 'this' pointer argument
  *      fargs           arguments to function
  */
 
 void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
-        Objects *tiargs, Type *tthis, Expressions *fargs)
+        Type *tret, Objects *tiargs, Type *tthis, Expressions *fargs)
 {
 #if 0
     printf("functionResolve() dstart = %s\n", dstart->toChars());
@@ -1993,6 +2008,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
     // context
     Loc loc;
     Scope *sc;
+    Type *tret;
     Type *tthis;
     Objects *tiargs;
     Expressions *fargs;
@@ -2205,13 +2221,13 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
                 pr.dedargs = &dedtypesX;
                 tdx->previous = &pr;                 // add this to threaded list
 
-                fd = resolveFuncCall(loc, sc, s, NULL, tthis, fargs, 1);
+                fd = resolveFuncCall(loc, sc, s, NULL, NULL, tthis, fargs, 1);
 
                 tdx->previous = pr.prev;             // unlink from threaded list
             }
             else if (s->isFuncDeclaration())
             {
-                fd = resolveFuncCall(loc, sc, s, NULL, tthis, fargs, 1);
+                fd = resolveFuncCall(loc, sc, s, NULL, NULL, tthis, fargs, 1);
             }
             else
                 goto Lerror;
@@ -2261,7 +2277,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             ti->symtab = new DsymbolTable();
 
             FuncDeclaration *fd = f;
-            int x = td->deduceFunctionTemplateMatch(ti, sc, fd, tthis, fargs);
+            int x = td->deduceFunctionTemplateMatch(ti, sc, fd, tret, tthis, fargs);
             MATCH mta = (MATCH)(x >> 4);
             MATCH mfa = (MATCH)(x & 0xF);
             //printf("match:t/f = %d/%d\n", mta, mfa);
@@ -2360,6 +2376,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
     // context
     p.loc    = loc;
     p.sc     = sc;
+    p.tret   = tret;
     p.tthis  = tthis;
     p.tiargs = tiargs;
     p.fargs  = fargs;

@@ -100,7 +100,7 @@ public:
     MATCH matchWithInstance(Scope *sc, TemplateInstance *ti, Objects *atypes, Expressions *fargs, int flag);
     MATCH leastAsSpecialized(Scope *sc, TemplateDeclaration *td2, Expressions *fargs);
 
-    MATCH deduceFunctionTemplateMatch(TemplateInstance *ti, Scope *sc, FuncDeclaration *&fd, Type *tthis, Expressions *fargs);
+    MATCH deduceFunctionTemplateMatch(TemplateInstance *ti, Scope *sc, FuncDeclaration *&fd, Type *tret, Type *tthis, Expressions *fargs);
     RootObject *declareParameter(Scope *sc, TemplateParameter *tp, RootObject *o);
     FuncDeclaration *doHeaderInstantiation(TemplateInstance *ti, Scope *sc, FuncDeclaration *fd, Type *tthis, Expressions *fargs);
     TemplateInstance *findExistingInstance(TemplateInstance *tithis, Expressions *fargs);

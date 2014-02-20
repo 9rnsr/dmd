@@ -81,7 +81,7 @@ FuncDeclaration *AggregateDeclaration::hasIdentityOpAssign(Scope *sc)
         for (size_t i = 0; i < 2; i++)
         {
             (*a)[0] = (i == 0 ? er : el);
-            f = resolveFuncCall(loc, sc, assign, NULL, type, a, 1);
+            f = resolveFuncCall(loc, sc, assign, NULL, NULL, type, a, 1);
             if (f)
                 break;
         }
@@ -421,7 +421,7 @@ FuncDeclaration *AggregateDeclaration::hasIdentityOpEquals(Scope *sc)
             {
                 (*a)[0] = (j == 0 ? er : el);
                 (*a)[0]->type = tthis;
-                f = resolveFuncCall(loc, sc, eq, NULL, tthis, a, 1);
+                f = resolveFuncCall(loc, sc, eq, NULL, NULL, tthis, a, 1);
                 if (f)
                     break;
             }
