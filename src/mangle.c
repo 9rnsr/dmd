@@ -30,6 +30,11 @@ void toBuffer(OutBuffer *buf, const char *id, Dsymbol *s);
 
 void mangleFunc(OutBuffer *buf, FuncDeclaration *fd, bool inParent)
 {
+    /* Don't mangle context-ness, because it may be changed by inference.
+     */
+    if (inParent && fd->isFuncLiteralDeclaration())
+        return;
+
     //printf("deco = '%s'\n", fd->type->deco ? fd->type->deco : "null");
     //printf("fd->type = %s\n", fd->type->toChars());
     if (fd->needThis() || fd->isNested())

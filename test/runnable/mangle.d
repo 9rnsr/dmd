@@ -417,8 +417,8 @@ void test11776()
         {
             auto s = S11776!(a => 1)();
             static assert(typeof(s).mangleof ==
-                "S"~"6mangle"~"56"~(
-                    "__T"~"6S11776"~"S42"~("6mangle"~"9test11776"~"FZ"~"9__lambda1MFZ"~"9__lambda1")~"Z"
+                "S"~"6mangle"~"53"~(
+                    "__T"~"6S11776"~"S39"~("6mangle"~"9test11776"~"FZ"~"9__lambda1"~"9__lambda1")~"Z"
                 )~"6S11776");
         }
     };
@@ -469,6 +469,68 @@ void test12217(int)
 
 void test12217() {}
 
+/*******************************************/
+
+void testXXXXX()
+{
+    enum result1 = "C6mangle9testXXXXXFZ9__lambda11C";
+    auto c1 =
+        () {
+            class C {}
+            static assert(C.mangleof == result1);
+            return C.init;
+        } ();
+    static assert(typeof(c1).mangleof == result1);
+
+    enum result2 = "C6mangle9testXXXXXFZ14__funcliteral21C";
+    auto c2 =
+        function () {
+            class C {}
+            static assert(C.mangleof == result2);
+            return C.init;
+        } ();
+    static assert(typeof(c2).mangleof == result2);
+
+    enum result3 = "C6mangle9testXXXXXFZ12__dgliteral31C";
+    auto c3 =
+        delegate () {
+            class C {}
+            static assert(C.mangleof == result3);
+            return C.init;
+        } ();
+    static assert(typeof(c3).mangleof == result3);
+}
+
+/+
+auto barXXXXX()
+{
+    struct S { int var; void func() {} }
+
+    static assert(!__traits(compiles, barXXXXX.mangleof));   // forward reference to bar
+    static assert(S     .mangleof ==  "S6mangle8barXXXXXFZ1S");
+    static assert(S.func.mangleof == "_D6mangle8barXXXXXFZ1S4funcMFZv");
+
+    return S();
+}
+static assert(       barXXXXX        .mangleof == "_D6mangle8barXXXXXFZS6mangle8barXXXXXFZ1S");
+static assert(typeof(barXXXXX())     .mangleof ==  "S6mangle8barXXXXXFZ1S");
+static assert(typeof(barXXXXX()).func.mangleof == "_D6mangle8barXXXXXFZ1S4funcMFZv");
+
+auto bazXXXXX()
+{
+    class C { int var; void func() {} }
+
+    static assert(!__traits(compiles, bazXXXXX.mangleof));   // forward reference to baz
+    static assert(C     .mangleof ==  "C6mangle8bazXXXXXFZ1C");
+    static assert(C.func.mangleof == "_D6mangle8bazXXXXXFZ1C4funcMFZv");
+
+    return new C();
+}
+static assert(       bazXXXXX        .mangleof == "_D6mangle8bazXXXXXFZC6mangle8bazXXXXXFZ1C");
+static assert(typeof(bazXXXXX())     .mangleof ==  "C6mangle8bazXXXXXFZ1C");
+static assert(typeof(bazXXXXX()).func.mangleof == "_D6mangle8bazXXXXXFZ1C4funcMFZv");
++/
+
 /***************************************************/
 // 12231
 
@@ -476,7 +538,7 @@ void func12231a()()
 if (is(typeof({
         class C {}
         static assert(C.mangleof ==
-            "C6mangle16__U10func12231aZ10func12231aFZ9__lambda1MFZ1C");
+            "C6mangle16__U10func12231aZ10func12231aFZ9__lambda11C");
             //         ###            L                       #
     })))
 {}
@@ -485,13 +547,13 @@ void func12231b()()
 if (is(typeof({
         class C {}
         static assert(C.mangleof ==
-            "C6mangle16__U10func12231bZ10func12231bFZ9__lambda1MFZ1C");
+            "C6mangle16__U10func12231bZ10func12231bFZ9__lambda11C");
             //         L__L           L                       LL
     })) &&
     is(typeof({
         class C {}
         static assert(C.mangleof ==
-            "C6mangle16__U10func12231bZ10func12231bFZ9__lambda2MFZ1C");
+            "C6mangle16__U10func12231bZ10func12231bFZ9__lambda21C");
             //         L__L           L                       LL
     })))
 {}
@@ -500,14 +562,14 @@ void func12231c()()
 if (is(typeof({
         class C {}
         static assert(C.mangleof ==
-            "C6mangle16__U10func12231cZ10func12231cFZ9__lambda1MFZ1C");
+            "C6mangle16__U10func12231cZ10func12231cFZ9__lambda11C");
             //         L__L           L                       LL
     })))
 {
     (){
         class C {}
         static assert(C.mangleof ==
-            "C6mangle16__T10func12231cZ10func12231cFZ9__lambda1MFZ1C");
+            "C6mangle16__T10func12231cZ10func12231cFZ9__lambda11C");
             //         L__L           L                       LL
     }();
 }
@@ -516,14 +578,14 @@ void func12231c(X)()
 if (is(typeof({
         class C {}
         static assert(C.mangleof ==
-            "C6mangle20__U10func12231cTAyaZ10func12231cFZ9__lambda1MFZ1C");
+            "C6mangle20__U10func12231cTAyaZ10func12231cFZ9__lambda11C");
             //         L__L           L___L                       LL
     })))
 {
     (){
         class C {}
         static assert(C.mangleof ==
-            "C6mangle20__T10func12231cTAyaZ10func12231cFZ9__lambda1MFZ1C");
+            "C6mangle20__T10func12231cTAyaZ10func12231cFZ9__lambda11C");
             //         L__L           L___L                       LL
     }();
 }
