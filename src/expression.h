@@ -196,7 +196,7 @@ public:
     virtual void checkEscape();
     virtual void checkEscapeRef();
     virtual Expression *resolveLoc(Loc loc, Scope *sc);
-    void checkScalar();
+    bool checkScalar();
     void checkNoBool();
     Expression *checkIntegral();
     bool checkArithmetic();

@@ -2144,11 +2144,16 @@ void Expression::checkEscapeRef()
 {
 }
 
-void Expression::checkScalar()
+bool Expression::checkScalar()
 {
     if (!type->isscalar() && type->toBasetype() != Type::terror)
+    {
         error("'%s' is not a scalar, it is a %s", toChars(), type->toChars());
-    rvalue();
+        return true;
+    }
+    if (!rvalue())
+        return true;
+    return false;
 }
 
 void Expression::checkNoBool()
@@ -6582,7 +6587,8 @@ Expression *BinAssignExp::semantic(Scope *sc)
     e1 = e1->optimize(WANTvalue);
     e1 = e1->modifiableLvalue(sc, e1);
     type = e1->type;
-    checkScalar();
+    if (checkScalar())
+        return new ErrorExp();
 
     int arith = (op == TOKaddass || op == TOKminass || op == TOKmulass ||
                  op == TOKdivass || op == TOKmodass || op == TOKpowass);
@@ -10486,7 +10492,8 @@ Expression *PostExp::semantic(Scope *sc)
     }
 
     e = this;
-    e1->checkScalar();
+    if (e1->checkScalar())
+        return new ErrorExp();
     e1->checkNoBool();
     if (e1->type->ty == Tpointer)
         e = scaleFactor(this, sc);
