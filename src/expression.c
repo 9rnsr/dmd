@@ -2169,16 +2169,17 @@ Expression *Expression::checkIntegral()
     return this;
 }
 
-Expression *Expression::checkArithmetic()
+bool Expression::checkArithmetic()
 {
     if (!type->isintegral() && !type->isfloating())
-    {   if (type->toBasetype() != Type::terror)
+    {
+        if (type->toBasetype() != Type::terror)
             error("'%s' is not of arithmetic type, it is a %s", toChars(), type->toChars());
-        return new ErrorExp();
+        return true;
     }
     if (!rvalue())
-        return new ErrorExp();
-    return this;
+        return true;
+    return false;
 }
 
 void Expression::checkDeprecated(Scope *sc, Dsymbol *s)
@@ -6603,8 +6604,8 @@ Expression *BinAssignExp::semantic(Scope *sc)
 
     if (arith)
     {
-        e1 = e1->checkArithmetic();
-        e2 = e2->checkArithmetic();
+        if ((e1->checkArithmetic() | e2->checkArithmetic()) != 0)
+            return new ErrorExp();
     }
     if (bitwise || shift)
     {
@@ -9064,8 +9065,7 @@ Expression *NegExp::semantic(Scope *sc)
     }
 
     e1->checkNoBool();
-    e1 = e1->checkArithmetic();
-    if (e1->op == TOKerror)
+    if (e1->checkArithmetic())
         return e1;
 
     return this;
@@ -9090,7 +9090,8 @@ Expression *UAddExp::semantic(Scope *sc)
         return e;
 
     e1->checkNoBool();
-    e1->checkArithmetic();
+    if (e1->checkArithmetic())
+        return new ErrorExp();
     return e1;
 }
 
@@ -11796,19 +11797,18 @@ Expression *AddExp::semantic(Scope *sc)
     Type *tb1 = e1->type->toBasetype();
     Type *tb2 = e2->type->toBasetype();
 
-    if (tb1->ty == Tdelegate ||
-        tb1->ty == Tpointer && tb1->nextOf()->ty == Tfunction)
+    bool callable1 = (tb1->ty == Tdelegate ||
+                      tb1->ty == Tpointer && tb1->nextOf()->ty == Tfunction);
+    bool callable2 = (tb2->ty == Tdelegate ||
+                      tb2->ty == Tpointer && tb2->nextOf()->ty == Tfunction);
+    if (callable1 || callable2)
     {
-        e = e1->checkArithmetic();
+        if (callable1)
+            e1->checkArithmetic();
+        if (callable2)
+            e2->checkArithmetic();
+        return new ErrorExp();
     }
-    if (tb2->ty == Tdelegate ||
-        tb2->ty == Tpointer && tb2->nextOf()->ty == Tfunction)
-    {
-        e = e2->checkArithmetic();
-    }
-    if (e)
-        return e;
-
     if (tb1->ty == Tpointer && e2->type->isintegral() ||
         tb2->ty == Tpointer && e1->type->isintegral())
     {
@@ -11887,25 +11887,25 @@ Expression *MinExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    Type *t1 = e1->type->toBasetype();
-    Type *t2 = e2->type->toBasetype();
+    Type *tb1 = e1->type->toBasetype();
+    Type *tb2 = e2->type->toBasetype();
 
-    if (t1->ty == Tdelegate ||
-        t1->ty == Tpointer && t1->nextOf()->ty == Tfunction)
+    bool callable1 = (tb1->ty == Tdelegate ||
+                      tb1->ty == Tpointer && tb1->nextOf()->ty == Tfunction);
+    bool callable2 = (tb2->ty == Tdelegate ||
+                      tb2->ty == Tpointer && tb2->nextOf()->ty == Tfunction);
+    if (callable1 || callable2)
     {
-        e = e1->checkArithmetic();
+        if (callable1)
+            e1->checkArithmetic();
+        if (callable2)
+            e2->checkArithmetic();
+        return new ErrorExp();
     }
-    if (t2->ty == Tdelegate ||
-        t2->ty == Tpointer && t2->nextOf()->ty == Tfunction)
-    {
-        e = e2->checkArithmetic();
-    }
-    if (e)
-        return e;
 
-    if (t1->ty == Tpointer)
+    if (tb1->ty == Tpointer)
     {
-        if (t2->ty == Tpointer)
+        if (tb2->ty == Tpointer)
         {
             // Need to divide the result by the stride
             // Replace (ptr - ptr) with (ptr - ptr) / stride
@@ -11916,7 +11916,7 @@ Expression *MinExp::semantic(Scope *sc)
                 return ex;
 
             type = Type::tptrdiff_t;
-            stride = t2->nextOf()->size();
+            stride = tb2->nextOf()->size();
             if (stride == 0)
             {
                 e = new IntegerExp(loc, 0, Type::tptrdiff_t);
@@ -11927,16 +11927,16 @@ Expression *MinExp::semantic(Scope *sc)
                 e->type = Type::tptrdiff_t;
             }
         }
-        else if (t2->isintegral())
+        else if (tb2->isintegral())
             e = scaleFactor(this, sc);
         else
         {
-            error("can't subtract %s from pointer", t2->toChars());
+            error("can't subtract %s from pointer", tb2->toChars());
             e = new ErrorExp();
         }
         return e;
     }
-    if (t2->ty == Tpointer)
+    if (tb2->ty == Tpointer)
     {
         type = e2->type;
         error("can't subtract pointer from %s", e1->type->toChars());
@@ -11957,14 +11957,14 @@ Expression *MinExp::semantic(Scope *sc)
         return this;
     }
 
-    t1 = e1->type->toBasetype();
-    t2 = e2->type->toBasetype();
-    if (t1->ty == Tvector && !t1->isscalar())
+    tb1 = e1->type->toBasetype();
+    tb2 = e2->type->toBasetype();
+    if (tb1->ty == Tvector && !tb1->isscalar())
     {
         return incompatibleTypes();
     }
-    if ((t1->isreal() && t2->isimaginary()) ||
-        (t1->isimaginary() && t2->isreal()))
+    if ((tb1->isreal() && tb2->isimaginary()) ||
+        (tb1->isimaginary() && tb2->isreal()))
     {
         switch (type->ty)
         {
@@ -12165,12 +12165,8 @@ Expression *MulExp::semantic(Scope *sc)
         return this;
     }
 
-    e1 = e1->checkArithmetic();
-    e2 = e2->checkArithmetic();
-    if (e1->op == TOKerror)
-        return e1;
-    if (e2->op == TOKerror)
-        return e2;
+    if ((e1->checkArithmetic() | e2->checkArithmetic()) != 0)
+        return new ErrorExp();
 
     if (type->isfloating())
     {
@@ -12253,12 +12249,8 @@ Expression *DivExp::semantic(Scope *sc)
         return this;
     }
 
-    e1 = e1->checkArithmetic();
-    e2 = e2->checkArithmetic();
-    if (e1->op == TOKerror)
-        return e1;
-    if (e2->op == TOKerror)
-        return e2;
+    if ((e1->checkArithmetic() | e2->checkArithmetic()) != 0)
+        return new ErrorExp();
 
     if (type->isfloating())
     {
@@ -12344,12 +12336,8 @@ Expression *ModExp::semantic(Scope *sc)
         return incompatibleTypes();
     }
 
-    e1 = e1->checkArithmetic();
-    e2 = e2->checkArithmetic();
-    if (e1->op == TOKerror)
-        return e1;
-    if (e2->op == TOKerror)
-        return e2;
+    if ((e1->checkArithmetic() | e2->checkArithmetic()) != 0)
+        return new ErrorExp();
 
     if (type->isfloating())
     {
@@ -12415,12 +12403,8 @@ Expression *PowExp::semantic(Scope *sc)
         return this;
     }
 
-    e1 = e1->checkArithmetic();
-    e2 = e2->checkArithmetic();
-    if (e1->op == TOKerror)
-        return e1;
-    if (e2->op == TOKerror)
-        return e2;
+    if ((e1->checkArithmetic() | e2->checkArithmetic()) != 0)
+        return new ErrorExp();
 
     // For built-in numeric types, there are several cases.
     // TODO: backend support, especially for  e1 ^^ 2.
