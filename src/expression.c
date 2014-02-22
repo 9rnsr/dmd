@@ -2156,10 +2156,14 @@ bool Expression::checkScalar()
     return false;
 }
 
-void Expression::checkNoBool()
+bool Expression::checkNoBool()
 {
     if (type->toBasetype()->ty == Tbool)
+    {
         error("operation not allowed on bool '%s'", toChars());
+        return true;
+    }
+    return false;
 }
 
 Expression *Expression::checkIntegral()
@@ -6597,8 +6601,8 @@ Expression *BinAssignExp::semantic(Scope *sc)
 
     if (bitwise && type->toBasetype()->ty == Tbool)
          e2 = e2->implicitCastTo(sc, type);
-    else
-        checkNoBool();
+    else if (checkNoBool())
+        return new ErrorExp();
 
     if ((op == TOKaddass || op == TOKminass) &&
         e1->type->toBasetype()->ty == Tpointer &&
@@ -9070,7 +9074,8 @@ Expression *NegExp::semantic(Scope *sc)
         return this;
     }
 
-    e1->checkNoBool();
+    if (e1->checkNoBool())
+        return new ErrorExp();
     if (e1->checkArithmetic())
         return e1;
 
@@ -9095,7 +9100,8 @@ Expression *UAddExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    e1->checkNoBool();
+    if (e1->checkNoBool())
+        return new ErrorExp();
     if (e1->checkArithmetic())
         return new ErrorExp();
     return e1;
@@ -9129,7 +9135,8 @@ Expression *ComExp::semantic(Scope *sc)
         return this;
     }
 
-    e1->checkNoBool();
+    if (e1->checkNoBool())
+        return new ErrorExp();
     e1 = e1->checkIntegral();
     if (e1->op == TOKerror)
         return e1;
@@ -10494,7 +10501,8 @@ Expression *PostExp::semantic(Scope *sc)
     e = this;
     if (e1->checkScalar())
         return new ErrorExp();
-    e1->checkNoBool();
+    if (e1->checkNoBool())
+        return new ErrorExp();
     if (e1->type->ty == Tpointer)
         e = scaleFactor(this, sc);
     else
