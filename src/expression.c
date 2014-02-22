@@ -2166,16 +2166,17 @@ bool Expression::checkNoBool()
     return false;
 }
 
-Expression *Expression::checkIntegral()
+bool Expression::checkIntegral()
 {
     if (!type->isintegral())
-    {   if (type->toBasetype() != Type::terror)
+    {
+        if (type->toBasetype() != Type::terror)
             error("'%s' is not of integral type, it is a %s", toChars(), type->toChars());
-        return new ErrorExp();
+        return true;
     }
     if (!rvalue())
-        return new ErrorExp();
-    return this;
+        return true;
+    return false;
 }
 
 bool Expression::checkArithmetic()
@@ -6619,8 +6620,8 @@ Expression *BinAssignExp::semantic(Scope *sc)
     }
     if (bitwise || shift)
     {
-        e1 = e1->checkIntegral();
-        e2 = e2->checkIntegral();
+        if ((e1->checkIntegral() | e2->checkIntegral()) != 0)
+            return new ErrorExp();
     }
     if (shift)
     {
@@ -9137,9 +9138,8 @@ Expression *ComExp::semantic(Scope *sc)
 
     if (e1->checkNoBool())
         return new ErrorExp();
-    e1 = e1->checkIntegral();
-    if (e1->op == TOKerror)
-        return e1;
+    if (e1->checkIntegral())
+        return new ErrorExp();
 
     return this;
 }
@@ -12508,8 +12508,8 @@ Expression *ShlExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    e1 = e1->checkIntegral();
-    e2 = e2->checkIntegral();
+    if ((e1->checkIntegral() | e2->checkIntegral()) != 0)
+        return new ErrorExp();
     if (e1->type->toBasetype()->ty == Tvector ||
         e2->type->toBasetype()->ty == Tvector)
     {
@@ -12540,8 +12540,8 @@ Expression *ShrExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    e1 = e1->checkIntegral();
-    e2 = e2->checkIntegral();
+    if ((e1->checkIntegral() | e2->checkIntegral()) != 0)
+        return new ErrorExp();
     if (e1->type->toBasetype()->ty == Tvector ||
         e2->type->toBasetype()->ty == Tvector)
     {
@@ -12572,14 +12572,13 @@ Expression *UshrExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    e1 = e1->checkIntegral();
-    e2 = e2->checkIntegral();
+    if ((e1->checkIntegral() | e2->checkIntegral()) != 0)
+        return new ErrorExp();
     if (e1->type->toBasetype()->ty == Tvector ||
         e2->type->toBasetype()->ty == Tvector)
     {
         return incompatibleTypes();
     }
-
     e1 = integralPromotions(e1, sc);
     e2 = e2->castTo(sc, Type::tshiftcnt);
 
@@ -12626,12 +12625,8 @@ Expression *AndExp::semantic(Scope *sc)
         return this;
     }
 
-    e1 = e1->checkIntegral();
-    e2 = e2->checkIntegral();
-    if (e1->op == TOKerror)
-        return e1;
-    if (e2->op == TOKerror)
-        return e2;
+    if ((e1->checkIntegral() | e2->checkIntegral()) != 0)
+        return new ErrorExp();
 
     return this;
 }
@@ -12675,12 +12670,8 @@ Expression *OrExp::semantic(Scope *sc)
         return this;
     }
 
-    e1 = e1->checkIntegral();
-    e2 = e2->checkIntegral();
-    if (e1->op == TOKerror)
-        return e1;
-    if (e2->op == TOKerror)
-        return e2;
+    if ((e1->checkIntegral() | e2->checkIntegral()) != 0)
+        return new ErrorExp();
 
     return this;
 }
@@ -12724,12 +12715,8 @@ Expression *XorExp::semantic(Scope *sc)
         return this;
     }
 
-    e1 = e1->checkIntegral();
-    e2 = e2->checkIntegral();
-    if (e1->op == TOKerror)
-        return e1;
-    if (e2->op == TOKerror)
-        return e2;
+    if ((e1->checkIntegral() | e2->checkIntegral()) != 0)
+        return new ErrorExp();
 
     return this;
 }

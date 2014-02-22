@@ -198,7 +198,7 @@ public:
     virtual Expression *resolveLoc(Loc loc, Scope *sc);
     bool checkScalar();
     bool checkNoBool();
-    Expression *checkIntegral();
+    bool checkIntegral();
     bool checkArithmetic();
     void checkDeprecated(Scope *sc, Dsymbol *s);
     void checkPurity(Scope *sc, FuncDeclaration *f);
