@@ -245,15 +245,17 @@ public:
 class OverDeclaration : public Declaration
 {
 public:
-    Dsymbol *overnext;          // next in overload list
     Dsymbol *aliassym;
     bool hasOverloads;
+    Dsymbol *overnext;          // next in overload list
+    Dsymbol *overroot;
 
     OverDeclaration(Dsymbol *s, bool hasOverloads = true);
     const char *kind();
     void semantic(Scope *sc);
     bool equals(RootObject *o);
     bool overloadInsert(Dsymbol *s);
+    bool isOverloadable();
 
     Dsymbol *toAlias();
     Dsymbol *isUnique();
@@ -583,6 +585,7 @@ public:
     VarDeclarations *parameters;        // Array of VarDeclaration's for parameters
     DsymbolTable *labtab;               // statement label symbol table
     Dsymbol *overnext;                  // next in overload list
+    Dsymbol *overroot;
     FuncDeclaration *overnext0;         // next in overload list (only used during IFTI)
     Loc endloc;                         // location of closing curly bracket
     int vtblIndex;                      // for member functions, index into vtbl[]
@@ -715,6 +718,7 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
         Expressions *arguments,
         int flags = 0);
 
+#if 0
 class FuncAliasDeclaration : public FuncDeclaration
 {
 public:
@@ -729,6 +733,7 @@ public:
     FuncDeclaration *toAliasFunc();
     void accept(Visitor *v) { v->visit(this); }
 };
+#endif
 
 class FuncLiteralDeclaration : public FuncDeclaration
 {

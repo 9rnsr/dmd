@@ -2613,6 +2613,7 @@ bool FuncDeclaration::overloadInsert(Dsymbol *s)
         if (overnext)
             return overnext->overloadInsert(ad);
         if (!ad->aliassym && ad->type->ty != Tident && ad->type->ty != Tinstance)
+        // if (!ad->aliassym && ad->type->deco)     // 'ad' is definitely a type alias
         {
             //printf("\tad = '%s'\n", ad->type->toChars());
             return false;
@@ -2621,6 +2622,8 @@ bool FuncDeclaration::overloadInsert(Dsymbol *s)
         //printf("\ttrue: no conflict\n");
         return true;
     }
+
+
     TemplateDeclaration *td = s->isTemplateDeclaration();
     if (td)
     {
@@ -2634,27 +2637,6 @@ bool FuncDeclaration::overloadInsert(Dsymbol *s)
     FuncDeclaration *fd = s->isFuncDeclaration();
     if (!fd)
         return false;
-
-#if 0
-    /* Disable this check because:
-     *  const void foo();
-     * semantic() isn't run yet on foo(), so the const hasn't been
-     * applied yet.
-     */
-    if (type)
-    {   printf("type = %s\n", type->toChars());
-        printf("fd->type = %s\n", fd->type->toChars());
-    }
-    // fd->type can be NULL for overloaded constructors
-    if (type && fd->type &&
-        fd->type->covariant(type) &&
-        fd->type->mod == type->mod &&
-        !isFuncAliasDeclaration())
-    {
-        //printf("\tfalse: conflict %s\n", kind());
-        return false;
-    }
-#endif
 
     if (overnext)
     {

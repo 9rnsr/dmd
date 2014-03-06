@@ -7763,16 +7763,16 @@ void TypeStruct::toDecoBuffer(OutBuffer *buf, int flag)
 
 Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
 {
-    Dsymbol *s;
-
 #if LOGDOTEXP
     printf("TypeStruct::dotExp(e = '%s', ident = '%s')\n", e->toChars(), ident->toChars());
 #endif
+#if 0   // will be handled by e->type->size() or sym->semantic(NULL)
     if (!sym->members)
     {
         error(e->loc, "struct %s is forward referenced", sym->toChars());
         return new ErrorExp();
     }
+#endif
 
     /* If e.tupleof
      */
@@ -7782,7 +7782,11 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
          * (e.field0, e.field1, e.field2, ...)
          */
         e = e->semantic(sc);    // do this before turning on noaccesscheck
+
         e->type->size();        // do semantic of type
+        //if (sm->sizeok != SIZEOKdone)
+        //    return new ErrorExp();
+
         Expressions *exps = new Expressions;
         exps->reserve(sym->fields.dim);
 
@@ -7819,22 +7823,13 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
         return e;
     }
 
-    if (e->op == TOKdotexp)
-    {   DotExp *de = (DotExp *)e;
-
-        if (de->e1->op == TOKimport)
-        {
-            assert(0);  // cannot find a case where this happens; leave
-                        // assert in until we do
-            ScopeExp *se = (ScopeExp *)de->e1;
-
-            s = se->sds->search(e->loc, ident);
-            e = de->e1;
-            goto L1;
-        }
+    if (e->op == TOKdotexp && ((DotExp *)e)->e1->op == TOKimport)
+    {
+        assert(0);  // cannot find a case where this happens; leave
+                    // assert in until we do
     }
 
-    s = sym->search(e->loc, ident);
+    Dsymbol *s = sym->search(e->loc, ident);
 L1:
     if (!s)
     {
@@ -7846,21 +7841,23 @@ L1:
         if (!s)
             return noMember(sc, e, ident, flag);
     }
-    if (!s->isFuncDeclaration())        // because of overloading
+    if (!s->isFuncDeclaration())        // because of overloading (TODO)
         s->checkDeprecated(e->loc, sc);
     s = s->toAlias();
 
-    VarDeclaration *v = s->isVarDeclaration();
-    if (v && v->inuse && (!v->type || !v->type->deco))  // Bugzilla 9494
+    if (VarDeclaration *v = s->isVarDeclaration())
     {
-        e->error("circular reference to '%s'", v->toPrettyChars());
-        return new ErrorExp();
-    }
-    if (v && !v->isDataseg() && (v->storage_class & STCmanifest))
-    {
-        Expression *ve = new VarExp(e->loc, v);
-        ve = ve->semantic(sc);
-        return ve;
+        if (v->inuse && (!v->type || !v->type->deco))  // Bugzilla 9494
+        {
+            e->error("circular reference to '%s'", v->toPrettyChars());
+            return new ErrorExp();
+        }
+        if (!v->isDataseg() && (v->storage_class & STCmanifest))
+        {
+            Expression *ve = new VarExp(e->loc, v);
+            ve = ve->semantic(sc);
+            return ve;
+        }
     }
 
     if (s->getType())
@@ -7868,23 +7865,25 @@ L1:
         return new TypeExp(e->loc, s->getType());
     }
 
-    EnumMember *em = s->isEnumMember();
-    if (em)
+    if (EnumMember *em = s->isEnumMember())
     {
         return em->getVarExp(e->loc, sc);
     }
 
-    TemplateMixin *tm = s->isTemplateMixin();
-    if (tm)
+    if (TemplateMixin *tm = s->isTemplateMixin())
     {
         Expression *de = new DotExp(e->loc, e, new ScopeExp(e->loc, tm));
         de->type = e->type;
         return de;
     }
 
-    TemplateDeclaration *td = s->isTemplateDeclaration();
-    if (td)
+    if (TemplateDeclaration *td = s->isTemplateDeclaration())
     {
+        if (td->overroot)
+        {
+            s = td->overroot;
+            goto L1;
+        }
         if (e->op == TOKtype)
             e = new ScopeExp(e->loc, td);
         else
@@ -7893,9 +7892,9 @@ L1:
         return e;
     }
 
-    TemplateInstance *ti = s->isTemplateInstance();
-    if (ti)
-    {   if (!ti->semanticRun)
+    if (TemplateInstance *ti = s->isTemplateInstance())
+    {
+        if (!ti->semanticRun)
         {
             if (global.errors)
                 return new ErrorExp();  // TemplateInstance::semantic() will fail anyway
@@ -7916,8 +7915,7 @@ L1:
         return e;
     }
 
-    OverloadSet *o = s->isOverloadSet();
-    if (o)
+    if (OverloadSet *o = s->isOverloadSet())
     {
         OverExp *oe = new OverExp(e->loc, o);
         if (e->op == TOKtype)
@@ -7931,6 +7929,23 @@ L1:
         printf("d = %s '%s'\n", s->kind(), s->toChars());
 #endif
     assert(d);
+
+    if (FuncDeclaration *fd = d->isFuncDeclaration())
+    {
+        if (fd->overroot)
+        {
+            s = fd->overroot;
+            goto L1;
+        }
+    }
+    if (OverDeclaration *od = d->isOverDeclaration())
+    {
+        if (od->overroot)
+        {
+            s = od->overroot;
+            goto L1;
+        }
+    }
 
     if (e->op == TOKtype)
     {
@@ -7955,7 +7970,8 @@ L1:
                 return e;
             }
         }
-        accessCheck(e->loc, sc, e, d);
+        if (!d->isOverloadable())   // todo
+            accessCheck(e->loc, sc, e, d);
         VarExp *ve = new VarExp(e->loc, d, 1);
         if (d->isVarDeclaration() && d->needThis())
             ve->type = d->type->addMod(e->type->mod);
@@ -7973,6 +7989,7 @@ L1:
         return e;
     }
 
+#if 0   // maybe this is unnecessary
     if (v)
     {
         if (v->toParent() != sym)
@@ -7990,6 +8007,7 @@ L1:
         return b;
 #endif
     }
+#endif
 
     DotVarExp *de = new DotVarExp(e->loc, e, d);
     return de->semantic(sc);
@@ -8298,24 +8316,9 @@ void TypeClass::toDecoBuffer(OutBuffer *buf, int flag)
 
 Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
 {
-    Dsymbol *s;
-
 #if LOGDOTEXP
     printf("TypeClass::dotExp(e='%s', ident='%s')\n", e->toChars(), ident->toChars());
 #endif
-
-    if (e->op == TOKdotexp)
-    {   DotExp *de = (DotExp *)e;
-
-        if (de->e1->op == TOKimport)
-        {
-            ScopeExp *se = (ScopeExp *)de->e1;
-
-            s = se->sds->search(e->loc, ident);
-            e = de->e1;
-            goto L1;
-        }
-    }
 
     if (ident == Id::tupleof)
     {
@@ -8371,6 +8374,20 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         e = e->semantic(sc2);
         sc2->pop();
         return e;
+    }
+
+    Dsymbol *s;
+
+    if (e->op == TOKdotexp)
+    {
+        DotExp *de = (DotExp *)e;
+        if (de->e1->op == TOKimport)
+        {
+            ScopeExp *se = (ScopeExp *)de->e1;
+            s = se->sds->search(e->loc, ident);
+            e = de->e1;
+            goto L1;
+        }
     }
 
     s = sym->search(e->loc, ident);
@@ -8479,17 +8496,19 @@ L1:
         s->checkDeprecated(e->loc, sc);
     s = s->toAlias();
 
-    VarDeclaration *v = s->isVarDeclaration();
-    if (v && v->inuse && (!v->type || !v->type->deco))  // Bugzilla 9494
+    if (VarDeclaration *v = s->isVarDeclaration())
     {
-        e->error("circular reference to '%s'", v->toPrettyChars());
-        return new ErrorExp();
-    }
-    if (v && !v->isDataseg() && (v->storage_class & STCmanifest))
-    {
-        Expression *ve = new VarExp(e->loc, v);
-        ve = ve->semantic(sc);
-        return ve;
+        if (v->inuse && (!v->type || !v->type->deco))  // Bugzilla 9494
+        {
+            e->error("circular reference to '%s'", v->toPrettyChars());
+            return new ErrorExp();
+        }
+        if (!v->isDataseg() && (v->storage_class & STCmanifest))
+        {
+            Expression *ve = new VarExp(e->loc, v);
+            ve = ve->semantic(sc);
+            return ve;
+        }
     }
 
     if (s->getType())
@@ -8497,22 +8516,19 @@ L1:
         return new TypeExp(e->loc, s->getType());
     }
 
-    EnumMember *em = s->isEnumMember();
-    if (em)
+    if (EnumMember *em = s->isEnumMember())
     {
         return em->getVarExp(e->loc, sc);
     }
 
-    TemplateMixin *tm = s->isTemplateMixin();
-    if (tm)
+    if (TemplateMixin *tm = s->isTemplateMixin())
     {
         Expression *de = new DotExp(e->loc, e, new ScopeExp(e->loc, tm));
         de->type = e->type;
         return de;
     }
 
-    TemplateDeclaration *td = s->isTemplateDeclaration();
-    if (td)
+    if (TemplateDeclaration *td = s->isTemplateDeclaration())
     {
         if (e->op == TOKtype)
             e = new ScopeExp(e->loc, td);
@@ -8522,9 +8538,9 @@ L1:
         return e;
     }
 
-    TemplateInstance *ti = s->isTemplateInstance();
-    if (ti)
-    {   if (!ti->semanticRun)
+    if (TemplateInstance *ti = s->isTemplateInstance())
+    {
+        if (!ti->semanticRun)
         {
             if (global.errors)
                 return new ErrorExp();  // TemplateInstance::semantic() will fail anyway
@@ -8545,8 +8561,7 @@ L1:
         return e;
     }
 
-    OverloadSet *o = s->isOverloadSet();
-    if (o)
+    if (OverloadSet *o = s->isOverloadSet())
     {
         OverExp *oe = new OverExp(e->loc, o);
         if (e->op == TOKtype)
@@ -8559,6 +8574,23 @@ L1:
     {
         e->error("%s.%s is not a declaration", e->toChars(), ident->toChars());
         return new ErrorExp();
+    }
+
+    if (FuncDeclaration *fd = d->isFuncDeclaration())
+    {
+        if (fd->overroot)
+        {
+            s = fd->overroot;
+            goto L1;
+        }
+    }
+    if (OverDeclaration *od = d->isOverDeclaration())
+    {
+        if (od->overroot)
+        {
+            s = od->overroot;
+            goto L1;
+        }
     }
 
     if (e->op == TOKtype)
@@ -8642,7 +8674,8 @@ L1:
             }
         }
         //printf("e = %s, d = %s\n", e->toChars(), d->toChars());
-        accessCheck(e->loc, sc, e, d);
+        if (!d->isOverloadable())   // todo
+            accessCheck(e->loc, sc, e, d);
         VarExp *ve = new VarExp(e->loc, d, 1);
         if (d->isVarDeclaration() && d->needThis())
             ve->type = d->type->addMod(e->type->mod);

@@ -573,39 +573,15 @@ void AliasDeclaration::semantic(Scope *sc)
     {
         Dsymbol *savedovernext = overnext;
         Dsymbol *sa = s->toAlias();
-        if (FuncDeclaration *fd = sa->isFuncDeclaration())
+        if (sa->isOverloadable())
         {
             if (overnext)
             {
-                FuncAliasDeclaration *fa = new FuncAliasDeclaration(fd);
-                if (!fa->overloadInsert(overnext))
-                    ScopeDsymbol::multiplyDefined(Loc(), overnext, fd);
-                overnext = NULL;
-                s = fa;
-                s->parent = sc->parent;
-            }
-        }
-        else if (TemplateDeclaration *td = sa->isTemplateDeclaration())
-        {
-            if (overnext)
-            {
-                OverDeclaration *od = new OverDeclaration(td);
+                OverDeclaration *od = new OverDeclaration(sa);
                 if (!od->overloadInsert(overnext))
-                    ScopeDsymbol::multiplyDefined(Loc(), overnext, td);
+                    ScopeDsymbol::multiplyDefined(Loc(), overnext, sa);
                 overnext = NULL;
                 s = od;
-                s->parent = sc->parent;
-            }
-        }
-        else if (OverDeclaration *od = sa->isOverDeclaration())
-        {
-            if (overnext)
-            {
-                OverDeclaration *od2 = new OverDeclaration(od);
-                if (!od2->overloadInsert(overnext))
-                    ScopeDsymbol::multiplyDefined(Loc(), overnext, od);
-                overnext = NULL;
-                s = od2;
                 s->parent = sc->parent;
             }
         }
@@ -650,15 +626,9 @@ bool AliasDeclaration::overloadInsert(Dsymbol *s)
     if (aliassym) // see test/test56.d
     {
         Dsymbol *sa = aliassym->toAlias();
-        if (FuncDeclaration *fd = sa->isFuncDeclaration())
+        if (sa->isOverloadable())
         {
-            FuncAliasDeclaration *fa = new FuncAliasDeclaration(fd);
-            aliassym = fa;
-            return fa->overloadInsert(s);
-        }
-        if (TemplateDeclaration *td = sa->isTemplateDeclaration())
-        {
-            OverDeclaration *od = new OverDeclaration(td);
+            OverDeclaration *od = new OverDeclaration(sa);
             aliassym = od;
             return od->overloadInsert(s);
         }
@@ -778,8 +748,8 @@ bool OverDeclaration::equals(RootObject *o)
     OverDeclaration *od1 = this;
     if (OverDeclaration *od2 = s->isOverDeclaration())
     {
-        return od1->aliassym->equals(od2->aliassym) &&
-               od1->hasOverloads == od2->hasOverloads;
+        return od1->hasOverloads == od2->hasOverloads &&
+               od1->aliassym->equals(od2->aliassym);
     }
     if (aliassym == s)
     {
@@ -851,6 +821,11 @@ Dsymbol *OverDeclaration::isUnique()
     Dsymbol *result = NULL;
     overloadApply(aliassym, &result, &ParamUniqueSym::fp);
     return result;
+}
+
+bool OverDeclaration::isOverloadable()
+{
+    return true;
 }
 
 /********************************* VarDeclaration ****************************/

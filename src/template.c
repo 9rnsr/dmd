@@ -443,7 +443,7 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
     this->members = decldefs;
     this->overnext = NULL;
     this->overroot = NULL;
-    this->funcroot = NULL;
+    //this->funcroot = NULL;
     this->onemember = NULL;
     this->literal = literal;
     this->ismixin = ismixin;
@@ -654,56 +654,61 @@ bool TemplateDeclaration::overloadInsert(Dsymbol *s)
 #if LOG
     printf("TemplateDeclaration::overloadInsert('%s')\n", s->toChars());
 #endif
-    FuncDeclaration *fd = s->isFuncDeclaration();
-    if (fd)
+    if (AliasDeclaration *ad = s->isAliasDeclaration())
+    {
+        if (overnext)
+            return overnext->overloadInsert(ad);
+        if (!ad->aliassym && ad->type->deco)     // 'ad' is definitely a type alias
+            return false;
+        overnext = ad;  // Accepts conservatively
+        return true;
+    }
+
+#if 1
+    if (s->isOverloadable())
+    {
+        if (FuncDeclaration *fd = s->isFuncDeclaration())
+            fd->overroot = this;
+        else if (TemplateDeclaration *td = s->isTemplateDeclaration())
+            fd->overroot = this;
+        else if (OverDeclaration *od = s->isOverDeclaration())
+            od->overroot = this;
+        else
+            assert(0);
+
+        if (overnext)
+            return overenext->overloadInsert(s);
+        overnext = s;
+        return true;
+    }
+#else
+    if (FuncDeclaration *fd = s->isFuncDeclaration())
     {
         if (funcroot)
             return funcroot->overloadInsert(fd);
         funcroot = fd;
         return funcroot->overloadInsert(this);
     }
-
-    TemplateDeclaration *td = s->isTemplateDeclaration();
-    if (!td)
-        return false;
-
-    TemplateDeclaration *pthis = this;
-    TemplateDeclaration **ptd;
-    for (ptd = &pthis; *ptd; ptd = &(*ptd)->overnext)
+    if (TemplateDeclaration *td = s->isTemplateDeclaration())
     {
-#if 0
-        // Conflict if TemplateParameter's match
-        // Will get caught anyway later with TemplateInstance, but
-        // should check it now.
-        TemplateDeclaration *f2 = *ptd;
-
-        if (td->parameters->dim != f2->parameters->dim)
-            goto Lcontinue;
-
-        for (size_t i = 0; i < td->parameters->dim; i++)
-        {   TemplateParameter *p1 = (*td->parameters)[i];
-            TemplateParameter *p2 = (*f2->parameters)[i];
-
-            if (!p1->overloadMatch(p2))
-                goto Lcontinue;
-        }
-
-#if LOG
-        printf("\tfalse: conflict\n");
-#endif
-        return false;
-
-     Lcontinue:
-        ;
-#endif
+        TemplateDeclaration *pthis = this;
+        TemplateDeclaration **ptd;
+        for (ptd = &pthis; *ptd; ptd = &(*ptd)->overnext) {}
+        td->overroot = this;
+        *ptd = td;
+    #if LOG
+        printf("\ttrue: no conflict\n");
+    #endif
+        return true;
     }
-
-    td->overroot = this;
-    *ptd = td;
-#if LOG
-    printf("\ttrue: no conflict\n");
+    if (OverDeclaration *od = s->isOverDeclaration())
+    {
+        if (overnext)
+            return overnext->overloadInsert(s);
+        overnext = od;
+    }
 #endif
-    return true;
+    return false;
 }
 
 /****************************
@@ -2422,10 +2427,10 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
     p.ta_last    = m->last != MATCHnomatch ? MATCHexact : MATCHnomatch;
     p.tthis_best = NULL;
 
-    FuncDeclaration *fd = dstart->isFuncDeclaration();
-    TemplateDeclaration *td = dstart->isTemplateDeclaration();
-    if (td && td->funcroot)
-        dstart = td->funcroot;
+    //FuncDeclaration *fd = dstart->isFuncDeclaration();
+    //TemplateDeclaration *td = dstart->isTemplateDeclaration();
+    //if (td && td->funcroot)
+    //    dstart = td->funcroot;
     overloadApply(dstart, &p, &ParamDeduce::fp);
 
     //printf("td_best = %p, m->lastf = %p\n", p.td_best, m->lastf);
@@ -3776,16 +3781,24 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                         if (s)
                         {
                             s = s->toAlias();
+                            // TODO: iterate all of the overloads
+                            if (s->isOverloadable())
+                            {
+                                if (s->overloadContains(tempdecl))
+                                    goto L2;
+#if 0
                             TemplateDeclaration *td = s->isTemplateDeclaration();
                             if (td)
                             {
-                                if (td->overroot)
-                                    td = td->overroot;
+                                //if (td->overroot)
+                                //    td = td->overroot;
                                 for (; td; td = td->overnext)
                                 {
                                     if (td == tempdecl)
                                         goto L2;
                                 }
+                            }
+#endif
                             }
                         }
                         goto Lnomatch;
@@ -5687,7 +5700,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
      * then run semantic on each argument (place results in tiargs[]),
      * last find most specialized template from overload list/set.
      */
-    if (!findTemplateDeclaration(sc, NULL) ||
+    if (!findTempDecl(sc, NULL) ||
         !semanticTiargs(sc) ||
         !findBestMatch(sc, fargs))
     {
@@ -6132,7 +6145,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
  * Find template declaration corresponding to template instance.
  */
 
-bool TemplateInstance::findTemplateDeclaration(Scope *sc, WithScopeSymbol **pwithsym)
+bool TemplateInstance::findTempDecl(Scope *sc, WithScopeSymbol **pwithsym)
 {
     if (pwithsym)
         *pwithsym = NULL;
@@ -6140,7 +6153,7 @@ bool TemplateInstance::findTemplateDeclaration(Scope *sc, WithScopeSymbol **pwit
     if (havetempdecl)
         return true;
 
-    //printf("TemplateInstance::findTemplateDeclaration() %s\n", toChars());
+    //printf("TemplateInstance::findTempDecl() %s\n", toChars());
     if (!tempdecl)
     {
         /* Given:
@@ -6183,13 +6196,13 @@ bool TemplateInstance::findTemplateDeclaration(Scope *sc, WithScopeSymbol **pwit
                  */
                 TemplateDeclaration *td = ti->tempdecl->isTemplateDeclaration();
                 assert(td);
-                if (td->overroot)       // if not start of overloaded list of TemplateDeclaration's
-                    td = td->overroot;  // then get the start
                 s = td;
+                if (td->overroot)       // if not start of overloaded list of TemplateDeclaration's
+                    s = td->overroot;   // then get the start
             }
         }
 
-        if (!updateTemplateDeclaration(sc, s))
+        if (!updateTempDecl(sc, s))
         {
             return false;
         }
@@ -6237,7 +6250,7 @@ bool TemplateInstance::findTemplateDeclaration(Scope *sc, WithScopeSymbol **pwit
  * Confirm s is a valid template, then store it.
  */
 
-bool TemplateInstance::updateTemplateDeclaration(Scope *sc, Dsymbol *s)
+bool TemplateInstance::updateTempDecl(Scope *sc, Dsymbol *s)
 {
     if (s)
     {
@@ -6246,13 +6259,15 @@ bool TemplateInstance::updateTemplateDeclaration(Scope *sc, Dsymbol *s)
 
         /* If an OverloadSet, look for a unique member that is a template declaration
          */
-        OverloadSet *os = s->isOverloadSet();
-        if (os)
+        if (OverloadSet *os = s->isOverloadSet())
         {
             s = NULL;
             for (size_t i = 0; i < os->a.dim; i++)
             {
                 Dsymbol *s2 = os->a[i];
+#if 0
+                //overloadApply(s2) // If no templateDeclaration exists in the all overloads, should be error
+#else
                 if (FuncDeclaration *f = s2->isFuncDeclaration())
                     s2 = f->findTemplateDeclRoot();
                 else
@@ -6266,6 +6281,7 @@ bool TemplateInstance::updateTemplateDeclaration(Scope *sc, Dsymbol *s)
                     }
                     s = s2;
                 }
+#endif
             }
             if (!s)
             {
@@ -6273,11 +6289,20 @@ bool TemplateInstance::updateTemplateDeclaration(Scope *sc, Dsymbol *s)
                 return false;
             }
         }
+        else if (s->isOverloadable())
+        {
+            //overloadApply(s) // If no templateDeclaration exists in the overload, should be error
+        }
+        else
+        {
+            error("%s is not a template declaration, it is a %s", id->toChars(), s->kind());
+            return false;
+        }
 
-        OverDeclaration *od = s->isOverDeclaration();
-        if (od)
+        if (OverDeclaration *od = s->isOverDeclaration())
         {
             tempdecl = od;  // TODO: more strict check
+            //overloadApply(od) // If no templateDeclaration exists in the overload, should be error
             return true;
         }
 
@@ -6319,7 +6344,7 @@ bool TemplateInstance::updateTemplateDeclaration(Scope *sc, Dsymbol *s)
                 TemplateDeclaration *td = ti->tempdecl->isTemplateDeclaration();
                 assert(td);
                 if (td->overroot)       // if not start of overloaded list of TemplateDeclaration's
-                    td = td->overroot;  // then get the start
+                    s = td->overroot;   // then get the start
                 tempdecl = td;
             }
             else
@@ -7576,7 +7601,7 @@ Dsymbol *TemplateMixin::syntaxCopy(Dsymbol *s)
     return tm;
 }
 
-bool TemplateMixin::findTemplateDeclaration(Scope *sc)
+bool TemplateMixin::findTempDecl(Scope *sc)
 {
     // Follow qualifications to find the TemplateDeclaration
     if (!tempdecl)
@@ -7696,7 +7721,7 @@ void TemplateMixin::semantic(Scope *sc)
     /* Run semantic on each argument, place results in tiargs[],
      * then find best match template with tiargs
      */
-    if (!findTemplateDeclaration(sc) ||
+    if (!findTempDecl(sc) ||
         !semanticTiargs(sc) ||
         !findBestMatch(sc, NULL))
     {

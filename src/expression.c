@@ -724,7 +724,7 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
         DotTemplateInstanceExp *dti = (DotTemplateInstanceExp *)ue;
         TemplateInstance *ti = new TemplateInstance(loc, s->ident);
         ti->tiargs = dti->ti->tiargs;   // for better diagnostic message
-        if (!ti->updateTemplateDeclaration(sc, s))
+        if (!ti->updateTempDecl(sc, s))
             return new ErrorExp();
         return new ScopeExp(loc, ti);
     }
@@ -3138,8 +3138,6 @@ Expression *DsymbolExp::semantic(Scope *sc)
 #endif
 
 Lagain:
-    Expression *e;
-
     //printf("DsymbolExp:: %p '%s' is a symbol\n", this, toChars());
     //printf("s = '%s', s->kind = '%s'\n", s->toChars(), s->kind());
     if (!s->isFuncDeclaration())        // functions are checked after overloading
@@ -3198,7 +3196,7 @@ Lagain:
                 v->scope = NULL;
                 v->inuse--;
             }
-            e = v->init->toExpression(v->type);
+            Expression *e = v->init->toExpression(v->type);
             if (!e)
             {
                 error("cannot make expression out of initializer for %s", v->toChars());
@@ -3210,31 +3208,69 @@ Lagain:
             return e;
         }
 
-        e = new VarExp(loc, v);
+        Expression *e = new VarExp(loc, v);
         e->type = type;
         e = e->semantic(sc);
         return e->deref();
     }
-    if (FuncLiteralDeclaration *fld = s->isFuncLiteralDeclaration())
-    {
-        //printf("'%s' is a function literal\n", fld->toChars());
-        e = new FuncExp(loc, fld);
-        return e->semantic(sc);
-    }
-    if (FuncDeclaration *f = s->isFuncDeclaration())
-    {
-        f = f->toAliasFunc();
-        if (!f->functionSemantic())
-            return new ErrorExp();
 
-        if (!f->type->deco)
+    if (FuncDeclaration *fd = s->isFuncDeclaration())
+    {
+        if (FuncLiteralDeclaration *fld = fd->isFuncLiteralDeclaration())
+        {
+            //printf("'%s' is a function literal\n", fld->toChars());
+            Expression *e = new FuncExp(loc, fld);
+            return e->semantic(sc);
+        }
+
+        if (fd->overroot)
+        {
+            s = fd->overroot;
+            goto Lagain;
+        }
+
+        //f = f->toAliasFunc();
+        if (!df->functionSemantic())
+            return new ErrorExp();
+        if (!fd->type->deco)
         {
             error("forward reference to %s", toChars());
             return new ErrorExp();
         }
-        FuncDeclaration *fd = s->isFuncDeclaration();
-        fd->type = f->type;
+
+        //FuncDeclaration *fd = s->isFuncDeclaration();
+        //fd->type = f->type;
         return new VarExp(loc, fd, hasOverloads);
+    }
+    if (OverDeclaration *od = s->isOverDeclaration())
+    {
+        if (od->overroot)
+        {
+            s = od->overroot;
+            goto Lagain;
+        }
+        return new VarExp(loc, od, hasOverloads);
+    }
+    if (TemplateDeclaration *td = s->isTemplateDeclaration())
+    {
+        if (td->overroot)
+        {
+            s = td->overroot;
+            goto Lagain;
+        }
+
+        Expression *e;
+        Dsymbol *p = td->toParent2();
+        FuncDeclaration *fdthis = hasThis(sc);
+        AggregateDeclaration *ad = p ? p->isAggregateDeclaration() : NULL;
+        if (fdthis && ad && isAggregate(fdthis->vthis->type) == ad && !td->isstatic)
+        {
+            e = new DotTemplateExp(loc, new ThisExp(loc), td);
+        }
+        else
+            e = new TemplateExp(loc, td);
+        e = e->semantic(sc);
+        return e;
     }
     if (OverloadSet *o = s->isOverloadSet())
     {
@@ -3262,20 +3298,6 @@ Lagain:
         ScopeExp *ie = new ScopeExp(loc, mod);
         return ie->semantic(sc);
     }
-
-    if (Type *t = s->getType())
-    {
-        TypeExp *te = new TypeExp(loc, t);
-        return te->semantic(sc);
-    }
-
-    if (TupleDeclaration *tup = s->isTupleDeclaration())
-    {
-        e = new TupleExp(loc, tup);
-        e = e->semantic(sc);
-        return e;
-    }
-
     if (TemplateInstance *ti = s->isTemplateInstance())
     {
         if (!ti->semanticRun)
@@ -3285,22 +3307,20 @@ Lagain:
             goto Lagain;
         if (ti->errors)
             return new ErrorExp();
-        e = new ScopeExp(loc, ti);
+        Expression *e = new ScopeExp(loc, ti);
         e = e->semantic(sc);
         return e;
     }
-    if (TemplateDeclaration *td = s->isTemplateDeclaration())
+
+    if (Type *t = s->getType())
     {
-        Dsymbol *p = td->toParent2();
-        FuncDeclaration *fdthis = hasThis(sc);
-        AggregateDeclaration *ad = p ? p->isAggregateDeclaration() : NULL;
-        if (fdthis && ad && isAggregate(fdthis->vthis->type) == ad &&
-            (td->scope->stc & STCstatic) == 0)
-        {
-            e = new DotTemplateExp(loc, new ThisExp(loc), td);
-        }
-        else
-            e = new TemplateExp(loc, td);
+        TypeExp *te = new TypeExp(loc, t);
+        return te->semantic(sc);
+    }
+
+    if (TupleDeclaration *tup = s->isTupleDeclaration())
+    {
+        Expression *e = new TupleExp(loc, tup);
         e = e->semantic(sc);
         return e;
     }
@@ -4533,7 +4553,7 @@ Lagain:
     if (ti)
     {
         WithScopeSymbol *withsym;
-        if (!ti->findTemplateDeclaration(sc, &withsym) ||
+        if (!ti->findTempDecl(sc, &withsym) ||
             !ti->semanticTiargs(sc))
         {
             ti->inst = ti;
@@ -5211,6 +5231,7 @@ Expression *VarExp::semantic(Scope *sc)
     }
     else if (FuncDeclaration *fd = var->isFuncDeclaration())
     {
+        // TODO: only when fd->isUnique() ?
         fd->checkNestedReference(sc, loc);
     }
     else if (OverDeclaration *od = var->isOverDeclaration())
@@ -7010,16 +7031,15 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
                 accessCheck(loc, sc, NULL, d);
 
             s = s->toAlias();
-            checkDeprecated(sc, s);
+            if (!s->isOverloadable())   // todo
+                checkDeprecated(sc, s);
 
-            EnumMember *em = s->isEnumMember();
-            if (em)
+            if (EnumMember *em = s->isEnumMember())
             {
                 return em->getVarExp(loc, sc);
             }
 
-            VarDeclaration *v = s->isVarDeclaration();
-            if (v)
+            if (VarDeclaration *v = s->isVarDeclaration())
             {
                 //printf("DotIdExp:: Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
                 if (v->inuse)
@@ -7039,7 +7059,8 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
                 {
                     e = new VarExp(loc, v);
                     if (eleft)
-                    {   e = new CommaExp(loc, eleft, e);
+                    {
+                        e = new CommaExp(loc, eleft, e);
                         e->type = v->type;
                     }
                 }
@@ -7047,8 +7068,7 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
                 return e->semantic(sc);
             }
 
-            FuncDeclaration *f = s->isFuncDeclaration();
-            if (f)
+            if (FuncDeclaration *f = s->isFuncDeclaration())
             {
                 //printf("it's a function\n");
                 if (!f->functionSemantic())
@@ -7060,11 +7080,12 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
                     e = new DotVarExp(loc, eleft, f);
                     e = e->semantic(sc);
                 }
-                else
+                else    // todo if f is overloaded?
                 {
                     e = new VarExp(loc, f, 1);
                     if (eleft)
-                    {   e = new CommaExp(loc, eleft, e);
+                    {
+                        e = new CommaExp(loc, eleft, e);
                         e->type = f->type;
                     }
                 }
@@ -7080,23 +7101,22 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
                 }
                 return e;
             }
-            OverloadSet *o = s->isOverloadSet();
-            if (o)
-            {   //printf("'%s' is an overload set\n", o->toChars());
+            if (OverloadSet *o = s->isOverloadSet())
+            {
+                //printf("'%s' is an overload set\n", o->toChars());
                 return new OverExp(loc, o);
             }
 
-            Type *t = s->getType();
-            if (t)
+            if (Type *t = s->getType())
             {
                 return new TypeExp(loc, t);
             }
 
-            TupleDeclaration *tup = s->isTupleDeclaration();
-            if (tup)
+            if (TupleDeclaration *tup = s->isTupleDeclaration())
             {
                 if (eleft)
-                {   error("cannot have e.tuple");
+                {
+                    error("cannot have e.tuple");
                     return new ErrorExp();
                 }
                 e = new TupleExp(loc, tup);
@@ -7104,8 +7124,7 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
                 return e;
             }
 
-            ScopeDsymbol *sds = s->isScopeDsymbol();
-            if (sds)
+            if (ScopeDsymbol *sds = s->isScopeDsymbol())
             {
                 //printf("it's a ScopeDsymbol %s\n", ident->toChars());
                 e = new ScopeExp(loc, sds);
@@ -7115,8 +7134,7 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
                 return e;
             }
 
-            Import *imp = s->isImport();
-            if (imp)
+            if (Import *imp = s->isImport())
             {
                 ie = new ScopeExp(loc, imp->pkg);
                 return ie->semantic(sc);
@@ -7129,7 +7147,8 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
             assert(0);
         }
         else if (ident == Id::stringof)
-        {   char *p = ie->toChars();
+        {
+            char *p = ie->toChars();
             e = new StringExp(loc, p, strlen(p), 'c');
             e = e->semantic(sc);
             return e;
@@ -7495,7 +7514,7 @@ bool DotTemplateInstanceExp::findTempDecl(Scope *sc)
         case TOKvar:            s = ((VarExp *)e)->var;         break;
         default:                return false;
     }
-    return ti->updateTemplateDeclaration(sc, s);
+    return ti->updateTempDecl(sc, s);
 }
 
 Expression *DotTemplateInstanceExp::semantic(Scope *sc)
@@ -7554,45 +7573,45 @@ L1:
         return e;
     if (e->op == TOKdotvar)
     {
-        DotVarExp *dve = (DotVarExp *)e;
-        if (FuncDeclaration *fd = dve->var->isFuncDeclaration())
+        Expression *eleft = dve->e1;
+        if (!ti->updateTempDecl(sc, dve->var) ||
+            !ti->semanticTiargs(sc))    // maybe this is necessary...
         {
-            TemplateDeclaration *td = fd->findTemplateDeclRoot();
-            if (td)
-            {
-                e = new DotTemplateExp(dve->loc, dve->e1, td);
-                e = e->semantic(sc);
-            }
+            ti->inst = ti;
+            ti->inst->errors = true;
+            return new ErrorExp();
         }
-        else if (OverDeclaration *od = dve->var->isOverDeclaration())
+        if (ti->needsTypeInference(sc))
         {
-            if (!findTempDecl(sc))
-                goto Lerr;
-            Expression *eleft = dve->e1;
-            if (ti->needsTypeInference(sc))
-            {
-                e1 = eleft;
-                return this;
-            }
-            else
-                ti->semantic(sc);
-            if (!ti->inst)                  // if template failed to expand
-                return new ErrorExp();
-            Dsymbol *s = ti->inst->toAlias();
-            Declaration *v = s->isDeclaration();
-            if (v)
-            {
-                if (v->type && !v->type->deco)
-                    v->type = v->type->semantic(v->loc, sc);
-                e = new DotVarExp(loc, eleft, v);
-                e = e->semantic(sc);
-                return e;
-            }
-            e = new ScopeExp(loc, ti);
-            e = new DotExp(loc, eleft, e);
+            e1 = eleft;
+            return this;
+        }
+        ti->semantic(sc);
+        if (!ti->inst)                  // if template failed to expand // ti->errors ?
+            return new ErrorExp();
+
+        Dsymbol *s = ti->inst->toAlias();
+        Declaration *d = s->isDeclaration();
+        if (d/* && */)
+        {
+            //if (d->type && !d->type->deco)
+            //    d->type = d->type->semantic(d->loc, sc);  // done by DotVarExp...?
+            e = new DotVarExp(loc, eleft, d);
             e = e->semantic(sc);
             return e;
         }
+#if 1   // maybe...?
+        if (eleft->op == TOKtype)
+        {
+            e = new DsymbolExp(loc, s);
+            e = e->semantic(sc);
+            return e;
+        }
+#endif
+        e = new ScopeExp(loc, ti);
+        e = new DotExp(loc, eleft, e);
+        e = e->semantic(sc);
+        return e;
     }
     else if (e->op == TOKvar)
     {
@@ -7614,14 +7633,15 @@ L1:
             return e;
         }
     }
+
     if (e->op == TOKdottd)
     {
         if (ti->errors)
             return new ErrorExp();
         DotTemplateExp *dte = (DotTemplateExp *)e;
         Expression *eleft = dte->e1;
-        ti->tempdecl = dte->td;
-        if (!ti->semanticTiargs(sc))
+        if (!ti->updateTempDecl(sc, dte->td) ||
+            !ti->semanticTiargs(sc))
         {
             ti->inst = ti;
             ti->inst->errors = true;
@@ -7632,15 +7652,16 @@ L1:
             e1 = eleft;                 // save result of semantic()
             return this;
         }
-        else
-            ti->semantic(sc);
-        if (!ti->inst)                  // if template failed to expand
+
+        ti->semantic(sc);
+        if (!ti->inst)                  // if template failed to expand // ti->errors ?
             return new ErrorExp();
+
         Dsymbol *s = ti->inst->toAlias();
-        Declaration *v = s->isDeclaration();
-        if (v && (v->isFuncDeclaration() || v->isVarDeclaration()))
+        Declaration *d = s->isDeclaration();
+        if (d && (d->isFuncDeclaration() || d->isVarDeclaration() || d->isOverDeclaration()))
         {
-            e = new DotVarExp(loc, eleft, v);
+            e = new DotVarExp(loc, eleft, d);
             e = e->semantic(sc);
             return e;
         }
@@ -7676,7 +7697,10 @@ L1:
 
         if (de->e2->op == TOKoverloadset)
         {
-            if (!findTempDecl(sc) ||
+            Dsymbol *sym = ((OverExp *)de->e2)->vars;
+
+
+            if (!ti->updateTempDecl(sc, sym) ||   //!findTempDecl(sc) ||
                 !ti->semanticTiargs(sc))
             {
                 ti->inst = ti;
@@ -7688,17 +7712,17 @@ L1:
                 e1 = eleft;
                 return this;
             }
-            else
-                ti->semantic(sc);
+
+            ti->semantic(sc);
             if (!ti->inst)                  // if template failed to expand
                 return new ErrorExp();
+
             Dsymbol *s = ti->inst->toAlias();
-            Declaration *v = s->isDeclaration();
-            if (v)
+            if (Declaration *d = s->isDeclaration())
             {
-                if (v->type && !v->type->deco)
-                    v->type = v->type->semantic(v->loc, sc);
-                e = new DotVarExp(loc, eleft, v);
+                //if (d->type && !d->type->deco)
+                //    d->type = d->type->semantic(d->loc, sc);  // done by DotVarExp...?
+                e = new DotVarExp(loc, eleft, d);
                 e = e->semantic(sc);
                 return e;
             }
@@ -7919,7 +7943,7 @@ Expression *CallExp::semantic(Scope *sc)
              * If not, go with partial explicit specialization.
              */
             WithScopeSymbol *withsym;
-            if (!ti->findTemplateDeclaration(sc, &withsym) ||
+            if (!ti->findTempDecl(sc, &withsym) ||
                 !ti->semanticTiargs(sc))
             {
                 ti->inst = ti;

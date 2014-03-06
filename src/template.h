@@ -70,8 +70,8 @@ public:
     size_t numinstances;                // number of instances in the hash table
 
     TemplateDeclaration *overnext;      // next overloaded TemplateDeclaration
-    TemplateDeclaration *overroot;      // first in overnext list
-    FuncDeclaration *funcroot;          // first function in unified overload list
+    //TemplateDeclaration *overroot;      // first in overnext list
+    //FuncDeclaration *funcroot;          // first function in unified overload list
 
     Dsymbol *onemember;         // if !=NULL then one member of this template
 
@@ -347,8 +347,8 @@ public:
     void toObjFile(int multiobj);                       // compile to .obj file
 
     // Internal
-    bool findTemplateDeclaration(Scope *sc, WithScopeSymbol **pwithsym);
-    bool updateTemplateDeclaration(Scope *sc, Dsymbol *s);
+    bool findTempDecl(Scope *sc, WithScopeSymbol **pwithsym);
+    bool updateTempDecl(Scope *sc, Dsymbol *s);
     static void semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int flags);
     bool semanticTiargs(Scope *sc);
     bool findBestMatch(Scope *sc, Expressions *fargs);
@@ -385,7 +385,7 @@ public:
 
     void toObjFile(int multiobj);                       // compile to .obj file
 
-    bool findTemplateDeclaration(Scope *sc);
+    bool findTempDecl(Scope *sc);
 
     TemplateMixin *isTemplateMixin() { return this; }
     void accept(Visitor *v) { v->visit(this); }
