@@ -38,7 +38,7 @@ class InterfaceDeclaration;
 class StructDeclaration;
 class UnionDeclaration;
 class FuncDeclaration;
-class FuncAliasDeclaration;
+//class FuncAliasDeclaration;
 class OverDeclaration;
 class FuncLiteralDeclaration;
 class CtorDeclaration;
@@ -237,7 +237,7 @@ public:
     virtual AliasDeclaration *isAliasDeclaration() { return NULL; }
     virtual AggregateDeclaration *isAggregateDeclaration() { return NULL; }
     virtual FuncDeclaration *isFuncDeclaration() { return NULL; }
-    virtual FuncAliasDeclaration *isFuncAliasDeclaration() { return NULL; }
+    //virtual FuncAliasDeclaration *isFuncAliasDeclaration() { return NULL; }
     virtual OverDeclaration *isOverDeclaration() { return NULL; }
     virtual FuncLiteralDeclaration *isFuncLiteralDeclaration() { return NULL; }
     virtual CtorDeclaration *isCtorDeclaration() { return NULL; }

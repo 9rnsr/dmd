@@ -46,6 +46,12 @@ unsigned char deduceWildHelper(Type *t, Type **at, Type *tparam);
 MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam);
 const char *mangle(Dsymbol *s, bool isv = false);
 
+bool overloadContains(Dsymbol *overroot, TemplateDeclaration *tempdecl)
+{
+    return true;
+}
+
+
 /********************************************
  * These functions substitute for dynamic_cast. dynamic_cast does not work
  * on earlier versions of gcc.
@@ -331,9 +337,9 @@ hash_t arrayObjectHash(Objects *oa1)
             }
             else if (s1)
             {
-                FuncAliasDeclaration *fa1 = s1->isFuncAliasDeclaration();
-                if (fa1)
-                    s1 = fa1->toAliasFunc();
+                //FuncAliasDeclaration *fa1 = s1->isFuncAliasDeclaration();
+                //if (fa1)
+                //    s1 = fa1->toAliasFunc();
                 hash += (size_t)(void *)s1->getIdent() + (size_t)(void *)s1->parent;
             }
             else if (Tuple *u1 = isTuple(o1))
@@ -677,7 +683,7 @@ bool TemplateDeclaration::overloadInsert(Dsymbol *s)
             assert(0);
 
         if (overnext)
-            return overenext->overloadInsert(s);
+            return overnext->overloadInsert(s);
         overnext = s;
         return true;
     }
@@ -3784,7 +3790,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                             // TODO: iterate all of the overloads
                             if (s->isOverloadable())
                             {
-                                if (s->overloadContains(tempdecl))
+                                if (overloadContains(s, tempdecl))
                                     goto L2;
 #if 0
                             TemplateDeclaration *td = s->isTemplateDeclaration();
@@ -6599,16 +6605,16 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                 j--;
                 continue;
             }
-            if (FuncAliasDeclaration *fa = sa->isFuncAliasDeclaration())
-            {
-                FuncDeclaration *f = fa->toAliasFunc();
-                if (!fa->hasOverloads && f->isUnique())
-                {
-                    // Strip FuncAlias only when the aliased function
-                    // does not have any overloads.
-                    sa = f;
-                }
-            }
+            //if (FuncAliasDeclaration *fa = sa->isFuncAliasDeclaration())
+            //{
+            //    FuncDeclaration *f = fa->toAliasFunc();
+            //    if (!fa->hasOverloads && f->isUnique())
+            //    {
+            //        // Strip FuncAlias only when the aliased function
+            //        // does not have any overloads.
+            //        sa = f;
+            //    }
+            //}
             (*tiargs)[j] = sa;
 
             TemplateDeclaration *td = sa->isTemplateDeclaration();

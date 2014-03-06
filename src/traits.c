@@ -65,12 +65,12 @@ static int fptraits(void *param, Dsymbol *s)
         return 0;
 
     Expression *e;
-    FuncAliasDeclaration* alias = new FuncAliasDeclaration(f, 0);
-    alias->protection = f->protection;
+    OverDeclaration* od = new OverDeclaration(f, 0);
+    od->protection = f->protection;
     if (p->e1)
-        e = new DotVarExp(Loc(), p->e1, alias);
+        e = new DotVarExp(Loc(), p->e1, od);
     else
-        e = new DsymbolExp(Loc(), alias);
+        e = new DsymbolExp(Loc(), od);
     p->exps->push(e);
     return 0;
 }
@@ -102,9 +102,9 @@ static void collectUnitTests(Dsymbols *symbols, AA *uniqueUnitTests, Expressions
         {
             if (!_aaGetRvalue(uniqueUnitTests, unitTest))
             {
-                FuncAliasDeclaration* alias = new FuncAliasDeclaration(unitTest, 0);
-                alias->protection = unitTest->protection;
-                Expression* e = new DsymbolExp(Loc(), alias);
+                OverDeclaration* od = new OverDeclaration(unitTest, 0);
+                od->protection = unitTest->protection;
+                Expression* e = new DsymbolExp(Loc(), od);
                 unitTests->push(e);
                 bool* value = (bool*) _aaGet(&uniqueUnitTests, unitTest);
                 *value = true;
@@ -808,10 +808,10 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         s1 = s1->toAlias();
         s2 = s2->toAlias();
 
-        if (s1->isFuncAliasDeclaration())
-            s1 = ((FuncAliasDeclaration *)s1)->toAliasFunc();
-        if (s2->isFuncAliasDeclaration())
-            s2 = ((FuncAliasDeclaration *)s2)->toAliasFunc();
+        //if (s1->isFuncAliasDeclaration())
+        //    s1 = ((FuncAliasDeclaration *)s1)->toAliasFunc();
+        //if (s2->isFuncAliasDeclaration())
+        //    s2 = ((FuncAliasDeclaration *)s2)->toAliasFunc();
 
         if (s1 == s2)
             goto Ltrue;

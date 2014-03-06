@@ -153,8 +153,8 @@ bool Dsymbol::oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident)
                     FuncDeclaration *f2 = (*ps)->isFuncDeclaration();
                     if (f1 && f2)
                     {
-                        assert(!f1->isFuncAliasDeclaration());
-                        assert(!f2->isFuncAliasDeclaration());
+                        //assert(!f1->isFuncAliasDeclaration());
+                        //assert(!f2->isFuncAliasDeclaration());
                         for (; f1 != f2; f1 = f1->overnext0)
                         {
                             if (f1->overnext0 == NULL)

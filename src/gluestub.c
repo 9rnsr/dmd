@@ -65,13 +65,13 @@ Symbol *TypeInfoClassDeclaration::toSymbol()
     assert(0);
     return NULL;
 }
-
+#if 0
 Symbol *FuncAliasDeclaration::toSymbol()
 {
     assert(0);
     return NULL;
 }
-
+#endif
 Symbol *FuncDeclaration::toSymbol()
 {
     assert(0);

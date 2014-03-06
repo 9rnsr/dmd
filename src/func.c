@@ -2227,20 +2227,20 @@ bool FuncDeclaration::equals(RootObject *o)
         if (!fd2)
             return false;
 
-        FuncAliasDeclaration *fa1 = fd1->isFuncAliasDeclaration();
-        FuncAliasDeclaration *fa2 = fd2->isFuncAliasDeclaration();
-        if (fa1 && fa2)
-        {
-            return fa1->toAliasFunc()->equals(fa2->toAliasFunc()) &&
-                   fa1->hasOverloads == fa2->hasOverloads;
-        }
+        //FuncAliasDeclaration *fa1 = fd1->isFuncAliasDeclaration();
+        //FuncAliasDeclaration *fa2 = fd2->isFuncAliasDeclaration();
+        //if (fa1 && fa2)
+        //{
+        //    return fa1->toAliasFunc()->equals(fa2->toAliasFunc()) &&
+        //           fa1->hasOverloads == fa2->hasOverloads;
+        //}
 
-        if (fa1 && (fd1 = fa1->toAliasFunc())->isUnique() && !fa1->hasOverloads)
-            fa1 = NULL;
-        if (fa2 && (fd2 = fa2->toAliasFunc())->isUnique() && !fa2->hasOverloads)
-            fa2 = NULL;
-        if ((fa1 != NULL) != (fa2 != NULL))
-            return false;
+        //if (fa1 && (fd1 = fa1->toAliasFunc())->isUnique() && !fa1->hasOverloads)
+        //    fa1 = NULL;
+        //if (fa2 && (fd2 = fa2->toAliasFunc())->isUnique() && !fa2->hasOverloads)
+        //    fa2 = NULL;
+        //if ((fa1 != NULL) != (fa2 != NULL))
+        //    return false;
 
         return fd1->toParent()->equals(fd2->toParent()) &&
             fd1->ident->equals(fd2->ident) && fd1->type->equals(fd2->type);
@@ -2623,7 +2623,24 @@ bool FuncDeclaration::overloadInsert(Dsymbol *s)
         return true;
     }
 
+#if 1
+    if (s->isOverloadable())
+    {
+        if (FuncDeclaration *fd = s->isFuncDeclaration())
+            fd->overroot = this;
+        else if (TemplateDeclaration *td = s->isTemplateDeclaration())
+            fd->overroot = this;
+        else if (OverDeclaration *od = s->isOverDeclaration())
+            od->overroot = this;
+        else
+            assert(0);
 
+        if (overnext)
+            return overnext->overloadInsert(s);
+        overnext = s;
+        return true;
+    }
+#else
     TemplateDeclaration *td = s->isTemplateDeclaration();
     if (td)
     {
@@ -2649,6 +2666,8 @@ bool FuncDeclaration::overloadInsert(Dsymbol *s)
     overnext = fd;
     //printf("\ttrue: no conflict\n");
     return true;
+#endif
+    return false;
 }
 
 /***************************************************
@@ -2680,26 +2699,26 @@ int overloadApply(Dsymbol *fstart, void *param, int (*fp)(void *, Dsymbol *))
             }
             next = od->overnext;
         }
-        else if (FuncAliasDeclaration *fa = d->isFuncAliasDeclaration())
-        {
-            if (fa->hasOverloads)
-            {
-                if (int r = overloadApply(fa->funcalias, param, fp))
-                    return r;
-            }
-            else
-            {
-                FuncDeclaration *fd = fa->toAliasFunc();
-                if (!fd)
-                {
-                    d->error("is aliased to a function");
-                    break;
-                }
-                if (int r = (*fp)(param, fd))
-                    return r;
-            }
-            next = fa->overnext;
-        }
+        //else if (FuncAliasDeclaration *fa = d->isFuncAliasDeclaration())
+        //{
+        //    if (fa->hasOverloads)
+        //    {
+        //        if (int r = overloadApply(fa->funcalias, param, fp))
+        //            return r;
+        //    }
+        //    else
+        //    {
+        //        FuncDeclaration *fd = fa->toAliasFunc();
+        //        if (!fd)
+        //        {
+        //            d->error("is aliased to a function");
+        //            break;
+        //        }
+        //        if (int r = (*fp)(param, fd))
+        //            return r;
+        //    }
+        //    next = fa->overnext;
+        //}
         else if (AliasDeclaration *ad = d->isAliasDeclaration())
         {
             next = ad->toAlias();
@@ -3015,8 +3034,8 @@ Lerror:
 
     FuncDeclaration *fd = s->isFuncDeclaration();
     TemplateDeclaration *td = s->isTemplateDeclaration();
-    if (td && td->funcroot)
-        s = fd = td->funcroot;
+    //if (td && td->funcroot)
+    //    s = fd = td->funcroot;
 
     OutBuffer tiargsBuf;
     size_t dim = tiargs ? tiargs->dim : 0;
@@ -3042,7 +3061,7 @@ Lerror:
             ::error(loc, "%s %s.%s cannot deduce function from argument types !(%s)%s, candidates are:",
                     td->kind(), td->parent->toPrettyChars(), td->ident->toChars(),
                     tiargsBuf.peekString(), fargsBuf.peekString());
-
+        #if 0   // temporary
             // Display candidate template functions
             int numToDisplay = 5; // sensible number to display
             for (TemplateDeclaration *tdx = td; tdx; tdx = tdx->overnext)
@@ -3060,6 +3079,7 @@ Lerror:
                     break;
                 }
             }
+        #endif
         }
         else
         {
@@ -4095,7 +4115,7 @@ Parameters *FuncDeclaration::getParameters(int *pvarargs)
     return fparameters;
 }
 
-
+#if 0
 /****************************** FuncAliasDeclaration ************************/
 
 // Used as a way to import a set of functions from another scope into this one.
@@ -4130,7 +4150,7 @@ FuncDeclaration *FuncAliasDeclaration::toAliasFunc()
 {
     return funcalias->toAliasFunc();
 }
-
+#endif
 
 /****************************** FuncLiteralDeclaration ************************/
 

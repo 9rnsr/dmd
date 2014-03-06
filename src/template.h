@@ -69,8 +69,8 @@ public:
     Array<TemplateInstances *> buckets;
     size_t numinstances;                // number of instances in the hash table
 
-    TemplateDeclaration *overnext;      // next overloaded TemplateDeclaration
-    //TemplateDeclaration *overroot;      // first in overnext list
+    Dsymbol *overnext;                  // next overloaded TemplateDeclaration
+    Dsymbol *overroot;                  // first in overnext list
     //FuncDeclaration *funcroot;          // first function in unified overload list
 
     Dsymbol *onemember;         // if !=NULL then one member of this template

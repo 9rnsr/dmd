@@ -223,7 +223,7 @@ public:
         else
             visit((Dsymbol *)fd);
     }
-
+#if 0
     // ditto
     void visit(FuncAliasDeclaration *fd)
     {
@@ -241,7 +241,7 @@ public:
         }
         visit((Dsymbol *)fd);
     }
-
+#endif
     void visit(OverDeclaration *od)
     {
         if (od->overnext)
@@ -271,7 +271,7 @@ public:
 
     void mangleExact(FuncDeclaration *fd)
     {
-        assert(!fd->isFuncAliasDeclaration());
+        //assert(!fd->isFuncAliasDeclaration());
 
         if (fd->mangleOverride)
         {
