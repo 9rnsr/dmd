@@ -9207,18 +9207,21 @@ Expression *DeleteExp::semantic(Scope *sc)
     e1 = e1->modifiableLvalue(sc, NULL);
     if (e1->op == TOKerror)
         return e1;
-    type = Type::tvoid;
 
     Type *tb = e1->type->toBasetype();
     switch (tb->ty)
-    {   case Tclass:
-        {   TypeClass *tc = (TypeClass *)tb;
+    {
+        case Tclass:
+        {
+            TypeClass *tc = (TypeClass *)tb;
             ClassDeclaration *cd = tc->sym;
 
             if (cd->isCOMinterface())
-            {   /* Because COM classes are deleted by IUnknown.Release()
+            {
+                /* Because COM classes are deleted by IUnknown.Release()
                  */
                 error("cannot delete instance of COM interface %s", cd->toChars());
+                return new ErrorExp();
             }
             break;
         }
@@ -9245,7 +9248,8 @@ Expression *DeleteExp::semantic(Scope *sc)
                 VarDeclaration *v;
 
                 if (fd && f)
-                {   Identifier *id = Lexer::idPool("__tmp");
+                {
+                    Identifier *id = Lexer::idPool("__tmp");
                     v = new VarDeclaration(loc, e1->type, id, new ExpInitializer(loc, e1));
                     v->storage_class |= STCtemp;
                     v->semantic(sc);
@@ -9255,7 +9259,8 @@ Expression *DeleteExp::semantic(Scope *sc)
                 }
 
                 if (fd)
-                {   Expression *e = ea ? new VarExp(loc, v) : e1;
+                {
+                    Expression *e = ea ? new VarExp(loc, v) : e1;
                     e = new DotVarExp(Loc(), e, fd, 0);
                     eb = new CallExp(loc, e);
                     eb = eb->semantic(sc);
@@ -9304,9 +9309,13 @@ Expression *DeleteExp::semantic(Scope *sc)
         IndexExp *ae = (IndexExp *)(e1);
         Type *tb1 = ae->e1->type->toBasetype();
         if (tb1->ty == Taarray)
+        {
             error("delete aa[key] deprecated, use aa.remove(key)");
+            return new ErrorExp();
+        }
     }
 
+    type = Type::tvoid;
     return this;
 }
 
