@@ -789,6 +789,7 @@ public:
     Expression *binSemanticProp(Scope *sc);
     Expression *checkComplexOpAssign(Scope *sc);
     int isunsigned();
+    bool checkArithmetic();
     Expression *incompatibleTypes();
 
     Expression *reorderSettingAAElem(Scope *sc);

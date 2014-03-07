@@ -6537,6 +6537,13 @@ int BinExp::isunsigned()
     return e1->type->isunsigned() || e2->type->isunsigned();
 }
 
+bool BinExp::checkArithmetic()
+{
+    bool b1 = e1->checkArithmetic();
+    bool b2 = e2->checkArithmetic();
+    return b1 || b2;
+}
+
 Expression *BinExp::incompatibleTypes()
 {
     if (e1->type->toBasetype() != Type::terror &&
@@ -6615,7 +6622,7 @@ Expression *BinAssignExp::semantic(Scope *sc)
 
     if (arith)
     {
-        if ((e1->checkArithmetic() | e2->checkArithmetic()) != 0)
+        if (BinExp::checkArithmetic())
             return new ErrorExp();
     }
     if (bitwise || shift)
@@ -9075,10 +9082,8 @@ Expression *NegExp::semantic(Scope *sc)
         return this;
     }
 
-    if (e1->checkNoBool())
+    if (e1->checkNoBool() || e1->checkArithmetic())
         return new ErrorExp();
-    if (e1->checkArithmetic())
-        return e1;
 
     return this;
 }
@@ -9101,10 +9106,9 @@ Expression *UAddExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    if (e1->checkNoBool())
+    if (e1->checkNoBool() || e1->checkArithmetic())
         return new ErrorExp();
-    if (e1->checkArithmetic())
-        return new ErrorExp();
+
     return e1;
 }
 
@@ -11812,16 +11816,12 @@ Expression *AddExp::semantic(Scope *sc)
     Type *tb1 = e1->type->toBasetype();
     Type *tb2 = e2->type->toBasetype();
 
-    bool callable1 = (tb1->ty == Tdelegate ||
-                      tb1->ty == Tpointer && tb1->nextOf()->ty == Tfunction);
-    bool callable2 = (tb2->ty == Tdelegate ||
-                      tb2->ty == Tpointer && tb2->nextOf()->ty == Tfunction);
-    if (callable1 || callable2)
+    if ((tb1->ty == Tpointer && tb1->nextOf()->ty == Tfunction ||
+         tb1->ty == Tdelegate) && e1->checkArithmetic()
+        ||
+        (tb2->ty == Tpointer && tb2->nextOf()->ty == Tfunction ||
+         tb2->ty == Tdelegate) && e2->checkArithmetic())
     {
-        if (callable1)
-            e1->checkArithmetic();
-        if (callable2)
-            e2->checkArithmetic();
         return new ErrorExp();
     }
     if (tb1->ty == Tpointer && e2->type->isintegral() ||
@@ -11905,16 +11905,12 @@ Expression *MinExp::semantic(Scope *sc)
     Type *tb1 = e1->type->toBasetype();
     Type *tb2 = e2->type->toBasetype();
 
-    bool callable1 = (tb1->ty == Tdelegate ||
-                      tb1->ty == Tpointer && tb1->nextOf()->ty == Tfunction);
-    bool callable2 = (tb2->ty == Tdelegate ||
-                      tb2->ty == Tpointer && tb2->nextOf()->ty == Tfunction);
-    if (callable1 || callable2)
+    if ((tb1->ty == Tpointer && tb1->nextOf()->ty == Tfunction ||
+         tb1->ty == Tdelegate) && e1->checkArithmetic()
+        ||
+        (tb2->ty == Tpointer && tb2->nextOf()->ty == Tfunction ||
+         tb2->ty == Tdelegate) && e2->checkArithmetic())
     {
-        if (callable1)
-            e1->checkArithmetic();
-        if (callable2)
-            e2->checkArithmetic();
         return new ErrorExp();
     }
 
@@ -12180,7 +12176,7 @@ Expression *MulExp::semantic(Scope *sc)
         return this;
     }
 
-    if ((e1->checkArithmetic() | e2->checkArithmetic()) != 0)
+    if (BinExp::checkArithmetic())
         return new ErrorExp();
 
     if (type->isfloating())
@@ -12264,7 +12260,7 @@ Expression *DivExp::semantic(Scope *sc)
         return this;
     }
 
-    if ((e1->checkArithmetic() | e2->checkArithmetic()) != 0)
+    if (BinExp::checkArithmetic())
         return new ErrorExp();
 
     if (type->isfloating())
@@ -12351,7 +12347,7 @@ Expression *ModExp::semantic(Scope *sc)
         return incompatibleTypes();
     }
 
-    if ((e1->checkArithmetic() | e2->checkArithmetic()) != 0)
+    if (BinExp::checkArithmetic())
         return new ErrorExp();
 
     if (type->isfloating())
@@ -12418,7 +12414,7 @@ Expression *PowExp::semantic(Scope *sc)
         return this;
     }
 
-    if ((e1->checkArithmetic() | e2->checkArithmetic()) != 0)
+    if (BinExp::checkArithmetic())
         return new ErrorExp();
 
     // For built-in numeric types, there are several cases.
