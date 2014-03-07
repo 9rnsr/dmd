@@ -8969,8 +8969,6 @@ void AddrExp::checkEscape()
 PtrExp::PtrExp(Loc loc, Expression *e)
         : UnaExp(loc, TOKstar, sizeof(PtrExp), e)
 {
-//    if (e->type)
-//      type = ((TypePointer *)e->type)->next;
 }
 
 PtrExp::PtrExp(Loc loc, Expression *e, Type *t)
@@ -9034,7 +9032,8 @@ Expression *PtrExp::toLvalue(Scope *sc, Expression *e)
 int PtrExp::checkModifiable(Scope *sc, int flag)
 {
     if (e1->op == TOKsymoff)
-    {   SymOffExp *se = (SymOffExp *)e1;
+    {
+        SymOffExp *se = (SymOffExp *)e1;
         return se->var->checkModify(loc, sc, type, NULL, flag);
     }
     else if (e1->op == TOKaddress)
@@ -9070,8 +9069,7 @@ Expression *NegExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    type = e1->type;
-    Type *tb = type->toBasetype();
+    Type *tb = e1->type->toBasetype();
     if (tb->ty == Tarray || tb->ty == Tsarray)
     {
         if (!isArrayOpValid(e1))
@@ -9081,10 +9079,10 @@ Expression *NegExp::semantic(Scope *sc)
         }
         return this;
     }
-
     if (e1->checkNoBool() || e1->checkArithmetic())
         return new ErrorExp();
 
+    type = e1->type;
     return this;
 }
 
@@ -9128,8 +9126,7 @@ Expression *ComExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    type = e1->type;
-    Type *tb = type->toBasetype();
+    Type *tb = e1->type->toBasetype();
     if (tb->ty == Tarray || tb->ty == Tsarray)
     {
         if (!isArrayOpValid(e1))
@@ -9139,12 +9136,10 @@ Expression *ComExp::semantic(Scope *sc)
         }
         return this;
     }
-
-    if (e1->checkNoBool())
-        return new ErrorExp();
-    if (e1->checkIntegral())
+    if (e1->checkNoBool() || e1->checkIntegral())
         return new ErrorExp();
 
+    type = e1->type;
     return this;
 }
 
@@ -10502,17 +10497,15 @@ Expression *PostExp::semantic(Scope *sc)
         return e;
     }
 
-    e = this;
-    if (e1->checkScalar())
+    if (e1->checkScalar() || e1->checkNoBool())
         return new ErrorExp();
-    if (e1->checkNoBool())
-        return new ErrorExp();
+
     if (e1->type->ty == Tpointer)
-        e = scaleFactor(this, sc);
-    else
-        e2 = e2->castTo(sc, e1->type);
-    e->type = e1->type;
-    return e;
+        return scaleFactor(this, sc);
+
+    e2 = e2->castTo(sc, e1->type);
+    type = e1->type;
+    return this;
 }
 
 /************************* PreExp ***********************************/
