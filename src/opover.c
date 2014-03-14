@@ -556,6 +556,30 @@ Expression *op_overload(Expression *e, Scope *sc)
                  * and see which is better.
                  */
 
+                if (e->op == TOKplusplus || e->op == TOKminusminus)
+                {
+                    assert(!s_r);
+                    // Kludge because operator overloading regards e++ and e--
+                    // as unary, but it's implemented as a binary.
+                    // Rewrite (e1 ++ e2) as e1.postinc()
+                    // Rewrite (e1 -- e2) as e1.postdec()
+                    result = build_overload(e->loc, sc, e->e1, NULL, s);
+                    return;
+                }
+
+                if (s && !s_r)
+                {
+                    // Rewrite (e1 op e2) as e1.opfunc(e2)
+                    result = build_overload(e->loc, sc, e->e1, e->e2, s);
+                    return;
+                }
+                if (!s && s_r)
+                {
+                    // Rewrite (e1 op e2) as e2.opfunc_r(e1)
+                    result = build_overload(e->loc, sc, e->e2, e->e1, s_r);
+                    return;
+                }
+
                 args1.setDim(1);
                 args1[0] = e->e1;
                 expandTuples(&args1);
@@ -568,7 +592,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                 memset(&m, 0, sizeof(m));
                 m.last = MATCHnomatch;
 
-                if (s)
+                //if (s)
                 {
                     functionResolve(&m, s, e->loc, sc, tiargs, e->e1->type, &args2);
                     if (m.lastf && m.lastf->errors)
@@ -580,7 +604,7 @@ Expression *op_overload(Expression *e, Scope *sc)
 
                 FuncDeclaration *lastf = m.lastf;
 
-                if (s_r)
+                //if (s_r)
                 {
                     functionResolve(&m, s_r, e->loc, sc, tiargs, e->e2->type, &args1);
                     if (m.lastf && m.lastf->errors)
@@ -605,15 +629,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                         goto L1;
                 }
 
-                if (e->op == TOKplusplus || e->op == TOKminusminus)
-                {
-                    // Kludge because operator overloading regards e++ and e--
-                    // as unary, but it's implemented as a binary.
-                    // Rewrite (e1 ++ e2) as e1.postinc()
-                    // Rewrite (e1 -- e2) as e1.postdec()
-                    result = build_overload(e->loc, sc, e->e1, NULL, m.lastf ? m.lastf : s);
-                }
-                else if (lastf && m.lastf == lastf || !s_r && m.last <= MATCHnomatch)
+                if (lastf && m.lastf == lastf || !s_r && m.last <= MATCHnomatch)
                 {
                     // Rewrite (e1 op e2) as e1.opfunc(e2)
                     result = build_overload(e->loc, sc, e->e1, e->e2, m.lastf ? m.lastf : s);
@@ -649,6 +665,19 @@ Expression *op_overload(Expression *e, Scope *sc)
                      * and see which is better.
                      */
 
+                    if (s_r && !s)
+                    {
+                        // Rewrite (e1 op e2) as e1.opfunc_r(e2)
+                        result = build_overload(e->loc, sc, e->e1, e->e2, s_r);
+                        return;
+                    }
+                    if (!s_r && s)
+                    {
+                        // Rewrite (e1 op e2) as e2.opfunc(e1)
+                        result = build_overload(e->loc, sc, e->e2, e->e1, s);
+                        return;
+                    }
+
                     if (!argsset)
                     {
                         args1.setDim(1);
@@ -663,7 +692,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                     memset(&m, 0, sizeof(m));
                     m.last = MATCHnomatch;
 
-                    if (s_r)
+                    //if (s_r)
                     {
                         functionResolve(&m, s_r, e->loc, sc, tiargs, e->e1->type, &args2);
                         if (m.lastf && m.lastf->errors)
@@ -675,7 +704,7 @@ Expression *op_overload(Expression *e, Scope *sc)
 
                     FuncDeclaration *lastf = m.lastf;
 
-                    if (s)
+                    //if (s)
                     {
                         functionResolve(&m, s, e->loc, sc, tiargs, e->e2->type, &args1);
                         if (m.lastf && m.lastf->errors)
