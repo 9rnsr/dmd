@@ -2298,10 +2298,11 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
          */
         Dsymbol *fd = search_function(sym, Id::opDot);
         if (fd)
-        {   /* Rewrite e.ident as:
+        {
+            /* Rewrite e.ident as:
              *  e.opDot().ident
              */
-            e = build_overload(e->loc, sc, e, NULL, fd);
+            e = build_overload(e->loc, sc, fd, NULL, e, NULL);
             e = new DotIdExp(e->loc, e, ident);
             return e->semantic(sc);
         }

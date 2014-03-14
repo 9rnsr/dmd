@@ -6466,13 +6466,15 @@ Expression *BinExp::checkComplexOpAssign(Scope *sc)
                 }
             }
         }
-    } else if (op == TOKdivass)
+    }
+    else if (op == TOKdivass)
     {
         if (e2->type->isimaginary())
         {
             Type *t1 = e1->type;
             if (t1->isreal())
-            {   // x/iv = i(-x/v)
+            {
+                // x/iv = i(-x/v)
                 // Therefore, the result is 0
                 e2 = new CommaExp(loc, e2, new RealExp(loc, ldouble(0.0), t1));
                 e2->type = t1;
@@ -6481,8 +6483,8 @@ Expression *BinExp::checkComplexOpAssign(Scope *sc)
                 return e;
             }
             else if (t1->isimaginary())
-            {   Type *t2;
-
+            {
+                Type *t2;
                 switch (t1->ty)
                 {
                     case Timaginary32: t2 = Type::tfloat32; break;
@@ -6497,7 +6499,8 @@ Expression *BinExp::checkComplexOpAssign(Scope *sc)
                 return e;
             }
         }
-    } else if (op == TOKmodass)
+    }
+    else if (op == TOKmodass)
     {
         if (e2->type->iscomplex())
         {

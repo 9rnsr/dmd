@@ -66,7 +66,7 @@ void initPrecedence();
 Expression *resolveProperties(Scope *sc, Expression *e);
 Expression *resolvePropertiesOnly(Scope *sc, Expression *e1);
 void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d);
-Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *earg, Dsymbol *d);
+Expression *build_overload(Loc loc, Scope *sc, Dsymbol *s, Objects *tiargs, Expression *ethis, Expression *earg);
 Dsymbol *search_function(ScopeDsymbol *ad, Identifier *funcid);
 void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
 void argsToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);

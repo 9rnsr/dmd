@@ -29,6 +29,7 @@
 static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, Parameters *arguments);
 static void inferApplyArgTypesZ(TemplateDeclaration *tstart, Parameters *arguments);
 static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments, int flags = 0);
+Expression *reverse_compare_op(BinExp *e);
 Expression *compare_overload(BinExp *e, Scope *sc, Identifier *id);
 
 /******************************** Expression **************************/
@@ -344,7 +345,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                         else
                         {
                             // Rewrite +e1 as e1.add()
-                            result = build_overload(e->loc, sc, e->e1, NULL, fd);
+                            result = build_overload(e->loc, sc, fd, NULL, e->e1, NULL);
                             return;
                         }
                     }
@@ -441,7 +442,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                     if (fd->isFuncDeclaration())
                     {
                         // Rewrite as:  e1.opCast()
-                        result = build_overload(e->loc, sc, e->e1, NULL, fd);
+                        result = build_overload(e->loc, sc, fd, NULL, e->e1, NULL);
                         return;
                     }
         #endif
@@ -558,25 +559,25 @@ Expression *op_overload(Expression *e, Scope *sc)
 
                 if (e->op == TOKplusplus || e->op == TOKminusminus)
                 {
-                    assert(!s_r);
+                    assert(!s_r && !tiargs);
                     // Kludge because operator overloading regards e++ and e--
                     // as unary, but it's implemented as a binary.
                     // Rewrite (e1 ++ e2) as e1.postinc()
                     // Rewrite (e1 -- e2) as e1.postdec()
-                    result = build_overload(e->loc, sc, e->e1, NULL, s);
+                    result = build_overload(e->loc, sc, s, NULL, e->e1, NULL);
                     return;
                 }
 
                 if (s && !s_r)
                 {
                     // Rewrite (e1 op e2) as e1.opfunc(e2)
-                    result = build_overload(e->loc, sc, e->e1, e->e2, s);
+                    result = build_overload(e->loc, sc, s, tiargs, e->e1, e->e2);
                     return;
                 }
                 if (!s && s_r)
                 {
                     // Rewrite (e1 op e2) as e2.opfunc_r(e1)
-                    result = build_overload(e->loc, sc, e->e2, e->e1, s_r);
+                    result = build_overload(e->loc, sc, s_r, tiargs, e->e2, e->e1);
                     return;
                 }
 
@@ -592,26 +593,20 @@ Expression *op_overload(Expression *e, Scope *sc)
                 memset(&m, 0, sizeof(m));
                 m.last = MATCHnomatch;
 
-                //if (s)
+                functionResolve(&m, s, e->loc, sc, tiargs, e->e1->type, &args2);
+                if (m.lastf && m.lastf->errors)
                 {
-                    functionResolve(&m, s, e->loc, sc, tiargs, e->e1->type, &args2);
-                    if (m.lastf && m.lastf->errors)
-                    {
-                        result = new ErrorExp();
-                        return;
-                    }
+                    result = new ErrorExp();
+                    return;
                 }
 
                 FuncDeclaration *lastf = m.lastf;
 
-                //if (s_r)
+                functionResolve(&m, s_r, e->loc, sc, tiargs, e->e2->type, &args1);
+                if (m.lastf && m.lastf->errors)
                 {
-                    functionResolve(&m, s_r, e->loc, sc, tiargs, e->e2->type, &args1);
-                    if (m.lastf && m.lastf->errors)
-                    {
-                        result = new ErrorExp();
-                        return;
-                    }
+                    result = new ErrorExp();
+                    return;
                 }
 
                 if (m.count > 1)
@@ -621,23 +616,27 @@ Expression *op_overload(Expression *e, Scope *sc)
                             m.lastf->type->toChars(),
                             m.nextf->type->toChars(),
                             m.lastf->toChars());
+                    result = new ErrorExp();
+                    return;
                 }
-                else if (m.last <= MATCHnomatch)
+                if (m.last <= MATCHnomatch)
                 {
                     m.lastf = m.anyf;
                     if (tiargs)
                         goto L1;
                 }
 
-                if (lastf && m.lastf == lastf || !s_r && m.last <= MATCHnomatch)
+                if (lastf && m.lastf == lastf)
                 {
                     // Rewrite (e1 op e2) as e1.opfunc(e2)
-                    result = build_overload(e->loc, sc, e->e1, e->e2, m.lastf ? m.lastf : s);
+                    if (m.lastf) s = m.lastf;
+                    result = build_overload(e->loc, sc, s, NULL, e->e1, e->e2);
                 }
                 else
                 {
                     // Rewrite (e1 op e2) as e2.opfunc_r(e1)
-                    result = build_overload(e->loc, sc, e->e2, e->e1, m.lastf ? m.lastf : s_r);
+                    if (m.lastf) s_r = m.lastf;
+                    result = build_overload(e->loc, sc, s_r, NULL, e->e2, e->e1);
                 }
                 return;
             }
@@ -668,13 +667,13 @@ Expression *op_overload(Expression *e, Scope *sc)
                     if (s_r && !s)
                     {
                         // Rewrite (e1 op e2) as e1.opfunc_r(e2)
-                        result = build_overload(e->loc, sc, e->e1, e->e2, s_r);
+                        result = build_overload(e->loc, sc, s_r, NULL, e->e1, e->e2);
                         return;
                     }
                     if (!s_r && s)
                     {
                         // Rewrite (e1 op e2) as e2.opfunc(e1)
-                        result = build_overload(e->loc, sc, e->e2, e->e1, s);
+                        result = build_overload(e->loc, sc, s, NULL, e->e2, e->e1);
                         return;
                     }
 
@@ -692,26 +691,20 @@ Expression *op_overload(Expression *e, Scope *sc)
                     memset(&m, 0, sizeof(m));
                     m.last = MATCHnomatch;
 
-                    //if (s_r)
+                    functionResolve(&m, s_r, e->loc, sc, tiargs, e->e1->type, &args2);
+                    if (m.lastf && m.lastf->errors)
                     {
-                        functionResolve(&m, s_r, e->loc, sc, tiargs, e->e1->type, &args2);
-                        if (m.lastf && m.lastf->errors)
-                        {
-                            result = new ErrorExp();
-                            return;
-                        }
+                        result = new ErrorExp();
+                        return;
                     }
 
                     FuncDeclaration *lastf = m.lastf;
 
-                    //if (s)
+                    functionResolve(&m, s, e->loc, sc, tiargs, e->e2->type, &args1);
+                    if (m.lastf && m.lastf->errors)
                     {
-                        functionResolve(&m, s, e->loc, sc, tiargs, e->e2->type, &args1);
-                        if (m.lastf && m.lastf->errors)
-                        {
-                            result = new ErrorExp();
-                            return;
-                        }
+                        result = new ErrorExp();
+                        return;
                     }
 
                     if (m.count > 1)
@@ -721,46 +714,27 @@ Expression *op_overload(Expression *e, Scope *sc)
                                 m.lastf->type->toChars(),
                                 m.nextf->type->toChars(),
                                 m.lastf->toChars());
+                        result = new ErrorExp();
+                        return;
                     }
-                    else if (m.last <= MATCHnomatch)
+                    if (m.last <= MATCHnomatch)
                     {
                         m.lastf = m.anyf;
                     }
 
-                    if (lastf && m.lastf == lastf || !s && m.last <= MATCHnomatch)
+                    if (lastf && m.lastf == lastf)
                     {
                         // Rewrite (e1 op e2) as e1.opfunc_r(e2)
-                        result = build_overload(e->loc, sc, e->e1, e->e2, m.lastf ? m.lastf : s_r);
+                        if (m.lastf) s_r = m.lastf;
+                        result = build_overload(e->loc, sc, s_r, NULL, e->e1, e->e2);
                     }
                     else
                     {
                         // Rewrite (e1 op e2) as e2.opfunc(e1)
-                        result = build_overload(e->loc, sc, e->e2, e->e1, m.lastf ? m.lastf : s);
+                        if (m.lastf) s = m.lastf;
+                        result = build_overload(e->loc, sc, s, NULL, e->e2, e->e1);
                     }
-
-                    // When reversing operands of comparison operators,
-                    // need to reverse the sense of the op
-                    switch (e->op)
-                    {
-                        case TOKlt:     e->op = TOKgt;     break;
-                        case TOKgt:     e->op = TOKlt;     break;
-                        case TOKle:     e->op = TOKge;     break;
-                        case TOKge:     e->op = TOKle;     break;
-
-                        // Floating point compares
-                        case TOKule:    e->op = TOKuge;     break;
-                        case TOKul:     e->op = TOKug;      break;
-                        case TOKuge:    e->op = TOKule;     break;
-                        case TOKug:     e->op = TOKul;      break;
-
-                        // These are symmetric
-                        case TOKunord:
-                        case TOKlg:
-                        case TOKleg:
-                        case TOKue:
-                            break;
-                    }
-
+                    reverse_compare_op(e);  // is this necessary?
                     return;
                 }
             }
@@ -815,36 +789,33 @@ Expression *op_overload(Expression *e, Scope *sc)
 
             Type *t1 = e->e1->type->toBasetype();
             Type *t2 = e->e2->type->toBasetype();
-            if (t1->ty == Tclass && t2->ty == Tclass)
+            ClassDeclaration *cd1 = t1->isClassHandle();
+            ClassDeclaration *cd2 = t2->isClassHandle();
+
+            if ((cd1 && cd2) && !(cd1->cpp || cd2->cpp))
             {
-                ClassDeclaration *cd1 = t1->isClassHandle();
-                ClassDeclaration *cd2 = t2->isClassHandle();
+                /* Rewrite as:
+                 *      .object.opEquals(e1, e2)
+                 */
+                Expression *e1x = e->e1;
+                Expression *e2x = e->e2;
 
-                if (!(cd1->cpp || cd2->cpp))
-                {
-                    /* Rewrite as:
-                     *      .object.opEquals(e1, e2)
-                     */
-                    Expression *e1x = e->e1;
-                    Expression *e2x = e->e2;
+                /*
+                 * The explicit cast is necessary for interfaces,
+                 * see http://d.puremagic.com/issues/show_bug.cgi?id=4088
+                 */
+                Type *to = ClassDeclaration::object->getType();
+                if (cd1->isInterfaceDeclaration())
+                    e1x = new CastExp(e->loc, e->e1, t1->isMutable() ? to : to->constOf());
+                if (cd2->isInterfaceDeclaration())
+                    e2x = new CastExp(e->loc, e->e2, t2->isMutable() ? to : to->constOf());
 
-                    /*
-                     * The explicit cast is necessary for interfaces,
-                     * see http://d.puremagic.com/issues/show_bug.cgi?id=4088
-                     */
-                    Type *to = ClassDeclaration::object->getType();
-                    if (cd1->isInterfaceDeclaration())
-                        e1x = new CastExp(e->loc, e->e1, t1->isMutable() ? to : to->constOf());
-                    if (cd2->isInterfaceDeclaration())
-                        e2x = new CastExp(e->loc, e->e2, t2->isMutable() ? to : to->constOf());
-
-                    result = new IdentifierExp(e->loc, Id::empty);
-                    result = new DotIdExp(e->loc, result, Id::object);
-                    result = new DotIdExp(e->loc, result, Id::eq);
-                    result = new CallExp(e->loc, result, e1x, e2x);
-                    result = result->semantic(sc);
-                    return;
-                }
+                result = new IdentifierExp(e->loc, Id::empty);
+                result = new DotIdExp(e->loc, result, Id::object);
+                result = new DotIdExp(e->loc, result, Id::eq);
+                result = new CallExp(e->loc, result, e1x, e2x);
+                result = result->semantic(sc);
+                return;
             }
 
             result = compare_overload(e, sc, Id::eq);
@@ -967,19 +938,9 @@ Expression *op_overload(Expression *e, Scope *sc)
             if (result)
                 return;
 
-            // Don't attempt 'alias this' if an error occured
-            if (e->e1->type->ty == Terror || e->e2->type->ty == Terror)
-            {
-                result = new ErrorExp();
-                return;
-            }
-
             Identifier *id = opId(e);
-
             Expressions args2;
-
             AggregateDeclaration *ad1 = isAggregate(e->e1->type);
-
             Dsymbol *s = NULL;
 
         #if 1 // the old D1 scheme
@@ -990,24 +951,20 @@ Expression *op_overload(Expression *e, Scope *sc)
         #endif
 
             Objects *tiargs = NULL;
-            if (!s)
+            if (!s && ad1)
             {
                 /* Try the new D2 scheme, opOpAssign
                  */
-                if (ad1)
+                s = search_function(ad1, Id::opOpAssign);
+                if (s)
                 {
-                    s = search_function(ad1, Id::opOpAssign);
-                    if (s && !s->isTemplateDeclaration())
+                    if (!s->isTemplateDeclaration())
                     {
                         e->error("%s.opOpAssign isn't a template", e->e1->toChars());
                         result = new ErrorExp();
                         return;
                     }
-                }
-
-                // Set tiargs, the template argument list, which will be the operator string
-                if (s)
-                {
+                    // Set tiargs, the template argument list, which will be the operator string
                     id = Id::opOpAssign;
                     tiargs = opToArg(sc, e->op);
                 }
@@ -1015,45 +972,10 @@ Expression *op_overload(Expression *e, Scope *sc)
 
             if (s)
             {
-                /* Try:
-                 *      a.opOpAssign(b)
+                /* Rewrite (e1 op e2) as:
+                 *      e1.opOpAssign(e2)
                  */
-
-                args2.setDim(1);
-                args2[0] = e->e2;
-                expandTuples(&args2);
-
-                Match m;
-                memset(&m, 0, sizeof(m));
-                m.last = MATCHnomatch;
-
-                if (s)
-                {
-                    functionResolve(&m, s, e->loc, sc, tiargs, e->e1->type, &args2);
-                    if (m.lastf && m.lastf->errors)
-                    {
-                        result = new ErrorExp();
-                        return;
-                    }
-                }
-
-                if (m.count > 1)
-                {
-                    // Error, ambiguous
-                    e->error("overloads %s and %s both match argument list for %s",
-                            m.lastf->type->toChars(),
-                            m.nextf->type->toChars(),
-                            m.lastf->toChars());
-                }
-                else if (m.last <= MATCHnomatch)
-                {
-                    m.lastf = m.anyf;
-                    if (tiargs)
-                        goto L1;
-                }
-
-                // Rewrite (e1 op e2) as e1.opOpAssign(e2)
-                result = build_overload(e->loc, sc, e->e1, e->e2, m.lastf ? m.lastf : s);
+                result = build_overload(e->loc, sc, s, tiargs, e->e1, e->e2);
                 return;
             }
 
@@ -1103,6 +1025,34 @@ Expression *op_overload(Expression *e, Scope *sc)
     return v.result;
 }
 
+Expression *reverse_compare_op(BinExp *e)
+{
+    // When reversing operands of comparison operators,
+    // need to reverse the sense of the op
+    switch (e->op)
+    {
+        case TOKlt:     e->op = TOKgt;     break;
+        case TOKgt:     e->op = TOKlt;     break;
+        case TOKle:     e->op = TOKge;     break;
+        case TOKge:     e->op = TOKle;     break;
+
+        // Floating point compares
+        case TOKule:    e->op = TOKuge;     break;
+        case TOKul:     e->op = TOKug;      break;
+        case TOKuge:    e->op = TOKule;     break;
+        case TOKug:     e->op = TOKul;      break;
+
+        // The rest are symmetric
+        case TOKunord:
+        case TOKlg:
+        case TOKleg:
+        case TOKue:
+        default:
+            break;
+    }
+    return e;
+}
+
 /******************************************
  * Common code for overloading of EqualExp and CmpExp
  */
@@ -1137,6 +1087,19 @@ Expression *compare_overload(BinExp *e, Scope *sc, Identifier *id)
          * and see which is better.
          */
 
+        if (s && !s_r)
+        {
+            // Rewrite (e1 op e2) as e1.opfunc(e2)
+            return build_overload(e->loc, sc, s, tiargs, e->e1, e->e2);
+        }
+        if (!s && s_r)
+        {
+            reverse_compare_op(e);  // is this necessary?
+
+            // Rewrite (e1 op e2) as e2.opfunc_r(e1)
+            return build_overload(e->loc, sc, s_r, tiargs, e->e2, e->e1);
+        }
+
         Expressions args1;
         Expressions args2;
 
@@ -1157,22 +1120,16 @@ Expression *compare_overload(BinExp *e, Scope *sc, Identifier *id)
             printf("s_r: %s\n", s_r->toPrettyChars());
         }
 
-        if (s)
-        {
-            functionResolve(&m, s, e->loc, sc, tiargs, e->e1->type, &args2);
-            if (m.lastf && m.lastf->errors)
-                return new ErrorExp();
-        }
+        functionResolve(&m, s, e->loc, sc, tiargs, e->e1->type, &args2);
+        if (m.lastf && m.lastf->errors)
+            return new ErrorExp();
 
         FuncDeclaration *lastf = m.lastf;
         int count = m.count;
 
-        if (s_r)
-        {
-            functionResolve(&m, s_r, e->loc, sc, tiargs, e->e2->type, &args1);
-            if (m.lastf && m.lastf->errors)
-                return new ErrorExp();
-        }
+        functionResolve(&m, s_r, e->loc, sc, tiargs, e->e2->type, &args1);
+        if (m.lastf && m.lastf->errors)
+            return new ErrorExp();
 
         if (m.count > 1)
         {
@@ -1194,45 +1151,29 @@ Expression *compare_overload(BinExp *e, Scope *sc, Identifier *id)
                     m.lastf->type->toChars(),
                     m.nextf->type->toChars(),
                     m.lastf->toChars());
+                return new ErrorExp();
             }
         }
-        else if (m.last <= MATCHnomatch)
+        if (m.last <= MATCHnomatch)
         {
             m.lastf = m.anyf;
         }
 
         Expression *result;
-        if (lastf && m.lastf == lastf || !s_r && m.last <= MATCHnomatch)
+        if (lastf && m.lastf == lastf)
         {
             // Rewrite (e1 op e2) as e1.opfunc(e2)
-            result = build_overload(e->loc, sc, e->e1, e->e2, m.lastf ? m.lastf : s);
+            if (m.lastf) s = m.lastf;
+            result = build_overload(e->loc, sc, s, NULL, e->e1, e->e2);
         }
         else
         {
+            reverse_compare_op(e);  // is this necessary?
+
             // Rewrite (e1 op e2) as e2.opfunc_r(e1)
-            result = build_overload(e->loc, sc, e->e2, e->e1, m.lastf ? m.lastf : s_r);
-
-            // When reversing operands of comparison operators,
-            // need to reverse the sense of the op
-            switch (e->op)
-            {
-                case TOKlt:     e->op = TOKgt;     break;
-                case TOKgt:     e->op = TOKlt;     break;
-                case TOKle:     e->op = TOKge;     break;
-                case TOKge:     e->op = TOKle;     break;
-
-                // Floating point compares
-                case TOKule:    e->op = TOKuge;     break;
-                case TOKul:     e->op = TOKug;      break;
-                case TOKuge:    e->op = TOKule;     break;
-                case TOKug:     e->op = TOKul;      break;
-
-                // The rest are symmetric
-                default:
-                    break;
-            }
+            if (m.lastf) s_r = m.lastf;
+            result = build_overload(e->loc, sc, s_r, NULL, e->e2, e->e1);
         }
-
         return result;
     }
 
@@ -1277,20 +1218,22 @@ Expression *compare_overload(BinExp *e, Scope *sc, Identifier *id)
  * Utility to build a function call out of this reference and argument.
  */
 
-Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *earg,
-        Dsymbol *d)
+Expression *build_overload(Loc loc, Scope *sc, Dsymbol *s, Objects *tiargs,
+        Expression *ethis, Expression *earg)
 {
-    assert(d);
+    assert(s);
     Expression *e;
 
-    //printf("build_overload(id = '%s')\n", id->toChars());
-    //earg->print();
-    //earg->type->print();
-    Declaration *decl = d->isDeclaration();
-    if (decl)
-        e = new DotVarExp(loc, ethis, decl, 0);
+    if (tiargs)
+    {
+        e = new DotTemplateInstanceExp(loc, ethis, s->ident, tiargs);
+    }
+    else if (Declaration *d = s->isDeclaration())
+    {
+        e = new DotVarExp(loc, ethis, d, 0);
+    }
     else
-        e = new DotIdExp(loc, ethis, d->ident);
+        e = new DotIdExp(loc, ethis, s->ident);
     e = new CallExp(loc, e, earg);
 
     e = e->semantic(sc);
