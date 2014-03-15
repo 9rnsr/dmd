@@ -184,7 +184,7 @@ PROT AggregateDeclaration::prot()
 
 void AggregateDeclaration::setScope(Scope *sc)
 {
-    if (sizeok == SIZEOKdone)
+    if (sizeok == SIZEOKdone)       // todo
         return;
     ScopeDsymbol::setScope(sc);
 }
@@ -192,7 +192,10 @@ void AggregateDeclaration::setScope(Scope *sc)
 void AggregateDeclaration::semantic2(Scope *sc)
 {
     //printf("AggregateDeclaration::semantic2(%s)\n", toChars());
-    if (scope && members)
+    if (!members)
+        return;
+
+    if (scope/* && semanticRun < PASSsemanticdone*/)
     {
         error("has forward references");
         return;
@@ -651,29 +654,18 @@ Dsymbol *StructDeclaration::syntaxCopy(Dsymbol *s)
 
 void StructDeclaration::semantic(Scope *sc)
 {
-    Scope *sc2;
-
     //printf("+StructDeclaration::semantic(this=%p, %s '%s', sizeok = %d)\n", this, parent->toChars(), toChars(), sizeok);
 
     //static int count; if (++count == 20) halt();
 
-    assert(type);
+    type = type->semantic(loc, sc);
     if (!members)               // if opaque declaration
-    {
         return;
-    }
 
-    if (symtab)
-    {
-        if (sizeok == SIZEOKdone || !scope)
-        {
-        //printf("+StructDeclaration::semantic(this=%p, %s '%s', sizeok = %d)\n", this, parent->toChars(), toChars(), sizeok);
-        //    printf("already completed\n");
-            scope = NULL;
-            return;             // semantic() already completed
-        }
-    }
-    else
+    if (semanticRun >= PASSsemanticdone)
+        return;
+
+    if (!symtab)
         symtab = new DsymbolTable();
 
     Scope *scx = NULL;
@@ -688,7 +680,7 @@ void StructDeclaration::semantic(Scope *sc)
     int errors = global.errors;
 
     parent = sc->parent;
-    type = type->semantic(loc, sc);
+
     protection = sc->protection;
     alignment = sc->structalign;
     storage_class |= sc->stc;
@@ -710,7 +702,8 @@ void StructDeclaration::semantic(Scope *sc)
     }
 
     sizeok = SIZEOKnone;
-    sc2 = sc->push(this);
+
+    Scope *sc2 = sc->push(this);
     sc2->stc &= STCsafe | STCtrusted | STCsystem;
     sc2->parent = this;
     if (isUnionDeclaration())
@@ -890,6 +883,8 @@ void StructDeclaration::semantic(Scope *sc)
         this->errors = true;
         type = Type::terror;
     }
+
+    semanticRun = PASSsemanticdone;
 }
 
 Dsymbol *StructDeclaration::search(Loc loc, Identifier *ident, int flags)

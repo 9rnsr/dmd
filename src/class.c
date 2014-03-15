@@ -259,27 +259,14 @@ void ClassDeclaration::semantic(Scope *sc)
         ident = Identifier::generateId(id);
     }
 
-    if (!sc)
-        sc = scope;
-    if (!parent && sc->parent && !sc->parent->isModule())
-        parent = sc->parent;
-
     type = type->semantic(loc, sc);
-
     if (!members)               // if opaque declaration
-    {
-        //printf("\tclass '%s' is forward referenced\n", toChars());
         return;
-    }
-    if (symtab)
-    {
-        if (sizeok == SIZEOKdone || !scope)
-        {
-            //printf("\tsemantic for '%s' is already completed\n", toChars());
-            return;             // semantic() already completed
-        }
-    }
-    else
+
+    if (semanticRun >= PASSsemanticdone)
+        return;
+
+    if (!symtab)
         symtab = new DsymbolTable();
 
     Scope *scx = NULL;
@@ -291,6 +278,9 @@ void ClassDeclaration::semantic(Scope *sc)
     }
     unsigned dprogress_save = Module::dprogress;
     int errors = global.errors;
+
+    if (!parent && sc->parent && !sc->parent->isModule())
+        parent = sc->parent;
 
     if (sc->stc & STCdeprecated)
     {
@@ -312,12 +302,14 @@ void ClassDeclaration::semantic(Scope *sc)
 
         Type *tb = b->type->toBasetype();
         if (tb->ty == Ttuple)
-        {   TypeTuple *tup = (TypeTuple *)tb;
+        {
+            TypeTuple *tup = (TypeTuple *)tb;
             PROT protection = b->protection;
             baseclasses->remove(i);
             size_t dim = Parameter::dim(tup->arguments);
             for (size_t j = 0; j < dim; j++)
-            {   Parameter *arg = Parameter::getNth(tup->arguments, j);
+            {
+                Parameter *arg = Parameter::getNth(tup->arguments, j);
                 b = new BaseClass(arg->type, protection);
                 baseclasses->insert(i + j, b);
             }
@@ -832,6 +824,8 @@ void ClassDeclaration::semantic(Scope *sc)
         this->errors = true;
         type = Type::terror;
     }
+
+    semanticRun = PASSsemanticdone;
 }
 
 void ClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -1287,24 +1281,14 @@ void InterfaceDeclaration::semantic(Scope *sc)
     if (inuse)
         return;
 
-    if (!sc)
-        sc = scope;
-    if (!parent && sc->parent && !sc->parent->isModule())
-        parent = sc->parent;
-
     type = type->semantic(loc, sc);
-
     if (!members)                       // if forward reference
-    {
-        //printf("\tinterface '%s' is forward referenced\n", toChars());
         return;
-    }
-    if (symtab)                 // if already done
-    {
-        if (!scope)
-            return;
-    }
-    else
+
+    if (semanticRun >= PASSsemanticdone)
+        return;
+
+    if (!symtab)
         symtab = new DsymbolTable();
 
     Scope *scx = NULL;
@@ -1316,6 +1300,9 @@ void InterfaceDeclaration::semantic(Scope *sc)
     }
 
     int errors = global.errors;
+
+    if (!parent && sc->parent && !sc->parent->isModule())
+        parent = sc->parent;
 
     if (sc->stc & STCdeprecated)
     {
@@ -1521,6 +1508,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
         this->errors = true;
         type = Type::terror;
     }
+
+    semanticRun = PASSsemanticdone; // important (so sizeok is not used in InterfaceDeclaration)
 }
 
 
