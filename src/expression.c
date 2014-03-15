@@ -5745,7 +5745,7 @@ Expression *DeclarationExp::semantic(Scope *sc)
     if (type)
         return this;
 
-#if LOGSEMANTIC
+#if 1//LOGSEMANTIC
     printf("DeclarationExp::semantic() %s\n", toChars());
 #endif
 
@@ -5835,11 +5835,18 @@ Expression *DeclarationExp::semantic(Scope *sc)
     }
     if (global.errors == olderrors)
     {
+      if (s->isStructDeclaration())
+      {
+        printf("decl %s\n", toChars());
+      }
+      else
+      {
         declaration->semantic2(sc);
         if (global.errors == olderrors)
         {
             declaration->semantic3(sc);
         }
+      }
     }
 
     type = Type::tvoid;

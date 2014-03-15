@@ -870,9 +870,18 @@ void StructDeclaration::semantic(Scope *sc)
         semantic2(sc);
 
     if (global.errors != errors)
-    {   // The type is no good.
+    {
+        // The type is no good.
         type = Type::terror;
         this->errors = true;
+    }
+
+    if (!this->errors && sc->func)
+    {
+        printf("defer local sem %s\n", toChars());
+        sc->func->deferred.push(this);
+        scope = scx ? scx : new Scope(*sc);
+        scope->setNoFree();
     }
 
     if (deferred && !global.gag)
