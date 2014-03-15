@@ -606,7 +606,6 @@ public:
                                         // functions
     FuncDeclarations siblingCallers;    // Sibling nested functions which
                                         // called this one
-    FuncDeclarations deferred;          // toObjFile() these functions after this one
 
     unsigned flags;
     #define FUNCFLAGpurityInprocess 1   // working on determining purity
@@ -859,6 +858,10 @@ class UnitTestDeclaration : public FuncDeclaration
 {
 public:
     char *codedoc; /** For documented unittest. */
+
+    // toObjFile() these nested functions after this one
+    FuncDeclarations deferredNested;
+
     UnitTestDeclaration(Loc loc, Loc endloc, char *codedoc);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
