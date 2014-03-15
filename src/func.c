@@ -2101,6 +2101,15 @@ void FuncDeclaration::semantic3(Scope *sc)
         errors = true;
     //printf("-FuncDeclaration::semantic3('%s.%s', sc = %p, loc = %s)\n", parent->toChars(), toChars(), sc, loc.toChars());
     //fflush(stdout);
+
+    if (!errors && deferred.dim)
+    {
+        for (size_t i = 0; i < deferred.dim; i++)
+        {
+            //printf("+ run deferred semantic3 on %s\n", deferred[i]->toChars());
+            deferred[i]->semantic3(NULL);
+        }
+    }
 }
 
 bool FuncDeclaration::functionSemantic()

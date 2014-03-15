@@ -582,6 +582,8 @@ public:
     bool inferRetType;                  // true if return type is to be inferred
     StorageClass storage_class2;        // storage class for template onemember's
 
+    Dsymbols deferred;  // for deferred semantic of function local symbols
+
     // Things that should really go into Scope
     int hasReturnExp;                   // 1 if there's a return exp; statement
                                         // 2 if there's a throw statement
