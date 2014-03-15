@@ -658,15 +658,8 @@ void StructDeclaration::semantic(Scope *sc)
 
     //static int count; if (++count == 20) halt();
 
-    type = type->semantic(loc, sc);
-    if (!members)               // if opaque declaration
-        return;
-
     if (semanticRun >= PASSsemanticdone)
         return;
-
-    if (!symtab)
-        symtab = new DsymbolTable();
 
     Scope *scx = NULL;
     if (scope)
@@ -679,17 +672,38 @@ void StructDeclaration::semantic(Scope *sc)
     unsigned dprogress_save = Module::dprogress;
     int errors = global.errors;
 
-    parent = sc->parent;
+  if (!symtab)  // these are done only once
+  {
+    //parent = sc->parent;    // parent should be set before type merging
+    if (!parent)
+    {
+        assert(sc->func && sc->parent);
+        parent = sc->parent;
+    }
+    else
+        assert(parent && parent == sc->parent); // parent is already set by addMember
+    assert(parent);
+    type = type->semantic(loc, sc);
 
     protection = sc->protection;
+
     alignment = sc->structalign;
+
     storage_class |= sc->stc;
-    if (sc->stc & STCdeprecated)
+    if (storage_class & STCdeprecated)
         isdeprecated = true;
     assert(!isAnonymous());
-    if (sc->stc & STCabstract)
+    if (storage_class & STCabstract)
         error("structs, unions cannot be abstract");
+
     userAttribDecl = sc->userAttribDecl;
+  }
+
+    if (!members)               // if opaque declaration
+        return; // should exit afer attributes set?
+
+    if (!symtab)
+        symtab = new DsymbolTable();
 
     if (sizeok == SIZEOKnone)            // if not already done the addMember step
     {

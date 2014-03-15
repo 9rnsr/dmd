@@ -259,15 +259,8 @@ void ClassDeclaration::semantic(Scope *sc)
         ident = Identifier::generateId(id);
     }
 
-    type = type->semantic(loc, sc);
-    if (!members)               // if opaque declaration
-        return;
-
     if (semanticRun >= PASSsemanticdone)
         return;
-
-    if (!symtab)
-        symtab = new DsymbolTable();
 
     Scope *scx = NULL;
     if (scope)
@@ -279,17 +272,45 @@ void ClassDeclaration::semantic(Scope *sc)
     unsigned dprogress_save = Module::dprogress;
     int errors = global.errors;
 
-    if (!parent && sc->parent && !sc->parent->isModule())
-        parent = sc->parent;
-
-    if (sc->stc & STCdeprecated)
+  if (!symtab)  // these are done only once
+  {
+    //if (!sc)
+    //    sc = scope;
+    //if (!parent && sc->parent && !sc->parent->isModule())   // parent should be set before type merging
+    //    parent = sc->parent;
+    if (!parent)
     {
-        isdeprecated = true;
+        assert(sc->func && sc->parent);
+        parent = sc->parent;
     }
-    userAttribDecl = sc->userAttribDecl;
+    else
+        assert(parent && parent == sc->parent); // parent is already set by addMember
+    assert(parent);
+    type = type->semantic(loc, sc);
+
+        protection = sc->protection;
+
+        storage_class |= sc->stc;
+    if (storage_class & STCdeprecated)
+        isdeprecated = true;
+        if (storage_class & STCauto)
+            error("storage class 'auto' is invalid when declaring a class, did you mean to use 'scope'?");
+        if (storage_class & STCscope)
+            isscope = true;
+        if (storage_class & STCabstract)
+            isabstract = 1;
 
     if (sc->linkage == LINKcpp)
         cpp = 1;
+
+    userAttribDecl = sc->userAttribDecl;
+  }
+
+    if (!members)               // if opaque declaration
+        return; // should exit afer attributes set?
+
+    if (!symtab)
+        symtab = new DsymbolTable();
 
     // Expand any tuples in baseclasses[]
     for (size_t i = 0; i < baseclasses->dim; )
@@ -519,9 +540,6 @@ void ClassDeclaration::semantic(Scope *sc)
                 vtbl.push(this);            // leave room for classinfo as first member
         }
 
-        protection = sc->protection;
-        storage_class |= sc->stc;
-
         interfaceSemantic(sc);
 
         for (size_t i = 0; i < members->dim; i++)
@@ -561,13 +579,6 @@ void ClassDeclaration::semantic(Scope *sc)
         }
         else
             makeNested();
-
-        if (storage_class & STCauto)
-            error("storage class 'auto' is invalid when declaring a class, did you mean to use 'scope'?");
-        if (storage_class & STCscope)
-            isscope = true;
-        if (storage_class & STCabstract)
-            isabstract = 1;
     }
 
 //printf("\tL%d class %s\n", __LINE__, toChars());
@@ -1281,15 +1292,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
     if (inuse)
         return;
 
-    type = type->semantic(loc, sc);
-    if (!members)                       // if forward reference
-        return;
-
     if (semanticRun >= PASSsemanticdone)
         return;
-
-    if (!symtab)
-        symtab = new DsymbolTable();
 
     Scope *scx = NULL;
     if (scope)
@@ -1301,14 +1305,36 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
     int errors = global.errors;
 
-    if (!parent && sc->parent && !sc->parent->isModule())
-        parent = sc->parent;
-
-    if (sc->stc & STCdeprecated)
+  if (!symtab)  // these are done only once
+  {
+    //if (!sc)
+    //    sc = scope;
+    //if (!parent && sc->parent && !sc->parent->isModule())   // parent should be set before type merging
+    //    parent = sc->parent;
+    if (!parent)
     {
-        isdeprecated = true;
+        assert(sc->func && sc->parent);
+        parent = sc->parent;
     }
+    else
+        assert(parent && parent == sc->parent); // parent is already set by addMember
+    assert(parent);
+    type = type->semantic(loc, sc);
+
+    protection = sc->protection;
+
+    storage_class |= sc->stc & STC_TYPECTOR;    // why this is different from classes and structs?
+    if (/*storage_class*/sc->stc & STCdeprecated)
+        isdeprecated = true;
+
     userAttribDecl = sc->userAttribDecl;
+  }
+#endif
+    if (!members)               // if opaque declaration
+        return; // should exit afer attributes set?
+
+    if (!symtab)
+        symtab = new DsymbolTable();
 
     // Expand any tuples in baseclasses[]
     for (size_t i = 0; i < baseclasses->dim; )
@@ -1321,12 +1347,14 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
         Type *tb = b->type->toBasetype();
         if (tb->ty == Ttuple)
-        {   TypeTuple *tup = (TypeTuple *)tb;
+        {
+            TypeTuple *tup = (TypeTuple *)tb;
             PROT protection = b->protection;
             baseclasses->remove(i);
             size_t dim = Parameter::dim(tup->arguments);
             for (size_t j = 0; j < dim; j++)
-            {   Parameter *arg = Parameter::getNth(tup->arguments, j);
+            {
+                Parameter *arg = Parameter::getNth(tup->arguments, j);
                 b = new BaseClass(arg->type, protection);
                 baseclasses->insert(i + j, b);
             }
@@ -1408,7 +1436,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
     // Cat together the vtbl[]'s from base interfaces
     for (size_t i = 0; i < interfaces_dim; i++)
-    {   BaseClass *b = interfaces[i];
+    {
+        BaseClass *b = interfaces[i];
 
         // Skip if b has already appeared
         for (size_t k = 0; k < i; k++)
@@ -1435,9 +1464,6 @@ void InterfaceDeclaration::semantic(Scope *sc)
       Lcontinue:
         ;
     }
-
-    protection = sc->protection;
-    storage_class |= sc->stc & STC_TYPECTOR;
 
     for (size_t i = 0; i < members->dim; i++)
     {
