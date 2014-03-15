@@ -5604,18 +5604,6 @@ void TemplateInstance::expandMembers(Scope *sc2)
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
-        s->setScope(sc2);
-    }
-
-    for (size_t i = 0; i < members->dim; i++)
-    {
-        Dsymbol *s = (*members)[i];
-        s->importAll(sc2);
-    }
-
-    for (size_t i = 0; i < members->dim; i++)
-    {
-        Dsymbol *s = (*members)[i];
         //printf("\t[%d] semantic on '%s' %p kind %s in '%s'\n", i, s->toChars(), s, s->kind(), this->toChars());
         //printf("test: enclosing = %d, sc2->parent = %s\n", enclosing, sc2->parent->toChars());
 //      if (enclosing)
@@ -5996,6 +5984,28 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     sc2->speculative = speculative;
     if (enclosing && tempdecl->isstatic)
         sc2->stc &= ~STCstatic;
+
+    for (size_t i = 0; i < members->dim; i++)
+    {
+        Dsymbol *s = (*members)[i];
+        s->setScope(sc2);
+    }
+
+    for (size_t i = 0; i < members->dim; i++)
+    {
+        Dsymbol *s = (*members)[i];
+        s->importAll(sc2);
+    }
+
+    if (/*inAncestorAnalysis*/0 && aliasdecl)
+    {
+        ClassDeclaration *cd = aliasdecl->toAlias()->isClassDeclaration();
+        if (cd)
+        {
+            cd->deferred = this;    // ?
+            goto Laftersemantic;    // ?
+        }
+    }
 
     tryExpandMembers(sc2);
 

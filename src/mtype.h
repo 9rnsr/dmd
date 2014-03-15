@@ -245,6 +245,7 @@ public:
     virtual d_uns64 size(Loc loc);
     virtual unsigned alignsize();
     virtual Type *semantic(Loc loc, Scope *sc);
+    virtual Type *semanticBase(Loc loc, Scope *sc); // for base classes
     Type *trySemantic(Loc loc, Scope *sc);
     virtual void toDecoBuffer(OutBuffer *buf, int flag = 0);
     Type *merge();

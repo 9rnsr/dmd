@@ -471,7 +471,15 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
             }
             ti->tempdecl = td;
             if (!ti->semanticRun)
+            {
+                if (0)
+                {
+                    //if id is the last of identifier chain, should call semanticBase ...?
+                    // id1.id2.tinst!args
+                }
+                else
                 ti->semantic(sc);
+            }
             sm = ti->toAlias();
             break;
         }

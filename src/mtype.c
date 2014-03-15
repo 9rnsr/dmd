@@ -371,6 +371,11 @@ Type *Type::semantic(Loc loc, Scope *sc)
     return merge();
 }
 
+Type *Type::semanticBase(Loc loc, Scope *sc)
+{
+    return semantic(loc, sc);
+}
+
 Type *Type::trySemantic(Loc loc, Scope *sc)
 {
     //printf("+trySemantic(%s) %d\n", toChars(), global.errors);
@@ -6852,6 +6857,14 @@ Type *TypeInstance::semantic(Loc loc, Scope *sc)
         t = terror;
     }
     return t;
+}
+
+Type *TypeInstance::semanticBase(Loc loc, Scope *sc)
+{
+    // todo resolve template without semantic of the class members.
+
+    error(loc, "need more work");
+    return terror;
 }
 
 Dsymbol *TypeInstance::toDsymbol(Scope *sc)
