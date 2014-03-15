@@ -299,7 +299,7 @@ void ClassDeclaration::semantic(Scope *sc)
     {
         if (!parent)
         {
-            assert(sc->func && sc->parent);
+            assert(sc->parent && sc->func);
             parent = sc->parent;
         }
         else
@@ -1340,7 +1340,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
     {
         if (!parent)
         {
-            assert(sc->func && sc->parent);
+            assert(sc->parent && sc->func);
             parent = sc->parent;
         }
         else
@@ -1350,8 +1350,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
         protection = sc->protection;
 
-        storage_class |= sc->stc & STC_TYPECTOR;    // why this is different from classes and structs?
-        if (/*storage_class*/sc->stc & STCdeprecated)
+        storage_class |= sc->stc;
+        if (storage_class & STCdeprecated)
             isdeprecated = true;
 
         // Expand any tuples in baseclasses[]

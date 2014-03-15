@@ -5286,7 +5286,7 @@ int Type::covariant(Type *t, StorageClass *pstc)
         ClassDeclaration *cd = ((TypeClass *)t1n)->sym;
         if (cd->scope)
             cd->semantic(NULL);
-        if (!cd->isBaseInfoComplete())
+        if (cd->doAncestorsSemantic != SemanticDone/*!cd->isBaseInfoComplete()*/)
         {
             return 3;   // forward references
         }

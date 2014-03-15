@@ -672,32 +672,32 @@ void StructDeclaration::semantic(Scope *sc)
     unsigned dprogress_save = Module::dprogress;
     int errors = global.errors;
 
-  if (!symtab)  // these are done only once
-  {
-    //parent = sc->parent;    // parent should be set before type merging
-    if (!parent)
+    if (!symtab)  // these are done only once (todo: even for opaque declarations)
     {
-        assert(sc->func && sc->parent);
-        parent = sc->parent;
+        //parent = sc->parent;    // parent should be set before type merging
+        if (!parent)
+        {
+            assert(sc->parent && sc->func);
+            parent = sc->parent;
+        }
+        else
+            assert(parent && parent == sc->parent); // parent is already set by addMember
+        assert(parent);
+        type = type->semantic(loc, sc);
+
+        protection = sc->protection;
+
+        alignment = sc->structalign;
+
+        storage_class |= sc->stc;
+        if (storage_class & STCdeprecated)
+            isdeprecated = true;
+        assert(!isAnonymous());
+        if (storage_class & STCabstract)
+            error("structs, unions cannot be abstract");
+
+        userAttribDecl = sc->userAttribDecl;
     }
-    else
-        assert(parent && parent == sc->parent); // parent is already set by addMember
-    assert(parent);
-    type = type->semantic(loc, sc);
-
-    protection = sc->protection;
-
-    alignment = sc->structalign;
-
-    storage_class |= sc->stc;
-    if (storage_class & STCdeprecated)
-        isdeprecated = true;
-    assert(!isAnonymous());
-    if (storage_class & STCabstract)
-        error("structs, unions cannot be abstract");
-
-    userAttribDecl = sc->userAttribDecl;
-  }
 
     if (!members)               // if opaque declaration
         return; // should exit afer attributes set?
