@@ -6080,17 +6080,10 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
          * dependent templates may cause unresolved forward reference (Bugzilla 9050).
          * To avoid the issue, don't run semantic3 until semantic and semantic2 done.
          */
-        //TemplateInstances deferred;
         this->deferred = &sc->func->deferred;
 
         //printf("Run semantic3 on %s\n", toChars());
         trySemantic3(sc2);
-
-        //for (size_t i = 0; i < deferred.dim; i++)
-        //{
-        //    //printf("+ run deferred semantic3 on %s\n", deferred[i]->toChars());
-        //    deferred[i]->semantic3(NULL);
-        //}
 
         this->deferred = NULL;
     }

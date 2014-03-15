@@ -860,28 +860,18 @@ void StructDeclaration::semantic(Scope *sc)
     TypeTuple *tup = toArgTypes(type);
     size_t dim = tup->arguments->dim;
     if (dim >= 1)
-    {   assert(dim <= 2);
+    {
+        assert(dim <= 2);
         arg1type = (*tup->arguments)[0]->type;
         if (dim == 2)
             arg2type = (*tup->arguments)[1]->type;
     }
-
-    if (sc->func)
-        semantic2(sc);
 
     if (global.errors != errors)
     {
         // The type is no good.
         type = Type::terror;
         this->errors = true;
-    }
-
-    if (!this->errors && sc->func)
-    {
-        printf("defer local sem %s\n", toChars());
-        sc->func->deferred.push(this);
-        scope = scx ? scx : new Scope(*sc);
-        scope->setNoFree();
     }
 
     if (deferred && !global.gag)

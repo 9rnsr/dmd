@@ -255,8 +255,8 @@ void ClassDeclaration::semantic(Scope *sc)
     //{ static int n;  if (++n == 20) *(char*)0=0; }
 
     if (!ident)         // if anonymous class
-    {   const char *id = "__anonclass";
-
+    {
+        const char *id = "__anonclass";
         ident = Identifier::generateId(id);
     }
 
@@ -269,12 +269,15 @@ void ClassDeclaration::semantic(Scope *sc)
     handle = type;
 
     if (!members)               // if opaque declaration
-    {   //printf("\tclass '%s' is forward referenced\n", toChars());
+    {
+        //printf("\tclass '%s' is forward referenced\n", toChars());
         return;
     }
     if (symtab)
-    {   if (sizeok == SIZEOKdone || !scope)
-        {   //printf("\tsemantic for '%s' is already completed\n", toChars());
+    {
+        if (sizeok == SIZEOKdone || !scope)
+        {
+            //printf("\tsemantic for '%s' is already completed\n", toChars());
             return;             // semantic() already completed
         }
     }
@@ -1292,11 +1295,13 @@ void InterfaceDeclaration::semantic(Scope *sc)
     handle = type;
 
     if (!members)                       // if forward reference
-    {   //printf("\tinterface '%s' is forward referenced\n", toChars());
+    {
+        //printf("\tinterface '%s' is forward referenced\n", toChars());
         return;
     }
     if (symtab)                 // if already done
-    {   if (!scope)
+    {
+        if (!scope)
             return;
     }
     else
@@ -1500,7 +1505,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
     }
 
     if (global.errors != errors)
-    {   // The type is no good.
+    {
+        // The type is no good.
         type = Type::terror;
     }
 

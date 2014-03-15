@@ -2108,7 +2108,8 @@ void FuncDeclaration::semantic3(Scope *sc)
         {
             //printf("+ run deferred semantic3 on %s\n", deferred[i]->toChars());
             Dsymbol *s = deferred[i];
-            s->semantic3(s->scope ? s->scope : NULL);
+            s->semantic3(s->scope);
+            s->scope = NULL;
         }
     }
 }
