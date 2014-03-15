@@ -111,6 +111,7 @@ enum Semantic
 {
     SemanticStart,      // semantic has not been run
     SemanticIn,         // semantic() is in progress
+    SemanticFwd,        // semantic() is not yet done by forward reference
     SemanticDone,       // semantic() has been run
     Semantic2Done,      // semantic2() has been run
 };
