@@ -5843,6 +5843,7 @@ Expression *DeclarationExp::semantic(Scope *sc)
                 sc->func->deferred.push(s);
                 s->scope = sc;
                 s->scope->setNoFree();
+                //printf("DeclarationExp %p %s s->scope = %p\n", s, s->toChars(), s->scope);
             }
             else
                 declaration->semantic3(sc);

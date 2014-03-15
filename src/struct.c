@@ -664,8 +664,11 @@ void StructDeclaration::semantic(Scope *sc)
     }
 
     if (symtab)
-    {   if (sizeok == SIZEOKdone || !scope)
-        {   //printf("already completed\n");
+    {
+        if (sizeok == SIZEOKdone || !scope)
+        {
+        //printf("+StructDeclaration::semantic(this=%p, %s '%s', sizeok = %d)\n", this, parent->toChars(), toChars(), sizeok);
+        //    printf("already completed\n");
             scope = NULL;
             return;             // semantic() already completed
         }
@@ -678,6 +681,7 @@ void StructDeclaration::semantic(Scope *sc)
     {
         sc = scope;
         scx = scope;            // save so we don't make redundant copies
+        //printf("+StructDeclaration::semantic(this=%p, %s '%s', sizeok = %d)\n", this, parent->toChars(), toChars(), sizeok);
         scope = NULL;
     }
     unsigned dprogress_save = Module::dprogress;
