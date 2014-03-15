@@ -986,7 +986,7 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
         semantic(NULL);
     }
 
-    if (!members || /*!symtab*/semanticRun < PASSsemanticdone)    // opaque or semantic() is not yet called
+    if (!members || !symtab)    // opaque or semantic() is not yet called
     {
         error("is forward referenced when looking for '%s'", ident->toChars());
         //*(char*)0=0;
