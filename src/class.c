@@ -405,19 +405,10 @@ void ClassDeclaration::semantic(Scope *sc)
                 }
                 if (!tc->sym->symtab || (!sc->func && tc->sym->scope) || tc->sym->sizeok == SIZEOKnone)
                 {
-                    //printf("%s: forward reference of base class %s\n", toChars(), tc->sym->toChars());
-                    //error("forward reference of base class %s", baseClass->toChars());
-                    // Forward reference of base class, try again later
                     //printf("\ttry later, forward reference of base class %s\n", tc->sym->toChars());
-                    scope = scx ? scx : new Scope(*sc);
-                    scope->setNoFree();
                     if (tc->sym->scope)
                         tc->sym->scope->module->addDeferredSemantic(tc->sym);
-                    scope->module->addDeferredSemantic(this);
-
                     doAncestorsSemantic = SemanticStart;
-
-                    return;
                 }
              L7: ;
             }
@@ -473,21 +464,22 @@ void ClassDeclaration::semantic(Scope *sc)
             b->base = tc->sym;
             if (!b->base->symtab || b->base->scope)
             {
-                //error("forward reference of base class %s", baseClass->toChars());
-                // Forward reference of base, try again later
                 //printf("\ttry later, forward reference of base %s\n", baseClass->toChars());
-                scope = scx ? scx : new Scope(*sc);
-                scope->setNoFree();
                 if (tc->sym->scope)
                     tc->sym->scope->module->addDeferredSemantic(tc->sym);
-                scope->module->addDeferredSemantic(this);
-
                 doAncestorsSemantic = SemanticStart;
-
-                return;
+                continue;
             }
         }
         i++;
+    }
+    if (doAncestorsSemantic == SemanticStart)
+    {
+        // Forward referencee of one or more bases, try again later
+        scope = scx ? scx : new Scope(*sc);
+        scope->setNoFree();
+        scope->module->addDeferredSemantic(this);
+        return;
     }
     doAncestorsSemantic = SemanticDone;
 
@@ -1416,23 +1408,24 @@ void InterfaceDeclaration::semantic(Scope *sc)
             }
             if (!b->base->symtab || b->base->scope || b->base->inuse)
             {
-                //error("forward reference of base class %s", baseClass->toChars());
-                // Forward reference of base, try again later
                 //printf("\ttry later, forward reference of base %s\n", b->base->toChars());
-                scope = scx ? scx : new Scope(*sc);
-                scope->setNoFree();
-                scope->module->addDeferredSemantic(this);
-
+            #if 0   // is this necessary?
+                if (tc->sym->scope)
+                    tc->sym->scope->module->addDeferredSemantic(tc->sym);
+            #endif
                 doAncestorsSemantic = SemanticStart;
-
-                return;
+                continue;
             }
         }
-#if 0
-        // Inherit const/invariant from base class
-        storage_class |= b->base->storage_class & STC_TYPECTOR;
-#endif
         i++;
+    }
+    if (doAncestorsSemantic == SemanticStart)
+    {
+        // Forward referencee of one or more bases, try again later
+        scope = scx ? scx : new Scope(*sc);
+        scope->setNoFree();
+        scope->module->addDeferredSemantic(this);
+        return;
     }
     doAncestorsSemantic = SemanticDone;
 
