@@ -63,7 +63,6 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
 
     // For forward references
     type = new TypeClass(this);
-    handle = type;
 
     staticCtor = NULL;
     staticDtor = NULL;
@@ -266,7 +265,6 @@ void ClassDeclaration::semantic(Scope *sc)
         parent = sc->parent;
 
     type = type->semantic(loc, sc);
-    handle = type;
 
     if (!members)               // if opaque declaration
     {
@@ -1295,7 +1293,6 @@ void InterfaceDeclaration::semantic(Scope *sc)
         parent = sc->parent;
 
     type = type->semantic(loc, sc);
-    handle = type;
 
     if (!members)                       // if forward reference
     {
