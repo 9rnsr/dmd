@@ -272,7 +272,7 @@ void ClassDeclaration::semantic(Scope *sc)
     unsigned dprogress_save = Module::dprogress;
     int errors = global.errors;
 
-  if (!symtab)  // these are done only once
+  if (doAncestorsSemantic == SemanticStart)  // these are done only once
   {
     //if (!sc)
     //    sc = scope;
@@ -333,13 +333,6 @@ void ClassDeclaration::semantic(Scope *sc)
     userAttribDecl = sc->userAttribDecl;
   }
 
-    // class hierarchy and opaqueness are orthogonal information
-    if (!members)               // if opaque declaration
-        return; // should exit afer attributes set?
-
-    if (!symtab)
-        symtab = new DsymbolTable();
-
     doAncestorsSemantic = SemanticIn;
 
     // See if there's a base class as first in baseclasses[]
@@ -386,14 +379,15 @@ void ClassDeclaration::semantic(Scope *sc)
                         goto L7;
                     }
                 }
-                if (tc->sym->scope && tc->sym->sizeok != SIZEOKdone)
+                //if (tc->sym->scope && tc->sym->sizeok != SIZEOKdone)
+                if (tc->sym->doAncestorsSemantic != SemanticDone)
                 {
 //printf("\tL%d class %s, base[%d] = %s, sizeok = %d\n", __LINE__, toChars(), 0, tc->sym->toChars(), tc->sym->sizeok);
                     // Try to resolve forward reference
                     tc->sym->semantic(NULL);
                 }
 
-                if (tc->sym->symtab && (tc->sym->scope == NULL || (sc->func && tc->sym->sizeok == SIZEOKdone)))
+                //if (tc->sym->symtab && (tc->sym->scope == NULL || (sc->func && tc->sym->sizeok == SIZEOKdone)))
                 {
                     /* Bugzilla 11034: Essentailly, class inheritance hierarchy
                      * and instance size of each classes are orthogonal information.
@@ -403,12 +397,13 @@ void ClassDeclaration::semantic(Scope *sc)
                     baseClass = tc->sym;
                     b->base = baseClass;
                 }
-                if (!tc->sym->symtab || (!sc->func && tc->sym->scope) || tc->sym->sizeok == SIZEOKnone)
+                //if (!tc->sym->symtab || (!sc->func && tc->sym->scope) || tc->sym->sizeok == SIZEOKnone)
+                if (tc->sym->doAncestorsSemantic != SemanticDone)
                 {
                     //printf("\ttry later, forward reference of base class %s\n", tc->sym->toChars());
                     if (tc->sym->scope)
                         tc->sym->scope->module->addDeferredSemantic(tc->sym);
-                    doAncestorsSemantic = SemanticStart;
+                    doAncestorsSemantic = SemanticFwd;
                 }
              L7: ;
             }
@@ -462,18 +457,19 @@ void ClassDeclaration::semantic(Scope *sc)
             }
 
             b->base = tc->sym;
-            if (!b->base->symtab || b->base->scope)
+            //if (!b->base->symtab || b->base->scope)
+            if (b->base->doAncestorsSemantic != SemanticDone)
             {
                 //printf("\ttry later, forward reference of base %s\n", baseClass->toChars());
                 if (tc->sym->scope)
                     tc->sym->scope->module->addDeferredSemantic(tc->sym);
-                doAncestorsSemantic = SemanticStart;
+                doAncestorsSemantic = SemanticFwd;
                 continue;
             }
         }
         i++;
     }
-    if (doAncestorsSemantic == SemanticStart)
+    if (doAncestorsSemantic == SemanticFwd)
     {
         // Forward referencee of one or more bases, try again later
         scope = scx ? scx : new Scope(*sc);
@@ -482,6 +478,31 @@ void ClassDeclaration::semantic(Scope *sc)
         return;
     }
     doAncestorsSemantic = SemanticDone;
+
+    // class hierarchy and opaqueness are orthogonal information
+    if (!members)               // if opaque declaration
+        return; // should exit afer attributes set?
+
+    if (!symtab)
+        symtab = new DsymbolTable();
+
+    for (size_t i = 0; i < baseclasses->dim; )
+    {
+        BaseClass *b = (*baseclasses)[i];
+        b->type = b->type->semantic(loc, sc);
+
+        Type *tb = b->type->toBasetype();
+        TypeClass *tc = (tb->ty == Tclass) ? (TypeClass *)tb : NULL;
+        if (tc && tc->sym->semanticRun < PASSsemanticdone)
+        {
+            // Forward referencee of one or more bases, try again later
+            scope = scx ? scx : new Scope(*sc);
+            scope->setNoFree();
+            scope->module->addDeferredSemantic(this);
+            return;
+        }
+        i++;
+    }
 
 //printf("\tL%d class %s\n", __LINE__, toChars());
     if (sizeok == SIZEOKnone)
@@ -683,6 +704,7 @@ void ClassDeclaration::semantic(Scope *sc)
     if (global.errors != errors)
     {
         // The type is no good.
+        //this->errors = true;  // maybe necessary?
         type = Type::terror;
     }
 
@@ -958,13 +980,13 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
     //printf("%s.ClassDeclaration::search('%s')\n", toChars(), ident->toChars());
 
     //if (scope) printf("%s doAncestorsSemantic = %d\n", toChars(), doAncestorsSemantic);
-    if (scope && doAncestorsSemantic == SemanticStart)
+    if (/*scope && */doAncestorsSemantic != SemanticDone)
     {
         // must semantic on base class/interfaces
-        semantic(scope);
+        semantic(NULL);
     }
 
-    if (!members || !symtab)    // opaque or semantic() is not yet called
+    if (!members || /*!symtab*/semanticRun < PASSsemanticdone)    // opaque or semantic() is not yet called
     {
         error("is forward referenced when looking for '%s'", ident->toChars());
         //*(char*)0=0;
@@ -982,7 +1004,7 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
 
             if (b->base)
             {
-                if (!b->base->symtab)
+                if (/*!b->base->symtab*/!b->base->members || b->base->semanticRun < PASSsemanticdone)
                     error("base %s is forward referenced", b->base->ident->toChars());
                 else
                 {
@@ -1302,7 +1324,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
     int errors = global.errors;
 
-  if (!symtab)  // these are done only once
+  if (doAncestorsSemantic == SemanticStart)  // these are done only once
   {
     //if (!sc)
     //    sc = scope;
@@ -1357,13 +1379,6 @@ void InterfaceDeclaration::semantic(Scope *sc)
     userAttribDecl = sc->userAttribDecl;
   }
 
-    // class hierarchy and opaqueness are orthogonal information
-    if (!members)               // if opaque declaration
-        return; // should exit afer attributes set?
-
-    if (!symtab)
-        symtab = new DsymbolTable();
-
     doAncestorsSemantic = SemanticIn;
 
     // Check for errors, handle forward references
@@ -1406,20 +1421,20 @@ void InterfaceDeclaration::semantic(Scope *sc)
                 // Try to resolve forward reference
                 b->base->semantic(NULL);
             }
-            if (!b->base->symtab || b->base->scope || b->base->inuse)
+            if (/*!b->base->symtab || b->base->scope || */b->base->inuse || b->base->doAncestorsSemantic != SemanticDone)
             {
                 //printf("\ttry later, forward reference of base %s\n", b->base->toChars());
             #if 0   // is this necessary?
                 if (tc->sym->scope)
                     tc->sym->scope->module->addDeferredSemantic(tc->sym);
             #endif
-                doAncestorsSemantic = SemanticStart;
+                doAncestorsSemantic = SemanticFwd;
                 continue;
             }
         }
         i++;
     }
-    if (doAncestorsSemantic == SemanticStart)
+    if (doAncestorsSemantic == SemanticFwd)
     {
         // Forward referencee of one or more bases, try again later
         scope = scx ? scx : new Scope(*sc);
@@ -1468,6 +1483,31 @@ void InterfaceDeclaration::semantic(Scope *sc)
         ;
     }
 
+    // class hierarchy and opaqueness are orthogonal information
+    if (!members)               // if opaque declaration
+        return; // should exit afer attributes set?
+
+    if (!symtab)
+        symtab = new DsymbolTable();
+
+    for (size_t i = 0; i < baseclasses->dim; )
+    {
+        BaseClass *b = (*baseclasses)[i];
+        b->type = b->type->semantic(loc, sc);
+
+        Type *tb = b->type->toBasetype();
+        TypeClass *tc = (tb->ty == Tclass) ? (TypeClass *)tb : NULL;
+        if (tc && tc->sym->semanticRun < PASSsemanticdone)
+        {
+            // Forward referencee of one or more bases, try again later
+            scope = scx ? scx : new Scope(*sc);
+            scope->setNoFree();
+            scope->module->addDeferredSemantic(this);
+            return;
+        }
+        i++;
+    }
+
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
@@ -1494,11 +1534,12 @@ void InterfaceDeclaration::semantic(Scope *sc)
      * resolve individual members like enums.
      */
     for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (*members)[i];
+    {
+        Dsymbol *s = (*members)[i];
         /* There are problems doing this in the general case because
          * Scope keeps track of things like 'offset'
          */
-        if (s->isEnumDeclaration() || (s->isAggregateDeclaration() && s->ident))
+        //if (s->isEnumDeclaration() || (s->isAggregateDeclaration() && s->ident))  // conditional setScope would be a cause of bugs
         {
             //printf("setScope %s %s\n", s->kind(), s->toChars());
             s->setScope(sc);
@@ -1523,6 +1564,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
     if (global.errors != errors)
     {
         // The type is no good.
+        //this->errors = true;  // maybe necessary?
         type = Type::terror;
     }
 
