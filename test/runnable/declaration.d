@@ -278,6 +278,36 @@ void test10142()
 }
 
 /***************************************************/
+// 12369
+
+auto foo12369(int)
+{
+    static struct Bar
+    {
+        //static assert(0);
+        void spam()
+        {
+            foo12369(1);
+            //static assert(0);
+        }
+    }
+    return Bar();
+
+    static class C
+    {
+        //static assert(0);
+        void spam()
+        {
+            foo12369(1);
+            //static assert(0);
+        }
+    }
+
+    class A {}
+    class B : A {}
+}
+
+/***************************************************/
 
 int main()
 {

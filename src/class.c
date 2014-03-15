@@ -372,13 +372,14 @@ void ClassDeclaration::semantic(Scope *sc)
                         goto L7;
                     }
                 }
-                if (tc->sym->scope)
+                if (tc->sym->scope && tc->sym->sizeok != SIZEOKdone)
                 {
+//printf("\tL%d class %s, base[%d] = %s, sizeok = %d\n", __LINE__, toChars(), 0, tc->sym->toChars(), tc->sym->sizeok);
                     // Try to resolve forward reference
                     tc->sym->semantic(NULL);
                 }
 
-                if (tc->sym->symtab && tc->sym->scope == NULL)
+                if (tc->sym->symtab && (tc->sym->scope == NULL || (sc->func && tc->sym->sizeok == SIZEOKdone)))
                 {
                     /* Bugzilla 11034: Essentailly, class inheritance hierarchy
                      * and instance size of each classes are orthogonal information.
@@ -388,7 +389,7 @@ void ClassDeclaration::semantic(Scope *sc)
                     baseClass = tc->sym;
                     b->base = baseClass;
                 }
-                if (!tc->sym->symtab || tc->sym->scope || tc->sym->sizeok == SIZEOKnone)
+                if (!tc->sym->symtab || (!sc->func && tc->sym->scope) || tc->sym->sizeok == SIZEOKnone)
                 {
                     //printf("%s: forward reference of base class %s\n", toChars(), tc->sym->toChars());
                     //error("forward reference of base class %s", baseClass->toChars());
@@ -471,7 +472,7 @@ void ClassDeclaration::semantic(Scope *sc)
     if (doAncestorsSemantic == SemanticIn)
         doAncestorsSemantic = SemanticDone;
 
-
+//printf("\tL%d class %s\n", __LINE__, toChars());
     if (sizeok == SIZEOKnone)
     {
         // If no base class, and this is not an Object, use Object as base class
@@ -579,6 +580,7 @@ void ClassDeclaration::semantic(Scope *sc)
             isabstract = 1;
     }
 
+//printf("\tL%d class %s\n", __LINE__, toChars());
     sc = sc->push(this);
     //sc->stc &= ~(STCfinal | STCauto | STCscope | STCstatic | STCabstract | STCdeprecated | STC_TYPECTOR | STCtls | STCgshared);
     //sc->stc |= storage_class & STC_TYPECTOR;
@@ -821,6 +823,7 @@ void ClassDeclaration::semantic(Scope *sc)
 
     if (deferred && !global.gag)
     {
+//        printf("C deferred sym = %s %s\n", deferred->kind(), deferred->toChars());
         deferred->semantic2(sc);
         deferred->semantic3(sc);
     }

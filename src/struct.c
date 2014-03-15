@@ -876,6 +876,7 @@ void StructDeclaration::semantic(Scope *sc)
 
     if (deferred && !global.gag)
     {
+//        printf("S deferred sym = %s %s\n", deferred->kind(), deferred->toChars());
         deferred->semantic2(sc);
         deferred->semantic3(sc);
     }
