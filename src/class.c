@@ -300,18 +300,6 @@ void ClassDeclaration::semantic(Scope *sc)
         if (storage_class & STCabstract)
             isabstract = 1;
 
-    if (sc->linkage == LINKcpp)
-        cpp = 1;
-
-    userAttribDecl = sc->userAttribDecl;
-  }
-
-    if (!members)               // if opaque declaration
-        return; // should exit afer attributes set?
-
-    if (!symtab)
-        symtab = new DsymbolTable();
-
     // Expand any tuples in baseclasses[]
     for (size_t i = 0; i < baseclasses->dim; )
     {
@@ -338,6 +326,21 @@ void ClassDeclaration::semantic(Scope *sc)
         else
             i++;
     }
+
+    if (sc->linkage == LINKcpp)
+        cpp = 1;
+
+    userAttribDecl = sc->userAttribDecl;
+  }
+
+    // class hierarchy and opaqueness are orthogonal information
+    if (!members)               // if opaque declaration
+        return; // should exit afer attributes set?
+
+    if (!symtab)
+        symtab = new DsymbolTable();
+
+    doAncestorsSemantic = SemanticIn;
 
     // See if there's a base class as first in baseclasses[]
     if (baseclasses->dim)
@@ -411,6 +414,9 @@ void ClassDeclaration::semantic(Scope *sc)
                     if (tc->sym->scope)
                         tc->sym->scope->module->addDeferredSemantic(tc->sym);
                     scope->module->addDeferredSemantic(this);
+
+                    doAncestorsSemantic = SemanticStart;
+
                     return;
                 }
              L7: ;
@@ -475,13 +481,15 @@ void ClassDeclaration::semantic(Scope *sc)
                 if (tc->sym->scope)
                     tc->sym->scope->module->addDeferredSemantic(tc->sym);
                 scope->module->addDeferredSemantic(this);
+
+                doAncestorsSemantic = SemanticStart;
+
                 return;
             }
         }
         i++;
     }
-    if (doAncestorsSemantic == SemanticIn)
-        doAncestorsSemantic = SemanticDone;
+    doAncestorsSemantic = SemanticDone;
 
 //printf("\tL%d class %s\n", __LINE__, toChars());
     if (sizeok == SIZEOKnone)
@@ -961,10 +969,7 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
     if (scope && doAncestorsSemantic == SemanticStart)
     {
         // must semantic on base class/interfaces
-        doAncestorsSemantic = SemanticIn;
         semantic(scope);
-        if (doAncestorsSemantic != SemanticDone)
-            doAncestorsSemantic = SemanticStart;
     }
 
     if (!members || !symtab)    // opaque or semantic() is not yet called
@@ -1327,16 +1332,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
     if (/*storage_class*/sc->stc & STCdeprecated)
         isdeprecated = true;
 
-    userAttribDecl = sc->userAttribDecl;
-  }
-#endif
-    if (!members)               // if opaque declaration
-        return; // should exit afer attributes set?
-
-    if (!symtab)
-        symtab = new DsymbolTable();
-
     // Expand any tuples in baseclasses[]
+    // expanding base class is necessary only once.
     for (size_t i = 0; i < baseclasses->dim; )
     {
         // Ungag errors when not speculative
@@ -1362,9 +1359,20 @@ void InterfaceDeclaration::semantic(Scope *sc)
         else
             i++;
     }
-
     if (!baseclasses->dim && sc->linkage == LINKcpp)
         cpp = 1;
+
+    userAttribDecl = sc->userAttribDecl;
+  }
+
+    // class hierarchy and opaqueness are orthogonal information
+    if (!members)               // if opaque declaration
+        return; // should exit afer attributes set?
+
+    if (!symtab)
+        symtab = new DsymbolTable();
+
+    doAncestorsSemantic = SemanticIn;
 
     // Check for errors, handle forward references
     for (size_t i = 0; i < baseclasses->dim; )
@@ -1414,6 +1422,9 @@ void InterfaceDeclaration::semantic(Scope *sc)
                 scope = scx ? scx : new Scope(*sc);
                 scope->setNoFree();
                 scope->module->addDeferredSemantic(this);
+
+                doAncestorsSemantic = SemanticStart;
+
                 return;
             }
         }
@@ -1423,8 +1434,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
 #endif
         i++;
     }
-    if (doAncestorsSemantic == SemanticIn)
-        doAncestorsSemantic = SemanticDone;
+    doAncestorsSemantic = SemanticDone;
 
     interfaces_dim = baseclasses->dim;
     interfaces = baseclasses->tdata();
