@@ -507,6 +507,9 @@ void Import::semantic(Scope *sc)
                             imp->isstatic = true;   // Don't insert to sc->scopesym->imports
                             imp->overnext = NULL;
                             imp->importScope(sc);
+#if 1
+                            imp->addMember(sc, scd->scopesym, 0);
+#endif
                         }
                     }
                 }
@@ -514,6 +517,15 @@ void Import::semantic(Scope *sc)
             }
         }
 
+        sc = sc->push(mod);
+        /* BUG: Protection checks can't be enabled yet. The issue is
+         * that Dsymbol::search errors before overload resolution.
+         */
+#if 0
+        sc->protection = protection;
+#else
+        sc->protection = PROTpublic;
+#endif
         for (size_t i = 0; i < names.dim; i++)
         {
             AliasDeclaration *ad = aliasdecls[i];
