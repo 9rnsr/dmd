@@ -396,10 +396,7 @@ int Import::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
     int result = 0;
 
-    if (names.dim == 0)
-        return Dsymbol::addMember(sc, sd, memnum);
-
-    if (aliasId)
+    if (names.dim == 0 || aliasId)
         result = Dsymbol::addMember(sc, sd, memnum);
 
     /* Instead of adding the import to sd's symbol table,
