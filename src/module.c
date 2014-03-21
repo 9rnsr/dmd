@@ -533,8 +533,10 @@ void Module::parse()
          */
         this->ident = md->id;
         this->safe = md->safe;
+        Package *pparent = NULL;
         Package *ppack = NULL;
-        dst = Package::resolve(md->packages, &this->parent, &ppack);
+        dst = Package::resolve(md->packages, &pparent, &ppack);
+        this->parent = pparent;
         assert(dst);
 
         Module *m = ppack ? ppack->isModule() : NULL;
@@ -581,7 +583,7 @@ void Module::parse()
         Package *p = new Package(ident);
         p->parent = this->parent;
         p->isPkgMod = PKGmodule;
-        p->mod = this;
+        p->aliassym = this;
         p->symtab = new DsymbolTable();
         s = p;
     }
@@ -609,7 +611,7 @@ void Module::parse()
                  * link it to the actual module.
                  */
                 pkg->isPkgMod = PKGmodule;
-                pkg->mod = this;
+                pkg->aliassym = this;
             }
             else
                 error(pkg->loc, "from file %s conflicts with package name %s",
@@ -1041,7 +1043,7 @@ Package::Package(Identifier *ident)
         : ScopeDsymbol(ident)
 {
     this->isPkgMod = PKGunknown;
-    this->mod = NULL;
+    this->aliassym = NULL;
 }
 
 
@@ -1054,7 +1056,7 @@ Module *Package::isPackageMod()
 {
     if (isPkgMod == PKGmodule)
     {
-        return mod;
+        return (Module *)aliassym;
     }
     return NULL;
 }
@@ -1069,10 +1071,14 @@ Module *Package::isPackageMod()
  *      *ppkg           the leftmost package, i.e. pkg1, or NULL if no packages
  */
 
-DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package **ppkg)
+DsymbolTable *Package::resolve(Identifiers *packages, Package **pparent, Package **ppkg)
 {
-    DsymbolTable *dst = Module::modules;
-    Dsymbol *parent = NULL;
+    return Package::resolve(Module::modules, packages, pparent, ppkg);
+}
+
+DsymbolTable *Package::resolve(DsymbolTable *dst, Identifiers *packages, Package **pparent, Package **ppkg)
+{
+    Package *parent = NULL;
 
     //printf("Package::resolve()\n");
     if (ppkg)
@@ -1125,14 +1131,14 @@ DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package
 
 Dsymbol *Package::search(Loc loc, Identifier *ident, int flags)
 {
-    if (!isModule() && mod)
+    if (!isModule() && aliassym)
     {
         // Prefer full package name.
         Dsymbol *s = symtab ? symtab->lookup(ident) : NULL;
         if (s)
             return s;
         //printf("[%s] through pkdmod: %s\n", loc.toChars(), toChars());
-        return mod->search(loc, ident, flags);
+        return aliassym->search(loc, ident, flags);
     }
 
     return ScopeDsymbol::search(loc, ident, flags);
