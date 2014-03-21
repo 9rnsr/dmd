@@ -43,12 +43,14 @@ class Package : public ScopeDsymbol
 {
 public:
     PKG isPkgMod;
-    Dsymbol *aliassym;  // != NULL if isPkgMod == PKGmodule
+    Dsymbol *aliassym;  // isPkgMod == PKGmodule: Module/Import object corresponding to 'package.d'
+                        // isPkgMod != PKGmodule: Package object in enclosing scope
 
     Package(Identifier *ident);
     const char *kind();
 
-    static DsymbolTable *resolve(Identifiers *packages, Dsymbol **pparent, Package **ppkg);
+    static DsymbolTable *resolve(Identifiers *packages, Package **pparent, Package **ppkg);
+    static DsymbolTable *resolve(DsymbolTable *dst, Identifiers *packages, Package **pparent, Package **ppkg);
 
     Package *isPackage() { return this; }
 
@@ -57,6 +59,7 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 
     Module *isPackageMod();
+    Package *enclosingPkg();
 };
 
 class Module : public Package

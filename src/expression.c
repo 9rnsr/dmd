@@ -3257,11 +3257,18 @@ Lagain:
 
     if (Import *imp = s->isImport())
     {
+        if (!imp->pkg && imp->scope)
+        {
+            imp->importAll(imp->scope);
+            if (imp->mod)
+                imp->mod->semantic();
+        }
         if (!imp->pkg)
         {
             error("forward reference of import %s", imp->toChars());
             return new ErrorExp();
         }
+        printf("DsymbolExp imp = %s at %s, pkg = %s %s\n", imp->toChars(), imp->loc.toChars(), imp->pkg->kind(), imp->pkg->toChars());
         ScopeExp *ie = new ScopeExp(loc, imp->pkg);
         return ie->semantic(sc);
     }
@@ -7050,9 +7057,11 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
          * the current module should have access to its own imports.
          */
         Dsymbol *s = ie->sds->search(loc, ident,
-            (ie->sds->isModule() && ie->sds != sc->module) ? IgnorePrivateMembers : IgnoreNone);
+            (ie->sds->isModule() && ie->sds != sc->module ? IgnoreImportedFQN | IgnorePrivateMembers : IgnoreNone)
+        );
         if (s)
         {
+        printf("die e1->sds = %s %s, ident = %s, s = %s %s at %s\n", ie->sds->kind(), ie->sds->toChars(), ident->toChars(), s->kind(), s->toChars(), s->loc.toChars());
             /* Check for access before resolving aliases because public
              * aliases to private symbols are public.
              */
@@ -8441,7 +8450,8 @@ Lagain:
             }
         }
         if (!f)
-        {   /* No overload matches
+        {
+            /* No overload matches
              */
             error("no overload matches for %s", s->toChars());
             return new ErrorExp();

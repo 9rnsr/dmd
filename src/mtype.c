@@ -6420,7 +6420,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                     sm = t->toDsymbol(sc);
                     if (sm && id->dyncast() == DYNCAST_IDENTIFIER)
                     {
-                        sm = sm->search(loc, (Identifier *)id);
+                        sm = sm->search(loc, (Identifier *)id, IgnoreImportedFQN);
                         if (sm)
                             goto L2;
                     }
@@ -7848,7 +7848,7 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
         }
     }
 
-    s = sym->search(e->loc, ident);
+    s = sym->search(e->loc, ident, IgnoreImportedFQN);
 L1:
     if (!s)
     {
@@ -8387,7 +8387,7 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         return e;
     }
 
-    s = sym->search(e->loc, ident);
+    s = sym->search(e->loc, ident, IgnoreImportedFQN);
 L1:
     if (!s)
     {
