@@ -43,12 +43,13 @@ class Package : public ScopeDsymbol
 {
 public:
     PKG isPkgMod;
-    Module *mod;        // != NULL if isPkgMod == PKGmodule
+    Dsymbol *aliassym;  // != NULL if isPkgMod == PKGmodule
 
     Package(Identifier *ident);
     const char *kind();
 
-    static DsymbolTable *resolve(Identifiers *packages, Dsymbol **pparent, Package **ppkg);
+    static DsymbolTable *resolve(Identifiers *packages, Package **pparent, Package **ppkg);
+    static DsymbolTable *resolve(DsymbolTable *dst, Identifiers *packages, Package **pparent, Package **ppkg);
 
     Package *isPackage() { return this; }
 

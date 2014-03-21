@@ -193,16 +193,14 @@ const char *Module::kind()
 }
 
 Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
-{   Module *m;
-    char *filename;
-
+{
     //printf("Module::load(ident = '%s')\n", ident->toChars());
 
     // Build module filename by turning:
     //  foo.bar.baz
     // into:
     //  foo\bar\baz
-    filename = ident->toChars();
+    char *filename = ident->toChars();
     if (packages && packages->dim)
     {
         OutBuffer buf;
@@ -222,7 +220,7 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
         filename = (char *)buf.extractData();
     }
 
-    m = new Module(filename, ident, 0, 0);
+    Module *m = new Module(filename, ident, 0, 0);
     m->loc = loc;
 
     /* Look for the source file
@@ -237,7 +235,8 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
         if (packages)
         {
             for (size_t i = 0; i < packages->dim; i++)
-            {   Identifier *pid = (*packages)[i];
+            {
+                Identifier *pid = (*packages)[i];
                 fprintf(global.stdmsg, "%s.", pid->toChars());
             }
         }
@@ -534,8 +533,10 @@ void Module::parse()
          */
         this->ident = md->id;
         this->safe = md->safe;
+        Package *pparent = NULL;
         Package *ppack = NULL;
-        dst = Package::resolve(md->packages, &this->parent, &ppack);
+        dst = Package::resolve(md->packages, &pparent, &ppack);
+        this->parent = pparent;
         assert(dst);
 
         Module *m = ppack ? ppack->isModule() : NULL;
@@ -582,7 +583,7 @@ void Module::parse()
         Package *p = new Package(ident);
         p->parent = this->parent;
         p->isPkgMod = PKGmodule;
-        p->mod = this;
+        p->aliassym = this;
         p->symtab = new DsymbolTable();
         s = p;
     }
@@ -610,7 +611,7 @@ void Module::parse()
                  * link it to the actual module.
                  */
                 pkg->isPkgMod = PKGmodule;
-                pkg->mod = this;
+                pkg->aliassym = this;
             }
             else
                 error(pkg->loc, "from file %s conflicts with package name %s",
@@ -663,7 +664,7 @@ void Module::importAll(Scope *prevsc)
         for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (*members)[i];
-            s->addMember(NULL, sc->scopesym, 1);
+            s->addMember(sc, sc->scopesym, 1);
         }
     }
     // anything else should be run after addMember, so version/debug symbols are defined
@@ -708,34 +709,6 @@ void Module::semantic()
     }
 
     //printf("Module = %p, linkage = %d\n", sc->scopesym, sc->linkage);
-
-#if 0
-    // Add import of "object" if this module isn't "object"
-    if (ident != Id::object)
-    {
-        Import *im = new Import(0, NULL, Id::object, NULL, 0);
-        members->shift(im);
-    }
-
-    // Add all symbols into module's symbol table
-    symtab = new DsymbolTable();
-    for (size_t i = 0; i < members->dim; i++)
-    {
-        Dsymbol *s = (Dsymbol *)members->data[i];
-        s->addMember(NULL, sc->scopesym, 1);
-    }
-
-    /* Set scope for the symbols so that if we forward reference
-     * a symbol, it can possibly be resolved on the spot.
-     * If this works out well, it can be extended to all modules
-     * before any semantic() on any of them.
-     */
-    for (size_t i = 0; i < members->dim; i++)
-    {
-        Dsymbol *s = (Dsymbol *)members->data[i];
-        s->setScope(sc);
-    }
-#endif
 
     // Pass 1 semantic routines: do public side of the definition
     for (size_t i = 0; i < members->dim; i++)
@@ -1070,7 +1043,7 @@ Package::Package(Identifier *ident)
         : ScopeDsymbol(ident)
 {
     this->isPkgMod = PKGunknown;
-    this->mod = NULL;
+    this->aliassym = NULL;
 }
 
 
@@ -1083,7 +1056,7 @@ Module *Package::isPackageMod()
 {
     if (isPkgMod == PKGmodule)
     {
-        return mod;
+        return (Module *)aliassym;
     }
     return NULL;
 }
@@ -1098,10 +1071,14 @@ Module *Package::isPackageMod()
  *      *ppkg           the leftmost package, i.e. pkg1, or NULL if no packages
  */
 
-DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package **ppkg)
+DsymbolTable *Package::resolve(Identifiers *packages, Package **pparent, Package **ppkg)
 {
-    DsymbolTable *dst = Module::modules;
-    Dsymbol *parent = NULL;
+    return Package::resolve(Module::modules, packages, pparent, ppkg);
+}
+
+DsymbolTable *Package::resolve(DsymbolTable *dst, Identifiers *packages, Package **pparent, Package **ppkg)
+{
+    Package *parent = NULL;
 
     //printf("Package::resolve()\n");
     if (ppkg)
@@ -1154,14 +1131,14 @@ DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package
 
 Dsymbol *Package::search(Loc loc, Identifier *ident, int flags)
 {
-    if (!isModule() && mod)
+    if (!isModule() && aliassym)
     {
         // Prefer full package name.
         Dsymbol *s = symtab ? symtab->lookup(ident) : NULL;
         if (s)
             return s;
         //printf("[%s] through pkdmod: %s\n", loc.toChars(), toChars());
-        return mod->search(loc, ident, flags);
+        return aliassym->search(loc, ident, flags);
     }
 
     return ScopeDsymbol::search(loc, ident, flags);
