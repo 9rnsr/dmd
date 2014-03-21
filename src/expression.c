@@ -3268,7 +3268,7 @@ Lagain:
             error("forward reference of import %s", imp->toChars());
             return new ErrorExp();
         }
-        printf("DsymbolExp imp = %s at %s, pkg = %s %s\n", imp->toChars(), imp->loc.toChars(), imp->pkg->kind(), imp->pkg->toChars());
+        //printf("DsymbolExp imp = %s at %s, pkg = %s %s\n", imp->toChars(), imp->loc.toChars(), imp->pkg->kind(), imp->pkg->toChars());
         ScopeExp *ie = new ScopeExp(loc, imp->pkg);
         return ie->semantic(sc);
     }
@@ -7061,7 +7061,7 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
         );
         if (s)
         {
-        printf("die e1->sds = %s %s, ident = %s, s = %s %s at %s\n", ie->sds->kind(), ie->sds->toChars(), ident->toChars(), s->kind(), s->toChars(), s->loc.toChars());
+        //printf("die e1->sds = %s %s, ident = %s, s = %s %s at %s\n", ie->sds->kind(), ie->sds->toChars(), ident->toChars(), s->kind(), s->toChars(), s->loc.toChars());
             /* Check for access before resolving aliases because public
              * aliases to private symbols are public.
              */

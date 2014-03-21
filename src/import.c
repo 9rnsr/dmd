@@ -253,7 +253,7 @@ void Import::importScope(Scope *sc)
     ScopeDsymbol *sds = scx->scopesym;
 
     if (!isstatic && !aliasId)  // If 'this' is basic import
-        sds->importScope(this, protection);
+        sds->importScope(mod, protection);
 
     if (!sds->pkgtab)
         sds->pkgtab = new DsymbolTable();
@@ -264,7 +264,7 @@ void Import::importScope(Scope *sc)
     Package *pkg = NULL;    // rightmost package
     DsymbolTable *dst;      // rightmost DsymbolTable
     Identifier *id;         // rightmost import identifier:
-    Dsymbol *ss = this;     // local package tree stores Import instead of Module
+    Dsymbol *ss = mod;//this;     // local package tree stores Import instead of Module
     if (aliasId)
     {
         dst = sds->pkgtab;
@@ -286,7 +286,7 @@ void Import::importScope(Scope *sc)
             Package *p = new Package(id);
             p->parent = pkg;    // may be NULL
             p->isPkgMod = PKGmodule;
-            p->aliassym = this;
+            p->aliassym = mod;//this;
             p->symtab = new DsymbolTable();
             ss = p;
         }
@@ -383,24 +383,26 @@ void Import::importScope(Scope *sc)
     {
         Dsymbol *prev = dst->lookup(id);
         assert(prev);
-        if (Import *imp = prev->isImport())
+        //if (Import *imp = prev->isImport())
+        if (Module *m = prev->isModule())
         {
-            if (imp == this)
-                return;
-            if (imp->mod == mod)
+            //if (imp == this)
+            if (m == mod)
+            //    return;
+            //if (imp->mod == mod)
             {
                 /* OK:
                  *  import A = std.algorithm : find;
                  *  import A = std.algorithm : filter;
                  */
-                Import **pimp = &imp->overnext;
-                while (*pimp)
-                {
-                    if (*pimp == this)
-                        return;
-                    pimp = &(*pimp)->overnext;
-                }
-                (*pimp) = this;
+                //Import **pimp = &imp->overnext;
+                //while (*pimp)
+                //{
+                //    if (*pimp == this)
+                //        return;
+                //    pimp = &(*pimp)->overnext;
+                //}
+                //(*pimp) = this;
             }
             else
             {
@@ -648,52 +650,16 @@ int Import::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 
 Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
 {
-    printf("%p [%s].Import::search(ident = '%s', flags = x%x)\n", this, loc.toChars(), ident->toChars(), flags);
-    printf("%p\tfrom [%s] mod = %p\n", this, this->loc.toChars(), mod);
+    //printf("%s.Import::search(ident = '%s', flags = x%x)\n", toChars(), ident->toChars(), flags);
 
-    //printf("%p\tmod = %s\n", this, mod->toChars());
-
-    Dsymbol *s = NULL;
-
-    int saveflags = flags;
-    if (!(flags & IgnoreImportedFQN) && isstatic)
+    if (!pkg)
     {
-        goto Lskip;
+        importAll(scope);
+        mod->semantic();
     }
 
-    // Don't find private members and import declarations
-    flags |= (IgnorePrivateMembers | IgnoreImportedFQN);
-
-    if (protection == PROTprivate && (flags & IgnorePrivateImports))
-    {
-        //printf("\t-->! supress\n");
-    }
-    else if (names.dim)
-    {
-        for (size_t i = 0; i < names.dim; i++)
-        {
-            Identifier *name = names[i];
-            Identifier *alias = aliases[i];
-            if ((alias ? alias : name) == ident)
-            {
-                // Forward it to the module
-                s = mod->search(loc, name, flags | IgnorePrivateImports);
-                break;
-            }
-        }
-    }
-    else
-    {
-        // Forward it to the module
-        s = mod->search(loc, ident, flags | IgnorePrivateImports);
-    }
-Lskip:
-    if (!s && overnext)
-    {
-        s = overnext->search(loc, ident, saveflags);
-    }
-
-    return s;
+    // Forward it to the package/module
+    return pkg->search(loc, ident, flags);
 }
 
 bool Import::overloadInsert(Dsymbol *s)
