@@ -582,7 +582,7 @@ void Module::parse()
         Package *p = new Package(ident);
         p->parent = this->parent;
         p->isPkgMod = PKGmodule;
-        p->mod = this;
+        p->aliassym = this;
         p->symtab = new DsymbolTable();
         s = p;
     }
@@ -610,7 +610,7 @@ void Module::parse()
                  * link it to the actual module.
                  */
                 pkg->isPkgMod = PKGmodule;
-                pkg->mod = this;
+                pkg->aliassym = this;
             }
             else
                 error(pkg->loc, "from file %s conflicts with package name %s",
@@ -1070,7 +1070,7 @@ Package::Package(Identifier *ident)
         : ScopeDsymbol(ident)
 {
     this->isPkgMod = PKGunknown;
-    this->mod = NULL;
+    this->aliassym = NULL;
 }
 
 
@@ -1083,7 +1083,7 @@ Module *Package::isPackageMod()
 {
     if (isPkgMod == PKGmodule)
     {
-        return mod;
+        return (Module *)aliassym;
     }
     return NULL;
 }
@@ -1154,14 +1154,14 @@ DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package
 
 Dsymbol *Package::search(Loc loc, Identifier *ident, int flags)
 {
-    if (!isModule() && mod)
+    if (!isModule() && aliassym)
     {
         // Prefer full package name.
         Dsymbol *s = symtab ? symtab->lookup(ident) : NULL;
         if (s)
             return s;
         //printf("[%s] through pkdmod: %s\n", loc.toChars(), toChars());
-        return mod->search(loc, ident, flags);
+        return aliassym->search(loc, ident, flags);
     }
 
     return ScopeDsymbol::search(loc, ident, flags);

@@ -50,6 +50,7 @@ Import::Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *alias
     this->protection = PROTprivate; // default to private
     this->pkg = NULL;
     this->mod = NULL;
+    this->overnext = NULL;
 
     // Set symbol name (bracketed)
     if (aliasId)
@@ -201,6 +202,14 @@ void Import::importAll(Scope *sc)
     }
 }
 
+/********************************************
+ * Add import declaration in scope local package tree.
+ *  --> should be moved in importAll?
+ */
+void Import::importScope(Scope *sc)
+{
+}
+
 void Import::semantic(Scope *sc)
 {
     //printf("Import::semantic('%s')\n", toPrettyChars());
@@ -256,7 +265,7 @@ void Import::semantic(Scope *sc)
 #else
         sc->protection = PROTpublic;
 #endif
-        for (size_t i = 0; i < aliasdecls.dim; i++)
+        for (size_t i = 0; i < names.dim; i++)
         {
             AliasDeclaration *ad = aliasdecls[i];
             //printf("\tImport alias semantic('%s')\n", ad->toChars());

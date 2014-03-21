@@ -43,7 +43,7 @@ class Package : public ScopeDsymbol
 {
 public:
     PKG isPkgMod;
-    Module *mod;        // != NULL if isPkgMod == PKGmodule
+    Dsymbol *aliassym;  // != NULL if isPkgMod == PKGmodule
 
     Package(Identifier *ident);
     const char *kind();
