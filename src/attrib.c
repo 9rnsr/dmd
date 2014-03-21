@@ -698,6 +698,9 @@ void ProtDeclaration::semantic(Scope *sc)
 {
     if (decl)
     {
+        if (!sc)
+            printf("[%s] %s, scope = %p\n", loc.toChars(), toChars(), scope);
+assert(sc);
         semanticNewSc(sc, sc->stc, sc->linkage, protection, 1, sc->structalign);
     }
 }

@@ -50,6 +50,7 @@ Import::Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *alias
     this->protection = PROTprivate; // default to private
     this->pkg = NULL;
     this->mod = NULL;
+    this->overnext = NULL;
 
     // Set symbol name (bracketed)
     if (aliasId)
@@ -182,6 +183,39 @@ void Import::load(Scope *sc)
     //printf("-Import::load('%s'), pkg = %p\n", toChars(), pkg);
 }
 
+/*****************************
+ * Add import to sds's symbol table.
+ */
+
+int Import::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
+{
+    int result = 0;
+
+    if (names.dim == 0 || aliasId)  // if not unrenamed selective
+        result = Dsymbol::addMember(sc, sds, memnum);
+
+    /* Instead of adding the import to sds's symbol table,
+     * add each of the alias=name pairs
+     */
+    for (size_t i = 0; i < names.dim; i++)
+    {
+        Identifier *name = names[i];
+        Identifier *alias = aliases[i];
+
+        if (!alias)
+            alias = name;
+
+        TypeIdentifier *tname = new TypeIdentifier(loc, name);
+        AliasDeclaration *ad = new AliasDeclaration(loc, alias, tname);
+        ad->import = this;
+        result |= ad->addMember(sc, sds, memnum);
+
+        aliasdecls.push(ad);
+    }
+
+    return result;
+}
+
 void Import::importAll(Scope *sc)
 {
     if (!mod)
@@ -199,6 +233,14 @@ void Import::importAll(Scope *sc)
             }
         }
     }
+}
+
+/********************************************
+ * Add import declaration in scope local package tree.
+ *  --> should be moved in importAll?
+ */
+void Import::importScope(Scope *sc)
+{
 }
 
 void Import::semantic(Scope *sc)
@@ -256,7 +298,7 @@ void Import::semantic(Scope *sc)
 #else
         sc->protection = PROTpublic;
 #endif
-        for (size_t i = 0; i < aliasdecls.dim; i++)
+        for (size_t i = 0; i < names.dim; i++)
         {
             AliasDeclaration *ad = aliasdecls[i];
             //printf("\tImport alias semantic('%s')\n", ad->toChars());
@@ -377,42 +419,6 @@ Dsymbol *Import::toAlias()
     if (aliasId)
         return mod;
     return this;
-}
-
-/*****************************
- * Add import to sd's symbol table.
- */
-
-int Import::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
-{
-    int result = 0;
-
-    if (names.dim == 0)
-        return Dsymbol::addMember(sc, sd, memnum);
-
-    if (aliasId)
-        result = Dsymbol::addMember(sc, sd, memnum);
-
-    /* Instead of adding the import to sd's symbol table,
-     * add each of the alias=name pairs
-     */
-    for (size_t i = 0; i < names.dim; i++)
-    {
-        Identifier *name = names[i];
-        Identifier *alias = aliases[i];
-
-        if (!alias)
-            alias = name;
-
-        TypeIdentifier *tname = new TypeIdentifier(loc, name);
-        AliasDeclaration *ad = new AliasDeclaration(loc, alias, tname);
-        ad->import = this;
-        result |= ad->addMember(sc, sd, memnum);
-
-        aliasdecls.push(ad);
-    }
-
-    return result;
 }
 
 Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
