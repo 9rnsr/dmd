@@ -279,6 +279,8 @@ public:
     Dsymbols *imports;          // imported Dsymbol's
     PROT *prots;                // array of PROT, one for each import
 
+    DsymbolTable *pkgtab;       // accessible packages/modules from this scope
+
     ScopeDsymbol();
     ScopeDsymbol(Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);

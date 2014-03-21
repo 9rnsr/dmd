@@ -23,6 +23,27 @@
 #include "id.h"
 #include "attrib.h"
 
+Package *findPackage(DsymbolTable *dst, Identifiers *packages, size_t dim)
+{
+    if (!packages || !dim)
+        return NULL;
+    assert(dim <= packages->dim);
+
+    Package *pkg;
+    for (size_t i = 0; i < dim; i++)
+    {
+        assert(dst);
+        Identifier *pid = (*packages)[i];
+        Dsymbol *p = dst->lookup(pid);
+        if (!p)
+            return NULL;
+        pkg = p->isPackage();
+        assert(pkg);
+        dst = pkg->symtab;
+    }
+    return pkg;
+}
+
 /********************************* Import ****************************/
 
 Import::Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *aliasId,
@@ -50,6 +71,7 @@ Import::Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *alias
     this->protection = PROTprivate; // default to private
     this->pkg = NULL;
     this->mod = NULL;
+    this->overnext = NULL;
 
     // Set symbol name (bracketed)
     if (aliasId)
@@ -74,8 +96,10 @@ void Import::addAlias(Identifier *name, Identifier *alias)
     if (isstatic)
         error("cannot have an import bind list");
 
+#if 1// addMember will create alias explicitly, so this 'hack' will be unnecessary
     if (!aliasId)
         this->ident = NULL;     // make it an anonymous import
+#endif
 
     names.push(name);
     aliases.push(alias);
@@ -89,6 +113,13 @@ const char *Import::kind()
 PROT Import::prot()
 {
     return protection;
+}
+
+Import *Import::copy()
+{
+    Import *imp = (Import *)mem.malloc(sizeof(Import));
+    memcpy(imp, this, sizeof(Import));
+    return imp;
 }
 
 Dsymbol *Import::syntaxCopy(Dsymbol *s)
@@ -191,11 +222,238 @@ void Import::importAll(Scope *sc)
         {
             mod->importAll(NULL);
 
-            if (!isstatic && !aliasId && !names.dim)
+            if (sc->explicitProtection)
+                protection = sc->protection;
+            importScope(sc);
+        }
+    }
+}
+
+/********************************************
+ * Add import declaration in scope local package tree.
+ *  --> should be moved in importAll?
+ */
+void Import::importScope(Scope *sc)
+{
+#if 0
+    {
+        OutBuffer buf;
+        HdrGenState hgs;
+        toCBuffer(&buf, &hgs);
+#if _WIN32
+        buf.data[buf.offset - 2] = 0;   // overwrite '\r\n'
+#else
+        buf.data[buf.offset - 1] = 0;   // overwrite '\n'
+#endif
+        printf("importScope('%s') [%s] isPackageFile = %d\n", buf.data, loc.toChars(), mod->isPackageFile);
+    }
+#endif
+
+    Scope *scx = sc;
+    for (; scx; scx = scx->enclosing)
+    {
+        if (scx->scopesym)
+            break;
+    }
+    if (!scx)
+        return;
+    // add 'this' to sds->imports
+    ScopeDsymbol *sds = scx->scopesym;
+
+    if (!isstatic && !aliasId)  // If 'this' is basic import
+        sds->importScope(this, protection);
+
+    if (!sds->pkgtab)
+        sds->pkgtab = new DsymbolTable();
+
+    /* Insert the fully qualified name of imported module
+     * in local package tree.
+     */
+    Package *pkg = NULL;    // rightmost package
+    DsymbolTable *dst;      // rightmost DsymbolTable
+    Identifier *id;         // rightmost import identifier:
+    Dsymbol *ss = this;     // local package tree stores Import instead of Module
+    if (aliasId)
+    {
+        dst = sds->pkgtab;
+        id = aliasId;       // import [A] = std.stdio;
+    }
+    else
+    {
+        dst = Package::resolve(sds->pkgtab, packages, &pkg, NULL);
+        id = this->id;      // import std.[stdio];
+
+        if (mod->isPackageFile)
+        {
+            /* If the loaded module is a package.d, it will be storead
+             * in local package tree as Package.
+             */
+            Package *p = new Package(id);
+            p->parent = pkg;    // may be NULL
+            p->isPkgMod = PKGmodule;
+            p->aliassym = this;
+            p->symtab = new DsymbolTable();
+            ss = p;
+        }
+    }
+    if (dst->insert(id, ss))
+    {
+        /* Make links from inner packages to the corresponding outer packages.
+         *
+         *  import std.algorithm;
+         *  // In here, local pkgtab have a Package 'std' (a),
+         *  // and it contains a module 'algorithm'.
+         *
+         *  class C {
+         *    import std.range;
+         *    // In here, local pkgtab contains a Package 'std' (b),
+         *    // and it contains a module 'range'.
+         *
+         *    void test() {
+         *      std.algorithm.map!(a=>a*2)(...);
+         *      // 'algorithm' doesn't exist in (b)->symtab, so (b) should have
+         *      // a link to (a).
+         *    }
+         *  }
+         *
+         * After following, (b)->enclosingPkg() will return (a).
+         */
+        if (!pkg)
+            return;
+        assert(packages);
+        dst = sds->pkgtab;
+        scx = scx->enclosing;
+        if (!scx)
+            return;
+        for (size_t i = 0; i < packages->dim; i++)
+        {
+            assert(dst);
+            Dsymbol *s = dst->lookup((*packages)[i]);
+            assert(s);
+            Package *inn_pkg = s->isPackage();
+            assert(inn_pkg);
+
+            Package *out_pkg = NULL;
+            for (; scx; scx = scx->enclosing)
             {
-                if (sc->explicitProtection)
-                    protection = sc->protection;
-                sc->scopesym->importScope(mod, protection);
+                if (!scx->scopesym || !scx->scopesym->pkgtab)
+                    continue;
+
+                out_pkg = findPackage(scx->scopesym->pkgtab, packages, i + 1);
+                if (!out_pkg)
+                    continue;
+
+                /* Importing package.d hides outer scope imports, so
+                 * further searching is not necessary.
+                 *
+                 *  import std.algorithm;
+                 *  class C1 {
+                 *    import std;
+                 *    // Here is 'scx->scopesym'
+                 *    // out_pkg == 'std' (isPackageMod() != NULL)
+                 *
+                 *    class C2 {
+                 *      import std.range;
+                 *      // Here is 'this'
+                 *      // inn_pkg == 'std' (isPackageMod() == NULL)
+                 *
+                 *      void test() {
+                 *        auto r1 = std.range.iota(10);   // OK
+                 *        auto r2 = std.algorithm.map!(a=>a*2)([1,2,3]);   // NG
+                 *        // std.range is accessible, but
+                 *        // std.algorithm isn't. Because identifier
+                 *        // 'algorithm' is found in std/package.d
+                 *      }
+                 *    }
+                 *  }
+                 */
+                if (out_pkg->isPackageMod())
+                    return;
+
+                //printf("link out(%s:%p) to (%s:%p)\n", out_pkg->toPrettyChars(), out_pkg, inn_pkg->toPrettyChars(), inn_pkg);
+                inn_pkg->aliassym = out_pkg;
+                break;
+            }
+
+            /* There's no corresponding package in enclosing scope, so
+             * further searching is not necessary.
+             */
+            if (!out_pkg)
+                break;
+
+            dst = inn_pkg->symtab;
+        }
+    }
+    else
+    {
+        Dsymbol *prev = dst->lookup(id);
+        assert(prev);
+        if (Import *imp = prev->isImport())
+        {
+            if (imp == this)
+                return;
+            if (imp->mod == mod)
+            {
+                /* OK:
+                 *  import A = std.algorithm : find;
+                 *  import A = std.algorithm : filter;
+                 */
+                Import **pimp = &imp->overnext;
+                while (*pimp)
+                {
+                    if (*pimp == this)
+                        return;
+                    pimp = &(*pimp)->overnext;
+                }
+                (*pimp) = this;
+            }
+            else
+            {
+                /* NG:
+                 *  import A = std.algorithm;
+                 *  import A = std.stdio;
+                 */
+                error("import '%s' conflicts with import '%s'", toChars(), prev->toChars());
+            }
+        }
+        else
+        {
+            Package *pkg = prev->isPackage();
+            assert(pkg);
+            //printf("[%s] pkg = %d, pkg->aliassym = %p, mod = %p, mod->isPackageFile = %d\n", loc.toChars(), pkg->isPkgMod, pkg->aliassym, mod, mod->isPackageFile);
+            if (pkg->isPkgMod == PKGunknown && mod->isPackageFile)
+            {
+                /* OK:
+                 *  import std.datetime;
+                 *  import std;  // std/package.d
+                 */
+                pkg->isPkgMod = PKGmodule;
+                pkg->aliassym = this;
+            }
+            else if (pkg->isPackageMod() == mod)
+            {
+                /* OK:
+                 *  import std;  // std/package.d
+                 *  import std: writeln;
+                 */
+                Import *imp = pkg->aliassym->isImport();
+                assert(imp);
+                Import **pimp = &imp->overnext;
+                while (*pimp)
+                {
+                    if (*pimp == this)
+                        return;
+                    pimp = &(*pimp)->overnext;
+                }
+                (*pimp) = this;
+            }
+            else
+            {
+                /* NG:
+                 *  import std.stdio;
+                 *  import std = std.algorithm;
+                 */
+                error("import '%s' conflicts with package '%s'", toChars(), prev->toChars());
             }
         }
     }
@@ -212,32 +470,13 @@ void Import::semantic(Scope *sc)
     }
 
     // Load if not already done so
-    if (!mod)
-    {
-        load(sc);
-        if (mod)
-            mod->importAll(NULL);
-    }
+    importAll(sc);
 
     if (mod)
     {
         // Modules need a list of each imported module
         //printf("%s imports %s\n", sc->module->toChars(), mod->toChars());
         sc->module->aimports.push(mod);
-
-        if (!isstatic && !aliasId && !names.dim)
-        {
-            if (sc->explicitProtection)
-                protection = sc->protection;
-            for (Scope *scd = sc; scd; scd = scd->enclosing)
-            {
-                if (scd->scopesym)
-                {
-                    scd->scopesym->importScope(mod, protection);
-                    break;
-                }
-            }
-        }
 
         mod->semantic();
 
@@ -247,16 +486,35 @@ void Import::semantic(Scope *sc)
             sc->module->needmoduleinfo = 1;
         }
 
-        sc = sc->push(mod);
-        /* BUG: Protection checks can't be enabled yet. The issue is
-         * that Dsymbol::search errors before overload resolution.
-         */
-#if 0
-        sc->protection = protection;
-#else
-        sc->protection = PROTpublic;
-#endif
-        for (size_t i = 0; i < aliasdecls.dim; i++)
+        Dsymbols *imports = mod->ScopeDsymbol::imports;
+        if (!aliasId)   // renamed import currently works as like static import. So this is necessary
+        if (!names.dim && imports)
+        {
+            for (Scope *scd = sc; scd; scd = scd->enclosing)
+            {
+                if (!scd->scopesym)
+                    continue;
+                for (size_t i = 0; i < imports->dim; i++)
+                {
+                    Import *imp = (*imports)[i]->isImport();
+                    if (imp && mod->prots[i] == PROTpublic)
+                    {
+                        if (!isstatic || imp->isstatic)
+                        {
+                            imp = imp->copy();
+                            imp->loc = loc;  // test
+                            imp->protection = protection;
+                            imp->isstatic = true;   // Don't insert to sc->scopesym->imports
+                            imp->overnext = NULL;
+                            imp->importScope(sc);
+                        }
+                    }
+                }
+                break;
+            }
+        }
+
+        for (size_t i = 0; i < names.dim; i++)
         {
             AliasDeclaration *ad = aliasdecls[i];
             //printf("\tImport alias semantic('%s')\n", ad->toChars());
