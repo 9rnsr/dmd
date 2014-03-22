@@ -535,7 +535,7 @@ void Module::parse()
         this->safe = md->safe;
         Package *pparent = NULL;
         Package *ppack = NULL;
-        dst = Package::resolve(md->packages, &pparent, &ppack);
+        dst = Package::resolve(NULL, md->packages, &ppack, &pparent);
         this->parent = pparent;
         assert(dst);
 
@@ -1067,17 +1067,15 @@ Module *Package::isPackageMod()
  * Returns:
  *      the symbol table that mod should be inserted into
  * Output:
- *      *pparent        the rightmost package, i.e. pkg2, or NULL if no packages
  *      *ppkg           the leftmost package, i.e. pkg1, or NULL if no packages
+ *      *pparent        the rightmost package, i.e. pkg2, or NULL if no packages
  */
 
-DsymbolTable *Package::resolve(Identifiers *packages, Package **pparent, Package **ppkg)
+DsymbolTable *Package::resolve(DsymbolTable *dst, Identifiers *packages, Package **ppkg, Package **pparent)
 {
-    return Package::resolve(Module::modules, packages, pparent, ppkg);
-}
+    if (!dst)
+        dst = Module::modules;
 
-DsymbolTable *Package::resolve(DsymbolTable *dst, Identifiers *packages, Package **pparent, Package **ppkg)
-{
     Package *parent = NULL;
 
     //printf("Package::resolve()\n");

@@ -110,7 +110,7 @@ void Import::load(Scope *sc)
     //printf("Import::load('%s') %p\n", toPrettyChars(), this);
 
     // See if existing module
-    DsymbolTable *dst = Package::resolve(packages, NULL, &pkg);
+    DsymbolTable *dst = Package::resolve(NULL, packages, &pkg, NULL);
 #if 0
     if (pkg && pkg->isModule())
     {
