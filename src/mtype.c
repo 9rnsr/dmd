@@ -6997,6 +6997,12 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
                 goto Lerr;
             }
         }
+        else if (exp->op == TOKdsymbol && ((DsymbolExp *)exp)->s->isImport())
+        {
+            Import *imp = ((DsymbolExp *)exp)->s->isImport();
+            error(loc, "%s %s has no type", imp->mod->kind(), imp->toChars());
+            goto Lerr;
+        }
         t = exp->type;
         if (!t)
         {
