@@ -46,14 +46,14 @@ Dsymbol *DebugSymbol::syntaxCopy(Dsymbol *s)
     return ds;
 }
 
-int DebugSymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
+int DebugSymbol::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
 {
-    //printf("DebugSymbol::addMember('%s') %s\n", sd->toChars(), toChars());
+    //printf("DebugSymbol::addMember('%s') %s\n", sds->toChars(), toChars());
     Module *m;
 
     // Do not add the member to the symbol table,
     // just make sure subsequent debug declarations work.
-    m = sd->isModule();
+    m = sds->isModule();
     if (ident)
     {
         if (!m)
@@ -135,14 +135,14 @@ Dsymbol *VersionSymbol::syntaxCopy(Dsymbol *s)
     return ds;
 }
 
-int VersionSymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
+int VersionSymbol::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
 {
-    //printf("VersionSymbol::addMember('%s') %s\n", sd->toChars(), toChars());
+    //printf("VersionSymbol::addMember('%s') %s\n", sds->toChars(), toChars());
     Module *m;
 
     // Do not add the member to the symbol table,
     // just make sure subsequent debug declarations work.
-    m = sd->isModule();
+    m = sds->isModule();
     if (ident)
     {
         VersionCondition::checkPredefined(loc, ident->toChars());

@@ -605,7 +605,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             goto Ldimerror;
         RootObject *o = (*e->args)[0];
         Dsymbol *s = getDsymbol(o);
-        ScopeDsymbol *sd;
+        ScopeDsymbol *sds;
         if (!s)
         {
             e->error("argument has no members");
@@ -615,9 +615,9 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         if ((import = s->isImport()) != NULL)
         {
             // Bugzilla 9692
-            sd = import->mod;
+            sds = import->mod;
         }
-        else if ((sd = s->isScopeDsymbol()) == NULL)
+        else if ((sds = s->isScopeDsymbol()) == NULL)
         {
             e->error("%s %s has no members", s->kind(), s->toChars());
             goto Lfalse;
@@ -672,9 +672,9 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
 
         Identifiers *idents = new Identifiers;
 
-        ScopeDsymbol::foreach(sc, sd->members, &PushIdentsDg::dg, idents);
+        ScopeDsymbol::foreach(sc, sds->members, &PushIdentsDg::dg, idents);
 
-        ClassDeclaration *cd = sd->isClassDeclaration();
+        ClassDeclaration *cd = sds->isClassDeclaration();
         if (cd && e->ident == Id::allMembers)
         {
             struct PushBaseMembers

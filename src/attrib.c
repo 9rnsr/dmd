@@ -39,7 +39,7 @@ AttribDeclaration::AttribDeclaration(Dsymbols *decl)
     this->decl = decl;
 }
 
-Dsymbols *AttribDeclaration::include(Scope *sc, ScopeDsymbol *sd)
+Dsymbols *AttribDeclaration::include(Scope *sc, ScopeDsymbol *sds)
 {
     return decl;
 }
@@ -62,17 +62,17 @@ int AttribDeclaration::apply(Dsymbol_apply_ft_t fp, void *param)
     return 0;
 }
 
-int AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
+int AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
 {
     int m = 0;
-    Dsymbols *d = include(sc, sd);
+    Dsymbols *d = include(sc, sds);
 
     if (d)
     {
         for (size_t i = 0; i < d->dim; i++)
         {   Dsymbol *s = (*d)[i];
-            //printf("\taddMember %s to %s\n", s->toChars(), sd->toChars());
-            m |= s->addMember(sc, sd, m | memnum);
+            //printf("\taddMember %s to %s\n", s->toChars(), sds->toChars());
+            m |= s->addMember(sc, sds, m | memnum);
         }
     }
     return m;
@@ -1264,11 +1264,11 @@ bool ConditionalDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
 
 // Decide if 'then' or 'else' code should be included
 
-Dsymbols *ConditionalDeclaration::include(Scope *sc, ScopeDsymbol *sd)
+Dsymbols *ConditionalDeclaration::include(Scope *sc, ScopeDsymbol *sds)
 {
     //printf("ConditionalDeclaration::include(sc = %p) scope = %p\n", sc, scope);
     assert(condition);
-    return condition->include(scope ? scope : sc, sd) ? decl : elsedecl;
+    return condition->include(scope ? scope : sc, sds) ? decl : elsedecl;
 }
 
 void ConditionalDeclaration::setScope(Scope *sc)
@@ -1378,7 +1378,7 @@ StaticIfDeclaration::StaticIfDeclaration(Condition *condition,
         : ConditionalDeclaration(condition, decl, elsedecl)
 {
     //printf("StaticIfDeclaration::StaticIfDeclaration()\n");
-    sd = NULL;
+    sds = NULL;
     addisdone = 0;
 }
 
@@ -1394,7 +1394,7 @@ Dsymbol *StaticIfDeclaration::syntaxCopy(Dsymbol *s)
     return dd;
 }
 
-Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol *sd)
+Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol *sds)
 {
     //printf("StaticIfDeclaration::include(sc = %p) scope = %p\n", sc, scope);
 
@@ -1405,7 +1405,7 @@ Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol *sd)
          */
         bool x = !scope && sc;
         if (x) scope = sc;
-        Dsymbols *d = ConditionalDeclaration::include(sc, sd);
+        Dsymbols *d = ConditionalDeclaration::include(sc, sds);
         if (x) scope = NULL;
 
         // Set the scopes lazily.
@@ -1422,11 +1422,11 @@ Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol *sd)
     }
     else
     {
-        return ConditionalDeclaration::include(sc, sd);
+        return ConditionalDeclaration::include(sc, sds);
     }
 }
 
-int StaticIfDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
+int StaticIfDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
 {
     //printf("StaticIfDeclaration::addMember() '%s'\n",toChars());
     /* This is deferred until semantic(), so that
@@ -1440,11 +1440,12 @@ int StaticIfDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
      *         const int k;
      * }
      */
-    this->sd = sd;
+    this->sds = sds;
     int m = 0;
 
     if (memnum == 0)
-    {   m = AttribDeclaration::addMember(sc, sd, memnum);
+    {
+        m = AttribDeclaration::addMember(sc, sds, memnum);
         addisdone = 1;
     }
     return m;
@@ -1466,20 +1467,20 @@ void StaticIfDeclaration::setScope(Scope *sc)
 
 void StaticIfDeclaration::semantic(Scope *sc)
 {
-    Dsymbols *d = include(sc, sd);
+    Dsymbols *d = include(sc, sds);
 
     //printf("\tStaticIfDeclaration::semantic '%s', d = %p\n",toChars(), d);
     if (d)
     {
         if (!addisdone)
-        {   AttribDeclaration::addMember(sc, sd, 1);
+        {
+            AttribDeclaration::addMember(sc, sds, 1);
             addisdone = 1;
         }
 
         for (size_t i = 0; i < d->dim; i++)
         {
             Dsymbol *s = (*d)[i];
-
             s->semantic(sc);
         }
     }
@@ -1501,7 +1502,7 @@ CompileDeclaration::CompileDeclaration(Loc loc, Expression *exp)
     //printf("CompileDeclaration(loc = %d)\n", loc.linnum);
     this->loc = loc;
     this->exp = exp;
-    this->sd = NULL;
+    this->sds = NULL;
     this->compiled = 0;
 }
 
@@ -1512,19 +1513,19 @@ Dsymbol *CompileDeclaration::syntaxCopy(Dsymbol *s)
     return sc;
 }
 
-int CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
+int CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
 {
-    //printf("CompileDeclaration::addMember(sc = %p, sd = %p, memnum = %d)\n", sc, sd, memnum);
+    //printf("CompileDeclaration::addMember(sc = %p, sds = %p, memnum = %d)\n", sc, sds, memnum);
     if (compiled)
         return 1;
 
-    this->sd = sd;
+    this->sds = sds;
     if (memnum == 0)
     {
         /* No members yet, so parse the mixin now
          */
         compileIt(sc);
-        memnum |= AttribDeclaration::addMember(sc, sd, memnum);
+        memnum |= AttribDeclaration::addMember(sc, sds, memnum);
         compiled = 1;
     }
     return memnum;
@@ -1564,7 +1565,7 @@ void CompileDeclaration::semantic(Scope *sc)
     if (!compiled)
     {
         compileIt(sc);
-        AttribDeclaration::addMember(sc, sd, 0);
+        AttribDeclaration::addMember(sc, sds, 0);
         compiled = 1;
 
         if (scope && decl)
