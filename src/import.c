@@ -231,8 +231,11 @@ int Import::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
         {
             dst = Package::resolve(sds->pkgtab, packages, &rightMostPkg, &leftMostPkg);
         }
-        Dsymbol *ss = dst->lookup(this->id);
-        if (!ss)
+        if (Dsymbol *ss = dst->lookup(this->id))
+        {
+            // TODO: validate the merge result of local package tree and newly imported FQN
+        }
+        else
         {
             if (mod->isPackageFile)
             {
@@ -249,6 +252,7 @@ int Import::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
             dst->insert(this->id, ss);
 
             Scope *scx = sc;
+            assert(scx);
 #if 1   // will extract to helper function
             /* Make links from inner packages to the corresponding outer packages.
              *
@@ -339,12 +343,11 @@ int Import::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
             ;
 #endif
         }
-        else
-        {
-            // TODO: validate the merge result of local package tree and newly imported FQN
-        }
+
+        Dsymbol *ss = rightMostPkg ? (Dsymbol *)rightMostPkg : this;
 
         // Insert Package or Import object to sds->symtab.
+        //printf("[%s] import %s, ss = %s\n", loc.toChars(), toChars(), ss->kind());
         result = ss->Dsymbol::addMember(sc, sds, memnum);
 #endif
     }
@@ -578,6 +581,7 @@ Dsymbol *Import::toAlias()
 
 Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
 {
+#if 0
     //printf("%s.Import::search(ident = '%s', flags = x%x)\n", toChars(), ident->toChars(), flags);
 
     if (!pkg)
@@ -590,6 +594,60 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
 
     // Forward it to the package/module
     return pkg->search(loc, ident, flags);
+#else
+    //printf("%p [%s].Import::search(ident = '%s', flags = x%x)\n", this, loc.toChars(), ident->toChars(), flags);
+    //printf("%p\tfrom [%s] mod = %p\n", this, this->loc.toChars(), mod);
+
+    if (!pkg)
+    {
+        load(NULL);
+        mod->importAll(NULL);
+        mod->semantic();
+    }
+    //printf("%p\tmod = %s\n", this, mod->toChars());
+
+    Dsymbol *s = NULL;
+
+    int saveflags = flags;
+    if (!(flags & IgnoreImportedFQN) && isstatic)
+    {
+        goto Lskip;
+    }
+
+    // Don't find private members and import declarations
+    flags |= (IgnorePrivateMembers | IgnoreImportedFQN);
+
+    if (protection == PROTprivate && (flags & IgnorePrivateImports))
+    {
+        //printf("\t-->! supress\n");
+    }
+    else if (names.dim)
+    {
+        for (size_t i = 0; i < names.dim; i++)
+        {
+            Identifier *name = names[i];
+            Identifier *alias = aliases[i];
+            if ((alias ? alias : name) == ident)
+            {
+                // Forward it to the module
+                s = mod->search(loc, name, flags | IgnorePrivateImports);
+                break;
+            }
+        }
+    }
+    else
+    {
+        // Forward it to the module
+        s = mod->search(loc, ident, flags | IgnorePrivateImports);
+    }
+Lskip:
+    if (!s && overnext)
+    {
+        s = overnext->search(loc, ident, saveflags);
+    }
+
+    return s;
+#endif
 }
 
 bool Import::overloadInsert(Dsymbol *s)
