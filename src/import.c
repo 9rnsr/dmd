@@ -23,6 +23,27 @@
 #include "id.h"
 #include "attrib.h"
 
+Package *findPackage(DsymbolTable *dst, Identifiers *packages, size_t dim)
+{
+    if (!packages || !dim)
+        return NULL;
+    assert(dim <= packages->dim);
+
+    Package *pkg;
+    for (size_t i = 0; i < dim; i++)
+    {
+        assert(dst);
+        Identifier *pid = (*packages)[i];
+        Dsymbol *p = dst->lookup(pid);
+        if (!p)
+            return NULL;
+        pkg = p->isPackage();
+        assert(pkg);
+        dst = pkg->symtab;
+    }
+    return pkg;
+}
+
 /********************************* Import ****************************/
 
 Import::Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *aliasId,
@@ -111,16 +132,7 @@ void Import::load(Scope *sc)
     //printf("Import::load('%s') %p\n", toPrettyChars(), this);
 
     // See if existing module
-    DsymbolTable *dst = Package::resolve(packages, NULL, &pkg);
-#if 0
-    if (pkg && pkg->isModule())
-    {
-        ::error(loc, "can only import from a module, not from a member of module %s. Did you mean `import %s : %s`?",
-             pkg->toChars(), pkg->toPrettyChars(), id->toChars());
-        mod = pkg->isModule(); // Error recovery - treat as import of that module
-        return;
-    }
-#endif
+    DsymbolTable *dst = Package::resolve(packages, NULL, NULL);
     Dsymbol *s = dst->lookup(id);
     if (s)
     {
@@ -152,11 +164,6 @@ void Import::load(Scope *sc)
                         p->toPrettyChars(), id->toChars());
                 }
             }
-            else if (pkg)
-            {
-                ::error(loc, "can only import from a module, not from package %s.%s",
-                    pkg->toPrettyChars(), id->toChars());
-            }
             else
             {
                 ::error(loc, "can only import from a module, not from package %s",
@@ -177,8 +184,6 @@ void Import::load(Scope *sc)
     }
     if (mod && !mod->importedFrom)
         mod->importedFrom = sc ? sc->module->importedFrom : Module::rootModule;
-    if (!pkg)
-        pkg = mod;
 
     //printf("-Import::load('%s'), pkg = %p\n", toChars(), pkg);
 }
@@ -189,10 +194,160 @@ void Import::load(Scope *sc)
 
 int Import::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
 {
+    if (!mod)
+    {
+        load(sc);
+        // filling mod will break some existing assumptions
+    }
+
     int result = 0;
 
     if (names.dim == 0 || aliasId)  // if not unrenamed selective
+    {
+#if 0   // old way
         result = Dsymbol::addMember(sc, sds, memnum);
+#else
+        if (!sds->pkgtab)
+            sds->pkgtab = new DsymbolTable();
+
+        //DsymbolTable *dst = sds->pkgtab;
+        ///*DsymbolTable *dst = */Package::resolve(sds->pkgtab, packages, NULL, &this->pkg);
+
+        // import [lib];
+        // import [std].stdio;
+        // import [A] = std.stdio;
+        //Dsymbol *ss = sds->pkgtab->lookup(this->ident);
+
+        Package *leftMostPkg = NULL;    // import [core].sys.posix.sys.ioctl;
+        Package *rightMostPkg = NULL;   // import core.sys.posix.[sys].ioctl;
+
+        // insert to sds->pkgtab
+        DsymbolTable *dst;
+        if (aliasId)
+        {
+            dst = sds->pkgtab;
+        }
+        else
+        {
+            dst = Package::resolve(sds->pkgtab, packages, &rightMostPkg, &leftMostPkg);
+        }
+        Dsymbol *ss = dst->lookup(this->id);
+        if (!ss)
+        {
+            if (mod->isPackageFile)
+            {
+                Package *p = new Package(this->id);
+                p->parent = rightMostPkg;    // may be NULL
+                p->isPkgMod = PKGmodule;
+                p->aliassym = this;
+                p->symtab = new DsymbolTable();
+                ss = p;
+            }
+            else
+                ss = this;  // insert Import object as leaf of locak package tree
+
+            dst->insert(this->id, ss);
+
+            Scope *scx = sc;
+#if 1   // will extract to helper function
+            /* Make links from inner packages to the corresponding outer packages.
+             *
+             *  import std.algorithm;
+             *  // In here, local pkgtab have a Package 'std' (a),
+             *  // and it contains a module 'algorithm'.
+             *
+             *  class C {
+             *    import std.range;
+             *    // In here, local pkgtab contains a Package 'std' (b),
+             *    // and it contains a module 'range'.
+             *
+             *    void test() {
+             *      std.algorithm.map!(a=>a*2)(...);
+             *      // 'algorithm' doesn't exist in (b)->symtab, so (b) should have
+             *      // a link to (a).
+             *    }
+             *  }
+             *
+             * After following, (b)->enclosingPkg() will return (a).
+             */
+            if (!leftMostPkg)
+                goto Lexitsetdepend;
+            assert(packages);
+            dst = sds->pkgtab;
+            scx = scx->enclosing;
+            if (!scx)
+                goto Lexitsetdepend;
+            for (size_t i = 0; i < packages->dim; i++)
+            {
+                assert(dst);
+                Dsymbol *s = dst->lookup((*packages)[i]);
+                assert(s);
+                Package *inn_pkg = s->isPackage();
+                assert(inn_pkg);
+
+                Package *out_pkg = NULL;
+                for (; scx; scx = scx->enclosing)
+                {
+                    if (!scx->scopesym || !scx->scopesym->pkgtab)
+                        continue;
+
+                    out_pkg = findPackage(scx->scopesym->pkgtab, packages, i + 1);
+                    if (!out_pkg)
+                        continue;
+
+                    /* Importing package.d hides outer scope imports, so
+                     * further searching is not necessary.
+                     *
+                     *  import std.algorithm;
+                     *  class C1 {
+                     *    import std;
+                     *    // Here is 'scx->scopesym'
+                     *    // out_pkg == 'std' (isPackageMod() != NULL)
+                     *
+                     *    class C2 {
+                     *      import std.range;
+                     *      // Here is 'this'
+                     *      // inn_pkg == 'std' (isPackageMod() == NULL)
+                     *
+                     *      void test() {
+                     *        auto r1 = std.range.iota(10);   // OK
+                     *        auto r2 = std.algorithm.map!(a=>a*2)([1,2,3]);   // NG
+                     *        // std.range is accessible, but
+                     *        // std.algorithm isn't. Because identifier
+                     *        // 'algorithm' is found in std/package.d
+                     *      }
+                     *    }
+                     *  }
+                     */
+                    if (out_pkg->isPackageMod())
+                        goto Lexitsetdepend;//return;
+
+                    //printf("link out(%s:%p) to (%s:%p)\n", out_pkg->toPrettyChars(), out_pkg, inn_pkg->toPrettyChars(), inn_pkg);
+                    inn_pkg->aliassym = out_pkg;
+                    break;
+                }
+
+                /* There's no corresponding package in enclosing scope, so
+                 * further searching is not necessary.
+                 */
+                if (!out_pkg)
+                    break;
+
+                dst = inn_pkg->symtab;
+            }
+        Lexitsetdepend:
+            ;
+#endif
+        }
+        else
+        {
+            // TODO: validate the merge result of local package tree and newly imported FQN
+        }
+
+        // Insert Package or Import object to sds->symtab.
+        result = ss->Dsymbol::addMember(sc, sds, memnum);
+#endif
+    }
 
     /* Instead of adding the import to sds's symbol table,
      * add each of the alias=name pairs
@@ -218,9 +373,9 @@ int Import::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
 
 void Import::importAll(Scope *sc)
 {
-    if (!mod)
+//    if (!mod)     // mod is always !=NULL so it's already done in addMember
     {
-        load(sc);
+//        load(sc);
         if (mod)                // if successfully loaded module
         {
             mod->importAll(NULL);
@@ -254,9 +409,9 @@ void Import::semantic(Scope *sc)
     }
 
     // Load if not already done so
-    if (!mod)
+//    if (!mod)     // mod is always !=NULL so it's already done in addMember
     {
-        load(sc);
+//        load(sc);
         if (mod)
             mod->importAll(NULL);
     }
@@ -427,6 +582,7 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
 
     if (!pkg)
     {
+        // TODO: problem
         load(NULL);
         mod->importAll(NULL);
         mod->semantic();

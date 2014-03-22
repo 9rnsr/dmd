@@ -3258,6 +3258,8 @@ Lagain:
     if (Import *imp = s->isImport())
     {
         if (!imp->pkg)
+            imp->pkg = imp->mod;    // workaround
+        if (!imp->pkg)
         {
             error("forward reference of import %s", imp->toChars());
             return new ErrorExp();
@@ -7158,6 +7160,13 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
             Import *imp = s->isImport();
             if (imp)
             {
+                if (!imp->pkg)
+                    imp->pkg = imp->mod;    // workaround
+                if (!imp->pkg)
+                {
+                    error("forward reference of import %s", imp->toChars());
+                    return new ErrorExp();
+                }
                 ie = new ScopeExp(loc, imp->pkg);
                 return ie->semantic(sc);
             }
