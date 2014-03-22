@@ -26,9 +26,12 @@
 #include "mtype.h"
 #include "scope.h"
 #include "module.h"
+#include "import.h"
 #include "expression.h"
 #include "statement.h"
 #include "template.h"
+
+bool isFriendOf(AggregateDeclaration *ad, AggregateDeclaration *cd);
 
 /********************************* ClassDeclaration ****************************/
 
@@ -955,7 +958,9 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
                     error("base %s is forward referenced", b->base->ident->toChars());
                 else
                 {
-                    s = b->base->search(loc, ident, flags);
+                    int flags2 = flags | IgnoreImportedFQN;
+                    if (!isFriendOf(this, b->base)) flags2 |= IgnorePrivateImports;
+                    s = b->base->search(loc, ident, flags2);
                     if (s == this)      // happens if s is nested in this and derives from this
                         s = NULL;
                     else if (s)

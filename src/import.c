@@ -198,6 +198,10 @@ int Import::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
     {
         load(sc);
         // filling mod will break some existing assumptions
+
+        if (sc->explicitProtection)
+            protection = sc->protection;
+        printf("addMember import %s, prot = %d\n", toChars(), protection);
     }
 
     int result = 0;
@@ -385,9 +389,10 @@ void Import::importAll(Scope *sc)
 
             if (!isstatic && !aliasId && !names.dim)
             {
-                if (sc->explicitProtection)
-                    protection = sc->protection;
-                sc->scopesym->importScope(mod, protection);
+                //if (sc->explicitProtection)
+                //    protection = sc->protection;
+                //sc->scopesym->importScope(mod, protection);
+                sc->scopesym->importScope(this, protection);
             }
         }
     }
@@ -427,8 +432,8 @@ void Import::semantic(Scope *sc)
 
         if (!isstatic && !aliasId && !names.dim)
         {
-            if (sc->explicitProtection)
-                protection = sc->protection;
+            //if (sc->explicitProtection)
+            //    protection = sc->protection;
             for (Scope *scd = sc; scd; scd = scd->enclosing)
             {
                 if (scd->scopesym)
@@ -595,7 +600,7 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
     // Forward it to the package/module
     return pkg->search(loc, ident, flags);
 #else
-    //printf("%p [%s].Import::search(ident = '%s', flags = x%x)\n", this, loc.toChars(), ident->toChars(), flags);
+    printf("%p [%s].Import::search(ident = '%s', flags = x%x)\n", this, loc.toChars(), ident->toChars(), flags);
     //printf("%p\tfrom [%s] mod = %p\n", this, this->loc.toChars(), mod);
 
     if (!pkg)
@@ -639,6 +644,12 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
     {
         // Forward it to the module
         s = mod->search(loc, ident, flags | IgnorePrivateImports);
+    }
+    if (s/* && !(flags & IgnoreImportedFQN)*/ && s->isPackage())
+    {
+        //s = NULL;
+        printf("from %s , s = %s %s\n", toChars(), s->kind(), s->toChars());
+        return NULL;
     }
 Lskip:
     if (!s && overnext)
