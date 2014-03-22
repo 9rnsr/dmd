@@ -48,7 +48,6 @@ public:
     Package(Identifier *ident);
     const char *kind();
 
-    static DsymbolTable *resolve(Identifiers *packages, Package **pparent, Package **ppkg);
     static DsymbolTable *resolve(DsymbolTable *dst, Identifiers *packages, Package **pparent, Package **ppkg);
 
     Package *isPackage() { return this; }

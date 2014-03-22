@@ -276,7 +276,7 @@ bool hasPackageAccess(Scope *sc, Dsymbol *s)
     {
         if (Module *m = s->isModule())
         {
-            DsymbolTable *dst = Package::resolve(m->md ? m->md->packages : NULL, NULL, NULL);
+            DsymbolTable *dst = Package::resolve(NULL, m->md ? m->md->packages : NULL, NULL, NULL);
             assert(dst);
             Dsymbol *s2 = dst->lookup(m->ident);
             assert(s2);
