@@ -48,7 +48,7 @@ Import::Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *alias
     this->aliasId = aliasId;
     this->isstatic = isstatic;
     this->protection = PROTprivate; // default to private
-    this->pkg = NULL;
+    //this->pkg = NULL;
     this->mod = NULL;
     this->overnext = NULL;
 #if 1 // todo
@@ -119,7 +119,7 @@ void Import::load(Scope *sc)
     //printf("Import::load('%s') %p\n", toPrettyChars(), this);
 
     // See if existing module
-    DsymbolTable *dst = Package::resolve(NULL, packages, &pkg, NULL);
+    DsymbolTable *dst = Package::resolve(NULL, packages, NULL, NULL);
 #if 0
     if (pkg && pkg->isModule())
     {
@@ -160,11 +160,11 @@ void Import::load(Scope *sc)
                         p->toPrettyChars(), id->toChars());
                 }
             }
-            else if (pkg)
-            {
-                ::error(loc, "can only import from a module, not from package %s.%s",
-                    pkg->toPrettyChars(), id->toChars());
-            }
+            //else if (pkg)
+            //{
+            //    ::error(loc, "can only import from a module, not from package %s.%s",
+            //        pkg->toPrettyChars(), id->toChars());
+            //}
             else
             {
                 ::error(loc, "can only import from a module, not from package %s",
@@ -185,8 +185,8 @@ void Import::load(Scope *sc)
     }
     if (mod && !mod->importedFrom)
         mod->importedFrom = sc ? sc->module->importedFrom : Module::rootModule;
-    if (!pkg)
-        pkg = mod;
+    //if (!pkg)
+    //    pkg = mod;
 
     //printf("-Import::load('%s'), pkg = %p\n", toChars(), pkg);
 }
@@ -206,7 +206,7 @@ int Import::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
             return 0;   // fails to load module
     }
 
-    printf("Import::addMember[%s]('%s'), prot = %d\n", loc.toChars(), toChars(), sc->explicitProtection ? sc->protection : protection);
+    //printf("Import::addMember[%s]('%s'), prot = %d\n", loc.toChars(), toChars(), sc->explicitProtection ? sc->protection : protection);
     if (sc->explicitProtection)
         protection = sc->protection;
 
@@ -301,7 +301,7 @@ void Import::importAll(Scope *sc)
 
 void Import::semantic(Scope *sc)
 {
-    printf("Import::semantic[%s]('%s') prot = %d\n", loc.toChars(), toPrettyChars(), protection);
+    //printf("Import::semantic[%s]('%s') prot = %d\n", loc.toChars(), toPrettyChars(), protection);
 
     if (scope)
     {
@@ -344,7 +344,7 @@ void Import::semantic(Scope *sc)
 
                     if (!isstatic || imp->isstatic)
                     {
-                        printf("[%s] imp = %s at %s\n", loc.toChars(), imp->toChars(), imp->loc.toChars());
+                        //printf("[%s] imp = %s at %s\n", loc.toChars(), imp->toChars(), imp->loc.toChars());
                         imp = imp->copy();
                         imp->loc = loc;  // test
                         //imp->protection = protection;
@@ -471,7 +471,7 @@ void Import::semantic(Scope *sc)
         ob->writenl();
     }
 
-    //printf("-Import::semantic('%s'), pkg = %p\n", toChars(), pkg);
+    //printf("-Import::semantic('%s')\n", toChars());
 }
 
 void Import::semantic2(Scope *sc)
@@ -510,7 +510,7 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
     // Forward it to the package/module
     return pkg->search(loc, ident, flags);
 #else
-    printf("%p [%s].Import::search(ident = '%s', flags = x%x)\n", this, loc.toChars(), ident->toChars(), flags);
+    //printf("%p [%s].Import::search(ident = '%s', flags = x%x)\n", this, loc.toChars(), ident->toChars(), flags);
     //printf("%p\tfrom [%s] mod = %p\n", this, this->loc.toChars(), mod);
 
     //assert(mod);    //?

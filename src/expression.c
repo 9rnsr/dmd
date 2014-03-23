@@ -3258,12 +3258,12 @@ Lagain:
 
     if (Import *imp = s->isImport())
     {
-        if (!imp->pkg)
+        if (!imp->mod)
         {
             error("forward reference of import %s", imp->toChars());
             return new ErrorExp();
         }
-        ScopeExp *ie = new ScopeExp(loc, imp->pkg);
+        ScopeExp *ie = new ScopeExp(loc, imp->mod);
         return ie->semantic(sc);
     }
     if (Package *pkg = s->isPackage())
@@ -7054,7 +7054,7 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
             (ie->sds->isModule() && ie->sds != sc->module) ? IgnorePrivateMembers : IgnoreNone);
         if (s)
         {
-            printf("\t--> DotIdExp('%s') s = %s %s\n", toChars(), s->kind(), s->toChars());
+            //printf("\t--> DotIdExp('%s') s = %s %s\n", toChars(), s->kind(), s->toChars());
 
 
             /* Check for access before resolving aliases because public
@@ -7162,12 +7162,12 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
             Import *imp = s->isImport();
             if (imp)
             {
-                if (!imp->pkg)
+                if (!imp->mod)
                 {
                     error("forward reference of import %s", imp->toChars());
                     return new ErrorExp();
                 }
-                ie = new ScopeExp(loc, imp->pkg);
+                ie = new ScopeExp(loc, imp->mod);
                 return ie->semantic(sc);
             }
 

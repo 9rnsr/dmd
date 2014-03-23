@@ -887,7 +887,7 @@ Dsymbol *ScopeDsymbol::syntaxCopy(Dsymbol *s)
 
 Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
 {
-    printf("%s->ScopeDsymbol::search(ident='%s', flags=x%x)\n", toChars(), ident->toChars(), flags);
+    //printf("%s->ScopeDsymbol::search(ident='%s', flags=x%x)\n", toChars(), ident->toChars(), flags);
     //if (strcmp(ident->toChars(),"c") == 0) *(char*)0=0;
 
     // Look in symbols declared in this module
@@ -895,7 +895,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
     //printf("\ts1 = %p, imports = %p, %d\n", s1, imports, imports ? imports->dim : 0);
     if (s1)
     {
-        printf("\ts = %s '%s', prot = %d\n", s1->kind(), s1->toChars(), s1->prot());
+        //printf("\ts = %s '%s', prot = %d\n", s1->kind(), s1->toChars(), s1->prot());
         // The found symbol which has private access should be invisible
         // FIXME: Issue 10604 - Not consistent access check for overloaded symbols
         if ((flags & IgnorePrivateMembers) && s1->prot() == PROTprivate)
