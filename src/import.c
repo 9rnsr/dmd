@@ -197,19 +197,18 @@ void Import::load(Scope *sc)
 
 int Import::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
 {
-    assert(!mod);
-//    if (!mod)
+//    assert(!mod);
+    if (!mod)
     {
         load(sc);
         // filling mod will break some existing assumptions
-
-        if (sc->explicitProtection)
-            protection = sc->protection;
-        printf("addMember import %s, prot = %d\n", toChars(), protection);
-
         if (!mod)
             return 0;   // fails to load module
     }
+
+    printf("Import::addMember[%s]('%s'), prot = %d\n", loc.toChars(), toChars(), sc->explicitProtection ? sc->protection : protection);
+    if (sc->explicitProtection)
+        protection = sc->protection;
 
     int result = 0;
 
@@ -302,7 +301,7 @@ void Import::importAll(Scope *sc)
 
 void Import::semantic(Scope *sc)
 {
-    printf("[%s] Import::semantic('%s') prot = %d\n", loc.toChars(), toPrettyChars(), protection);
+    printf("Import::semantic[%s]('%s') prot = %d\n", loc.toChars(), toPrettyChars(), protection);
 
     if (scope)
     {
@@ -333,24 +332,31 @@ void Import::semantic(Scope *sc)
         {
             for (Scope *scd = sc; scd; scd = scd->enclosing)
             {
-                if (!scd->scopesym)
+                ScopeDsymbol *sds = scd->scopesym;
+                if (!sds)
                     continue;
+
                 for (size_t i = 0; i < modImports->dim; i++)
                 {
                     Import *imp = (*modImports)[i]->isImport();
-                    if (imp && mod->prots[i] == PROTpublic)
+                    if (!imp || mod->prots[i] != PROTpublic)
+                        continue;
+
+                    if (!isstatic || imp->isstatic)
                     {
-                        if (!isstatic || imp->isstatic)
-                        {
-                            printf("[%s] imp = %s at %s\n", loc.toChars(), imp->toChars(), imp->loc.toChars());
-                            imp = imp->copy();
-                            imp->loc = loc;  // test
-                            imp->protection = protection;
-                            imp->isstatic = true;   // Don't insert to sc->scopesym->imports
-                            imp->overnext = NULL;
-                            //imp->importScope(sc);
-                            scd->scopesym->importScope(imp, protection);
-                        }
+                        printf("[%s] imp = %s at %s\n", loc.toChars(), imp->toChars(), imp->loc.toChars());
+                        imp = imp->copy();
+                        imp->loc = loc;  // test
+                        //imp->protection = protection;
+                        if (isstatic)
+                            imp->isstatic = true;
+                        imp->overnext = NULL;
+                        Scope *scx = sc->push();
+                        scx->protection = protection;
+                        scx->explicitProtection = 1;
+                        imp->addMember(scx, sds, 0);
+                        if (!imp->isstatic)
+                            sds->importScope(imp, protection);
                     }
                 }
                 break;

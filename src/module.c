@@ -1094,6 +1094,7 @@ DsymbolTable *Package::resolve(DsymbolTable *dst, Identifiers *packages, Package
                 dst->insert(pkg);
                 pkg->parent = parent;
                 pkg->symtab = new DsymbolTable();
+
                 pkg->protection = protection;
             }
             else
@@ -1105,12 +1106,12 @@ DsymbolTable *Package::resolve(DsymbolTable *dst, Identifiers *packages, Package
                 // can be generated.
                 // dot net needs modules and packages with same name
 
-                if (pkg->protection < protection)   // set to the most weak protection
-                    pkg->protection = protection;
-
                 // But we still need a symbol table for it
                 if (!pkg->symtab)
                     pkg->symtab = new DsymbolTable();
+
+                if (pkg->protection < protection)   // set to the most weak protection
+                    pkg->protection = protection;
             }
             parent = pkg;
             dst = pkg->symtab;
