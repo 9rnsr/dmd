@@ -43,8 +43,8 @@ public:
     Identifiers aliases;
 
     Module *mod;
-    Package *pkg;               // leftmost package/module
-
+    Package *pkg;               // leftmost package/module --> should become unnecessary
+    Import *overnext;
     AliasDeclarations aliasdecls; // corresponding AliasDeclarations for alias=name pairs
 
     Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *aliasId,
