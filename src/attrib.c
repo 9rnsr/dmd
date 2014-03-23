@@ -86,6 +86,11 @@ Scope *AttribDeclaration::createNewScope(Scope *sc,
     return sc2;
 }
 
+Scope *AttribDeclaration::newScope(Scope *sc)
+{
+    return sc;
+}
+
 int AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
 {
     int m = 0;
@@ -103,6 +108,29 @@ int AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
     return m;
 }
 
+void AttribDeclaration::setScope(Scope *sc)
+{
+    Dsymbols *d = include(sc, NULL);
+
+    //printf("\tAttribDeclaration::setScope '%s', d = %p\n",toChars(), d);
+    if (d)
+    {
+        Scope *sc2 = newScope(sc);
+
+        for (size_t i = 0; i < d->dim; i++)
+        {
+            Dsymbol *s = (*d)[i];
+            s->setScope(sc2);
+        }
+
+        if (sc2 != sc)
+        {
+            sc->offset = sc2->offset;
+            sc2->pop();
+        }
+    }
+}
+
 void AttribDeclaration::semantic(Scope *sc)
 {
     Dsymbols *d = include(sc, NULL);
@@ -110,10 +138,18 @@ void AttribDeclaration::semantic(Scope *sc)
     //printf("\tAttribDeclaration::semantic '%s', d = %p\n",toChars(), d);
     if (d)
     {
+        Scope *sc2 = newScope(sc);
+
         for (size_t i = 0; i < d->dim; i++)
         {
             Dsymbol *s = (*d)[i];
-            s->semantic(sc);
+            s->semantic(sc2);
+        }
+
+        if (sc2 != sc)
+        {
+            sc->offset = sc2->offset;
+            sc2->pop();
         }
     }
 }
@@ -334,83 +370,30 @@ bool StorageClassDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
     return t;
 }
 
-void StorageClassDeclaration::setScope(Scope *sc)
+Scope *StorageClassDeclaration::newScope(Scope *sc)
 {
-    if (decl)
-    {
-        StorageClass scstc = sc->stc;
+    StorageClass scstc = sc->stc;
 
-        /* These sets of storage classes are mutually exclusive,
-         * so choose the innermost or most recent one.
-         */
-        if (stc & (STCauto | STCscope | STCstatic | STCextern | STCmanifest))
-            scstc &= ~(STCauto | STCscope | STCstatic | STCextern | STCmanifest);
-        if (stc & (STCauto | STCscope | STCstatic | STCtls | STCmanifest | STCgshared))
-            scstc &= ~(STCauto | STCscope | STCstatic | STCtls | STCmanifest | STCgshared);
-        if (stc & (STCconst | STCimmutable | STCmanifest))
-            scstc &= ~(STCconst | STCimmutable | STCmanifest);
-        if (stc & (STCgshared | STCshared | STCtls))
-            scstc &= ~(STCgshared | STCshared | STCtls);
-        if (stc & (STCsafe | STCtrusted | STCsystem))
-            scstc &= ~(STCsafe | STCtrusted | STCsystem);
-        if (stc & (STCfinal | STCvirtual))
-            scstc &= ~(STCfinal | STCvirtual);
-        scstc |= stc;
-        //printf("scstc = x%llx\n", scstc);
+    /* These sets of storage classes are mutually exclusive,
+     * so choose the innermost or most recent one.
+     */
+    if (stc & (STCauto | STCscope | STCstatic | STCextern | STCmanifest))
+        scstc &= ~(STCauto | STCscope | STCstatic | STCextern | STCmanifest);
+    if (stc & (STCauto | STCscope | STCstatic | STCtls | STCmanifest | STCgshared))
+        scstc &= ~(STCauto | STCscope | STCstatic | STCtls | STCmanifest | STCgshared);
+    if (stc & (STCconst | STCimmutable | STCmanifest))
+        scstc &= ~(STCconst | STCimmutable | STCmanifest);
+    if (stc & (STCgshared | STCshared | STCtls))
+        scstc &= ~(STCgshared | STCshared | STCtls);
+    if (stc & (STCsafe | STCtrusted | STCsystem))
+        scstc &= ~(STCsafe | STCtrusted | STCsystem);
+    if (stc & (STCfinal | STCvirtual))
+        scstc &= ~(STCfinal | STCvirtual);
+    scstc |= stc;
+    //printf("scstc = x%llx\n", scstc);
 
-        Scope *newsc = createNewScope(sc, scstc, sc->linkage, sc->protection, sc->explicitProtection, sc->structalign);
-
-        for (size_t i = 0; i < decl->dim; i++)
-        {
-            Dsymbol *s = (*decl)[i];
-            s->setScope(newsc); // yes, the only difference from semanticNewSc()
-        }
-
-        if (newsc != sc)
-        {
-            sc->offset = newsc->offset;
-            newsc->pop();
-        }
-    }
+    return createNewScope(sc, scstc, sc->linkage, sc->protection, sc->explicitProtection, sc->structalign);
 }
-
-void StorageClassDeclaration::semantic(Scope *sc)
-{
-    if (decl)
-    {
-        StorageClass scstc = sc->stc;
-
-        /* These sets of storage classes are mutually exclusive,
-         * so choose the innermost or most recent one.
-         */
-        if (stc & (STCauto | STCscope | STCstatic | STCextern | STCmanifest))
-            scstc &= ~(STCauto | STCscope | STCstatic | STCextern | STCmanifest);
-        if (stc & (STCauto | STCscope | STCstatic | STCtls | STCmanifest | STCgshared))
-            scstc &= ~(STCauto | STCscope | STCstatic | STCtls | STCmanifest | STCgshared);
-        if (stc & (STCconst | STCimmutable | STCmanifest))
-            scstc &= ~(STCconst | STCimmutable | STCmanifest);
-        if (stc & (STCgshared | STCshared | STCtls))
-            scstc &= ~(STCgshared | STCshared | STCtls);
-        if (stc & (STCsafe | STCtrusted | STCsystem))
-            scstc &= ~(STCsafe | STCtrusted | STCsystem);
-        scstc |= stc;
-
-        Scope *newsc = createNewScope(sc, scstc, sc->linkage, sc->protection, sc->explicitProtection, sc->structalign);
-
-        for (size_t i = 0; i < decl->dim; i++)
-        {
-            Dsymbol *s = (*decl)[i];
-            s->semantic(newsc);
-        }
-
-        if (newsc != sc)
-        {
-            sc->offset = newsc->offset;
-            newsc->pop();
-        }
-    }
-}
-
 
 /*************************************************
  * Pick off one of the storage classes from stc,
@@ -563,46 +546,9 @@ Dsymbol *LinkDeclaration::syntaxCopy(Dsymbol *s)
     return ld;
 }
 
-void LinkDeclaration::setScope(Scope *sc)
+Scope *LinkDeclaration::newScope(Scope *sc)
 {
-    //printf("LinkDeclaration::setScope(linkage = %d, decl = %p)\n", linkage, decl);
-    if (decl)
-    {
-        Scope *newsc = createNewScope(sc, sc->stc, linkage, sc->protection, sc->explicitProtection, sc->structalign);
-
-        for (size_t i = 0; i < decl->dim; i++)
-        {
-            Dsymbol *s = (*decl)[i];
-            s->setScope(newsc); // yes, the only difference from semanticNewSc()
-        }
-
-        if (newsc != sc)
-        {
-            sc->offset = newsc->offset;
-            newsc->pop();
-        }
-    }
-}
-
-void LinkDeclaration::semantic(Scope *sc)
-{
-    //printf("LinkDeclaration::semantic(linkage = %d, decl = %p)\n", linkage, decl);
-    if (decl)
-    {
-        Scope *newsc = createNewScope(sc, sc->stc, linkage, sc->protection, sc->explicitProtection, sc->structalign);
-
-        for (size_t i = 0; i < decl->dim; i++)
-        {
-            Dsymbol *s = (*decl)[i];
-            s->semantic(newsc);
-        }
-
-        if (newsc != sc)
-        {
-            sc->offset = newsc->offset;
-            newsc->pop();
-        }
-    }
+    return createNewScope(sc, sc->stc, this->linkage, sc->protection, sc->explicitProtection, sc->structalign);
 }
 
 void LinkDeclaration::semantic3(Scope *sc)
@@ -671,24 +617,9 @@ Dsymbol *ProtDeclaration::syntaxCopy(Dsymbol *s)
     return pd;
 }
 
-void ProtDeclaration::setScope(Scope *sc)
+Scope *ProtDeclaration::newScope(Scope *sc)
 {
-    if (decl)
-    {
-        Scope *newsc = createNewScope(sc, sc->stc, sc->linkage, protection, 1, sc->structalign);
-
-        for (size_t i = 0; i < decl->dim; i++)
-        {
-            Dsymbol *s = (*decl)[i];
-            s->setScope(newsc); // yes, the only difference from semanticNewSc()
-        }
-
-        if (newsc != sc)
-        {
-            sc->offset = newsc->offset;
-            newsc->pop();
-        }
-    }
+    return createNewScope(sc, sc->stc, sc->linkage, this->protection, 1, sc->structalign);
 }
 
 void ProtDeclaration::importAll(Scope *sc)
@@ -714,26 +645,6 @@ void ProtDeclaration::importAll(Scope *sc)
 
         if (newsc != sc)
            newsc->pop();
-    }
-}
-
-void ProtDeclaration::semantic(Scope *sc)
-{
-    if (decl)
-    {
-        Scope *newsc = createNewScope(sc, sc->stc, sc->linkage, protection, 1, sc->structalign);
-
-        for (size_t i = 0; i < decl->dim; i++)
-        {
-            Dsymbol *s = (*decl)[i];
-            s->semantic(newsc);
-        }
-
-        if (newsc != sc)
-        {
-            sc->offset = newsc->offset;
-            newsc->pop();
-        }
     }
 }
 
@@ -772,48 +683,10 @@ Dsymbol *AlignDeclaration::syntaxCopy(Dsymbol *s)
     return ad;
 }
 
-void AlignDeclaration::setScope(Scope *sc)
+Scope *AlignDeclaration::newScope(Scope *sc)
 {
-    //printf("\tAlignDeclaration::setScope '%s'\n",toChars());
-    if (decl)
-    {
-        Scope *newsc = createNewScope(sc, sc->stc, sc->linkage, sc->protection, sc->explicitProtection, salign);
-
-        for (size_t i = 0; i < decl->dim; i++)
-        {
-            Dsymbol *s = (*decl)[i];
-            s->setScope(newsc); // yes, the only difference from semanticNewSc()
-        }
-
-        if (newsc != sc)
-        {
-            sc->offset = newsc->offset;
-            newsc->pop();
-        }
-    }
+    return createNewScope(sc, sc->stc, sc->linkage, sc->protection, sc->explicitProtection, this->salign);
 }
-
-void AlignDeclaration::semantic(Scope *sc)
-{
-    //printf("\tAlignDeclaration::semantic '%s'\n",toChars());
-    if (decl)
-    {
-        Scope *newsc = createNewScope(sc, sc->stc, sc->linkage, sc->protection, sc->explicitProtection, salign);
-
-        for (size_t i = 0; i < decl->dim; i++)
-        {
-            Dsymbol *s = (*decl)[i];
-            s->semantic(newsc);
-        }
-
-        if (newsc != sc)
-        {
-            sc->offset = newsc->offset;
-            newsc->pop();
-        }
-    }
-}
-
 
 void AlignDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -1671,59 +1544,34 @@ Dsymbol *UserAttributeDeclaration::syntaxCopy(Dsymbol *s)
     return new UserAttributeDeclaration(atts, Dsymbol::arraySyntaxCopy(decl));
 }
 
+Scope *UserAttributeDeclaration::newScope(Scope *sc)
+{
+    Scope *sc2 = sc;
+    if (atts && atts->dim)
+    {
+        // create new one for changes
+        sc2 = sc->push();
+        sc2->userAttribDecl = this;
+    }
+    return sc2;
+}
+
 void UserAttributeDeclaration::setScope(Scope *sc)
 {
     //printf("UserAttributeDeclaration::setScope() %p\n", this);
     if (decl)
-    {
         Dsymbol::setScope(sc);  // for forward reference of UDAs
 
-        Scope *newsc = sc;
-        if (atts && atts->dim)
-        {
-            // create new one for changes
-            newsc = sc->push();
-            newsc->userAttribDecl = this;
-        }
-        for (size_t i = 0; i < decl->dim; i++)
-        {
-            Dsymbol *s = (*decl)[i];
-            s->setScope(newsc); // yes, the only difference from semantic()
-        }
-        if (newsc != sc)
-        {
-            sc->offset = newsc->offset;
-            newsc->pop();
-        }
-    }
+    return AttribDeclaration::setScope(sc);
 }
 
 void UserAttributeDeclaration::semantic(Scope *sc)
 {
     //printf("UserAttributeDeclaration::semantic() %p\n", this);
-    if (decl)
-    {
-        if (!scope)
-            Dsymbol::setScope(sc);  // for function local symbols
+    if (decl && !scope)
+        Dsymbol::setScope(sc);  // for function local symbols
 
-        Scope *newsc = sc;
-        if (atts && atts->dim)
-        {
-            // create new one for changes
-            newsc = sc->push();
-            newsc->userAttribDecl = this;
-        }
-        for (size_t i = 0; i < decl->dim; i++)
-        {
-            Dsymbol *s = (*decl)[i];
-            s->semantic(newsc);
-        }
-        if (newsc != sc)
-        {
-            sc->offset = newsc->offset;
-            newsc->pop();
-        }
-    }
+    return AttribDeclaration::semantic(sc);
 }
 
 void UserAttributeDeclaration::semantic2(Scope *sc)
