@@ -4832,24 +4832,17 @@ Statement *ImportStatement::semantic(Scope *sc)
     {
         Import *s = (*imports)[i]->isImport();
 
-        if (!s->aliasdecls.dim)
+        if (s->mod)
+            continue;   // semantic is already done
+
+        for (Scope *scx = sc; scx; scx = scx->enclosing)
         {
-            for (size_t j = 0; j < s->names.dim; j++)
-            {
-                Identifier *name = s->names[j];
-                Identifier *alias = s->aliases[j];
+            if (!scx->scopesym)
+                continue;
 
-                if (!alias)
-                    alias = name;
-
-                TypeIdentifier *tname = new TypeIdentifier(s->loc, name);
-                AliasDeclaration *ad = new AliasDeclaration(s->loc, alias, tname);
-                ad->import = s;
-
-                s->aliasdecls.push(ad);
-            }
+            s->addMember(sc, scx->scopesym, 0);
+            break;
         }
-
         s->semantic(sc);
         s->semantic2(sc);
         sc->insert(s);
