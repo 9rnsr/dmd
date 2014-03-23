@@ -93,6 +93,13 @@ PROT Import::prot()
     return protection;
 }
 
+Import *Import::copy()
+{
+    Import *imp = (Import *)mem.malloc(sizeof(Import));
+    memcpy(imp, this, sizeof(Import));
+    return imp;
+}
+
 Dsymbol *Import::syntaxCopy(Dsymbol *s)
 {
     assert(!s);
@@ -295,7 +302,7 @@ void Import::importAll(Scope *sc)
 
 void Import::semantic(Scope *sc)
 {
-    //printf("Import::semantic('%s')\n", toPrettyChars());
+    printf("[%s] Import::semantic('%s') prot = %d\n", loc.toChars(), toPrettyChars(), protection);
 
     if (scope)
     {
@@ -321,6 +328,34 @@ void Import::semantic(Scope *sc)
         }
 
         // merge public imports in mod into the imported scope.
+        Dsymbols *modImports = mod->ScopeDsymbol::imports;
+        if (!names.dim && modImports)
+        {
+            for (Scope *scd = sc; scd; scd = scd->enclosing)
+            {
+                if (!scd->scopesym)
+                    continue;
+                for (size_t i = 0; i < modImports->dim; i++)
+                {
+                    Import *imp = (*modImports)[i]->isImport();
+                    if (imp && mod->prots[i] == PROTpublic)
+                    {
+                        if (!isstatic || imp->isstatic)
+                        {
+                            printf("[%s] imp = %s at %s\n", loc.toChars(), imp->toChars(), imp->loc.toChars());
+                            imp = imp->copy();
+                            imp->loc = loc;  // test
+                            imp->protection = protection;
+                            imp->isstatic = true;   // Don't insert to sc->scopesym->imports
+                            imp->overnext = NULL;
+                            //imp->importScope(sc);
+                            scd->scopesym->importScope(imp, protection);
+                        }
+                    }
+                }
+                break;
+            }
+        }
 
         sc = sc->push(mod);
         /* BUG: Protection checks can't be enabled yet. The issue is
