@@ -7054,6 +7054,9 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
             (ie->sds->isModule() && ie->sds != sc->module) ? IgnorePrivateMembers : IgnoreNone);
         if (s)
         {
+            printf("\t--> DotIdExp('%s') s = %s %s\n", toChars(), s->kind(), s->toChars());
+
+
             /* Check for access before resolving aliases because public
              * aliases to private symbols are public.
              */
@@ -7159,6 +7162,11 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
             Import *imp = s->isImport();
             if (imp)
             {
+                if (!imp->pkg)
+                {
+                    error("forward reference of import %s", imp->toChars());
+                    return new ErrorExp();
+                }
                 ie = new ScopeExp(loc, imp->pkg);
                 return ie->semantic(sc);
             }

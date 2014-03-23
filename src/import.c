@@ -510,7 +510,7 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
     // Forward it to the package/module
     return pkg->search(loc, ident, flags);
 #else
-    //printf("%p [%s].Import::search(ident = '%s', flags = x%x)\n", this, loc.toChars(), ident->toChars(), flags);
+    printf("%p [%s].Import::search(ident = '%s', flags = x%x)\n", this, loc.toChars(), ident->toChars(), flags);
     //printf("%p\tfrom [%s] mod = %p\n", this, this->loc.toChars(), mod);
 
     //assert(mod);    //?
@@ -564,6 +564,22 @@ bool Import::overloadInsert(Dsymbol *s)
         return true;
     else
         return false;
+}
+
+char *Import::toChars()
+{
+    OutBuffer buf;
+
+    if (packages && packages->dim)
+    {
+        for (size_t i = 0; i < packages->dim; i++)
+        {   Identifier *pid = (*packages)[i];
+
+            buf.printf("%s.", pid->toChars());
+        }
+    }
+    buf.printf("%s", id->toChars());
+    return buf.extractString();
 }
 
 void Import::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
