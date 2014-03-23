@@ -838,13 +838,12 @@ Dsymbol *Module::search(Loc loc, Identifier *ident, int flags)
     //printf("%s Module::search('%s', flags = %d) insearch = %d\n", toChars(), ident->toChars(), flags, insearch);
     Dsymbol *s;
     if (insearch)
-        s = NULL;
-    else
-    {
-        insearch = 1;
-        s = ScopeDsymbol::search(loc, ident, flags);
-        insearch = 0;
-    }
+        return NULL;
+
+    insearch = 1;
+    s = ScopeDsymbol::search(loc, ident, flags);
+    insearch = 0;
+
     return s;
 }
 
@@ -1071,7 +1070,7 @@ Module *Package::isPackageMod()
  *      *pparent        the rightmost package, i.e. pkg2, or NULL if no packages
  */
 
-DsymbolTable *Package::resolve(DsymbolTable *dst, Identifiers *packages, Package **ppkg, Package **pparent)
+DsymbolTable *Package::resolve(DsymbolTable *dst, Identifiers *packages, Package **ppkg, Package **pparent, PROT protection)
 {
     if (!dst)
         dst = Module::modules;
@@ -1095,6 +1094,7 @@ DsymbolTable *Package::resolve(DsymbolTable *dst, Identifiers *packages, Package
                 dst->insert(pkg);
                 pkg->parent = parent;
                 pkg->symtab = new DsymbolTable();
+                pkg->protection = protection;
             }
             else
             {
@@ -1104,6 +1104,9 @@ DsymbolTable *Package::resolve(DsymbolTable *dst, Identifiers *packages, Package
                 // to be checked at a higher level, where a nice error message
                 // can be generated.
                 // dot net needs modules and packages with same name
+
+                if (pkg->protection < protection)   // set to the most weak protection
+                    pkg->protection = protection;
 
                 // But we still need a symbol table for it
                 if (!pkg->symtab)

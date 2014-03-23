@@ -50,7 +50,8 @@ Import::Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *alias
     this->protection = PROTprivate; // default to private
     this->pkg = NULL;
     this->mod = NULL;
-
+    this->overnext = NULL;
+#if 1 // todo
     // Set symbol name (bracketed)
     if (aliasId)
     {
@@ -67,6 +68,7 @@ Import::Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *alias
         // import [foo];
         this->ident = id;
     }
+#endif
 }
 
 void Import::addAlias(Identifier *name, Identifier *alias)
@@ -188,10 +190,73 @@ void Import::load(Scope *sc)
 
 int Import::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
 {
+    assert(!mod);
+//    if (!mod)
+    {
+        load(sc);
+        // filling mod will break some existing assumptions
+
+        if (sc->explicitProtection)
+            protection = sc->protection;
+        printf("addMember import %s, prot = %d\n", toChars(), protection);
+
+        if (!mod)
+            return 0;   // fails to load module
+    }
+
     int result = 0;
 
     if (names.dim == 0 || aliasId)  // if not unrenamed selective
+    {
+#if 0
         result = Dsymbol::addMember(sc, sds, memnum);
+#else
+        if (!sds->symtab)
+            sds->symtab = new DsymbolTable();
+        Dsymbol *ss = sds->symtab->lookup(this->ident);
+        if (ss)  // leftmost is already exists?
+        {
+            if (aliasId || packages->dim == 0)
+            {
+                Import *imp = ss->isImport();
+                if (imp && imp->mod == mod)
+                {
+                    // OK
+                }
+                else
+                {
+                    ScopeDsymbol::multiplyDefined(loc, ss, mod);
+                    return 0;
+                }
+            }
+            else
+            {
+                if (ss->isPackage())
+                {
+                    // OK
+                }
+                else
+                {
+                    ScopeDsymbol::multiplyDefined(loc, ss, mod/*aliasId ? aliasId : packages[0]*/);
+                    return 0;
+                }
+            }
+        }
+        DsymbolTable *dst = Package::resolve(sds->symtab, aliasId || !packages || packages->dim == 0 ? NULL : packages, NULL, NULL, protection);
+
+        ss = dst->lookup(this->id);     // rightmost
+        if (!ss)
+        {
+            dst->insert(this->id, this);
+        }
+        else
+        {
+            // chain overload next
+            assert(ss->isImport());
+            ((Import *)ss)->overnext = this;
+        }
+#endif
+    }
 
     /* Instead of adding the import to sds's symbol table,
      * add each of the alias=name pairs
@@ -217,19 +282,13 @@ int Import::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
 
 void Import::importAll(Scope *sc)
 {
-    if (!mod)
+    if (mod)                // if successfully loaded module
     {
-        load(sc);
-        if (mod)                // if successfully loaded module
-        {
-            mod->importAll(NULL);
+        mod->importAll(NULL);
 
-            if (!isstatic && !aliasId && !names.dim)
-            {
-                if (sc->explicitProtection)
-                    protection = sc->protection;
-                sc->scopesym->importScope(mod, protection);
-            }
+        if (!isstatic && !aliasId && !names.dim)
+        {
+            sc->scopesym->importScope(this, protection);
         }
     }
 }
@@ -245,32 +304,13 @@ void Import::semantic(Scope *sc)
     }
 
     // Load if not already done so
-    if (!mod)
-    {
-        load(sc);
-        if (mod)
-            mod->importAll(NULL);
-    }
+    importAll(sc);
 
     if (mod)
     {
         // Modules need a list of each imported module
         //printf("%s imports %s\n", sc->module->toChars(), mod->toChars());
         sc->module->aimports.push(mod);
-
-        if (!isstatic && !aliasId && !names.dim)
-        {
-            if (sc->explicitProtection)
-                protection = sc->protection;
-            for (Scope *scd = sc; scd; scd = scd->enclosing)
-            {
-                if (scd->scopesym)
-                {
-                    scd->scopesym->importScope(mod, protection);
-                    break;
-                }
-            }
-        }
 
         mod->semantic();
 
@@ -279,6 +319,8 @@ void Import::semantic(Scope *sc)
             //printf("module4 %s because of %s\n", sc->module->toChars(), mod->toChars());
             sc->module->needmoduleinfo = 1;
         }
+
+        // merge public imports in mod into the imported scope.
 
         sc = sc->push(mod);
         /* BUG: Protection checks can't be enabled yet. The issue is
@@ -414,6 +456,7 @@ Dsymbol *Import::toAlias()
 
 Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
 {
+#if 0   // should be unnecessary
     //printf("%s.Import::search(ident = '%s', flags = x%x)\n", toChars(), ident->toChars(), flags);
 
     if (!pkg)
@@ -425,6 +468,48 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
 
     // Forward it to the package/module
     return pkg->search(loc, ident, flags);
+#else
+    //printf("%p [%s].Import::search(ident = '%s', flags = x%x)\n", this, loc.toChars(), ident->toChars(), flags);
+    //printf("%p\tfrom [%s] mod = %p\n", this, this->loc.toChars(), mod);
+
+    //assert(mod);    //?
+    if (mod)
+    {
+        mod->importAll(NULL);
+        mod->semantic();
+    }
+    //printf("%p\tmod = %s\n", this, mod->toChars());
+
+    Dsymbol *s = NULL;
+
+    // Don't find private members and import declarations
+
+    if (names.dim)
+    {
+        for (size_t i = 0; i < names.dim; i++)
+        {
+            Identifier *name = names[i];
+            Identifier *alias = aliases[i];
+            if ((alias ? alias : name) == ident)
+            {
+                // Forward it to the module
+                s = mod->search(loc, name, flags | IgnoreImportedFQN | IgnorePrivateSymbols);
+                break;
+            }
+        }
+    }
+    else
+    {
+        // Forward it to the module
+        s = mod->search(loc, ident, flags | IgnoreImportedFQN | IgnorePrivateSymbols);
+    }
+    if (!s && overnext)
+    {
+        s = overnext->search(loc, ident, flags);
+    }
+
+    return s;
+#endif
 }
 
 bool Import::overloadInsert(Dsymbol *s)

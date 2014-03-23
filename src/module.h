@@ -44,11 +44,13 @@ class Package : public ScopeDsymbol
 public:
     PKG isPkgMod;
     Dsymbol *aliassym;  // != NULL if isPkgMod == PKGmodule
+    PROT protection;
 
     Package(Identifier *ident);
     const char *kind();
+    PROT prot() { return protection; }
 
-    static DsymbolTable *resolve(DsymbolTable *dst, Identifiers *packages, Package **pparent, Package **ppkg);
+    static DsymbolTable *resolve(DsymbolTable *dst, Identifiers *packages, Package **pparent, Package **ppkg, PROT protection = PROTpublic/* for global package tree*/);
 
     Package *isPackage() { return this; }
 

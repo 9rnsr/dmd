@@ -442,7 +442,7 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
     switch (id->dyncast())
     {
         case DYNCAST_IDENTIFIER:
-            sm = s->search(loc, (Identifier *)id);
+            sm = s->search(loc, (Identifier *)id, IgnoreImportedFQN);
             break;
 
         case DYNCAST_DSYMBOL:
@@ -450,7 +450,7 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
             //printf("\ttemplate instance id\n");
             Dsymbol *st = (Dsymbol *)id;
             TemplateInstance *ti = st->isTemplateInstance();
-            sm = s->search(loc, ti->name);
+            sm = s->search(loc, ti->name, IgnoreImportedFQN);
             if (!sm)
             {
                 sm = s->search_correct(ti->name);
@@ -895,7 +895,15 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
     //printf("\ts1 = %p, imports = %p, %d\n", s1, imports, imports ? imports->dim : 0);
     if (s1)
     {
-        //printf("\ts = '%s.%s'\n",toChars(),s1->toChars());
+        //printf("\ts = '%s.%s', prot = %d\n", toChars(), s1->toChars(), s1->prot());
+        // The found symbol which has private access should be invisible
+        // FIXME: Issue 10604 - Not consistent access check for overloaded symbols
+        if ((flags & IgnorePrivateMembers) && s1->prot() == PROTprivate)
+            return NULL;
+
+        if ((flags & IgnoreImportedFQN) && (s1->isPackage() || s1->isImport()))
+            return NULL;
+
         return s1;
     }
 
@@ -908,15 +916,15 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
         for (size_t i = 0; i < imports->dim; i++)
         {
             // If private import, don't search it
-            if ((flags & IgnorePrivateMembers) && prots[i] == PROTprivate)
+            if ((flags & IgnorePrivateSymbols) && prots[i] == PROTprivate)
                 continue;
 
             Dsymbol *ss = (*imports)[i];
 
             //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
-            /* Don't find private members if ss is a module
+            /* Don't find private members if ss is a module (maybe ss is a TemplateMixin)
              */
-            Dsymbol *s2 = ss->search(loc, ident, ss->isModule() ? IgnorePrivateMembers : IgnoreNone);
+            Dsymbol *s2 = ss->search(loc, ident, ss->isModule() ? IgnorePrivateSymbols : IgnoreNone);
             if (!s)
                 s = s2;
             else if (s2 && s != s2)
@@ -1003,7 +1011,9 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                 s = a;
             }
 
-            if (!(flags & IgnoreErrors) && s->prot() == PROTprivate && !s->parent->isTemplateMixin())
+            // FIXME: Issue 10604 - Not consistent access check for overloaded symbols
+            if (!(flags & IgnoreErrors) &&
+                s->prot() == PROTprivate && !s->parent->isTemplateMixin())
             {
                 if (!s->isImport())
                     error(loc, "%s %s is private", s->kind(), s->toPrettyChars());
