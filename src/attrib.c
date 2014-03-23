@@ -98,11 +98,19 @@ int AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
 
     if (d)
     {
+        Scope *sc2 = newScope(sc);
+
         for (size_t i = 0; i < d->dim; i++)
         {
             Dsymbol *s = (*d)[i];
             //printf("\taddMember %s to %s\n", s->toChars(), sds->toChars());
-            m |= s->addMember(sc, sds, m | memnum);
+            m |= s->addMember(sc2, sds, m | memnum);
+        }
+
+        if (sc2 != sc)
+        {
+            sc->offset = sc2->offset;
+            sc2->pop();
         }
     }
     return m;
@@ -128,6 +136,26 @@ void AttribDeclaration::setScope(Scope *sc)
             sc->offset = sc2->offset;
             sc2->pop();
         }
+    }
+}
+
+void AttribDeclaration::importAll(Scope *sc)
+{
+    Dsymbols *d = include(sc, NULL);
+
+    //printf("\tAttribDeclaration::importAll '%s', d = %p\n", toChars(), d);
+    if (d)
+    {
+        Scope *sc2 = newScope(sc);
+
+        for (size_t i = 0; i < d->dim; i++)
+        {
+           Dsymbol *s = (*d)[i];
+           s->importAll(sc2);
+        }
+
+        if (sc2 != sc)
+           sc2->pop();
     }
 }
 
@@ -620,32 +648,6 @@ Dsymbol *ProtDeclaration::syntaxCopy(Dsymbol *s)
 Scope *ProtDeclaration::newScope(Scope *sc)
 {
     return createNewScope(sc, sc->stc, sc->linkage, this->protection, 1, sc->structalign);
-}
-
-void ProtDeclaration::importAll(Scope *sc)
-{
-    if (decl)
-    {
-        Scope *newsc = sc;
-        if (sc->protection != protection ||
-           sc->explicitProtection != 1)
-        {
-           // create new one for changes
-           newsc = new Scope(*sc);
-           newsc->flags &= ~SCOPEfree;
-           newsc->protection = protection;
-           newsc->explicitProtection = 1;
-        }
-
-        for (size_t i = 0; i < decl->dim; i++)
-        {
-           Dsymbol *s = (*decl)[i];
-           s->importAll(newsc);
-        }
-
-        if (newsc != sc)
-           newsc->pop();
-    }
 }
 
 void ProtDeclaration::protectionToCBuffer(OutBuffer *buf, PROT protection)
@@ -1216,21 +1218,6 @@ void ConditionalDeclaration::setScope(Scope *sc)
        {
            Dsymbol *s = (*d)[i];
            s->setScope(sc);
-       }
-    }
-}
-
-void ConditionalDeclaration::importAll(Scope *sc)
-{
-    Dsymbols *d = include(sc, NULL);
-
-    //printf("\tConditionalDeclaration::importAll '%s', d = %p\n",toChars(), d);
-    if (d)
-    {
-       for (size_t i = 0; i < d->dim; i++)
-       {
-           Dsymbol *s = (*d)[i];
-           s->importAll(sc);
        }
     }
 }
