@@ -566,6 +566,7 @@ bool Import::overloadInsert(Dsymbol *s)
         return false;
 }
 
+#if 0
 char *Import::toChars()
 {
     OutBuffer buf;
@@ -581,6 +582,7 @@ char *Import::toChars()
     buf.printf("%s", id->toChars());
     return buf.extractString();
 }
+#endif
 
 void Import::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {

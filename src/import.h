@@ -62,7 +62,7 @@ public:
     int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
     bool overloadInsert(Dsymbol *s);
-    char *toChars();
+    //char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     Import *isImport() { return this; }
