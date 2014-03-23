@@ -73,10 +73,10 @@ Import::Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *alias
 
 void Import::addAlias(Identifier *name, Identifier *alias)
 {
-    if (isstatic)
-        error("cannot have an import bind list");
+    //if (isstatic)
+    //    error("cannot have an import bind list");
 
-    if (!aliasId)
+    if (!aliasId && !isstatic)
         this->ident = NULL;     // make it an anonymous import
 
     names.push(name);
@@ -212,7 +212,7 @@ int Import::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
 
     int result = 0;
 
-    if (names.dim == 0 || aliasId)  // if not unrenamed selective
+    if (isstatic || names.dim == 0 || aliasId)  // if not unrenamed selective
     {
 #if 0
         result = Dsymbol::addMember(sc, sds, memnum);
@@ -267,6 +267,7 @@ int Import::addMember(Scope *sc, ScopeDsymbol *sds, int memnum)
     /* Instead of adding the import to sds's symbol table,
      * add each of the alias=name pairs
      */
+    if (!isstatic)
     for (size_t i = 0; i < names.dim; i++)
     {
         Identifier *name = names[i];
@@ -372,6 +373,7 @@ void Import::semantic(Scope *sc)
 #else
         sc->protection = PROTpublic;
 #endif
+        if (!isstatic)
         for (size_t i = 0; i < names.dim; i++)
         {
             AliasDeclaration *ad = aliasdecls[i];

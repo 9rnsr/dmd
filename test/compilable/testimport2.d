@@ -1,6 +1,8 @@
 void main()
 {
     import core.stdc.stdio;
+    static import core.stdc.ctype : isalnum;
+    static import core.stdc.ctype : isspace;
 
     static assert(core.stringof == "package core");
     static assert(core.stdc.stringof == "package stdc");
@@ -8,4 +10,9 @@ void main()
 
     printf("");
     core.stdc.stdio.printf("");
+
+    static assert(!__traits(compiles, isalnum('a')));
+    core.stdc.ctype.isalnum('a');
+    static assert(!__traits(compiles, core.stdc.ctype.isalpha('a')));
+    core.stdc.ctype.isspace(' ');
 }
