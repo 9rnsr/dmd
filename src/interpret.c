@@ -5958,7 +5958,10 @@ public:
             result = new IntegerExp(e->loc, e1->op != TOKnull, e->to);
             return;
         }
-        result = ctfeCast(e->loc, e->type, e->to, e1);
+        if (e->type->ty == Tvoid)
+            result = EXP_VOID_INTERPRET;
+        else
+            result = ctfeCast(e->loc, e->type, e->to, e1);
     }
 
     void visit(AssertExp *e)

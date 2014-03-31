@@ -7118,6 +7118,7 @@ Expression *Parser::parseExpression()
     {
         nextToken();
         e2 = parseAssignExp();
+        e2 = new CastExp(loc, e2, Type::tvoid);
         e = new CommaExp(loc, e, e2);
         loc = token.loc;
     }

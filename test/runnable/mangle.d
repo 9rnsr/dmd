@@ -297,7 +297,7 @@ void test9525()
         S s;
         a(&s);  // Error: Cannot convert &S to const(S*) at compile time
     }
-    static assert((test1!f9525(), true));
+    test1!f9525();
 
     void test2(alias a)() pure nothrow
     {
@@ -306,7 +306,7 @@ void test9525()
         S s;
         a(&s);  // Error: Cannot convert &S to const(S*) at compile time
     }
-    static assert((test2!f9525(), true));
+    test2!f9525();
 }
 
 /******************************************/

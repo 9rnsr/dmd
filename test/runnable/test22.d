@@ -183,10 +183,10 @@ class A9
 {
     this(int[] params ...)
     {
-	for (int i = 0; i < params.length; i++)
-	{
-	    assert(params[i] == i + 1);
-	}
+        for (int i = 0; i < params.length; i++)
+        {
+            assert(params[i] == i + 1);
+        }
     }
 }
 
@@ -199,9 +199,11 @@ class B9
 
     private void init()
     {
-	A9 test1 = new A9(1, 2, 3);
-	A9 test2 = new A9(1, 2, 3, 4);
-	int[3] arg; A9 test3 = new A9((arg[0]=1, arg[1]=2, arg[2]=3, arg));
+        A9 test1 = new A9(1, 2, 3);
+        A9 test2 = new A9(1, 2, 3, 4);
+        int[3] arg;
+        arg[0]=1, arg[1]=2, arg[2]=3;
+        A9 test3 = new A9(arg);
     }
 }
 

@@ -4552,7 +4552,7 @@ void test10626()
     double[2] a = v[] * ++z;
     double[2] b = v[] * --z;
     double[2] c = v[] * y.u;
-    double[2] d = v[] * (x[] = 3, x[0]);
+    //double[2] d = v[] * (x[] = 3, x[0]);
     double[2] e = v[] * (v[] ~ z)[0];
 }
 

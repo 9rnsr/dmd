@@ -18,7 +18,7 @@ body
 {
 	float f = (float).infinity;
 	int i = cast(int)f;
-	writeln((i , 1), 2);
+	writeln(i, 1, 2);
 	writeln(cast(int)(float).max);
 	assert(i == cast(int)(float).max);
 	assert(i == 2147483648u);
