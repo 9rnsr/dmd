@@ -34,6 +34,12 @@
 #include "id.h"
 #include "attrib.h"
 
+#if WINDOWS_SEH
+#include <windows.h>
+long __cdecl __ehfilter(LPEXCEPTION_POINTERS ep);
+#endif
+
+
 #define LOG     0
 
 #define IDX_NOTFOUND (0x12345678)               // index is not found
@@ -5638,7 +5644,28 @@ void TemplateInstance::tryExpandMembers(Scope *sc2)
         fatal();
     }
 
+
+#if WINDOWS_SEH
+    if (nest == 1)
+    {
+        // do not catch at every nesting level, because generating the output error might cause more stack
+        //  errors in the __except block otherwise
+        __try
+        {
+            expandMembers(sc2);
+        }
+        __except(__ehfilter(GetExceptionInformation()))
+        {
+            global.gag = 0;                     // ensure error message gets printed
+            error("recursive expansion");
+            fatal();
+        }
+    }
+    else
+        expandMembers(sc2);
+#else
     expandMembers(sc2);
+#endif
     nest--;
 }
 
@@ -5652,8 +5679,28 @@ void TemplateInstance::trySemantic3(Scope *sc2)
         error("recursive expansion");
         fatal();
     }
-    semantic3(sc2);
 
+#if WINDOWS_SEH
+    if (nest == 1)
+    {
+        // do not catch at every nesting level, because generating the output error might cause more stack
+        //  errors in the __except block otherwise
+        __try
+        {
+            semantic3(sc2);
+        }
+        __except(__ehfilter(GetExceptionInformation()))
+        {
+            global.gag = 0;            // ensure error message gets printed
+            error("recursive expansion");
+            fatal();
+        }
+    }
+    else
+        semantic3(sc2);
+#else
+    semantic3(sc2);
+#endif
     --nest;
 }
 

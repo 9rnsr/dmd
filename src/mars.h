@@ -266,6 +266,11 @@ struct Global
 
 extern Global global;
 
+/* Set if Windows Structured Exception Handling C extensions are supported.
+ * Apparently, VC has dropped support for these?
+ */
+#define WINDOWS_SEH     _WIN32
+
 #include "longdouble.h"
 
 #include "complex_t.h"
