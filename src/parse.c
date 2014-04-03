@@ -4415,6 +4415,10 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
                 }
                 switch (token.value)
                 {
+                    case TOKauto:
+                        stc = STCauto;
+                        goto Lagain;
+
                     case TOKref:
 #if D1INOUT
                     case TOKinout:
