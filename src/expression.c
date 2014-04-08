@@ -6016,11 +6016,64 @@ Expression *IsExp::semantic(Scope *sc)
         return new ErrorExp();
     }
 
+    Dsymbol *sym = NULL;
+
+    if (tok2 != TOKreserved)
+    {
+        Type *t;
+        Expression *e;
+        Dsymbol *s;
+        unsigned errors = global.startGagging();
+        targ->resolve(loc, sc, &e, &t, &s);
+        if (global.endGagging(errors))
+            goto Lno;
+
+        if (s)
+        {
+            switch (tok2)
+            {
+                case TOKfunction:
+                case TOKparameters:
+                case TOKreturn:
+                    FuncDeclaration *f = s->isFuncDeclaration();
+                    if (!f)
+                        goto Lno;
+                    if (f->scope)
+                        f->semantic(NULL);
+                    if (id)
+                    {
+                        if (tok2 == TOKreturn && !f->type->nextOf() && !f->functionSemantic())
+                            goto Lno;
+                    }
+                    if (f->type->ty != Tfunction)
+                        goto Lno;
+                    t = f->type;
+                    break;
+
+                case TOKtemplate:
+                    if (!s->isTemplateDeclaration())
+                        goto Lno;
+                    sym = s;
+                    goto Lyes;
+
+                default:
+                    break;
+            }
+        }
+
+        if (!t)
+            goto Lno;
+        targ = t;
+    }
+    else
+    {
+        Type *t = targ->trySemantic(loc, sc);
+        if (!t)
+            goto Lno;                       // errors, so condition is false
+        targ = t;
+    }
+
     Type *tded;
-    Type *t = targ->trySemantic(loc, sc);
-    if (!t)
-        goto Lno;                       // errors, so condition is false
-    targ = t;
     if (tok2 != TOKreserved)
     {
         switch (tok2)
@@ -6136,7 +6189,8 @@ Expression *IsExp::semantic(Scope *sc)
                 Parameters *args = new Parameters;
                 args->reserve(dim);
                 for (size_t i = 0; i < dim; i++)
-                {   Parameter *arg = Parameter::getNth(params, i);
+                {
+                    Parameter *arg = Parameter::getNth(params, i);
                     assert(arg && arg->type);
                     /* If one of the default arguments was an error,
                        don't return an invalid tuple
@@ -6158,12 +6212,14 @@ Expression *IsExp::semantic(Scope *sc)
                 if (targ->ty == Tfunction)
                     tded = ((TypeFunction *)targ)->next;
                 else if (targ->ty == Tdelegate)
-                {   tded = ((TypeDelegate *)targ)->next;
+                {
+                    tded = ((TypeDelegate *)targ)->next;
                     tded = ((TypeFunction *)tded)->next;
                 }
                 else if (targ->ty == Tpointer &&
                          ((TypePointer *)targ)->next->ty == Tfunction)
-                {   tded = ((TypePointer *)targ)->next;
+                {
+                    tded = ((TypePointer *)targ)->next;
                     tded = ((TypeFunction *)tded)->next;
                 }
                 else
@@ -6274,20 +6330,21 @@ Expression *IsExp::semantic(Scope *sc)
 Lyes:
     if (id)
     {
-        Dsymbol *s;
-        Tuple *tup = isTuple(tded);
-        if (tup)
-            s = new TupleDeclaration(loc, id, &(tup->objects));
+        Tuple *tup = NULL;
+        if (sym)
+            sym = new AliasDeclaration(loc, id, sym);
+        else if ((tup = isTuple(tded)) != NULL)
+            sym = new TupleDeclaration(loc, id, &(tup->objects));
         else
-            s = new AliasDeclaration(loc, id, tded);
-        s->semantic(sc);
+            sym = new AliasDeclaration(loc, id, tded);
+        sym->semantic(sc);
         /* The reason for the !tup is unclear. It fails Phobos unittests if it is not there.
          * More investigation is needed.
          */
-        if (!tup && !sc->insert(s))
-            error("declaration %s is already defined", s->toChars());
+        if (!tup && !sc->insert(sym))
+            error("declaration %s is already defined", sym->toChars());
         if (sc->sd)
-            s->addMember(sc, sc->sd, 1);
+            sym->addMember(sc, sc->sd, 1);
     }
     //printf("Lyes\n");
     return new IntegerExp(loc, 1, Type::tbool);
