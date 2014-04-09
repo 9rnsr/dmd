@@ -6016,64 +6016,122 @@ Expression *IsExp::semantic(Scope *sc)
         return new ErrorExp();
     }
 
+    Type *tded;
     Dsymbol *sym = NULL;
 
-    if (tok2 != TOKreserved)
+    Type *t;
+    Expression *e;
+    unsigned errors = global.startGagging();
+    targ->resolve(loc, sc, &e, &t, &sym);
+    if (global.endGagging(errors))
+        goto Lno;
+    if (e)
+        sym = getDsymbol(e);
+    //printf("e = %p, t = %p, sym = %p\n", e, t, sym);
+    if (sym && tok2 != TOKreserved)
     {
-        Type *t;
-        Expression *e;
-        Dsymbol *s;
-        unsigned errors = global.startGagging();
-        targ->resolve(loc, sc, &e, &t, &s);
-        if (global.endGagging(errors))
-            goto Lno;
-
-        if (s)
+        Declaration *d = sym->isDeclaration();
+        FuncDeclaration *f = sym->isFuncDeclaration();
+        //printf("sym = %s, d = %p, f = %p\n", sym->toChars(), d, f);
+        switch (tok2)
         {
-            switch (tok2)
+            case TOKfunction:
+            case TOKparameters:
+            case TOKreturn:
             {
-                case TOKfunction:
-                case TOKparameters:
-                case TOKreturn:
-                    FuncDeclaration *f = s->isFuncDeclaration();
-                    if (!f)
+                if (!f)
+                    goto Lno;
+                if (f->scope)
+                    f->semantic(NULL);
+                if (id)
+                {
+                    if (tok2 == TOKreturn && !f->type->nextOf() && !f->functionSemantic())
                         goto Lno;
-                    if (f->scope)
-                        f->semantic(NULL);
-                    if (id)
-                    {
-                        if (tok2 == TOKreturn && !f->type->nextOf() && !f->functionSemantic())
-                            goto Lno;
-                    }
-                    if (f->type->ty != Tfunction)
-                        goto Lno;
-                    t = f->type;
-                    break;
-
-                case TOKtemplate:
-                    if (!s->isTemplateDeclaration())
-                        goto Lno;
-                    sym = s;
-                    goto Lyes;
-
-                default:
-                    break;
+                }
+                if (f->type->ty != Tfunction)
+                    goto Lno;
+                t = f->type;
+                sym = NULL;
+                break;
             }
+
+            case TOKabstract:   // __traits(isAbstractFunction)
+                if (d && d->isAbstract())
+                    goto Lyes;
+                goto Lno;
+
+            case TOKfinal:      // __traits(isFinalFunction)
+                if (f && f->isFinalFunc())
+                    goto Lyes;
+                goto Lno;
+
+            case TOKoverride:   // __traits(isOverrideFunction)
+                if (f && f->isOverride())
+                    goto Lyes;
+                goto Lno;
+
+            case TOKstatic:     // __traits(isStaticFunction)
+                if (f && !f->needThis() && !f->isNested())
+                    goto Lyes;
+                goto Lno;
+
+            case TOKref:        // __traits(isRef)
+                if (d && d->isRef())
+                    goto Lyes;
+                goto Lno;
+
+            case TOKout:        // __traits(isOut)
+                if (d && d->isOut())
+                    goto Lyes;
+                goto Lno;
+
+            case TOKlazy:       // __traits(isLazy)
+                if (d && (d->storage_class & STClazy) != 0)
+                    goto Lyes;
+                goto Lno;
+
+            case TOKscope:      // New!
+                //if (d)
+                //    printf("d = %s %s, isScope = %d\n", d->kind(), d->toChars(), d->isScope());
+                if (d && d->isScope())
+                    goto Lyes;
+                goto Lno;
+
+            case TOKtemplate:   // New!
+                if (sym->isTemplateDeclaration())
+                    goto Lyes;
+                goto Lno;
+
+        #if 0
+            // test function attributes
+            case TOKpure:
+            case TOKnothrow:
+            case STCsafe:
+            case STCtrusted:
+            case STCsystem:
+            case STCproperty:
+            case STCdisable:
+            case STCvirtual:    // ?
+
+            // test member function qualifeir
+            case TOKconst:
+            case TOKimmutable:
+            case TOKshared:
+            case TOKwild:
+
+            case STCgshared:
+
+            case TOKat:
+                // check symbol UDAs
+        #endif
+
+            default:
+                break;
         }
-
-        if (!t)
-            goto Lno;
-        targ = t;
     }
-    else
-    {
-        Type *t = targ->trySemantic(loc, sc);
-        if (!t)
-            goto Lno;                       // errors, so condition is false
-        targ = t;
-    }
-
-    Type *tded;
+    if (!t)
+        goto Lno;                       // errors, so condition is false
+    targ = t;
     if (tok2 != TOKreserved)
     {
         switch (tok2)
@@ -6144,13 +6202,15 @@ Expression *IsExp::semantic(Scope *sc)
                 if (targ->ty != Tclass)
                     goto Lno;
                 else
-                {   ClassDeclaration *cd = ((TypeClass *)targ)->sym;
+                {
+                    ClassDeclaration *cd = ((TypeClass *)targ)->sym;
                     Parameters *args = new Parameters;
                     args->reserve(cd->baseclasses->dim);
                     if (cd->scope && !cd->symtab)
                         cd->semantic(cd->scope);
                     for (size_t i = 0; i < cd->baseclasses->dim; i++)
-                    {   BaseClass *b = (*cd->baseclasses)[i];
+                    {
+                        BaseClass *b = (*cd->baseclasses)[i];
                         args->push(new Parameter(STCin, b->type, NULL, NULL));
                     }
                     tded = new TypeTuple(args);
@@ -6237,8 +6297,24 @@ Expression *IsExp::semantic(Scope *sc)
                     goto Lno;           // not valid for a parameter
                 break;
 
+            case TOKabstract:   // __traits(isAbstractClass)
+                if (targ->ty != Tclass)
+                    goto Lno;
+                if (!((TypeClass *)targ)->sym->isAbstract())
+                    goto Lno;
+                tded = targ;
+                break;
+
+            case TOKfinal:      // __traits(isFinalClass)
+                if (targ->ty != Tclass)
+                    goto Lno;
+                if ((((TypeClass *)targ)->sym->storage_class & STCfinal) == 0)
+                    goto Lno;
+                tded = targ;
+                break;
+
             default:
-                assert(0);
+                goto Lno;
         }
         goto Lyes;
     }
@@ -6330,21 +6406,22 @@ Expression *IsExp::semantic(Scope *sc)
 Lyes:
     if (id)
     {
+        Dsymbol *s;
         Tuple *tup = NULL;
         if (sym)
-            sym = new AliasDeclaration(loc, id, sym);
+            s = new AliasDeclaration(loc, id, sym);
         else if ((tup = isTuple(tded)) != NULL)
-            sym = new TupleDeclaration(loc, id, &(tup->objects));
+            s = new TupleDeclaration(loc, id, &(tup->objects));
         else
-            sym = new AliasDeclaration(loc, id, tded);
-        sym->semantic(sc);
+            s = new AliasDeclaration(loc, id, tded);
+        s->semantic(sc);
         /* The reason for the !tup is unclear. It fails Phobos unittests if it is not there.
          * More investigation is needed.
          */
-        if (!tup && !sc->insert(sym))
-            error("declaration %s is already defined", sym->toChars());
+        if (!tup && !sc->insert(s))
+            error("declaration %s is already defined", s->toChars());
         if (sc->sd)
-            sym->addMember(sc, sc->sd, 1);
+            s->addMember(sc, sc->sd, 1);
     }
     //printf("Lyes\n");
     return new IntegerExp(loc, 1, Type::tbool);

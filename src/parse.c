@@ -6213,7 +6213,15 @@ Expression *Parser::parsePrimaryExp()
                          token.value == TOKfunction ||
                          token.value == TOKdelegate ||
                          token.value == TOKreturn ||
-                         token.value == TOKtemplate
+                         token.value == TOKtemplate ||
+                         token.value == TOKabstract ||
+                         token.value == TOKfinal ||
+                         token.value == TOKoverride ||
+                         token.value == TOKstatic ||
+                         token.value == TOKref ||
+                         token.value == TOKout ||
+                         token.value == TOKlazy ||
+                         token.value == TOKscope
                          ))
                     {
                         tok2 = token.value;
@@ -6234,7 +6242,8 @@ Expression *Parser::parsePrimaryExp()
                     if (token.value == TOKcomma)
                         tpl = parseTemplateParameterList(1);
                     else
-                    {   tpl = new TemplateParameters();
+                    {
+                        tpl = new TemplateParameters();
                         check(TOKrparen);
                     }
                 }
@@ -6242,7 +6251,8 @@ Expression *Parser::parsePrimaryExp()
                     check(TOKrparen);
             }
             else
-            {   error("(type identifier : specialization) expected following is");
+            {
+                error("(type identifier : specialization) expected following is");
                 goto Lerr;
             }
             e = new IsExp(loc, targ, ident, tok, tspec, tok2, tpl);

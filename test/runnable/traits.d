@@ -1402,3 +1402,45 @@ int main()
     writeln("Success");
     return 0;
 }
+
+
+int foo(int a, ref double b, out string c, lazy Object d/*, scope void delegate() dg*/)
+{
+    static if (is(foo R == return))
+        pragma(msg, R);
+
+    template Foo() {}
+    static if (is(Foo F == template))
+        pragma(msg, F.stringof);
+
+    static assert(!is(a == ref) && !is(a == out) && !is(a == lazy));
+    static assert( is(b == ref) && !is(b == out) && !is(b == lazy));
+    static assert(!is(c == ref) &&  is(c == out) && !is(c == lazy));
+    static assert(!is(d == ref) && !is(d == out) &&  is(d == lazy));
+
+    //static assert(is(dg == scope));
+    scope Object sobj = new Object;
+    static assert(is(sobj == scope));
+
+    class B { void ofunc() {}}
+    class C : B
+    {
+        abstract void afunc();
+        final    void ffunc() {}
+        override void ofunc() {}
+        static   void sfunc() {}
+    }
+    static assert( is(C.afunc == abstract) && !is(C.afunc == final) && !is(C.afunc == override) && !is(C.afunc == static));
+    static assert(!is(C.ffunc == abstract) &&  is(C.ffunc == final) && !is(C.ffunc == override) && !is(C.ffunc == static));
+    static assert(!is(C.ofunc == abstract) && !is(C.ofunc == final) &&  is(C.ofunc == override) && !is(C.ofunc == static));
+    static assert(!is(C.sfunc == abstract) && !is(C.sfunc == final) && !is(C.sfunc == override) &&  is(C.sfunc == static));
+
+    class NC {}
+    abstract class AC {}
+    final class FC {}
+    static assert(!is(NC == abstract) && !is(NC == final));
+    static assert( is(AC == abstract) && !is(AC == final));
+    static assert(!is(FC == abstract) &&  is(FC == final));
+
+    return 0;
+}
