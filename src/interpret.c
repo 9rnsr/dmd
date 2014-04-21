@@ -4350,46 +4350,9 @@ public:
                 originalExp->error("CTFE ICE: cannot resolve array length");
             return EXP_CANT_INTERPRET;
         }
-        uinteger_t dollar = resolveArrayLength(oldval);
-        if (sexp->lengthVar)
-        {
-            Expression *arraylen = new IntegerExp(loc, dollar, Type::tsize_t);
-            ctfeStack.push(sexp->lengthVar);
-            setValue(sexp->lengthVar, arraylen);
-        }
-
-        Expression *upper = NULL;
-        Expression *lower = NULL;
-        if (sexp->upr)
-            upper = sexp->upr->interpret(istate);
-        if (exceptionOrCantInterpret(upper))
-        {
-            if (sexp->lengthVar)
-                ctfeStack.pop(sexp->lengthVar); // $ is defined only in [L..U]
-            return upper;
-        }
-        if (sexp->lwr)
-            lower = sexp->lwr->interpret(istate);
-        if (sexp->lengthVar)
-            ctfeStack.pop(sexp->lengthVar); // $ is defined only in [L..U]
-        if (exceptionOrCantInterpret(lower))
-            return lower;
-
-        unsigned dim = (unsigned)dollar;
-        size_t upperbound = (size_t)(upper ? upper->toInteger() : dim);
-        int lowerbound = (int)(lower ? lower->toInteger() : 0);
-
-        if (!assignmentToSlicedPointer && (((int)lowerbound < 0) || (upperbound > dim)))
-        {
-            originalExp->error("Array bounds [0..%d] exceeded in slice [%d..%d]",
-                dim, lowerbound, upperbound);
-            return EXP_CANT_INTERPRET;
-        }
-        if (upperbound == lowerbound)
-            return newval;
 
         Expression *aggregate = resolveReferences(sexp->e1);
-        sinteger_t firstIndex = lowerbound;
+        //sinteger_t firstIndex = lowerbound;
 
         ArrayLiteralExp *existingAE = NULL;
         StringExp *existingSE = NULL;
@@ -4420,6 +4383,7 @@ public:
                     return aggregate;
             }
         }
+
         if (aggregate->op == TOKvar)
         {
             VarExp *ve = (VarExp *)(aggregate);
@@ -4471,6 +4435,56 @@ public:
             return EXP_CANT_INTERPRET;
         }
 
+
+
+        uinteger_t dollar = resolveArrayLength(oldval);
+        if (sexp->lengthVar)
+        {
+            uinteger_t len = dollar;
+            printf("sexp->type = %s, oldval->type =  %s\n", sexp->type->toChars(), oldval->type->toChars());
+            if (sexp->type->nextOf()->ty == Tvoid)
+                len *= oldval->type->nextOf()->size();
+            printf("len = %d\n", len);
+            Expression *arraylen = new IntegerExp(loc, dollar, Type::tsize_t);
+            ctfeStack.push(sexp->lengthVar);
+            setValue(sexp->lengthVar, arraylen);
+        }
+
+        Expression *upper = NULL;
+        Expression *lower = NULL;
+        if (sexp->upr)
+            upper = sexp->upr->interpret(istate);
+        if (exceptionOrCantInterpret(upper))
+        {
+            if (sexp->lengthVar)
+                ctfeStack.pop(sexp->lengthVar); // $ is defined only in [L..U]
+            return upper;
+        }
+        if (sexp->lwr)
+            lower = sexp->lwr->interpret(istate);
+        if (sexp->lengthVar)
+            ctfeStack.pop(sexp->lengthVar); // $ is defined only in [L..U]
+        if (exceptionOrCantInterpret(lower))
+            return lower;
+
+        unsigned dim = (unsigned)dollar;
+        size_t upperbound = (size_t)(upper ? upper->toInteger() : dim);
+        int lowerbound = (int)(lower ? lower->toInteger() : 0);
+
+        if (!assignmentToSlicedPointer && (((int)lowerbound < 0) || (upperbound > dim)))
+        {
+            originalExp->error("Array bounds [0..%d] exceeded in slice [%d..%d]",
+                dim, lowerbound, upperbound);
+            return EXP_CANT_INTERPRET;
+        }
+        if (upperbound == lowerbound)
+            return newval;
+
+        sinteger_t firstIndex = lowerbound;
+
+
+
+
         if (!wantRef && newval->op == TOKslice)
         {
             Expression *orignewval = newval;
@@ -4502,9 +4516,26 @@ public:
 
         if (!isBlockAssignment && newval->op == TOKarrayliteral && existingAE)
         {
+            printf("existingAE = %s %s, newval = %s %s\n",
+                    existingAE->type->toChars(), existingAE->toChars(), newval->type->toChars(), newval->toChars());
             Expressions *oldelems = existingAE->elements;
             Expressions *newelems = ((ArrayLiteralExp *)newval)->elements;
             Type *elemtype = existingAE->type->nextOf();
+            if (elemtype->ty == Tvoid && oldelems->dim && newelems->dim)
+            {
+                // Note that, empty array assignment would pass this check, because
+                // interpreter cannot see the underlying element types.
+                Type *t1 = (*oldelems)[0]->type;
+                Type *t2 = (*newelems)[0]->type;
+                printf("t1 = %s, t2 = %s\n", t1->toChars(), t2->toChars());
+                if (!t1->toBasetype()->immutableOf()->equals(t2->toBasetype()->immutableOf()))
+                {
+                    originalExp->error("reinterpret element-wise assignment from %s to %s via %s is not allowed in compile time",
+                            t2->toChars(), t1->toChars(), existingAE->type->toChars());
+                    //printf("\t[%s] NG?\n", sexp->loc.toChars());
+                    return EXP_CANT_INTERPRET;
+                }
+            }
             for (size_t j = 0; j < newelems->dim; j++)
             {
                 (*oldelems)[(size_t)(j + firstIndex)] = paintTypeOntoLiteral(elemtype, (*newelems)[j]);
