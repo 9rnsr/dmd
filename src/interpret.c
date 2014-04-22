@@ -3976,6 +3976,37 @@ public:
                 else
                 {
                     setValue(v, newval);
+                    if (e->e1->type->toBasetype()->ty == Tsarray &&
+                        e->e2->isLvalue() &&
+                        e->e1->type->baseElemOf()->ty == Tstruct)
+                    {
+                        Expression *oldval = newval;
+        //printf("%s BinExp::interpretAssignCommon() %s\n", e->loc.toChars(), e->toChars());
+        //printf("\toldval = %s\n", oldval->toChars());
+#if 1
+                        if (oldval->op == TOKslice) // todo
+                            oldval = ((SliceExp *)oldval)->e1;
+                        assert(oldval->op == TOKarrayliteral);
+                        ArrayLiteralExp *ale = (ArrayLiteralExp *)oldval;
+                        for (size_t i = 0; i < ale->elements->dim; i++)
+                        {
+                            assert((*ale->elements)[i]->op == TOKstructliteral);    // todo
+                            StructLiteralExp *sle = (StructLiteralExp *)(*ale->elements)[i];
+                            if (sle->sd->postblit)
+                            {
+                                Expression *x = interpret(sle->sd->postblit, istate, NULL, sle);
+                                //DotVarExp dve(oldval->loc, oldval, sle->sd->postblit, false);
+                                //CallExp ce(oldval->loc, &dve, (Expressions *)NULL);
+                                //Expression *x = ce.interpret(istate);
+                                if (exceptionOrCantInterpret(x))
+                                {
+                                    result = x;
+                                    return;
+                                }
+                            }
+                        }
+#endif
+                    }
                 }
             }
         }
@@ -4508,6 +4539,20 @@ public:
             for (size_t j = 0; j < newelems->dim; j++)
             {
                 (*oldelems)[(size_t)(j + firstIndex)] = paintTypeOntoLiteral(elemtype, (*newelems)[j]);
+                Expression *oldval = (*oldelems)[(size_t)(j + firstIndex)];
+                if (oldval->op == TOKstructliteral)
+                {
+                    StructLiteralExp *sle = (StructLiteralExp *)oldval;
+                    if (sle->sd->postblit)
+                    {
+                        Expression *x = interpret(sle->sd->postblit, istate, NULL, oldval);
+                        //DotVarExp dve(oldval->loc, oldval, sle->sd->postblit, false);
+                        //CallExp ce(oldval->loc, &dve, (Expressions *)NULL);
+                        //Expression *x = ce.interpret(istate);
+                        if (exceptionOrCantInterpret(x))
+                            return x;
+                    }
+                }
             }
             return newval;
         }
@@ -4584,7 +4629,23 @@ public:
                     if (wantRef || cow)
                         (*existingAE->elements)[(size_t)(j+firstIndex)] = newval;
                     else
-                        assignInPlace((*existingAE->elements)[(size_t)(j+firstIndex)], newval);
+                    {
+                        Expression *oldval = (*existingAE->elements)[(size_t)(j+firstIndex)];
+                        assignInPlace(oldval, newval);
+                        if (oldval->op == TOKstructliteral)
+                        {
+                            StructLiteralExp *sle = (StructLiteralExp *)oldval;
+                            if (sle->sd->postblit)
+                            {
+                                Expression *x = interpret(sle->sd->postblit, istate, NULL, oldval);
+                                //DotVarExp dve(oldval->loc, oldval, sle->sd->postblit, false);
+                                //CallExp ce(oldval->loc, &dve, (Expressions *)NULL);
+                                //Expression *x = ce.interpret(istate);
+                                if (exceptionOrCantInterpret(x))
+                                    return x;
+                            }
+                        }
+                    }
                 }
             }
             if (goal == ctfeNeedNothing)
