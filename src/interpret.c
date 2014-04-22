@@ -259,7 +259,7 @@ void printCtfePerformanceStats()
 VarDeclaration *findParentVar(Expression *e);
 Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     FuncDeclaration *fd, Expressions *arguments, Expression *pthis);
-Expression *callPostblits(Expression *e, InterState *istate);
+Expression *evaluatePostblits(Expression *e, InterState *istate);
 Expression *scrubReturnValue(Loc loc, Expression *e);
 
 
@@ -3969,6 +3969,13 @@ public:
             else
             {
                 TY tyE1 = e1->type->toBasetype()->ty;
+                if (tyE1 == Tsarray && newval->op == TOKslice)
+                {
+                    // Newly set value is non-ref static array,
+                    // so making new ArrayLiteralExp is legitimate.
+                    newval = resolveSlice(newval);
+                    ((ArrayLiteralExp *)newval)->ownedByCtfe = true;
+                }
                 if (tyE1 == Tarray || tyE1 == Taarray)
                 {
                     // arr op= arr
@@ -3976,15 +3983,10 @@ public:
                 }
                 else
                 {
-                    if (tyE1 == Tsarray && newval->op == TOKslice)
-                    {
-                        newval = resolveSlice(newval);
-                        ((ArrayLiteralExp *)newval)->ownedByCtfe = true;
-                    }
                     setValue(v, newval);
                     if (tyE1 == Tsarray && e->e2->isLvalue())
                     {
-                        if (Expression *x = callPostblits(newval, istate))
+                        if (Expression *x = evaluatePostblits(newval, istate))
                         {
                             result = x;
                             return;
@@ -4523,7 +4525,7 @@ public:
             {
                 (*oldelems)[(size_t)(j + firstIndex)] = paintTypeOntoLiteral(elemtype, (*newelems)[j]);
             }
-            Expression *x = callPostblits(existingAE, istate);
+            Expression *x = evaluatePostblits(existingAE, istate);
             if (exceptionOrCantInterpret(x))
                 return x;
             return newval;
@@ -4596,23 +4598,22 @@ public:
                     // Multidimensional array block assign
                     recursiveBlockAssign((ArrayLiteralExp *)(*w)[(size_t)(j+firstIndex)], newval, wantRef);
                 }
+                else if (wantRef || cow)
+                {
+                    (*existingAE->elements)[(size_t)(j+firstIndex)] = newval;
+                }
                 else
                 {
-                    if (wantRef || cow)
-                        (*existingAE->elements)[(size_t)(j+firstIndex)] = newval;
-                    else
+                    Expression *oldval = (*existingAE->elements)[(size_t)(j+firstIndex)];
+                    assignInPlace(oldval, newval);
+                    if (oldval->op == TOKstructliteral)
                     {
-                        Expression *oldval = (*existingAE->elements)[(size_t)(j+firstIndex)];
-                        assignInPlace(oldval, newval);
-                        if (oldval->op == TOKstructliteral)
+                        StructLiteralExp *sle = (StructLiteralExp *)oldval;
+                        if (sle->sd->postblit)
                         {
-                            StructLiteralExp *sle = (StructLiteralExp *)oldval;
-                            if (sle->sd->postblit)
-                            {
-                                Expression *x = interpret(sle->sd->postblit, istate, NULL, oldval);
-                                if (exceptionOrCantInterpret(x))
-                                    return x;
-                            }
+                            Expression *x = interpret(sle->sd->postblit, istate, NULL, oldval);
+                            if (exceptionOrCantInterpret(x))
+                                return x;
                         }
                     }
                 }
@@ -7064,7 +7065,7 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     return e;
 }
 
-Expression *callPostblits(Expression *e, InterState *istate)
+Expression *evaluatePostblits(Expression *e, InterState *istate)
 {
     Type *telem = e->type->nextOf()->baseElemOf();
     if (telem->ty != Tstruct)
@@ -7079,7 +7080,7 @@ Expression *callPostblits(Expression *e, InterState *istate)
             Expression *elem = (*ale->elements)[i];
             Expression *x;
             if (elem->op == TOKarrayliteral)
-                x = callPostblits(elem, istate);
+                x = evaluatePostblits(elem, istate);
             else
             {
                 assert(elem->op == TOKstructliteral);    // todo
