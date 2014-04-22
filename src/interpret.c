@@ -4584,40 +4584,10 @@ public:
              *  x may be a multidimensional static array. (Note that this
              *  only happens with array literals, never with strings).
              */
-            Expressions * w = existingAE->elements;
-            assert( existingAE->type->ty == Tsarray ||
-                    existingAE->type->ty == Tarray);
-            Type *desttype = ((TypeArray *)existingAE->type)->next->toBasetype()->castMod(0);
-            bool directblk = (e2->type->toBasetype()->castMod(0))->equals(desttype);
-            bool cow = !(newval->op == TOKstructliteral || newval->op == TOKarrayliteral
-                || newval->op == TOKstring);
-            for (size_t j = 0; j < upperbound-lowerbound; j++)
-            {
-                if (!directblk)
-                {
-                    // Multidimensional array block assign
-                    recursiveBlockAssign((ArrayLiteralExp *)(*w)[(size_t)(j+firstIndex)], newval, wantRef);
-                }
-                else if (wantRef || cow)
-                {
-                    (*existingAE->elements)[(size_t)(j+firstIndex)] = newval;
-                }
-                else
-                {
-                    Expression *oldval = (*existingAE->elements)[(size_t)(j+firstIndex)];
-                    assignInPlace(oldval, newval);
-                    if (oldval->op == TOKstructliteral)
-                    {
-                        StructLiteralExp *sle = (StructLiteralExp *)oldval;
-                        if (sle->sd->postblit)
-                        {
-                            Expression *x = interpret(sle->sd->postblit, istate, NULL, oldval);
-                            if (exceptionOrCantInterpret(x))
-                                return x;
-                        }
-                    }
-                }
-            }
+            Expression *x = recursiveBlockAssign(existingAE,
+                    firstIndex, firstIndex + upperbound-lowerbound, newval, wantRef);
+            if (exceptionOrCantInterpret(x))
+                return x;
             if (goal == ctfeNeedNothing)
                 return NULL; // avoid creating an unused literal
             SliceExp *retslice = new SliceExp(loc, existingAE,
@@ -4631,6 +4601,50 @@ public:
             originalExp->error("Slice operation %s = %s cannot be evaluated at compile time", sexp->toChars(), newval->toChars());
             return EXP_CANT_INTERPRET;
         }
+    }
+
+    /// Set all elements of 'ae' to 'val'. ae may be a multidimensional array.
+    /// If 'wantRef', all elements of ae will hold references to the same val.
+    Expression *recursiveBlockAssign(ArrayLiteralExp *ae, size_t lwr, size_t upr, Expression *val, bool wantRef)
+    {
+        assert(ae->type->ty == Tsarray || ae->type->ty == Tarray);
+        Type *desttype = ((TypeArray *)ae->type)->next->toBasetype()->castMod(0);
+        bool directblk = (val->type->toBasetype()->castMod(0))->equals(desttype);
+
+        bool cow = !(val->op == TOKstructliteral || val->op == TOKarrayliteral || val->op == TOKstring);
+
+        for (size_t k = lwr; k < upr; k++)
+        {
+            if (!directblk && (*ae->elements)[k]->op == TOKarrayliteral)
+            {
+                ArrayLiteralExp *aex = (ArrayLiteralExp *)(*ae->elements)[k];
+                Expression *x = recursiveBlockAssign(aex, 0, aex->elements->dim, val, wantRef);
+                if (exceptionOrCantInterpret(x))
+                    return x;
+            }
+            else if (wantRef || cow)
+            {
+                (*ae->elements)[k] = val;
+            }
+            else
+            {
+                Expression *oldval = (*ae->elements)[k];
+                assignInPlace(oldval, val);
+
+                if (oldval->op == TOKstructliteral)
+                {
+                    StructLiteralExp *sle = (StructLiteralExp *)oldval;
+                    if (sle->sd->postblit)
+                    {
+                        // oldval.__postblit()
+                        Expression *x = interpret(sle->sd->postblit, istate, NULL, oldval);
+                        if (exceptionOrCantInterpret(x))
+                            return x;
+                    }
+                }
+            }
+        }
+        return NULL;
     }
 
     void visit(AssignExp *e)
@@ -7083,6 +7097,7 @@ Expression *evaluatePostblits(Expression *e, InterState *istate)
                 x = evaluatePostblits(elem, istate);
             else
             {
+                // elem.__postblit()
                 assert(elem->op == TOKstructliteral);    // todo
                 x = interpret(sd->postblit, istate, NULL, elem);
             }
