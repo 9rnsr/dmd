@@ -3468,7 +3468,7 @@ public:
                     wantRef = false;
             }
         }
-        if (isBlockAssignment && (e->e2->type->toBasetype()->ty == Tarray || e->e2->type->toBasetype()->ty == Tsarray))
+        if (isBlockAssignment && (e->e2->type->toBasetype()->ty == Tarray/* || e->e2->type->toBasetype()->ty == Tsarray*/))
         {
             wantRef = true;
         }
@@ -4527,9 +4527,12 @@ public:
             {
                 (*oldelems)[(size_t)(j + firstIndex)] = paintTypeOntoLiteral(elemtype, (*newelems)[j]);
             }
-            Expression *x = evaluatePostblits(istate, existingAE, 0, oldelems->dim);
-            if (exceptionOrCantInterpret(x))
-                return x;
+            if (originalExp->e2->isLvalue())
+            {
+                Expression *x = evaluatePostblits(istate, existingAE, 0, oldelems->dim);
+                if (exceptionOrCantInterpret(x))
+                    return x;
+            }
             return newval;
         }
         else if (newval->op == TOKstring && existingSE)
@@ -4608,7 +4611,8 @@ public:
                         assignInPlace((*existingAE->elements)[(size_t)(j+firstIndex)], newval);
                 }
             }
-            if (!wantRef && !cow)
+            //printf("[%s] originalExp = %s (%d %d %d) newval - %s\n", originalExp->loc.toChars(), originalExp->toChars(), wantRef, cow, originalExp->e2->isLvalue(), newval->toChars());
+            if (!wantRef && !cow && originalExp->e2->isLvalue())
             {
                 Expression *x = evaluatePostblits(istate, existingAE, firstIndex, firstIndex+upperbound-lowerbound);
                 if (exceptionOrCantInterpret(x))
