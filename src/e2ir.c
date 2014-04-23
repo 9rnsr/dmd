@@ -678,7 +678,8 @@ StructDeclaration *needsPostblit(Type *t)
  */
 
 elem *setArray(elem *eptr, elem *edim, Type *tb, elem *evalue, IRState *irs, int op)
-{   int r;
+{
+    int r;
     elem *e;
     unsigned sz = tb->size();
 
@@ -712,7 +713,8 @@ Lagain:
             if (I32)
                 goto Ldefault;
 
-        {   TypeStruct *tc = (TypeStruct *)tb;
+        {
+            TypeStruct *tc = (TypeStruct *)tb;
             StructDeclaration *sd = tc->sym;
             if (sd->arg1type && !sd->arg2type)
             {
@@ -740,11 +742,13 @@ Lagain:
             {
                 StructDeclaration *sd = needsPostblit(tb);
                 if (sd)
-                {   /* Need to do postblit.
+                {
+                    /* Need to do postblit.
                      *   void *_d_arraysetassign(void *p, void *value, int dim, TypeInfo ti);
                      */
                     r = (op == TOKconstruct) ? RTLSYM_ARRAYSETCTOR : RTLSYM_ARRAYSETASSIGN;
                     evalue = el_una(OPaddr, TYnptr, evalue);
+                    tb = tb->mutableOf();   // Bugzilla 8950 workaround
                     Expression *ti = tb->getTypeInfo(NULL);
                     elem *eti = ti->toElem(irs);
                     e = el_params(eti, edim, evalue, eptr, NULL);
@@ -2800,7 +2804,9 @@ elem *toElem(Expression *e, IRState *irs)
                      * or:
                      *      _d_arrayctor(ti, efrom, eto)
                      */
-                    Expression *ti = t1b->nextOf()->toBasetype()->getTypeInfo(NULL);
+                    Type *t1bn = t1b->nextOf()->toBasetype();
+                    t1bn = t1bn->mutableOf();   // Bugzilla 8950 workaround
+                    Expression *ti = t1bn->getTypeInfo(NULL);
                     if (config.exe == EX_WIN64)
                     {
                         eto   = addressElem(eto,   Type::tvoid->arrayOf());

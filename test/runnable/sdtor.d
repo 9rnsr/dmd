@@ -2372,6 +2372,34 @@ template X8475(bool something)
 alias X8475!(true).XY Xtrue;
 
 /**********************************/
+// 8950
+
+struct S8950
+{
+    static int postblits = 0;
+
+    this(this)
+    { ++postblits; }
+}
+
+void test8950()
+{
+    auto s = S8950();
+
+    S8950[2] arr = s;
+    assert(S8950.postblits == 2); // ok
+    S8950.postblits = 0;
+
+    const S8950[2] constArr = s;
+    assert(S8950.postblits == 2); // ok <- failed
+    S8950.postblits = 0;
+
+    const S8950[2] constArr2 = arr;
+    assert(S8950.postblits == 2); // ok <- failed
+    S8950.postblits = 0;
+}
+
+/**********************************/
 
 struct Foo9320 {
     real x;
