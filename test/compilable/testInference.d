@@ -682,6 +682,20 @@ void test12542() @safe nothrow pure
 }
 
 /***************************************************/
+// 12647
+
+void assertThrown12647(E)(lazy E expression)
+{
+    expression();
+}
+
+void test12647() nothrow pure @safe @nogc
+{
+    // should be marked nothrow
+    assertThrown12647( 0 );
+}
+
+/***************************************************/
 // 12704
 
 void foo12704() @system;

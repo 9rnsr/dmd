@@ -8230,10 +8230,10 @@ Lagain:
             VarExp *ve = (VarExp *)e1;
             if (ve->var->storage_class & STClazy)
             {
-                // lazy paramaters can be called without violating purity and safety
+                // lazy paramaters can be called without violating purity, safety, nothrow-ness and gc-ability.
                 Type *tw = ve->var->type;
                 Type *tc = ve->var->type->substWildTo(MODconst);
-                TypeFunction *tf = new TypeFunction(NULL, tc, 0, LINKd, STCsafe | STCpure);
+                TypeFunction *tf = new TypeFunction(NULL, tc, 0, LINKd, STCsafe | STCpure | STCnothrow | STCnogc);
                 (tf = (TypeFunction *)tf->semantic(loc, sc))->next = tw;    // hack for bug7757
                 TypeDelegate *t = new TypeDelegate(tf);
                 ve->type = t->semantic(loc, sc);
