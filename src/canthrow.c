@@ -23,27 +23,25 @@
 #include "scope.h"
 #include "attrib.h"
 
-bool Dsymbol_canThrow(Dsymbol *s, FuncDeclaration *func, bool mustNotThrow);
+bool Dsymbol_canThrow(Dsymbol *s, FuncDeclaration *func);
 bool walkPostorder(Expression *e, StoppableVisitor *v);
 
 /********************************************
  * Returns true if the expression may throw exceptions.
- * If 'mustNotThrow' is true, generate an error if it throws
  */
 
-bool canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow)
+bool canThrow(Expression *e, FuncDeclaration *func)
 {
-    //printf("Expression::canThrow(%d) %s\n", mustNotThrow, toChars());
+    //printf("Expression::canThrow() %s\n", toChars());
 
     // stop walking if we determine this expression can throw
     class CanThrow : public StoppableVisitor
     {
         FuncDeclaration *func;
-        bool mustNotThrow;
 
     public:
-        CanThrow(FuncDeclaration *func, bool mustNotThrow)
-            : func(func), mustNotThrow(mustNotThrow)
+        CanThrow(FuncDeclaration *func)
+            : func(func)
         {
         }
 
@@ -53,7 +51,7 @@ bool canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow)
 
         void visit(DeclarationExp *de)
         {
-            stop = Dsymbol_canThrow(de->declaration, func, mustNotThrow);
+            stop = Dsymbol_canThrow(de->declaration, func);
         }
 
         void visit(CallExp *ce)
@@ -129,7 +127,7 @@ bool canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow)
         }
     };
 
-    CanThrow ct(func, mustNotThrow);
+    CanThrow ct(func);
     return walkPostorder(e, &ct);
 }
 
@@ -138,7 +136,7 @@ bool canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow)
  * Mirrors logic in Dsymbol_toElem().
  */
 
-bool Dsymbol_canThrow(Dsymbol *s, FuncDeclaration *func, bool mustNotThrow)
+bool Dsymbol_canThrow(Dsymbol *s, FuncDeclaration *func)
 {
     AttribDeclaration *ad;
     VarDeclaration *vd;
@@ -155,7 +153,7 @@ bool Dsymbol_canThrow(Dsymbol *s, FuncDeclaration *func, bool mustNotThrow)
             for (size_t i = 0; i < decl->dim; i++)
             {
                 s = (*decl)[i];
-                if (Dsymbol_canThrow(s, func, mustNotThrow))
+                if (Dsymbol_canThrow(s, func))
                     return true;
             }
         }
@@ -164,7 +162,7 @@ bool Dsymbol_canThrow(Dsymbol *s, FuncDeclaration *func, bool mustNotThrow)
     {
         s = s->toAlias();
         if (s != vd)
-            return Dsymbol_canThrow(s, func, mustNotThrow);
+            return Dsymbol_canThrow(s, func);
         if (vd->storage_class & STCmanifest)
             ;
         else if (vd->isStatic() || vd->storage_class & (STCextern | STCtls | STCgshared))
@@ -174,11 +172,11 @@ bool Dsymbol_canThrow(Dsymbol *s, FuncDeclaration *func, bool mustNotThrow)
             if (vd->init)
             {
                 ExpInitializer *ie = vd->init->isExpInitializer();
-                if (ie && canThrow(ie->exp, func, mustNotThrow))
+                if (ie && canThrow(ie->exp, func))
                     return true;
             }
             if (vd->edtor && !vd->noscope)
-                return canThrow(vd->edtor, func, mustNotThrow);
+                return canThrow(vd->edtor, func);
         }
     }
     else if ((tm = s->isTemplateMixin()) != NULL)
@@ -189,7 +187,7 @@ bool Dsymbol_canThrow(Dsymbol *s, FuncDeclaration *func, bool mustNotThrow)
             for (size_t i = 0; i < tm->members->dim; i++)
             {
                 Dsymbol *sm = (*tm->members)[i];
-                if (Dsymbol_canThrow(sm, func, mustNotThrow))
+                if (Dsymbol_canThrow(sm, func))
                     return true;
             }
         }
@@ -205,7 +203,7 @@ bool Dsymbol_canThrow(Dsymbol *s, FuncDeclaration *func, bool mustNotThrow)
                 if (eo->op == TOKdsymbol)
                 {
                     DsymbolExp *se = (DsymbolExp *)eo;
-                    if (Dsymbol_canThrow(se->s, func, mustNotThrow))
+                    if (Dsymbol_canThrow(se->s, func))
                         return true;
                 }
             }

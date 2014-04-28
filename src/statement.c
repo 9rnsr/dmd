@@ -219,19 +219,17 @@ bool Statement::hasCode()
 /* ============================================== */
 
 /* Only valid after semantic analysis
- * If 'mustNotThrow' is true, generate an error if it throws
  */
-int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
+int Statement::blockExit(FuncDeclaration *func)
 {
     class BlockExit : public Visitor
     {
     public:
         FuncDeclaration *func;
-        bool mustNotThrow;
         int result;
 
-        BlockExit(FuncDeclaration *func, bool mustNotThrow)
-            : func(func), mustNotThrow(mustNotThrow)
+        BlockExit(FuncDeclaration *func)
+            : func(func)
         {
             result = BEnone;
         }
@@ -268,7 +266,7 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
                         return;
                     }
                 }
-                if (canThrow(s->exp, func, mustNotThrow))
+                if (canThrow(s->exp, func))
                     result |= BEthrow;
             }
         }
@@ -314,13 +312,13 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
 
                     if (!(result & BEfallthru) && !s->comeFrom())
                     {
-                        if (s->blockExit(func, mustNotThrow) != BEhalt && s->hasCode())
+                        if (s->blockExit(func) != BEhalt && s->hasCode())
                             s->warning("statement is not reachable");
                     }
                     else
                     {
                         result &= ~BEfallthru;
-                        result |= s->blockExit(func, mustNotThrow);
+                        result |= s->blockExit(func);
                     }
                     slast = s;
                 }
@@ -335,7 +333,7 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
                 Statement *s = (*uls->statements)[i];
                 if (s)
                 {
-                    int r = s->blockExit(func, mustNotThrow);
+                    int r = s->blockExit(func);
                     result |= r & ~(BEbreak | BEcontinue);
                 }
             }
@@ -344,7 +342,7 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
         void visit(ScopeStatement *s)
         {
             //printf("ScopeStatement::blockExit(%p)\n", s->statement);
-            result = s->statement ? s->statement->blockExit(func, mustNotThrow) : BEfallthru;
+            result = s->statement ? s->statement->blockExit(func) : BEfallthru;
         }
 
         void visit(WhileStatement *s)
@@ -357,7 +355,7 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
         {
             if (s->body)
             {
-                result = s->body->blockExit(func, mustNotThrow);
+                result = s->body->blockExit(func);
                 if (result == BEbreak)
                 {
                     result = BEfallthru;
@@ -370,7 +368,7 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
                 result = BEfallthru;
             if (result & BEfallthru)
             {
-                if (canThrow(s->condition, func, mustNotThrow))
+                if (canThrow(s->condition, func))
                     result |= BEthrow;
                 if (!(result & BEbreak) && s->condition->isBool(true))
                     result &= ~BEfallthru;
@@ -383,13 +381,13 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
             result = BEfallthru;
             if (s->init)
             {
-                result = s->init->blockExit(func, mustNotThrow);
+                result = s->init->blockExit(func);
                 if (!(result & BEfallthru))
                     return;
             }
             if (s->condition)
             {
-                if (canThrow(s->condition, func, mustNotThrow))
+                if (canThrow(s->condition, func))
                     result |= BEthrow;
                 if (s->condition->isBool(true))
                     result &= ~BEfallthru;
@@ -400,22 +398,22 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
                 result &= ~BEfallthru;  // the body must do the exiting
             if (s->body)
             {
-                int r = s->body->blockExit(func, mustNotThrow);
+                int r = s->body->blockExit(func);
                 if (r & (BEbreak | BEgoto))
                     result |= BEfallthru;
                 result |= r & ~(BEfallthru | BEbreak | BEcontinue);
             }
-            if (s->increment && canThrow(s->increment, func, mustNotThrow))
+            if (s->increment && canThrow(s->increment, func))
                 result |= BEthrow;
         }
 
         void visit(ForeachStatement *s)
         {
             result = BEfallthru;
-            if (canThrow(s->aggr, func, mustNotThrow))
+            if (canThrow(s->aggr, func))
                 result |= BEthrow;
             if (s->body)
-                result |= s->body->blockExit(func, mustNotThrow) & ~(BEbreak | BEcontinue);
+                result |= s->body->blockExit(func) & ~(BEbreak | BEcontinue);
         }
 
         void visit(ForeachRangeStatement *s)
@@ -429,30 +427,30 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
             //printf("IfStatement::blockExit(%p)\n", s);
 
             result = BEnone;
-            if (canThrow(s->condition, func, mustNotThrow))
+            if (canThrow(s->condition, func))
                 result |= BEthrow;
             if (s->condition->isBool(true))
             {
                 if (s->ifbody)
-                    result |= s->ifbody->blockExit(func, mustNotThrow);
+                    result |= s->ifbody->blockExit(func);
                 else
                     result |= BEfallthru;
             }
             else if (s->condition->isBool(false))
             {
                 if (s->elsebody)
-                    result |= s->elsebody->blockExit(func, mustNotThrow);
+                    result |= s->elsebody->blockExit(func);
                 else
                     result |= BEfallthru;
             }
             else
             {
                 if (s->ifbody)
-                    result |= s->ifbody->blockExit(func, mustNotThrow);
+                    result |= s->ifbody->blockExit(func);
                 else
                     result |= BEfallthru;
                 if (s->elsebody)
-                    result |= s->elsebody->blockExit(func, mustNotThrow);
+                    result |= s->elsebody->blockExit(func);
                 else
                     result |= BEfallthru;
             }
@@ -461,19 +459,19 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
 
         void visit(ConditionalStatement *s)
         {
-            result = s->ifbody->blockExit(func, mustNotThrow);
+            result = s->ifbody->blockExit(func);
             if (s->elsebody)
-                result |= s->elsebody->blockExit(func, mustNotThrow);
+                result |= s->elsebody->blockExit(func);
         }
 
         void visit(PragmaStatement *s)
         {
             result = BEfallthru;
         #if 0 // currently, no code is generated for Pragma's, so it's just fallthru
-            if (arrayExpressionCanThrow(s->args, func, mustNotThrow))
+            if (arrayExpressionCanThrow(s->args, func))
                 result |= BEthrow;
             if (s->body)
-                result |= s->body->blockExit(func, mustNotThrow);
+                result |= s->body->blockExit(func);
         #endif
         }
 
@@ -485,11 +483,11 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
         void visit(SwitchStatement *s)
         {
             result = BEnone;
-            if (canThrow(s->condition, func, mustNotThrow))
+            if (canThrow(s->condition, func))
                 result |= BEthrow;
             if (s->body)
             {
-                result |= s->body->blockExit(func, mustNotThrow);
+                result |= s->body->blockExit(func);
                 if (result & BEbreak)
                 {
                     result |= BEfallthru;
@@ -502,12 +500,12 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
 
         void visit(CaseStatement *s)
         {
-            result = s->statement->blockExit(func, mustNotThrow);
+            result = s->statement->blockExit(func);
         }
 
         void visit(DefaultStatement *s)
         {
-            result = s->statement->blockExit(func, mustNotThrow);
+            result = s->statement->blockExit(func);
         }
 
         void visit(GotoDefaultStatement *s)
@@ -529,7 +527,7 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
         void visit(ReturnStatement *s)
         {
             result = BEreturn;
-            if (s->exp && canThrow(s->exp, func, mustNotThrow))
+            if (s->exp && canThrow(s->exp, func))
                 result |= BEthrow;
         }
 
@@ -546,16 +544,16 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
 
         void visit(SynchronizedStatement *s)
         {
-            result = s->body ? s->body->blockExit(func, mustNotThrow) : BEfallthru;
+            result = s->body ? s->body->blockExit(func) : BEfallthru;
         }
 
         void visit(WithStatement *s)
         {
             result = BEnone;
-            if (canThrow(s->exp, func, mustNotThrow))
+            if (canThrow(s->exp, func))
                 result = BEthrow;
             if (s->body)
-                result |= s->body->blockExit(func, mustNotThrow);
+                result |= s->body->blockExit(func);
             else
                 result |= BEfallthru;
         }
@@ -563,7 +561,7 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
         void visit(TryCatchStatement *s)
         {
             assert(s->body);
-            result = s->body->blockExit(func, false);
+            result = s->body->blockExit(func);
 
             int catchresult = 0;
             for (size_t i = 0; i < s->catches->dim; i++)
@@ -573,7 +571,7 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
                     continue;
 
                 if (c->handler)
-                    catchresult |= c->handler->blockExit(func, mustNotThrow);
+                    catchresult |= c->handler->blockExit(func);
                 else
                     catchresult |= BEfallthru;
 
@@ -596,11 +594,11 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
         {
             result = BEfallthru;
             if (s->body)
-                result = s->body->blockExit(func, mustNotThrow);
+                result = s->body->blockExit(func);
             // check finally body as well, it may throw (bug #4082)
             if (s->finalbody)
             {
-                int finalresult = s->finalbody->blockExit(func, mustNotThrow);
+                int finalresult = s->finalbody->blockExit(func);
                 if (!(finalresult & BEfallthru))
                     result &= ~BEfallthru;
                 result |= finalresult & ~BEfallthru;
@@ -625,10 +623,10 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
                 result = BEerrthrow;
                 return;
             }
-            // Bugzilla 8675
-            // Throwing Errors is allowed even if mustNotThrow
-            if (!s->internalThrow && mustNotThrow)
-                s->error("%s is thrown but not caught", s->exp->type->toChars());
+            //// Bugzilla 8675
+            //// Throwing Errors is allowed even if mustNotThrow
+            //if (!s->internalThrow)
+            //    s->error("%s is thrown but not caught", s->exp->type->toChars());
 
             result = BEthrow;
         }
@@ -642,7 +640,7 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
         void visit(LabelStatement *s)
         {
             //printf("LabelStatement::blockExit(%p)\n", s);
-            result = s->statement ? s->statement->blockExit(func, mustNotThrow) : BEfallthru;
+            result = s->statement ? s->statement->blockExit(func) : BEfallthru;
         }
 
         void visit(AsmStatement *s)
@@ -661,7 +659,7 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
         }
     };
 
-    BlockExit be(func, mustNotThrow);
+    BlockExit be(func);
     accept(&be);
     return be.result;
 }
@@ -1035,7 +1033,7 @@ Statement *CompoundStatement::semantic(Scope *sc)
                         Identifier *id = Lexer::uniqueId("__o");
 
                         Statement *handler = sexception;
-                        if (sexception->blockExit(sc->func, false) & BEfallthru)
+                        if (sexception->blockExit(sc->func) & BEfallthru)
                         {
                             handler = new ThrowStatement(Loc(), new IdentifierExp(Loc(), id));
                             ((ThrowStatement *)handler)->internalThrow = true;
@@ -3158,7 +3156,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
         a->reserve(2);
         sc->sw->sdefault = new DefaultStatement(loc, s);
         a->push(body);
-        if (body->blockExit(sc->func, false) & BEfallthru)
+        if (body->blockExit(sc->func) & BEfallthru)
             a->push(new BreakStatement(Loc(), NULL));
         a->push(sc->sw->sdefault);
         cs = new CompoundStatement(loc, a);
@@ -4352,7 +4350,7 @@ Statement *TryCatchStatement::semantic(Scope *sc)
      * of recoverable exceptions.
      */
 
-    if (!(body->blockExit(sc->func, false) & BEthrow) && ClassDeclaration::exception)
+    if (!(body->blockExit(sc->func) & BEthrow) && ClassDeclaration::exception)
     {
         for (size_t i = 0; i < catches->dim; i++)
         {
@@ -4496,7 +4494,7 @@ Statement *TryFinallyStatement::semantic(Scope *sc)
         return finalbody;
     if (!finalbody)
         return body;
-    if (body->blockExit(sc->func, false) == BEfallthru)
+    if (body->blockExit(sc->func) == BEfallthru)
     {
         Statement *s = new CompoundStatement(loc, body, finalbody);
         return s;

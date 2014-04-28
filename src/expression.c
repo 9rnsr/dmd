@@ -967,14 +967,14 @@ bool arrayExpressionSemantic(Expressions *exps, Scope *sc)
  * Perform canThrow() on an array of Expressions.
  */
 
-int arrayExpressionCanThrow(Expressions *exps, FuncDeclaration *func, bool mustNotThrow)
+int arrayExpressionCanThrow(Expressions *exps, FuncDeclaration *func)
 {
     if (exps)
     {
         for (size_t i = 0; i < exps->dim; i++)
         {
             Expression *e = (*exps)[i];
-            if (e && canThrow(e, func, mustNotThrow))
+            if (e && canThrow(e, func))
                 return 1;
         }
     }

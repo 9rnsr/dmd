@@ -252,7 +252,7 @@ public:
 
             Statement *sexception = new DtorExpStatement(Loc(), fd->nrvo_var->edtor, fd->nrvo_var);
             Statement *handler = sexception;
-            if (sexception->blockExit(fd, false) & BEfallthru)
+            if (sexception->blockExit(fd) & BEfallthru)
             {
                 ThrowStatement *ts = new ThrowStatement(Loc(), new IdentifierExp(Loc(), id));
                 ts->internalThrow = true;
@@ -1704,7 +1704,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 
                 // Check for errors related to 'nothrow'.
                 //int nothrowErrors = global.errors;
-                int blockexit = fbody->blockExit(this, false/*f->isnothrow*/);
+                int blockexit = fbody->blockExit(this);
                 //if (f->isnothrow && (global.errors != nothrowErrors) )
                 //    ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
                 //if (flags & FUNCFLAGnothrowInprocess)
@@ -1743,7 +1743,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             {
                 // Check for errors related to 'nothrow'.
                 //int nothrowErrors = global.errors;
-                int blockexit = fbody->blockExit(this, false/*f->isnothrow*/);
+                int blockexit = fbody->blockExit(this);
                 //if (f->isnothrow && (global.errors != nothrowErrors) )
                 //    ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
                 //if (flags & FUNCFLAGnothrowInprocess)
@@ -2044,7 +2044,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                         //    ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
                         //if (flags & FUNCFLAGnothrowInprocess && blockexit & BEthrow)
                         //    f->isnothrow = false;
-                        if (fbody->blockExit(this, false/*f->isnothrow*/) == BEfallthru)
+                        if (fbody->blockExit(this) == BEfallthru)
                             fbody = new CompoundStatement(Loc(), fbody, s);
                         else
                             fbody = new TryFinallyStatement(Loc(), fbody, s);
