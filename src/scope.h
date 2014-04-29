@@ -72,13 +72,17 @@ struct Scope
                                 // sd gets the addMember()
     FuncDeclaration *func;      // function we are in
     Dsymbol *parent;            // parent to use
+
+    TemplateInstance *tinst;    // enclosing template instance
+
     LabelStatement *slabel;     // enclosing labelled statement
     SwitchStatement *sw;        // enclosing switch statement
+    TryCatchStatement *tc;
     TryFinallyStatement *tf;    // enclosing try finally statement
-    TemplateInstance *tinst;    // enclosing template instance
     Statement *sbreak;          // enclosing statement that supports "break"
     Statement *scontinue;       // enclosing statement that supports "continue"
     ForeachStatement *fes;      // if nested function for ForeachStatement, this is it
+
     Scope *callsc;              // used for __FUNCTION__, __PRETTY_FUNCTION__ and __MODULE__
     int inunion;                // we're processing members of a union
     int nofree;                 // set if shouldn't free it

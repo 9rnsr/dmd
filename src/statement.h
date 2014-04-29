@@ -592,6 +592,7 @@ class TryCatchStatement : public Statement
 public:
     Statement *body;
     Catches *catches;
+    TryCatchStatement *enclosing;
 
     TryCatchStatement(Loc loc, Statement *body, Catches *catches);
     Statement *syntaxCopy();

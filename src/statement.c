@@ -4252,6 +4252,7 @@ TryCatchStatement::TryCatchStatement(Loc loc, Statement *body, Catches *catches)
 {
     this->body = body;
     this->catches = catches;
+    this->enclosing = NULL;
 }
 
 Statement *TryCatchStatement::syntaxCopy()
@@ -4270,7 +4271,12 @@ Statement *TryCatchStatement::syntaxCopy()
 
 Statement *TryCatchStatement::semantic(Scope *sc)
 {
+    enclosing = sc->tc;
+
+    sc = sc->push();
+    sc->tc = this;
     body = body->semanticScope(sc, NULL, NULL);
+    sc = sc->pop();
     assert(body);
 
     /* Even if body is empty, still do semantic analysis on catches
