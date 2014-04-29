@@ -2444,7 +2444,44 @@ void Expression::checkSafety(Scope *sc, FuncDeclaration *f)
 
 void Expression::checkNothrow(Scope *sc, FuncDeclaration *f)
 {
+    /* Workarounds for backward compatibility:
+     *
+     * !(sc->func->hasReturnExp & 8) &&
+     *    If asm statement exist before the throwable function call,
+     *    it's accidentally marked as nothrow.
+     *
+     *    void foo() nothrow {
+     *      asm {}
+     *      throwable_func();   // does not cause error...
+     *    }
+     *
+     *    Inconsistently, asm statement after the throwable function call
+     *    will cause error.
+     *
+     *    void foo() nothrow {
+     *      throwable_func();   // cause error
+     *      asm {}
+     *    }
+     *
+     * !(sc->flags & SCOPEcontract) &&
+     *    Contracts for nothrow function can throw.
+     *
+     *    void foo() nothrow
+     *    in { throw new Exception(""); }   // ok...
+     *    out { throw new Exception(""); }  // ok...
+     *    body {}
+     *
+     * !f->isInvariantDeclaration() &&
+     *    Throwable invariant could be called from nothrow member function.
+     *    class C {
+     *      nothow void foo() {}
+     *      invariant {}
+     *    }
+     */
     if (sc->func && sc->func != f && /*!sc->intypeof && */!(sc->flags & SCOPEctfe) &&
+        !(sc->func->hasReturnExp & 8) &&
+        !(sc->flags & SCOPEcontract) &&
+        !f->isInvariantDeclaration() &&
         !f->isNothrow())
     {
         if ((!sc->tc || !sc->tc->canCatch(NULL)) && sc->func->setThrown())
