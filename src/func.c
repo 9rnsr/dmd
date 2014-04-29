@@ -1701,21 +1701,13 @@ void FuncDeclaration::semantic3(Scope *sc)
                         fbody = new CompoundStatement(Loc(), s, fbody);
                     }
                 }
-
-                // Check for errors related to 'nothrow'.
-                //int nothrowErrors = global.errors;
-                int blockexit = fbody->blockExit(this);
-                //if (f->isnothrow && (global.errors != nothrowErrors) )
-                //    ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
-                //if (flags & FUNCFLAGnothrowInprocess)
-                //    f->isnothrow = !(blockexit & BEthrow);
                 //printf("callSuper = x%x\n", sc2->callSuper);
 
                 /* Append:
                  *  return this;
                  * to function body
                  */
-                if (blockexit & BEfallthru)
+                if (fbody->blockExit(this) & BEfallthru)
                 {
                     Expression *e = new ThisExp(loc);
                     if (cd)
@@ -1734,51 +1726,37 @@ void FuncDeclaration::semantic3(Scope *sc)
                 assert(!returnLabel);
             }
             else if (!hasReturnExp && type->nextOf()->ty != Tvoid)
+            {
                 error("has no return statement, but is expected to return a value of type %s", type->nextOf()->toChars());
+            }
             else if (hasReturnExp & 8)               // if inline asm
             {
                 //flags &= ~FUNCFLAGnothrowInprocess;
             }
-            else
+            else if (type->nextOf()->ty != Tvoid &&
+                     (fbody->blockExit(this) & BEfallthru))
             {
-                // Check for errors related to 'nothrow'.
-                //int nothrowErrors = global.errors;
-                int blockexit = fbody->blockExit(this);
-                //if (f->isnothrow && (global.errors != nothrowErrors) )
-                //    ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
-                //if (flags & FUNCFLAGnothrowInprocess)
-                //{
-                //    if (type == f) f = (TypeFunction *)f->copy();
-                //    f->isnothrow = !(blockexit & BEthrow);
-                //}
+                error("no return exp; or assert(0); at end of function");
 
-                int offend = blockexit & BEfallthru;
-                if (type->nextOf()->ty != Tvoid)
+                Expression *e;
+                if (global.params.useAssert &&
+                    !global.params.useInline)
                 {
-                    if (offend)
-                    {
-                        Expression *e;
-                        error("no return exp; or assert(0); at end of function");
-                        if (global.params.useAssert &&
-                            !global.params.useInline)
-                        {
-                            /* Add an assert(0, msg); where the missing return
-                             * should be.
-                             */
-                            e = new AssertExp(
-                                  endloc,
-                                  new IntegerExp(0),
-                                  new StringExp(loc, (char *)"missing return expression")
-                                );
-                        }
-                        else
-                            e = new HaltExp(endloc);
-                        e = new CommaExp(Loc(), e, type->nextOf()->defaultInit());
-                        e = e->semantic(sc2);
-                        Statement *s = new ExpStatement(Loc(), e);
-                        fbody = new CompoundStatement(Loc(), fbody, s);
-                    }
+                    /* Add an assert(0, msg); where the missing return
+                     * should be.
+                     */
+                    e = new AssertExp(
+                          endloc,
+                          new IntegerExp(0),
+                          new StringExp(loc, (char *)"missing return expression")
+                        );
                 }
+                else
+                    e = new HaltExp(endloc);
+                e = new CommaExp(Loc(), e, type->nextOf()->defaultInit());
+                e = e->semantic(sc2);
+                Statement *s = new ExpStatement(Loc(), e);
+                fbody = new CompoundStatement(Loc(), fbody, s);
             }
 
             if (fieldinit)
@@ -2037,13 +2015,6 @@ void FuncDeclaration::semantic3(Scope *sc)
                     {
                         Statement *s = new ExpStatement(Loc(), e);
                         s = s->semantic(sc2);
-                        //int nothrowErrors = global.errors;
-                        //bool isnothrow = f->isnothrow & !(flags & FUNCFLAGnothrowInprocess);
-                        //int blockexit = s->blockExit(this, isnothrow);
-                        //if (f->isnothrow && (global.errors != nothrowErrors) )
-                        //    ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
-                        //if (flags & FUNCFLAGnothrowInprocess && blockexit & BEthrow)
-                        //    f->isnothrow = false;
                         if (fbody->blockExit(this) == BEfallthru)
                             fbody = new CompoundStatement(Loc(), fbody, s);
                         else
