@@ -74,20 +74,6 @@ bool canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow)
                 ;
             else
             {
-                if (mustNotThrow)
-                {
-                    const char *s;
-                    if (ce->f)
-                        s = ce->f->toPrettyChars();
-                    else if (ce->e1->op == TOKstar)
-                    {
-                        // print 'fp' if ce->e1 is (*fp)
-                        s = ((PtrExp *)ce->e1)->e1->toChars();
-                    }
-                    else
-                        s = ce->e1->toChars();
-                    ce->error("'%s' is not nothrow", s);
-                }
                 stop = true;
             }
         }
@@ -100,8 +86,6 @@ bool canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow)
                 Type *t = ne->member->type->toBasetype();
                 if (t->ty == Tfunction && !((TypeFunction *)t)->isnothrow)
                 {
-                    if (mustNotThrow)
-                        ne->error("constructor %s is not nothrow", ne->member->toChars());
                     stop = true;
                 }
             }
@@ -135,8 +119,6 @@ bool canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow)
                 ;
             else
             {
-                if (mustNotThrow)
-                    ae->error("'%s' is not nothrow", sd->postblit->toPrettyChars());
                 stop = true;
             }
         }

@@ -1310,6 +1310,7 @@ bool Expression::checkPostblit(Scope *sc, Type *t)
             {
                 checkPurity(sc, sd->postblit);
                 checkSafety(sc, sd->postblit);
+                checkNothrow(sc, sd->postblit);
                 checkNogc(sc, sd->postblit);
             }
             return true;
@@ -2436,6 +2437,22 @@ void Expression::checkSafety(Scope *sc, FuncDeclaration *f)
                 loc = sc->func->loc;
 
             error("safe function '%s' cannot call system function '%s'",
+                sc->func->toPrettyChars(), f->toPrettyChars());
+        }
+    }
+}
+
+void Expression::checkNothrow(Scope *sc, FuncDeclaration *f)
+{
+    if (sc->func && sc->func != f && /*!sc->intypeof && */!(sc->flags & SCOPEctfe) &&
+        !f->isNothrow())
+    {
+        if ((!sc->tc || !sc->tc->canCatch(NULL)) && sc->func->setThrown())
+        {
+            if (loc.linnum == 0)  // e.g. implicitly generated dtor
+                loc = sc->func->loc;
+
+            error("nothrow function '%s' cannot call throwable function '%s'",
                 sc->func->toPrettyChars(), f->toPrettyChars());
         }
     }
@@ -4936,6 +4953,7 @@ Lagain:
             checkDeprecated(sc, f);
             checkPurity(sc, f);
             checkSafety(sc, f);
+            checkNothrow(sc, f);
             checkNogc(sc, f);
             member = f->isCtorDeclaration();
             assert(member);
@@ -5040,6 +5058,7 @@ Lagain:
             checkDeprecated(sc, f);
             checkPurity(sc, f);
             checkSafety(sc, f);
+            checkNothrow(sc, f);
             checkNogc(sc, f);
             member = f->isCtorDeclaration();
             assert(member);
@@ -8382,6 +8401,7 @@ Lagain:
         checkDeprecated(sc, f);
         checkPurity(sc, f);
         checkSafety(sc, f);
+        checkNothrow(sc, f);
         checkNogc(sc, f);
         accessCheck(loc, sc, ue->e1, f);
         if (!f->needThis())
@@ -8468,6 +8488,7 @@ Lagain:
                 checkDeprecated(sc, f);
                 checkPurity(sc, f);
                 checkSafety(sc, f);
+                checkNothrow(sc, f);
                 checkNogc(sc, f);
                 e1 = new DotVarExp(e1->loc, e1, f);
                 e1 = e1->semantic(sc);
@@ -8507,6 +8528,7 @@ Lagain:
             checkDeprecated(sc, f);
             checkPurity(sc, f);
             checkSafety(sc, f);
+            checkNothrow(sc, f);
             checkNogc(sc, f);
             e1 = new DotVarExp(e1->loc, e1, f);
             e1 = e1->semantic(sc);
@@ -8652,6 +8674,7 @@ Lagain:
         {
             checkPurity(sc, f);
             checkSafety(sc, f);
+            checkNothrow(sc, f);
             checkNogc(sc, f);
             f->checkNestedReference(sc, loc);
         }
@@ -8671,6 +8694,11 @@ Lagain:
             if (tf->trust <= TRUSTsystem && sc->func->setUnsafe())
             {
                 error("safe function '%s' cannot call system %s '%s'", sc->func->toPrettyChars(), p, e1->toChars());
+                err = true;
+            }
+            if (!tf->isnothrow && (!sc->tc || !sc->tc->canCatch(NULL)) && sc->func->setThrown())
+            {
+                error("nothrow function '%s' cannot call throwable %s '%s'", sc->func->toPrettyChars(), p, e1->toChars());
                 err = true;
             }
             if (err)
@@ -8744,6 +8772,7 @@ Lagain:
         checkDeprecated(sc, f);
         checkPurity(sc, f);
         checkSafety(sc, f);
+        checkNothrow(sc, f);
         checkNogc(sc, f);
         f->checkNestedReference(sc, loc);
         accessCheck(loc, sc, NULL, f);

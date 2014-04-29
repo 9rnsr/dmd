@@ -657,11 +657,12 @@ public:
     bool isSafeBypassingInference();
     bool isTrusted();
     bool setUnsafe();
-
+    bool isNothrow();
+    bool isNothrowBypassingInference();
+    bool setThrown();
     bool isNogc();
     bool isNogcBypassingInference();
     bool setGC();
-
     void printGCUsage(Loc loc, const char *warn);
     bool isolateReturn();
     bool parametersIntersect(Type *t);

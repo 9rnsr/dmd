@@ -598,6 +598,7 @@ public:
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     bool hasBreak();
+    bool canCatch(ClassDeclaration *cd);
 
     void accept(Visitor *v) { v->visit(this); }
 };

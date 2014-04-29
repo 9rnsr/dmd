@@ -4619,6 +4619,15 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
     if (sc->func->setUnsafe())
         s->error("inline assembler not allowed in @safe function %s", sc->func->toChars());
 
+#if 0
+    if (sc->func && /*!sc->intypeof &&*/ !(sc->flags & SCOPEctfe) &&
+        (!sc->tc || !sc->tc->canCatch(NULL)) &&
+        sc->func->setThrown())
+    {
+        s->error("asm statements are assumed to throw", s->toChars());
+    }
+#endif
+
     OP *o;
     OPND *o1 = NULL,*o2 = NULL, *o3 = NULL, *o4 = NULL;
     PTRNTAB ptb;

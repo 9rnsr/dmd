@@ -589,10 +589,6 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
                     result &= ~BEthrow;
                 }
             }
-            if (mustNotThrow && (result & BEthrow))
-            {
-                s->body->blockExit(func, mustNotThrow); // now explain why this is nothrow
-            }
             result |= catchresult;
         }
 
@@ -651,8 +647,10 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
 
         void visit(AsmStatement *s)
         {
+#if 0
             if (mustNotThrow)
                 s->error("asm statements are assumed to throw", s->toChars());
+#endif
             // Assume the worst
             result = BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt;
         }
@@ -4271,6 +4269,50 @@ Statement *TryCatchStatement::syntaxCopy()
 
 Statement *TryCatchStatement::semantic(Scope *sc)
 {
+    // Determine caught exception types before body semantic.
+    bool catchErrors = false;
+    for (size_t i = 0; i < catches->dim; i++)
+    {
+        Catch *c = (*catches)[i];
+
+        if (!c->type)
+        {
+            // reference .object.Throwable
+            TypeIdentifier *tid = new TypeIdentifier(Loc(), Id::empty);
+            tid->addIdent(Id::object);
+            tid->addIdent(Id::Throwable);
+            c->type = tid;
+        }
+        c->type = c->type->semantic(loc, sc);
+
+        //printf("[%d] c->type = %s\n", i, c->type->toChars());
+        ClassDeclaration *cd = c->type->toBasetype()->isClassHandle();
+        if (c->type == Type::terror)
+        {
+        }
+        else if (!cd || ((cd != ClassDeclaration::throwable) && !ClassDeclaration::throwable->isBaseOf(cd, NULL)))
+        {
+            ::error(c->loc, "can only catch class objects derived from Throwable, not '%s'", c->type->toChars());
+            c->type = Type::terror;
+        }
+        else if (sc->func &&
+            !sc->intypeof &&
+            !c->internalCatch &&
+            cd != ClassDeclaration::exception &&
+            !ClassDeclaration::exception->isBaseOf(cd, NULL) &&
+            sc->func->setUnsafe())
+        {
+            ::error(c->loc, "can only catch class objects derived from Exception in @safe code, not '%s'", c->type->toChars());
+            c->type = Type::terror;
+        }
+
+        if (c->type->ty == Terror)
+        {
+            catchErrors = true;
+            continue;
+        }
+    }
+
     enclosing = sc->tc;
 
     sc = sc->push();
@@ -4281,18 +4323,15 @@ Statement *TryCatchStatement::semantic(Scope *sc)
 
     /* Even if body is empty, still do semantic analysis on catches
      */
-    bool catchErrors = false;
     for (size_t i = 0; i < catches->dim; i++)
-    {   Catch *c = (*catches)[i];
+    {
+        Catch *c = (*catches)[i];
         c->semantic(sc);
-        if (c->type->ty == Terror)
-        {   catchErrors = true;
-            continue;
-        }
 
         // Determine if current catch 'hides' any previous catches
         for (size_t j = 0; j < i; j++)
-        {   Catch *cj = (*catches)[j];
+        {
+            Catch *cj = (*catches)[j];
             char *si = c->loc.toChars();
             char *sj = cj->loc.toChars();
 
@@ -4316,7 +4355,8 @@ Statement *TryCatchStatement::semantic(Scope *sc)
     if (!(body->blockExit(sc->func, false) & BEthrow) && ClassDeclaration::exception)
     {
         for (size_t i = 0; i < catches->dim; i++)
-        {   Catch *c = (*catches)[i];
+        {
+            Catch *c = (*catches)[i];
 
             /* If catch exception type is derived from Exception
              */
@@ -4333,6 +4373,31 @@ Statement *TryCatchStatement::semantic(Scope *sc)
         return body->hasCode() ? body : NULL;
 
     return this;
+}
+
+bool TryCatchStatement::canCatch(ClassDeclaration *cd)
+{
+    if (!cd)
+        cd = ClassDeclaration::exception;
+
+    if (cd != ClassDeclaration::exception && !ClassDeclaration::exception->isBaseOf(cd, NULL))
+        return false;
+
+    /* Even if body is empty, still do semantic analysis on catches
+     */
+    for (size_t i = 0; i < catches->dim; i++)
+    {
+        Catch *c = (*catches)[i];
+
+        ClassDeclaration *cdx = c->type->toBasetype()->isClassHandle();
+        //printf("[%d] cdx = %s\n", i, cdx->toChars());
+        if (cdx)
+        {
+            if (cd == cdx || cdx->isBaseOf(cd, NULL))
+                return true;
+        }
+    }
+    return enclosing ? enclosing->canCatch(cd) : false;
 }
 
 bool TryCatchStatement::hasBreak()
@@ -4379,39 +4444,13 @@ void Catch::semantic(Scope *sc)
         error(loc, "cannot put catch statement inside finally block");
     }
 #endif
+    assert(type);
 
     ScopeDsymbol *sym = new ScopeDsymbol();
     sym->parent = sc->scopesym;
     sc = sc->push(sym);
 
-    if (!type)
-    {
-        // reference .object.Throwable
-        TypeIdentifier *tid = new TypeIdentifier(Loc(), Id::empty);
-        tid->addIdent(Id::object);
-        tid->addIdent(Id::Throwable);
-        type = tid;
-    }
-    type = type->semantic(loc, sc);
-    ClassDeclaration *cd = type->toBasetype()->isClassHandle();
-    if (!cd || ((cd != ClassDeclaration::throwable) && !ClassDeclaration::throwable->isBaseOf(cd, NULL)))
-    {
-        if (type != Type::terror)
-        {   error(loc, "can only catch class objects derived from Throwable, not '%s'", type->toChars());
-            type = Type::terror;
-        }
-    }
-    else if (sc->func &&
-        !sc->intypeof &&
-        !internalCatch &&
-        cd != ClassDeclaration::exception &&
-        !ClassDeclaration::exception->isBaseOf(cd, NULL) &&
-        sc->func->setUnsafe())
-    {
-        error(loc, "can only catch class objects derived from Exception in @safe code, not '%s'", type->toChars());
-        type = Type::terror;
-    }
-    else if (ident)
+    if (ident)
     {
         var = new VarDeclaration(loc, type, ident, NULL);
         var->semantic(sc);
@@ -4576,6 +4615,16 @@ Statement *ThrowStatement::semantic(Scope *sc)
     if (!cd || ((cd != ClassDeclaration::throwable) && !ClassDeclaration::throwable->isBaseOf(cd, NULL)))
     {
         error("can only throw class objects derived from Throwable, not type %s", exp->type->toChars());
+        return new ErrorStatement();
+    }
+
+    //printf("[%s] throw cd = %s, sc->func = %p\n", loc.toChars(), cd->toChars(), sc->func);
+    if (sc->func && /*!sc->intypeof &&*/ !(sc->flags & SCOPEctfe) &&
+        (cd == ClassDeclaration::exception || ClassDeclaration::exception->isBaseOf(cd, NULL)) &&
+        (!sc->tc || !sc->tc->canCatch(cd)) &&
+        sc->func->setThrown())
+    {
+        error("%s is thrown but not caught", exp->type->toChars());
         return new ErrorStatement();
     }
 
