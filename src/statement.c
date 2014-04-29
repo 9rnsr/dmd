@@ -4506,8 +4506,30 @@ Statement *OnScopeStatement::scopeCode(Scope *sc, Statement **sentry, Statement 
             break;
 
         case TOKon_scope_failure:
-            *sexception = statement;
+            //*sexception = statement;
+            //break;
+        {
+            /* Create:
+             *  sentry:   bool x = false;
+             *  sexception:    x = true;
+             *  sfinally: if (x) statement;
+             */
+            Identifier *id = Lexer::uniqueId("__os");
+
+            ExpInitializer *ie = new ExpInitializer(loc, new IntegerExp(Loc(), 0, Type::tbool));
+            VarDeclaration *v = new VarDeclaration(loc, Type::tbool, id, ie);
+            v->storage_class |= STCtemp;
+            *sentry = new ExpStatement(loc, v);
+
+            Expression *e = new IntegerExp(Loc(), 1, Type::tbool);
+            e = new AssignExp(Loc(), new VarExp(Loc(), v), e);
+            *sexception = new ExpStatement(Loc(), e);
+
+            e = new VarExp(Loc(), v);
+            *sfinally = new IfStatement(Loc(), NULL, e, statement, NULL);
+
             break;
+        }
 
         case TOKon_scope_success:
         {
