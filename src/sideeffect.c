@@ -183,20 +183,14 @@ bool lambdaHasSideEffect(Expression *e)
             /* Calling a function or delegate that is pure nothrow
              * has no side effects.
              */
-            if (ce->e1->type)
+            if (ce->e1->type &&
+                (ce->f ? callSideEffectLevel(ce->f)
+                       : callSideEffectLevel(ce->e1->type)) > 0)
             {
-                Type *t = ce->e1->type->toBasetype();
-                if (t->ty == Tdelegate)
-                    t = ((TypeDelegate *)t)->next;
-                if (t->ty == Tfunction &&
-                    (ce->f ? callSideEffectLevel(ce->f)
-                           : callSideEffectLevel(ce->e1->type)) > 0)
-                {
-                }
-                else
-                    return true;
+                break;
             }
-            break;
+            else
+                return true;
         }
 
         case TOKcast:
@@ -268,29 +262,23 @@ void discardValue(Expression *e)
                      * never call assert (and or not called from inside unittest blocks)
                      */
                 }
-                else if (ce->e1->type)
+                else if (ce->e1->type &&
+                         (ce->f ? callSideEffectLevel(ce->f)
+                                : callSideEffectLevel(ce->e1->type)) > 0)
                 {
-                    Type *t = ce->e1->type->toBasetype();
-                    if (t->ty == Tdelegate)
-                        t = ((TypeDelegate *)t)->next;
-                    if (t->ty == Tfunction &&
-                        (ce->f ? callSideEffectLevel(ce->f)
-                               : callSideEffectLevel(ce->e1->type)) > 0)
+                    const char *s;
+                    if (ce->f)
+                        s = ce->f->toPrettyChars();
+                    else if (ce->e1->op == TOKstar)
                     {
-                        const char *s;
-                        if (ce->f)
-                            s = ce->f->toPrettyChars();
-                        else if (ce->e1->op == TOKstar)
-                        {
-                            // print 'fp' if ce->e1 is (*fp)
-                            s = ((PtrExp *)ce->e1)->e1->toChars();
-                        }
-                        else
-                            s = ce->e1->toChars();
-
-                        e->warning("calling %s without side effects discards return value of type %s, prepend a cast(void) if intentional",
-                                   s, e->type->toChars());
+                        // print 'fp' if ce->e1 is (*fp)
+                        s = ((PtrExp *)ce->e1)->e1->toChars();
                     }
+                    else
+                        s = ce->e1->toChars();
+
+                    e->warning("calling %s without side effects discards return value of type %s, prepend a cast(void) if intentional",
+                               s, e->type->toChars());
                 }
             }
             return;
