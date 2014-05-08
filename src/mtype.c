@@ -1631,12 +1631,13 @@ int Type::modifiersApply(void *param, int (*fp)(void *, const char *))
 }
 
 /************************************
- * Strip all parameter's idenfiers and their default arguments for merging types.
+ * Strip all parameter identifiers and default arguments for type merging.
  * If some of parameter types or return type are function pointer, delegate, or
  * the types which contains either, then strip also from them.
+ * Also strip PUREfwdref and TRUSTdefault.
  */
 
-Type *stripDefaultArgs(Type *t)
+Type *stripType(Type *t)
 {
   struct N
   {
@@ -1648,7 +1649,7 @@ Type *stripDefaultArgs(Type *t)
             for (size_t i = 0; i < args->dim; i++)
             {
                 Parameter *a = (*args)[i];
-                Type *ta = stripDefaultArgs(a->type);
+                Type *ta = stripType(a->type);
                 if (ta != a->type || a->defaultArg || a->ident)
                 {
                     if (args == arguments)
@@ -1672,13 +1673,21 @@ Type *stripDefaultArgs(Type *t)
     if (t->ty == Tfunction)
     {
         TypeFunction *tf = (TypeFunction *)t;
-        Type *tret = stripDefaultArgs(tf->next);
+        Type *tret = stripType(tf->next);
         Parameters *args = N::stripParams(tf->parameters);
-        if (tret == tf->next && args == tf->parameters)
+        if (tret == tf->next && args == tf->parameters &&
+            tf->purity != PUREfwdref &&
+            tf->trust != TRUSTdefault)
+        {
             goto Lnot;
+        }
         tf = (TypeFunction *)tf->copy();
         tf->parameters = args;
         tf->next = tret;
+        if (tf->purity == PUREfwdref)
+            tf->purityLevel();
+        if (tf->trust == TRUSTdefault)
+            tf->trust = TRUSTsystem;
         //printf("strip %s\n   <- %s\n", tf->toChars(), t->toChars());
         t = tf;
     }
@@ -1698,7 +1707,7 @@ Type *stripDefaultArgs(Type *t)
     else
     {
         Type *tn = t->nextOf();
-        Type *n = stripDefaultArgs(tn);
+        Type *n = stripType(tn);
         if (n == tn)
             goto Lnot;
         t = t->copy();
@@ -1736,7 +1745,8 @@ Type *Type::merge()
         toDecoBuffer(&buf);
         StringValue *sv = stringtable.update((char *)buf.data, buf.offset);
         if (sv->ptrvalue)
-        {   t = (Type *) sv->ptrvalue;
+        {
+            t = (Type *) sv->ptrvalue;
 #ifdef DEBUG
             if (!t->deco)
                 printf("t = %s\n", t->toChars());
@@ -1746,7 +1756,7 @@ Type *Type::merge()
         }
         else
         {
-            sv->ptrvalue = (char *)(t = stripDefaultArgs(t));
+            sv->ptrvalue = (char *)(t = stripType(t));
             deco = t->deco = (char *)sv->toDchars();
             //printf("new value, deco = '%s' %p\n", t->deco, t->deco);
         }
