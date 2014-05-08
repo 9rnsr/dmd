@@ -696,35 +696,29 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         RootObject *o = (*e->args)[0];
         Dsymbol *s = getDsymbol(o);
         Type *t = isType(o);
-        TypeFunction *tf = NULL;
         FuncDeclaration *fd = NULL;
-        Type *type = NULL;
 
         if (s)
         {
-            if (FuncDeclaration *sfd = s->isFuncDeclaration())
+            if (FuncDeclaration *f = s->isFuncDeclaration())
             {
-                fd = sfd;
-                type = fd->type;
+                fd = f;
+                t = fd->type;
             }
-            else if (VarDeclaration *vd = s->isVarDeclaration())
-                type = vd->type;
-        }
-        else if (t)
-        {
-            type = t;
+            else if (VarDeclaration *v = s->isVarDeclaration())
+                t = v->type;
         }
 
-        if (type)
+        TypeFunction *tf = NULL;
+        if (t)
         {
-            if (type->ty == Tfunction)
-                tf = (TypeFunction *)type;
-            else if (type->ty == Tdelegate)
-                tf = (TypeFunction *)type->nextOf();
-            else if (type->ty == Tpointer && type->nextOf()->ty == Tfunction)
-                tf = (TypeFunction *)type->nextOf();
+            if (t->ty == Tfunction)
+                tf = (TypeFunction *)t;
+            else if (t->ty == Tdelegate)
+                tf = (TypeFunction *)t->nextOf();
+            else if (t->ty == Tpointer && t->nextOf()->ty == Tfunction)
+                tf = (TypeFunction *)t->nextOf();
         }
-
         if (!tf)
         {
             e->error("first argument is not a function");
