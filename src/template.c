@@ -6553,7 +6553,9 @@ bool TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                 err = true;
                 continue;
             }
-            (*tiargs)[j] = ta->merge2();
+            if (!(flags & 1))
+                ta = ta->merge2();
+            (*tiargs)[j] = ta;
         }
         else if (ea)
         {

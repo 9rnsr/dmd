@@ -7064,6 +7064,7 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
             error(loc, "forward reference to %s", toChars());
             goto Lerr;
         }
+        //printf("typeof t = %p %s\n", t, t->toChars());
     }
     if (idents.dim == 0)
         *pt = t;
@@ -7103,7 +7104,10 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
         }
     }
     if (*pt)
+    {
         (*pt) = (*pt)->addMod(mod);
+        //printf("     *pt = %p %s\n", *pt, (*pt)->toChars());
+    }
     inuse--;
     return;
 }
