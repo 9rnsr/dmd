@@ -731,8 +731,6 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             goto Lfalse;
         }
 
-        //printf("tf = %p %s, trust = %d\n", tf, tf->toChars(), tf->trust);
-
         Expressions *mods = new Expressions();
 
         PushAttributes pa;
