@@ -696,35 +696,30 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         RootObject *o = (*e->args)[0];
         Dsymbol *s = getDsymbol(o);
         Type *t = isType(o);
-        TypeFunction *tf = NULL;
-        FuncDeclaration *fd = NULL;
-        Type *type = NULL;
+        //FuncDeclaration *fd = NULL;
 
         if (s)
         {
-            if (FuncDeclaration *sfd = s->isFuncDeclaration())
-            {
-                fd = sfd;
-                type = fd->type;
-            }
-            else if (VarDeclaration *vd = s->isVarDeclaration())
-                type = vd->type;
-        }
-        else if (t)
-        {
-            type = t;
+            if (FuncDeclaration *f = s->isFuncDeclaration())
+        //    {
+        //        fd = f;
+                t = f->type;
+        //    }
+            else if (VarDeclaration *v = s->isVarDeclaration())
+                t = v->type;
         }
 
-        if (type)
+        TypeFunction *tf = NULL;
+        if (t)
         {
-            if (type->ty == Tfunction)
-                tf = (TypeFunction *)type;
-            else if (type->ty == Tdelegate)
-                tf = (TypeFunction *)type->nextOf();
-            else if (type->ty == Tpointer && type->nextOf()->ty == Tfunction)
-                tf = (TypeFunction *)type->nextOf();
+            t = t->merge2();
+            if (t->ty == Tfunction)
+                tf = (TypeFunction *)t;
+            else if (t->ty == Tdelegate)
+                tf = (TypeFunction *)t->nextOf();
+            else if (t->ty == Tpointer && t->nextOf()->ty == Tfunction)
+                tf = (TypeFunction *)t->nextOf();
         }
-
         if (!tf)
         {
             e->error("first argument is not a function");
@@ -736,9 +731,9 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         PushAttributes pa;
         pa.mods = mods;
 
-        // const/immutable/inout/shared is only valid for member functions
-        if (fd)
-            fd->type->modifiersApply(&pa, &PushAttributes::fp);
+        //// const/immutable/inout/shared is only valid for member functions
+        //if (fd)
+        //    fd->type->modifiersApply(&pa, &PushAttributes::fp);
 
         tf->attributesApply(&pa, &PushAttributes::fp);
 
