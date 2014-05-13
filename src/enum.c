@@ -754,7 +754,9 @@ Expression *EnumMember::getVarExp(Loc loc, Scope *sc)
         vd = new VarDeclaration(this->loc, type, ident, new ExpInitializer(this->loc, value->copy()));
 
         vd->storage_class = STCmanifest;
-        vd->semantic(scope ? scope : sc);
+        if (scope)
+            vd->setScope(scope);
+        vd->semantic(sc);
 
         vd->protection = ed->isAnonymous() ? ed->protection : PROTpublic;
         vd->parent = ed->isAnonymous() ? ed->parent : ed;

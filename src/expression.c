@@ -3183,6 +3183,12 @@ Lagain:
         //printf("Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
         if (!type)
         {
+        #if 1
+            if (!v->type && (v->storage_class & STCmanifest) && v->scope)
+            {
+                v->semantic(NULL);
+            }
+        #endif
             type = v->type;
             if (!v->type)
             {
