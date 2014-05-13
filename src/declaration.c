@@ -825,11 +825,25 @@ void VarDeclaration::semantic(Scope *sc)
     if (ad)
         storage_class |= ad->storage_class & STC_TYPECTOR;
 
+    linkage = sc->linkage;
+    this->parent = sc->parent;
+    //printf("this = %p, parent = %p, '%s'\n", this, parent, parent->toChars());
+    protection = sc->protection;
+
     /* If auto type inference, do the inference
      */
     int inferred = 0;
     if (!type)
     {
+        if (sem == SemanticStart && (storage_class & STCmanifest) && isMember())
+        {
+            printf("defer type inference for enum %s\n", toChars());
+            sem = SemanticIn;
+            scope = scx ? scx : sc->copy();
+            scope->setNoFree();
+            return;
+        }
+
         inuse++;
 
         // Infering the type requires running semantic,
@@ -890,10 +904,6 @@ void VarDeclaration::semantic(Scope *sc)
     //printf(" semantic type = %s\n", type ? type->toChars() : "null");
 
     type->checkDeprecated(loc, sc);
-    linkage = sc->linkage;
-    this->parent = sc->parent;
-    //printf("this = %p, parent = %p, '%s'\n", this, parent, parent->toChars());
-    protection = sc->protection;
 
     /* If scope's alignment is the default, use the type's alignment,
      * otherwise the scope overrrides.
@@ -1539,6 +1549,12 @@ Ldtor:
 
 void VarDeclaration::semantic2(Scope *sc)
 {
+    if (sem == SemanticIn && !type && (storage_class & STCmanifest) && isMember())
+    {
+        printf("semantic2, run type inferece for enum %s\n", toChars());
+        semantic(sc);
+    }
+
     //printf("VarDeclaration::semantic2('%s')\n", toChars());
         // Inside unions, default to void initializers
     if (!init && sc->inunion && !toParent()->isFuncDeclaration())
