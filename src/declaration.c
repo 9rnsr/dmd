@@ -837,7 +837,7 @@ void VarDeclaration::semantic(Scope *sc)
     {
         if (sem == SemanticStart && (storage_class & STCmanifest) && isMember())
         {
-            printf("defer type inference for enum %s\n", toChars());
+            printf("[%s] defer type inference for enum %s, parent - %s\n", loc.toChars(), toChars(), this->parent->toChars());
             sem = SemanticIn;
             scope = scx ? scx : sc->copy();
             scope->setNoFree();
