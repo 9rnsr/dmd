@@ -743,6 +743,8 @@ Expression *EnumMember::getVarExp(Loc loc, Scope *sc)
     if (!vd)
     {
         assert(value);
+        if (!type && !ed->isAnonymous())
+            type = ed->type;
         vd = new VarDeclaration(loc, type, ident, new ExpInitializer(loc, value->copy()));
 
         vd->storage_class = STCmanifest;
