@@ -167,7 +167,8 @@ void EnumDeclaration::semantic(Scope *sc)
         /* Check to see if memtype is forward referenced
          */
         if (memtype->ty == Tenum)
-        {   EnumDeclaration *sym = (EnumDeclaration *)memtype->toDsymbol(sc);
+        {
+            EnumDeclaration *sym = (EnumDeclaration *)memtype->toDsymbol(sc);
             if (!sym->memtype || !sym->members || !sym->symtab || sym->scope)
             {
                 // memtype is forward referenced, so try again later
@@ -750,10 +751,10 @@ Expression *EnumMember::getVarExp(Loc loc, Scope *sc)
             else if (ed->memtype)
                 type = ed->getMemtype(loc);
         }
-        vd = new VarDeclaration(loc, type, ident, new ExpInitializer(loc, value->copy()));
+        vd = new VarDeclaration(this->loc, type, ident, new ExpInitializer(this->loc, value->copy()));
 
         vd->storage_class = STCmanifest;
-        vd->semantic(sc);
+        vd->semantic(scope ? scope : sc);
 
         vd->protection = ed->isAnonymous() ? ed->protection : PROTpublic;
         vd->parent = ed->isAnonymous() ? ed->parent : ed;
