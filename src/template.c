@@ -4346,6 +4346,27 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             visit((Type *)t);
         }
 
+        void visit(TypeNull *t)
+        {
+        #if 0
+            printf("TypeNull::deduceType()\n");
+            printf("\tthis   = %d, ", t->ty); t->print();
+            printf("\ttparam = %d, ", tparam->ty); tparam->print();
+        #endif
+
+            if (tparam->ty == Tarray)
+            {
+                visit((TypeDArray *)Type::tvoid->arrayOf()->addMod(t->mod));
+                return;
+            }
+            if (tparam->ty == Tpointer)
+            {
+                visit((TypePointer *)Type::tvoid->pointerTo()->addMod(t->mod));
+                return;
+            }
+            visit((Type *)t);
+        }
+
         void visit(Expression *e)
         {
             e->type->accept(this);

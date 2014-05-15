@@ -3412,6 +3412,24 @@ struct W12719(R)
 W12719!int a12719;
 
 /******************************************/
+// 12734
+
+void f12734a(T)(T[]) { pragma(msg, __FUNCTION__, ": ", T, ", isconst = ", is(T == const)); }
+void f12734b(T)(T* ) { pragma(msg, __FUNCTION__, ": ", T, ", isconst = ", is(T == const)); }
+void f12734c(T:Object)(T) { pragma(msg, __FUNCTION__, ": ", T, ", isconst = ", is(T == const)); }
+
+void test12734()
+{
+    f12734a(null);
+    f12734b(null);
+    f12734c(null);
+
+    //f12734a(const(typeof(null)).init);
+    //f12734b(const(typeof(null)).init);
+    //f12734c(const(typeof(null)).init);
+}
+
+/******************************************/
 // 12746
 
 template foo12746()
@@ -3534,6 +3552,7 @@ int main()
     test12122();
     test12207();
     test12376();
+    test12734();
 
     printf("Success\n");
     return 0;
