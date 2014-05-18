@@ -1674,7 +1674,15 @@ void FuncDeclaration::semantic3(Scope *sc)
                         fbody = new CompoundStatement(Loc(), s, fbody);
                     }
                 }
+                //printf("callSuper = x%x\n", sc2->callSuper);
+            }
 
+            //if (hasReturnExp & 8)               // if inline asm
+            //{
+            //    flags &= ~FUNCFLAGnothrowInprocess;
+            //}
+            //else
+            //{
                 // Check for errors related to 'nothrow'.
                 unsigned int nothrowErrors = global.errors;
                 int blockexit = fbody->blockExit(this, f->isnothrow);
@@ -1685,8 +1693,12 @@ void FuncDeclaration::semantic3(Scope *sc)
                     if (type == f) f = (TypeFunction *)f->copy();
                     f->isnothrow = !(blockexit & BEthrow);
                 }
-                //printf("callSuper = x%x\n", sc2->callSuper);
+            //}
 
+            if (fbody->isErrorStatement())
+                ;
+            else if (ad2 && isCtorDeclaration())
+            {
                 /* Append:
                  *  return this;
                  * to function body
@@ -1694,7 +1706,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 if (blockexit & BEfallthru)
                 {
                     Expression *e = new ThisExp(loc);
-                    if (cd)
+                    if (ClassDeclaration *cd = ad2->isClassDeclaration())
                         e->type = cd->type;
                     Statement *s = new ReturnStatement(loc, e);
                     s = s->semantic(sc2);
@@ -1725,21 +1737,9 @@ void FuncDeclaration::semantic3(Scope *sc)
                 error("has no return statement, but is expected to return a value of type %s", type->nextOf()->toChars());
             else if (hasReturnExp & 8)               // if inline asm
             {
-                flags &= ~FUNCFLAGnothrowInprocess;
             }
             else
             {
-                // Check for errors related to 'nothrow'.
-                unsigned int nothrowErrors = global.errors;
-                int blockexit = fbody->blockExit(this, f->isnothrow);
-                if (f->isnothrow && (global.errors != nothrowErrors) )
-                    ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
-                if (flags & FUNCFLAGnothrowInprocess)
-                {
-                    if (type == f) f = (TypeFunction *)f->copy();
-                    f->isnothrow = !(blockexit & BEthrow);
-                }
-
                 int offend = blockexit & BEfallthru;
                 if (type->nextOf()->ty != Tvoid)
                 {
