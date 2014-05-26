@@ -505,11 +505,6 @@ unsigned Dsymbol::size(Loc loc)
     return 0;
 }
 
-bool Dsymbol::isforwardRef()
-{
-    return false;
-}
-
 AggregateDeclaration *Dsymbol::isThis()
 {
     return NULL;
@@ -1074,11 +1069,6 @@ void ScopeDsymbol::importScope(Dsymbol *s, PROT protection)
         prots = (PROT *)mem.realloc(prots, imports->dim * sizeof(prots[0]));
         prots[imports->dim - 1] = protection;
     }
-}
-
-bool ScopeDsymbol::isforwardRef()
-{
-    return (members == NULL);
 }
 
 void ScopeDsymbol::multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2)

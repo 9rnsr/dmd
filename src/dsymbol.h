@@ -192,7 +192,6 @@ public:
     virtual bool overloadInsert(Dsymbol *s);
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual unsigned size(Loc loc);
-    virtual bool isforwardRef();
     virtual AggregateDeclaration *isThis();     // is a 'this' required to access the member
     AggregateDeclaration *isAggregateMember();  // are we a member of an aggregate?
     AggregateDeclaration *isAggregateMember2(); // are we a member of an aggregate?
@@ -293,7 +292,6 @@ public:
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
     OverloadSet *mergeOverloadSet(OverloadSet *os, Dsymbol *s);
     void importScope(Dsymbol *s, PROT protection);
-    bool isforwardRef();
     static void multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2);
     const char *kind();
     FuncDeclaration *findGetMembers();

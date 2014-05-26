@@ -3511,11 +3511,11 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
 
             if (t->ty != tparam->ty)
             {
-                if (Dsymbol *sym = t->toDsymbol(sc))
-                {
-                    if (sym->isforwardRef() && !tparam->deco)
-                        goto Lnomatch;
-                }
+                //if (Dsymbol *sym = t->toDsymbol(sc))
+                //{
+                //    if (!sym->members && !tparam->deco)
+                //        goto Lnomatch;
+                //}
 
                 MATCH m = t->implicitConvTo(tparam);
                 if (m == MATCHnomatch)
