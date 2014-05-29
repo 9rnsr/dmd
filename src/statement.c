@@ -291,6 +291,12 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
                 Statement *s = (*cs->statements)[i];
                 if (s)
                 {
+                    if (s->isAsmStatement() && i > 0)
+                    {
+                        if ((*cs->statements)[i-1] && (*cs->statements)[i-1]->isAsmStatement())
+                            continue;
+                    }
+
                     //printf("result = x%x\n", result);
                     //printf("s: %s\n", s->toChars());
                     if (global.params.warnings && result & BEfallthru && slast)
@@ -4192,11 +4198,13 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
         args->push(new Parameter(0, ClassDeclaration::object->type, NULL, NULL));
 
         FuncDeclaration *fdenter = FuncDeclaration::genCfunc(args, Type::tvoid, Id::monitorenter);
+        ((TypeFunction *)fdenter->type)->isnothrow = true;
         Expression *e = new CallExp(loc, new VarExp(loc, fdenter), new VarExp(loc, tmp));
         e->type = Type::tvoid;                  // do not run semantic on e
         cs->push(new ExpStatement(loc, e));
 
         FuncDeclaration *fdexit = FuncDeclaration::genCfunc(args, Type::tvoid, Id::monitorexit);
+        ((TypeFunction *)fdexit->type)->isnothrow = true;
         e = new CallExp(loc, new VarExp(loc, fdexit), new VarExp(loc, tmp));
         e->type = Type::tvoid;                  // do not run semantic on e
         Statement *s = new ExpStatement(loc, e);

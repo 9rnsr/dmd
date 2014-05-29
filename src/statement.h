@@ -127,6 +127,7 @@ public:
     virtual DefaultStatement *isDefaultStatement() { return NULL; }
     virtual LabelStatement *isLabelStatement() { return NULL; }
     virtual DtorExpStatement *isDtorExpStatement() { return NULL; }
+    virtual AsmStatement *isAsmStatement() { return NULL; }
     virtual void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -748,6 +749,7 @@ public:
         return asmSemantic(this, sc);
     }
 
+    AsmStatement *isAsmStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 
