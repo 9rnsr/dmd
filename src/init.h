@@ -40,7 +40,7 @@ public:
     virtual Initializer *syntaxCopy();
     // needInterpret is INITinterpret if must be a manifest constant, 0 if not.
     virtual Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
-    virtual Type *inferType(Scope *sc);
+    virtual Initializer *inferType(Scope *sc);
     virtual Expression *toExpression(Type *t = NULL) = 0;
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
     char *toChars();
@@ -76,6 +76,7 @@ public:
     ErrorInitializer();
     Initializer *syntaxCopy();
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
+    Initializer *inferType(Scope *sc);
     Expression *toExpression(Type *t = NULL);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -114,7 +115,7 @@ public:
     void addInit(Expression *index, Initializer *value);
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
     int isAssociativeArray();
-    Type *inferType(Scope *sc);
+    Initializer *inferType(Scope *sc);
     Expression *toExpression(Type *t = NULL);
     Expression *toAssocArrayLiteral();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -132,7 +133,7 @@ public:
     ExpInitializer(Loc loc, Expression *exp);
     Initializer *syntaxCopy();
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
-    Type *inferType(Scope *sc);
+    Initializer *inferType(Scope *sc);
     Expression *toExpression(Type *t = NULL);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
