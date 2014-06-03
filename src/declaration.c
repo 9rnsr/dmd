@@ -988,6 +988,8 @@ void VarDeclaration::semantic(Scope *sc)
         bool needctfe = (storage_class & (STCmanifest | STCstatic)) != 0;
         if (needctfe) sc = sc->startCTFE();
 
+        // Type inference from initializer is top-down.
+
         //printf("inferring type for %s with init %s\n", toChars(), init->toChars());
         ArrayInitializer *ai = init->isArrayInitializer();
         if (ai)
@@ -1528,25 +1530,26 @@ Lnomatch:
                 !(storage_class & (STCmanifest | STCstatic | STCtls | STCgshared | STCextern)) &&
                 !init->isVoidInitializer())
             {
-                //printf("fd = '%s', var = '%s'\n", fd->toChars(), toChars());
+                //printf("fd = '%s', var = '%s', init = %s\n", fd->toChars(), toChars(), init->toChars());
                 if (!ei)
                 {
-                    ArrayInitializer *ai = init->isArrayInitializer();
+                    // Translate non-expression initializer to expression
+                    // Match initializer to the specified type is bottom-up.
+
                     Expression *e;
+                    //printf("%s type = %s, init = %s\n", toChars(), type->toChars(), init->toChars());
+                    ArrayInitializer *ai = init->isArrayInitializer();
                     if (ai && (tb->ty == Taarray || tb->ty == Tstruct && ai->isAssociativeArray()))
                         e = ai->toAssocArrayLiteral();
                     else
-                        e = init->toExpression();
-                    if (!e)
                     {
-                        // Run semantic, but don't need to interpret
                         init = init->semantic(sc, type, INITnointerpret);
                         e = init->toExpression();
-                        if (!e)
-                        {
-                            error("is not a static and cannot have static initializer");
-                            return;
-                        }
+                    }
+                    if (!e)
+                    {
+                        error("is not a static and cannot have static initializer");
+                        return;
                     }
                     ei = new ExpInitializer(init->loc, e);
                     init = ei;
