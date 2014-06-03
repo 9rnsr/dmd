@@ -1536,6 +1536,21 @@ Lnomatch:
                     // Translate non-expression initializer to expression
                     // Match initializer to the specified type is bottom-up.
 
+                    if (tb->ty == Tsarray)
+                    {
+                        // for multidimensional initializing,
+                        // if type == T[2][3].
+                        // test1: T <- initializer
+                        // test2: T[2] <- initializer
+                        // test3: T[2][3] <- initializer
+
+                        // reuse inferType(sc, tx) (tx->deco != NULL) ?
+                    }
+                    else
+                    {
+                        // test: type <- initializer
+                    }
+
                     Expression *e;
                     //printf("%s type = %s, init = %s\n", toChars(), type->toChars(), init->toChars());
                     ArrayInitializer *ai = init->isArrayInitializer();

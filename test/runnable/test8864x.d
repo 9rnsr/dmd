@@ -4,6 +4,7 @@
 void main()
 {
     struct S1(E) { E a; }
+    struct S2(E) { this(E e) { a = e; } E a; }
 
     // E <- E
     {
@@ -123,49 +124,61 @@ void main()
 
         int[2][2] a2 = 1;   // int <- && [2][2]
         assert(   a2 == [[1,1], [1,1]]);
+
+        // *depth = 0 ?
     }
     {
         // ExpInitializer in ArrayInitializer
 
         int[][2] a1 =   [1,2];              // int[] <- && [2]
         assert(  a1 == [[1,2],[1,2]]);
+        // *depth = 1 ?
 
       //int[2][2] a2 =   [1,2];             // int[2] <- && [2] (should work)
       //int[2][2] a2 = cast(int[2])([1,2]);            // ditto
       //assert(   a2 == [[1,2], [1,2]]);
+        // *depth = 1 ?
 
         int[][][2] a3 =   [[1,2]];          // int[][] <- && [2]
         assert(    a3 == [[[1,2]], [[1,2]]]);
+        // *depth = 2 ?
 
       //int[][2][2] a4 =   [[1,2],[3,4]];   // int[][2] <- && [2] (should work)
       //assert(     a4 == [[[1,2],[3,4]], [[1,2],[3,4]]]);
 
         int[2][][2] a5 =   [[1,2],[3,4]];   // int[2][] <- && [2]
         assert(     a5 == [[[1,2],[3,4]], [[1,2],[3,4]]]);
+        // *depth = 2 ?
 
       //int[2][1][2] a6 =   [[1,2]];        // int[2][1] <- && [2] (should work)
       //int[2][1][2] a6x = cast(int[2][1])([[1,2]]);    // ditto
       //assert(      a6 == [[[1,2]], [[1,2]]]);
+        // *depth = 2 ?
 
 
         int[][2][2] a7 =    [1,2];              // int[] <- && [2][2]
         assert(     a7 == [[[1,2],[1,2]], [[1,2],[1,2]]]);
+        // *depth = 1 ?
 
       //int[2][2][2] a8 =   [1,2];              // int[2] <- && [2][2] (should work)
       //assert(      a8 == [[[1,2],[1,2]], [[1,2],[1,2]]]);
 
         int[][][2][2] a9 =    [[1,2]];          // int[][] <- && [2][2]
         assert(       a9 == [[[[1,2]], [[1,2]]], [[[1,2]], [[1,2]]]]);
+        // *depth = 2 ?
 
       //int[][2][2][2] a10 =    [[1,2],[3,4]];  // int[][2] <- && [2][2] (should work)
       //assert(        a10 == [[[[1,2],[3,4]], [[1,2],[3,4]]], [[[1,2],[3,4]], [[1,2],[3,4]]]]);
+        // *depth = 2 ?
 
         int[2][][2][2] a11 =    [[1,2],[3,4]];  // int[2][] <- && [2][2]
         assert(        a11 == [[[[1,2],[3,4]], [[1,2],[3,4]]], [[[1,2],[3,4]], [[1,2],[3,4]]]]);
+        // *depth = 2 ?
 
       //int[2][1][2][2] a12 =    [[1,2]];       // int[2][1] <- && [2][2] (should work)
       //int[2][1][2][2] a12 = cast(int[2][1])([[1,2]]);    // ditto
       //assert(         a12 == [[[[1,2]], [[1,2]]], [[[1,2]], [[1,2]]]]);
+        // *depth = 2 ?
     }
     {
         // ExpInitializer in StructInitializer
@@ -185,5 +198,21 @@ void main()
       //SX[][2] s5 =   [{a:1}];     // S[] <- && [2] (should work)
         SX[][2] s5 =   [SX(1)];     // ditto
         assert( s5 == [[SX(1)], [SX(1)]]);
+    }
+
+    {
+        alias S = S2!(int[]);
+
+        S[2] a1 = [[1,2], [3,4]];
+        // depth 1 <-- 2
+        // --> if the bottom type is struct, overflow part will be used for the argument of struct constructor.
+        assert(a1 == [S([1,2]), S([3,4])]);
+
+      //S[][2] a2 = [[1,2], [3,4]];  // NG
+        // b is not: [ [S([1,2]), S([3,4])], [S([1,2]), S([3,4])] ]     // element-wise initializing AND implicit ctor call is not possible
+        // b is not: [[ S(1), S(2) ], [ S(3), S(4) ]]   // of course S(int) is invalid
+
+        // An idea to make it possible:
+      //S[][2] a3 = [ [[1,2], [3,4]] ...];  // [ x... ] is the repetation of x
     }
 }
