@@ -2806,6 +2806,16 @@ Statement *IfStatement::semantic(Scope *sc)
             match->noscope = 1;
        }
     }
+    else if (condition->op == TOKidentifier && ((IdentifierExp *)condition)->ident == Id::ctfe)
+    {
+        // Recognize the special form `if (__ctfe) { ... }`
+
+        // Create the magic __ctfe bool variable
+        VarDeclaration *vd = new VarDeclaration(condition->loc, Type::tbool, Id::ctfe, NULL);
+        vd->storage_class |= STCtemp;
+        condition = new VarExp(condition->loc, vd);
+        condition->type = vd->type;
+    }
     else
     {
         condition = condition->semantic(sc);

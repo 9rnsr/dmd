@@ -3107,16 +3107,6 @@ Expression *IdentifierExp::semantic(Scope *sc)
         }
     }
 
-    if (ident == Id::ctfe)
-    {
-        // Create the magic __ctfe bool variable
-        VarDeclaration *vd = new VarDeclaration(loc, Type::tbool, Id::ctfe, NULL);
-        vd->storage_class |= STCtemp;
-        Expression *e = new VarExp(loc, vd);
-        e = e->semantic(sc);
-        return e;
-    }
-
     const char *n = importHint(ident->toChars());
     if (n)
         error("'%s' is not defined, perhaps you need to import %s; ?", ident->toChars(), n);
@@ -13606,7 +13596,6 @@ Expression *CondExp::syntaxCopy()
     return new CondExp(loc, econd->syntaxCopy(), e1->syntaxCopy(), e2->syntaxCopy());
 }
 
-
 Expression *CondExp::semantic(Scope *sc)
 {
 #if LOGSEMANTIC
@@ -13615,10 +13604,23 @@ Expression *CondExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    econd = econd->semantic(sc);
-    econd = resolveProperties(sc, econd);
-    econd = econd->checkToPointer();
-    econd = econd->checkToBoolean(sc);
+    if (econd->op == TOKidentifier && ((IdentifierExp *)econd)->ident == Id::ctfe)
+    {
+        // Recognize the special form `__ctfe ? e1 : e2`
+
+        // Create the magic __ctfe bool variable
+        VarDeclaration *vd = new VarDeclaration(econd->loc, Type::tbool, Id::ctfe, NULL);
+        vd->storage_class |= STCtemp;
+        econd = new VarExp(econd->loc, vd);
+        econd->type = vd->type;
+    }
+    else
+    {
+        econd = econd->semantic(sc);
+        econd = resolveProperties(sc, econd);
+        econd = econd->checkToPointer();
+        econd = econd->checkToBoolean(sc);
+    }
 
     unsigned cs0 = sc->callSuper;
     unsigned *fi0 = sc->saveFieldInit();
@@ -13690,7 +13692,6 @@ int CondExp::isLvalue()
     return e1->isLvalue() && e2->isLvalue();
 }
 
-
 Expression *CondExp::toLvalue(Scope *sc, Expression *ex)
 {
     // convert (econd ? e1 : e2) to *(econd ? &e1 : &e2)
@@ -13725,7 +13726,6 @@ void CondExp::checkEscapeRef()
     e1->checkEscapeRef();
     e2->checkEscapeRef();
 }
-
 
 Expression *CondExp::checkToBoolean(Scope *sc)
 {
