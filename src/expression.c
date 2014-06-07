@@ -1613,6 +1613,48 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
         {
             Parameter *p = Parameter::getNth(tf->parameters, i);
 
+            Type *targ = arg->type;
+            // non-ref/out/lazy argument
+            if (sc->func && !(p->storageClass & (STCref | STCout | STClazy)) &&
+                (targ->ty == Tdelegate ||
+                 targ->ty == Tpointer && targ->nextOf()->ty == Tfunction))
+            {
+                // TODO: move in TypeFunction::parameterEscapes ?
+
+                bool errors = false;
+                //printf("tf = %s\n", tf->toChars());
+                //printf("[%d] targ = %s\n", i, targ->toChars());
+                if (tf->purity != PUREimpure)
+                {
+                    // assert(tf->purity == PUREweak);
+                    TypeFunction *tfarg = (TypeFunction *)targ->nextOf();
+                    if (tfarg->purity < PUREweak && !(sc->flags & SCOPEdebug))
+                    {
+                        if (sc->func->setImpure())
+                        {
+                            error(loc, "pure function '%s' cannot call impure function '%s'",
+                                sc->func->toPrettyChars(), fd ? fd->toPrettyChars() : tf->toChars());
+                            errors = true;
+                        }
+                    }
+                }
+                if (tf->trust > TRUSTsystem)
+                {
+                    TypeFunction *tfarg = (TypeFunction *)targ->nextOf();
+                    if (tfarg->trust <= TRUSTsystem)
+                    {
+                        if (sc->func->setUnsafe())
+                        {
+                            error(loc, "safe function '%s' cannot call system function '%s'",
+                                sc->func->toPrettyChars(), fd ? fd->toPrettyChars() : tf->toChars());
+                            errors = true;
+                        }
+                    }
+                }
+                if (errors)
+                    return Type::terror;
+            }
+
             if (!(p->storageClass & STClazy && p->type->ty == Tvoid))
             {
                 Type *tprm = p->type;
@@ -8882,6 +8924,15 @@ Lagain:
         }
         else if (sc->func && sc->intypeof != 1 && !(sc->flags & SCOPEctfe))
         {
+            VarDeclaration *v = e1->op == TOKvar ? ((VarExp *)e1)->var->isVarDeclaration() : NULL;
+            if (v && v->isParameter())
+            {
+                //printf("v = %s\n", v->toChars());
+                goto L3;
+            }
+            else
+            {
+
             bool err = false;
             if (!tf->purity && !(sc->flags & SCOPEdebug) && sc->func->setImpure())
             {
@@ -8900,6 +8951,10 @@ Lagain:
             }
             if (err)
                 return new ErrorExp();
+
+            }
+        L3:
+            ;
         }
 
         if (t1->ty == Tpointer)
