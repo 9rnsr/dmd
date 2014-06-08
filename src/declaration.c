@@ -1509,13 +1509,13 @@ Lnomatch:
                 //printf("fd = '%s', var = '%s'\n", fd->toChars(), toChars());
                 if (!ei)
                 {
-                    ArrayInitializer *ai = init->isArrayInitializer();
+                    //ArrayInitializer *ai = init->isArrayInitializer();
                     Expression *e;
-                    if (ai && (tb->ty == Taarray || tb->ty == Tstruct && ai->isAssociativeArray()))
-                        e = ai->toAssocArrayLiteral();
-                    else
-                        e = init->toExpression();
-                    if (!e)
+                    //if (ai && (tb->ty == Taarray || tb->ty == Tstruct && ai->isAssociativeArray()))
+                    //    e = ai->toAssocArrayLiteral();
+                    //else
+                    //    e = init->toExpression();
+                    //if (!e)
                     {
                         // Run semantic, but don't need to interpret
                         init = init->semantic(sc, type, INITnointerpret);
