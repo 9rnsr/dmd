@@ -395,6 +395,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
         case Taarray:
         case Tstruct:   // consider implicit constructor call
         {
+#if 0
             Expression *e;
             if (t->ty == Taarray || isAssociativeArray())
                 e = toAssocArrayLiteral();
@@ -402,6 +403,11 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
                 e = toExpression();
             ExpInitializer *ei = new ExpInitializer(e->loc, e);
             return ei->semantic(sc, t, needInterpret);
+#else
+            //if (t->ty == Taarray)
+            //    should match to t (define this->semanticAA?)
+            return inferType(sc);
+#endif
         }
         case Tpointer:
             if (t->nextOf()->ty != Tfunction)
@@ -652,16 +658,69 @@ int ArrayInitializer::isAssociativeArray()
 Initializer *ArrayInitializer::inferType(Scope *sc)
 {
     //printf("ArrayInitializer::inferType() %s\n", toChars());
-    Expression *e;
+    Expression *e = NULL;
     if (isAssociativeArray())
-        e = toAssocArrayLiteral();
-    else
-        e = toExpression();
-    if (!e)
     {
-        error(loc, "cannot infer type from initializer");
-        return new ErrorInitializer();
+        //e = toAssocArrayLiteral();
+
+        //printf("ArrayInitializer::toAssocArrayInitializer()\n");
+        //static int i; if (++i == 2) halt();
+        Expressions *keys = new Expressions();
+        keys->setDim(value.dim);
+        Expressions *values = new Expressions();
+        values->setDim(value.dim);
+
+        for (size_t i = 0; i < value.dim; i++)
+        {
+            Expression *ekey = index[i];
+            if (!ekey)
+                goto Lno;
+            (*keys)[i] = ekey;
+
+            Initializer *iz = value[i];
+            if (!iz)
+                goto Lno;
+            iz = iz->inferType(sc);
+            (*values)[i] = iz->toExpression();
+        }
+        e = new AssocArrayLiteralExp(loc, keys, values);
+        goto Lyes;
+
+    Lno:
+        delete keys;
+        delete values;
+        error(loc, "not an associative array initializer");
     }
+    else
+    {
+        //e = toExpression();
+
+        Expressions *elements = new Expressions();
+        elements->setDim(value.dim);
+        for (size_t i = 0; i < value.dim; i++)
+        {
+            assert(!index[i]);  // asserted by isAssociativeArray()
+            Initializer *iz = value[i];
+            if (!iz)
+                goto LnoArr;
+            iz = iz->inferType(sc);
+            (*elements)[i] = iz->toExpression();
+        }
+        for (size_t i = 0; i < elements->dim; i++)
+        {
+            Expression *e = (*elements)[i];
+            if (e->op == TOKerror)
+                return new ErrorInitializer();
+        }
+        e = new ArrayLiteralExp(loc, elements);
+        goto Lyes;
+
+    LnoArr:
+        error(loc, "cannot infer type from initializer");
+    }
+Lyes:
+    if (!e)
+        return new ErrorInitializer();
     ExpInitializer *init = new ExpInitializer(e->loc, e);
     return init->inferType(sc);
 }
