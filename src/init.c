@@ -377,7 +377,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
     const unsigned amax = 0x80000000;
     bool errors = false;
 
-    //printf("ArrayInitializer::semantic(%s)\n", t->toChars());
+    printf("ArrayInitializer::semantic(%s)\n", t->toChars());
     if (sem)                            // if semantic() already run
         return this;
     sem = 1;
@@ -481,7 +481,14 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
         error(loc, "array dimension %u exceeds max of %u", (unsigned) dim, (unsigned)(amax / t->nextOf()->size()));
         goto Lerr;
     }
-    return this;
+    {
+    Expression *e = toExpression();
+    printf(">>> e = %s\n", e->toChars());
+    e->type =  NULL;   // hack
+    ExpInitializer *init = new ExpInitializer(loc, e);
+    return init->semantic(sc, t, needInterpret);
+    //return this;
+    }
 
 Lerr:
     return new ErrorInitializer();
