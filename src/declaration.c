@@ -1509,6 +1509,12 @@ Lnomatch:
                 //printf("fd = '%s', var = '%s'\n", fd->toChars(), toChars());
                 if (!ei)
                 {
+                    Type *tx = type;
+                    if (tx->ty == Tsarray && tx->nextOf()->ty == Tvoid)
+                    {
+                        tx = Type::tuns8->addMod(tx->nextOf()->mod)->sarrayOf(((TypeSArray *)tx)->dim->toInteger());
+                    }
+
                     //ArrayInitializer *ai = init->isArrayInitializer();
                     Expression *e;
                     //if (ai && (tb->ty == Taarray || tb->ty == Tstruct && ai->isAssociativeArray()))
@@ -1518,7 +1524,7 @@ Lnomatch:
                     //if (!e)
                     {
                         // Run semantic, but don't need to interpret
-                        init = init->semantic(sc, type, INITnointerpret);
+                        init = init->semantic(sc, tx, INITnointerpret);
                         e = init->toExpression();
                         if (!e)
                         {
