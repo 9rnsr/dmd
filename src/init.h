@@ -114,6 +114,7 @@ public:
     Initializer *syntaxCopy();
     void addInit(Expression *index, Initializer *value);
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
+    Initializer *semanticAA(Scope *sc, Type *t, NeedInterpret needInterpret);
     int isAssociativeArray();
     Initializer *inferType(Scope *sc);
     Expression *toExpression(Type *t = NULL);

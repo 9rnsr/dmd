@@ -393,22 +393,11 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
             break;
 
         case Taarray:
+            return semanticAA(sc, t, needInterpret);
+
         case Tstruct:   // consider implicit constructor call
-        {
-#if 0
-            Expression *e;
-            if (t->ty == Taarray || isAssociativeArray())
-                e = toAssocArrayLiteral();
-            else
-                e = toExpression();
-            ExpInitializer *ei = new ExpInitializer(e->loc, e);
-            return ei->semantic(sc, t, needInterpret);
-#else
-            //if (t->ty == Taarray)
-            //    should match to t (define this->semanticAA?)
             return inferType(sc);
-#endif
-        }
+
         case Tpointer:
             if (t->nextOf()->ty != Tfunction)
                 break;
@@ -495,6 +484,45 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
     return this;
 
 Lerr:
+    return new ErrorInitializer();
+}
+
+Initializer *ArrayInitializer::semanticAA(Scope *sc, Type *t, NeedInterpret needInterpret)
+{
+    //printf("ArrayInitializer::semanticAA() %s, t = %s\n", toChars(), t->toChars());
+    Expression *e;
+
+    //e = toAssocArrayLiteral();
+    assert(t->ty == Taarray);
+    TypeAArray *taa = (TypeAArray *)t;
+
+    //printf("ArrayInitializer::toAssocArrayInitializer()\n");
+    //static int i; if (++i == 2) halt();
+    Expressions *keys = new Expressions();
+    keys->setDim(value.dim);
+    Expressions *values = new Expressions();
+    values->setDim(value.dim);
+
+    for (size_t i = 0; i < value.dim; i++)
+    {
+        Expression *ekey = index[i];
+        if (!ekey)
+            goto Lno;
+        (*keys)[i] = ekey;
+
+        Initializer *iz = value[i];
+        if (!iz)
+            goto Lno;
+        iz = iz->semantic(sc, taa->next, needInterpret);
+        (*values)[i] = iz->toExpression(/*taa->next*/);
+    }
+    e = new AssocArrayLiteralExp(loc, keys, values);
+    return (new ExpInitializer(e->loc, e))->semantic(sc, t, needInterpret);
+
+Lno:
+    delete keys;
+    delete values;
+    error(loc, "not an associative array initializer");
     return new ErrorInitializer();
 }
 
