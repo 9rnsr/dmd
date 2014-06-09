@@ -269,10 +269,13 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
             return new ErrorInitializer();
 
         StructLiteralExp *sle = new StructLiteralExp(loc, sd, elements, t);
+    #if 1
+        // Can be done in StructLiteralExp::semantic?
+        // -> unfortunately it cannot be because StructDeclaration::fit is incomplete
         if (!sd->fill(loc, elements, false))
             return new ErrorInitializer();
         sle->type = t;
-
+    #endif
         ExpInitializer *ie = new ExpInitializer(loc, sle);
         return ie->semantic(sc, t, needInterpret);
     }
@@ -364,8 +367,10 @@ void ArrayInitializer::addInit(Expression *index, Initializer *value)
 {
     this->index.push(index);
     this->value.push(value);
+#if 0   // why necessary?
     dim = 0;
     type = NULL;
+#endif
 }
 
 bool ArrayInitializer::isAssociativeArray()
