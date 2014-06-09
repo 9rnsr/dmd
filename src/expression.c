@@ -10723,8 +10723,6 @@ Expression *IndexExp::semantic(Scope *sc)
     if (e1->op == TOKerror)
         return e1;
 
-    Expression *e = this;
-
     // Note that unlike C we do not implement the int[ptr]
 
     Type *t1 = e1->type->toBasetype();
@@ -10736,26 +10734,81 @@ Expression *IndexExp::semantic(Scope *sc)
         sym->loc = loc;
         sym->parent = sc->scopesym;
         sc = sc->push(sym);
-    }
 
-    if (t1->ty == Ttuple) sc = sc->startCTFE();
+        if (t1->ty == Ttuple)
+            sc = sc->startCTFE();
+    }
     e2 = e2->semantic(sc);
     e2 = resolveProperties(sc, e2);
-    if (t1->ty == Ttuple) sc = sc->endCTFE();
-    if (e2->type == Type::terror)
-        return new ErrorExp();
+    if (t1->ty == Tsarray || t1->ty == Tarray || t1->ty == Ttuple)
+    {
+        if (t1->ty == Ttuple)
+            sc = sc->endCTFE();
+        sc = sc->pop();
+    }
+
     if (e2->type->ty == Ttuple && ((TupleExp *)e2)->exps->dim == 1) // bug 4444 fix
         e2 = (*((TupleExp *)e2)->exps)[0];
 
-    if (t1->ty == Tsarray || t1->ty == Tarray || t1->ty == Ttuple)
-        sc = sc->pop();
+    if (t1->ty == Taarray)
+    {
+        /* We can skip the implicit conversion if they differ only by
+         * constness (Bugzilla 2684, see also bug 2954b)
+         */
+        TypeAArray *taa = (TypeAArray *)t1;
+        if (!arrayTypeCompatibleWithoutCasting(e2->loc, e2->type, taa->index))
+            e2 = e2->implicitCastTo(sc, taa->index);        // type checking
+    }
+    else
+    {
+        e2 = e2->implicitCastTo(sc, Type::tsize_t);
+    }
+    if (e2->op == TOKerror)
+        return e2;
+
+    if (t1->ty == Ttuple)
+    {
+        e2 = e2->ctfeInterpret();
+        uinteger_t index = e2->toUInteger();
+
+        TupleExp *te;
+        TypeTuple *tup;
+        size_t length;
+        if (e1->op == TOKtuple)
+        {
+            te = (TupleExp *)e1;
+            tup = NULL;
+            length = te->exps->dim;
+        }
+        else
+        {
+            assert(e1->op == TOKtype);
+            te = NULL;
+            tup = (TypeTuple *)t1;
+            length = Parameter::dim(tup->arguments);
+        }
+
+        if (index >= length)
+        {
+            error("array index [%llu] is outside array bounds [0 .. %llu]",
+                    index, (ulonglong)length);
+            return new ErrorExp();
+        }
+
+        Expression *e;
+        if (e1->op == TOKtuple)
+        {
+            e = (*te->exps)[(size_t)index];
+            e = combine(te->e0, e);
+        }
+        else
+            e = new TypeExp(e1->loc, Parameter::getNth(tup->arguments, (size_t)index)->type);
+        return e;
+    }
 
     switch (t1->ty)
     {
         case Tpointer:
-            e2 = e2->implicitCastTo(sc, Type::tsize_t);
-            if (e2->type == Type::terror)
-                return new ErrorExp();
             e2 = e2->optimize(WANTvalue);
             if (e2->op == TOKint64 && e2->toInteger() == 0)
                 ;
@@ -10765,94 +10818,24 @@ Expression *IndexExp::semantic(Scope *sc)
                     sc->func->toPrettyChars(), e1->toChars());
                 return new ErrorExp();
             }
-            e->type = ((TypeNext *)t1)->next;
+            type = ((TypeNext *)t1)->next;
             break;
 
         case Tarray:
-            e2 = e2->implicitCastTo(sc, Type::tsize_t);
-            if (e2->type == Type::terror)
-                return new ErrorExp();
-            e->type = ((TypeNext *)t1)->next;
+            type = ((TypeNext *)t1)->next;
             break;
 
         case Tsarray:
-        {
-            e2 = e2->implicitCastTo(sc, Type::tsize_t);
-            if (e2->type == Type::terror)
-                return new ErrorExp();
-            e->type = t1->nextOf();
+            type = ((TypeNext *)t1)->next;
             break;
-        }
 
         case Taarray:
-        {
-            TypeAArray *taa = (TypeAArray *)t1;
-            /* We can skip the implicit conversion if they differ only by
-             * constness (Bugzilla 2684, see also bug 2954b)
-             */
-            if (!arrayTypeCompatibleWithoutCasting(e2->loc, e2->type, taa->index))
-            {
-                e2 = e2->implicitCastTo(sc, taa->index);        // type checking
-                if (e2->type == Type::terror)
-                    return new ErrorExp();
-            }
-            type = taa->next;
+            type = ((TypeNext *)t1)->next;
             break;
-        }
-
-        case Ttuple:
-        {
-            e2 = e2->implicitCastTo(sc, Type::tsize_t);
-            if (e2->type == Type::terror)
-                return new ErrorExp();
-            e2 = e2->ctfeInterpret();
-            uinteger_t index = e2->toUInteger();
-
-            TupleExp *te;
-            TypeTuple *tup;
-            size_t length;
-            if (e1->op == TOKtuple)
-            {
-                te = (TupleExp *)e1;
-                tup = NULL;
-                length = te->exps->dim;
-            }
-            else if (e1->op == TOKtype)
-            {
-                te = NULL;
-                tup = (TypeTuple *)t1;
-                length = Parameter::dim(tup->arguments);
-            }
-            else
-                assert(0);
-
-            if (index < length)
-            {
-
-                if (e1->op == TOKtuple)
-                {
-                    e = (*te->exps)[(size_t)index];
-                    e = combine(te->e0, e);
-                }
-                else
-                    e = new TypeExp(e1->loc, Parameter::getNth(tup->arguments, (size_t)index)->type);
-            }
-            else
-            {
-                error("array index [%llu] is outside array bounds [0 .. %llu]",
-                        index, (ulonglong)length);
-                return new ErrorExp();
-            }
-            break;
-        }
 
         default:
-            if (e1->op == TOKerror)
-                return e1;
             error("%s must be an array or pointer type, not %s",
                 e1->toChars(), e1->type->toChars());
-        case Terror:
-        Lerror:
             return new ErrorExp();
     }
 
@@ -10870,7 +10853,7 @@ Expression *IndexExp::semantic(Scope *sc)
         }
     }
 
-    return e;
+    return this;
 }
 
 int IndexExp::isLvalue()
