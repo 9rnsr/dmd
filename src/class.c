@@ -1599,19 +1599,21 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
 bool InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 {
-    //printf("%s.InterfaceDeclaration::isBaseOf(cd = '%s')\n", toChars(), cd->toChars());
+    printf("%s.InterfaceDeclaration::isBaseOf(cd = '%s')\n", toChars(), cd->toChars());
     assert(!baseClass);
+    if (poffset)
+        *poffset = 0;
     for (size_t j = 0; j < cd->interfaces_dim; j++)
     {
         BaseClass *b = cd->interfaces[j];
 
-        //printf("\tbase %s\n", b->base->toChars());
+        printf("\tbase %s\n", b->base->toChars());
         if (this == b->base)
         {
-            //printf("\tfound at offset %d\n", b->offset);
+            printf("\tfound at offset %d\n", b->offset);
             if (poffset)
             {
-                *poffset = b->offset;
+                *poffset += b->offset;
                 if (j && cd->isInterfaceDeclaration())
                     *poffset = OFFSET_RUNTIME;
             }
@@ -1619,8 +1621,14 @@ bool InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
         }
         if (isBaseOf(b, poffset))
         {
-            if (j && poffset && cd->isInterfaceDeclaration())
-                *poffset = OFFSET_RUNTIME;
+            printf("\tfound2 at offset %d (cd = %s, b = %s)\n", b->offset, cd->toChars(), b->base->toChars());
+            if (j && poffset)
+            {
+                if (cd->isInterfaceDeclaration())
+                    *poffset = OFFSET_RUNTIME;
+                else
+                    *poffset += b->offset;
+            }
             return true;
         }
     }
@@ -1636,25 +1644,27 @@ bool InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 
 bool InterfaceDeclaration::isBaseOf(BaseClass *bc, int *poffset)
 {
-    //printf("%s.InterfaceDeclaration::isBaseOf(bc = '%s')\n", toChars(), bc->base->toChars());
+    printf("%s.InterfaceDeclaration::isBaseOf(bc = '%s')\n", toChars(), bc->base->toChars());
     for (size_t j = 0; j < bc->baseInterfaces_dim; j++)
     {
         BaseClass *b = &bc->baseInterfaces[j];
 
         if (this == b->base)
         {
+            //printf("\tfound3 at offset %d (bc->base = %s, b = %s)\n", b->offset, bc->base->toChars(), b->base->toChars());
             if (poffset)
             {
                 *poffset = b->offset;
-                if (j && bc->base->isInterfaceDeclaration())
-                    *poffset = OFFSET_RUNTIME;
+                //if (j/* && bc->base->isInterfaceDeclaration()*/)
+                //    *poffset = OFFSET_RUNTIME;
             }
             return true;
         }
         if (isBaseOf(b, poffset))
         {
-            if (j && poffset && bc->base->isInterfaceDeclaration())
-                *poffset = OFFSET_RUNTIME;
+            //printf("\tfound4 at offset %d (bc->base = %s, b = %s)\n", b->offset, bc->base->toChars(), b->base->toChars());
+            //if (j && poffset/* && bc->base->isInterfaceDeclaration()*/)
+            //    *poffset = OFFSET_RUNTIME;
             return true;
         }
     }

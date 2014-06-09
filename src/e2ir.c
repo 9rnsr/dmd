@@ -3333,6 +3333,7 @@ elem *toElem(Expression *e, IRState *irs)
             FuncDeclaration *fd = NULL;
             if (ce->e1->op == TOKdotvar && t1->ty != Tdelegate)
             {
+                printf("[%s] ce = %s\n", ce->loc.toChars(), ce->toChars());
                 DotVarExp *dve = (DotVarExp *)ce->e1;
 
                 fd = dve->var->isFuncDeclaration();
@@ -3757,7 +3758,11 @@ elem *toElem(Expression *e, IRState *irs)
                 {
                     rtl = RTLSYM_INTERFACE_CAST;
                 }
-                if (cdto->isBaseOf(cdfrom, &offset) && offset != OFFSET_RUNTIME)
+                printf("in backend\n");
+                if (cdto->isBaseOf(cdfrom, &offset) &&
+                printf("cdto = %s, cdfrom = %s, offset = %x, OFFSET_RUNTIME = %x\n",
+                    cdto->toChars(), cdfrom->toChars(), (int)offset, (int)OFFSET_RUNTIME) &&
+                    offset != OFFSET_RUNTIME)
                 {
                     /* The offset from cdfrom=>cdto is known at compile time.
                      */
