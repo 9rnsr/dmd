@@ -505,7 +505,25 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
     {
         case Tsarray:
         case Tarray:
+        {
+            // void[$], void[]
+            Type *tn = ((TypeNext *)t)->next;
+            if (tn->ty == Tvoid)
+            {
+                Initializer *iz = inferType(sc);
+                Expression *e = iz->toExpression();
+                if (e->op == TOKarrayliteral)
+                {
+                    // cast to void[]
+                    // TODO: check content size matching?
+                    t = tn->arrayOf();
+                }
+                iz = new ExpInitializer(loc, e);
+                iz = iz->semantic(sc, t, needInterpret);
+                return iz;
+            }
             break;
+        }
 
         case Tvector:
             t = ((TypeVector *)t)->basetype;
