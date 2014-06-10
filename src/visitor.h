@@ -166,7 +166,7 @@ class DeleteDeclaration;
 
 class Initializer;
 class VoidInitializer;
-class ErrorInitializer;
+//class ErrorInitializer;
 class StructInitializer;
 class ArrayInitializer;
 class ExpInitializer;
@@ -439,7 +439,7 @@ public:
 
     virtual void visit(Initializer *) { assert(0); }
     virtual void visit(VoidInitializer *i) { visit((Initializer *)i); }
-    virtual void visit(ErrorInitializer *i) { visit((Initializer *)i); }
+    //virtual void visit(ErrorInitializer *i) { visit((Initializer *)i); }
     virtual void visit(StructInitializer *i) { visit((Initializer *)i); }
     virtual void visit(ArrayInitializer *i) { visit((Initializer *)i); }
     virtual void visit(ExpInitializer *i) { visit((Initializer *)i); }

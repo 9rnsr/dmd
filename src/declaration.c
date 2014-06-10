@@ -385,7 +385,7 @@ void TypedefDeclaration::semantic2(Scope *sc)
             Initializer *savedinit = init;
             unsigned int errors = global.errors;
             init = init->semantic(sc, basetype, INITinterpret);
-            if (errors != global.errors || init->isErrorInitializer())
+            if (errors != global.errors/* || init->isErrorInitializer()*/)
             {
                 init = savedinit;
                 return;
@@ -394,6 +394,11 @@ void TypedefDeclaration::semantic2(Scope *sc)
             ExpInitializer *ie = init->isExpInitializer();
             if (ie)
             {
+                if (ie->exp->op == TOKerror)
+                {
+                    init = savedinit;
+                    return;
+                }
                 if (ie->exp->type == basetype)
                     ie->exp->type = type;
             }
@@ -1533,14 +1538,15 @@ Lnomatch:
                 //printf("fd = '%s', var = '%s'\n", fd->toChars(), toChars());
                 if (!ei)
                 {
-                    assert(!inferred);
+                    //if (inferred) printf("[%s] %s, type = %s\n", loc.toChars(), toChars(), type->toChars());
+                    //assert(!inferred || init->isErrorInitializer());
 
                     // Run semantic, but don't need to interpret
                     init = init->semantic(sc, type, INITnointerpret);
                     ei = init->isExpInitializer();
                     if (!ei)
                     {
-                        assert(init->isErrorInitializer());
+                        //assert(init->isErrorInitializer());
                         return;
                     }
                     init = ei;
@@ -1652,7 +1658,8 @@ Lnomatch:
                 inuse--;
                 if (global.errors > errors)
                 {
-                    init = new ErrorInitializer();
+                    //init = new ErrorInitializer();
+                    init = new ExpInitializer(init->loc, new ErrorExp());
                     type = Type::terror;
                 }
             }

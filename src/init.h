@@ -23,7 +23,7 @@ class Expression;
 struct Scope;
 class Type;
 class AggregateDeclaration;
-class ErrorInitializer;
+//class ErrorInitializer;
 class VoidInitializer;
 class StructInitializer;
 class ArrayInitializer;
@@ -42,7 +42,7 @@ public:
     static Initializers *arraySyntaxCopy(Initializers *ai);
 
     /* Translates to an expression to infer type.
-     * Returns ExpInitializer or ErrorInitializer.
+     * Returns ExpInitializer.
      */
     virtual Initializer *inferType(Scope *sc) = 0;
 
@@ -52,7 +52,7 @@ public:
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
     char *toChars();
 
-    virtual ErrorInitializer   *isErrorInitializer() { return NULL; }
+    //virtual ErrorInitializer   *isErrorInitializer() { return NULL; }
     virtual VoidInitializer    *isVoidInitializer() { return NULL; }
     virtual StructInitializer  *isStructInitializer()  { return NULL; }
     virtual ArrayInitializer   *isArrayInitializer()  { return NULL; }
@@ -76,6 +76,7 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+#if 0
 class ErrorInitializer : public Initializer
 {
 public:
@@ -89,6 +90,7 @@ public:
     virtual ErrorInitializer *isErrorInitializer() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
+#endif
 
 class StructInitializer : public Initializer
 {

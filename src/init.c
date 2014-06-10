@@ -58,6 +58,7 @@ char *Initializer::toChars()
     return buf.extractString();
 }
 
+#if 0
 /********************************** ErrorInitializer ***************************/
 
 ErrorInitializer::ErrorInitializer()
@@ -90,6 +91,7 @@ void ErrorInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("__error__");
 }
+#endif
 
 /********************************** VoidInitializer ***************************/
 
@@ -107,7 +109,8 @@ Initializer *VoidInitializer::syntaxCopy()
 Initializer *VoidInitializer::inferType(Scope *sc)
 {
     error(loc, "cannot infer type from void initializer");
-    return new ErrorInitializer();
+    //return new ErrorInitializer();
+    return new ExpInitializer(loc, new ErrorExp());
 }
 
 Initializer *VoidInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
@@ -162,7 +165,8 @@ void StructInitializer::addInit(Identifier *field, Initializer *value)
 Initializer *StructInitializer::inferType(Scope *sc)
 {
     error(loc, "cannot infer type from struct initializer");
-    return new ErrorInitializer();
+    //return new ErrorInitializer();
+    return new ExpInitializer(loc, new ErrorExp());
 }
 
 Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
@@ -178,11 +182,13 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
         {
             error(loc, "%s %s has constructors, cannot use { initializers }, use %s( initializers ) instead",
                 sd->kind(), sd->toChars(), sd->toChars());
-            return new ErrorInitializer();
+            //return new ErrorInitializer();
+            return new ExpInitializer(loc, new ErrorExp());
         }
         sd->size(loc);
         if (sd->sizeok != SIZEOKdone)
-            return new ErrorInitializer();
+            //return new ErrorInitializer();
+            return new ExpInitializer(loc, new ErrorExp());
         size_t nfields = sd->fields.dim - sd->isNested();
 
         //expandTuples for non-identity arguments?
@@ -208,7 +214,8 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
                               id->toChars(), sd->toChars(), s->kind(), s->toChars());
                     else
                         error(loc, "'%s' is not a member of '%s'", id->toChars(), sd->toChars());
-                    return new ErrorInitializer();
+                    //return new ErrorInitializer();
+                    return new ExpInitializer(loc, new ErrorExp());
                 }
                 s = s->toAlias();
 
@@ -219,7 +226,8 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
                     {
                         error(loc, "%s.%s is not a per-instance initializable field",
                             sd->toChars(), s->toChars());
-                        return new ErrorInitializer();
+                        //return new ErrorInitializer();
+                        return new ExpInitializer(loc, new ErrorExp());
                     }
                     if (s == sd->fields[fieldi])
                         break;
@@ -228,7 +236,8 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
             else if (fieldi >= nfields)
             {
                 error(loc, "too many initializers for %s", sd->toChars());
-                return new ErrorInitializer();
+                //return new ErrorInitializer();
+                return new ExpInitializer(loc, new ErrorExp());
             }
 
             VarDeclaration *vd = sd->fields[fieldi];
@@ -266,14 +275,16 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
             ++fieldi;
         }
         if (errors)
-            return new ErrorInitializer();
+            //return new ErrorInitializer();
+            return new ExpInitializer(loc, new ErrorExp());
 
         StructLiteralExp *sle = new StructLiteralExp(loc, sd, elements, t);
     #if 1
         // Can be done in StructLiteralExp::semantic?
         // -> unfortunately it cannot be because StructDeclaration::fit is incomplete
         if (!sd->fill(loc, elements, false))
-            return new ErrorInitializer();
+            //return new ErrorInitializer();
+            return new ExpInitializer(loc, new ErrorExp());
         sle->type = t;
     #endif
         ExpInitializer *ie = new ExpInitializer(loc, sle);
@@ -295,7 +306,8 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
     }
 
     error(loc, "a struct is not a valid initializer for a %s", t->toChars());
-    return new ErrorInitializer();
+    //return new ErrorInitializer();
+    return new ExpInitializer(loc, new ErrorExp());
 }
 
 /***************************************
@@ -399,8 +411,8 @@ Initializer *ArrayInitializer::inferType(Scope *sc)
             if (!iz)
                 goto Lno;
             iz = iz->inferType(sc);
-            if (iz->isErrorInitializer())
-                return iz;
+            //if (iz->isErrorInitializer())
+            //    return iz;
             assert(iz->isExpInitializer());
             (*values)[i] = ((ExpInitializer *)iz)->exp;
             assert((*values)[i]->op != TOKerror);
@@ -449,8 +461,8 @@ Initializer *ArrayInitializer::inferType(Scope *sc)
             if (!iz)
                 goto Lno;
             iz = iz->inferType(sc);
-            if (iz->isErrorInitializer())
-                return iz;
+            //if (iz->isErrorInitializer())
+            //    return iz;
             assert(iz->isExpInitializer());
             (*elements)[i] = ((ExpInitializer *)iz)->exp;
             assert((*elements)[i]->op != TOKerror);
@@ -486,7 +498,8 @@ Lno:
     {
         error(loc, "cannot infer type from array initializer");
     }
-    return new ErrorInitializer();
+    //return new ErrorInitializer();
+    return new ExpInitializer(loc, new ErrorExp());
 }
 
 /********************************
@@ -544,7 +557,8 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
             /* case fall through */
         default:
             error(loc, "cannot use array to initialize %s", t->toChars());
-            return new ErrorInitializer();
+            //return new ErrorInitializer();
+            return new ExpInitializer(loc, new ErrorExp());
     }
 
     size_t dim = 0;
@@ -572,10 +586,12 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
         if (ei && !idx)
             ei->expandTuples = true;
         iz = iz->semantic(sc, t->nextOf(), needInterpret);
-        if (iz->isErrorInitializer())
-            errors = true;
+        //if (iz->isErrorInitializer())
+        //    errors = true;
 
         ei = iz->isExpInitializer();
+        if (ei && ei->exp->op == TOKerror)
+            errors = true;
         // found a tuple, expand it
         if (ei && ei->exp->op == TOKtuple)
         {
@@ -601,7 +617,8 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
         if (length == 0)
         {
             error(loc, "array dimension overflow");
-            return new ErrorInitializer();
+            //return new ErrorInitializer();
+            return new ExpInitializer(loc, new ErrorExp());
         }
         if (length > dim)
             dim = length;
@@ -612,16 +629,19 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
         if (dim > edim)
         {
             error(loc, "array initializer has %u elements, but array length is %lld", dim, edim);
-            return new ErrorInitializer();
+            //return new ErrorInitializer();
+            return new ExpInitializer(loc, new ErrorExp());
         }
     }
     if (errors)
-        return new ErrorInitializer();
+        //return new ErrorInitializer();
+        return new ExpInitializer(loc, new ErrorExp());
 
     if ((uinteger_t)dim * t->nextOf()->size() >= amax)
     {
         error(loc, "array dimension %u exceeds max of %u", (unsigned) dim, (unsigned)(amax / t->nextOf()->size()));
-        return new ErrorInitializer();
+        //return new ErrorInitializer();
+        return new ExpInitializer(loc, new ErrorExp());
     }
 
     /* Create ExpInitializer with ArrayLiteralExp
@@ -676,7 +696,8 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
     {
         Expression *e = (*elements)[i];
         if (e->op == TOKerror)
-            return new ErrorInitializer();
+            //return new ErrorInitializer();
+            return new ExpInitializer(loc, new ErrorExp());
     }
 #endif
     Expression *e = new ArrayLiteralExp(loc, elements);
@@ -708,7 +729,8 @@ Initializer *ArrayInitializer::semanticAA(Scope *sc, Type *t, NeedInterpret need
             delete keys;
             delete values;
             error(loc, "not an associative array initializer");
-            return new ErrorInitializer();
+            //return new ErrorInitializer();
+            return new ExpInitializer(loc, new ErrorExp());
         }
         (*keys)[i] = e;
 
@@ -856,7 +878,10 @@ Initializer *ExpInitializer::inferType(Scope *sc)
             se->error("cannot infer type from %s %s, possible circular dependency", se->sds->kind(), se->toChars());
         else
             se->error("cannot infer type from %s %s", se->sds->kind(), se->toChars());
-        return new ErrorInitializer();
+        //return new ErrorInitializer();
+        //return new ExpInitializer(loc, new ErrorExp());
+        exp = new ErrorExp();
+        return this;
     }
 
     // Give error for overloaded function addresses
@@ -866,7 +891,10 @@ Initializer *ExpInitializer::inferType(Scope *sc)
         if (se->hasOverloads && !se->var->isFuncDeclaration()->isUnique())
         {
             exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
-            return new ErrorInitializer();
+            //return new ErrorInitializer();
+            //return new ExpInitializer(loc, new ErrorExp());
+            exp = new ErrorExp();
+            return this;
         }
     }
     if (exp->op == TOKdelegate)
@@ -877,7 +905,10 @@ Initializer *ExpInitializer::inferType(Scope *sc)
             !se->func->isFuncDeclaration()->isUnique())
         {
             exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
-            return new ErrorInitializer();
+            //return new ErrorInitializer();
+            //return new ExpInitializer(loc, new ErrorExp());
+            exp = new ErrorExp();
+            return this;
         }
     }
     if (exp->op == TOKaddress)
@@ -886,14 +917,20 @@ Initializer *ExpInitializer::inferType(Scope *sc)
         if (ae->e1->op == TOKoverloadset)
         {
             exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
-            return new ErrorInitializer();
+            //return new ErrorInitializer();
+            //return new ExpInitializer(loc, new ErrorExp());
+            exp = new ErrorExp();
+            return this;
         }
     }
 
-    if (exp->op == TOKerror)
-        return new ErrorInitializer();
     if (!exp->type)
-        return new ErrorInitializer();
+        //return new ErrorInitializer();
+        //return new ExpInitializer(loc, new ErrorExp());
+        exp = new ErrorExp();
+    //if (exp->op == TOKerror)
+    //    //return new ErrorInitializer();
+    //    return new ExpInitializer(loc, new ErrorExp());
     return this;
 }
 
@@ -905,7 +942,8 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
     exp = resolveProperties(sc, exp);
     if (needInterpret) sc = sc->endCTFE();
     if (exp->op == TOKerror)
-        return new ErrorInitializer();
+        //return new ErrorInitializer();
+        return new ExpInitializer(loc, new ErrorExp());
 
     unsigned int olderrors = global.errors;
     if (needInterpret)
@@ -929,14 +967,16 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
     if (exp->op == TOKtype)
     {
         exp->error("initializer must be an expression, not '%s'", exp->toChars());
-        return new ErrorInitializer();
+        //return new ErrorInitializer();
+        return new ExpInitializer(loc, new ErrorExp());
     }
 
     // Make sure all pointers are constants
     if (needInterpret && hasNonConstPointers(exp))
     {
         exp->error("cannot use non-constant CTFE pointer in an initializer '%s'", exp->toChars());
-        return new ErrorInitializer();
+        //return new ErrorInitializer();
+        return new ExpInitializer(loc, new ErrorExp());
     }
 
     Type *tb = t->toBasetype();
