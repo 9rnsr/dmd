@@ -1160,7 +1160,7 @@ bool StructDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
             if (vx->init)
             {
                 assert(!vx->init->isVoidInitializer());
-                e = vx->getConstInitializer(false);
+                e = vx->getConstInitializer();
             }
             else
             {

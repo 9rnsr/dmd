@@ -3228,14 +3228,7 @@ Lagain:
         }
         if ((v->storage_class & STCmanifest) && v->init)
         {
-            if (v->scope)
-            {
-                v->inuse++;
-                v->init = v->init->semantic(v->scope, v->type, INITinterpret);
-                v->scope = NULL;
-                v->inuse--;
-            }
-            e = v->init->toExpression(v->type);
+            e = v->getConstInitializer(true);
             if (!e)
             {
                 error("cannot make expression out of initializer for %s", v->toChars());

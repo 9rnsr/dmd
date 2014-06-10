@@ -81,7 +81,7 @@ Initializer *ErrorInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
     return this;
 }
 
-Expression *ErrorInitializer::toExpression(Type *t)
+Expression *ErrorInitializer::toExpression()
 {
     return new ErrorExp();
 }
@@ -117,7 +117,7 @@ Initializer *VoidInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInt
     return this;
 }
 
-Expression *VoidInitializer::toExpression(Type *t)
+Expression *VoidInitializer::toExpression()
 {
     return NULL;
 }
@@ -303,7 +303,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
  * a struct literal. In the future, the two should be the
  * same thing.
  */
-Expression *StructInitializer::toExpression(Type *t)
+Expression *StructInitializer::toExpression()
 {
     // cannot convert to an expression without target 'ad'
     return NULL;
@@ -705,7 +705,7 @@ Initializer *ArrayInitializer::semanticAA(Scope *sc, Type *t, NeedInterpret need
     return ei->semantic(sc, t, needInterpret);
 }
 
-Expression *ArrayInitializer::toExpression(Type *tx)
+Expression *ArrayInitializer::toExpression()
 {
     //printf("ArrayInitializer::toExpression(), dim = %d\n", dim);
     assert(0);
@@ -1022,26 +1022,8 @@ L1:
     return this;
 }
 
-Expression *ExpInitializer::toExpression(Type *t)
+Expression *ExpInitializer::toExpression()
 {
-    if (t)
-    {
-        //printf("ExpInitializer::toExpression(t = %s) exp = %s\n", t->toChars(), exp->toChars());
-        Type *tb = t->toBasetype();
-        Expression *e = (exp->op == TOKconstruct || exp->op == TOKblit) ? ((AssignExp *)exp)->e2 : exp;
-        if (tb->ty == Tsarray && e->implicitConvTo(tb->nextOf()))
-        {
-            TypeSArray *tsa = (TypeSArray *)tb;
-            size_t d = (size_t)tsa->dim->toInteger();
-            Expressions *elements = new Expressions();
-            elements->setDim(d);
-            for (size_t i = 0; i < d; i++)
-                (*elements)[i] = e;
-            ArrayLiteralExp *ae = new ArrayLiteralExp(e->loc, elements);
-            ae->type = t;
-            return ae;
-        }
-    }
     return exp;
 }
 

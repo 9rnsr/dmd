@@ -8087,7 +8087,7 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
             if (vd->init->isVoidInitializer())
                 e = NULL;
             else
-                e = vd->getConstInitializer(false);
+                e = vd->getConstInitializer();
         }
         else
             e = vd->type->defaultInitLiteral(loc);

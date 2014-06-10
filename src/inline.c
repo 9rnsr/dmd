@@ -811,42 +811,33 @@ Expression *doInline(Expression *e, InlineDoState *ids)
             //printf("DeclarationExp::doInline(%s)\n", e->toChars());
             if (VarDeclaration *vd = e->declaration->isVarDeclaration())
             {
-        #if 0
                 // Need to figure this out before inlining can work for tuples
-                TupleDeclaration *td = vd->toAlias()->isTupleDeclaration();
-                if (td)
-                {
-                    for (size_t i = 0; i < td->objects->dim; i++)
-                    {
-                        DsymbolExp *se = (*td->objects)[i];
-                        assert(se->op == TOKdsymbol);
-                        se->s;
-                    }
-                    result = st->objects->dim;
-                    return;
-                }
-        #endif
+                assert(!vd->toAlias()->isTupleDeclaration());
+
                 if (!vd->isStatic())
                 {
+                    Initializer *iz = vd->init;
                     if (ids->fd && vd == ids->fd->nrvo_var)
                     {
                         for (size_t i = 0; i < ids->from.dim; i++)
                         {
-                            if (vd == ids->from[i])
+                            if (vd != ids->from[i])
+                                continue;
+
+                            if (!iz || iz->isVoidInitializer())
                             {
-                                if (vd->init && !vd->init->isVoidInitializer())
-                                {
-                                    result = vd->init->toExpression();
-                                    assert(result);
-                                    result = doInline(result, ids);
-                                }
-                                else
-                                    result = new IntegerExp(vd->init->loc, 0, Type::tint32);
-                                return;
+                                result = new IntegerExp(iz->loc, 0, Type::tint32);
                             }
+                            else
+                            {
+                                ExpInitializer *ei = iz->isExpInitializer();
+                                assert(ei && ei->exp);
+                                result = doInline(ei->exp, ids);
+                            }
+                            return;
                         }
                     }
-                    VarDeclaration *vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->init);
+                    VarDeclaration *vto = new VarDeclaration(vd->loc, vd->type, vd->ident, iz);
                     memcpy((void *)vto, (void *)vd, sizeof(VarDeclaration));
                     vto->parent = ids->parent;
                     vto->csym = NULL;
@@ -855,17 +846,18 @@ Expression *doInline(Expression *e, InlineDoState *ids)
                     ids->from.push(vd);
                     ids->to.push(vto);
 
-                    if (vd->init)
+                    if (iz)
                     {
-                        if (vd->init->isVoidInitializer())
+                        if (iz->isVoidInitializer())
                         {
-                            vto->init = new VoidInitializer(vd->init->loc);
+                            vto->init = new VoidInitializer(iz->loc);
                         }
                         else
                         {
-                            Expression *ei = vd->init->toExpression();
+                            ExpInitializer *ei = iz->isExpInitializer();
                             assert(ei);
-                            vto->init = new ExpInitializer(ei->loc, doInline(ei, ids));
+                            Expression *ex = doInline(ei->exp, ids);
+                            vto->init = new ExpInitializer(ex->loc, ex);
                         }
                     }
                     DeclarationExp *de = (DeclarationExp *)e->copy();

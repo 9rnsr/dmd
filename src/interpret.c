@@ -2342,26 +2342,23 @@ public:
              */
             if (v->ident == Id::ctfe)
                 return new IntegerExp(loc, 1, Type::tbool);
-
+            if (v->inuse)
+            {
+                error(loc, "circular initialization of %s", v->toChars());
+                return EXP_CANT_INTERPRET;
+            }
             if (!v->originalType && v->scope)   // semantic() not yet run
             {
-                v->semantic (v->scope);
+                v->semantic(v->scope);
                 if (v->type->ty == Terror)
                     return EXP_CANT_INTERPRET;
             }
-
             if ((v->isConst() || v->isImmutable() || v->storage_class & STCmanifest) &&
                 !hasValue(v) &&
                 v->init && !v->isCTFE())
             {
-                if(v->scope)
-                    v->init = v->init->semantic(v->scope, v->type, INITinterpret); // might not be run on aggregate members
-                e = v->init->toExpression(v->type);
-                if (v->inuse)
-                {
-                    error(loc, "circular initialization of %s", v->toChars());
-                    return EXP_CANT_INTERPRET;
-                }
+                // Probably run semantic2 to resolve forward reference
+                e = v->getConstInitializer(true);
 
                 if (e && (e->op == TOKconstruct || e->op == TOKblit))
                 {
@@ -2409,8 +2406,9 @@ public:
                     }
                     else
                     {
-                        e = v->init->toExpression();
-                        e = e->interpret(istate);
+                        ExpInitializer *ei = v->init->isExpInitializer();
+                        assert(ei && ei->exp);
+                        e = ei->exp->interpret(istate);
                     }
                 }
                 else
@@ -2528,15 +2526,14 @@ public:
     #if LOG
         printf("%s DeclarationExp::interpret() %s\n", e->loc.toChars(), e->toChars());
     #endif
-        VarDeclaration *v = e->declaration->isVarDeclaration();
-        if (v)
+        if (VarDeclaration *v = e->declaration->isVarDeclaration())
         {
-            if (v->toAlias()->isTupleDeclaration())
+            Dsymbol *s = v->toAlias();
+            if (TupleDeclaration *td = s->isTupleDeclaration())
             {
                 result = NULL;
 
                 // Reserve stack space for all tuple members
-                TupleDeclaration *td = v->toAlias()->isTupleDeclaration();
                 if (!td->objects)
                     return;
                 for(size_t i= 0; i < td->objects->dim; ++i)
@@ -2551,17 +2548,17 @@ public:
                         ctfeStack.push(v2);
                         if (v2->init)
                         {
-                            ExpInitializer *ie = v2->init->isExpInitializer();
-                            if (ie)
-                            {
-                                setValue(v2, ie->exp->interpret(istate, goal));
-                            }
-                            else if (v2->init->isVoidInitializer())
+                            if (v2->init->isVoidInitializer())
                             {
                                 setValue(v2, voidInitLiteral(v2->type, v2));
                             }
+                            else if (ExpInitializer *ie = v2->init->isExpInitializer())
+                            {
+                                setValue(v2, ie->exp->interpret(istate, goal));
+                            }
                             else
                             {
+                                assert(0);
                                 e->error("Declaration %s is not yet implemented in CTFE", e->toChars());
                                 result = EXP_CANT_INTERPRET;
                             }
@@ -2570,14 +2567,19 @@ public:
                 }
                 return;
             }
+            assert(s == v); // TupleDeclaration case is already handled
+
             if (!(v->isDataseg() || v->storage_class & STCmanifest) || v->isCTFE())
                 ctfeStack.push(v);
-            Dsymbol *s = v->toAlias();
-            if (s == v && !v->isStatic() && v->init)
+            if (v->isStatic())
+                result = NULL;   // Just ignore static variables which aren't read or written yet
+            else if (v->init)
             {
                 ExpInitializer *ie = v->init->isExpInitializer();
                 if (ie)
+                {
                     result = ie->exp->interpret(istate, goal);
+                }
                 else if (v->init->isVoidInitializer())
                 {
                     result = voidInitLiteral(v->type, v);
@@ -2591,23 +2593,11 @@ public:
                     result = EXP_CANT_INTERPRET;
                 }
             }
-            else if (s == v && !v->init && v->type->size() == 0)
+            else if (v->type->size() == 0)
             {
                 // Zero-length arrays don't need an initializer
                 result = v->type->defaultInitLiteral(e->loc);
             }
-            else if (s == v && (v->isConst() || v->isImmutable()) && v->init)
-            {
-                result = v->init->toExpression();
-                if (!result)
-                    result = EXP_CANT_INTERPRET;
-                else if (!result->type)
-                    result->type = v->type;
-            }
-            else if (s->isTupleDeclaration() && !v->init)
-                result = NULL;
-            else if (v->isStatic())
-                result = NULL;   // Just ignore static variables which aren't read or written yet
             else
             {
                 e->error("Variable %s cannot be modified at compile time", v->toChars());
@@ -5312,11 +5302,12 @@ public:
 
         // If the comma returns a temporary variable, it needs to be an lvalue
         // (this is particularly important for struct constructors)
-        if (e->e1->op == TOKdeclaration && e->e2->op == TOKvar
-           && ((DeclarationExp *)e->e1)->declaration == ((VarExp*)e->e2)->var
-           && ((VarExp*)e->e2)->var->storage_class & STCctfe)  // same as Expression::isTemp
+        if (e->e1->op == TOKdeclaration &&
+            e->e2->op == TOKvar &&
+            ((DeclarationExp *)e->e1)->declaration == ((VarExp*)e->e2)->var &&
+            ((VarExp *)e->e2)->var->storage_class & STCctfe)    // same as Expression::isTemp
         {
-            VarExp* ve = (VarExp *)e->e2;
+            VarExp *ve = (VarExp *)e->e2;
             VarDeclaration *v = ve->var->isVarDeclaration();
             ctfeStack.push(v);
             if (!v->init && !getValue(v))
@@ -5325,7 +5316,9 @@ public:
             }
             if (!getValue(v))
             {
-                Expression *newval = v->init->toExpression();
+                ExpInitializer *ei = v->init->isExpInitializer();
+                assert(ei && ei->exp);
+                Expression *newval = ei->exp;
                 // Bug 4027. Copy constructors are a weird case where the
                 // initializer is a void function (the variable is modified
                 // through a reference parameter instead).

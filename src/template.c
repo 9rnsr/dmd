@@ -1990,7 +1990,7 @@ RootObject *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *
     /* So the caller's o gets updated with the result of semantic() being run on o
      */
     if (v)
-        return (RootObject *)v->init->toExpression();
+        o = v->getConstInitializer();
     return o;
 }
 

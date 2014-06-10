@@ -1465,7 +1465,7 @@ Lnomatch:
             init = new ExpInitializer(loc, e);
             goto Ldtor;
         }
-        else if (type->ty == Tstruct &&
+        if (type->ty == Tstruct &&
             ((TypeStruct *)type)->sym->zeroInit == 1)
         {
             /* If a struct is all zeros, as a special case
@@ -1482,6 +1482,13 @@ Lnomatch:
             init = new ExpInitializer(loc, e);
             goto Ldtor;
         }
+        if (type->baseElemOf()->ty == Tvoid)
+        {
+            error("%s does not have a default initializer", type->toChars());
+            type = Type::terror;
+            goto Ldtor;
+        }
+#if 0
         else if (type->ty == Ttypedef)
         {
             TypeTypedef *td = (TypeTypedef *)type;
@@ -1496,14 +1503,13 @@ Lnomatch:
             else
                 init = getExpInitializer();
         }
-        else if (type->baseElemOf()->ty == Tvoid)
-        {
-            error("%s does not have a default initializer", type->toChars());
-        }
+#endif
+        Expression *e = type->defaultInit(loc);
+        if (e)
+            init = new ExpInitializer(loc, e);
         else
-        {
-            init = getExpInitializer();
-        }
+            init = NULL;
+
         // Default initializer is always a blit
         isBlit = true;
     }
@@ -2032,27 +2038,6 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
     }
 }
 
-/****************************
- * Get ExpInitializer for a variable, if there is one.
- */
-
-ExpInitializer *VarDeclaration::getExpInitializer()
-{
-    ExpInitializer *ei;
-
-    if (init)
-        ei = init->isExpInitializer();
-    else
-    {
-        Expression *e = type->defaultInit(loc);
-        if (e)
-            ei = new ExpInitializer(loc, e);
-        else
-            ei = NULL;
-    }
-    return ei;
-}
-
 /*******************************************
  * If variable has a constant expression initializer, get it.
  * Otherwise, return NULL.
@@ -2078,10 +2063,28 @@ Expression *VarDeclaration::getConstInitializer(bool needFullType)
         scope = NULL;
         inuse--;
     }
-    Expression *e = init->toExpression(needFullType ? type : NULL);
+    Expression *exp = init->toExpression();
+
+    if (needFullType)
+    {
+        Type *tb = type->toBasetype();
+        Expression *e = (exp->op == TOKconstruct || exp->op == TOKblit) ? ((AssignExp *)exp)->e2 : exp;
+        if (tb->ty == Tsarray && e->implicitConvTo(tb->nextOf()))
+        {
+            TypeSArray *tsa = (TypeSArray *)tb;
+            size_t d = (size_t)tsa->dim->toInteger();
+            Expressions *elements = new Expressions();
+            elements->setDim(d);
+            for (size_t i = 0; i < d; i++)
+                (*elements)[i] = e;
+            ArrayLiteralExp *ae = new ArrayLiteralExp(e->loc, elements);
+            ae->type = type;
+            return ae;
+        }
+    }
 
     global.gag = oldgag;
-    return e;
+    return exp;
 }
 
 /*************************************
