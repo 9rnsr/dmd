@@ -741,7 +741,7 @@ static assert( arraybounds(2,4) == 5);
 static assert( !is(typeof(Compileable!(arraybounds2(1, 14)))));
 static assert( !is(typeof(Compileable!(arraybounds2(15, 3)))));
 static assert( arraybounds2(2,4) == 1);
-
+/+
 int bug5147a() {
     int[1][2] a = 37;
     return a[0][0];
@@ -755,7 +755,7 @@ int bug5147b() {
 }
 
 static assert(bug5147b()==37);
-
++/
 int setlen()
 {
     int[][] zzz;
@@ -768,7 +768,7 @@ int setlen()
 }
 
 static assert(setlen()==2);
-
+/+
 int[1][1] bug5147() {
     int[1][1] a = 1;
     return a;
@@ -777,8 +777,8 @@ static assert(bug5147() == [[1]]);
 enum int[1][1] enum5147 = bug5147();
 static assert(enum5147 == [[1]]);
 immutable int[1][1] bug5147imm = bug5147();
-
-
++/
+/+
 // Index referencing
 int[2][2] indexref() {
     int[2][2] a = 2;
@@ -868,7 +868,7 @@ int staticdynamic() {
     return 0;
 }
 static assert(staticdynamic() == 0);
-
++/
 int[] crashing()
 {
     int[12] cra;
@@ -2784,8 +2784,8 @@ static assert({
 
 enum E8365 { first = 7, second, third, fourth }
 static assert({ E8365[2] x; return x[0]; }() == E8365.first);
-static assert({ E8365[2][2] x; return x[0][0]; }() == E8365.first);
-static assert({ E8365[2][2][2] x; return x[0][0][0]; }() == E8365.first);
+//static assert({ E8365[2][2] x; return x[0][0]; }() == E8365.first);
+//static assert({ E8365[2][2][2] x; return x[0][0][0]; }() == E8365.first);
 
 /**************************************************
     4448 - labelled break + continue
@@ -6062,7 +6062,7 @@ bool test9245()
         assert(postblits == 2);
         postblits = 0;
     }
-    {
+    /+{
         S[2][2] arr = s;
         assert(postblits == 4);
         arr[] = a;
@@ -6082,7 +6082,7 @@ bool test9245()
         const S[2][2] constArr2 = arr;
         assert(postblits == 4);
         postblits = 0;
-    }
+    }+/
 
     return true;
 }

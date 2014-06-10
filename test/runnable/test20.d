@@ -973,7 +973,7 @@ void test50()
 
 void test51()
 {
-    bool[9][3] qwert;
+    bool[9][3] qwert = [0,0,0,0,0,0,0,0,0];
 
     printf("qwert.sizeof = %d\n", qwert.sizeof);
 

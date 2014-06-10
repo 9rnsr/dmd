@@ -207,7 +207,7 @@ void main()
     extern(C++) static int cb(int a, int b){return a+b;}
 
     test24(&cb);
-    int[291][6][5] arr;
+    int[291][6][5] arr = void;
     arr[1][1][1] = 42;
     test25(&arr);
     assert(test26(&arr[0]) == 42);

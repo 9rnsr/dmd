@@ -146,7 +146,7 @@ void test7()
 
 void test8()
 {   
-   real [5][5] m = 1;
+   real [5][5] m = [1,1,1,1,1];
    m[1][1..3] = 2;
 
    for (size_t i = 0; i < 5; i++)

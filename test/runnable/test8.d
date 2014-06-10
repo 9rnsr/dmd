@@ -641,8 +641,8 @@ void test33()
 
 void test34()
 {
-    int[3][4] a;
-    int[5][6] b = 16;
+    int[3][4] a = [0,0,0];
+    int[5][6] b = [16,16,16,16,16];
     int i, j;
 
     for (i = 0; i < 4; i++)

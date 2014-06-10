@@ -786,7 +786,7 @@ void test39()
    auto f = std.string.format("%s", foo);
    assert(f == "[[1], [2]]");
 
-   double[1][2] bar;
+   double[1][2] bar = void;
    bar[0][0] = 1.0;
    bar[1][0] = 2.0;
 

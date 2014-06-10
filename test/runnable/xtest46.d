@@ -20,7 +20,7 @@ void test1()
 
 void test2()
 {
-  double[1][2] bar;
+    double[1][2] bar = (double[1][2]).init;
   bar[0][0] = 1.0;
   bar[1][0] = 2.0;
   foo2(bar);
@@ -6801,7 +6801,7 @@ void test10542() nothrow pure @safe
 
 void test10539()
 {
-    int[2][2] a;
+    int[2][2] a = (int[2][2]).init;
     int* p1 = a.ptr.ptr;    // OK <- error
     int* p2 = (*a.ptr).ptr; // OK
     assert(p1 is p2);
