@@ -11559,10 +11559,13 @@ Expression *AssignExp::semantic(Scope *sc)
             // convert e1 to e1[]
             if (op != TOKassign)
             {
+#if 0
+                printf("+e1x->type = %s\n", e1x->type->toChars());
                 // If multidimensional static array, treat as one large array
                 dinteger_t dim = ((TypeSArray *)t1)->dim->toInteger();
                 Type *t = t1;
-                while (1)
+                //while (1)
+                do
                 {
                     t = t->nextOf()->toBasetype();
                     if (t->ty != Tsarray)
@@ -11570,6 +11573,9 @@ Expression *AssignExp::semantic(Scope *sc)
                     dim *= ((TypeSArray *)t)->dim->toInteger();
                     e1x->type = t->nextOf()->sarrayOf(dim);
                 }
+                while (0);
+                printf("-e1x->type = %s\n", e1x->type->toChars());
+#endif
             }
             e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
             e1x = e1x->semantic(sc);
