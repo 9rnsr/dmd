@@ -335,9 +335,6 @@ void StructInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 ArrayInitializer::ArrayInitializer(Loc loc)
     : Initializer(loc)
 {
-    dim = 0;
-    type = NULL;
-    sem = false;
 }
 
 Initializer *ArrayInitializer::syntaxCopy()
@@ -367,10 +364,6 @@ void ArrayInitializer::addInit(Expression *index, Initializer *value)
 {
     this->index.push(index);
     this->value.push(value);
-#if 0   // why necessary?
-    dim = 0;
-    type = NULL;
-#endif
 }
 
 bool ArrayInitializer::isAssociativeArray()
@@ -496,16 +489,17 @@ Lno:
     return new ErrorInitializer();
 }
 
+/********************************
+ * Convert array initializer to array expression.
+ */
+
 Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
 {
-    size_t length;
+    //printf("ArrayInitializer::semantic(%s)\n", t->toChars());
+
     const unsigned amax = 0x80000000;
     bool errors = false;
 
-    //printf("ArrayInitializer::semantic(%s)\n", t->toChars());
-    if (sem)                            // if semantic() already run
-        return this;
-    sem = true;
     t = t->toBasetype();
     switch (t->ty)
     {
@@ -518,30 +512,30 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
             break;
 
         case Taarray:
+            return semanticAA(sc, t, needInterpret);
+
         case Tstruct:   // consider implicit constructor call
         {
-            Expression *e;
-            if (t->ty == Taarray || isAssociativeArray())
-                e = toAssocArrayLiteral();
-            else
-                e = toExpression();
-            ExpInitializer *ei = new ExpInitializer(e->loc, e);
-            return ei->semantic(sc, t, needInterpret);
+            Initializer *iz = inferType(sc);
+            return iz->semantic(sc, t, needInterpret);
         }
+
         case Tpointer:
             if (t->nextOf()->ty != Tfunction)
                 break;
-
+            /* case fall through */
         default:
             error(loc, "cannot use array to initialize %s", t->toChars());
-            goto Lerr;
+            return new ErrorInitializer();
     }
 
-    type = t;
-
-    length = 0;
+    size_t dim = 0;
+    size_t length = 0;
     for (size_t i = 0; i < index.dim; i++)
     {
+        /* On sparse array initializing, currently indices should be
+         * interpretd at compile time, even in function bodies.
+         */
         Expression *idx = index[i];
         if (idx)
         {
@@ -555,15 +549,15 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
                 errors = true;
         }
 
-        Initializer *val = value[i];
-        ExpInitializer *ei = val->isExpInitializer();
+        Initializer *iz = value[i];
+        ExpInitializer *ei = iz->isExpInitializer();
         if (ei && !idx)
             ei->expandTuples = true;
-        val = val->semantic(sc, t->nextOf(), needInterpret);
-        if (val->isErrorInitializer())
+        iz = iz->semantic(sc, t->nextOf(), needInterpret);
+        if (iz->isErrorInitializer())
             errors = true;
 
-        ei = val->isExpInitializer();
+        ei = iz->isExpInitializer();
         // found a tuple, expand it
         if (ei && ei->exp->op == TOKtuple)
         {
@@ -582,14 +576,14 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
         }
         else
         {
-            value[i] = val;
+            value[i] = iz;
         }
 
         length++;
         if (length == 0)
         {
             error(loc, "array dimension overflow");
-            goto Lerr;
+            return new ErrorInitializer();
         }
         if (length > dim)
             dim = length;
@@ -600,80 +594,37 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
         if (dim > edim)
         {
             error(loc, "array initializer has %u elements, but array length is %lld", dim, edim);
-            goto Lerr;
+            return new ErrorInitializer();
         }
     }
     if (errors)
-        goto Lerr;
+        return new ErrorInitializer();
 
-    if ((uinteger_t) dim * t->nextOf()->size() >= amax)
+    if ((uinteger_t)dim * t->nextOf()->size() >= amax)
     {
         error(loc, "array dimension %u exceeds max of %u", (unsigned) dim, (unsigned)(amax / t->nextOf()->size()));
-        goto Lerr;
+        return new ErrorInitializer();
     }
-    return this;
 
-Lerr:
-    return new ErrorInitializer();
-}
-
-/********************************
- * If possible, convert array initializer to array literal.
- * Otherwise return NULL.
- */
-
-Expression *ArrayInitializer::toExpression(Type *tx)
-{
-    //printf("ArrayInitializer::toExpression(), dim = %d\n", dim);
-    //static int i; if (++i == 2) halt();
-
-    Expressions *elements;
+    /* Create ExpInitializer with ArrayLiteralExp
+     */
     size_t edim;
-    Type *t = NULL;
-    if (type)
+    switch (t->ty)
     {
-        if (type == Type::terror)
-            return new ErrorExp();
+       case Tsarray:
+           edim = (size_t)((TypeSArray *)t)->dim->toInteger();
+           break;
 
-        t = type->toBasetype();
-        switch (t->ty)
-        {
-           case Tsarray:
-               edim = (size_t)((TypeSArray *)t)->dim->toInteger();
-               break;
+       case Tpointer:
+       case Tarray:
+           edim = dim;
+           break;
 
-           case Tvector:
-               t = ((TypeVector *)t)->basetype;
-               edim = (size_t)((TypeSArray *)t)->dim->toInteger();
-               break;
-
-           case Tpointer:
-           case Tarray:
-               edim = dim;
-               break;
-
-           default:
-               assert(0);
-        }
-    }
-    else
-    {
-        edim = value.dim;
-        for (size_t i = 0, j = 0; i < value.dim; i++, j++)
-        {
-            if (index[i])
-            {
-                if (index[i]->op == TOKint64)
-                    j = (size_t)index[i]->toInteger();
-                else
-                    goto Lno;
-            }
-            if (j >= edim)
-                edim = j + 1;
-        }
+       default:
+           assert(0);
     }
 
-    elements = new Expressions();
+    Expressions *elements = new Expressions();
     elements->setDim(edim);
     elements->zero();
     for (size_t i = 0, j = 0; i < value.dim; i++, j++)
@@ -681,59 +632,50 @@ Expression *ArrayInitializer::toExpression(Type *tx)
         if (index[i])
             j = (size_t)(index[i])->toInteger();
         assert(j < edim);
+
         Initializer *iz = value[i];
-        if (!iz)
-            goto Lno;
+        assert(iz);
+        //printf("[%d] iz = %s, isExp = %d\n", i, iz->toChars(), iz->isExpInitializer());
         Expression *ex = iz->toExpression();
-        if (!ex)
-        {
-            goto Lno;
-        }
+        assert(ex);
         (*elements)[j] = ex;
     }
 
     /* Fill in any missing elements with the default initializer
      */
-    {
-    Expression *init = NULL;
+    Expression *iz = NULL;
     for (size_t i = 0; i < edim; i++)
     {
         if (!(*elements)[i])
         {
-            if (!type)
-                goto Lno;
-            if (!init)
-                init = ((TypeNext *)t)->next->defaultInit();
-            (*elements)[i] = init;
+            if (!iz)
+                iz = ((TypeNext *)t)->next->defaultInit();
+            (*elements)[i] = iz;
         }
     }
-
+#if 1   // necessary?
     for (size_t i = 0; i < edim; i++)
     {
         Expression *e = (*elements)[i];
         if (e->op == TOKerror)
-            return e;
+            return new ErrorInitializer();
     }
-
+#endif
     Expression *e = new ArrayLiteralExp(loc, elements);
-    e->type = type;
-    return e;
-    }
-
-Lno:
-    return NULL;
+    ExpInitializer *ei = new ExpInitializer(loc, e);
+    return ei->semantic(sc, t, needInterpret);
 }
 
 /********************************
- * If possible, convert array initializer to associative array initializer.
+ * If possible, convert array initializer to associative array expression.
  */
 
-Expression *ArrayInitializer::toAssocArrayLiteral()
+Initializer *ArrayInitializer::semanticAA(Scope *sc, Type *t, NeedInterpret needInterpret)
 {
-    Expression *e;
+    //printf("ArrayInitializer::semanticAA() %s, t = %s\n", toChars(), t->toChars());
+    assert(t->ty == Taarray);
+    TypeAArray *taa = (TypeAArray *)t;
 
-    //printf("ArrayInitializer::toAssocArrayInitializer()\n");
-    //static int i; if (++i == 2) halt();
     Expressions *keys = new Expressions();
     keys->setDim(value.dim);
     Expressions *values = new Expressions();
@@ -741,27 +683,33 @@ Expression *ArrayInitializer::toAssocArrayLiteral()
 
     for (size_t i = 0; i < value.dim; i++)
     {
-        e = index[i];
+        Expression *e = index[i];
         if (!e)
-            goto Lno;
+        {
+        Lno:
+            delete keys;
+            delete values;
+            error(loc, "not an associative array initializer");
+            return new ErrorInitializer();
+        }
         (*keys)[i] = e;
 
         Initializer *iz = value[i];
         if (!iz)
             goto Lno;
-        e = iz->toExpression();
-        if (!e)
-            goto Lno;
-        (*values)[i] = e;
+        iz = iz->semantic(sc, taa->next, needInterpret);
+        (*values)[i] = iz->toExpression();
     }
-    e = new AssocArrayLiteralExp(loc, keys, values);
-    return e;
+    Expression *e = new AssocArrayLiteralExp(loc, keys, values);
+    ExpInitializer *ei = new ExpInitializer(e->loc, e);
+    return ei->semantic(sc, t, needInterpret);
+}
 
-Lno:
-    delete keys;
-    delete values;
-    error(loc, "not an associative array initializer");
-    return new ErrorExp();
+Expression *ArrayInitializer::toExpression(Type *tx)
+{
+    //printf("ArrayInitializer::toExpression(), dim = %d\n", dim);
+    assert(0);
+    return NULL;
 }
 
 void ArrayInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)

@@ -1505,24 +1505,16 @@ Lnomatch:
                 //printf("fd = '%s', var = '%s'\n", fd->toChars(), toChars());
                 if (!ei)
                 {
-                    ArrayInitializer *ai = init->isArrayInitializer();
-                    Expression *e;
-                    if (ai && (tb->ty == Taarray || tb->ty == Tstruct && ai->isAssociativeArray()))
-                        e = ai->toAssocArrayLiteral();
-                    else
-                        e = init->toExpression();
-                    if (!e)
+                    assert(!inferred);
+
+                    // Run semantic, but don't need to interpret
+                    init = init->semantic(sc, type, INITnointerpret);
+                    ei = init->isExpInitializer();
+                    if (!ei)
                     {
-                        // Run semantic, but don't need to interpret
-                        init = init->semantic(sc, type, INITnointerpret);
-                        e = init->toExpression();
-                        if (!e)
-                        {
-                            error("is not a static and cannot have static initializer");
-                            return;
-                        }
+                        assert(init->isErrorInitializer());
+                        return;
                     }
-                    ei = new ExpInitializer(init->loc, e);
                     init = ei;
                 }
 
