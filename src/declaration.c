@@ -215,7 +215,8 @@ Type *TupleDeclaration::getType()
         /* It's only a type tuple if all the Object's are types
          */
         for (size_t i = 0; i < objects->dim; i++)
-        {   RootObject *o = (*objects)[i];
+        {
+            RootObject *o = (*objects)[i];
 
             if (o->dyncast() != DYNCAST_TYPE)
             {
@@ -232,7 +233,8 @@ Type *TupleDeclaration::getType()
         OutBuffer buf;
         int hasdeco = 1;
         for (size_t i = 0; i < types->dim; i++)
-        {   Type *t = (*types)[i];
+        {
+            Type *t = (*types)[i];
 
             //printf("type = %s\n", t->toChars());
 #if 0
@@ -260,11 +262,14 @@ bool TupleDeclaration::needThis()
 {
     //printf("TupleDeclaration::needThis(%s)\n", toChars());
     for (size_t i = 0; i < objects->dim; i++)
-    {   RootObject *o = (*objects)[i];
+    {
+        RootObject *o = (*objects)[i];
         if (o->dyncast() == DYNCAST_EXPRESSION)
-        {   Expression *e = (Expression *)o;
+        {
+            Expression *e = (Expression *)o;
             if (e->op == TOKdsymbol)
-            {   DsymbolExp *ve = (DsymbolExp *)e;
+            {
+                DsymbolExp *ve = (DsymbolExp *)e;
                 Declaration *d = ve->s->isDeclaration();
                 if (d && d->needThis())
                 {
@@ -305,16 +310,20 @@ Dsymbol *TypedefDeclaration::syntaxCopy(Dsymbol *s)
 
     // Syntax copy for header file
     if (!htype)      // Don't overwrite original
-    {   if (type)    // Make copy for both old and new instances
-        {   htype = type->syntaxCopy();
+    {
+        if (type)    // Make copy for both old and new instances
+        {
+            htype = type->syntaxCopy();
             st->htype = type->syntaxCopy();
         }
     }
     else            // Make copy of original for new instance
         st->htype = htype->syntaxCopy();
     if (!hbasetype)
-    {   if (basetype)
-        {   hbasetype = basetype->syntaxCopy();
+    {
+        if (basetype)
+        {
+            hbasetype = basetype->syntaxCopy();
             st->hbasetype = basetype->syntaxCopy();
         }
     }
@@ -462,16 +471,20 @@ Dsymbol *AliasDeclaration::syntaxCopy(Dsymbol *s)
 
     // Syntax copy for header file
     if (!htype)     // Don't overwrite original
-    {   if (type)       // Make copy for both old and new instances
-        {   htype = type->syntaxCopy();
+    {
+        if (type)       // Make copy for both old and new instances
+        {
+            htype = type->syntaxCopy();
             sa->htype = type->syntaxCopy();
         }
     }
     else                        // Make copy of original for new instance
         sa->htype = htype->syntaxCopy();
     if (!haliassym)
-    {   if (aliassym)
-        {   haliassym = aliassym->syntaxCopy(s);
+    {
+        if (aliassym)
+        {
+            haliassym = aliassym->syntaxCopy(s);
             sa->haliassym = aliassym->syntaxCopy(s);
         }
     }
@@ -873,7 +886,8 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     assert(id);
 #ifdef DEBUG
     if (!type && !init)
-    {   printf("VarDeclaration('%s')\n", id->toChars());
+    {
+        printf("VarDeclaration('%s')\n", id->toChars());
         //*(char*)0=0;
     }
 #endif
@@ -904,13 +918,15 @@ Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
 
     VarDeclaration *sv;
     if (s)
-    {   sv = (VarDeclaration *)s;
+    {
+        sv = (VarDeclaration *)s;
     }
     else
     {
         Initializer *init = NULL;
         if (this->init)
-        {   init = this->init->syntaxCopy();
+        {
+            init = this->init->syntaxCopy();
             //init->isExpInitializer()->exp->print();
         }
 
@@ -920,16 +936,20 @@ Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
 
     // Syntax copy for header file
     if (!htype)      // Don't overwrite original
-    {   if (type)    // Make copy for both old and new instances
-        {   htype = type->syntaxCopy();
+    {
+        if (type)    // Make copy for both old and new instances
+        {
+            htype = type->syntaxCopy();
             sv->htype = type->syntaxCopy();
         }
     }
     else            // Make copy of original for new instance
         sv->htype = htype->syntaxCopy();
     if (!hinit)
-    {   if (init)
-        {   hinit = init->syntaxCopy();
+    {
+        if (init)
+        {
+            hinit = init->syntaxCopy();
             sv->hinit = init->syntaxCopy();
         }
     }
@@ -1249,7 +1269,8 @@ Lnomatch:
     /* Adjust storage class to reflect type
      */
     if (type->isConst())
-    {   storage_class |= STCconst;
+    {
+        storage_class |= STCconst;
         if (type->isShared())
             storage_class |= STCshared;
     }
@@ -1406,7 +1427,8 @@ Lnomatch:
     }
 
     if (!init && !fd)
-    {   // If not mutable, initializable by constructor only
+    {
+        // If not mutable, initializable by constructor only
         storage_class |= STCctorinit;
     }
 
@@ -1759,11 +1781,13 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
     //printf("VarDeclaration::setFieldOffset(ad = %s) %s\n", ad->toChars(), toChars());
 
     if (aliassym)
-    {   // If this variable was really a tuple, set the offsets for the tuple fields
+    {
+        // If this variable was really a tuple, set the offsets for the tuple fields
         TupleDeclaration *v2 = aliassym->isTupleDeclaration();
         assert(v2);
         for (size_t i = 0; i < v2->objects->dim; i++)
-        {   RootObject *o = (*v2->objects)[i];
+        {
+            RootObject *o = (*v2->objects)[i];
             assert(o->dyncast() == DYNCAST_EXPRESSION);
             Expression *e = (Expression *)o;
             assert(e->op == TOKdsymbol);
@@ -1791,7 +1815,8 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
     // Check for forward referenced types which will fail the size() call
     Type *t = type->toBasetype();
     if (storage_class & STCref)
-    {   // References are the size of a pointer
+    {
+        // References are the size of a pointer
         t = Type::tvoidptr;
     }
     if (t->ty == Tstruct || t->ty == Tsarray)
@@ -1860,7 +1885,8 @@ void VarDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     else
         buf->writestring(ident->toChars());
     if (init)
-    {   buf->writestring(" = ");
+    {
+        buf->writestring(" = ");
         ExpInitializer *ie = init->isExpInitializer();
         if (ie && (ie->exp->op == TOKconstruct || ie->exp->op == TOKblit))
             ((AssignExp *)ie->exp)->e2->toCBuffer(buf, hgs);
@@ -2102,7 +2128,8 @@ bool VarDeclaration::isDataseg()
         return false;
     Dsymbol *parent = this->toParent();
     if (!parent && !(storage_class & STCstatic))
-    {   error("forward referenced");
+    {
+        error("forward referenced");
         type = Type::terror;
         return false;
     }
@@ -2164,8 +2191,7 @@ bool VarDeclaration::needsAutoDtor()
  */
 
 Expression *VarDeclaration::callScopeDtor(Scope *sc)
-{   Expression *e = NULL;
-
+{
     //printf("VarDeclaration::callScopeDtor() %s\n", toChars());
 
     // Destruction of STCfield's is handled by buildDtor()
@@ -2173,6 +2199,8 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
     {
         return NULL;
     }
+
+    Expression *e = NULL;
 
     // Destructors for structs and arrays of structs
     Type *tv = type->baseElemOf();
@@ -2192,7 +2220,6 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
 
                 Expression *et = type->getTypeInfo(sc);
                 et = new DotIdExp(loc, et, Id::destroy);
-
                 e = new CallExp(loc, et, args);
             }
             else
@@ -2226,10 +2253,7 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
             if (1 || onstack || cd->dtors.dim)  // if any destructors
             {
                 // delete this;
-                Expression *ec;
-
-                ec = new VarExp(loc, this);
-                e = new DeleteExp(loc, ec);
+                e = new DeleteExp(loc, new VarExp(loc, this));
                 e->type = Type::tvoid;
                 break;
             }
