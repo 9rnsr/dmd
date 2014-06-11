@@ -414,14 +414,39 @@ Initializer *ArrayInitializer::inferType(Scope *sc)
     }
     else
     {
+    #if 0
+        Type *t = NULL;
+    #endif
+        size_t edim = value.dim;
+    #if 0
+        for (size_t i = 0, j = 0; i < value.dim; i++, j++)
+        {
+            assert(!index[i]);  // checked by isAssociativeArray()
+            if (index[i])
+            {
+                if (index[i]->op == TOKint64)
+                    j = (size_t)index[i]->toInteger();
+                else
+                    goto Lno;
+            }
+            if (j >= edim)
+                edim = j + 1;
+        }
+    #endif
+
         Expressions *elements = new Expressions();
-        elements->setDim(value.dim);
+        elements->setDim(edim);
         elements->zero();
 
-        for (size_t i = 0; i < value.dim; i++)
+        for (size_t i = 0, j = 0; i < value.dim; i++, j++)
         {
+    #if 0
+            if (index[i])
+                j = (size_t)(index[i])->toInteger();
+    #else
             assert(!index[i]);  // already asserted by isAssociativeArray()
-
+    #endif
+            assert(j < edim);
             Initializer *iz = value[i];
             if (!iz)
                 goto Lno;
@@ -432,7 +457,22 @@ Initializer *ArrayInitializer::inferType(Scope *sc)
             (*elements)[i] = ((ExpInitializer *)iz)->exp;
             assert((*elements)[i]->op != TOKerror);
         }
-
+    #if 0
+        /* Fill in any missing elements with the default initializer
+         */
+        Expression *iz = NULL;
+        for (size_t i = 0; i < edim; i++)
+        {
+            if (!(*elements)[i])
+            {
+                if (!type)
+                    goto Lno;
+                if (!iz)
+                    iz = ((TypeNext *)t)->next->defaultInit();
+                (*elements)[i] = iz;
+            }
+        }
+    #endif
         Expression *e = new ArrayLiteralExp(loc, elements);
         ExpInitializer *ei = new ExpInitializer(loc, e);
         return ei->inferType(sc);
