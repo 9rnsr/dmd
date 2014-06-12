@@ -1123,7 +1123,7 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t)
         {
             // Rewrite as S().ctor(exp)
             Expression *e;
-            e = new StructLiteralExp(loc, sd, NULL);
+            e = new StructLiteralExp(loc, sd, NULL, t);
             e = new DotIdExp(loc, e, Id::ctor);
             e = new CallExp(loc, e, exp);
             e = e->semantic(sc);
