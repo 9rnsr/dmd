@@ -1545,6 +1545,12 @@ Lnomatch:
                     //    tx = tx->nextOf()->toBasetype();
                     //}
                     //printf("\ttx = %s, inferTypeX = %d\n", tx->toChars(), init->inferTypeX(sc, tx));
+                    if (tx)
+                    {
+                        printf("[%s] type = %s, init = %s\n", loc.toChars(), tx->toChars(), init->toChars());
+                        init = init->semantic(sc, tx, INITnointerpret);
+                        ei = init->isExpInitializer();
+                    }
                 }
                 if (!ei)
                 {

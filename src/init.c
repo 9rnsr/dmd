@@ -55,7 +55,7 @@ Type *Initializer::inferTypeY(Scope *sc, Type *t)
     if (tb->ty == Tsarray)
     {
         Type *tx = inferTypeY(sc, ((TypeNext *)tb)->next);
-    #if 0   // mask for test
+    #if 1   // mask for test
         printf("\tt = %s, inferTypeX = %d\n", t->toChars(), tx == ((TypeNext *)tb)->next);
         if (tx)
             return tx;

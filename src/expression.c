@@ -11516,6 +11516,8 @@ Expression *AssignExp::semantic(Scope *sc)
         Expression *e2x = e2;
         Type *t2 = e2x->type->toBasetype();
 
+    LagainSA:
+        //printf("e2x = %s %s, e1x = %s %s\n", e2x->type->toChars(), e2x->toChars(), e1x->type->toChars(), e1x->toChars());
         if (e2x->implicitConvTo(e1x->type))
         {
             if (op != TOKblit &&
@@ -11552,8 +11554,14 @@ Expression *AssignExp::semantic(Scope *sc)
 
             // May be block or element-wise assignment, so
             // convert e1 to e1[]
-            if (op != TOKassign)
+            Type *t1b = t1->baseElemOf();
+            if (op != TOKassign && t2->implicitConvTo(t1b))
             {
+                // Rewrite:
+                //  int[3][3] sa = 1;
+                // as:
+                //  int[3*3] sa; sa[] = 1;
+
                 // If multidimensional static array, treat as one large array
                 dinteger_t dim = ((TypeSArray *)t1)->dim->toInteger();
                 Type *t = t1;
@@ -11564,10 +11572,23 @@ Expression *AssignExp::semantic(Scope *sc)
                         break;
                     dim *= ((TypeSArray *)t)->dim->toInteger();
                     e1x->type = t->nextOf()->sarrayOf(dim);
+                    //t1 = e1x->type->toBasetype();
+                    //goto LagainSA;
                 }
+                e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
+                e1x = e1x->semantic(sc);
             }
-            e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
-            e1x = e1x->semantic(sc);
+            else if (e2x->implicitConvTo(t1->nextOf()))
+            {
+                // Rewrite:
+                //  sa = e;
+                // as:
+                //  sa[] = e;
+
+                // TODO: should warn the lack of slice oprator in TOKassign case?
+                e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
+                e1x = e1x->semantic(sc);
+            }
         }
         if (e1x->op == TOKerror)
             return e1x;
