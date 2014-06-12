@@ -47,7 +47,8 @@ public:
     virtual Initializer *inferType(Scope *sc) = 0;
 
     // needInterpret is INITinterpret if must be a manifest constant, 0 if not.
-    virtual Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret) = 0;
+    Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
+    virtual Initializer *semantic(Scope *sc, Type *t) = 0;
     virtual Expression *toExpression() = 0;
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
     char *toChars();
@@ -68,7 +69,7 @@ public:
     VoidInitializer(Loc loc);
     Initializer *syntaxCopy();
     Initializer *inferType(Scope *sc);
-    Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
+    Initializer *semantic(Scope *sc, Type *t);
     Expression *toExpression();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -83,7 +84,7 @@ public:
     ErrorInitializer();
     Initializer *syntaxCopy();
     Initializer *inferType(Scope *sc);
-    Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
+    Initializer *semantic(Scope *sc, Type *t);
     Expression *toExpression();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -102,7 +103,7 @@ public:
     Initializer *syntaxCopy();
     void addInit(Identifier *field, Initializer *value);
     Initializer *inferType(Scope *sc);
-    Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
+    Initializer *semantic(Scope *sc, Type *t);
     Expression *toExpression();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -121,8 +122,8 @@ public:
     void addInit(Expression *index, Initializer *value);
     bool isAssociativeArray();
     Initializer *inferType(Scope *sc);
-    Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
-    Initializer *semanticAA(Scope *sc, Type *t, NeedInterpret needInterpret);
+    Initializer *semantic(Scope *sc, Type *t);
+    Initializer *semanticAA(Scope *sc, Type *t);
     Expression *toExpression();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -139,7 +140,7 @@ public:
     ExpInitializer(Loc loc, Expression *exp);
     Initializer *syntaxCopy();
     Initializer *inferType(Scope *sc);
-    Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
+    Initializer *semantic(Scope *sc, Type *t);
     Expression *toExpression();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 

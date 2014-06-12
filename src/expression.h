@@ -493,8 +493,8 @@ public:
 
 // scrubReturnValue is running
 #define stageScrub          0x1
-// hasNonConstPointers is running
-#define stageSearchPointers 0x2
+//// hasNonConstPointers is running
+//#define stageSearchPointers 0x2
 // optimize is running
 #define stageOptimize       0x4
 // apply is running
