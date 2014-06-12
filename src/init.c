@@ -54,15 +54,23 @@ Type *Initializer::inferTypeY(Scope *sc, Type *t)
     Type *tb = t->toBasetype();
     if (tb->ty == Tsarray)
     {
-        Type *tx = inferTypeY(sc, ((TypeNext *)tb)->next);
+        Type *tn = ((TypeNext *)tb)->next;
+        if (isArrayInitializer() && !(tn->ty == Tarray || tn->ty == Tsarray))
+        {
+            // do not test matching
+        }
+        else
+        {
+        Type *tx = inferTypeY(sc, tn);
     #if 1   // mask for test
-        printf("\tt = %s, inferTypeX = %d\n", t->toChars(), tx == ((TypeNext *)tb)->next);
+        //printf("\tt = %s, inferTypeX = %d\n", t->toChars(), tx == tn);
         if (tx)
             return tx;
     #endif
+        }
     }
     Type *tx = inferTypeX(sc, t) ? t : NULL;
-    printf("\tt = %s, inferTypeX = %d\n", t->toChars(), tx != NULL);
+    //printf("\tt = %s, inferTypeX = %d\n", t->toChars(), tx != NULL);
 
     return tx;
 }

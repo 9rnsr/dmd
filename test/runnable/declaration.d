@@ -296,6 +296,59 @@ void test11421()
 
 /***************************************************/
 
+void test12787()
+{
+}void main()
+{
+  {
+    int[2][2] a = 1;
+    assert(a == [[1,1], [1,1]]);
+  }
+
+  {
+    int[3][3] a = [1,2];    // length mismatch...
+    assert(a == [[1,2,0], [1,2,0], [1,2,0]]);
+  }
+
+  {
+    int[3] sa = [1,2,3];
+    int[3][3] a = sa;
+    assert(a == [[1,2,3], [1,2,3], [1,2,3]]);
+  }
+
+  {
+    int[][3] a = [1,2];
+    assert(a == [[1,2], [1,2], [1,2]]);
+    assert(a[0] is a[1] && a[1] is a[2]);
+  }
+
+    static assert(!is(typeof({ int[][][3] a = [1,2]; })));
+
+    //struct S { int x; }
+    ////int x;
+    //S x;
+    //static S* arr = &x;
+
+  {
+    int[1][2][3] a = [[1],[2]];
+    assert(a == [[[1],[2]], [[1],[2]], [[1],[2]]]);
+  }
+
+  {
+    //int[1][2] a = [ 1 , [2]];
+  }
+    static assert(!is(typeof({ int[1][2][3] a = [ 1 , [2]]; })));
+
+    struct S { this(int n) { num = n; } int num; }
+
+  {
+    S[3] a = [1, 1];    // length mismatch...
+    assert(a == [S(1), S(1), S.init]);
+  }
+}
+
+/***************************************************/
+
 int main()
 {
     test6475();

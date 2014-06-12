@@ -1537,17 +1537,11 @@ Lnomatch:
             {
                 //printf("fd = '%s', var = '%s'\n", fd->toChars(), toChars());
                 {
-                    printf("[%s] type = %s, init = %s\n", loc.toChars(), type->toChars(), init->toChars());
+                    //printf("[%s] type = %s, init = %s\n", loc.toChars(), type->toChars(), init->toChars());
                     Type *tx = init->inferTypeY(sc, type);
-                    //while (tx->ty == Tsarray)
-                    //{
-                    //    printf("\ttx = %s, inferTypeX = %d\n", tx->toChars(), init->inferTypeX(sc, tx));
-                    //    tx = tx->nextOf()->toBasetype();
-                    //}
-                    //printf("\ttx = %s, inferTypeX = %d\n", tx->toChars(), init->inferTypeX(sc, tx));
                     if (tx)
                     {
-                        printf("[%s] type = %s, init = %s\n", loc.toChars(), tx->toChars(), init->toChars());
+                        //printf("[%s] tx = %s, init = %s\n", loc.toChars(), tx->toChars(), init->toChars());
                         init = init->semantic(sc, tx, INITnointerpret);
                         ei = init->isExpInitializer();
                     }
