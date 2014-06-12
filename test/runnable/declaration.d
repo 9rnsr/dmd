@@ -335,9 +335,14 @@ void test12787()
   }
 
   {
-    //int[1][2] a = [ 1 , [2]];
+    int[1][2] a = [ 1 , [2]];
+    assert(a == [[1], [2]]);
   }
-    static assert(!is(typeof({ int[1][2][3] a = [ 1 , [2]]; })));
+
+  {
+    int[1][2][3] a = [ 1 , [2]];
+    assert(a == [[[1], [2]], [[1], [2]], [[1], [2]]]);
+  }
 
     struct S { this(int n) { num = n; } int num; }
 

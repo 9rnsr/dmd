@@ -617,7 +617,7 @@ Lno:
 
 Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
 {
-    //printf("ArrayInitializer::semantic(%s)\n", t->toChars());
+    printf("ArrayInitializer::semantic(%s)\n", t->toChars());
 
     const unsigned amax = 0x80000000;
     bool errors = false;
@@ -785,6 +785,16 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
         //printf("[%d] iz = %s, isExp = %d\n", i, iz->toChars(), iz->isExpInitializer());
         Expression *ex = iz->toExpression();
         assert(ex);
+        Type *tn = t->nextOf()->toBasetype();
+        if (tn->ty == Tsarray && ex->implicitConvTo(tn->nextOf()))
+        {
+            size_t d = ((TypeSArray *)tn)->dim->toInteger();
+            Expressions *a = new Expressions();
+            a->setDim(d);
+            for (size_t k = 0; k < d; k++)
+                (*a)[k] = ex;
+            ex = new ArrayLiteralExp(ex->loc, a);
+        }
         (*elements)[j] = ex;
     }
 
