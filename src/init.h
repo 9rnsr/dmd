@@ -45,6 +45,7 @@ public:
      * Returns ExpInitializer.
      */
     virtual Initializer *inferType(Scope *sc) = 0;
+    virtual bool inferTypeX(Scope *sc, Type *tx) = 0;
 
     // needInterpret is INITinterpret if must be a manifest constant, 0 if not.
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
@@ -69,6 +70,7 @@ public:
     VoidInitializer(Loc loc);
     Initializer *syntaxCopy();
     Initializer *inferType(Scope *sc);
+    bool inferTypeX(Scope *sc, Type *tx);
     Initializer *semantic(Scope *sc, Type *t);
     Expression *toExpression();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -84,6 +86,7 @@ public:
     ErrorInitializer();
     Initializer *syntaxCopy();
     Initializer *inferType(Scope *sc);
+    bool inferTypeX(Scope *sc, Type *tx);
     Initializer *semantic(Scope *sc, Type *t);
     Expression *toExpression();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -103,6 +106,7 @@ public:
     Initializer *syntaxCopy();
     void addInit(Identifier *field, Initializer *value);
     Initializer *inferType(Scope *sc);
+    bool inferTypeX(Scope *sc, Type *tx);
     Initializer *semantic(Scope *sc, Type *t);
     Expression *toExpression();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -122,6 +126,7 @@ public:
     void addInit(Expression *index, Initializer *value);
     bool isAssociativeArray();
     Initializer *inferType(Scope *sc);
+    bool inferTypeX(Scope *sc, Type *tx);
     Initializer *semantic(Scope *sc, Type *t);
     Initializer *semanticAA(Scope *sc, Type *t);
     Expression *toExpression();
@@ -140,6 +145,7 @@ public:
     ExpInitializer(Loc loc, Expression *exp);
     Initializer *syntaxCopy();
     Initializer *inferType(Scope *sc);
+    bool inferTypeX(Scope *sc, Type *tx);
     Initializer *semantic(Scope *sc, Type *t);
     Expression *toExpression();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

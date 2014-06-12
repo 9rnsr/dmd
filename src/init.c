@@ -101,6 +101,11 @@ Initializer *ErrorInitializer::inferType(Scope *sc)
     return this;
 }
 
+bool ErrorInitializer::inferTypeX(Scope *sc, Type *tx)
+{
+    return false;
+}
+
 Initializer *ErrorInitializer::semantic(Scope *sc, Type *t)
 {
     //printf("ErrorInitializer::semantic(t = %p)\n", t);
@@ -136,6 +141,11 @@ Initializer *VoidInitializer::inferType(Scope *sc)
     error(loc, "cannot infer type from void initializer");
     //return new ErrorInitializer();
     return new ExpInitializer(loc, new ErrorExp());
+}
+
+bool VoidInitializer::inferTypeX(Scope *sc, Type *tx)
+{
+    return false;
 }
 
 Initializer *VoidInitializer::semantic(Scope *sc, Type *t)
@@ -192,6 +202,17 @@ Initializer *StructInitializer::inferType(Scope *sc)
     error(loc, "cannot infer type from struct initializer");
     //return new ErrorInitializer();
     return new ExpInitializer(loc, new ErrorExp());
+}
+
+bool StructInitializer::inferTypeX(Scope *sc, Type *tx)
+{
+    tx = tx->toBasetype();
+    if (tx->ty == Tstruct)
+        return true;
+    if (tx->ty == Tdelegate ||
+        tx->ty == Tpointer && ((TypeNext *)tx)->next->ty == Tfunction)
+        return true;
+    return false;
 }
 
 Initializer *StructInitializer::semantic(Scope *sc, Type *t)
@@ -410,6 +431,43 @@ bool ArrayInitializer::isAssociativeArray()
         if (index[i])
             return true;
     }
+    return false;
+}
+
+bool ArrayInitializer::inferTypeX(Scope *sc, Type *tx)
+{
+    tx = tx->toBasetype();
+    if (tx->ty == Tvector)
+        tx = ((TypeVector *)tx)->basetype;
+    if (tx->ty == Tarray || tx->ty == Tsarray || tx->ty == Taarray)
+    {
+        bool mayAA = true;
+        if (value.dim)
+        {
+            Type *tn = ((TypeNext *)tx)->next;
+            for (size_t i = 0; i < value.dim; i++)
+            {
+                if (index[i] == NULL)
+                    mayAA = false;
+                if (!value[i]->inferTypeX(sc, tn))
+                    return false;
+            }
+            if (!mayAA && tx->ty == Taarray)
+                return false;
+            return true;
+        }
+        else
+        {
+            if (tx->ty == Tarray)
+                return true;
+            else if (tx->ty == Taarray)
+                return false;
+            else
+                return ((TypeSArray *)tx)->dim->toInteger() == 0;
+        }
+    }
+    else if (tx->ty == Tstruct)
+        return true;
     return false;
 }
 
@@ -888,6 +946,21 @@ bool arrayHasNonConstPointers(Expressions *elems)
     return false;
 }
 #endif
+
+bool ExpInitializer::inferTypeX(Scope *sc, Type *tx)
+{
+    exp = exp->semantic(sc);
+    exp = resolveProperties(sc, exp);
+
+    tx = tx->toBasetype();
+    if (exp->implicitConvTo(tx))
+        return true;
+    if (tx->ty == Tstruct)
+        return true;    // implicit ctor call
+    if (tx->ty == Tsarray && exp->implicitConvTo(((TypeNext *)tx)->next))
+        return true;
+    return false;
+}
 
 Initializer *ExpInitializer::inferType(Scope *sc)
 {
