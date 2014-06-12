@@ -49,6 +49,24 @@ Initializers *Initializer::arraySyntaxCopy(Initializers *ai)
     return a;
 }
 
+Type *Initializer::inferTypeY(Scope *sc, Type *t)
+{
+    Type *tb = t->toBasetype();
+    if (tb->ty == Tsarray)
+    {
+        Type *tx = inferTypeY(sc, ((TypeNext *)tb)->next);
+    #if 0   // mask for test
+        printf("\tt = %s, inferTypeX = %d\n", t->toChars(), tx == ((TypeNext *)tb)->next);
+        if (tx)
+            return tx;
+    #endif
+    }
+    Type *tx = inferTypeX(sc, t) ? t : NULL;
+    printf("\tt = %s, inferTypeX = %d\n", t->toChars(), tx != NULL);
+
+    return tx;
+}
+
 Initializer *Initializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
 {
     if (needInterpret)

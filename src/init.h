@@ -46,6 +46,7 @@ public:
      */
     virtual Initializer *inferType(Scope *sc) = 0;
     virtual bool inferTypeX(Scope *sc, Type *tx) = 0;
+    Type *inferTypeY(Scope *sc, Type *tx);
 
     // needInterpret is INITinterpret if must be a manifest constant, 0 if not.
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
