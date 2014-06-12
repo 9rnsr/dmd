@@ -492,8 +492,8 @@ bool ArrayInitializer::inferTypeX(Scope *sc, Type *tx)
                 return ((TypeSArray *)tx)->dim->toInteger() == 0;
         }
     }
-    else if (tx->ty == Tstruct)
-        return true;
+    //else if (tx->ty == Tstruct)
+    //    return true;
     return false;
 }
 
@@ -991,8 +991,8 @@ bool ExpInitializer::inferTypeX(Scope *sc, Type *tx)
     tx = tx->toBasetype();
     if (exp->implicitConvTo(tx))
         return true;
-    if (tx->ty == Tstruct)
-        return true;    // implicit ctor call
+    //if (tx->ty == Tstruct)
+    //    return true;    // implicit ctor call
     if (tx->ty == Tsarray && exp->implicitConvTo(((TypeNext *)tx)->next))
         return true;
     return false;
