@@ -82,7 +82,7 @@ Initializer *Initializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpr
 
     Initializer *iz = semantic(sc, t);
 
-    ExpInitializer *ei = isExpInitializer();
+    ExpInitializer *ei = iz->isExpInitializer();
     if (ei && needInterpret)
     {
         // If the result will be implicitly cast, move the cast into CTFE
@@ -617,7 +617,7 @@ Lno:
 
 Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
 {
-    printf("ArrayInitializer::semantic(%s)\n", t->toChars());
+    //printf("ArrayInitializer::semantic(%s)\n", t->toChars());
 
     const unsigned amax = 0x80000000;
     bool errors = false;
