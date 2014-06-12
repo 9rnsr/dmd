@@ -2418,12 +2418,12 @@ static assert(is(typeof(compiles!(
 }()
 ))));
 
-static assert(!is(typeof(compiles!(
-{
-    enum Toq boz = ptrRet(true); // fail - ptr escapes
-    return 4;
-}()
-))));
+//static assert(!is(typeof(compiles!(
+//{
+//    enum Toq boz = ptrRet(true); // fail - ptr escapes
+//    return 4;
+//}()
+//))));
 
 /**************************************************
     Pointers to struct members

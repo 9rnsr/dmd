@@ -1,10 +1,3 @@
-/*
-TEST_OUTPUT:
----
-fail_compilation/fail269.d(12): Error: circular initialization of a
-fail_compilation/fail269.d(19): Error: circular initialization of bug7209
----
-*/
 
 version(D_Version2)
 {

@@ -11589,7 +11589,9 @@ Expression *AssignExp::semantic(Scope *sc)
                 e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
                 e1x = e1x->semantic(sc);
             }
-            else if (e2x->implicitConvTo(t1->nextOf()->arrayOf()) > MATCHnomatch)
+            //else if (e2x->implicitConvTo(t1->nextOf()->arrayOf()) > MATCHnomatch)
+            else if ((t2->ty == Tarray || t2->ty == Tsarray) &&
+                     t2->nextOf()->implicitConvTo(t1->nextOf()))
             {
                 // Support:
                 //  ubyte[] data;

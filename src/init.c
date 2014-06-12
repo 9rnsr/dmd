@@ -88,10 +88,10 @@ Initializer *Initializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpr
         // If the result will be implicitly cast, move the cast into CTFE
         // to avoid premature truncation of polysemous types.
         // eg real [] x = [1.1, 2.2]; should use real precision.
-        if (ei->exp->implicitConvTo(t))
-        {
-            ei->exp = ei->exp->implicitCastTo(sc, t);
-        }
+        //if (ei->exp->implicitConvTo(t))
+        //{
+        //    ei->exp = ei->exp->implicitCastTo(sc, t);
+        //}
         ei->exp = ei->exp->ctfeInterpret();
     }
 
@@ -986,15 +986,21 @@ bool arrayHasNonConstPointers(Expressions *elems)
 bool ExpInitializer::inferTypeX(Scope *sc, Type *tx)
 {
     exp = exp->semantic(sc);
+//printf("exp = %s %s, tx = %s\n", exp->type->toChars(), exp->toChars(), tx->toChars());
+    //if (exp->op == TOKfunction && exp->type->ty == Tvoid)
+    //    return (tx->ty == Tdelegate || tx->ty == Tpointer && ((TypeNext *)tx)->next->ty == Tfunction);
     exp = resolveProperties(sc, exp);
 
     tx = tx->toBasetype();
     if (exp->implicitConvTo(tx))
+    {
         return true;
+    }
     //if (tx->ty == Tstruct)
     //    return true;    // implicit ctor call
     if (tx->ty == Tsarray && exp->implicitConvTo(((TypeNext *)tx)->next))
         return true;
+printf("exp = %s %s, tx = %s\n", exp->type->toChars(), exp->toChars(), tx->toChars());
     return false;
 }
 
@@ -1070,7 +1076,9 @@ Initializer *ExpInitializer::inferType(Scope *sc)
 
 Initializer *ExpInitializer::semantic(Scope *sc, Type *t)
 {
-    //printf("ExpInitializer::semantic(%s), type = %s\n", exp->toChars(), t->toChars());
+    printf("ExpInitializer::semantic(%s), type = %s\n", exp->toChars(), t->toChars());
+    exp = ::inferType(exp, t);
+
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
     if (exp->op == TOKerror)
@@ -1144,11 +1152,12 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t)
         t = tb->nextOf();
     }
 
-    if (exp->implicitConvTo(t))
-    {
+    //if (exp->implicitConvTo(t))
+    //{
         exp = exp->implicitCastTo(sc, t);
-    }
-    else
+    //}
+    //else
+    if (0)
     {
         // Look for mismatch of compile-time known length to emit
         // better diagnostic message, as same as AssignExp::semantic.

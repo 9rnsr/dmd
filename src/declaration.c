@@ -1534,12 +1534,12 @@ Lnomatch:
                 !init->isVoidInitializer())
             {
                 //printf("[%s] type = %s, init = %s\n", loc.toChars(), type->toChars(), init->toChars());
-                if (!inferred)
-                if (Type *tx = init->inferTypeY(sc, type))
-                {
-                    //printf("[%s] tx = %s, init = %s\n", loc.toChars(), tx->toChars(), init->toChars());
-                    init = init->semantic(sc, tx, INITnointerpret);
-                }
+                //if (!inferred)
+                //if (Type *tx = init->inferTypeY(sc, type))
+                //{
+                //    //printf("[%s] tx = %s, init = %s\n", loc.toChars(), tx->toChars(), init->toChars());
+                //    init = init->semantic(sc, tx, INITnointerpret);
+                //}
 
                 ExpInitializer *ei = init->isExpInitializer();
 
@@ -1559,6 +1559,7 @@ Lnomatch:
                     }
                     init = ei;
                 }
+//printf("ei->exp = %s %s, tx = %s\n", ei->exp->type->toChars(), ei->exp->toChars(), type->toChars());
 
                 Expression *e1 = new VarExp(loc, this);
                 if (isBlit)
