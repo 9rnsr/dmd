@@ -39,6 +39,7 @@ public:
     Initializer(Loc loc);
     virtual Initializer *syntaxCopy();
     // needInterpret is INITinterpret if must be a manifest constant, 0 if not.
+    virtual bool inferTypeX(Scope *sc, Type *tx) = 0;
     virtual Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
     virtual Type *inferType(Scope *sc);
     virtual Expression *toExpression(Type *t = NULL) = 0;
@@ -62,6 +63,7 @@ public:
 
     VoidInitializer(Loc loc);
     Initializer *syntaxCopy();
+    bool inferTypeX(Scope *sc, Type *tx);
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
     Expression *toExpression(Type *t = NULL);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -75,6 +77,7 @@ class ErrorInitializer : public Initializer
 public:
     ErrorInitializer();
     Initializer *syntaxCopy();
+    bool inferTypeX(Scope *sc, Type *tx);
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
     Expression *toExpression(Type *t = NULL);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -92,6 +95,7 @@ public:
     StructInitializer(Loc loc);
     Initializer *syntaxCopy();
     void addInit(Identifier *field, Initializer *value);
+    bool inferTypeX(Scope *sc, Type *tx);
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
     Expression *toExpression(Type *t = NULL);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -115,6 +119,7 @@ public:
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
     int isAssociativeArray();
     Type *inferType(Scope *sc);
+    bool inferTypeX(Scope *sc, Type *tx);
     Expression *toExpression(Type *t = NULL);
     Expression *toAssocArrayLiteral();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -133,6 +138,7 @@ public:
     Initializer *syntaxCopy();
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
     Type *inferType(Scope *sc);
+    bool inferTypeX(Scope *sc, Type *tx);
     Expression *toExpression(Type *t = NULL);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
