@@ -1524,8 +1524,6 @@ Lnomatch:
         sc = sc->push();
         sc->stc &= ~(STC_TYPECTOR | STCpure | STCnothrow | STCnogc | STCref | STCdisable);
 
-        ExpInitializer *ei = init->isExpInitializer();
-
         // If inside function, there is no semantic3() call
         if (sc->func)
         {
@@ -1535,17 +1533,16 @@ Lnomatch:
                 !(storage_class & (STCmanifest | STCstatic | STCtls | STCgshared | STCextern)) &&
                 !init->isVoidInitializer())
             {
-                //printf("fd = '%s', var = '%s'\n", fd->toChars(), toChars());
+                //printf("[%s] type = %s, init = %s\n", loc.toChars(), type->toChars(), init->toChars());
+                if (Type *tx = init->inferTypeY(sc, type))
                 {
-                    //printf("[%s] type = %s, init = %s\n", loc.toChars(), type->toChars(), init->toChars());
-                    Type *tx = init->inferTypeY(sc, type);
-                    if (tx)
-                    {
-                        //printf("[%s] tx = %s, init = %s\n", loc.toChars(), tx->toChars(), init->toChars());
-                        init = init->semantic(sc, tx, INITnointerpret);
-                        ei = init->isExpInitializer();
-                    }
+                    //printf("[%s] tx = %s, init = %s\n", loc.toChars(), tx->toChars(), init->toChars());
+                    init = init->semantic(sc, tx, INITnointerpret);
                 }
+
+                ExpInitializer *ei = init->isExpInitializer();
+
+                //printf("fd = '%s', var = '%s'\n", fd->toChars(), toChars());
                 if (!ei)
                 {
                     //if (inferred) printf("[%s] %s, type = %s\n", loc.toChars(), toChars(), type->toChars());
@@ -1622,7 +1619,7 @@ Lnomatch:
             {
                 unsigned errors = global.errors;
                 inuse++;
-                if (ei)
+                if (ExpInitializer *ei = init->isExpInitializer())
                 {
                     Expression *exp = ei->exp->syntaxCopy();
 
