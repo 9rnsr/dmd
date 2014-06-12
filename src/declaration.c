@@ -1531,13 +1531,13 @@ Lnomatch:
                 //printf("fd = '%s', var = '%s'\n", fd->toChars(), toChars());
                 {
                     printf("[%s] type = %s, init = %s\n", loc.toChars(), type->toChars(), init->toChars());
-                    Type *tx = tb;
-                    while (tx->ty == Tsarray)
-                    {
-                        printf("\ttx = %s, inferTypeX = %d\n", tx->toChars(), init->inferTypeX(sc, tx));
-                        tx = tx->nextOf()->toBasetype();
-                    }
-                        printf("\ttx = %s, inferTypeX = %d\n", tx->toChars(), init->inferTypeX(sc, tx));
+                    Type *tx = init->inferTypeY(sc, type);
+                    //while (tx->ty == Tsarray)
+                    //{
+                    //    printf("\ttx = %s, inferTypeX = %d\n", tx->toChars(), init->inferTypeX(sc, tx));
+                    //    tx = tx->nextOf()->toBasetype();
+                    //}
+                    //printf("\ttx = %s, inferTypeX = %d\n", tx->toChars(), init->inferTypeX(sc, tx));
                 }
                 if (!ei)
                 {

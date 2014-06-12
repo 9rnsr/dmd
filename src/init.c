@@ -47,6 +47,22 @@ Type *Initializer::inferType(Scope *sc)
     return Type::terror;
 }
 
+Type *Initializer::inferTypeY(Scope *sc, Type *t)
+{
+    Type *tb = t->toBasetype();
+    if (tb->ty == Tsarray)
+    {
+        Type *tx = inferTypeY(sc, ((TypeNext *)tb)->next);
+        printf("\tt = %s, inferTypeX = %d\n", t->toChars(), tx == ((TypeNext *)tb)->next);
+        if (tx)
+            return tx;
+    }
+    Type *tx = inferTypeX(sc, t) ? t : NULL;
+    printf("\tt = %s, inferTypeX = %d\n", t->toChars(), tx != NULL);
+
+    return tx;
+}
+
 Initializers *Initializer::arraySyntaxCopy(Initializers *ai)
 {   Initializers *a = NULL;
 

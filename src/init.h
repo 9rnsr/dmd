@@ -40,6 +40,7 @@ public:
     virtual Initializer *syntaxCopy();
     // needInterpret is INITinterpret if must be a manifest constant, 0 if not.
     virtual bool inferTypeX(Scope *sc, Type *tx) = 0;
+    Type *inferTypeY(Scope *sc, Type *tx);
     virtual Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
     virtual Type *inferType(Scope *sc);
     virtual Expression *toExpression(Type *t = NULL) = 0;
