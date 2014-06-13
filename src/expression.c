@@ -5753,7 +5753,15 @@ MATCH FuncExp::matchType(Type *to, Scope *sc, FuncExp **presult, int flag)
     TypeFunction *tfx = (TypeFunction *)fd->type;
     bool convertMatch = (type->ty != to->ty);
 
+    Type *toret = tfx->next;
+    LINK tolink = tfx->linkage;
     if (fd->inferRetType && tfx->next->implicitConvTo(tof->next) == MATCHconvert)
+        toret = tof->next;
+
+    //printf("L%d, fd->linkage = %d, tfx->linkage = %d\n", __LINE__, fd->linkage, tfx->linkage);
+    if (/*!fd->treq && */tfx->linkage != tof->linkage)
+        tolink = tof->linkage;
+    if (toret != tfx->next || tolink != tfx->linkage)
     {
         /* If return type is inferred and covariant return,
          * tweak return statements to required return type.
@@ -5765,7 +5773,7 @@ MATCH FuncExp::matchType(Type *to, Scope *sc, FuncExp **presult, int flag)
          */
         convertMatch = true;
 
-        TypeFunction *tfy = new TypeFunction(tfx->parameters, tof->next, tfx->varargs, tfx->linkage, STCundefined);
+        TypeFunction *tfy = new TypeFunction(tfx->parameters, tof->next, tfx->varargs, tolink, STCundefined);
         tfy->mod = tfx->mod;
         tfy->isnothrow  = tfx->isnothrow;
         tfy->isnogc     = tfx->isnogc;
@@ -5776,6 +5784,7 @@ MATCH FuncExp::matchType(Type *to, Scope *sc, FuncExp **presult, int flag)
         tfy->deco = tfy->merge()->deco;
 
         tfx = tfy;
+        //printf("L%d\n", __LINE__);
     }
 
     Type *tx;
@@ -5786,18 +5795,21 @@ MATCH FuncExp::matchType(Type *to, Scope *sc, FuncExp **presult, int flag)
         // Allow conversion from implicit function pointer to delegate
         tx = new TypeDelegate(tfx);
         tx->deco = tx->merge()->deco;
+    //printf("L%d\n", __LINE__);
     }
     else
     {
         assert(tok == TOKfunction ||
                tok == TOKreserved && type->ty == Tpointer);
         tx = tfx->pointerTo();
+    //printf("L%d, tx = %s, to = %s\n", __LINE__, tx->toChars(), to->toChars());
     }
     //printf("\ttx = %s, to = %s\n", tx->toChars(), to->toChars());
 
     MATCH m = tx->implicitConvTo(to);
     if (m > MATCHnomatch)
     {
+    //printf("L%d\n", __LINE__);
         // MATCHexact:      exact type match
         // MATCHconst:      covairiant type match (eg. attributes difference)
         // MATCHconvert:    context conversion
@@ -5809,11 +5821,13 @@ MATCH FuncExp::matchType(Type *to, Scope *sc, FuncExp **presult, int flag)
             (*presult)->type = to;
 
             // Bugzilla 12508: Tweak function body for covariant returns.
+            (*presult)->fd->linkage = tof->linkage;
             (*presult)->fd->modifyReturns(sc, tof->next);
         }
     }
     else if (!flag)
     {
+    //printf("L%d\n", __LINE__);
         error("cannot implicitly convert expression (%s) of type %s to %s",
                 toChars(), tx->toChars(), to->toChars());
     }
