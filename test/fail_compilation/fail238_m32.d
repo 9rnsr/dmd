@@ -1,4 +1,14 @@
 // REQUIRED_ARGS: -m32
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail238_m32.d(21): Error: cannot implicitly convert expression ("a") of type string to uint
+fail_compilation/fail238_m32.d(24): Error: cannot implicitly convert expression (X!()) of type void to const(immutable(char)[])
+fail_compilation/fail238_m32.d(29): Error: template instance fail238_m32.A!"a" error instantiating
+fail_compilation/fail238_m32.d(35):        instantiated from here: M!(q)
+fail_compilation/fail238_m32.d(35):        while evaluating pragma(msg, M!(q))
+---
+*/
 
 // Issue 581 - Error message w/o line number in dot-instantiated template
 
