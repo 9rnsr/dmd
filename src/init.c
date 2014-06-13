@@ -26,6 +26,82 @@
 #include "id.h"
 #include "tokens.h"
 
+bool arrayHasNonConstPointers(Expressions *elems);
+
+bool hasNonConstPointers(Expression *e)
+{
+    if (e->type->ty == Terror)
+        return false;
+
+    if (e->op == TOKnull)
+        return false;
+    if (e->op == TOKstructliteral)
+    {
+        StructLiteralExp *se = (StructLiteralExp *)e;
+        return arrayHasNonConstPointers(se->elements);
+    }
+    if (e->op == TOKarrayliteral)
+    {
+        if (!e->type->toBasetype()->nextOf()->hasPointers())
+            return false;
+        ArrayLiteralExp *ae = (ArrayLiteralExp *)e;
+        return arrayHasNonConstPointers(ae->elements);
+    }
+    if (e->op == TOKassocarrayliteral)
+    {
+        AssocArrayLiteralExp *ae = (AssocArrayLiteralExp *)e;
+        if (ae->type->toBasetype()->nextOf()->hasPointers() &&
+            arrayHasNonConstPointers(ae->values))
+                return true;
+        if (((TypeAArray *)ae->type)->index->hasPointers())
+            return arrayHasNonConstPointers(ae->keys);
+        return false;
+    }
+    if (e->op == TOKaddress)
+    {
+        AddrExp *ae = (AddrExp *)e;
+        if (ae->e1->op == TOKstructliteral)
+        {
+            StructLiteralExp *se = (StructLiteralExp *)ae->e1;
+            if (!(se->stageflags & stageSearchPointers))
+            {
+                int old = se->stageflags;
+                se->stageflags |= stageSearchPointers;
+                bool ret = arrayHasNonConstPointers(se->elements);
+                se->stageflags = old;
+                return ret;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+    if (e->type->ty== Tpointer && e->type->nextOf()->ty != Tfunction)
+    {
+        if (e->op == TOKsymoff) // address of a global is OK
+            return false;
+        if (e->op == TOKint64)  // cast(void *)int is OK
+            return false;
+        if (e->op == TOKstring) // "abc".ptr is OK
+            return false;
+        return true;
+    }
+    return false;
+}
+
+bool arrayHasNonConstPointers(Expressions *elems)
+{
+    for (size_t i = 0; i < elems->dim; i++)
+    {
+        Expression *e = (*elems)[i];
+        if (e && hasNonConstPointers(e))
+            return true;
+    }
+    return false;
+}
+
 /********************************** Initializer *******************************/
 
 Initializer::Initializer(Loc loc)
@@ -44,6 +120,72 @@ Initializers *Initializer::arraySyntaxCopy(Initializers *ai)
             (*a)[i] = (*ai)[i]->syntaxCopy();
     }
     return a;
+}
+
+Type *Initializer::checkMultiDimInit(Scope *sc, Type *t)
+{
+    Type *tb = t->toBasetype();
+    if (tb->ty == Tsarray)
+    {
+        Type *tn = ((TypeNext *)tb)->next;
+        if (isArrayInitializer() &&
+            tn->ty != Tarray && tn->ty != Tsarray && tn->ty != Taarray)
+        {
+            // do not test matching
+        }
+        else
+        {
+            Type *tx = checkMultiDimInit(sc, tn);
+            if (tx)
+                return tx;
+        }
+    }
+    return canMatch(sc, t) ? t : NULL;
+}
+
+bool Initializer::canMatch(Scope *sc, Type *t)
+{
+    return false;
+}
+
+Initializer *Initializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
+{
+    if (needInterpret)
+        sc = sc->startCTFE();
+
+    // Prefer multidimensional initializing in local variable
+    Type *to = checkMultiDimInit(sc, t);
+    if (!to)
+        to = t;
+    Initializer *iz = semantic(sc, to);
+
+    if (needInterpret)
+        sc = sc->endCTFE();
+
+    ExpInitializer *ei = iz->isExpInitializer();
+    if (needInterpret && ei)
+    {
+        Expression *e = ei->exp;
+
+        // If the result will be implicitly cast, move the cast into CTFE
+        // to avoid premature truncation of polysemous types.
+        // eg real [] x = [1.1, 2.2]; should use real precision.
+        if (e->implicitConvTo(to))
+            e = e->implicitCastTo(sc, to);
+        e = e->ctfeInterpret();
+        if (hasNonConstPointers(e))
+        {
+            e->error("cannot use non-constant CTFE pointer in an initializer '%s'", e->toChars());
+            e = new ErrorExp();
+        }
+        e = e->implicitCastTo(sc, to);
+
+        if (e->op == TOKerror)
+            iz = new ErrorInitializer();
+        else
+            ei->exp = e;
+    }
+    return iz;
 }
 
 char *Initializer::toChars()
@@ -71,7 +213,7 @@ Initializer *ErrorInitializer::inferType(Scope *sc)
     return this;
 }
 
-Initializer *ErrorInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
+Initializer *ErrorInitializer::semantic(Scope *sc, Type *t)
 {
     //printf("ErrorInitializer::semantic(t = %p)\n", t);
     return this;
@@ -101,7 +243,7 @@ Initializer *VoidInitializer::inferType(Scope *sc)
     return new ErrorInitializer();
 }
 
-Initializer *VoidInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
+Initializer *VoidInitializer::semantic(Scope *sc, Type *t)
 {
     //printf("VoidInitializer::semantic(t = %p)\n", t);
     type = t;
@@ -147,7 +289,15 @@ Initializer *StructInitializer::inferType(Scope *sc)
     return new ErrorInitializer();
 }
 
-Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
+bool StructInitializer::canMatch(Scope *sc, Type *t)
+{
+    t = t->toBasetype();
+    return (t->ty == Tstruct ||
+            t->ty == Tdelegate ||
+            t->ty == Tpointer && ((TypeNext *)t)->next->ty == Tfunction);
+}
+
+Initializer *StructInitializer::semantic(Scope *sc, Type *t)
 {
     //printf("StructInitializer::semantic(t = %s) %s\n", t->toChars(), toChars());
     t = t->toBasetype();
@@ -236,7 +386,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
 
             assert(sc);
             Initializer *iz = value[i];
-            iz = iz->semantic(sc, vd->type->addMod(t->mod), needInterpret);
+            iz = iz->semantic(sc, vd->type->addMod(t->mod));
             Expression *ex = iz->toExpression();
             if (ex->op == TOKerror)
             {
@@ -256,7 +406,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
         sle->type = t;
 
         ExpInitializer *ie = new ExpInitializer(loc, sle);
-        return ie->semantic(sc, t, needInterpret);
+        return ie->semantic(sc, t);
     }
     else if ((t->ty == Tdelegate || t->ty == Tpointer && t->nextOf()->ty == Tfunction) && value.dim == 0)
     {
@@ -270,7 +420,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
         fd->endloc = loc;
         Expression *e = new FuncExp(loc, fd);
         ExpInitializer *ie = new ExpInitializer(loc, e);
-        return ie->semantic(sc, t, needInterpret);
+        return ie->semantic(sc, t);
     }
 
     error(loc, "a struct is not a valid initializer for a %s", t->toChars());
@@ -293,9 +443,6 @@ Expression *StructInitializer::toExpression(Type *t)
 ArrayInitializer::ArrayInitializer(Loc loc)
     : Initializer(loc)
 {
-    dim = 0;
-    type = NULL;
-    sem = false;
 }
 
 Initializer *ArrayInitializer::syntaxCopy()
@@ -317,8 +464,6 @@ void ArrayInitializer::addInit(Expression *index, Initializer *value)
 {
     this->index.push(index);
     this->value.push(value);
-    dim = 0;
-    type = NULL;
 }
 
 bool ArrayInitializer::isAssociativeArray()
@@ -327,6 +472,40 @@ bool ArrayInitializer::isAssociativeArray()
     {
         if (index[i])
             return true;
+    }
+    return false;
+}
+
+bool ArrayInitializer::canMatch(Scope *sc, Type *t)
+{
+    t = t->toBasetype();
+    if (t->ty == Tvector)
+        t = ((TypeVector *)t)->basetype;
+    if (t->ty == Tarray || t->ty == Tsarray || t->ty == Taarray)
+    {
+        if (value.dim)
+        {
+            Type *tn = ((TypeNext *)t)->next;
+            for (size_t i = 0; i < value.dim; i++)
+            {
+                // definitely not an AA literal
+                if (index[i] == NULL && t->ty == Taarray)
+                    return false;
+
+                if (!value[i]->canMatch(sc, tn))
+                    return false;
+            }
+            return true;
+        }
+        else
+        {
+            if (t->ty == Tarray)
+                return true;
+            else if (t->ty == Taarray)
+                return false;
+            else
+                return ((TypeSArray *)t)->dim->toInteger() == 0;
+        }
     }
     return false;
 }
@@ -404,58 +583,67 @@ Lno:
     return new ErrorInitializer();
 }
 
-Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
+/********************************
+ * Convert array initializer to array expression.
+ */
+
+Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
 {
-    size_t length;
+    //printf("ArrayInitializer::semantic(%s)\n", t->toChars());
+
     const unsigned amax = 0x80000000;
     bool errors = false;
 
-    //printf("ArrayInitializer::semantic(%s)\n", t->toChars());
-    if (sem)                            // if semantic() already run
-        return this;
-    sem = true;
     t = t->toBasetype();
     switch (t->ty)
     {
         case Tsarray:
         case Tarray:
+        {
+            // void[$], void[]
+            Type *tn = ((TypeNext *)t)->next;
+            if (tn->ty == Tvoid)
+            {
+                Initializer *iz = inferType(sc);
+                Expression *e = iz->toExpression();
+                if (e->op == TOKarrayliteral)
+                {
+                    // cast to void[]
+                    // TODO: check content size matching?
+                    t = tn->arrayOf();
+                }
+                iz = new ExpInitializer(loc, e);
+                return iz->semantic(sc, t);
+            }
             break;
+        }
 
         case Tvector:
             t = ((TypeVector *)t)->basetype;
             break;
 
         case Taarray:
+            return semanticAA(sc, t);
+
         case Tstruct:   // consider implicit constructor call
         {
-            Expression *e;
-            // note: MyStruct foo = [1:2, 3:4] is correct code if MyStruct has a this(int[int])
-            if (t->ty == Taarray || isAssociativeArray())
-                e = toAssocArrayLiteral();
-            else
-                e = toExpression();
-            if (!e) // Bugzilla 13987
-            {
-                error(loc, "cannot use array to initialize %s", t->toChars());
-                goto Lerr;
-            }
-            ExpInitializer *ei = new ExpInitializer(e->loc, e);
-            return ei->semantic(sc, t, needInterpret);
+            Initializer *iz = inferType(sc);
+            return iz->semantic(sc, t);
         }
-        case Tpointer:
-            if (t->nextOf()->ty != Tfunction)
-                break;
 
         default:
             error(loc, "cannot use array to initialize %s", t->toChars());
-            goto Lerr;
+            return new ErrorInitializer();
     }
 
-    type = t;
-
-    length = 0;
+    size_t dim = 0;
+    size_t length = 0;
+    Type *tn = ((TypeNext *)t)->next;
     for (size_t i = 0; i < index.dim; i++)
     {
+        /* On sparse array initializing, indices should be
+         * interpretd at compile time, even in function bodies.
+         */
         Expression *idx = index[i];
         if (idx)
         {
@@ -469,15 +657,15 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
                 errors = true;
         }
 
-        Initializer *val = value[i];
-        ExpInitializer *ei = val->isExpInitializer();
+        Initializer *iz = value[i];
+        ExpInitializer *ei = iz->isExpInitializer();
         if (ei && !idx)
             ei->expandTuples = true;
-        val = val->semantic(sc, t->nextOf(), needInterpret);
-        if (val->isErrorInitializer())
+        iz = iz->semantic(sc, tn);
+        if (iz->isErrorInitializer())
             errors = true;
 
-        ei = val->isExpInitializer();
+        ei = iz->isExpInitializer();
         // found a tuple, expand it
         if (ei && ei->exp->op == TOKtuple)
         {
@@ -496,98 +684,61 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
         }
         else
         {
-            value[i] = val;
+            value[i] = iz;
         }
 
         length++;
         if (length == 0)
         {
             error(loc, "array dimension overflow");
-            goto Lerr;
+            return new ErrorInitializer();
         }
         if (length > dim)
             dim = length;
     }
+    if (errors)
+        return new ErrorInitializer();
     if (t->ty == Tsarray)
     {
+        bool needInterpret = (sc->flags & SCOPEctfe) != 0;
         dinteger_t edim = ((TypeSArray *)t)->dim->toInteger();
-        if (dim > edim)
+
+        /* For local variables this is not accepted, but
+         * loosely allowed for static variables.
+         *  int[3] a = [1,2];
+         */
+        if (needInterpret ? dim > edim : dim != edim)
         {
             error(loc, "array initializer has %u elements, but array length is %lld", dim, edim);
-            goto Lerr;
+            return new ErrorInitializer();
         }
     }
-    if (errors)
-        goto Lerr;
 
-    if ((uinteger_t) dim * t->nextOf()->size() >= amax)
+    if ((uinteger_t)dim * t->nextOf()->size() >= amax)
     {
         error(loc, "array dimension %u exceeds max of %u", (unsigned) dim, (unsigned)(amax / t->nextOf()->size()));
-        goto Lerr;
+        return new ErrorInitializer();
     }
-    return this;
 
-Lerr:
-    return new ErrorInitializer();
-}
-
-/********************************
- * If possible, convert array initializer to array literal.
- * Otherwise return NULL.
- */
-
-Expression *ArrayInitializer::toExpression(Type *tx)
-{
-    //printf("ArrayInitializer::toExpression(), dim = %d\n", dim);
-    //static int i; if (++i == 2) halt();
-
-    Expressions *elements;
+    /* Convert to ExpInitializer with ArrayLiteralExp
+     */
     size_t edim;
-    Type *t = NULL;
-    if (type)
+    switch (t->ty)
     {
-        if (type == Type::terror)
-            return new ErrorExp();
+       case Tsarray:
+           edim = (size_t)((TypeSArray *)t)->dim->toInteger();
+           break;
 
-        t = type->toBasetype();
-        switch (t->ty)
-        {
-           case Tsarray:
-               edim = (size_t)((TypeSArray *)t)->dim->toInteger();
-               break;
+       case Tpointer:
+       case Tarray:
+           edim = dim;
+           break;
 
-           case Tvector:
-               t = ((TypeVector *)t)->basetype;
-               edim = (size_t)((TypeSArray *)t)->dim->toInteger();
-               break;
-
-           case Tpointer:
-           case Tarray:
-               edim = dim;
-               break;
-
-           default:
-               assert(0);
-        }
-    }
-    else
-    {
-        edim = value.dim;
-        for (size_t i = 0, j = 0; i < value.dim; i++, j++)
-        {
-            if (index[i])
-            {
-                if (index[i]->op == TOKint64)
-                    j = (size_t)index[i]->toInteger();
-                else
-                    goto Lno;
-            }
-            if (j >= edim)
-                edim = j + 1;
-        }
+       default:
+           assert(0);
     }
 
-    elements = new Expressions();
+    Expressions *elements = new Expressions();
     elements->setDim(edim);
     elements->zero();
     for (size_t i = 0, j = 0; i < value.dim; i++, j++)
@@ -595,59 +746,54 @@ Expression *ArrayInitializer::toExpression(Type *tx)
         if (index[i])
             j = (size_t)(index[i])->toInteger();
         assert(j < edim);
+
         Initializer *iz = value[i];
-        if (!iz)
-            goto Lno;
         Expression *ex = iz->toExpression();
-        if (!ex)
+        assert(ex);
+        if (tn->ty == Tsarray && ex->implicitConvTo(tn->nextOf()))
         {
-            goto Lno;
+            size_t d = (size_t)((TypeSArray *)tn)->dim->toInteger();
+            Expressions *a = new Expressions();
+            a->setDim(d);
+            for (size_t k = 0; k < d; k++)
+                (*a)[k] = ex;
+            ex = new ArrayLiteralExp(ex->loc, a);
         }
         (*elements)[j] = ex;
     }
 
     /* Fill in any missing elements with the default initializer
      */
-    {
-    Expression *init = NULL;
+    Expression *einit = NULL;
     for (size_t i = 0; i < edim; i++)
     {
-        if (!(*elements)[i])
+        if ((*elements)[i])
+            continue;
+        if (!einit)
         {
-            if (!type)
-                goto Lno;
-            if (!init)
-                init = ((TypeNext *)t)->next->defaultInit();
-            (*elements)[i] = init;
+            if (tn->ty == Tsarray)
+                einit = tn->defaultInitLiteral(loc);
+            else
+                einit = tn->defaultInit();
         }
-    }
-
-    for (size_t i = 0; i < edim; i++)
-    {
-        Expression *e = (*elements)[i];
-        if (e->op == TOKerror)
-            return e;
+        (*elements)[i] = einit;
     }
 
     Expression *e = new ArrayLiteralExp(loc, elements);
-    e->type = type;
-    return e;
-    }
-
-Lno:
-    return NULL;
+    ExpInitializer *ei = new ExpInitializer(loc, e);
+    return ei->semantic(sc, t);
 }
 
 /********************************
- * If possible, convert array initializer to associative array initializer.
+ * If possible, convert array initializer to associative array expression.
  */
 
-Expression *ArrayInitializer::toAssocArrayLiteral()
+Initializer *ArrayInitializer::semanticAA(Scope *sc, Type *t)
 {
-    Expression *e;
+    //printf("ArrayInitializer::semanticAA() %s, t = %s\n", toChars(), t->toChars());
+    assert(t->ty == Taarray);
+    TypeAArray *taa = (TypeAArray *)t;
 
-    //printf("ArrayInitializer::toAssocArrayInitializer()\n");
-    //static int i; if (++i == 2) halt();
     Expressions *keys = new Expressions();
     keys->setDim(value.dim);
     Expressions *values = new Expressions();
@@ -655,27 +801,35 @@ Expression *ArrayInitializer::toAssocArrayLiteral()
 
     for (size_t i = 0; i < value.dim; i++)
     {
-        e = index[i];
+        Expression *e = index[i];
         if (!e)
-            goto Lno;
+        {
+        Lno:
+            delete keys;
+            delete values;
+            error(loc, "not an associative array initializer");
+            return new ErrorInitializer();
+        }
         (*keys)[i] = e;
 
         Initializer *iz = value[i];
         if (!iz)
             goto Lno;
-        e = iz->toExpression();
-        if (!e)
-            goto Lno;
-        (*values)[i] = e;
+        iz = iz->semantic(sc, taa->next);
+        if (iz->isErrorInitializer())
+            return iz;
+        (*values)[i] = iz->toExpression();
     }
-    e = new AssocArrayLiteralExp(loc, keys, values);
-    return e;
+    Expression *e = new AssocArrayLiteralExp(loc, keys, values);
+    ExpInitializer *ei = new ExpInitializer(e->loc, e);
+    return ei->semantic(sc, t);
+}
 
-Lno:
-    delete keys;
-    delete values;
-    error(loc, "not an associative array initializer");
-    return new ErrorExp();
+Expression *ArrayInitializer::toExpression(Type *tx)
+{
+    //printf("ArrayInitializer::toExpression(), dim = %d\n", dim);
+    assert(0);
+    return NULL;
 }
 
 /********************************** ExpInitializer ************************************/
@@ -692,83 +846,19 @@ Initializer *ExpInitializer::syntaxCopy()
     return new ExpInitializer(loc, exp->syntaxCopy());
 }
 
-#if 1   // should be removed and rely on ctfeInterpreter()
-bool arrayHasNonConstPointers(Expressions *elems);
-
-bool hasNonConstPointers(Expression *e)
+bool ExpInitializer::canMatch(Scope *sc, Type *t)
 {
-    if (e->type->ty == Terror)
-        return false;
+    exp = ::inferType(exp, t);
+    exp = exp->semantic(sc);
+    exp = resolveProperties(sc, exp);
 
-    if (e->op == TOKnull)
-        return false;
-    if (e->op == TOKstructliteral)
-    {
-        StructLiteralExp *se = (StructLiteralExp *)e;
-        return arrayHasNonConstPointers(se->elements);
-    }
-    if (e->op == TOKarrayliteral)
-    {
-        if (!e->type->nextOf()->hasPointers())
-            return false;
-        ArrayLiteralExp *ae = (ArrayLiteralExp *)e;
-        return arrayHasNonConstPointers(ae->elements);
-    }
-    if (e->op == TOKassocarrayliteral)
-    {
-        AssocArrayLiteralExp *ae = (AssocArrayLiteralExp *)e;
-        if (ae->type->nextOf()->hasPointers() &&
-            arrayHasNonConstPointers(ae->values))
-                return true;
-        if (((TypeAArray *)ae->type)->index->hasPointers())
-            return arrayHasNonConstPointers(ae->keys);
-        return false;
-    }
-    if(e->op == TOKaddress)
-    {
-        AddrExp *ae = (AddrExp *)e;
-        if (ae->e1->op == TOKstructliteral)
-        {
-            StructLiteralExp *se = (StructLiteralExp *)ae->e1;
-            if (!(se->stageflags & stageSearchPointers))
-            {
-                int old = se->stageflags;
-                se->stageflags |= stageSearchPointers;
-                bool ret = arrayHasNonConstPointers(se->elements);
-                se->stageflags = old;
-                return ret;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-    if (e->type->ty== Tpointer && e->type->nextOf()->ty != Tfunction)
-    {
-        if (e->op == TOKsymoff) // address of a global is OK
-            return false;
-        if (e->op == TOKint64)  // cast(void *)int is OK
-            return false;
-        if (e->op == TOKstring) // "abc".ptr is OK
-            return false;
-        return true;
-    }
-    return false;
+    //printf("exp = %s, exp->type = %s, t = %s, m = %d\n", exp->toChars(), exp->type->toChars(), t->toChars(), exp->implicitConvTo(t));
+    t = t->toBasetype();
+    if (t->ty == Tarray && t->nextOf()->ty == Tvoid)
+        return false;   // do not match conversion to void[]
+    return (exp->implicitConvTo(t) ||
+            t->ty == Tsarray && exp->implicitConvTo(((TypeNext *)t)->next));
 }
-
-bool arrayHasNonConstPointers(Expressions *elems)
-{
-    for (size_t i = 0; i < elems->dim; i++)
-    {
-        Expression *e = (*elems)[i];
-        if (e && hasNonConstPointers(e))
-            return true;
-    }
-    return false;
-}
-#endif
 
 Initializer *ExpInitializer::inferType(Scope *sc)
 {
@@ -825,32 +915,17 @@ Initializer *ExpInitializer::inferType(Scope *sc)
     return this;
 }
 
-Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
+Initializer *ExpInitializer::semantic(Scope *sc, Type *t)
 {
     //printf("ExpInitializer::semantic(%s), type = %s\n", exp->toChars(), t->toChars());
-    if (needInterpret) sc = sc->startCTFE();
+    exp = ::inferType(exp, t);
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
-    if (needInterpret) sc = sc->endCTFE();
     if (exp->op == TOKerror)
         return new ErrorInitializer();
 
     unsigned int olderrors = global.errors;
-    if (needInterpret)
-    {
-        // If the result will be implicitly cast, move the cast into CTFE
-        // to avoid premature truncation of polysemous types.
-        // eg real [] x = [1.1, 2.2]; should use real precision.
-        if (exp->implicitConvTo(t))
-        {
-            exp = exp->implicitCastTo(sc, t);
-        }
-        exp = exp->ctfeInterpret();
-    }
-    else
-    {
-        exp = exp->optimize(WANTvalue);
-    }
+    exp = exp->optimize(WANTvalue);
     if (!global.gag && olderrors != global.errors)
         return this; // Failed, suppress duplicate error messages
 
@@ -862,14 +937,7 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
     }
     if (exp->op == TOKtype)
     {
-        exp->error("initializer must be an expression, not '%s'", exp->toChars());
-        return new ErrorInitializer();
-    }
-
-    // Make sure all pointers are constants
-    if (needInterpret && hasNonConstPointers(exp))
-    {
-        exp->error("cannot use non-constant CTFE pointer in an initializer '%s'", exp->toChars());
+        exp->error("initializer must be an expression, not a type '%s'", exp->toChars());
         return new ErrorInitializer();
     }
 
@@ -900,7 +968,6 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
         }
     }
 
-    // Look for implicit constructor call
     if (tb->ty == Tstruct &&
         !(ti->ty == Tstruct && tb->toDsymbol(sc) == ti->toDsymbol(sc)) &&
         !exp->implicitConvTo(t))
@@ -908,16 +975,16 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
         StructDeclaration *sd = ((TypeStruct *)tb)->sym;
         if (sd->ctor)
         {
-            // Rewrite as S().ctor(exp)
+            /* Look for implicit constructor call
+             * Rewrite as:
+             *      S().ctor(exp)
+             */
             Expression *e;
-            e = new StructLiteralExp(loc, sd, NULL);
+            e = new StructLiteralExp(loc, sd, NULL, t);
             e = new DotIdExp(loc, e, Id::ctor);
             e = new CallExp(loc, e, exp);
             e = e->semantic(sc);
-            if (needInterpret)
-                exp = e->ctfeInterpret();
-            else
-                exp = e->optimize(WANTvalue);
+            exp = e->optimize(WANTvalue);
         }
     }
 
@@ -933,6 +1000,9 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
          */
         t = tb->nextOf();
     }
+
+    if (exp->checkValue())
+        return new ErrorInitializer();
 
     if (exp->implicitConvTo(t))
     {
@@ -958,21 +1028,32 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
                 if (tx)
                     dim2 = ((TypeSArray *)tx)->dim->toInteger();
             }
+            else if (ti->ty == Tsarray)
+            {
+                dim2 = ((TypeSArray *)ti)->dim->toInteger();
+            }
             if (dim1 != dim2)
             {
                 exp->error("mismatched array lengths, %d and %d", (int)dim1, (int)dim2);
-                exp = new ErrorExp();
+                return new ErrorInitializer();
             }
+
+            /* Do not call implicitCastTo here to accept:
+             *  int[] fo();
+             *  int[3] a = foo();
+             */
         }
-        exp = exp->implicitCastTo(sc, t);
+        else
+        {
+            // In here, exp should match to t here.
+            // Therefore don't have to consider block initializing.
+            exp = exp->implicitCastTo(sc, t);
+        }
     }
 L1:
     if (exp->op == TOKerror)
-        return this;
-    if (needInterpret)
-        exp = exp->ctfeInterpret();
-    else
-        exp = exp->optimize(WANTvalue);
+        return new ErrorInitializer();
+    exp = exp->optimize(WANTvalue);
     //printf("-ExpInitializer::semantic(): "); exp->print();
     return this;
 }
