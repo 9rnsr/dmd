@@ -1190,7 +1190,10 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t)
             }
         }
     }
-    exp = exp->implicitCastTo(sc, t);
+    //printf("+L%d [%s] exp = %s\n", __LINE__, loc.toChars(), exp->toChars());
+    if (exp->implicitConvTo(t))     // workaround
+        exp = exp->implicitCastTo(sc, t);
+    //printf("-L%d [%s] t = %s\n", __LINE__, loc.toChars(), t->toChars());
     if (exp->op == TOKerror)
         return this;
 L1:

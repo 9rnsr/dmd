@@ -11502,6 +11502,7 @@ Expression *AssignExp::semantic(Scope *sc)
         Expression *e2x = e2;
         Type *t2 = e2x->type->toBasetype();
 
+        //printf("L%d [%s] %s\n", __LINE__, loc.toChars(), toChars());
         if (e2x->implicitConvTo(e1x->type))
         {
             if (op != TOKblit &&
@@ -11514,6 +11515,7 @@ Expression *AssignExp::semantic(Scope *sc)
         }
         else
         {
+            //printf("L%d\n", __LINE__);
             if (e2x->implicitConvTo(t1->nextOf()->arrayOf()) > MATCHnomatch)
             {
                 uinteger_t dim1 = ((TypeSArray *)t1)->dim->toInteger();
@@ -11534,6 +11536,7 @@ Expression *AssignExp::semantic(Scope *sc)
                     error("mismatched array lengths, %d and %d", (int)dim1, (int)dim2);
                     return new ErrorExp();
                 }
+            //printf("L%d\n", __LINE__);
             }
 
             // May be block or element-wise assignment, so
@@ -11541,6 +11544,7 @@ Expression *AssignExp::semantic(Scope *sc)
             Type *t1b = t1->baseElemOf();
             if (op != TOKassign && t2->implicitConvTo(t1b))
             {
+            //printf("L%d, t2 = %s, t1 = %s, t1b = %s\n", __LINE__, t2->toChars(), t1->toChars(), t1b->toChars());
                 // Rewrite:
                 //  int[3][3] sa = 1;
                 // as:
@@ -11562,6 +11566,7 @@ Expression *AssignExp::semantic(Scope *sc)
             }
             else if (e2x->implicitConvTo(t1->nextOf()))
             {
+            //printf("L%d\n", __LINE__);
                 // Rewrite:
                 //  sa = e;
                 // as:
@@ -11574,6 +11579,7 @@ Expression *AssignExp::semantic(Scope *sc)
             else if ((t2->ty == Tarray || t2->ty == Tsarray) &&
                      t2->nextOf()->implicitConvTo(t1->nextOf()))
             {
+            //printf("L%d\n", __LINE__);
                 // Support:
                 //  ubyte[] data;
                 //  size_t i;
@@ -11585,6 +11591,7 @@ Expression *AssignExp::semantic(Scope *sc)
                 e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
                 e1x = e1x->semantic(sc);
             }
+            //printf("L%d\n", __LINE__);
         }
         if (e1x->op == TOKerror)
             return e1x;
