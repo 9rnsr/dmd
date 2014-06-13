@@ -11516,7 +11516,6 @@ Expression *AssignExp::semantic(Scope *sc)
         Expression *e2x = e2;
         Type *t2 = e2x->type->toBasetype();
 
-    LagainSA:
         //printf("e2x = %s %s, e1x = %s %s\n", e2x->type->toChars(), e2x->toChars(), e1x->type->toChars(), e1x->toChars());
         if (e2x->implicitConvTo(e1x->type))
         {
@@ -11572,8 +11571,6 @@ Expression *AssignExp::semantic(Scope *sc)
                         break;
                     dim *= ((TypeSArray *)t)->dim->toInteger();
                     e1x->type = t->nextOf()->sarrayOf(dim);
-                    //t1 = e1x->type->toBasetype();
-                    //goto LagainSA;
                 }
                 e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
                 e1x = e1x->semantic(sc);
@@ -11589,7 +11586,6 @@ Expression *AssignExp::semantic(Scope *sc)
                 e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
                 e1x = e1x->semantic(sc);
             }
-            //else if (e2x->implicitConvTo(t1->nextOf()->arrayOf()) > MATCHnomatch)
             else if ((t2->ty == Tarray || t2->ty == Tsarray) &&
                      t2->nextOf()->implicitConvTo(t1->nextOf()))
             {
@@ -11597,6 +11593,10 @@ Expression *AssignExp::semantic(Scope *sc)
                 //  ubyte[] data;
                 //  size_t i;
                 //  ubyte[4] result = data[i..i+4];
+                // and:
+                //  class C {}       C[1] sa;
+                //  class D : C {}   D[1] sb;
+                //  sa = sb;
                 e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
                 e1x = e1x->semantic(sc);
             }
