@@ -3217,22 +3217,20 @@ Lagain:
     if (VarDeclaration *v = s->isVarDeclaration())
     {
         //printf("Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
-        if (!type)
+        if (!type && !v->type)
         {
-            type = v->type;
-            if (!v->type)
-            {
-                error("forward reference of %s %s", s->kind(), s->toChars());
-                return new ErrorExp();
-            }
+            error("forward reference of %s %s", s->kind(), s->toChars());
+            return new ErrorExp();
         }
         if ((v->storage_class & STCmanifest) && v->init)
         {
-            return v->getConstInitializer(loc, true);
+            e = v->getConstInitializer(loc, true);
+            e = e->semantic(sc);    // why this is necessary for compilable/depsOutput9948.d ?
+            return e;
         }
 
         e = new VarExp(loc, v);
-        e->type = type;
+        e->type = v->type;
         e = e->semantic(sc);
         return e->deref();
     }
