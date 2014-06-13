@@ -5755,7 +5755,7 @@ MATCH FuncExp::matchType(Type *to, Scope *sc, FuncExp **presult, int flag)
 
     Type *toret = tfx->next;
     LINK tolink = tfx->linkage;
-    if (fd->inferRetType && tfx->next->implicitConvTo(tof->next) == MATCHconvert)
+    if (fd->inferRetType && tfx->next->implicitConvTo(tof->next)/* == MATCHconvert*/)
         toret = tof->next;
 
     //printf("L%d, fd->linkage = %d, tfx->linkage = %d\n", __LINE__, fd->linkage, tfx->linkage);
