@@ -6062,6 +6062,9 @@ Expression *TypeidExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("TypeidExp::semantic() %s\n", toChars());
 #endif
+    if (type)
+        return this;
+
     Type *ta = isType(obj);
     Expression *ea = isExpression(obj);
     Dsymbol *sa = isDsymbol(obj);
@@ -11561,6 +11564,7 @@ Expression *AssignExp::semantic(Scope *sc)
 
         Expression *e1x = e1;
         Expression *e2x = e2;
+        Type *t2b = e2x->type->toBasetype();
 
         if (e2x->implicitConvTo(e1x->type))
         {
@@ -11604,6 +11608,10 @@ Expression *AssignExp::semantic(Scope *sc)
                     if (tx)
                         dim2 = ((TypeSArray *)tx)->dim->toInteger();
                 }
+                else if (t2b->ty == Tsarray)
+                {
+                    dim2 = ((TypeSArray *)t2b)->dim->toInteger();
+                }
                 if (dim1 != dim2)
                 {
                     error("mismatched array lengths, %d and %d", (int)dim1, (int)dim2);
@@ -11613,22 +11621,41 @@ Expression *AssignExp::semantic(Scope *sc)
 
             // May be block or element-wise assignment, so
             // convert e1 to e1[]
+            Type *t1n = t1->nextOf()->toBasetype();
+            size_t depth = 0;
             if (op != TOKassign)
             {
+                while (t1n->ty == Tsarray)
+                {
+                    if (e2x->implicitConvTo(t1n))
+                        break;
+                    ++depth;
+                    t1n = t1n->nextOf()->toBasetype();
+                }
+            }
+            if (e2x->implicitConvTo(t1n))
+            {
+                // Block assignment
                 // If multidimensional static array, treat as one large array
                 dinteger_t dim = ((TypeSArray *)t1)->dim->toInteger();
                 Type *t = t1;
-                while (1)
+                while (depth-- > 0)
                 {
+                    assert(t->ty == Tsarray);
                     t = t->nextOf()->toBasetype();
-                    if (t->ty != Tsarray)
-                        break;
                     dim *= ((TypeSArray *)t)->dim->toInteger();
                     e1x->type = t->nextOf()->sarrayOf(dim);
                 }
+                e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
+                e1x = e1x->semantic(sc);
             }
-            e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
-            e1x = e1x->semantic(sc);
+            else if ((t2b->ty == Tarray || t2b->ty == Tsarray) &&
+                     t2b->nextOf()->implicitConvTo(t1->nextOf()))
+            {
+                // Element-wise assignment
+                e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
+                e1x = e1x->semantic(sc);
+            }
         }
         if (e1x->op == TOKerror)
             return e1x;

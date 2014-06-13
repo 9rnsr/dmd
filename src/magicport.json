@@ -468,13 +468,14 @@
             "members" :
             [
                 "enum NeedInterpret",
+                "function hasNonConstPointers",
+                "function arrayHasNonConstPointers",
                 "struct Initializer",
                 "struct VoidInitializer",
                 "struct ErrorInitializer",
                 "struct StructInitializer",
                 "struct ArrayInitializer",
-                "struct ExpInitializer",
-                "version function hasNonConstPointers"
+                "struct ExpInitializer"
             ]
         },
         {
