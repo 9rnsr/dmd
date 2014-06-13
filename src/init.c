@@ -1000,7 +1000,7 @@ bool ExpInitializer::inferTypeX(Scope *sc, Type *tx)
     //    return true;    // implicit ctor call
     if (tx->ty == Tsarray && exp->implicitConvTo(((TypeNext *)tx)->next))
         return true;
-printf("exp = %s %s, tx = %s\n", exp->type->toChars(), exp->toChars(), tx->toChars());
+//printf("exp = %s %s, tx = %s\n", exp->type->toChars(), exp->toChars(), tx->toChars());
     return false;
 }
 
@@ -1076,7 +1076,7 @@ Initializer *ExpInitializer::inferType(Scope *sc)
 
 Initializer *ExpInitializer::semantic(Scope *sc, Type *t)
 {
-    printf("ExpInitializer::semantic(%s), type = %s\n", exp->toChars(), t->toChars());
+    //printf("ExpInitializer::semantic(%s), type = %s\n", exp->toChars(), t->toChars());
     exp = ::inferType(exp, t);
 
     exp = exp->semantic(sc);
