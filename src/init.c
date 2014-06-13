@@ -673,6 +673,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
 
     size_t dim = 0;
     size_t length = 0;
+    Type *tn = ((TypeNext *)t)->next;
     for (size_t i = 0; i < index.dim; i++)
     {
         /* On sparse array initializing, currently indices should be
@@ -695,13 +696,15 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
         ExpInitializer *ei = iz->isExpInitializer();
         if (ei && !idx)
             ei->expandTuples = true;
-        iz = iz->semantic(sc, t->nextOf());
+        //printf("\t+[%d] iz = %s, t->next = %s\n", i, iz->toChars(), tn->toChars());
+        iz = iz->semantic(sc, tn);
         //if (iz->isErrorInitializer())
         //    errors = true;
 
         ei = iz->isExpInitializer();
         if (ei && ei->exp->op == TOKerror)
             errors = true;
+        //printf("\t-[%d] iz = %s\n", i, iz->toChars());
         // found a tuple, expand it
         if (ei && ei->exp->op == TOKtuple)
         {
@@ -786,7 +789,6 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
         //printf("[%d] iz = %s, isExp = %d\n", i, iz->toChars(), iz->isExpInitializer());
         Expression *ex = iz->toExpression();
         assert(ex);
-        Type *tn = t->nextOf()->toBasetype();
         if (tn->ty == Tsarray && ex->implicitConvTo(tn->nextOf()))
         {
             size_t d = ((TypeSArray *)tn)->dim->toInteger();
@@ -801,15 +803,30 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
 
     /* Fill in any missing elements with the default initializer
      */
-    Expression *iz = NULL;
+    Expression *einit = NULL;
     for (size_t i = 0; i < edim; i++)
     {
-        if (!(*elements)[i])
+        if ((*elements)[i])
+            continue;
+        if (!einit)
         {
-            if (!iz)
-                iz = ((TypeNext *)t)->next->defaultInit();
-            (*elements)[i] = iz;
+            if (tn->ty == Tsarray)
+                einit = tn->defaultInitLiteral(loc);
+            else
+                einit = tn->defaultInit();
+#if 0
+            if (tn->ty == Tsarray && einit->implicitConvTo(tn->nextOf()))
+            {
+                size_t d = ((TypeSArray *)tn)->dim->toInteger();
+                Expressions *a = new Expressions();
+                a->setDim(d);
+                for (size_t k = 0; k < d; k++)
+                    (*a)[k] = einit;
+                einit = new ArrayLiteralExp(einit->loc, a);
+            }
+#endif
         }
+        (*elements)[i] = einit;
     }
 #if 1   // necessary?
     for (size_t i = 0; i < edim; i++)
@@ -821,6 +838,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
     }
 #endif
     Expression *e = new ArrayLiteralExp(loc, elements);
+    //printf("ale = %s\n", e->toChars());
     ExpInitializer *ei = new ExpInitializer(loc, e);
     return ei->semantic(sc, t);
 }
