@@ -2068,7 +2068,9 @@ Expression *VarDeclaration::getConstInitializer(Loc loc, bool needFullType)
 {
     assert(type && init);
 
-    if (inuse)
+    // Detect recursive initializers.
+    // BUG: The check for speculative gagging is not correct
+    if (inuse && !global.isSpeculativeGagging())
     {
         ::error(loc, "circular initialization of %s", toChars());
         type = Type::terror;
