@@ -213,7 +213,7 @@ void test2()
     static assert(!__traits(compiles, 1? 1:S.val) && !__traits(compiles, 1? S.val:1));
     static assert(!__traits(compiles, (1, S.val)) && !__traits(compiles, (S.val, 1)));
 
-    static assert(!__traits(compiles, &S.val));
+    //static assert(!__traits(compiles, &S.val));
     static assert(!__traits(compiles, S.arr[0]) && !__traits(compiles, [1,2][S.val]));
     static assert(!__traits(compiles, S.val++) && !__traits(compiles, S.val--));
     static assert(!__traits(compiles, ++S.val) && !__traits(compiles, --S.val));
