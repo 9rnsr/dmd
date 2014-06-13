@@ -1511,22 +1511,15 @@ Lnomatch:
                 !(storage_class & (STCmanifest | STCstatic | STCtls | STCgshared | STCextern)) &&
                 !init->isVoidInitializer())
             {
-                if (!inferred)
-                if (Type *tx = init->inferTypeY(sc, type))
-                    init = init->semantic(sc, tx, INITnointerpret);
-
-                ExpInitializer *ei = init->isExpInitializer();
-
                 //printf("fd = '%s', var = '%s'\n", fd->toChars(), toChars());
-                if (!ei)
+                if (!inferred)
                 {
                     // Run semantic, but don't need to interpret
                     init = init->semantic(sc, type, INITnointerpret);
-                    ei = init->isExpInitializer();
-                    if (!ei)
-                        return;
-                    init = ei;
                 }
+                ExpInitializer *ei = init->isExpInitializer();
+                if (!ei)
+                    return;
 
                 Expression *e1 = new VarExp(loc, this);
                 if (isBlit)
@@ -1586,6 +1579,9 @@ Lnomatch:
 
             if (!inferred)
             {
+#if 1
+                // should go callCpCtor with (sc->flags & SCOPEctfe) ?
+
                 unsigned errors = global.errors;
                 inuse++;
                 if (ExpInitializer *ei = init->isExpInitializer())
@@ -1638,6 +1634,20 @@ Lnomatch:
                     init = new ExpInitializer(init->loc, new ErrorExp());
                     type = Type::terror;
                 }
+#else
+                //unsigned errors = global.errors;
+                inuse++;
+                sc = sc->startCTFE();
+                init = init->semantic(sc, type, INITnointerpret);
+                sc = sc->endCTFE();
+                inuse--;
+                if (init->isExpInitializer() && ((ExpInitializer *)init)->exp->op == TOKerror)
+                {
+                    ////init = new ErrorInitializer();
+                    //init = new ExpInitializer(init->loc, new ErrorExp());
+                    type = Type::terror;
+                }
+#endif
             }
             else
             {

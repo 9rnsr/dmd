@@ -61,18 +61,12 @@ Type *Initializer::inferTypeY(Scope *sc, Type *t)
         }
         else
         {
-        Type *tx = inferTypeY(sc, tn);
-    #if 1   // mask for test
-        //printf("\tt = %s, inferTypeX = %d\n", t->toChars(), tx == tn);
-        if (tx)
-            return tx;
-    #endif
+            Type *tx = inferTypeY(sc, tn);
+            if (tx)
+                return tx;
         }
     }
-    Type *tx = inferTypeX(sc, t) ? t : NULL;
-    //printf("\tt = %s, inferTypeX = %d\n", t->toChars(), tx != NULL);
-
-    return tx;
+    return inferTypeX(sc, t) ? t : NULL;
 }
 
 Initializer *Initializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
@@ -80,21 +74,16 @@ Initializer *Initializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpr
     if (needInterpret)
         sc = sc->startCTFE();
 
-    Initializer *iz = semantic(sc, t);
+    // Prefer multidimensional initializing
+    Type *tx = inferTypeY(sc, t);
+    if (!tx)
+        tx = t;
+
+    Initializer *iz = semantic(sc, tx);
 
     ExpInitializer *ei = iz->isExpInitializer();
-    if (ei && needInterpret && ei->exp->op != TOKerror)
-    {
-        // If the result will be implicitly cast, move the cast into CTFE
-        // to avoid premature truncation of polysemous types.
-        // eg real [] x = [1.1, 2.2]; should use real precision.
-        //if (ei->exp->implicitConvTo(t))
-        //{
-        //    ei->exp = ei->exp->implicitCastTo(sc, t);
-        //}
-        //printf("L%d ei->exp = %s\n", __LINE__, ei->exp->toChars());
+    if (needInterpret && ei && ei->exp->op != TOKerror)
         ei->exp = ei->exp->ctfeInterpret();
-    }
 
     if (needInterpret)
         sc = sc->endCTFE();
