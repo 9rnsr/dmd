@@ -2349,7 +2349,7 @@ static void asm_merge_symbol(OPND *o1, Dsymbol *s)
             goto L2;
         }
         if ((v->isConst() || v->isImmutable() || v->storage_class & STCmanifest) &&
-            v->type->isintegral() && /*!v->type->isfloating() && */v->init)
+            v->type->isintegral() && v->init)
         {
             ExpInitializer *ei = v->init->isExpInitializer();
             if (ei)

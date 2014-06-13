@@ -5733,11 +5733,10 @@ MATCH FuncExp::matchType(Type *to, Scope *sc, FuncExp **presult, int flag)
 
     Type *toret = tfx->next;
     LINK tolink = tfx->linkage;
-    if (fd->inferRetType && tfx->next->implicitConvTo(tof->next)/* == MATCHconvert*/)
+    if (fd->inferRetType && tfx->next->implicitConvTo(tof->next))
         toret = tof->next;
 
-    //printf("L%d, fd->linkage = %d, tfx->linkage = %d\n", __LINE__, fd->linkage, tfx->linkage);
-    if (/*!fd->treq && */tfx->linkage != tof->linkage)
+    if (tfx->linkage != tof->linkage)
         tolink = tof->linkage;
     if (toret != tfx->next || tolink != tfx->linkage)
     {
@@ -5762,7 +5761,6 @@ MATCH FuncExp::matchType(Type *to, Scope *sc, FuncExp **presult, int flag)
         tfy->deco = tfy->merge()->deco;
 
         tfx = tfy;
-        //printf("L%d\n", __LINE__);
     }
 
     Type *tx;
@@ -5773,21 +5771,18 @@ MATCH FuncExp::matchType(Type *to, Scope *sc, FuncExp **presult, int flag)
         // Allow conversion from implicit function pointer to delegate
         tx = new TypeDelegate(tfx);
         tx->deco = tx->merge()->deco;
-    //printf("L%d\n", __LINE__);
     }
     else
     {
         assert(tok == TOKfunction ||
                tok == TOKreserved && type->ty == Tpointer);
         tx = tfx->pointerTo();
-    //printf("L%d, tx = %s, to = %s\n", __LINE__, tx->toChars(), to->toChars());
     }
     //printf("\ttx = %s, to = %s\n", tx->toChars(), to->toChars());
 
     MATCH m = tx->implicitConvTo(to);
     if (m > MATCHnomatch)
     {
-    //printf("L%d\n", __LINE__);
         // MATCHexact:      exact type match
         // MATCHconst:      covairiant type match (eg. attributes difference)
         // MATCHconvert:    context conversion
@@ -5805,7 +5800,6 @@ MATCH FuncExp::matchType(Type *to, Scope *sc, FuncExp **presult, int flag)
     }
     else if (!flag)
     {
-    //printf("L%d\n", __LINE__);
         error("cannot implicitly convert expression (%s) of type %s to %s",
                 toChars(), tx->toChars(), to->toChars());
     }
@@ -11508,7 +11502,6 @@ Expression *AssignExp::semantic(Scope *sc)
         Expression *e2x = e2;
         Type *t2 = e2x->type->toBasetype();
 
-        //printf("e2x = %s %s, e1x = %s %s\n", e2x->type->toChars(), e2x->toChars(), e1x->type->toChars(), e1x->toChars());
         if (e2x->implicitConvTo(e1x->type))
         {
             if (op != TOKblit &&
@@ -11525,23 +11518,19 @@ Expression *AssignExp::semantic(Scope *sc)
             {
                 uinteger_t dim1 = ((TypeSArray *)t1)->dim->toInteger();
                 uinteger_t dim2 = dim1;
-                //const char *s;
                 if (e2x->op == TOKarrayliteral)
                 {
                     ArrayLiteralExp *ale = (ArrayLiteralExp *)e2x;
                     dim2 = ale->elements ? ale->elements->dim : 0;
-                    //s = "array literal";
                 }
                 else if (e2x->op == TOKslice)
                 {
                     Type *tx = toStaticArrayType((SliceExp *)e2x);
                     if (tx)
                         dim2 = ((TypeSArray *)tx)->dim->toInteger();
-                    //s = "slice expression";
                 }
                 if (dim1 != dim2)
                 {
-                    //error("%s has %d elements, but array length is %d", s, (int)dim2, (int)dim1);
                     error("mismatched array lengths, %d and %d", (int)dim1, (int)dim2);
                     return new ErrorExp();
                 }

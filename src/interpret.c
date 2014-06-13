@@ -2558,9 +2558,8 @@ public:
                             }
                             else
                             {
-                                assert(0);
                                 e->error("Declaration %s is not yet implemented in CTFE", e->toChars());
-                                result = EXP_CANT_INTERPRET;
+                                assert(0);
                             }
                         }
                     }
@@ -2577,9 +2576,7 @@ public:
             {
                 ExpInitializer *ie = v->init->isExpInitializer();
                 if (ie)
-                {
                     result = ie->exp->interpret(istate, goal);
-                }
                 else if (v->init->isVoidInitializer())
                 {
                     result = voidInitLiteral(v->type, v);

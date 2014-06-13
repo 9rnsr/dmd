@@ -1450,18 +1450,20 @@ Lnomatch:
     {
         // Provide a default initializer
         //printf("Providing default initializer for '%s'\n", toChars());
-        if (type->needsNested())
+        Type *tv = type->baseElemOf();
+        if (tv->ty == Tvoid)
         {
-            Type *tv = type;
-            while (tv->toBasetype()->ty == Tsarray)
-                tv = tv->toBasetype()->nextOf();
-            assert(tv->toBasetype()->ty == Tstruct);
-
+            error("%s does not have a default initializer", type->toChars());
+            type = Type::terror;
+            goto Ldtor;
+        }
+        if (tv->ty == Tstruct && tv->needsNested())
+        {
             /* Nested struct requires valid enclosing frame pointer.
              * In StructLiteralExp::toElem(), it's calculated.
              */
 
-            checkFrameAccess(loc, sc, ((TypeStruct *)tv->toBasetype())->sym);
+            checkFrameAccess(loc, sc, ((TypeStruct *)tv)->sym);
 
             Expression *e = tv->defaultInitLiteral(loc);
             Expression *e1 = new VarExp(loc, this);
@@ -1487,33 +1489,9 @@ Lnomatch:
             init = new ExpInitializer(loc, e);
             goto Ldtor;
         }
-        if (type->baseElemOf()->ty == Tvoid)
-        {
-            error("%s does not have a default initializer", type->toChars());
-            type = Type::terror;
-            goto Ldtor;
-        }
-#if 0
-        else if (type->ty == Ttypedef)
-        {
-            TypeTypedef *td = (TypeTypedef *)type;
-            if (td->sym->init)
-            {
-                init = td->sym->init;
-                ExpInitializer *ie = init->isExpInitializer();
-                if (ie)
-                    // Make copy so we can modify it
-                    init = new ExpInitializer(ie->loc, ie->exp);
-            }
-            else
-                init = getExpInitializer();
-        }
-#endif
         Expression *e = type->defaultInit(loc);
         if (e)
             init = new ExpInitializer(loc, e);
-        else
-            init = NULL;
 
         // Default initializer is always a blit
         isBlit = true;
@@ -1533,33 +1511,22 @@ Lnomatch:
                 !(storage_class & (STCmanifest | STCstatic | STCtls | STCgshared | STCextern)) &&
                 !init->isVoidInitializer())
             {
-                //printf("[%s] type = %s, init = %s\n", loc.toChars(), type->toChars(), init->toChars());
                 if (!inferred)
                 if (Type *tx = init->inferTypeY(sc, type))
-                {
-                    //printf("[%s] tx = %s, init = %s\n", loc.toChars(), tx->toChars(), init->toChars());
                     init = init->semantic(sc, tx, INITnointerpret);
-                }
 
                 ExpInitializer *ei = init->isExpInitializer();
 
                 //printf("fd = '%s', var = '%s'\n", fd->toChars(), toChars());
                 if (!ei)
                 {
-                    //if (inferred) printf("[%s] %s, type = %s\n", loc.toChars(), toChars(), type->toChars());
-                    //assert(!inferred || init->isErrorInitializer());
-
                     // Run semantic, but don't need to interpret
                     init = init->semantic(sc, type, INITnointerpret);
                     ei = init->isExpInitializer();
                     if (!ei)
-                    {
-                        //assert(init->isErrorInitializer());
                         return;
-                    }
                     init = ei;
                 }
-//printf("ei->exp = %s %s, tx = %s\n", ei->exp->type->toChars(), ei->exp->toChars(), type->toChars());
 
                 Expression *e1 = new VarExp(loc, this);
                 if (isBlit)
