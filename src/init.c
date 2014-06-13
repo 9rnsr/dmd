@@ -1093,7 +1093,7 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t)
 
     if (exp->op == TOKtype)
     {
-        exp->error("initializer must be an expression, not '%s'", exp->toChars());
+        exp->error("initializer must be an expression, not a type '%s'", exp->toChars());
         //return new ErrorInitializer();
         return new ExpInitializer(loc, new ErrorExp());
     }

@@ -1,3 +1,11 @@
+/*
+TEST_OUTPUT:
+---
+fail_compilation/ice12350.d(10): Error: enum ice12350.MyUDC is forward referenced looking for base type
+fail_compilation/ice12350.d(15): Error: initializer must be an expression, not a type 'MyUDC'
+fail_compilation/ice12350.d(30): Error: template instance ice12350.testAttrs!(MyStruct) error instantiating
+---
+*/
 
 enum MyUDC;
 
