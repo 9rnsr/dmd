@@ -46,8 +46,12 @@ public:
      */
     virtual Initializer *inferType(Scope *sc) = 0;
 
+    Type *checkMultiDimInit(Scope *sc, Type *tx);
+    virtual bool canMatch(Scope *sc, Type *tx);
+
     // needInterpret is INITinterpret if must be a manifest constant, 0 if not.
-    virtual Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret) = 0;
+    Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
+    virtual Initializer *semantic(Scope *sc, Type *t) = 0;
     virtual Expression *toExpression(Type *t = NULL) = 0;
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
     char *toChars();
@@ -68,7 +72,7 @@ public:
     VoidInitializer(Loc loc);
     Initializer *syntaxCopy();
     Initializer *inferType(Scope *sc);
-    Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
+    Initializer *semantic(Scope *sc, Type *t);
     Expression *toExpression(Type *t = NULL);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -82,7 +86,7 @@ public:
     ErrorInitializer();
     Initializer *syntaxCopy();
     Initializer *inferType(Scope *sc);
-    Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
+    Initializer *semantic(Scope *sc, Type *t);
     Expression *toExpression(Type *t = NULL);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -100,7 +104,8 @@ public:
     Initializer *syntaxCopy();
     void addInit(Identifier *field, Initializer *value);
     Initializer *inferType(Scope *sc);
-    Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
+    bool canMatch(Scope *sc, Type *tx);
+    Initializer *semantic(Scope *sc, Type *t);
     Expression *toExpression(Type *t = NULL);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -113,18 +118,16 @@ class ArrayInitializer : public Initializer
 public:
     Expressions index;  // indices
     Initializers value; // of Initializer *'s
-    size_t dim;         // length of array being initialized
-    Type *type;         // type that array will be used to initialize
-    bool sem;           // true if semantic() is run
 
     ArrayInitializer(Loc loc);
     Initializer *syntaxCopy();
     void addInit(Expression *index, Initializer *value);
     bool isAssociativeArray();
     Initializer *inferType(Scope *sc);
-    Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
+    bool canMatch(Scope *sc, Type *tx);
+    Initializer *semantic(Scope *sc, Type *t);
+    Initializer *semanticAA(Scope *sc, Type *t);
     Expression *toExpression(Type *t = NULL);
-    Expression *toAssocArrayLiteral();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     ArrayInitializer *isArrayInitializer() { return this; }
@@ -140,7 +143,8 @@ public:
     ExpInitializer(Loc loc, Expression *exp);
     Initializer *syntaxCopy();
     Initializer *inferType(Scope *sc);
-    Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
+    bool canMatch(Scope *sc, Type *tx);
+    Initializer *semantic(Scope *sc, Type *t);
     Expression *toExpression(Type *t = NULL);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 

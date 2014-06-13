@@ -11553,48 +11553,67 @@ Expression *AssignExp::semantic(Scope *sc)
                 e1x->checkPostblit(sc, t1);
             }
         }
-        else
+        else if ((t2->ty == Tarray || t2->ty == Tsarray) &&
+                 e2x->implicitConvTo(t1->nextOf()->arrayOf()) > MATCHnomatch)
         {
-            if (e2x->implicitConvTo(t1->nextOf()->arrayOf()) > MATCHnomatch)
+            // Element-wise assignment
+            uinteger_t dim1 = ((TypeSArray *)t1)->dim->toInteger();
+            uinteger_t dim2 = dim1;
+            if (e2x->op == TOKarrayliteral)
             {
-                uinteger_t dim1 = ((TypeSArray *)t1)->dim->toInteger();
-                uinteger_t dim2 = dim1;
-                if (e2x->op == TOKarrayliteral)
-                {
-                    ArrayLiteralExp *ale = (ArrayLiteralExp *)e2x;
-                    dim2 = ale->elements ? ale->elements->dim : 0;
-                }
-                else if (e2x->op == TOKslice)
-                {
-                    Type *tx = toStaticArrayType((SliceExp *)e2x);
-                    if (tx)
-                        dim2 = ((TypeSArray *)tx)->dim->toInteger();
-                }
-                if (dim1 != dim2)
-                {
-                    error("mismatched array lengths, %d and %d", (int)dim1, (int)dim2);
-                    return new ErrorExp();
-                }
+                ArrayLiteralExp *ale = (ArrayLiteralExp *)e2x;
+                dim2 = ale->elements ? ale->elements->dim : 0;
+            }
+            else if (e2x->op == TOKslice)
+            {
+                Type *tx = toStaticArrayType((SliceExp *)e2x);
+                if (tx)
+                    dim2 = ((TypeSArray *)tx)->dim->toInteger();
+            }
+            else if (t2->ty == Tsarray)
+            {
+                dim2 = ((TypeSArray *)t2)->dim->toInteger();
+            }
+            if (dim1 != dim2)
+            {
+                error("mismatched array lengths, %d and %d", (int)dim1, (int)dim2);
+                return new ErrorExp();
             }
 
-            // May be block or element-wise assignment, so
-            // convert e1 to e1[]
+            e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
+            e1x = e1x->semantic(sc);
+        }
+        else
+        {
+            // Maybe block assignment, so try to convert e1 to e1[]
+            Type *t1n = t1->nextOf()->toBasetype();
+            size_t depth = 0;
             if (op != TOKassign)
             {
+                while (t1n->ty == Tsarray)
+                {
+                    if (e2x->implicitConvTo(t1n))
+                        break;
+                    ++depth;
+                    t1n = t1n->nextOf()->toBasetype();
+                }
+            }
+            if (e2x->implicitConvTo(t1n))
+            {
+                // Block assignment
                 // If multidimensional static array, treat as one large array
                 dinteger_t dim = ((TypeSArray *)t1)->dim->toInteger();
                 Type *t = t1;
-                while (1)
+                while (depth-- > 0)
                 {
+                    assert(t->ty == Tsarray);
                     t = t->nextOf()->toBasetype();
-                    if (t->ty != Tsarray)
-                        break;
                     dim *= ((TypeSArray *)t)->dim->toInteger();
                     e1x->type = t->nextOf()->sarrayOf(dim);
                 }
+                e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
+                e1x = e1x->semantic(sc);
             }
-            e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
-            e1x = e1x->semantic(sc);
         }
         if (e1x->op == TOKerror)
             return e1x;

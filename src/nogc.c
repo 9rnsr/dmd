@@ -70,8 +70,8 @@ public:
             else
             {
                 ExpInitializer *ei = v->init->isExpInitializer();
-                assert(ei);
-                doCond(ei->exp);
+                if (ei)
+                    doCond(ei->exp);
             }
         }
     }
