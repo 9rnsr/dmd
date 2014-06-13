@@ -1,3 +1,14 @@
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail12604.d(14): Error: array initializer has 3 elements, but array length is 1
+fail_compilation/fail12604.d(15): Error: array initializer has 3 elements, but array length is 1
+fail_compilation/fail12604.d(17): Error: mismatched array lengths, 1 and 3
+fail_compilation/fail12604.d(18): Error: mismatched array lengths, 1 and 3
+fail_compilation/fail12604.d(20): Error: cannot implicitly convert expression (65536) of type int to short
+fail_compilation/fail12604.d(21): Error: cannot implicitly convert expression (65536) of type int to short
+---
+*/
 void main()
 {
       int[1] a1 = [1,2,3];
@@ -10,6 +21,19 @@ void main()
     short[1] d = [65536,2,3];
 }
 
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail12604.d(39): Error: mismatched array lengths, 2 and 3
+fail_compilation/fail12604.d(40): Error: mismatched array lengths, 2 and 3
+fail_compilation/fail12604.d(41): Error: mismatched array lengths, 2 and 3
+fail_compilation/fail12604.d(42): Error: mismatched array lengths, 2 and 3
+fail_compilation/fail12604.d(43): Error: mismatched array lengths, 2 and 3
+fail_compilation/fail12604.d(44): Error: mismatched array lengths, 2 and 3
+fail_compilation/fail12604.d(45): Error: mismatched array lengths, 2 and 3
+fail_compilation/fail12604.d(46): Error: mismatched array lengths, 2 and 3
+---
+*/
 void test12606a()   // AssignExp::semantic
 {
       uint[2] a1 = [1, 2, 3][];
@@ -22,6 +46,15 @@ void test12606a()   // AssignExp::semantic
     a4 = [1, 2, 3][0 .. 3];
 }
 
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail12604.d(60): Error: mismatched array lengths, 2 and 3
+fail_compilation/fail12604.d(61): Error: mismatched array lengths, 2 and 3
+fail_compilation/fail12604.d(62): Error: mismatched array lengths, 2 and 3
+fail_compilation/fail12604.d(63): Error: mismatched array lengths, 2 and 3
+---
+*/
 void test12606b()   // ExpInitializer::semantic
 {
     static   uint[2] a1 = [1, 2, 3][];
@@ -30,6 +63,13 @@ void test12606b()   // ExpInitializer::semantic
     static ushort[2] a4 = [1, 2, 3][0 .. 3];
 }
 
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail12604.d(77): Error: mismatched array lengths, 4 and 3
+fail_compilation/fail12604.d(78): Error: mismatched array lengths, 4 and 3
+---
+*/
 void testc()
 {
     int[4] sa1;

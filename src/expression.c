@@ -11547,19 +11547,23 @@ Expression *AssignExp::semantic(Scope *sc)
             {
                 uinteger_t dim1 = ((TypeSArray *)t1)->dim->toInteger();
                 uinteger_t dim2 = dim1;
+                //const char *s;
                 if (e2x->op == TOKarrayliteral)
                 {
                     ArrayLiteralExp *ale = (ArrayLiteralExp *)e2x;
                     dim2 = ale->elements ? ale->elements->dim : 0;
+                    //s = "array literal";
                 }
                 else if (e2x->op == TOKslice)
                 {
                     Type *tx = toStaticArrayType((SliceExp *)e2x);
                     if (tx)
                         dim2 = ((TypeSArray *)tx)->dim->toInteger();
+                    //s = "slice expression";
                 }
                 if (dim1 != dim2)
                 {
+                    //error("%s has %d elements, but array length is %d", s, (int)dim2, (int)dim1);
                     error("mismatched array lengths, %d and %d", (int)dim1, (int)dim2);
                     return new ErrorExp();
                 }

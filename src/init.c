@@ -732,6 +732,9 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
         if (length > dim)
             dim = length;
     }
+    if (errors)
+        //return new ErrorInitializer();
+        return new ExpInitializer(loc, new ErrorExp());
     if (t->ty == Tsarray)
     {
         dinteger_t edim = ((TypeSArray *)t)->dim->toInteger();
@@ -742,9 +745,6 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
             return new ExpInitializer(loc, new ErrorExp());
         }
     }
-    if (errors)
-        //return new ErrorInitializer();
-        return new ExpInitializer(loc, new ErrorExp());
 
     if ((uinteger_t)dim * t->nextOf()->size() >= amax)
     {
@@ -1152,16 +1152,11 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t)
         t = tb->nextOf();
     }
 
-    //if (exp->implicitConvTo(t))
-    //{
-        exp = exp->implicitCastTo(sc, t);
-    //}
-    //else
-    if (0)
     {
         // Look for mismatch of compile-time known length to emit
         // better diagnostic message, as same as AssignExp::semantic.
-        if (tb->ty == Tsarray &&
+        if (!exp->implicitConvTo(t) &&
+            tb->ty == Tsarray &&
             exp->implicitConvTo(tb->nextOf()->arrayOf()) > MATCHnomatch)
         {
             uinteger_t dim1 = ((TypeSArray *)tb)->dim->toInteger();
@@ -1183,8 +1178,8 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t)
                 exp = new ErrorExp();
             }
         }
-        exp = exp->implicitCastTo(sc, t);
     }
+    exp = exp->implicitCastTo(sc, t);
     if (exp->op == TOKerror)
         return this;
 L1:
