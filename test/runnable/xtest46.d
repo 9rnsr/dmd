@@ -6329,7 +6329,7 @@ void test8945()
 }
 
 /***************************************************/
-
+/+
 struct S162
 {
     static int generateMethodStubs( Class )()
@@ -6357,7 +6357,7 @@ struct S162
     void draw( int );
     void draw( long );
 }
-
++/
 /***************************************************/
 
 void test163() {

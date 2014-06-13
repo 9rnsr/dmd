@@ -513,8 +513,10 @@ Initializer *ArrayInitializer::inferType(Scope *sc)
             //if (iz->isErrorInitializer())
             //    return iz;
             assert(iz->isExpInitializer());
-            (*values)[i] = ((ExpInitializer *)iz)->exp;
-            assert((*values)[i]->op != TOKerror);
+            e = ((ExpInitializer *)iz)->exp;
+            if (e->op == TOKerror)
+                return iz;
+            (*values)[i] = e;
         }
 
         Expression *e = new AssocArrayLiteralExp(loc, keys, values);
@@ -563,8 +565,10 @@ Initializer *ArrayInitializer::inferType(Scope *sc)
             //if (iz->isErrorInitializer())
             //    return iz;
             assert(iz->isExpInitializer());
-            (*elements)[i] = ((ExpInitializer *)iz)->exp;
-            assert((*elements)[i]->op != TOKerror);
+            Expression *e = ((ExpInitializer *)iz)->exp;
+            if (e->op == TOKerror)
+                return iz;
+            (*elements)[i] = e;
         }
     #if 0
         /* Fill in any missing elements with the default initializer
