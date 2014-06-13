@@ -3228,14 +3228,17 @@ Lagain:
         }
         if ((v->storage_class & STCmanifest) && v->init)
         {
-            e = v->getConstInitializer(true);
-            if (!e)
-            {
-                error("cannot make expression out of initializer for %s", v->toChars());
-                return new ErrorExp();
-            }
-            e = e->copy();
-            e->loc = loc;   // for better error message
+            e = v->getConstInitializer(loc, true);
+            //if (e) printf("L%d e = %s\n", __LINE__, e->toChars());
+            //if (!e)
+            //{
+            //    error("cannot make expression out of initializer for %s", v->toChars());
+            //    return new ErrorExp();
+            //}
+            if (e->op == TOKerror)
+                return e;
+            //e = e->copy();
+            //e->loc = loc;   // for better error message
 
             // Detect recursive initializers.
             // BUG: The check for speculative gagging is not correct

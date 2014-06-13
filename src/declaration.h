@@ -313,6 +313,7 @@ public:
     bool needsAutoDtor();
     Expression *callScopeDtor(Scope *sc);
     Expression *getConstInitializer(bool needFullType = true);
+    Expression *getConstInitializer(Loc loc, bool needFullType = true);
     void checkCtorConstInit();
     void checkNestedReference(Scope *sc, Loc loc);
     Dsymbol *toAlias();

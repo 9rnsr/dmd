@@ -2061,7 +2061,23 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
 
 Expression *VarDeclaration::getConstInitializer(bool needFullType)
 {
+    return getConstInitializer(loc, needFullType);
+}
+
+Expression *VarDeclaration::getConstInitializer(Loc loc, bool needFullType)
+{
     assert(type && init);
+
+    if (inuse)
+    {
+        ::error(loc, "circular initialization of %s", toChars());
+        type = Type::terror;
+        //init = new ErrorInitializer(init->loc);
+        init = new ExpInitializer(init->loc, new ErrorExp());
+        return new ErrorExp();
+    }
+
+    //printf("+getConstInitializer v = %s, inuse = %d\n", toChars(), inuse);
 
     // Ungag errors when not speculative
     unsigned oldgag = global.gag;
@@ -2080,6 +2096,9 @@ Expression *VarDeclaration::getConstInitializer(bool needFullType)
         inuse--;
     }
     Expression *exp = init->toExpression();
+
+    exp = exp->copy();
+    exp->loc = loc;
 
     if (needFullType)
     {
@@ -2100,6 +2119,7 @@ Expression *VarDeclaration::getConstInitializer(bool needFullType)
     }
 
     global.gag = oldgag;
+    //printf("-getConstInitializer v = %s, inuse = %d, exp = %s\n", toChars(), inuse, exp->toChars());
     return exp;
 }
 

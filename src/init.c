@@ -83,7 +83,7 @@ Initializer *Initializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpr
     Initializer *iz = semantic(sc, t);
 
     ExpInitializer *ei = iz->isExpInitializer();
-    if (ei && needInterpret)
+    if (ei && needInterpret && ei->exp->op != TOKerror)
     {
         // If the result will be implicitly cast, move the cast into CTFE
         // to avoid premature truncation of polysemous types.
@@ -92,6 +92,7 @@ Initializer *Initializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpr
         //{
         //    ei->exp = ei->exp->implicitCastTo(sc, t);
         //}
+        //printf("L%d ei->exp = %s\n", __LINE__, ei->exp->toChars());
         ei->exp = ei->exp->ctfeInterpret();
     }
 
