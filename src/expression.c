@@ -5132,8 +5132,8 @@ SymOffExp::SymOffExp(Loc loc, Declaration *var, dinteger_t offset, bool hasOverl
 {
     this->offset = offset;
     VarDeclaration *v = var->isVarDeclaration();
-    if (v && v->needThis())
-        error("need 'this' for address of %s", v->toChars());
+    //if (v && v->needThis())
+    //    error("need 'this' for address of %s", v->toChars());
 }
 
 Expression *SymOffExp::semantic(Scope *sc)
