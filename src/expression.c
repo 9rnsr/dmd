@@ -11578,8 +11578,14 @@ Expression *AssignExp::semantic(Scope *sc)
 
             // May be block or element-wise assignment, so
             // convert e1 to e1[]
-            if (op != TOKassign)
+            Type *t1b = t1->baseElemOf();
+            if (op != TOKassign && t2->implicitConvTo(t1b))
             {
+                // Rewrite:
+                //  int[3][3] sa = 1;
+                // as:
+                //  int[3*3] sa; sa[] = 1;
+
                 // If multidimensional static array, treat as one large array
                 dinteger_t dim = ((TypeSArray *)t1)->dim->toInteger();
                 Type *t = t1;
@@ -11591,9 +11597,34 @@ Expression *AssignExp::semantic(Scope *sc)
                     dim *= ((TypeSArray *)t)->dim->toInteger();
                     e1x->type = t->nextOf()->sarrayOf(dim);
                 }
+                e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
+                e1x = e1x->semantic(sc);
             }
-            e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
-            e1x = e1x->semantic(sc);
+            else if (e2x->implicitConvTo(t1->nextOf()))
+            {
+                // Rewrite:
+                //  sa = e;
+                // as:
+                //  sa[] = e;
+
+                // TODO: should warn the lack of slice oprator in TOKassign case?
+                e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
+                e1x = e1x->semantic(sc);
+            }
+            else if ((t2->ty == Tarray || t2->ty == Tsarray) &&
+                     t2->nextOf()->implicitConvTo(t1->nextOf()))
+            {
+                // Support:
+                //  ubyte[] data;
+                //  size_t i;
+                //  ubyte[4] result = data[i..i+4];
+                // and:
+                //  class C {}       C[1] sa;
+                //  class D : C {}   D[1] sb;
+                //  sa = sb;
+                e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
+                e1x = e1x->semantic(sc);
+            }
         }
         if (e1x->op == TOKerror)
             return e1x;

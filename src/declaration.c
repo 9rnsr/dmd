@@ -1492,8 +1492,6 @@ Lnomatch:
         sc = sc->push();
         sc->stc &= ~(STC_TYPECTOR | STCpure | STCnothrow | STCnogc | STCref | STCdisable);
 
-        ExpInitializer *ei = init->isExpInitializer();
-
         // If inside function, there is no semantic3() call
         if (sc->func)
         {
@@ -1504,27 +1502,16 @@ Lnomatch:
                 !init->isVoidInitializer())
             {
                 //printf("fd = '%s', var = '%s'\n", fd->toChars(), toChars());
+                if (!inferred)
+                {
+                    // Run semantic, but don't need to interpret
+                    init = init->semantic(sc, type, INITnointerpret);
+                }
+                ExpInitializer *ei = init->isExpInitializer();
                 if (!ei)
                 {
-                    ArrayInitializer *ai = init->isArrayInitializer();
-                    Expression *e;
-                    if (ai && (tb->ty == Taarray || tb->ty == Tstruct && ai->isAssociativeArray()))
-                        e = ai->toAssocArrayLiteral();
-                    else
-                        e = init->toExpression();
-                    if (!e)
-                    {
-                        // Run semantic, but don't need to interpret
-                        init = init->semantic(sc, type, INITnointerpret);
-                        e = init->toExpression();
-                        if (!e)
-                        {
-                            error("is not a static and cannot have static initializer");
-                            return;
-                        }
-                    }
-                    ei = new ExpInitializer(init->loc, e);
-                    init = ei;
+                    type = Type::terror;
+                    return;
                 }
 
                 Expression *e1 = new VarExp(loc, this);
@@ -1587,7 +1574,7 @@ Lnomatch:
             {
                 unsigned errors = global.errors;
                 inuse++;
-                if (ei)
+                if (ExpInitializer *ei = init->isExpInitializer())
                 {
                     Expression *exp = ei->exp->syntaxCopy();
 

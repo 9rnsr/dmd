@@ -114,6 +114,8 @@ void test7239()
 }
 
 /***************************************************/
+// 10635
+
 struct S10635
 {
     string str;
@@ -292,6 +294,60 @@ void test11421()
     static assert(is(typeof(aa) == double[string][int]));
     assert(aa[1]["a"] == 1.0);
     assert(aa[2]["b"] == 2.0);
+}
+
+/***************************************************/
+
+void test12787()
+{
+  {
+    int[2][2] a = 1;
+    assert(a == [[1,1], [1,1]]);
+  }
+
+  {
+    static assert(!__traits(compiles, { int[3][3] a = [1,2]; }));
+  }
+
+  {
+    int[3] sa = [1,2,3];
+    int[3][3] a = sa;
+    assert(a == [[1,2,3], [1,2,3], [1,2,3]]);
+  }
+
+  {
+    int[][3] a = [1,2];
+    assert(a == [[1,2], [1,2], [1,2]]);
+    assert(a[0] is a[1] && a[1] is a[2]);
+  }
+
+    static assert(!__traits(compiles, { int[][][3] a = [1,2]; }));
+
+    //struct S { int x; }
+    ////int x;
+    //S x;
+    //static S* arr = &x;
+
+  {
+    int[1][2][3] a = [[1],[2]];
+    assert(a == [[[1],[2]], [[1],[2]], [[1],[2]]]);
+  }
+
+  {
+    int[1][2] a = [ 1 , [2]];
+    assert(a == [[1], [2]]);
+  }
+
+  {
+    int[1][2][3] a = [ 1 , [2]];
+    assert(a == [[[1], [2]], [[1], [2]], [[1], [2]]]);
+  }
+
+    struct S { this(int n) { num = n; } int num; }
+
+  {
+    static assert(!__traits(compiles, { S[3] a = [1, 1]; }));
+  }
 }
 
 /***************************************************/

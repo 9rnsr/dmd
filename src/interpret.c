@@ -713,7 +713,7 @@ void ctfeCompile(FuncDeclaration *fd)
  */
 Expression *ctfeInterpret(Expression *e)
 {
-    if (e->type == Type::terror)
+    if (e->op == TOKerror)
         return e;
 
     unsigned olderrors = global.errors;
