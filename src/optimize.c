@@ -528,7 +528,9 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
 
             if ((e->e1->op == TOKstring || e->e1->op == TOKarrayliteral) &&
                 (e->type->ty == Tpointer || e->type->ty == Tarray) &&
-                e->e1->type->toBasetype()->nextOf()->size() == e->type->nextOf()->size()
+                e->e1->type->toBasetype()->nextOf()->size() == e->type->nextOf()->size() &&
+                e->type->nextOf()->ty != Tvoid  // stop recursive optimization (ubyte[] to void[])
+                //Prevent ICE: void[2] sa = cast(void[])[cast(ubyte)1,cast(ubyte)2];   // ICE in 2.065 and head!
                )
             {
                 ret = e->e1->castTo(NULL, e->type);
