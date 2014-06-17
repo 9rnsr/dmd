@@ -1345,6 +1345,26 @@ void test12011()
 }
 
 /********************************************/
+// 6938
+
+void test6938()
+{
+    struct S
+    {
+        int num;
+        this(this) { ++num; }
+    }
+
+    S s1 = {1};
+    S s2 = S(s1);
+    assert(s1.num == 1);
+    assert(s2.num == 2);
+
+    S s3 = S(S(S(5)));
+    assert(s3.num == 5);
+}
+
+/********************************************/
 
 int main()
 {
@@ -1388,6 +1408,7 @@ int main()
     test11105();
     test11147();
     test11256();
+    test6938();
 
     printf("Success\n");
     return 0;

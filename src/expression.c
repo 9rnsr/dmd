@@ -1337,7 +1337,7 @@ Expression *callCpCtor(Scope *sc, Expression *e)
              */
             Identifier *idtmp = Lexer::uniqueId("__cpcttmp");
             VarDeclaration *tmp = new VarDeclaration(e->loc, e->type, idtmp, new ExpInitializer(e->loc, e));
-            tmp->storage_class |= STCtemp | STCctfe;
+            tmp->storage_class |= STCtemp | STCctfe | STCrvalue;
             tmp->noscope = 1;
             tmp->semantic(sc);
             Expression *de = new DeclarationExp(e->loc, tmp);
@@ -8407,6 +8407,23 @@ Lagain:
         if (t1->ty == Tstruct)
         {
             ad = ((TypeStruct *)t1)->sym;
+
+            // handle explicit struct copying
+            if (e1->op == TOKtype && arguments && arguments->dim == 1)
+            {
+                Expression *ea = (*arguments)[0];
+                Type *ti = ea->type->toBasetype();
+                if (ti->ty == Tstruct && ti->toDsymbol(sc) == t1->toDsymbol(sc))
+                {
+                    //printf("+ea = %s\n", ea->toChars());
+                    ea = ea->isLvalue() ? callCpCtor(sc, ea) : valueNoDtor(ea);
+                    //printf("-ea = %s\n", ea->toChars());
+
+                    ea = ea->implicitCastTo(sc, t1);
+                    //ea = new CastExp(loc, e, t1);
+                    return ea;
+                }
+            }
 
             // First look for constructor
             if (e1->op == TOKtype && ad->ctor)
