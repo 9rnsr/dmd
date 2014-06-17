@@ -5569,63 +5569,72 @@ Expression *FuncExp::semantic(Scope *sc)
     printf("FuncExp::semantic(%s)\n", toChars());
     if (fd->treq) printf("  treq = %s\n", fd->treq->toChars());
 #endif
-    if (type)
-        return this;
-
-    /* If fd->treq is already set in inferType, fix lambda type to it.
-     * Otherwise, leave polymorphic and defer the commit after implicitCastTo/castTo call.
-     */
-    unsigned olderrors;
     Expression *e = this;
 
     sc = sc->startCTFE();       // just create new scope
     sc->flags &= ~SCOPEctfe;    // temporary stop CTFE
     sc->protection = PROTpublic;    // Bugzilla 12506
 
-    genIdent(sc);
-
-    // Set target of return type inference
-    if (fd->treq && !fd->type->nextOf())
+    if (!type || type == Type::tvoid)
     {
-        TypeFunction *tfv = NULL;
-        if (fd->treq->ty == Tdelegate ||
-            (fd->treq->ty == Tpointer && fd->treq->nextOf()->ty == Tfunction))
-            tfv = (TypeFunction *)fd->treq->nextOf();
-        if (tfv)
-        {
-            TypeFunction *tfl = (TypeFunction *)fd->type;
-            tfl->next = tfv->nextOf();
-        }
-    }
+        /* fd->treq might be incomplete type,
+         * so should not semantic it.
+         * void foo(T)(T delegate(int) dg){}
+         * foo(a=>a); // in IFTI, treq == T delegate(int)
+         */
+        //if (fd->treq)
+        //    fd->treq = fd->treq->semantic(loc, sc);
 
-    //printf("td = %p, treq = %p\n", td, fd->treq);
-    if (td)
-    {
-        assert(td->parameters && td->parameters->dim);
-        td->semantic(sc);
+        genIdent(sc);
 
-        if (fd->treq)       // defer type determination
+        // Set target of return type inference
+        if (fd->treq && !fd->type->nextOf())
         {
-            FuncExp *fe;
-            if (matchType(fd->treq, sc, &fe) > MATCHnomatch)
-                e = fe;
-            else
-                e = new ErrorExp();
+            TypeFunction *tfv = NULL;
+            if (fd->treq->ty == Tdelegate ||
+                (fd->treq->ty == Tpointer && fd->treq->nextOf()->ty == Tfunction))
+                tfv = (TypeFunction *)fd->treq->nextOf();
+            if (tfv)
+            {
+                TypeFunction *tfl = (TypeFunction *)fd->type;
+                tfl->next = tfv->nextOf();
+            }
         }
-        else
+
+        //printf("td = %p, treq = %p\n", td, fd->treq);
+        if (td)
+        {
+            assert(td->parameters && td->parameters->dim);
+            td->semantic(sc);
             type = Type::tvoid; // temporary type
 
-        goto Ldone;
-    }
+            if (fd->treq)       // defer type determination
+            {
+                FuncExp *fe;
+                if (matchType(fd->treq, sc, &fe) > MATCHnomatch)
+                    e = fe;
+                else
+                    e = new ErrorExp();
+            }
+            goto Ldone;
+        }
 
-    olderrors = global.errors;
-    fd->semantic(sc);
-    if (olderrors == global.errors)
-        fd->semantic2(sc);
-    if (olderrors == global.errors)
-        fd->semantic3(sc);
-    if (olderrors == global.errors)
-    {
+        unsigned olderrors = global.errors;
+        fd->semantic(sc);
+        if (olderrors == global.errors)
+        {
+            fd->semantic2(sc);
+            if (olderrors == global.errors)
+                fd->semantic3(sc);
+        }
+        if (olderrors != global.errors)
+        {
+            if (fd->type && fd->type->ty == Tfunction && !fd->type->nextOf())
+                ((TypeFunction *)fd->type)->next = Type::terror;
+            e = new ErrorExp();
+            goto Ldone;
+        }
+
         // Type is a "delegate to" or "pointer to" the function literal
         if ((fd->isNested() && fd->tok == TOKdelegate) ||
             (tok == TOKreserved && fd->treq && fd->treq->ty == Tdelegate))
@@ -5639,6 +5648,7 @@ Expression *FuncExp::semantic(Scope *sc)
         {
             type = new TypePointer(fd->type);
             type = type->semantic(loc, sc);
+            //type = fd->type->pointerTo();
 
             /* A lambda expression deduced to function pointer might become
              * to a delegate literal implicitly.
@@ -5657,13 +5667,6 @@ Expression *FuncExp::semantic(Scope *sc)
         }
         fd->tookAddressOf++;
     }
-    else
-    {
-        if (fd->type && fd->type->ty == Tfunction && !fd->type->nextOf())
-            ((TypeFunction *)fd->type)->next = Type::terror;
-        e = new ErrorExp();
-    }
-
 Ldone:
     sc->flags |=  SCOPEctfe;
     sc = sc->endCTFE();
