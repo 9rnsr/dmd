@@ -4975,6 +4975,26 @@ Lagain:
         }
 
         FuncDeclaration *f = NULL;
+
+        // handle explicit struct copying
+        if (nargs == 1)
+        {
+            Expression *ea = (*arguments)[0];
+            Type *ti = ea->type->toBasetype();
+            if (ti->ty == Tstruct && ti->toDsymbol(sc) == tb->toDsymbol(sc))
+            {
+                //printf("+ea = %s\n", ea->toChars());
+                ea = ea->isLvalue() ? callCpCtor(sc, ea) : valueNoDtor(ea);
+                //printf("-ea = %s\n", ea->toChars());
+
+                ea = ea->implicitCastTo(sc, tb);
+                //ea = new CastExp(loc, e, tb);
+                //return ea;
+                (*arguments)[0] = ea;
+                goto Lx;
+            }
+        }
+
         if (sd->ctor && nargs)
             f = resolveFuncCall(loc, sc, sd->ctor, NULL, tb, arguments, 0);
         if (f)
@@ -5008,6 +5028,7 @@ Lagain:
                 return new ErrorExp();
         }
 
+    Lx:
         type = type->pointerTo();
     }
     else if (tb->ty == Tarray && nargs)

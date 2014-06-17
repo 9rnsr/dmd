@@ -1345,7 +1345,7 @@ void test12011()
 }
 
 /********************************************/
-// 6938
+// 6938 & 12918
 
 void test6938()
 {
@@ -1362,6 +1362,28 @@ void test6938()
 
     S s3 = S(S(S(5)));
     assert(s3.num == 5);
+}
+
+void test12918()
+{
+    struct S
+    {
+        int num;
+        int[10] sarr = 3;
+        this(this) { ++num; }
+    }
+
+    S s1 = {1, sarr:5};
+    assert(s1.num == 1);
+    assert(s1.sarr[0] == 5 && s1.sarr[4] == 5);
+
+    S* s2 = new S(s1);
+    assert(s2.num == 2);
+    assert(s2.sarr[0] == 5 && s2.sarr[4] == 5);
+
+    S* s3 = new S(S(S(5)));
+    assert(s3.num == 5);
+    assert(s3.sarr[0] == 3 && s3.sarr[4] == 3);
 }
 
 /********************************************/
@@ -1409,6 +1431,7 @@ int main()
     test11147();
     test11256();
     test6938();
+    test12918();
 
     printf("Success\n");
     return 0;

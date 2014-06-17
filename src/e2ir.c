@@ -1494,7 +1494,6 @@ elem *toElem(Expression *e, IRState *irs)
 
                 if (ne->allocator)
                 {
-
                     ex = el_var(toSymbol(ne->allocator));
                     ex = callfunc(ne->loc, irs, 1, ne->type, ex, ne->allocator->type,
                                 ne->allocator, ne->allocator->type, NULL, ne->newargs);
@@ -1509,12 +1508,27 @@ elem *toElem(Expression *e, IRState *irs)
                     e = ne->type->getTypeInfo(NULL)->toElem(irs);
 
                     int rtl = t->isZeroInit() ? RTLSYM_NEWITEMT : RTLSYM_NEWITEMIT;
-                    ex = el_bin(OPcall,TYnptr,el_var(rtlsym[rtl]),e);
+                    ex = el_bin(OPcall, TYnptr, el_var(rtlsym[rtl]), e);
 
                     ectype = NULL;
                 }
 
                 elem *ev = el_same(&ex);
+
+                if (ne->arguments && ne->arguments->dim == 1)
+                {
+                    Expression *ea = (*ne->arguments)[0];
+                    Type *ti = ea->type->toBasetype();
+                    if (ti->ty == Tstruct && ti->toDsymbol(NULL) == sd)
+                    {
+                        ez = ea->toElem(irs);
+                        ez = addressElem(ez, ea->type);
+
+                        elem *esize = el_long(TYsize_t, t->size());
+                        ez = el_bin(OPmemcpy, TYnptr, ev, el_param(ez, esize));
+                        goto Lx;
+                    }
+                }
 
                 if (ne->member)
                 {
@@ -1556,7 +1570,7 @@ elem *toElem(Expression *e, IRState *irs)
                 //elem_print(ex);
                 //elem_print(ey);
                 //elem_print(ez);
-
+            Lx:
                 e = el_combine(ex, ey);
                 e = el_combine(e, ez);
             }
