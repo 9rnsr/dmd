@@ -913,8 +913,8 @@ Initializer *ExpInitializer::syntaxCopy()
 bool ExpInitializer::canMatch(Scope *sc, Type *t)
 {
     t = t->toBasetype();
-    if (t->ty == Tdelegate ||
-        t->ty == Tpointer && ((TypeNext *)t)->next->ty == Tfunction)
+    //if (t->ty == Tdelegate ||
+    //    t->ty == Tpointer && ((TypeNext *)t)->next->ty == Tfunction)
     {
         //printf("+exp = %s, t = %s\n", exp->toChars(), t->toChars());
         exp = ::inferType(exp, t);
