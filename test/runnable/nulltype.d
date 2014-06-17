@@ -129,7 +129,7 @@ void test8589()
 
         static assert((T.sizeof == typeof(null).sizeof) == result);
         static assert(is(typeof( f(&retnull) )) == result);
-        static assert(is(typeof( f(()=>null) )) == true);
+        static assert(is(typeof( f(()=>null) )) == result);
         static if (result)
         {
             f(&retnull);
