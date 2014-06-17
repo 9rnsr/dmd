@@ -670,9 +670,11 @@ void test8397()
 
 void test8496()
 {
-    //alias extern (C) void function() Func;
-    //Func fp = (){};
-    //fp = (){};
+    alias extern (C) void function() Func;
+
+    Func fp = (){};
+
+    fp = (){};
 }
 
 /***************************************************/

@@ -5767,14 +5767,7 @@ MATCH FuncExp::matchType(Type *to, Scope *sc, FuncExp **presult, int flag)
     TypeFunction *tfx = (TypeFunction *)fd->type;
     bool convertMatch = (type->ty != to->ty);
 
-    Type *toret = tfx->next;
-    LINK tolink = tfx->linkage;
-    if (fd->inferRetType && tfx->next->implicitConvTo(tof->next))
-        toret = tof->next;
-
-    //if (tfx->linkage != tof->linkage)
-    //    tolink = tof->linkage;
-    if (toret != tfx->next/* || tolink != tfx->linkage*/)
+    if (fd->inferRetType && tfx->next->implicitConvTo(tof->next) == MATCHconvert)
     {
         /* If return type is inferred and covariant return,
          * tweak return statements to required return type.
@@ -5786,7 +5779,7 @@ MATCH FuncExp::matchType(Type *to, Scope *sc, FuncExp **presult, int flag)
          */
         convertMatch = true;
 
-        TypeFunction *tfy = new TypeFunction(tfx->parameters, tof->next, tfx->varargs, tolink, STCundefined);
+        TypeFunction *tfy = new TypeFunction(tfx->parameters, tof->next, tfx->varargs, tfx->linkage, STCundefined);
         tfy->mod = tfx->mod;
         tfy->isnothrow  = tfx->isnothrow;
         tfy->isnogc     = tfx->isnogc;
@@ -5830,7 +5823,6 @@ MATCH FuncExp::matchType(Type *to, Scope *sc, FuncExp **presult, int flag)
             (*presult)->type = to;
 
             // Bugzilla 12508: Tweak function body for covariant returns.
-            //(*presult)->fd->linkage = tof->linkage;
             (*presult)->fd->modifyReturns(sc, tof->next);
         }
     }
