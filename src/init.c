@@ -912,10 +912,16 @@ Initializer *ExpInitializer::syntaxCopy()
 
 bool ExpInitializer::canMatch(Scope *sc, Type *t)
 {
+    t = t->toBasetype();
+    if (t->ty == Tdelegate ||
+        t->ty == Tpointer && ((TypeNext *)t)->next->ty == Tfunction)
+    {
+        //printf("+exp = %s, t = %s\n", exp->toChars(), t->toChars());
+        exp = ::inferType(exp, t);
+    }
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
 
-    t = t->toBasetype();
     return (exp->implicitConvTo(t) ||
             t->ty == Tsarray && exp->implicitConvTo(((TypeNext *)t)->next));
 }
