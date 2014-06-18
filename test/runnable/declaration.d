@@ -100,6 +100,24 @@ void testX()
     assert(b2 == [1,2]);
 }
 
+void testy()
+{
+    struct S
+    {
+        int a;
+
+        static S opCall(int i)
+        {
+            S s;
+            s.a = i;
+            return s;
+        }
+    }
+
+    S s = 3;
+    static assert(!__traits(compiles, { static S gs = 3; }));
+}
+
 /***************************************************/
 // 6475
 

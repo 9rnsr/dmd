@@ -51,7 +51,7 @@ public:
 
     // needInterpret is INITinterpret if must be a manifest constant, 0 if not.
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
-    virtual Initializer *semantic(Scope *sc, Type *t) = 0;
+    virtual Initializer *semantic(Scope *sc, Type *t, bool top = false) = 0;
     virtual Expression *toExpression(Type *t = NULL) = 0;
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
     char *toChars();
@@ -72,7 +72,7 @@ public:
     VoidInitializer(Loc loc);
     Initializer *syntaxCopy();
     Initializer *inferType(Scope *sc);
-    Initializer *semantic(Scope *sc, Type *t);
+    Initializer *semantic(Scope *sc, Type *t, bool top = false);
     Expression *toExpression(Type *t = NULL);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -86,7 +86,7 @@ public:
     ErrorInitializer();
     Initializer *syntaxCopy();
     Initializer *inferType(Scope *sc);
-    Initializer *semantic(Scope *sc, Type *t);
+    Initializer *semantic(Scope *sc, Type *t, bool top = false);
     Expression *toExpression(Type *t = NULL);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -105,7 +105,7 @@ public:
     void addInit(Identifier *field, Initializer *value);
     Initializer *inferType(Scope *sc);
     bool canMatch(Scope *sc, Type *tx);
-    Initializer *semantic(Scope *sc, Type *t);
+    Initializer *semantic(Scope *sc, Type *t, bool top = false);
     Expression *toExpression(Type *t = NULL);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -125,8 +125,8 @@ public:
     bool isAssociativeArray();
     Initializer *inferType(Scope *sc);
     bool canMatch(Scope *sc, Type *tx);
-    Initializer *semantic(Scope *sc, Type *t);
-    Initializer *semanticAA(Scope *sc, Type *t);
+    Initializer *semantic(Scope *sc, Type *t, bool top = false);
+    Initializer *semanticAA(Scope *sc, Type *t, bool top = false);
     Expression *toExpression(Type *t = NULL);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -144,7 +144,7 @@ public:
     Initializer *syntaxCopy();
     Initializer *inferType(Scope *sc);
     bool canMatch(Scope *sc, Type *tx);
-    Initializer *semantic(Scope *sc, Type *t);
+    Initializer *semantic(Scope *sc, Type *t, bool top = false);
     Expression *toExpression(Type *t = NULL);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
