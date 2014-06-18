@@ -157,7 +157,7 @@ Initializer *Initializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpr
     Type *to = checkMultiDimInit(sc, t);
     if (!to)
         to = t;
-    Initializer *iz = semantic(sc, to);
+    Initializer *iz = semantic(sc, to, true);
 
     if (needInterpret)
         sc = sc->endCTFE();
@@ -213,7 +213,7 @@ Initializer *ErrorInitializer::inferType(Scope *sc)
     return this;
 }
 
-Initializer *ErrorInitializer::semantic(Scope *sc, Type *t)
+Initializer *ErrorInitializer::semantic(Scope *sc, Type *t, bool top)
 {
     //printf("ErrorInitializer::semantic(t = %p)\n", t);
     return this;
@@ -243,7 +243,7 @@ Initializer *VoidInitializer::inferType(Scope *sc)
     return new ErrorInitializer();
 }
 
-Initializer *VoidInitializer::semantic(Scope *sc, Type *t)
+Initializer *VoidInitializer::semantic(Scope *sc, Type *t, bool top)
 {
     //printf("VoidInitializer::semantic(t = %p)\n", t);
     type = t;
@@ -297,7 +297,7 @@ bool StructInitializer::canMatch(Scope *sc, Type *t)
             t->ty == Tpointer && ((TypeNext *)t)->next->ty == Tfunction);
 }
 
-Initializer *StructInitializer::semantic(Scope *sc, Type *t)
+Initializer *StructInitializer::semantic(Scope *sc, Type *t, bool top)
 {
     //printf("StructInitializer::semantic(t = %s) %s\n", t->toChars(), toChars());
     t = t->toBasetype();
@@ -406,7 +406,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
         sle->type = t;
 
         ExpInitializer *ie = new ExpInitializer(loc, sle);
-        return ie->semantic(sc, t);
+        return ie->semantic(sc, t, top);
     }
     else if ((t->ty == Tdelegate || t->ty == Tpointer && t->nextOf()->ty == Tfunction) && value.dim == 0)
     {
@@ -420,7 +420,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
         fd->endloc = loc;
         Expression *e = new FuncExp(loc, fd);
         ExpInitializer *ie = new ExpInitializer(loc, e);
-        return ie->semantic(sc, t);
+        return ie->semantic(sc, t, top);
     }
 
     error(loc, "a struct is not a valid initializer for a %s", t->toChars());
@@ -587,7 +587,7 @@ Lno:
  * Convert array initializer to array expression.
  */
 
-Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
+Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, bool top)
 {
     //printf("ArrayInitializer::semantic(%s)\n", t->toChars());
 
@@ -613,7 +613,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
                     t = tn->arrayOf();
                 }
                 iz = new ExpInitializer(loc, e);
-                return iz->semantic(sc, t);
+                return iz->semantic(sc, t, top);
             }
             break;
         }
@@ -623,12 +623,12 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
             break;
 
         case Taarray:
-            return semanticAA(sc, t);
+            return semanticAA(sc, t, top);
 
         case Tstruct:   // consider implicit constructor call
         {
             Initializer *iz = inferType(sc);
-            return iz->semantic(sc, t);
+            return iz->semantic(sc, t, top);
         }
 
         default:
@@ -781,14 +781,14 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
 
     Expression *e = new ArrayLiteralExp(loc, elements);
     ExpInitializer *ei = new ExpInitializer(loc, e);
-    return ei->semantic(sc, t);
+    return ei->semantic(sc, t, top);
 }
 
 /********************************
  * If possible, convert array initializer to associative array expression.
  */
 
-Initializer *ArrayInitializer::semanticAA(Scope *sc, Type *t)
+Initializer *ArrayInitializer::semanticAA(Scope *sc, Type *t, bool top)
 {
     //printf("ArrayInitializer::semanticAA() %s, t = %s\n", toChars(), t->toChars());
     assert(t->ty == Taarray);
@@ -822,7 +822,7 @@ Initializer *ArrayInitializer::semanticAA(Scope *sc, Type *t)
     }
     Expression *e = new AssocArrayLiteralExp(loc, keys, values);
     ExpInitializer *ei = new ExpInitializer(e->loc, e);
-    return ei->semantic(sc, t);
+    return ei->semantic(sc, t, top);
 }
 
 Expression *ArrayInitializer::toExpression(Type *tx)
@@ -915,7 +915,7 @@ Initializer *ExpInitializer::inferType(Scope *sc)
     return this;
 }
 
-Initializer *ExpInitializer::semantic(Scope *sc, Type *t)
+Initializer *ExpInitializer::semantic(Scope *sc, Type *t, bool top)
 {
     //printf("ExpInitializer::semantic(%s), type = %s\n", exp->toChars(), t->toChars());
     exp = ::inferType(exp, t);
@@ -972,6 +972,7 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t)
         !(ti->ty == Tstruct && tb->toDsymbol(sc) == ti->toDsymbol(sc)) &&
         !exp->implicitConvTo(t))
     {
+        bool needInterpret = (sc->flags & SCOPEctfe) != 0;
         StructDeclaration *sd = ((TypeStruct *)tb)->sym;
         if (sd->ctor)
         {
@@ -984,6 +985,20 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t)
             e = new DotIdExp(loc, e, Id::ctor);
             e = new CallExp(loc, e, exp);
             e = e->semantic(sc);
+            exp = e->optimize(WANTvalue);
+        }
+        else if (!needInterpret && top && search_function(sd, Id::call))
+        {
+            /* Look for static opCall
+             * (See bugzilla 2702 for more discussion)
+             * Rewrite as:
+             *      S.opCall(exp)
+             */
+            Expression *e;
+            e = typeDotIdExp(exp->loc, t, Id::call);
+            e = new CallExp(loc, e, exp);
+            e = e->semantic(sc);
+            e = resolveProperties(sc, e);
             exp = e->optimize(WANTvalue);
         }
     }

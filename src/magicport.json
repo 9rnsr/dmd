@@ -421,6 +421,7 @@
                 "tokens",
                 "globals",
                 "mtype",
+                "opover",
                 "root.outbuffer",
                 "root.rootobject",
                 "statement",
