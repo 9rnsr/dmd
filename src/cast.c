@@ -54,16 +54,15 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
         {
             //printf("Expression::implicitCastTo(%s of type %s) => %s\n", e->toChars(), e->type->toChars(), t->toChars());
 
-            MATCH match = e->implicitConvTo(t);
-            if (match == MATCHerror)
+            MATCH m = e->implicitConvTo(t);
+            if (m == MATCHerror)
             {
-    printf("L%d\n", __LINE__);
                 result = new ErrorExp();
                 return;
             }
-            if (match > MATCHnomatch)
+            if (m > MATCHnomatch)
             {
-                if (match == MATCHconst &&
+                if (m == MATCHconst &&
                     (e->type->constConv(t) ||
                      !e->isLvalue() && e->type->immutableOf()->equals(t->immutableOf())))
                 {
@@ -78,14 +77,7 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
                 return;
             }
 
-    printf("L%d\n", __LINE__);
             result = e->optimize(WANTflags | WANTvalue);
-    printf("L%d\n", __LINE__);
-            if (result->op == TOKerror)
-            {
-    printf("L%d\n", __LINE__);
-                return;
-            }
             if (result != e)
             {
                 result->accept(this);
@@ -182,25 +174,26 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
         void visit(Expression *e)
         {
-        #if 1
+        #if 0
             printf("Expression::implicitConvTo(this=%s, type=%s, t=%s)\n",
                 e->toChars(), e->type->toChars(), t->toChars());
         #endif
             //static int nest; if (++nest == 10) halt();
-            if (t == Type::terror)
+            if (e->op == TOKerror || t == Type::terror)
+            {
+                result = MATCHerror;
                 return;
-    printf("L%d\n", __LINE__);
+            }
             if (!e->type)
             {
                 e->error("%s is not an expression", e->toChars());
-                e->type = Type::terror;
+                result = MATCHerror;
+                return;
             }
-    printf("L%d\n", __LINE__);
             Expression *ex = e->optimize(WANTvalue | WANTflags);
             if (ex->op == TOKerror)
             {
                 result = MATCHerror;
-    printf("L%d\n", __LINE__);
                 return;
             }
             if (ex->type->equals(t))
@@ -214,10 +207,10 @@ MATCH implicitConvTo(Expression *e, Type *t)
                 result = ex->implicitConvTo(t);
                 return;
             }
-            MATCH match = e->type->implicitConvTo(t);
-            if (match != MATCHnomatch)
+            MATCH m = e->type->implicitConvTo(t);
+            if (m != MATCHnomatch)
             {
-                result = match;
+                result = m;
                 return;
             }
 
@@ -320,7 +313,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                 e->toChars(), e->type->toChars(), t->toChars());
         #endif
             MATCH m = e->type->implicitConvTo(t);
-            if (m >= MATCHconst)
+            if (m >= MATCHconst || m == MATCHerror)
             {
                 result = m;
                 return;
@@ -681,7 +674,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                     for (size_t i = 0; i < e->elements->dim; i++)
                     {
                         Expression *el = (*e->elements)[i];
-                        if (result == MATCHnomatch)
+                        if (result <= MATCHnomatch)
                             break;                          // no need to check for worse
                         MATCH m = el->implicitConvTo(telement);
                         if (m < result)
@@ -689,7 +682,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                     }
                 }
 
-                if (!result)
+                if (result == MATCHnomatch)
                     result = e->type->implicitConvTo(t);
 
                 return;
@@ -715,7 +708,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                     MATCH m = el->implicitConvTo(telement);
                     if (m < result)
                         result = m;                     // remember worst match
-                    if (result == MATCHnomatch)
+                    if (result <= MATCHnomatch)
                         break;                          // no need to check for worse
                 }
                 return;
@@ -737,13 +730,13 @@ MATCH implicitConvTo(Expression *e, Type *t)
                     MATCH m = el->implicitConvTo(((TypeAArray *)tb)->index);
                     if (m < result)
                         result = m;                     // remember worst match
-                    if (result == MATCHnomatch)
+                    if (result <= MATCHnomatch)
                         break;                          // no need to check for worse
                     el = (*e->values)[i];
                     m = el->implicitConvTo(tb->nextOf());
                     if (m < result)
                         result = m;                     // remember worst match
-                    if (result == MATCHnomatch)
+                    if (result <= MATCHnomatch)
                         break;                          // no need to check for worse
                 }
                 return;
@@ -981,7 +974,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
         {
             //printf("FuncExp::implicitConvTo type = %p %s, t = %s\n", e->type, e->type ? e->type->toChars() : NULL, t->toChars());
             MATCH m = e->matchType(t, NULL, NULL, 1);
-            if (m > MATCHnomatch)
+            if (m != MATCHnomatch)
             {
                 result = m;
                 return;
