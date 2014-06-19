@@ -1067,7 +1067,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
 
         void visit(IndexExp *e)
         {
-            //printf("IndexExp::optimize(result = %d) %s\n", result, e->toChars());
+            printf("IndexExp::optimize(result = %d) %s\n", result, e->toChars());
             e->e1 = e->e1->optimize(WANTvalue | (result & WANTexpand));
 
             Expression *ex = fromConstInitializer(result, e->e1);
@@ -1078,6 +1078,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             if (keepLvalue)
                 return;
             ret = Index(e->type, ex, e->e2);
+            printf("ret = %s cant = %d\n", ret->toChars(), ret == EXP_CANT_INTERPRET);
             if (ret == EXP_CANT_INTERPRET)
                 ret = e;
         }

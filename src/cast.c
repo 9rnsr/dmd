@@ -55,7 +55,13 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
             //printf("Expression::implicitCastTo(%s of type %s) => %s\n", e->toChars(), e->type->toChars(), t->toChars());
 
             MATCH match = e->implicitConvTo(t);
-            if (match)
+            if (match == MATCHerror)
+            {
+    printf("L%d\n", __LINE__);
+                result = new ErrorExp();
+                return;
+            }
+            if (match > MATCHnomatch)
             {
                 if (match == MATCHconst &&
                     (e->type->constConv(t) ||
@@ -72,7 +78,14 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
                 return;
             }
 
+    printf("L%d\n", __LINE__);
             result = e->optimize(WANTflags | WANTvalue);
+    printf("L%d\n", __LINE__);
+            if (result->op == TOKerror)
+            {
+    printf("L%d\n", __LINE__);
+                return;
+            }
             if (result != e)
             {
                 result->accept(this);
@@ -169,19 +182,27 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
         void visit(Expression *e)
         {
-        #if 0
+        #if 1
             printf("Expression::implicitConvTo(this=%s, type=%s, t=%s)\n",
                 e->toChars(), e->type->toChars(), t->toChars());
         #endif
             //static int nest; if (++nest == 10) halt();
             if (t == Type::terror)
                 return;
+    printf("L%d\n", __LINE__);
             if (!e->type)
             {
                 e->error("%s is not an expression", e->toChars());
                 e->type = Type::terror;
             }
+    printf("L%d\n", __LINE__);
             Expression *ex = e->optimize(WANTvalue | WANTflags);
+            if (ex->op == TOKerror)
+            {
+                result = MATCHerror;
+    printf("L%d\n", __LINE__);
+                return;
+            }
             if (ex->type->equals(t))
             {
                 result = MATCHexact;

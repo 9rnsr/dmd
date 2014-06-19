@@ -1527,6 +1527,7 @@ Lnomatch:
                     init = ei;
                 }
 
+                printf("ei->exp = %s\n", ei->exp->toChars());
                 Expression *e1 = new VarExp(loc, this);
                 if (isBlit)
                     ei->exp = new BlitExp(loc, e1, ei->exp);
@@ -1535,7 +1536,9 @@ Lnomatch:
                 canassign++;
                 ei->exp = ei->exp->semantic(sc);
                 canassign--;
+    printf("L%d ei->exp - %s\n", __LINE__, ei->exp->toChars());
                 ei->exp->optimize(WANTvalue);
+    printf("L%d\n", __LINE__);
 
                 if (isScope())
                 {

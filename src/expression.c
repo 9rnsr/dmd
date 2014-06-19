@@ -11543,7 +11543,12 @@ Expression *AssignExp::semantic(Scope *sc)
         Expression *e2x = e2;
         Type *t2 = e2x->type->toBasetype();
 
-        if (e2x->implicitConvTo(e1x->type))
+    printf("L%d\n", __LINE__);
+        MATCH m = e2x->implicitConvTo(e1x->type);
+    printf("L%d\n", __LINE__);
+        if (m == MATCHerror)
+            return new ErrorExp();
+        if (m > MATCHnomatch)
         {
             if (op != TOKblit &&
                 (e2x->op == TOKslice && ((UnaExp *)e2x)->e1->isLvalue() ||
@@ -11555,8 +11560,10 @@ Expression *AssignExp::semantic(Scope *sc)
         }
         else
         {
+    printf("L%d\n", __LINE__);
             if (e2x->implicitConvTo(t1->nextOf()->arrayOf()) > MATCHnomatch)
             {
+    printf("L%d\n", __LINE__);
                 uinteger_t dim1 = ((TypeSArray *)t1)->dim->toInteger();
                 uinteger_t dim2 = dim1;
                 if (e2x->op == TOKarrayliteral)
@@ -11595,6 +11602,7 @@ Expression *AssignExp::semantic(Scope *sc)
             }
             e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
             e1x = e1x->semantic(sc);
+    printf("L%d\n", __LINE__);
         }
         if (e1x->op == TOKerror)
             return e1x;
@@ -11660,11 +11668,12 @@ Expression *AssignExp::semantic(Scope *sc)
     while (telem->ty == Tarray)
         telem = telem->nextOf();
 
+    printf("L%d\n", __LINE__);
     if (e1->op == TOKslice &&
         t1->nextOf() && (telem->ty != Tvoid || e2x->op == TOKnull) &&
-        e2x->implicitConvTo(t1->nextOf())
-       )
+        e2x->implicitConvTo(t1->nextOf()) > MATCHnomatch)
     {
+    printf("L%d\n", __LINE__);
         // Check for block assignment. If it is of type void[], void[][], etc,
         // '= null' is the only allowable block assignment (Bug 7493)
         // memset
@@ -11675,8 +11684,9 @@ Expression *AssignExp::semantic(Scope *sc)
     }
     else if (e1->op == TOKslice &&
              (t2->ty == Tarray || t2->ty == Tsarray) &&
-             t2->nextOf()->implicitConvTo(t1->nextOf()))
+             t2->nextOf()->implicitConvTo(t1->nextOf()) > MATCHnomatch)
     {
+    printf("L%d\n", __LINE__);
         // Check element-wise assignment.
 
         /* If assigned elements number is known at compile time,
@@ -11755,6 +11765,7 @@ Expression *AssignExp::semantic(Scope *sc)
     }
     else
     {
+    printf("L%d\n", __LINE__);
         if (0 && global.params.warnings && !global.gag && op == TOKassign &&
             t1->ty == Tarray && t2->ty == Tsarray &&
             e2x->op != TOKslice &&
@@ -11767,10 +11778,12 @@ Expression *AssignExp::semantic(Scope *sc)
             warning("explicit %s assignment %s = (%s)[] is better than %s = %s",
                 atypestr, e1str, e2str, e1str, e2str);
         }
+    printf("L%d\n", __LINE__);
         if (op == TOKblit)
             e2x = e2x->castTo(sc, e1->type);
         else
             e2x = e2x->implicitCastTo(sc, e1->type);
+    printf("L%d\n", __LINE__);
     }
     if (e2x->op == TOKerror)
         return e2x;

@@ -1068,7 +1068,8 @@ Expression *Cmp(TOK op, Type *type, Expression *e1, Expression *e2)
  */
 
 Expression *Cast(Type *type, Type *to, Expression *e1)
-{   Expression *e = EXP_CANT_INTERPRET;
+{
+    Expression *e = EXP_CANT_INTERPRET;
     Loc loc = e1->loc;
 
     //printf("Cast(type = %s, to = %s, e1 = %s)\n", type->toChars(), to->toChars(), e1->toChars());
@@ -1111,9 +1112,9 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
     else if (type->isintegral())
     {
         if (e1->type->isfloating())
-        {   dinteger_t result;
+        {
+            dinteger_t result;
             real_t r = e1->toReal();
-
             switch (typeb->ty)
             {
                 case Tint8:     result = (d_int8)r;     break;
@@ -1139,18 +1140,18 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
             e = new IntegerExp(loc, e1->toInteger(), type);
     }
     else if (tb->isreal())
-    {   real_t value = e1->toReal();
-
+    {
+        real_t value = e1->toReal();
         e = new RealExp(loc, value, type);
     }
     else if (tb->isimaginary())
-    {   real_t value = e1->toImaginary();
-
+    {
+        real_t value = e1->toImaginary();
         e = new RealExp(loc, value, type);
     }
     else if (tb->iscomplex())
-    {   complex_t value = e1->toComplex();
-
+    {
+        complex_t value = e1->toComplex();
         e = new ComplexExp(loc, value, type);
     }
     else if (tb->isscalar())
@@ -1158,7 +1159,8 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
     else if (tb->ty == Tvoid)
         e = EXP_CANT_INTERPRET;
     else if (tb->ty == Tstruct && e1->op == TOKint64)
-    {   // Struct = 0;
+    {
+        // Struct = 0;
         StructDeclaration *sd = tb->toDsymbol(NULL)->isStructDeclaration();
         assert(sd);
         Expressions *elements = new Expressions;
@@ -1216,13 +1218,15 @@ Expression *ArrayLength(Type *type, Expression *e1)
 /* Also return EXP_CANT_INTERPRET if this fails
  */
 Expression *Index(Type *type, Expression *e1, Expression *e2)
-{   Expression *e = EXP_CANT_INTERPRET;
+{
+    Expression *e = EXP_CANT_INTERPRET;
     Loc loc = e1->loc;
 
     //printf("Index(e1 = %s, e2 = %s)\n", e1->toChars(), e2->toChars());
     assert(e1->type);
     if (e1->op == TOKstring && e2->op == TOKint64)
-    {   StringExp *es1 = (StringExp *)e1;
+    {
+        StringExp *es1 = (StringExp *)e1;
         uinteger_t i = e2->toInteger();
 
         if (i >= es1->len)
@@ -1236,7 +1240,8 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
         }
     }
     else if (e1->type->toBasetype()->ty == Tsarray && e2->op == TOKint64)
-    {   TypeSArray *tsa = (TypeSArray *)e1->type->toBasetype();
+    {
+        TypeSArray *tsa = (TypeSArray *)e1->type->toBasetype();
         uinteger_t length = tsa->dim->toInteger();
         uinteger_t i = e2->toInteger();
 
