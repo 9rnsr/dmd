@@ -1446,13 +1446,16 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             {
                 //printf("\t\tvarargs == 2, p->type = '%s'\n", p->type->toChars());
                 {
-                    MATCH m;
-                    if ((m = arg->implicitConvTo(p->type)) > MATCHnomatch)
+                    MATCH m = arg->implicitConvTo(p->type);
+                    if (m == MATCHerror)
+                        return Type::terror;
+                    if (m > MATCHnomatch)
                     {
                         if (p->type->nextOf() && arg->implicitConvTo(p->type->nextOf()) >= m)
                             goto L2;
                         else if (nargs != nparams)
-                        {   error(loc, "expected %llu function arguments, not %llu", (ulonglong)nparams, (ulonglong)nargs);
+                        {
+                            error(loc, "expected %llu function arguments, not %llu", (ulonglong)nparams, (ulonglong)nargs);
                             return Type::terror;
                         }
                         goto L1;

@@ -913,7 +913,7 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
     dedtypes->zero();
 
     if (errors)
-        return MATCHnomatch;
+        return MATCHerror;
 
     size_t parameters_dim = parameters->dim;
     int variadic = isVariadic() != NULL;
@@ -959,7 +959,7 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
         m2 = tp->matchArg(ti->loc, paramscope, ti->tiargs, i, parameters, dedtypes, &sparam);
         //printf("\tm2 = %d\n", m2);
 
-        if (m2 == MATCHnomatch)
+        if (m2 <= MATCHnomatch)
         {
 #if 0
             printf("\tmatchArg() for parameter %i failed\n", i);
@@ -1122,6 +1122,8 @@ MATCH TemplateDeclaration::leastAsSpecialized(Scope *sc, TemplateDeclaration *td
 
     // Attempt a type deduction
     MATCH m = td2->matchWithInstance(sc, &ti, &dedtypes, fargs, 1);
+    if (m == MATCHerror)
+        return m;
     if (m > MATCHnomatch)
     {
         /* A non-variadic template is more specialized than a
@@ -1743,7 +1745,7 @@ Lretry:
                         else
                         {
                             Type *vt = tvp->valType->semantic(Loc(), sc);
-                            MATCH m = (MATCH)dim->implicitConvTo(vt);
+                            MATCH m = dim->implicitConvTo(vt);
                             if (m <= MATCHnomatch)
                                 goto Lnomatch;
                             (*dedtypes)[i] = dim;

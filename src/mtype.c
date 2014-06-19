@@ -1927,6 +1927,8 @@ MATCH Type::implicitConvTo(Type *to)
     //printf("Type::implicitConvTo(this=%p, to=%p)\n", this, to);
     //printf("from: %s\n", toChars());
     //printf("to  : %s\n", to->toChars());
+    if (ty == Terror || to->ty == Terror)
+        return MATCHerror;
     if (this->equals(to))
         return MATCHexact;
     return MATCHnomatch;
@@ -1944,6 +1946,8 @@ MATCH Type::implicitConvTo(Type *to)
 MATCH Type::constConv(Type *to)
 {
     //printf("Type::constConv(this = %s, to = %s)\n", toChars(), to->toChars());
+    if (ty == Terror || to->ty == Terror)
+        return MATCHerror;
     if (equals(to))
         return MATCHexact;
     if (ty == to->ty && MODimplicitConv(mod, to->mod))
@@ -2803,6 +2807,8 @@ Type *TypeNext::makeMutable()
 MATCH TypeNext::constConv(Type *to)
 {
     //printf("TypeNext::constConv from = %s, to = %s\n", toChars(), to->toChars());
+    if (to->ty == Terror)
+        return MATCHerror;
     if (equals(to))
         return MATCHexact;
 
@@ -2815,13 +2821,15 @@ MATCH TypeNext::constConv(Type *to)
 
     MATCH m;
     if (to->isConst())  // whole tail const conversion
-    {   // Recursive shared level check
+    {
+        // Recursive shared level check
         m = next->constConv(tn);
         if (m == MATCHexact)
             m = MATCHconst;
     }
     else
-    {   //printf("\tnext => %s, to->next => %s\n", next->toChars(), tn->toChars());
+    {
+        //printf("\tnext => %s, to->next => %s\n", next->toChars(), tn->toChars());
         m = next->equals(tn) ? MATCHconst : MATCHnomatch;
     }
     return m;
@@ -3484,6 +3492,8 @@ bool TypeBasic::isscalar()
 MATCH TypeBasic::implicitConvTo(Type *to)
 {
     //printf("TypeBasic::implicitConvTo(%s) from %s\n", to->toChars(), toChars());
+    if (to->ty == Terror)
+        return MATCHerror;
     if (this == to)
         return MATCHexact;
 
@@ -3720,6 +3730,8 @@ bool TypeVector::isscalar()
 MATCH TypeVector::implicitConvTo(Type *to)
 {
     //printf("TypeVector::implicitConvTo(%s) from %s\n", to->toChars(), toChars());
+    if (to->ty == Terror)
+        return MATCHerror;
     if (this == to)
         return MATCHexact;
     if (ty == to->ty)
@@ -4237,6 +4249,8 @@ MATCH TypeSArray::constConv(Type *to)
 MATCH TypeSArray::implicitConvTo(Type *to)
 {
     //printf("TypeSArray::implicitConvTo(to = %s) this = %s\n", to->toChars(), toChars());
+    if (to->ty == Terror)
+        return MATCHerror;
 
     // Allow implicit conversion of static array to pointer or dynamic array
     if (IMPLICIT_ARRAY_TO_PTR && to->ty == Tpointer)
@@ -4522,6 +4536,8 @@ bool TypeDArray::isString()
 MATCH TypeDArray::implicitConvTo(Type *to)
 {
     //printf("TypeDArray::implicitConvTo(to = %s) this = %s\n", to->toChars(), toChars());
+    if (to->ty == Terror)
+        return MATCHerror;
     if (equals(to))
         return MATCHexact;
 
@@ -4864,6 +4880,8 @@ int TypeAArray::hasPointers()
 MATCH TypeAArray::implicitConvTo(Type *to)
 {
     //printf("TypeAArray::implicitConvTo(to = %s) this = %s\n", to->toChars(), toChars());
+    if (to->ty == Terror)
+        return MATCHerror;
     if (equals(to))
         return MATCHexact;
 

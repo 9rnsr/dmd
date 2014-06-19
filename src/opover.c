@@ -1750,7 +1750,8 @@ static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, 
     {
         inferApplyArgTypesY((TypeFunction *)p.fd_best->type, arguments);
         if (p.fd_ambig)
-        {   ::error(ethis->loc, "%s.%s matches more than one declaration:\n%s:     %s\nand:\n%s:     %s",
+        {
+            ::error(ethis->loc, "%s.%s matches more than one declaration:\n%s:     %s\nand:\n%s:     %s",
                     ethis->toChars(), fstart->ident->toChars(),
                     p.fd_best ->loc.toChars(), p.fd_best ->type->toChars(),
                     p.fd_ambig->loc.toChars(), p.fd_ambig->type->toChars());
@@ -1793,7 +1794,8 @@ static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments, int flag
         Parameter *arg = (*arguments)[u];
         Parameter *param = Parameter::getNth(tf->parameters, u);
         if (arg->type)
-        {   if (!arg->type->equals(param->type))
+        {
+            if (!arg->type->equals(param->type))
                 goto Lnomatch;
         }
         else if (!flags)
