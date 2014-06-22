@@ -2258,7 +2258,8 @@ void Expression::checkEscape()
         void visit(SliceExp *e)
         {
             printf("\tL%d e = %s\n", __LINE__, e->toChars());
-            e->e1->accept(this);
+            //e->e1->accept(this);
+            e->e1->checkEscapeRef();
         }
 
         void visit(CommaExp *e)
@@ -2285,11 +2286,29 @@ void Expression::checkEscapeRef()
 {
     class CheckEscapeRef : public StoppableVisitor
     {
+        void visit(Expression *e)
+        {
+            printf("\tL%d e = %s\n", __LINE__, e->toChars());
+        }
+
         void visit(VarExp *e)
         {
             VarDeclaration *v = e->var->isVarDeclaration();
             if (v && !v->isDataseg() && !(v->storage_class & (STCref | STCout)))
                 e->error("escaping reference to local variable %s", v->toChars());
+        }
+
+        void visit(CallExp *e)
+        {
+            printf("\tL%d e = %s\n", __LINE__, e->toChars());
+
+            Type *t = e->e1->type->toBasetype();
+            if (t->ty == Tdelegate)
+                t = ((TypeDelegate *)t)->next;
+            if (t->ty == Tfunction && !((TypeFunction *)t)->isref)
+            {
+                e->error("escaping reference to local %s", e->toChars());
+            }
         }
 
         void visit(PtrExp *e)
