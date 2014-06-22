@@ -2274,6 +2274,19 @@ void Expression::checkEscape()
 #if LOGESC
             printf("\tL%d e = %s\n", __LINE__, e->toChars());
 #endif
+            Type *tb = e->type->toBasetype();
+            if (tb->ty == Tarray && e->e1->op == TOKvar &&
+                e->e1->type->toBasetype()->ty == Tsarray)
+            {
+                VarExp *ve = (VarExp *)e->e1;
+                VarDeclaration *v = ve->var->isVarDeclaration();
+                if (v && !v->isDataseg() && !v->isParameter())
+                {
+                    e->error("escaping reference to local %s", v->toChars());
+                    return;
+                }
+            }
+
             e->e1->accept(this);
         }
 
