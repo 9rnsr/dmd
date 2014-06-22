@@ -2259,7 +2259,17 @@ void Expression::checkEscape()
         {
             //printf("\tL%d e = %s\n", __LINE__, e->toChars());
             //e->e1->accept(this);
-            e->e1->checkEscapeRef();
+            Type *tb = e->type->toBasetype();
+            Type *tb1 = e->e1->type->toBasetype();
+            if (tb->ty == Tarray)
+            {
+                if (tb1->ty == Tsarray)
+                    e->e1->checkEscapeRef();
+                else
+                    e->e1->checkEscape();
+            }
+            else
+                e->e1->checkEscape();
         }
 
         void visit(CommaExp *e)
@@ -10047,7 +10057,8 @@ Lagain:
     if (!lwr && !upr)
     {
         if (e1->op == TOKarrayliteral)
-        {   // Convert [a,b,c][] to [a,b,c]
+        {
+            // Convert [a,b,c][] to [a,b,c]
             Type *t1b = e1->type->toBasetype();
             e = e1;
             if (t1b->ty == Tsarray)
@@ -10058,7 +10069,8 @@ Lagain:
             return e;
         }
         if (e1->op == TOKslice)
-        {   // Convert e[][] to e[]
+        {
+            // Convert e[][] to e[]
             SliceExp *se = (SliceExp *)e1;
             if (!se->lwr && !se->upr)
                 return se;
@@ -10199,11 +10211,13 @@ Lagain:
             assert(0);
 
         if (i1 <= i2 && i2 <= length)
-        {   size_t j1 = (size_t) i1;
+        {
+            size_t j1 = (size_t) i1;
             size_t j2 = (size_t) i2;
 
             if (e1->op == TOKtuple)
-            {   Expressions *exps = new Expressions;
+            {
+                Expressions *exps = new Expressions;
                 exps->setDim(j2 - j1);
                 for (size_t i = 0; i < j2 - j1; i++)
                 {
@@ -10212,10 +10226,12 @@ Lagain:
                 e = new TupleExp(loc, te->e0, exps);
             }
             else
-            {   Parameters *args = new Parameters;
+            {
+                Parameters *args = new Parameters;
                 args->reserve(j2 - j1);
                 for (size_t i = j1; i < j2; i++)
-                {   Parameter *arg = Parameter::getNth(tup->arguments, i);
+                {
+                    Parameter *arg = Parameter::getNth(tup->arguments, i);
                     args->push(arg);
                 }
                 e = new TypeExp(e1->loc, new TypeTuple(args));

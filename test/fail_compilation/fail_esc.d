@@ -17,3 +17,7 @@ int[] f2()
     int[3] a;
     return a;
 }
+int[] f3(int[] a)
+{
+    return a[0..2]; // OK
+}
