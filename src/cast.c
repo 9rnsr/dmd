@@ -68,6 +68,7 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
                     result->type = t;
                     return;
                 }
+#if 0
                 if (e->type->toBasetype()->ty == Tsarray && t->toBasetype()->ty == Tarray)
                 {
                 //printf("implicitCastTo m = %d, e = %s, type = %s, t = %s\n", match, e->toChars(), e->type->toChars(), t->toChars());
@@ -84,6 +85,7 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
                     result = e;
                     return;
                 }
+#endif
                 result = e->castTo(sc, t);
                 return;
             }

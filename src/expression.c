@@ -2260,13 +2260,24 @@ void Expression::checkEscape()
             printf("\tL%d e = %s\n", __LINE__, e->toChars());
 #endif
             Type *tb = e->type->toBasetype();
-            if (tb->ty == Tarray && e->e1->op == TOKvar &&
-                e->e1->type->toBasetype()->ty == Tsarray)
+            Type *t1b = e->e1->type->toBasetype();
+            if (tb->ty == Tarray && //e->e1->op == TOKvar &&
+                t1b->ty == Tsarray)
             {
-                VarExp *ve = (VarExp *)e->e1;
-                VarDeclaration *v = ve->var->isVarDeclaration();
-                if (v && !v->isDataseg() && !v->isParameter())
-                    e->error("V escaping reference to local %s of type %s", v->toChars(), v->type->toChars());
+                //VarExp *ve = (VarExp *)e->e1;
+                //VarDeclaration *v = ve->var->isVarDeclaration();
+                //if (v && !v->isDataseg() && !v->isParameter())
+                //    e->error("escaping reference to local %s of type %s", v->toChars(), v->type->toChars());
+
+                if (tb->ty == Tarray)
+                {
+                    if (t1b->ty == Tsarray)
+                        e->e1->checkEscapeRef();
+                    else
+                        e->e1->checkEscape();
+                }
+                else
+                    e->e1->checkEscape();
             }
         }
 
@@ -2277,10 +2288,10 @@ void Expression::checkEscape()
 #endif
             //e->e1->accept(this);
             Type *tb = e->type->toBasetype();
-            Type *tb1 = e->e1->type->toBasetype();
+            Type *t1b = e->e1->type->toBasetype();
             if (tb->ty == Tarray)
             {
-                if (tb1->ty == Tsarray)
+                if (t1b->ty == Tsarray)
                     e->e1->checkEscapeRef();
                 else
                     e->e1->checkEscape();
