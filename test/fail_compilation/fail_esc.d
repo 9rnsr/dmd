@@ -56,3 +56,40 @@ int* f3(ref int r, int v)
     if (g == 5) return &a;                  // NG
     else        return v == 0 ? &v : &a;    // NG, NG
 }
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail_esc.d(69): Error: escaping reference to variadic parameter a of type int[]
+fail_compilation/fail_esc.d(70): Error: escaping reference to variadic parameter a of type int[]
+---
+*/
+int[] f4(int[] a ...)
+{
+    if (g == 1) return a;
+    else        return a[0..2];
+}
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail_esc.d(82): Error: escaping reference to scope local s of type object.Object
+---
+*/
+Object f5(Object o, scope Object s)
+{
+    if (g == 1) return o;
+    else        return s;
+}
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail_esc.d(94): Error: escaping reference to scope local dg2 of type void delegate()
+---
+*/
+void delegate() f6(void delegate() dg1, scope void delegate() dg2)
+{
+    if (g == 1) return dg1;
+    else        return dg2;
+}

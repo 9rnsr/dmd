@@ -2224,7 +2224,7 @@ void Expression::checkEscape()
             {
                 Type *tb = v->type->toBasetype();
                 // if reference type
-                if (tb->ty == Tarray || tb->ty == Tsarray || tb->ty == Tclass || tb->ty == Tdelegate)
+                if (tb->ty == Tarray || tb->ty == Tclass || tb->ty == Tdelegate)
                 {
 //printf("checkEscape var scope = %d, noscope = %d\n", v->isScope(), v->noscope);
                     if (v->isScope() && (!v->noscope || tb->ty == Tclass))
