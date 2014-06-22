@@ -2176,8 +2176,6 @@ Expression *Expression::readModifyWrite(TOK rmwOp, Expression *ex)
 }
 
 
-//bool walkPostorder(Expression *e, StoppableVisitor *v);
-
 /************************************
  * Detect cases where pointers to the stack can 'escape' the
  * lifetime of the stack frame.
@@ -2309,7 +2307,6 @@ void Expression::checkEscape()
     };
 
     CheckEscape v;
-    //walkPostorder(this, &v);
     this->accept(&v);
 }
 
@@ -2369,7 +2366,6 @@ void Expression::checkEscapeRef()
     };
 
     CheckEscapeRef v;
-    //walkPostorder(this, &v);
     this->accept(&v);
 }
 

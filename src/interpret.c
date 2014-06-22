@@ -5319,10 +5319,8 @@ public:
             VarExp* ve = (VarExp *)e->e2;
             VarDeclaration *v = ve->var->isVarDeclaration();
             ctfeStack.push(v);
-//printf("L%d\n", __LINE__);
             if (!getValue(v))
             {
-//printf("L%d\n", __LINE__);
                 if (!v->init)
                     setValue(v, copyLiteral(v->type->defaultInitLiteral(e->loc)));
                 else if (v->init->isVoidInitializer())
@@ -5330,9 +5328,7 @@ public:
             }
             if (!getValue(v))
             {
-//printf("L%d\n", __LINE__);
                 Expression *newval = v->init->toExpression();
-//printf("\tnewval = %p\n", newval);
                 // Bug 4027. Copy constructors are a weird case where the
                 // initializer is a void function (the variable is modified
                 // through a reference parameter instead).
