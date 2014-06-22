@@ -2189,10 +2189,12 @@ void Expression::checkEscape()
     {
         void visit(Expression *e)
         {
+            printf("\tL%d e = %s\n", __LINE__, e->toChars());
         }
 
         void visit(SymOffExp *e)
         {
+            printf("\tL%d e = %s\n", __LINE__, e->toChars());
             VarDeclaration *v = e->var->isVarDeclaration();
             if (v && !v->isDataseg() && !(v->storage_class & (STCref | STCout)))
             {
@@ -2208,6 +2210,7 @@ void Expression::checkEscape()
 
         void visit(VarExp *e)
         {
+            printf("\tL%d e = %s\n", __LINE__, e->toChars());
             VarDeclaration *v = e->var->isVarDeclaration();
             if (v)
             {
@@ -2225,6 +2228,7 @@ void Expression::checkEscape()
 
         void visit(TupleExp *e)
         {
+            printf("\tL%d e = %s\n", __LINE__, e->toChars());
             for (size_t i = 0; i < e->exps->dim; i++)
             {
                 (*e->exps)[i]->accept(this);
@@ -2233,11 +2237,13 @@ void Expression::checkEscape()
 
         void visit(AddrExp *e)
         {
+            printf("\tL%d e = %s\n", __LINE__, e->toChars());
             e->e1->checkEscapeRef();
         }
 
         void visit(CastExp *e)
         {
+            printf("\tL%d e = %s\n", __LINE__, e->toChars());
             Type *tb = e->type->toBasetype();
             if (tb->ty == Tarray && e->e1->op == TOKvar &&
                 e->e1->type->toBasetype()->ty == Tsarray)
@@ -2251,21 +2257,25 @@ void Expression::checkEscape()
 
         void visit(SliceExp *e)
         {
+            printf("\tL%d e = %s\n", __LINE__, e->toChars());
             e->e1->accept(this);
         }
 
         void visit(CommaExp *e)
         {
+            printf("\tL%d e = %s\n", __LINE__, e->toChars());
             e->e2->accept(this);
         }
 
         void visit(CondExp *e)
         {
+            printf("\tL%d e = %s\n", __LINE__, e->toChars());
             e->e1->accept(this);
             e->e2->accept(this);
         }
     };
 
+    printf("e = %s\n", toChars());
     CheckEscape v;
     walkPostorder(this, &v);
 }
