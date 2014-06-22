@@ -6655,3 +6655,10 @@ void test12851()
     const int[5] arr;
     alias staticZip = TypeTuple!(arr[0]);
 }
+
+/**************************************************
+    implicit slicing
+**************************************************/
+
+int fooX(string[] a...) {return 1;}
+enum nX = fooX();
