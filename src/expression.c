@@ -2176,7 +2176,7 @@ Expression *Expression::readModifyWrite(TOK rmwOp, Expression *ex)
 }
 
 
-bool walkPostorder(Expression *e, StoppableVisitor *v);
+//bool walkPostorder(Expression *e, StoppableVisitor *v);
 
 /************************************
  * Detect cases where pointers to the stack can 'escape' the
@@ -2277,7 +2277,8 @@ void Expression::checkEscape()
 
     printf("e = %s\n", toChars());
     CheckEscape v;
-    walkPostorder(this, &v);
+    //walkPostorder(this, &v);
+    this->accept(&v);
 }
 
 void Expression::checkEscapeRef()
@@ -2314,7 +2315,8 @@ void Expression::checkEscapeRef()
     };
 
     CheckEscapeRef v;
-    walkPostorder(this, &v);
+    //walkPostorder(this, &v);
+    this->accept(&v);
 }
 
 void Expression::checkScalar()
