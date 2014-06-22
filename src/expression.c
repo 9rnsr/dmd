@@ -2189,12 +2189,12 @@ void Expression::checkEscape()
     {
         void visit(Expression *e)
         {
-            printf("\tL%d e = %s\n", __LINE__, e->toChars());
+            //printf("\tL%d e = %s\n", __LINE__, e->toChars());
         }
 
         void visit(SymOffExp *e)
         {
-            printf("\tL%d e = %s\n", __LINE__, e->toChars());
+            //printf("\tL%d e = %s\n", __LINE__, e->toChars());
             VarDeclaration *v = e->var->isVarDeclaration();
             if (v && !v->isDataseg() && !(v->storage_class & (STCref | STCout)))
             {
@@ -2204,13 +2204,13 @@ void Expression::checkEscape()
                  *     int* bar() { return &a; }
                  *   }
                  */
-                e->error("escaping reference to local %s", v->toChars());
+                e->error("V escaping reference to local [symoff] %s of %s", v->toChars(), v->type->toChars());
             }
         }
 
         void visit(VarExp *e)
         {
-            printf("\tL%d e = %s\n", __LINE__, e->toChars());
+            //printf("\tL%d e = %s\n", __LINE__, e->toChars());
             VarDeclaration *v = e->var->isVarDeclaration();
             if (v)
             {
@@ -2219,16 +2219,16 @@ void Expression::checkEscape()
                 if (tb->ty == Tarray || tb->ty == Tsarray || tb->ty == Tclass || tb->ty == Tdelegate)
                 {
                     if (v->isScope() && (!v->noscope || tb->ty == Tclass))
-                        e->error("escaping reference to scope local %s", v->toChars());
+                        e->error("V escaping reference to scope local %s of type %s", v->toChars(), v->type->toChars());
                     else if (v->storage_class & STCvariadic)
-                        e->error("escaping reference to variadic parameter %s", v->toChars());
+                        e->error("V escaping reference to variadic parameter %s of type %s", v->toChars(), v->type->toChars());
                 }
             }
         }
 
         void visit(TupleExp *e)
         {
-            printf("\tL%d e = %s\n", __LINE__, e->toChars());
+            //printf("\tL%d e = %s\n", __LINE__, e->toChars());
             for (size_t i = 0; i < e->exps->dim; i++)
             {
                 (*e->exps)[i]->accept(this);
@@ -2237,13 +2237,13 @@ void Expression::checkEscape()
 
         void visit(AddrExp *e)
         {
-            printf("\tL%d e = %s\n", __LINE__, e->toChars());
+            //printf("\tL%d e = %s\n", __LINE__, e->toChars());
             e->e1->checkEscapeRef();
         }
 
         void visit(CastExp *e)
         {
-            printf("\tL%d e = %s\n", __LINE__, e->toChars());
+            //printf("\tL%d e = %s\n", __LINE__, e->toChars());
             Type *tb = e->type->toBasetype();
             if (tb->ty == Tarray && e->e1->op == TOKvar &&
                 e->e1->type->toBasetype()->ty == Tsarray)
@@ -2251,32 +2251,32 @@ void Expression::checkEscape()
                 VarExp *ve = (VarExp *)e->e1;
                 VarDeclaration *v = ve->var->isVarDeclaration();
                 if (v && !v->isDataseg() && !v->isParameter())
-                    e->error("escaping reference to local %s", v->toChars());
+                    e->error("V escaping reference to local %s of type %s", v->toChars(), v->type->toChars());
             }
         }
 
         void visit(SliceExp *e)
         {
-            printf("\tL%d e = %s\n", __LINE__, e->toChars());
+            //printf("\tL%d e = %s\n", __LINE__, e->toChars());
             //e->e1->accept(this);
             e->e1->checkEscapeRef();
         }
 
         void visit(CommaExp *e)
         {
-            printf("\tL%d e = %s\n", __LINE__, e->toChars());
+            //printf("\tL%d e = %s\n", __LINE__, e->toChars());
             e->e2->accept(this);
         }
 
         void visit(CondExp *e)
         {
-            printf("\tL%d e = %s\n", __LINE__, e->toChars());
+            //printf("\tL%d e = %s\n", __LINE__, e->toChars());
             e->e1->accept(this);
             e->e2->accept(this);
         }
     };
 
-    printf("e = %s\n", toChars());
+    //printf("e = %s\n", toChars());
     CheckEscape v;
     //walkPostorder(this, &v);
     this->accept(&v);
@@ -2288,26 +2288,26 @@ void Expression::checkEscapeRef()
     {
         void visit(Expression *e)
         {
-            printf("\tL%d e = %s\n", __LINE__, e->toChars());
+            //printf("\tL%d e = %s\n", __LINE__, e->toChars());
         }
 
         void visit(VarExp *e)
         {
             VarDeclaration *v = e->var->isVarDeclaration();
             if (v && !v->isDataseg() && !(v->storage_class & (STCref | STCout)))
-                e->error("escaping reference to local variable %s", v->toChars());
+                e->error("R escaping reference to local variable %s of type %s", v->toChars(), v->type->toChars());
         }
 
         void visit(CallExp *e)
         {
-            printf("\tL%d e = %s\n", __LINE__, e->toChars());
+            //printf("\tL%d e = %s\n", __LINE__, e->toChars());
 
             Type *t = e->e1->type->toBasetype();
             if (t->ty == Tdelegate)
                 t = ((TypeDelegate *)t)->next;
             if (t->ty == Tfunction && !((TypeFunction *)t)->isref)
             {
-                e->error("escaping reference to local %s", e->toChars());
+                e->error("R escaping reference to local %s of type %s", e->toChars(), e->type->toChars());
             }
         }
 
