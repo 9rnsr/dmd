@@ -1400,7 +1400,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 stc |= STCparameter;
                 if (f->varargs == 2 && i + 1 == nparams)
                     stc |= STCvariadic;
-                stc |= arg->storageClass & (STCin | STCout | STCref | STClazy | STCfinal | STC_TYPECTOR | STCnodtor);
+                stc |= arg->storageClass & (STCin | STCout | STCref | STClazy | STCfinal | STC_TYPECTOR | STCscope | STCnodtor);
                 v->storage_class = stc;
                 v->semantic(sc2);
                 if (!sc2->insert(v))
