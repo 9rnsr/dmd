@@ -198,8 +198,8 @@ public:
     {
         return ::castTo(this, sc, t);
     }
-    virtual void checkEscape();
-    virtual void checkEscapeRef();
+    void checkEscape();
+    void checkEscapeRef();
     virtual Expression *resolveLoc(Loc loc, Scope *sc);
     void checkScalar();
     void checkNoBool();
@@ -451,7 +451,6 @@ public:
     Expression *syntaxCopy();
     bool equals(RootObject *o);
     Expression *semantic(Scope *sc);
-    void checkEscape();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -644,7 +643,6 @@ public:
 
     SymOffExp(Loc loc, Declaration *var, dinteger_t offset, bool hasOverloads = false);
     Expression *semantic(Scope *sc);
-    void checkEscape();
     int isBool(int result);
 
     void accept(Visitor *v) { v->visit(this); }
@@ -660,8 +658,6 @@ public:
     bool equals(RootObject *o);
     Expression *semantic(Scope *sc);
     char *toChars();
-    void checkEscape();
-    void checkEscapeRef();
     int checkModifiable(Scope *sc, int flag);
     bool checkReadModifyWrite();
     int isLvalue();
@@ -967,7 +963,6 @@ class AddrExp : public UnaExp
 public:
     AddrExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
-    void checkEscape();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -977,7 +972,6 @@ public:
     PtrExp(Loc loc, Expression *e);
     PtrExp(Loc loc, Expression *e, Type *t);
     Expression *semantic(Scope *sc);
-    void checkEscapeRef();
     int checkModifiable(Scope *sc, int flag);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -1049,7 +1043,6 @@ public:
     CastExp(Loc loc, Expression *e, unsigned char mod);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
-    void checkEscape();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1076,8 +1069,6 @@ public:
     SliceExp(Loc loc, Expression *e1, Expression *lwr, Expression *upr);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
-    void checkEscape();
-    void checkEscapeRef();
     int checkModifiable(Scope *sc, int flag);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -1162,8 +1153,6 @@ class CommaExp : public BinExp
 public:
     CommaExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
-    void checkEscape();
-    void checkEscapeRef();
     int checkModifiable(Scope *sc, int flag);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -1524,8 +1513,6 @@ public:
     CondExp(Loc loc, Expression *econd, Expression *e1, Expression *e2);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
-    void checkEscape();
-    void checkEscapeRef();
     int checkModifiable(Scope *sc, int flag);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
