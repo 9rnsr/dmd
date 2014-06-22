@@ -2176,17 +2176,188 @@ Expression *Expression::readModifyWrite(TOK rmwOp, Expression *ex)
 }
 
 
+//bool walkPostorder(Expression *e, StoppableVisitor *v);
+
 /************************************
  * Detect cases where pointers to the stack can 'escape' the
  * lifetime of the stack frame.
  */
 
+#define LOGESC      0
+
 void Expression::checkEscape()
 {
+    class CheckEscape : public StoppableVisitor
+    {
+        void visit(Expression *e)
+        {
+#if LOGESC
+            printf("\tL%d e = %s\n", __LINE__, e->toChars());
+#endif
+        }
+
+        void visit(SymOffExp *e)
+        {
+#if LOGESC
+            printf("\tL%d e = %s\n", __LINE__, e->toChars());
+#endif
+            VarDeclaration *v = e->var->isVarDeclaration();
+            if (v && !v->isDataseg() && !(v->storage_class & (STCref | STCout)))
+            {
+                /* BUG: This should be allowed:
+                 *   void foo() {
+                 *     int a;
+                 *     int* bar() { return &a; }
+                 *   }
+                 */
+                e->error("escaping reference to local %s", v->toChars());
+            }
+        }
+
+        void visit(VarExp *e)
+        {
+#if LOGESC
+            printf("\tL%d e = %s\n", __LINE__, e->toChars());
+#endif
+            VarDeclaration *v = e->var->isVarDeclaration();
+            if (v)
+            {
+                Type *tb = v->type->toBasetype();
+                // if reference type
+                if (tb->ty == Tarray || tb->ty == Tsarray || tb->ty == Tclass || tb->ty == Tdelegate)
+                {
+                    if (v->isScope() && (!v->noscope || tb->ty == Tclass))
+                        e->error("escaping reference to scope local %s", v->toChars());
+                    else if (v->storage_class & STCvariadic)
+                        e->error("escaping reference to variadic parameter %s", v->toChars());
+                }
+            }
+        }
+
+        void visit(TupleExp *e)
+        {
+#if LOGESC
+            printf("\tL%d e = %s\n", __LINE__, e->toChars());
+#endif
+            for (size_t i = 0; i < e->exps->dim; i++)
+            {
+                (*e->exps)[i]->accept(this);
+            }
+        }
+
+        void visit(AddrExp *e)
+        {
+#if LOGESC
+            printf("\tL%d e = %s\n", __LINE__, e->toChars());
+#endif
+            e->e1->checkEscapeRef();
+        }
+
+        void visit(CastExp *e)
+        {
+#if LOGESC
+            printf("\tL%d e = %s\n", __LINE__, e->toChars());
+#endif
+            Type *tb = e->type->toBasetype();
+            if (tb->ty == Tarray && e->e1->op == TOKvar &&
+                e->e1->type->toBasetype()->ty == Tsarray)
+            {
+                VarExp *ve = (VarExp *)e->e1;
+                VarDeclaration *v = ve->var->isVarDeclaration();
+                if (v && !v->isDataseg() && !v->isParameter())
+                    e->error("escaping reference to local %s", v->toChars());
+            }
+        }
+
+        void visit(SliceExp *e)
+        {
+#if LOGESC
+            printf("\tL%d e = %s\n", __LINE__, e->toChars());
+#endif
+            e->e1->accept(this);
+        }
+
+        void visit(CommaExp *e)
+        {
+#if LOGESC
+            printf("\tL%d e = %s\n", __LINE__, e->toChars());
+#endif
+            e->e2->accept(this);
+        }
+
+        void visit(CondExp *e)
+        {
+#if LOGESC
+            printf("\tL%d e = %s\n", __LINE__, e->toChars());
+#endif
+            e->e1->accept(this);
+            e->e2->accept(this);
+        }
+    };
+
+    CheckEscape v;
+    //walkPostorder(this, &v);
+    this->accept(&v);
 }
 
 void Expression::checkEscapeRef()
 {
+    class CheckEscapeRef : public StoppableVisitor
+    {
+        void visit(Expression *e)
+        {
+#if LOGESC
+            //printf("\tL%d e = %s\n", __LINE__, e->toChars());
+#endif
+        }
+
+        void visit(VarExp *e)
+        {
+#if LOGESC
+            printf("\tL%d e = %s\n", __LINE__, e->toChars());
+#endif
+            VarDeclaration *v = e->var->isVarDeclaration();
+            if (v && !v->isDataseg() && !(v->storage_class & (STCref | STCout)))
+                e->error("escaping reference to local variable %s", v->toChars());
+        }
+
+        void visit(PtrExp *e)
+        {
+#if LOGESC
+            printf("\tL%d e = %s\n", __LINE__, e->toChars());
+#endif
+            e->e1->checkEscape();
+        }
+
+        void visit(SliceExp *e)
+        {
+#if LOGESC
+            printf("\tL%d e = %s\n", __LINE__, e->toChars());
+#endif
+            e->e1->accept(this);
+        }
+
+        void visit(CommaExp *e)
+        {
+#if LOGESC
+            printf("\tL%d e = %s\n", __LINE__, e->toChars());
+#endif
+            e->e2->accept(this);
+        }
+
+        void visit(CondExp *e)
+        {
+#if LOGESC
+            printf("\tL%d e = %s\n", __LINE__, e->toChars());
+#endif
+            e->e1->accept(this);
+            e->e2->accept(this);
+        }
+    };
+
+    CheckEscapeRef v;
+    //walkPostorder(this, &v);
+    this->accept(&v);
 }
 
 void Expression::checkScalar()
@@ -5162,23 +5333,6 @@ int SymOffExp::isBool(int result)
     return result ? true : false;
 }
 
-void SymOffExp::checkEscape()
-{
-    VarDeclaration *v = var->isVarDeclaration();
-    if (v)
-    {
-        if (!v->isDataseg() && !(v->storage_class & (STCref | STCout)))
-        {   /* BUG: This should be allowed:
-             *   void foo()
-             *   { int a;
-             *     int* bar() { return &a; }
-             *   }
-             */
-            error("escaping reference to local %s", v->toChars());
-        }
-    }
-}
-
 /******************************** VarExp **************************/
 
 VarExp::VarExp(Loc loc, Declaration *var, bool hasOverloads)
@@ -5254,32 +5408,6 @@ Expression *VarExp::semantic(Scope *sc)
 char *VarExp::toChars()
 {
     return var->toChars();
-}
-
-void VarExp::checkEscape()
-{
-    VarDeclaration *v = var->isVarDeclaration();
-    if (v)
-    {   Type *tb = v->type->toBasetype();
-        // if reference type
-        if (tb->ty == Tarray || tb->ty == Tsarray || tb->ty == Tclass || tb->ty == Tdelegate)
-        {
-            if (v->isScope() && (!v->noscope || tb->ty == Tclass))
-                error("escaping reference to scope local %s", v->toChars());
-            else if (v->storage_class & STCvariadic)
-                error("escaping reference to variadic parameter %s", v->toChars());
-        }
-    }
-}
-
-void VarExp::checkEscapeRef()
-{
-    VarDeclaration *v = var->isVarDeclaration();
-    if (v)
-    {
-        if (!v->isDataseg() && !(v->storage_class & (STCref | STCout)))
-            error("escaping reference to local variable %s", v->toChars());
-    }
 }
 
 int VarExp::isLvalue()
@@ -5471,14 +5599,6 @@ Expression *TupleExp::semantic(Scope *sc)
     type = type->semantic(loc, sc);
     //printf("-TupleExp::semantic(%s)\n", toChars());
     return this;
-}
-
-void TupleExp::checkEscape()
-{
-    for (size_t i = 0; i < exps->dim; i++)
-    {   Expression *e = (*exps)[i];
-        e->checkEscape();
-    }
 }
 
 /******************************** FuncExp *********************************/
@@ -9273,11 +9393,6 @@ Expression *AddrExp::semantic(Scope *sc)
     return optimize(WANTvalue);
 }
 
-void AddrExp::checkEscape()
-{
-    e1->checkEscapeRef();
-}
-
 /************************************************************/
 
 PtrExp::PtrExp(Loc loc, Expression *e)
@@ -9328,11 +9443,6 @@ Expression *PtrExp::semantic(Scope *sc)
         return new ErrorExp();
 
     return this;
-}
-
-void PtrExp::checkEscapeRef()
-{
-    e1->checkEscape();
 }
 
 int PtrExp::isLvalue()
@@ -9869,21 +9979,6 @@ Lfail:
     return new ErrorExp();
 }
 
-
-void CastExp::checkEscape()
-{   Type *tb = type->toBasetype();
-    if (tb->ty == Tarray && e1->op == TOKvar &&
-        e1->type->toBasetype()->ty == Tsarray)
-    {   VarExp *ve = (VarExp *)e1;
-        VarDeclaration *v = ve->var->isVarDeclaration();
-        if (v)
-        {
-            if (!v->isDataseg() && !v->isParameter())
-                error("escaping reference to local %s", v->toChars());
-        }
-    }
-}
-
 /************************************************************/
 
 VectorExp::VectorExp(Loc loc, Expression *e, Type *t)
@@ -9974,7 +10069,8 @@ Lagain:
     if (!lwr && !upr)
     {
         if (e1->op == TOKarrayliteral)
-        {   // Convert [a,b,c][] to [a,b,c]
+        {
+            // Convert [a,b,c][] to [a,b,c]
             Type *t1b = e1->type->toBasetype();
             e = e1;
             if (t1b->ty == Tsarray)
@@ -9985,7 +10081,8 @@ Lagain:
             return e;
         }
         if (e1->op == TOKslice)
-        {   // Convert e[][] to e[]
+        {
+            // Convert e[][] to e[]
             SliceExp *se = (SliceExp *)e1;
             if (!se->lwr && !se->upr)
                 return se;
@@ -9999,7 +10096,8 @@ Lagain:
     if (t->ty == Tpointer)
     {
         if (!lwr || !upr)
-        {   error("need upper and lower bound to slice pointer");
+        {
+            error("need upper and lower bound to slice pointer");
             return new ErrorExp();
         }
         if (sc->func && !sc->intypeof && sc->func->setUnsafe())
@@ -10046,7 +10144,8 @@ Lagain:
         if (!lwr && !upr)
             return e1;
         if (!lwr || !upr)
-        {   error("need upper and lower bound to slice tuple");
+        {
+            error("need upper and lower bound to slice tuple");
             goto Lerror;
         }
     }
@@ -10126,11 +10225,13 @@ Lagain:
             assert(0);
 
         if (i1 <= i2 && i2 <= length)
-        {   size_t j1 = (size_t) i1;
+        {
+            size_t j1 = (size_t) i1;
             size_t j2 = (size_t) i2;
 
             if (e1->op == TOKtuple)
-            {   Expressions *exps = new Expressions;
+            {
+                Expressions *exps = new Expressions;
                 exps->setDim(j2 - j1);
                 for (size_t i = 0; i < j2 - j1; i++)
                 {
@@ -10139,10 +10240,12 @@ Lagain:
                 e = new TupleExp(loc, te->e0, exps);
             }
             else
-            {   Parameters *args = new Parameters;
+            {
+                Parameters *args = new Parameters;
                 args->reserve(j2 - j1);
                 for (size_t i = j1; i < j2; i++)
-                {   Parameter *arg = Parameter::getNth(tup->arguments, i);
+                {
+                    Parameter *arg = Parameter::getNth(tup->arguments, i);
                     args->push(arg);
                 }
                 e = new TypeExp(e1->loc, new TypeTuple(args));
@@ -10163,16 +10266,6 @@ Lagain:
         type = e1->type;
 
     return e;
-}
-
-void SliceExp::checkEscape()
-{
-    e1->checkEscape();
-}
-
-void SliceExp::checkEscapeRef()
-{
-    e1->checkEscapeRef();
 }
 
 int SliceExp::checkModifiable(Scope *sc, int flag)
@@ -10539,16 +10632,6 @@ Expression *CommaExp::semantic(Scope *sc)
 
     type = e2->type;
     return this;
-}
-
-void CommaExp::checkEscape()
-{
-    e2->checkEscape();
-}
-
-void CommaExp::checkEscapeRef()
-{
-    e2->checkEscapeRef();
 }
 
 int CommaExp::isLvalue()
@@ -13747,19 +13830,6 @@ Expression *CondExp::modifiableLvalue(Scope *sc, Expression *e)
     e2 = e2->modifiableLvalue(sc, e2);
     return toLvalue(sc, this);
 }
-
-void CondExp::checkEscape()
-{
-    e1->checkEscape();
-    e2->checkEscape();
-}
-
-void CondExp::checkEscapeRef()
-{
-    e1->checkEscapeRef();
-    e2->checkEscapeRef();
-}
-
 
 Expression *CondExp::checkToBoolean(Scope *sc)
 {
