@@ -1,9 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail1313.d(15): Error: escaping reference to local a
-fail_compilation/fail1313.d(23): Error: escaping reference to local a
-fail_compilation/fail1313.d(31): Error: escaping reference to local a
+fail_compilation/fail1313.d(15): Error: escaping reference to local variable a of type int[2]
+fail_compilation/fail1313.d(23): Error: escaping reference to local variable a of type int[2]
+fail_compilation/fail1313.d(31): Error: escaping reference to local variable a of type int[2]
 ---
 */
 
@@ -34,9 +34,9 @@ body
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail1313.d(48): Error: escaping reference to local a
-fail_compilation/fail1313.d(56): Error: escaping reference to local a
-fail_compilation/fail1313.d(64): Error: escaping reference to local a
+fail_compilation/fail1313.d(48): Error: escaping reference to local variable a of type int[2]
+fail_compilation/fail1313.d(56): Error: escaping reference to local variable a of type int[2]
+fail_compilation/fail1313.d(64): Error: escaping reference to local variable a of type int[2]
 ---
 */
 
