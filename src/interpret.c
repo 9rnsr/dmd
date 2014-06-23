@@ -5319,9 +5319,12 @@ public:
             VarExp* ve = (VarExp *)e->e2;
             VarDeclaration *v = ve->var->isVarDeclaration();
             ctfeStack.push(v);
-            if (!v->init && !getValue(v))
+            if (!getValue(v))
             {
-                setValue(v, copyLiteral(v->type->defaultInitLiteral(e->loc)));
+                if (!v->init)
+                    setValue(v, copyLiteral(v->type->defaultInitLiteral(e->loc)));
+                else if (v->init->isVoidInitializer())
+                    setValue(v, voidInitLiteral(v->type, v));
             }
             if (!getValue(v))
             {

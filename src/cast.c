@@ -68,6 +68,15 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
                     result->type = t;
                     return;
                 }
+                if (match == MATCHconvert &&
+                    e->op != TOKarrayliteral && e->op != TOKslice &&
+                    e->type->toBasetype()->ty == Tsarray && t->toBasetype()->ty == Tarray)
+                {
+                    // Convert e to e[]
+                    result = new SliceExp(e->loc, e, NULL, NULL);
+                    result->type = t;
+                    return;
+                }
                 result = e->castTo(sc, t);
                 return;
             }
