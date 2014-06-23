@@ -77,6 +77,7 @@ void checkEscape(Expression *e)
                 // if reference type
                 if (tb->ty == Tarray || tb->ty == Tclass || tb->ty == Tdelegate)
                 {
+                    //printf("v = %s, scope = %d, noscope = %d\n", v->toChars(), v->isScope(), v->noscope);
                     if (v->isScope() && (!v->noscope || tb->ty == Tclass))
                         e->error("escaping reference to scope local %s of type %s", v->toChars(), v->type->toChars());
                     else if (v->storage_class & STCvariadic)
