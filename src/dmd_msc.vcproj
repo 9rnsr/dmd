@@ -466,6 +466,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\escape.c"
+				>
+			</File>
+			<File
 				RelativePath=".\expression.c"
 				>
 			</File>

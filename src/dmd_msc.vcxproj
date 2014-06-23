@@ -100,6 +100,7 @@
     <ClCompile Include="eh.c" />
     <ClCompile Include="entity.c" />
     <ClCompile Include="enum.c" />
+    <ClCompile Include="escape.c" />
     <ClCompile Include="expression.c" />
     <ClCompile Include="func.c" />
     <ClCompile Include="glue.c" />
