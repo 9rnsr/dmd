@@ -9864,13 +9864,12 @@ Expression *SliceExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    Expression *e;
-    ScopeDsymbol *sym;
-
-Lagain:
     if (Expression *ex = unaSemantic(sc))
         return ex;
     e1 = resolveProperties(sc, e1);
+Lagain:
+    if (e1->op == TOKerror)
+        return e1;
     if (e1->op == TOKtype && e1->type->ty != Ttuple)
     {
         if (lwr || upr)
@@ -9878,15 +9877,16 @@ Lagain:
             error("cannot slice type '%s'", e1->toChars());
             return new ErrorExp();
         }
-        e = new TypeExp(loc, e1->type->arrayOf());
+        Expression *e = new TypeExp(loc, e1->type->arrayOf());
         return e->semantic(sc);
     }
     if (!lwr && !upr)
     {
         if (e1->op == TOKarrayliteral)
-        {   // Convert [a,b,c][] to [a,b,c]
+        {
+            // Convert [a,b,c][] to [a,b,c]
             Type *t1b = e1->type->toBasetype();
-            e = e1;
+            Expression *e = e1;
             if (t1b->ty == Tsarray)
             {
                 e = e->copy();
@@ -9895,21 +9895,21 @@ Lagain:
             return e;
         }
         if (e1->op == TOKslice)
-        {   // Convert e[][] to e[]
+        {
+            // Convert e[][] to e[]
             SliceExp *se = (SliceExp *)e1;
             if (!se->lwr && !se->upr)
                 return se;
         }
     }
 
-    e = this;
-
     Type *t = e1->type->toBasetype();
     AggregateDeclaration *ad = isAggregate(t);
     if (t->ty == Tpointer)
     {
         if (!lwr || !upr)
-        {   error("need upper and lower bound to slice pointer");
+        {
+            error("need upper and lower bound to slice pointer");
             return new ErrorExp();
         }
         if (sc->func && !sc->intypeof && sc->func->setUnsafe())
@@ -9937,7 +9937,7 @@ Lagain:
                 a->push(lwr);
                 a->push(upr);
             }
-            e = new DotIdExp(loc, e1, Id::slice);
+            Expression *e = new DotIdExp(loc, e1, Id::slice);
             e = new CallExp(loc, e, a);
             e = e->semantic(sc);
             return Expression::combine(e0, e);
@@ -9956,58 +9956,49 @@ Lagain:
         if (!lwr && !upr)
             return e1;
         if (!lwr || !upr)
-        {   error("need upper and lower bound to slice tuple");
-            goto Lerror;
+        {
+            error("need upper and lower bound to slice tuple");
+            return new ErrorExp();
         }
     }
-    else if (t == Type::terror)
-        goto Lerr;
     else
     {
     Lerror:
-        if (e1->op == TOKerror)
-            return e1;
         error("%s cannot be sliced with []",
             t->ty == Tvoid ? e1->toChars() : t->toChars());
-    Lerr:
-        e = new ErrorExp();
-        return e;
+        return new ErrorExp();
     }
 
-    {
-    Scope *sc2 = sc;
     if (t->ty == Tsarray || t->ty == Tarray || t->ty == Ttuple)
     {
-        sym = new ArrayScopeSymbol(sc, this);
+        ScopeDsymbol *sym = new ArrayScopeSymbol(sc, this);
         sym->loc = loc;
         sym->parent = sc->scopesym;
-        sc2 = sc->push(sym);
+        sc = sc->push(sym);
     }
-
     if (lwr)
     {
-        if (t->ty == Ttuple) sc2 = sc2->startCTFE();
-        lwr = lwr->semantic(sc2);
-        lwr = resolveProperties(sc2, lwr);
-        if (t->ty == Ttuple) sc2 = sc2->endCTFE();
-        lwr = lwr->implicitCastTo(sc2, Type::tsize_t);
+        if (t->ty == Ttuple) sc = sc->startCTFE();
+        lwr = lwr->semantic(sc);
+        lwr = resolveProperties(sc, lwr);
+        if (t->ty == Ttuple) sc = sc->endCTFE();
+        lwr = lwr->implicitCastTo(sc, Type::tsize_t);
     }
     if (upr)
     {
-        if (t->ty == Ttuple) sc2 = sc2->startCTFE();
-        upr = upr->semantic(sc2);
-        upr = resolveProperties(sc2, upr);
-        if (t->ty == Ttuple) sc2 = sc2->endCTFE();
-        upr = upr->implicitCastTo(sc2, Type::tsize_t);
+        if (t->ty == Ttuple) sc = sc->startCTFE();
+        upr = upr->semantic(sc);
+        upr = resolveProperties(sc, upr);
+        if (t->ty == Ttuple) sc = sc->endCTFE();
+        upr = upr->implicitCastTo(sc, Type::tsize_t);
     }
+    if (t->ty == Tsarray || t->ty == Tarray || t->ty == Ttuple)
+        sc->pop();
+
     if (lwr && lwr->type == Type::terror ||
         upr && upr->type == Type::terror)
     {
-        goto Lerr;
-    }
-
-    if (sc2 != sc)
-        sc2->pop();
+        return new ErrorExp();
     }
 
     if (t->ty == Ttuple)
@@ -10035,36 +10026,37 @@ Lagain:
         else
             assert(0);
 
-        if (i1 <= i2 && i2 <= length)
-        {   size_t j1 = (size_t) i1;
-            size_t j2 = (size_t) i2;
+        if (i2 < i1 || length < i2)
+        {
+            error("string slice [%llu .. %llu] is out of bounds", i1, i2);
+            return new ErrorExp();
+        }
 
-            if (e1->op == TOKtuple)
-            {   Expressions *exps = new Expressions;
-                exps->setDim(j2 - j1);
-                for (size_t i = 0; i < j2 - j1; i++)
-                {
-                    (*exps)[i] = (*te->exps)[j1 + i];
-                }
-                e = new TupleExp(loc, te->e0, exps);
+        size_t j1 = (size_t) i1;
+        size_t j2 = (size_t) i2;
+        Expression *e;
+        if (e1->op == TOKtuple)
+        {
+            Expressions *exps = new Expressions;
+            exps->setDim(j2 - j1);
+            for (size_t i = 0; i < j2 - j1; i++)
+            {
+                (*exps)[i] = (*te->exps)[j1 + i];
             }
-            else
-            {   Parameters *args = new Parameters;
-                args->reserve(j2 - j1);
-                for (size_t i = j1; i < j2; i++)
-                {   Parameter *arg = Parameter::getNth(tup->arguments, i);
-                    args->push(arg);
-                }
-                e = new TypeExp(e1->loc, new TypeTuple(args));
-            }
-            e = e->semantic(sc);
+            e = new TupleExp(loc, te->e0, exps);
         }
         else
         {
-            error("string slice [%llu .. %llu] is out of bounds", i1, i2);
-            goto Lerr;
+            Parameters *args = new Parameters;
+            args->reserve(j2 - j1);
+            for (size_t i = j1; i < j2; i++)
+            {
+                Parameter *arg = Parameter::getNth(tup->arguments, i);
+                args->push(arg);
+            }
+            e = new TypeExp(e1->loc, new TypeTuple(args));
         }
-        return e;
+        return e->semantic(sc);
     }
 
     type = t->nextOf()->arrayOf();
@@ -10072,7 +10064,7 @@ Lagain:
     if (type->equals(t))
         type = e1->type;
 
-    return e;
+    return this;
 }
 
 int SliceExp::checkModifiable(Scope *sc, int flag)
