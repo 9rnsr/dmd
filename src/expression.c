@@ -2103,6 +2103,121 @@ Expression *Expression::toLvalue(Scope *sc, Expression *e)
     return new ErrorExp();
 }
 
+enum Storage
+{
+    StorageNone,
+    StorageStack,
+    StorageParentStack,
+    StorageCaller,
+    StorageThis,
+    StorageGlobal,
+};
+
+#if 0
+struct S
+{
+    int x;
+    this(int n)
+    {
+        int y = n;
+        void foo(ref int a, out int b)
+        {
+            y = n;
+            a = n;
+            b = n;
+        }
+        x = n;
+        static int g;
+        g = n;
+
+        static int* p;
+        p = &n;
+    }
+}
+#endif
+Storage storageOf(Scope *sc, Expression *e)
+{
+    class StorageOf : public Visitor
+    {
+    public:
+        FuncDeclaration *func;
+        Storage result;
+
+        StorageOf(FuncDeclaration *func)
+        {
+            this->func = func;
+            this->result = StorageNone;
+        }
+
+        void visit(VarExp *e)
+        {
+            VarDeclaration *v = ((VarExp *)e)->var->isVarDeclaration();
+            if (!v)
+                return;
+            if (v->isDataseg())
+            {
+                result = StorageGlobal;
+                return;
+            }
+            if (v->isParameter())
+            {
+                result = v->isRef() || v->isOut() ? StorageCaller : StorageStack;
+                return;
+            }
+            if (FuncDeclaration *f = v->toParent2()->isFuncDeclaration())
+            {
+                result = f == func ? StorageStack : StorageParentStack;
+                return;
+            }
+        }
+
+        void visit(ThisExp *e)
+        {
+            result = StorageThis;
+        }
+
+        void visit(DotVarExp *e)
+        {
+            ((DotVarExp *)e)->e1->accept(this);
+        }
+
+        void visit(PtrExp *e)
+        {
+            ((PtrExp *)e)->e1->accept(this);
+        }
+
+        void visit(SliceExp *e)
+        {
+            ((SliceExp *)e)->e1->accept(this);
+        }
+
+        void visit(IndexExp *e)
+        {
+            ((IndexExp *)e)->e1->accept(this);
+        }
+
+        void visit(CommaExp *e)
+        {
+            ((CommaExp *)e)->e2->accept(this);
+        }
+
+        void visit(CondExp *e)
+        {
+            //auto r1 = ((CondExp *)e)->e1->storageOf();
+            //auto r2 = ((CondExp *)e)->e2->storageOf();
+            // result = r1 & r2;
+        }
+    };
+
+    if (!sc->func)
+        return StorageNone;
+
+    StorageOf v(sc->func);
+    e->accept(&v);
+    return v.result;
+}
+
+
 /***************************************
  * Parameters:
  *      sc:     scope
@@ -2116,6 +2231,71 @@ Expression *Expression::toLvalue(Scope *sc, Expression *e)
 int Expression::checkModifiable(Scope *sc, int flag)
 {
     return type ? 1 : 0;    // default modifiable
+}
+
+int VarExp::checkModifiable(Scope *sc, int flag)
+{
+    //printf("VarExp::checkModifiable %s", toChars());
+    assert(type);
+    return var->checkModify(loc, sc, type, NULL, flag);
+}
+
+int DotVarExp::checkModifiable(Scope *sc, int flag)
+{
+    //printf("DotVarExp::checkModifiable %s %s\n", toChars(), type->toChars());
+    if (e1->op == TOKthis)
+        return var->checkModify(loc, sc, type, e1, flag);
+
+    //printf("\te1 = %s\n", e1->toChars());
+    return e1->checkModifiable(sc, flag);
+}
+
+int PtrExp::checkModifiable(Scope *sc, int flag)
+{
+    if (e1->op == TOKsymoff)
+    {
+        SymOffExp *se = (SymOffExp *)e1;
+        return se->var->checkModify(loc, sc, type, NULL, flag);
+    }
+    else if (e1->op == TOKaddress)
+    {
+        AddrExp *ae = (AddrExp *)e1;
+        return ae->e1->checkModifiable(sc, flag);
+    }
+    return 1;
+}
+
+int SliceExp::checkModifiable(Scope *sc, int flag)
+{
+    //printf("SliceExp::checkModifiable %s\n", toChars());
+    if (e1->type->ty == Tsarray ||
+        (e1->op == TOKindex && e1->type->ty != Tarray) ||
+        e1->op == TOKslice)
+    {
+        return e1->checkModifiable(sc, flag);
+    }
+    return 1;
+}
+
+int CommaExp::checkModifiable(Scope *sc, int flag)
+{
+    return e2->checkModifiable(sc, flag);
+}
+
+int IndexExp::checkModifiable(Scope *sc, int flag)
+{
+    if (e1->type->ty == Tsarray ||
+        (e1->op == TOKindex && e1->type->ty != Tarray) ||
+        e1->op == TOKslice)
+    {
+        return e1->checkModifiable(sc, flag);
+    }
+    return 1;
+}
+
+int CondExp::checkModifiable(Scope *sc, int flag)
+{
+    return e1->checkModifiable(sc, flag) && e2->checkModifiable(sc, flag);
 }
 
 bool Expression::checkReadModifyWrite()
@@ -5252,13 +5432,6 @@ Expression *VarExp::toLvalue(Scope *sc, Expression *e)
     return this;
 }
 
-int VarExp::checkModifiable(Scope *sc, int flag)
-{
-    //printf("VarExp::checkModifiable %s", toChars());
-    assert(type);
-    return var->checkModify(loc, sc, type, NULL, flag);
-}
-
 bool VarExp::checkReadModifyWrite()
 {
     //printf("VarExp::checkReadModifyWrite %s", toChars());
@@ -7630,16 +7803,6 @@ int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1)
     return false;
 }
 
-int DotVarExp::checkModifiable(Scope *sc, int flag)
-{
-    //printf("DotVarExp::checkModifiable %s %s\n", toChars(), type->toChars());
-    if (e1->op == TOKthis)
-        return var->checkModify(loc, sc, type, e1, flag);
-
-    //printf("\te1 = %s\n", e1->toChars());
-    return e1->checkModifiable(sc, flag);
-}
-
 bool DotVarExp::checkReadModifyWrite()
 {
     //printf("DotVarExp::checkReadModifyWrite %s", toChars());
@@ -9270,20 +9433,6 @@ Expression *PtrExp::toLvalue(Scope *sc, Expression *e)
     return this;
 }
 
-int PtrExp::checkModifiable(Scope *sc, int flag)
-{
-    if (e1->op == TOKsymoff)
-    {   SymOffExp *se = (SymOffExp *)e1;
-        return se->var->checkModify(loc, sc, type, NULL, flag);
-    }
-    else if (e1->op == TOKaddress)
-    {
-        AddrExp *ae = (AddrExp *)e1;
-        return ae->e1->checkModifiable(sc, flag);
-    }
-    return 1;
-}
-
 Expression *PtrExp::modifiableLvalue(Scope *sc, Expression *e)
 {
     //printf("PtrExp::modifiableLvalue() %s, type %s\n", toChars(), type->toChars());
@@ -10067,18 +10216,6 @@ Lagain:
     return this;
 }
 
-int SliceExp::checkModifiable(Scope *sc, int flag)
-{
-    //printf("SliceExp::checkModifiable %s\n", toChars());
-    if (e1->type->ty == Tsarray ||
-        (e1->op == TOKindex && e1->type->ty != Tarray) ||
-        e1->op == TOKslice)
-    {
-        return e1->checkModifiable(sc, flag);
-    }
-    return 1;
-}
-
 int SliceExp::isLvalue()
 {
     /* slice expression is rvalue in default, but
@@ -10444,11 +10581,6 @@ Expression *CommaExp::toLvalue(Scope *sc, Expression *e)
     return this;
 }
 
-int CommaExp::checkModifiable(Scope *sc, int flag)
-{
-    return e2->checkModifiable(sc, flag);
-}
-
 Expression *CommaExp::modifiableLvalue(Scope *sc, Expression *e)
 {
     e2 = e2->modifiableLvalue(sc, e);
@@ -10654,17 +10786,6 @@ int IndexExp::isLvalue()
 Expression *IndexExp::toLvalue(Scope *sc, Expression *e)
 {
     return this;
-}
-
-int IndexExp::checkModifiable(Scope *sc, int flag)
-{
-    if (e1->type->ty == Tsarray ||
-        (e1->op == TOKindex && e1->type->ty != Tarray) ||
-        e1->op == TOKslice)
-    {
-        return e1->checkModifiable(sc, flag);
-    }
-    return 1;
 }
 
 Expression *IndexExp::modifiableLvalue(Scope *sc, Expression *e)
@@ -11140,6 +11261,11 @@ Expression *AssignExp::semantic(Scope *sc)
         //printf("[%s] change to init - %s\n", loc.toChars(), toChars());
         op = TOKconstruct;
     }
+
+    Storage st = storageOf(sc, e1);
+    printf("[%s] %s, st = %d\n", loc.toChars(), toChars(), st);
+    if (st == StorageGlobal)
+        e2->checkEscape();
 
     /* If it is an assignment from a 'foreign' type,
      * check for operator overloading.
@@ -13598,11 +13724,6 @@ Expression *CondExp::toLvalue(Scope *sc, Expression *ex)
     e2 = e2->toLvalue(sc, NULL)->addressOf();
     type = e2->type;
     return e;
-}
-
-int CondExp::checkModifiable(Scope *sc, int flag)
-{
-    return e1->checkModifiable(sc, flag) && e2->checkModifiable(sc, flag);
 }
 
 Expression *CondExp::modifiableLvalue(Scope *sc, Expression *e)
