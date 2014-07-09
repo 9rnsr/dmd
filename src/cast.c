@@ -2428,6 +2428,14 @@ Lagain:
                 goto Lret;
             }
 
+            if (t1->immutableOf()->equals(t2->immutableOf()))
+            {
+                t = t1->castMod(MODmerge(t1->mod, t2->mod));
+                e1 = e1->castTo(sc, t1);
+                e2 = e2->castTo(sc, t2);
+                goto Lret;
+            }
+
             /* If t1 and t2 are incompatible enum types, but
              * their base types are same.
              */
