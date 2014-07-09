@@ -2430,7 +2430,8 @@ Lagain:
 
             if (t1->immutableOf()->equals(t2->immutableOf()))
             {
-                t = t1->castMod(MODmerge(t1->mod, t2->mod));
+                //t = t1->castMod(MODmerge(t1->mod, t2->mod));
+                t = t1->mutableOf();    // for backward compatibility
                 e1 = e1->castTo(sc, t1);
                 e2 = e2->castTo(sc, t2);
                 goto Lret;
