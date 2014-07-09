@@ -2428,11 +2428,14 @@ Lagain:
                 goto Lret;
             }
 
-            if (t1b->equals(t2b))
-            {
-                t = t1b;
-                goto Lret;
-            }
+            /* If t1 and t2 are incompatible enum types, but
+             * their base types are same.
+             */
+            //if (t1b->equals(t2b))
+            //{
+            //    t = t1b;
+            //    goto Lret;
+            //}
         }
 
         t = Type::basic[ty];

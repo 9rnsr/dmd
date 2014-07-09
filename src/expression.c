@@ -1153,6 +1153,8 @@ bool arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
                 (*exps)[j0] = condexp.e1;
                 e = condexp.e2;
             }
+            //printf("[%d] t0 = %s, cond.type = %s, e1 = %s, e2 = %s\n", i, t0->toChars(),
+            //    condexp.type->toChars(), condexp.e1->type->toChars(), condexp.e2->type->toChars());
         }
         j0 = i;
         e0 = e;
