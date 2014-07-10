@@ -6496,6 +6496,7 @@ Expression *BinAssignExp::semantic(Scope *sc)
     e1 = e1->semantic(sc);
     e1 = e1->optimize(WANTvalue);
     e1 = e1->modifiableLvalue(sc, e1);
+    printf("\te1 = %s %s\n", e1->type->toChars(), e1->toChars());
     type = e1->type;
     checkScalar();
 
@@ -6514,8 +6515,10 @@ Expression *BinAssignExp::semantic(Scope *sc)
         e2->type->toBasetype()->isintegral())
         return scaleFactor(this, sc);
 
-    if (Expression *ex = typeCombine(this, sc))
-        return ex;
+    //if (Expression *ex = typeCombine(this, sc))
+    //    return ex;
+    printf("\ttypeCombine e1 = %s %s, e2 = %s %s\n", e1->type->toChars(), e1->toChars(),
+            e2->type->toChars(), e2->toChars());
 
     if (arith)
     {
@@ -6557,7 +6560,9 @@ Expression *BinAssignExp::semantic(Scope *sc)
         return e;
 
     assert(e->op == TOKassign || e == this);
-    return ((BinExp *)e)->reorderSettingAAElem(sc);
+    e = ((BinExp *)e)->reorderSettingAAElem(sc);
+    printf("e = %s %s\n", e->type->toChars(), e->toChars());
+    return e;
 }
 
 int BinAssignExp::isLvalue()
