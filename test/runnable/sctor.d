@@ -3,6 +3,8 @@
 
 extern(C) int printf(const char*, ...);
 
+alias TypeTuple(T...) = T;
+
 /***************************************************/
 // mutable field
 
@@ -225,6 +227,216 @@ void test11246()
 /***************************************************/
 // unique postblit
 
+void test0(inout int = 0)
+{
+    void checkPostblit(S, alias result)()
+    {
+        alias TL = TypeTuple!(          S,        const S,        inout S,        inout const S,
+                                 shared S, shared const S, shared inout S, shared inout const S,
+                              immutable S);
+        foreach (i, Src; TL)
+        {
+            Src src;
+            foreach (j, Dst; TL)
+            {
+                static assert(__traits(compiles, { Dst dst = src; }) == result[j][i],
+                    "Src:Dst = " ~ Src.stringof ~ ":" ~ Dst.stringof);
+            }
+        }
+    }
+
+    static struct SM { this(this) {} }
+    checkPostblit!(SM,
+    /* dst  src m  c  w wc sm sc sw swc i */
+    /*  m  */[ [1, 0, 0, 0, 0, 0, 0, 0, 0],
+    /*  c  */  [1, 0, 0, 0, 0, 0, 0, 0, 0],
+    /*  w  */  [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    /*  wc */  [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    /* sm  */  [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    /* sc  */  [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    /* sw  */  [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    /* swc */  [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    /*  i  */  [0, 0, 0, 0, 0, 0, 0, 0, 0] ]);
+
+    {
+        alias S = SM;
+                  S[3] sam;
+            const S[3] sac;
+        immutable S[3] sai;
+    /+
+        static assert( __traits(compiles, {              S[3] sa = sam; }));
+        static assert(!__traits(compiles, {              S[3] sa = sac; }));
+        static assert(!__traits(compiles, {              S[3] sa = sai; }));
+        static assert( __traits(compiles, {        const S[3] sa = sam; }));
+      //static assert(!__traits(compiles, {        const S[3] sa = sac; }));
+      //static assert(!__traits(compiles, {        const S[3] sa = sai; }));
+        static assert(!__traits(compiles, {       shared S[3] sa = sam; }));
+        static assert(!__traits(compiles, {       shared S[3] sa = sac; }));
+        static assert(!__traits(compiles, {       shared S[3] sa = sai; }));
+        static assert(!__traits(compiles, { const shared S[3] sa = sam; }));
+        static assert(!__traits(compiles, { const shared S[3] sa = sac; }));
+      //static assert(!__traits(compiles, { const shared S[3] sa = sai; }));
+        static assert(!__traits(compiles, {    immutable S[3] sa = sam; }));
+        static assert(!__traits(compiles, {    immutable S[3] sa = sac; }));
+      //static assert(!__traits(compiles, {    immutable S[3] sa = sai; }));
+    +/
+    }
+
+    static struct SI { this(this) immutable {} }
+    checkPostblit!(SI,
+    /* dst  src m  c  w wc sm sc sw swc i */
+    /*  m  */[ [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    /*  c  */  [0, 0, 0, 0, 0, 0, 0, 0, 1],
+    /*  w  */  [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    /*  wc */  [0, 0, 0, 0, 0, 0, 0, 0, 1],
+    /* sm  */  [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    /* sc  */  [0, 0, 0, 0, 0, 0, 0, 0, 1],
+    /* sw  */  [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    /* swc */  [0, 0, 0, 0, 0, 0, 0, 0, 1],
+    /*  i  */  [0, 0, 0, 0, 0, 0, 0, 0, 1] ]);
+
+    {
+        alias S = SI;
+                  S[3] sam;
+            const S[3] sac;
+        immutable S[3] sai;
+
+    /+
+      //static assert(!__traits(compiles, {              S[3] sa = sam; }));
+        static assert(!__traits(compiles, {              S[3] sa = sac; }));
+        static assert(!__traits(compiles, {              S[3] sa = sai; }));
+      //static assert(!__traits(compiles, {        const S[3] sa = sam; }));
+      //static assert(!__traits(compiles, {        const S[3] sa = sac; }));
+        static assert( __traits(compiles, {        const S[3] sa = sai; }));
+        static assert(!__traits(compiles, {       shared S[3] sa = sam; }));
+        static assert(!__traits(compiles, {       shared S[3] sa = sac; }));
+        static assert(!__traits(compiles, {       shared S[3] sa = sai; }));
+        static assert(!__traits(compiles, { const shared S[3] sa = sam; }));
+        static assert(!__traits(compiles, { const shared S[3] sa = sac; }));
+        static assert( __traits(compiles, { const shared S[3] sa = sai; }));
+        static assert(!__traits(compiles, {    immutable S[3] sa = sam; }));
+        static assert(!__traits(compiles, {    immutable S[3] sa = sac; }));
+        static assert( __traits(compiles, {    immutable S[3] sa = sai; }));
+    +/
+    }
+
+    static struct SC { this(this) const {} }
+    checkPostblit!(SC,
+    /* dst  src m  c  w wc sm sc sw swc i */
+    /*  m  */[ [1, 0, 0, 0, 0, 0, 0, 0, 0],
+    /*  c  */  [1, 1, 1, 1, 0, 0, 0, 0, 1],
+    /*  w  */  [0, 0, 1, 0, 0, 0, 0, 0, 0],
+    /*  wc */  [0, 0, 1, 1, 0, 0, 0, 0, 1],
+    /* sm  */  [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    /* sc  */  [0, 0, 0, 0, 0, 0, 0, 0, 1],
+    /* sw  */  [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    /* swc */  [0, 0, 0, 0, 0, 0, 0, 0, 1],
+    /*  i  */  [0, 0, 0, 0, 0, 0, 0, 0, 1] ]);
+
+    {
+        alias S = SC;
+                  S[3] sam;
+            const S[3] sac;
+        immutable S[3] sai;
+
+    /+
+        static assert( __traits(compiles, {              S[3] sa = sam; }));
+        static assert(!__traits(compiles, {              S[3] sa = sac; }));
+        static assert(!__traits(compiles, {              S[3] sa = sai; }));
+        static assert( __traits(compiles, {        const S[3] sa = sam; }));
+        static assert( __traits(compiles, {        const S[3] sa = sac; }));
+        static assert( __traits(compiles, {        const S[3] sa = sai; }));
+        static assert(!__traits(compiles, {       shared S[3] sa = sam; }));
+        static assert(!__traits(compiles, {       shared S[3] sa = sac; }));
+        static assert(!__traits(compiles, {       shared S[3] sa = sai; }));
+        static assert(!__traits(compiles, { const shared S[3] sa = sam; }));
+        static assert(!__traits(compiles, { const shared S[3] sa = sac; }));
+        static assert( __traits(compiles, { const shared S[3] sa = sai; }));
+        static assert(!__traits(compiles, {    immutable S[3] sa = sam; }));
+        static assert(!__traits(compiles, {    immutable S[3] sa = sac; }));
+        static assert( __traits(compiles, {    immutable S[3] sa = sai; }));
+    +/
+    }
+
+    static struct SW { this(this) inout {} }
+    checkPostblit!(SW,
+    /* dst  src m  c  w wc sm sc sw swc i */
+    /*  m  */[ [1, 1, 1, 1, 0, 0, 0, 0, 1],
+    /*  c  */  [1, 1, 1, 1, 0, 0, 0, 0, 1],
+    /*  w  */  [1, 1, 1, 1, 0, 0, 0, 0, 1],
+    /*  wc */  [1, 1, 1, 1, 0, 0, 0, 0, 1],
+    /* sm  */  [1, 1, 1, 1, 0, 0, 0, 0, 1],
+    /* sc  */  [1, 1, 1, 1, 0, 0, 0, 0, 1],
+    /* sw  */  [1, 1, 1, 1, 0, 0, 0, 0, 1],
+    /* swc */  [1, 1, 1, 1, 0, 0, 0, 0, 1],
+    /*  i  */  [1, 1, 1, 1, 0, 0, 0, 0, 1] ]);
+    // todo: inout copy from thread local object can be implicitly convertible to shared? (eg. m to sm)
+
+    {
+        alias S = SW;
+                  S[3] sam;
+            const S[3] sac;
+        immutable S[3] sai;
+    /+
+        static assert( __traits(compiles, {              S[3] sa = sam; }));
+        static assert( __traits(compiles, {              S[3] sa = sac; }));
+        static assert( __traits(compiles, {              S[3] sa = sai; }));
+        static assert( __traits(compiles, {        const S[3] sa = sam; }));
+        static assert( __traits(compiles, {        const S[3] sa = sac; }));
+        static assert( __traits(compiles, {        const S[3] sa = sai; }));
+        static assert( __traits(compiles, {       shared S[3] sa = sam; })); // todo
+        static assert( __traits(compiles, {       shared S[3] sa = sac; })); // todo
+        static assert( __traits(compiles, {       shared S[3] sa = sai; })); // todo
+        static assert( __traits(compiles, { const shared S[3] sa = sam; })); // todo
+        static assert( __traits(compiles, { const shared S[3] sa = sac; })); // todo
+        static assert( __traits(compiles, { const shared S[3] sa = sai; }));
+        static assert( __traits(compiles, {    immutable S[3] sa = sam; }));
+        static assert( __traits(compiles, {    immutable S[3] sa = sac; }));
+        static assert( __traits(compiles, {    immutable S[3] sa = sai; }));
+    +/
+    }
+
+    static struct SSM { this(this) shared {} }
+    checkPostblit!(SSM,
+    /* dst  src m  c  w wc sm sc sw swc i */
+    /*  m  */[ [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    /*  c  */  [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    /*  w  */  [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    /*  wc */  [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    /* sm  */  [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    /* sc  */  [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    /* sw  */  [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    /* swc */  [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    /*  i  */  [0, 0, 0, 0, 0, 0, 0, 0, 0] ]);
+
+    static struct SSC { this(this) shared const {} }
+    checkPostblit!(SSC,
+    /* dst  src m  c  w wc sm sc sw swc i */
+    /*  m  */[ [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    /*  c  */  [0, 0, 0, 0, 0, 0, 0, 0, 1],
+    /*  w  */  [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    /*  wc */  [0, 0, 0, 0, 0, 0, 0, 0, 1],
+    /* sm  */  [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    /* sc  */  [0, 0, 0, 0, 1, 1, 1, 1, 1],
+    /* sw  */  [0, 0, 0, 0, 0, 0, 1, 0, 0],
+    /* swc */  [0, 0, 0, 0, 0, 0, 1, 1, 1],
+    /*  i  */  [0, 0, 0, 0, 0, 0, 0, 0, 1] ]);
+
+    static struct SSW { this(this) shared inout {} }
+    checkPostblit!(SSW,
+    /* dst  src m  c  w wc sm sc sw swc i */
+    /*  m  */[ [0, 0, 0, 0, 1, 1, 1, 1, 1],
+    /*  c  */  [0, 0, 0, 0, 1, 1, 1, 1, 1],
+    /*  w  */  [0, 0, 0, 0, 1, 1, 1, 1, 1],
+    /*  wc */  [0, 0, 0, 0, 1, 1, 1, 1, 1],
+    /* sm  */  [0, 0, 0, 0, 1, 1, 1, 1, 1],
+    /* sc  */  [0, 0, 0, 0, 1, 1, 1, 1, 1],
+    /* sw  */  [0, 0, 0, 0, 1, 1, 1, 1, 1],
+    /* swc */  [0, 0, 0, 0, 1, 1, 1, 1, 1],
+    /*  i  */  [0, 0, 0, 0, 1, 1, 1, 1, 1] ]);
+    // todo: inout copy from shared object can be implicitly convertible to thread local? (eg. sm to s)
+}
+
 void test1()
 {
     static struct X
@@ -241,7 +453,7 @@ void test1()
         import core.exception;
         //printf("m,c,i,u = %d,%d,%d,%d\n", m, c, i, u);
         if (res != expect)
-            throw new AssertError(__FILE__, ln);
+            throw new AssertError(res, __FILE__, ln);
     }
 
     static struct S1
@@ -262,7 +474,7 @@ void test1()
 
         // assignment
         checkCalledPostblit("m", {           S1 s = sm; });
-        checkCalledPostblit("c", {     const S1 s = sm; });
+        checkCalledPostblit("m", {     const S1 s = sm; });
         checkCalledPostblit("u", { immutable S1 s = sm; });
         checkCalledPostblit("u", {           S1 s = sc; });
         checkCalledPostblit("c", {     const S1 s = sc; });
@@ -273,7 +485,7 @@ void test1()
 
         // block assignment
         checkCalledPostblit("mm", {           S1[2] sa = sm; });
-        checkCalledPostblit("cc", {     const S1[2] sa = sm; });
+        checkCalledPostblit("mm", {     const S1[2] sa = sm; });
         checkCalledPostblit("uu", { immutable S1[2] sa = sm; });
         checkCalledPostblit("uu", {           S1[2] sa = sc; });
         checkCalledPostblit("cc", {     const S1[2] sa = sc; });
@@ -284,7 +496,7 @@ void test1()
 
         // element-wise assignment
         checkCalledPostblit("mmm", {           S1[3] sa = sam; });
-        checkCalledPostblit("ccc", {     const S1[3] sa = sam; });
+        checkCalledPostblit("mmm", {     const S1[3] sa = sam; });
         checkCalledPostblit("uuu", { immutable S1[3] sa = sam; });
         checkCalledPostblit("uuu", {           S1[3] sa = sac; });
         checkCalledPostblit("ccc", {     const S1[3] sa = sac; });
@@ -295,7 +507,7 @@ void test1()
 
         // CatExp (issues exists which comes from the current druntime internal I/F design)
         checkCalledPostblit("mm", {           S1 [] a = sam[0..1]; a = a ~ sm; });
-        checkCalledPostblit("cc", {     const(S1)[] a = sac[0..1]; a = a ~ sm; });
+        checkCalledPostblit("cc", {     const(S1)[] a = sac[0..1]; a = a ~ sm; });  // NG, should be "mc"
         checkCalledPostblit("cc", { immutable(S1)[] a = sai[0..1]; a = a ~ sm; });  // NG, should be "uc"
         checkCalledPostblit("mm", {           S1 [] a = sam[0..1]; a = a ~ sc; });  // NG, should be "um"
         checkCalledPostblit("cc", {     const(S1)[] a = sac[0..1]; a = a ~ sc; });
@@ -311,18 +523,18 @@ void test1()
 
         // Append array, rt.lifetime.__doPostblit
         checkCalledPostblit("mm", {           S1 [] a = sam[0..1]; a ~= sam[0..1]; });
-        checkCalledPostblit("cc", {     const(S1)[] a = sac[0..1]; a ~= sam[0..1]; });
-        checkCalledPostblit("cc", { immutable(S1)[] a = sai[0..1]; a ~= sam[0..1]; });
-        checkCalledPostblit("mm", {           S1 [] a = sam[0..1]; a ~= sac[0..1]; });
+        checkCalledPostblit("cc", {     const(S1)[] a = sac[0..1]; a ~= sam[0..1]; });  // NG, should be "mc"
+        checkCalledPostblit("cc", { immutable(S1)[] a = sai[0..1]; a ~= sam[0..1]; });  // NG, should be "uc"
+        checkCalledPostblit("mm", {           S1 [] a = sam[0..1]; a ~= sac[0..1]; });  // NG, should be "um"
         checkCalledPostblit("cc", {     const(S1)[] a = sac[0..1]; a ~= sac[0..1]; });
-        checkCalledPostblit("cc", { immutable(S1)[] a = sai[0..1]; a ~= sac[0..1]; });
-        checkCalledPostblit("mm", {           S1 [] a = sam[0..1]; a ~= sai[0..1]; });
+        checkCalledPostblit("cc", { immutable(S1)[] a = sai[0..1]; a ~= sac[0..1]; });  // NG, should be "uc"
+        checkCalledPostblit("mm", {           S1 [] a = sam[0..1]; a ~= sai[0..1]; });  // NG, should be "um"
         checkCalledPostblit("cc", {     const(S1)[] a = sac[0..1]; a ~= sai[0..1]; });
         checkCalledPostblit("cc", { immutable(S1)[] a = sai[0..1]; a ~= sai[0..1]; });
 
         // Append element, callCpCtor + rt.lifetime.__doPostblit
         checkCalledPostblit("mm", {           S1 [] a = sam[0..1]; a ~= sm; });
-        checkCalledPostblit("cc", {     const(S1)[] a = sac[0..1]; a ~= sm; });
+        checkCalledPostblit("mc", {     const(S1)[] a = sac[0..1]; a ~= sm; });
         checkCalledPostblit("uc", { immutable(S1)[] a = sai[0..1]; a ~= sm; });
         checkCalledPostblit("um", {           S1 [] a = sam[0..1]; a ~= sc; });
         checkCalledPostblit("cc", {     const(S1)[] a = sac[0..1]; a ~= sc; });
@@ -388,7 +600,7 @@ void test1()
         checkCalledPostblit("uu", {     const(S2)[] a = sac[0..1]; a = a ~ sc; });
         checkCalledPostblit("ii", { immutable(S2)[] a = sai[0..1]; a = a ~ sc; });  // NG, should be "ui"
         checkCalledPostblit("uu", {           S2 [] a = sam[0..1]; a = a ~ si; });
-        checkCalledPostblit("uu", {     const(S2)[] a = sac[0..1]; a = a ~ si; });
+        checkCalledPostblit("uu", {     const(S2)[] a = sac[0..1]; a = a ~ si; });  // NG, should be "iu"
         checkCalledPostblit("ii", { immutable(S2)[] a = sai[0..1]; a = a ~ si; });
 
         // AssignExp _d_arraysetlength -> __doPostblit
@@ -399,12 +611,12 @@ void test1()
         // Append array, rt.lifetime.__doPostblit
         checkCalledPostblit("uu", {           S2 [] a = sam[0..1]; a ~= sam[0..1]; });
         checkCalledPostblit("uu", {     const(S2)[] a = sac[0..1]; a ~= sam[0..1]; });
-        checkCalledPostblit("ii", { immutable(S2)[] a = sai[0..1]; a ~= sam[0..1]; });
+        checkCalledPostblit("ii", { immutable(S2)[] a = sai[0..1]; a ~= sam[0..1]; });  // NG, should be "ui"
         checkCalledPostblit("uu", {           S2 [] a = sam[0..1]; a ~= sac[0..1]; });
         checkCalledPostblit("uu", {     const(S2)[] a = sac[0..1]; a ~= sac[0..1]; });
-        checkCalledPostblit("ii", { immutable(S2)[] a = sai[0..1]; a ~= sac[0..1]; });
+        checkCalledPostblit("ii", { immutable(S2)[] a = sai[0..1]; a ~= sac[0..1]; });  // NG, should be "ui"
         checkCalledPostblit("uu", {           S2 [] a = sam[0..1]; a ~= sai[0..1]; });
-        checkCalledPostblit("uu", {     const(S2)[] a = sac[0..1]; a ~= sai[0..1]; });
+        checkCalledPostblit("uu", {     const(S2)[] a = sac[0..1]; a ~= sai[0..1]; });  // NG, should be "iu"
         checkCalledPostblit("ii", { immutable(S2)[] a = sai[0..1]; a ~= sai[0..1]; });
 
         // Append element, callCpCtor + rt.lifetime.__doPostblit
@@ -442,7 +654,7 @@ void test1()
         checkCalledPostblit("c", {     const S3 s = sc; });
         static assert(!is(typeof({ immutable S3 s = sc; })));
         static assert(!is(typeof({           S3 s = si; })));
-        checkCalledPostblit("c", {     const S3 s = si; });
+        checkCalledPostblit("i", {     const S3 s = si; });
         checkCalledPostblit("i", { immutable S3 s = si; });
 
         // block assignment
@@ -453,7 +665,7 @@ void test1()
         checkCalledPostblit("cc", {     const S3[2] s = sc; });
         static assert(!is(typeof( { immutable S3[2] s = sc; })));
         static assert(!is(typeof( {           S3[2] s = si; })));
-        checkCalledPostblit("cc", {     const S3[2] s = si; });
+        checkCalledPostblit("ii", {     const S3[2] s = si; });
         checkCalledPostblit("ii", { immutable S3[2] s = si; });
 
         // element-wise assignment
@@ -464,7 +676,7 @@ void test1()
         checkCalledPostblit("ccc", {     const S3[3] sa = sac; });
         static assert(! is(typeof( { immutable S3[3] sa = sac; })));
         static assert(! is(typeof( {           S3[3] sa = sai; })));
-        checkCalledPostblit("ccc", {     const S3[3] sa = sai; });
+        checkCalledPostblit("iii", {     const S3[3] sa = sai; });
         checkCalledPostblit("iii", { immutable S3[3] sa = sai; });
 
         // CatExp (issues exists which comes from the current druntime internal I/F design)
@@ -491,7 +703,7 @@ void test1()
         checkCalledPostblit("cc", {     const(S3)[] a = sac[0..1]; a ~= sac[0..1]; });
         static assert(!is(typeof( { immutable(S3)[] a = sai[0..1]; a ~= sac[0..1]; })));
         static assert(!is(typeof( {           S3 [] a = sam[0..1]; a ~= sai[0..1]; })));
-        checkCalledPostblit("cc", {     const(S3)[] a = sac[0..1]; a ~= sai[0..1]; });
+        checkCalledPostblit("cc", {     const(S3)[] a = sac[0..1]; a ~= sai[0..1]; });  // NG, should be "ic"
         checkCalledPostblit("ii", { immutable(S3)[] a = sai[0..1]; a ~= sai[0..1]; });
 
         // Append element, callCpCtor + rt.lifetime.__doPostblit
@@ -502,7 +714,7 @@ void test1()
         checkCalledPostblit("cc", {     const(S3)[] a = sac[0..1]; a ~= sc; });
         static assert(!is(typeof( { immutable(S3)[] a = sai[0..1]; a ~= sc; })));
         static assert(!is(typeof( {           S3 [] a = sam[0..1]; a ~= si; })));
-        checkCalledPostblit("cc", {     const(S3)[] a = sac[0..1]; a ~= si; });
+        checkCalledPostblit("ic", {     const(S3)[] a = sac[0..1]; a ~= si; });
         checkCalledPostblit("ii", { immutable(S3)[] a = sai[0..1]; a ~= si; });
     }
 
@@ -539,6 +751,15 @@ void test1()
         static assert(!__traits(compiles, {     const SY s = si; }));
         static assert(!__traits(compiles, { immutable SY s = si; }));
     }
+
+    static assert(!__traits(compiles, {
+        static int[] ga;
+        struct S
+        {
+            int[] a;
+            this(this) const { a = ga; } // should be disallowed
+        }
+    }));
 }
 
 /***************************************************/

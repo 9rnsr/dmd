@@ -882,6 +882,28 @@ FuncDeclaration *resolveCpCtor(unsigned srcMod, unsigned dstMod, FuncDeclaration
     {
         TypeFunction *tf = (TypeFunction *)fd->type;
         unsigned char mod = (*tf->parameters)[0]->type->mod;
+//printf("src = x%x, dst = x%x, mod = x%x\n", srcMod, dstMod, mod);
+        if (((srcMod & ~MODshared) == 0 || srcMod == MODimmutable) &&
+            srcMod == mod && MODimplicitConv(mod, dstMod))
+        {
+            // mutable and immutable postblit
+            lastf = fd, anyf = NULL;
+        }
+        else if (MODimplicitConv(srcMod, dstMod) &&
+                 (mod & MODconst) && MODimplicitConv(srcMod, mod))
+        {
+            // const postblit
+            if (!lastf || (lastf->type->mod & MODwild))
+                lastf = fd;
+        }
+        else if (mod & MODwild)
+        {
+            // inout postblit
+            if (!lastf)
+                lastf = fd;
+        }
+#if 1
+#else
         if (srcMod == dstMod)
         {
             if (mod == dstMod)
@@ -919,6 +941,7 @@ FuncDeclaration *resolveCpCtor(unsigned srcMod, unsigned dstMod, FuncDeclaration
             if (mod == MODwild)
                 lastf = fd;
         }
+#endif
         return 0;
     }
   };

@@ -11435,13 +11435,18 @@ Expression *AssignExp::semantic(Scope *sc)
         //printf("[%s] change to init - %s\n", loc.toChars(), toChars());
         op = TOKconstruct;
 
+        assert(sc->func);
         TypeFunction *tf = (TypeFunction *)sc->func->type;
-        if (sc->func->isPostBlitDeclaration() && tf->mod == MODwild)
+        if (sc->func->isPostBlitDeclaration())
         {
+            //printf("[%s] pblit = %s, init-assign %s, t1 = %s\n", loc.toChars(), tf->toChars(), toChars(), t1->toChars());
+
+          // TODO: how about inout const?
+          if (tf->mod == MODwild || tf->mod == (MODshared | MODwild))
+          {
             // Regard inout postblit as unique postblit
             assert(t1->isWild() || t1->isImmutable());
 
-            //printf("[%s] init-assign %s, t1 = %s\n", loc.toChars(), toChars(), t1->toChars());
             if (e2->type->implicitConvTo(e2->type->immutableOf()))
             {
                 // doesn't have any non-immutable indirections
@@ -11452,6 +11457,20 @@ Expression *AssignExp::semantic(Scope *sc)
             }
             else
                 error("initializing should be done by unique data");
+          }
+          else if (tf->mod == MODconst || tf->mod == (MODshared | MODconst))
+          {
+            // Regard inout postblit as unique postblit
+            assert(t1->isConst() || t1->isImmutable());
+
+            //printf("[%s] init-assign %s, t1 = %s\n", loc.toChars(), toChars(), t1->toChars());
+            if (e2->isUniqData())
+            {
+                e2 = e2->castTo(sc, e1->type);
+            }
+            else
+                error("initializing should be done by unique data in %s postblit", MODtoChars(tf->mod));
+          }
         }
     }
 
