@@ -896,7 +896,9 @@ FuncDeclaration *resolveCpCtor(unsigned srcMod, unsigned dstMod, FuncDeclaration
             if (!lastf || (lastf->type->mod & MODwild))
                 lastf = fd;
         }
-        else if (mod & MODwild)
+        else if ((mod & MODwild) &&
+                 (srcMod == MODimmutable || dstMod == MODimmutable ||
+                  ((srcMod ^ dstMod) & MODshared) == 0))
         {
             // inout postblit
             if (!lastf)
