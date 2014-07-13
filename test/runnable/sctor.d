@@ -373,6 +373,19 @@ void test0(inout int = 0)
     // todo: inout copy from thread local object can be implicitly convertible to shared? (eg. m to sm)
     // -> should be disallowed, because inout postblit can leak copied object in global scope.
 
+    static struct SWP { this(this) inout pure {} }
+    checkPostblit!(SWP,
+    /* dst  src m  c  w wc sm sc sw swc i */
+    /*  m  */[ [1, 1, 1, 1, 0, 0, 0, 0, 1],
+    /*  c  */  [1, 1, 1, 1, 0, 0, 0, 0, 1],
+    /*  w  */  [1, 1, 1, 1, 0, 0, 0, 0, 1],
+    /*  wc */  [1, 1, 1, 1, 0, 0, 0, 0, 1],
+    /* sm  */  [1, 1, 1, 1, 0, 0, 0, 0, 1],
+    /* sc  */  [1, 1, 1, 1, 0, 0, 0, 0, 1],
+    /* sw  */  [1, 1, 1, 1, 0, 0, 0, 0, 1],
+    /* swc */  [1, 1, 1, 1, 0, 0, 0, 0, 1],
+    /*  i  */  [1, 1, 1, 1, 0, 0, 0, 0, 1] ]);
+
     {
         alias S = SW;
                   S[3] sam;
@@ -437,6 +450,19 @@ void test0(inout int = 0)
     /*  i  */  [0, 0, 0, 0, 1, 1, 1, 1, 1] ]);
     // todo: inout copy from shared object can be implicitly convertible to thread local? (eg. sm to s)
     // -> should be disallowed, because shared inout postblit can leak copied object in global scope.
+
+    static struct SSWP { this(this) shared inout pure {} }
+    checkPostblit!(SSWP,
+    /* dst  src m  c  w wc sm sc sw swc i */
+    /*  m  */[ [0, 0, 0, 0, 1, 1, 1, 1, 1],
+    /*  c  */  [0, 0, 0, 0, 1, 1, 1, 1, 1],
+    /*  w  */  [0, 0, 0, 0, 1, 1, 1, 1, 1],
+    /*  wc */  [0, 0, 0, 0, 1, 1, 1, 1, 1],
+    /* sm  */  [0, 0, 0, 0, 1, 1, 1, 1, 1],
+    /* sc  */  [0, 0, 0, 0, 1, 1, 1, 1, 1],
+    /* sw  */  [0, 0, 0, 0, 1, 1, 1, 1, 1],
+    /* swc */  [0, 0, 0, 0, 1, 1, 1, 1, 1],
+    /*  i  */  [0, 0, 0, 0, 1, 1, 1, 1, 1] ]);
 }
 
 void test1()

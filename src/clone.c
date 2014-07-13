@@ -898,7 +898,7 @@ FuncDeclaration *resolveCpCtor(unsigned srcMod, unsigned dstMod, FuncDeclaration
         }
         else if ((mod & MODwild) &&
                  (srcMod == MODimmutable || dstMod == MODimmutable ||
-                  ((srcMod ^ dstMod) & MODshared) == 0))
+                  ((srcMod ^ dstMod) & MODshared) == 0) || tf->purity)
         {
             // inout postblit
             if (!lastf)
