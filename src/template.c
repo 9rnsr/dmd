@@ -3096,7 +3096,8 @@ MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam)
             // foo(shared(inout(const(U)))) shared(inout(const(T))) => T
             // foo(immutable(U))            immutable(T)            => T
         {
-            *at = t->mutableOf()->unSharedOf();
+            *at = t->unqualify(MODimmutable | MODconst | MODwild | MODshared);    //t->mutableOf()->unSharedOf();
+            printf("L%d t = %s, at = %s\n", __LINE__, t->toChars(), (*at)->toChars());
             return MATCHexact;
         }
 
@@ -3121,7 +3122,8 @@ MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam)
             // foo(inout(const(U)))         shared(inout(const(T))) => shared(T)
             // foo(shared(const(U)))        immutable(T)            => T
         {
-            *at = t->mutableOf();
+            *at = t->unqualify(MODconst | MODimmutable | MODwild | (tparam->mod & MODshared));  //t->mutableOf();
+            printf("L%d t = %s, at = %s\n", __LINE__, t->toChars(), (*at)->toChars());
             return MATCHconst;
         }
 
@@ -3129,6 +3131,7 @@ MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam)
             // foo(const(U))                shared(T)               => shared(T)
         {
             *at = t;
+            printf("L%d t = %s, at = %s\n", __LINE__, t->toChars(), (*at)->toChars());
             return MATCHconst;
         }
 
@@ -3142,6 +3145,7 @@ MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam)
             // foo(shared(const(U)))        shared(T)               => T
         {
             *at = t->unSharedOf();
+            printf("L%d t = %s, at = %s\n", __LINE__, t->toChars(), (*at)->toChars());
             return MATCHconst;
         }
 
@@ -3155,6 +3159,7 @@ MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam)
             // foo(shared(inout(const(U)))) shared(inout(T))        => T
         {
             *at = t->unSharedOf()->mutableOf();
+            printf("L%d t = %s, at = %s\n", __LINE__, t->toChars(), (*at)->toChars());
             return MATCHconst;
         }
 
@@ -3162,6 +3167,7 @@ MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam)
             // foo(shared(const(U)))        shared(inout(T))        => T
         {
             *at = t->unSharedOf()->mutableOf();
+            printf("L%d t = %s, at = %s\n", __LINE__, t->toChars(), (*at)->toChars());
             return MATCHconst;
         }
 
@@ -3418,7 +3424,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                         *wm |= wx;
                         goto Lconst;
                     }
-
                     if (tt->equals(at))
                     {
                         goto Lconst;
@@ -3449,7 +3454,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                         else
                             goto Lconst;
                     }
-
                     if (tt->equals(at))
                     {
                         goto Lexact;
