@@ -3096,8 +3096,9 @@ MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam)
             // foo(shared(inout(const(U)))) shared(inout(const(T))) => T
             // foo(immutable(U))            immutable(T)            => T
         {
-            *at = t->unqualify(MODimmutable | MODconst | MODwild | MODshared);    //t->mutableOf()->unSharedOf();
-            printf("L%d t = %s, at = %s\n", __LINE__, t->toChars(), (*at)->toChars());
+          //*at = t->mutableOf()->unSharedOf();
+            *at = t->unqualify(MODimmutable | MODconst | MODwild | MODshared);
+            //printf("L%d t = %s, at = %s\n", __LINE__, t->toChars(), (*at)->toChars());
             return MATCHexact;
         }
 
@@ -3122,16 +3123,18 @@ MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam)
             // foo(inout(const(U)))         shared(inout(const(T))) => shared(T)
             // foo(shared(const(U)))        immutable(T)            => T
         {
-            *at = t->unqualify(MODconst | MODimmutable | MODwild | (tparam->mod & MODshared));  //t->mutableOf();
-            printf("L%d t = %s, at = %s\n", __LINE__, t->toChars(), (*at)->toChars());
+          //*at = t->mutableOf();
+            *at = t->unqualify(tparam->mod | MODimmutable);
+            //printf("L%d t = %s, at = %s\n", __LINE__, t->toChars(), (*at)->toChars());
             return MATCHconst;
         }
 
         case X(MODconst,                    MODshared):
             // foo(const(U))                shared(T)               => shared(T)
         {
-            *at = t;
-            printf("L%d t = %s, at = %s\n", __LINE__, t->toChars(), (*at)->toChars());
+          //*at = t;
+            *at = t->unqualify(MODconst);
+            //printf("L%d t = %s, at = %s\n", __LINE__, t->toChars(), (*at)->toChars());
             return MATCHconst;
         }
 
@@ -3144,8 +3147,9 @@ MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam)
             // foo(shared(U))               shared(inout(const(T))) => inout(const(T))
             // foo(shared(const(U)))        shared(T)               => T
         {
-            *at = t->unSharedOf();
-            printf("L%d t = %s, at = %s\n", __LINE__, t->toChars(), (*at)->toChars());
+          //*at = t->unSharedOf();
+            *at = t->unqualify(MODshared | (tparam->mod & MODconst ? MODimmutable | MODconst | MODwild : 0));
+            //printf("L%d t = %s, at = %s\n", __LINE__, t->toChars(), (*at)->toChars());
             return MATCHconst;
         }
 
@@ -3158,16 +3162,18 @@ MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam)
             // foo(shared(inout(const(U)))) immutable(T)            => T
             // foo(shared(inout(const(U)))) shared(inout(T))        => T
         {
-            *at = t->unSharedOf()->mutableOf();
-            printf("L%d t = %s, at = %s\n", __LINE__, t->toChars(), (*at)->toChars());
+          //*at = t->unSharedOf()->mutableOf();
+            *at = t->unqualify(MODimmutable | MODconst | MODwild| MODshared);
+            //printf("L%d t = %s, at = %s\n", __LINE__, t->toChars(), (*at)->toChars());
             return MATCHconst;
         }
 
         case X(MODshared | MODconst,        MODshared | MODwild):
             // foo(shared(const(U)))        shared(inout(T))        => T
         {
-            *at = t->unSharedOf()->mutableOf();
-            printf("L%d t = %s, at = %s\n", __LINE__, t->toChars(), (*at)->toChars());
+          //*at = t->unSharedOf()->mutableOf();
+            *at = t->unqualify(MODimmutable | MODconst | MODwild| MODshared);
+            //printf("L%d t = %s, at = %s\n", __LINE__, t->toChars(), (*at)->toChars());
             return MATCHconst;
         }
 
