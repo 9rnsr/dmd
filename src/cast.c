@@ -178,12 +178,15 @@ MATCH expImplicitConvTo(Expression *e, Scope *sc, Type *t, Expression **eresult)
     {
     public:
         Type *t;
+        Scope *sc;
         MATCH match;
+        Expression *eresult;
 
-        ImplicitConvTo(Type *t)
-            : t(t)
+        ImplicitConvTo(Scope *sc, Type *t)
+            : sc(sc), t(t)
         {
             match = MATCHnomatch;
+            eresult = NULL;
         }
 
         void visit(Expression *e)
@@ -198,24 +201,44 @@ MATCH expImplicitConvTo(Expression *e, Scope *sc, Type *t, Expression **eresult)
             if (!e->type)
             {
                 e->error("%s is not an expression", e->toChars());
-                e->type = Type::terror;
+                if (sc)
+                    eresult = new ErrorExp();
+                else
+                    e->type = Type::terror;
+                return;
             }
             Expression *ex = e->optimize(WANTvalue | WANTflags);
             if (ex->type->equals(t))
             {
                 match = MATCHexact;
+                setResult(e);
                 return;
             }
             if (ex != e)
             {
                 //printf("\toptimized to %s of type %s\n", e->toChars(), e->type->toChars());
-                match = ex->implicitConvTo(t);
+                //match = ex->implicitConvTo(t);
+                match = expImplicitConvTo(ex, sc, t, &eresult);
                 return;
             }
             MATCH m = e->type->implicitConvTo(t);
             if (m != MATCHnomatch)
             {
                 match = m;
+                if (sc)
+                {
+                    if (match == MATCHconst && e->type->constConv(t))
+                    {
+                        /* Do not emit CastExp for const conversions and
+                         * unique conversions on rvalue.
+                         */
+                        eresult = e->copy();
+                        eresult->type = t;
+                        return;
+                    }
+                    else
+                        eresult = e->castTo(sc, t);
+                }
                 return;
             }
 
@@ -229,6 +252,7 @@ MATCH expImplicitConvTo(Expression *e, Scope *sc, Type *t, Expression **eresult)
                 if (target.contains(src))
                 {
                     match = MATCHconvert;
+                    setResult(e);
                     return;
                 }
             }
@@ -321,6 +345,7 @@ MATCH expImplicitConvTo(Expression *e, Scope *sc, Type *t, Expression **eresult)
             if (m >= MATCHconst)
             {
                 match = m;
+                setResult(e);
                 return;
             }
 
@@ -497,6 +522,7 @@ MATCH expImplicitConvTo(Expression *e, Scope *sc, Type *t, Expression **eresult)
 
             //printf("MATCHconvert\n");
             match = MATCHconvert;
+            setResult(e);
         }
 
         void visit(ErrorExp *e)
@@ -513,6 +539,7 @@ MATCH expImplicitConvTo(Expression *e, Scope *sc, Type *t, Expression **eresult)
             if (e->type->equals(t))
             {
                 match = MATCHexact;
+                setResult(e);
                 return;
             }
 
@@ -523,6 +550,7 @@ MATCH expImplicitConvTo(Expression *e, Scope *sc, Type *t, Expression **eresult)
             if (t->immutableOf()->equals(e->type->immutableOf()))
             {
                 match = MATCHconst;
+                setResult(e);
                 return;
             }
 
@@ -554,7 +582,34 @@ MATCH expImplicitConvTo(Expression *e, Scope *sc, Type *t, Expression **eresult)
                     if (m2 < match)
                         match = m2;
                 }
+                // todo
             }
+        }
+
+        void setResult(Expression *e)
+        {
+            if (!sc)
+                return;
+            if (match == MATCHexact)
+            {
+                eresult = e;
+                return;
+            }
+            if (match)
+            {
+                if (match == MATCHconst &&
+                    (e->type->constConv(t) ||
+                     !e->isLvalue() && e->type->immutableOf()->equals(t->immutableOf())))
+                {
+                    eresult = e->copy();
+                    eresult->type = t;
+                    return;
+                }
+                eresult = e->castTo(sc, t);
+                return;
+            }
+            assert(eresult == NULL);
+            return;
         }
 
         void visit(StringExp *e)
@@ -583,11 +638,13 @@ MATCH expImplicitConvTo(Expression *e, Scope *sc, Type *t, Expression **eresult)
                                 if (tynto == tyn)
                                 {
                                     match = MATCHexact;
+                                    setResult(e);
                                     return;
                                 }
                                 if (!e->committed && (tynto == Tchar || tynto == Twchar || tynto == Tdchar))
                                 {
                                     match = MATCHexact;
+                                    setResult(e);
                                     return;
                                 }
                             }
@@ -600,11 +657,13 @@ MATCH expImplicitConvTo(Expression *e, Scope *sc, Type *t, Expression **eresult)
                                 if (tynto == tyn)
                                 {
                                     match = MATCHexact;
+                                    setResult(e);
                                     return;
                                 }
                                 if (!e->committed && (tynto == Tchar || tynto == Twchar || tynto == Tdchar))
                                 {
                                     match = MATCHexact;
+                                    setResult(e);
                                     return;
                                 }
                             }
@@ -617,6 +676,11 @@ MATCH expImplicitConvTo(Expression *e, Scope *sc, Type *t, Expression **eresult)
                                 if (!tn->isConst())
                                     return;
                                 m = MATCHconst;
+                                if (sc)
+                                {
+                                    eresult = e->copy();
+                                    eresult->type = t;
+                                }
                             }
                             if (!e->committed)
                             {
@@ -626,16 +690,19 @@ MATCH expImplicitConvTo(Expression *e, Scope *sc, Type *t, Expression **eresult)
                                         if (e->postfix == 'w' || e->postfix == 'd')
                                             m = MATCHconvert;
                                         match = m;
+                                        setResult(e);
                                         return;
                                     case Twchar:
                                         if (e->postfix != 'w')
                                             m = MATCHconvert;
                                         match = m;
+                                        setResult(e);
                                         return;
                                     case Tdchar:
                                         if (e->postfix != 'd')
                                             m = MATCHconvert;
                                         match = m;
+                                        setResult(e);
                                         return;
                                 }
                             }
@@ -679,11 +746,11 @@ MATCH expImplicitConvTo(Expression *e, Scope *sc, Type *t, Expression **eresult)
                     for (size_t i = 0; i < e->elements->dim; i++)
                     {
                         Expression *el = (*e->elements)[i];
-                        if (match == MATCHnomatch)
-                            break;                          // no need to check for worse
                         MATCH m = el->implicitConvTo(telement);
                         if (m < match)
                             match = m;                      // remember worst match
+                        if (match == MATCHnomatch)
+                            break;                          // no need to check for worse
                     }
                 }
 
@@ -760,7 +827,10 @@ MATCH expImplicitConvTo(Expression *e, Scope *sc, Type *t, Expression **eresult)
 
             visit((Expression *)e);
             if (match != MATCHnomatch)
+            {
+                setResult(e);
                 return;
+            }
 
             /* Allow the result of strongly pure functions to
              * convert to immutable
@@ -770,6 +840,7 @@ MATCH expImplicitConvTo(Expression *e, Scope *sc, Type *t, Expression **eresult)
                 match = e->type->immutableOf()->implicitConvTo(t);
                 if (match > MATCHconst)     // Match level is MATCHconst at best.
                     match = MATCHconst;
+                setResult(e);
                 return;
             }
 
@@ -866,6 +937,7 @@ MATCH expImplicitConvTo(Expression *e, Scope *sc, Type *t, Expression **eresult)
             /* Success
              */
             match = MATCHconst;
+            setResult(e);
 #undef LOG
         }
 
@@ -879,7 +951,10 @@ MATCH expImplicitConvTo(Expression *e, Scope *sc, Type *t, Expression **eresult)
             //printf("\tmatch = %d\n", match);
 
             if (match != MATCHnomatch)
+            {
+                setResult(e);
                 return;
+            }
 
             // Look for pointers to functions where the functions are overloaded.
 
@@ -923,6 +998,7 @@ MATCH expImplicitConvTo(Expression *e, Scope *sc, Type *t, Expression **eresult)
             }
 
             //printf("\tmatch = %d\n", match);
+            setResult(e);
         }
 
         void visit(SymOffExp *e)
@@ -934,7 +1010,10 @@ MATCH expImplicitConvTo(Expression *e, Scope *sc, Type *t, Expression **eresult)
             match = e->type->implicitConvTo(t);
             //printf("\tmatch = %d\n", match);
             if (match != MATCHnomatch)
+            {
+                setResult(e);
                 return;
+            }
 
             // Look for pointers to functions where the functions are overloaded.
             t = t->toBasetype();
@@ -955,6 +1034,7 @@ MATCH expImplicitConvTo(Expression *e, Scope *sc, Type *t, Expression **eresult)
                 }
             }
             //printf("\tmatch = %d\n", match);
+            setResult(e);
         }
 
         void visit(DelegateExp *e)
@@ -965,7 +1045,10 @@ MATCH expImplicitConvTo(Expression *e, Scope *sc, Type *t, Expression **eresult)
         #endif
             match = e->type->implicitConvTo(t);
             if (match != MATCHnomatch)
+            {
+                setResult(e);
                 return;
+            }
 
             // Look for pointers to functions where the functions are overloaded.
             t = t->toBasetype();
@@ -975,15 +1058,17 @@ MATCH expImplicitConvTo(Expression *e, Scope *sc, Type *t, Expression **eresult)
                 if (e->func && e->func->overloadExactMatch(t->nextOf()))
                     match = MATCHexact;
             }
+
+            setResult(e);
         }
 
         void visit(FuncExp *e)
         {
             //printf("FuncExp::implicitConvTo type = %p %s, t = %s\n", e->type, e->type ? e->type->toChars() : NULL, t->toChars());
-            MATCH m = e->matchType(t, NULL, NULL, 1);
-            if (m > MATCHnomatch)
+            match = e->matchType(t, NULL, NULL, 1);
+            if (match > MATCHnomatch)
             {
-                match = m;
+                setResult(e);
                 return;
             }
             visit((Expression *)e);
@@ -1000,6 +1085,7 @@ MATCH expImplicitConvTo(Expression *e, Scope *sc, Type *t, Expression **eresult)
 
             // Pick the worst match
             match = (m1 < m2) ? m1 : m2;
+            setResult(e);
         }
 
         void visit(XorExp *e)
@@ -1013,6 +1099,7 @@ MATCH expImplicitConvTo(Expression *e, Scope *sc, Type *t, Expression **eresult)
 
             // Pick the worst match
             match = (m1 < m2) ? m1 : m2;
+            setResult(e);
         }
 
         void visit(CondExp *e)
@@ -1023,6 +1110,7 @@ MATCH expImplicitConvTo(Expression *e, Scope *sc, Type *t, Expression **eresult)
 
             // Pick the worst match
             match = (m1 < m2) ? m1 : m2;
+            setResult(e);
         }
 
         void visit(CommaExp *e)
@@ -1038,13 +1126,17 @@ MATCH expImplicitConvTo(Expression *e, Scope *sc, Type *t, Expression **eresult)
         #endif
             match = e->type->implicitConvTo(t);
             if (match != MATCHnomatch)
+            {
+                setResult(e);
                 return;
+            }
 
             if (t->isintegral() &&
                 e->e1->type->isintegral() &&
                 e->e1->implicitConvTo(t) != MATCHnomatch)
             {
                 match = MATCHconvert;
+                setResult(e);
             }
             else
                 visit((Expression *)e);
@@ -1246,6 +1338,7 @@ MATCH expImplicitConvTo(Expression *e, Scope *sc, Type *t, Expression **eresult)
             /* Success
              */
             match = MATCHconst;
+            setResult(e);
         }
 
         void visit(SliceExp *e)
@@ -1262,6 +1355,7 @@ MATCH expImplicitConvTo(Expression *e, Scope *sc, Type *t, Expression **eresult)
                 typeb = toStaticArrayType(e);
                 if (typeb)
                     match = typeb->implicitConvTo(t);
+                setResult(e);
                 return;
             }
 
@@ -1294,16 +1388,20 @@ MATCH expImplicitConvTo(Expression *e, Scope *sc, Type *t, Expression **eresult)
 
                 if (tx)
                 {
-                    match = e->e1->implicitConvTo(tx);
+                    Expression *ex = NULL;
+                    match = expImplicitConvTo(e->e1, sc, tx, &ex);
                     if (match > MATCHconst)     // Match level is MATCHconst at best.
                         match = MATCHconst;
+                    // todo
                 }
             }
         }
     };
 
-    ImplicitConvTo v(t);
+    ImplicitConvTo v(sc, t);
     e->accept(&v);
+    if (sc && eresult)
+        *eresult = v.eresult;
     return v.match;
 }
 
