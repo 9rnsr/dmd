@@ -2419,6 +2419,7 @@ Lagain:
     TY ty = (TY)Type::impcnvResult[t1b->ty][t2b->ty];
     if (ty != Terror)
     {
+        // if t1 and t2 are arithmetic types which have a common type
         TY ty1 = (TY)Type::impcnvType1[t1b->ty][t2b->ty];
         TY ty2 = (TY)Type::impcnvType2[t1b->ty][t2b->ty];
 
@@ -2426,21 +2427,25 @@ Lagain:
         {
             if (t1->equals(t2))
             {
-                t = t1;
+                t = t1; // TODO t1 may be qualified - should be unqualified?
                 goto Lret;
             }
 
             if (t1b->equals(t2b))
             {
+                // if t1 is enum : int and t2 is int, or vice versa, e1 and e2 should be castTo t.
+                // and also handle type qualifiers correctly. See also 13024 and related issue.
                 t = t1b;
                 goto Lret;
             }
         }
 
-        t = Type::basic[ty];
-
+        // In promotion, mutable type is preferred,
+        // even if original operand types are qualified.
+        t  = Type::basic[ty];
         t1 = Type::basic[ty1];
         t2 = Type::basic[ty2];
+
         e1 = e1->castTo(sc, t1);
         e2 = e2->castTo(sc, t2);
         //printf("after typeCombine():\n");
