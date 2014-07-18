@@ -2439,6 +2439,7 @@ Lagain:
     TY ty = (TY)Type::impcnvResult[t1b->ty][t2b->ty];
     if (ty != Terror)
     {
+        // if t1 and t2 are arithmetic types which have a common type
         TY ty1 = (TY)Type::impcnvType1[t1b->ty][t2b->ty];
         TY ty2 = (TY)Type::impcnvType2[t1b->ty][t2b->ty];
 
@@ -2446,21 +2447,25 @@ Lagain:
         {
             if (t1->equals(t2))
             {
-                t = t1;
+                t = t1; // TODO t1 may be qualified - should be unqualified?
                 goto Lret;
             }
 
             if (t1b->equals(t2b))
             {
+                // if t1 is enum : int and t2 is int, or vice versa, e1 and e2 should be castTo t.
+                // and also handle type qualifiers correctly. See also 13024 and related issue.
                 t = t1b;
                 goto Lret;
             }
         }
 
-        t = Type::basic[ty];
-
+        // In promotion, mutable type is preferred,
+        // even if original operand types are qualified.
+        t  = Type::basic[ty];
         t1 = Type::basic[ty1];
         t2 = Type::basic[ty2];
+
         e1 = e1->castTo(sc, t1);
         e2 = e2->castTo(sc, t2);
         //printf("after typeCombine():\n");
@@ -2480,9 +2485,10 @@ Lagain:
         // merging can not result in new enum type
         if (t->ty == Tenum)
             t = t1b;
+        goto Lret;
     }
-    else if ((t1->ty == Tpointer && t2->ty == Tpointer) ||
-             (t1->ty == Tdelegate && t2->ty == Tdelegate))
+    if ((t1->ty == Tpointer  && t2->ty == Tpointer) ||
+        (t1->ty == Tdelegate && t2->ty == Tdelegate))
     {
         // Bring pointers to compatible type
         Type *t1n = t1->nextOf();
@@ -2548,6 +2554,9 @@ Lagain:
         {
             if (!t1n->isImmutable() && !t2n->isImmutable() && t1n->isShared() != t2n->isShared())
                 goto Lincompatible;
+            // how about: const(immutable(int)*)* vs int** => const(int*)* ?
+            // how about: top qualifeir is unqualified, as same as arithmetic types?
+            //            const(int*) vs const(int)* => const(int)* ?
             unsigned char mod = MODmerge(t1n->mod, t2n->mod);
             t1 = t1n->castMod(mod)->pointerTo();
             t2 = t2n->castMod(mod)->pointerTo();
@@ -2560,6 +2569,7 @@ Lagain:
             ClassDeclaration *cd2 = t2n->isClassHandle();
             int offset;
 
+            // if cd1 and/or cd2 are interface: I1* vs I2* => correct?
             if (cd1->isBaseOf(cd2, &offset))
             {
                 if (offset)
@@ -2588,12 +2598,13 @@ Lagain:
             }
             goto Lincompatible;
         }
+        goto Lret;
     }
-    else if ((t1->ty == Tsarray || t1->ty == Tarray) &&
-             (e2->op == TOKnull && t2->ty == Tpointer && t2->nextOf()->ty == Tvoid ||
-              e2->op == TOKarrayliteral && t2->ty == Tsarray && t2->nextOf()->ty == Tvoid && ((TypeSArray *)t2)->dim->toInteger() == 0 ||
-              isVoidArrayLiteral(e2, t1))
-            )
+    if ((t1->ty == Tsarray || t1->ty == Tarray) &&
+        (e2->op == TOKnull && t2->ty == Tpointer && t2->nextOf()->ty == Tvoid ||
+         e2->op == TOKarrayliteral && t2->ty == Tsarray && t2->nextOf()->ty == Tvoid && ((TypeSArray *)t2)->dim->toInteger() == 0 ||
+         isVoidArrayLiteral(e2, t1))
+       )
     {
         /*  (T[n] op void*)   => T[]
          *  (T[]  op void*)   => T[]
@@ -2604,11 +2615,11 @@ Lagain:
          */
         goto Lx1;
     }
-    else if ((t2->ty == Tsarray || t2->ty == Tarray) &&
-             (e1->op == TOKnull && t1->ty == Tpointer && t1->nextOf()->ty == Tvoid ||
-              e1->op == TOKarrayliteral && t1->ty == Tsarray && t1->nextOf()->ty == Tvoid && ((TypeSArray *)t1)->dim->toInteger() == 0 ||
-              isVoidArrayLiteral(e1, t2))
-            )
+    if ((t2->ty == Tsarray || t2->ty == Tarray) &&
+        (e1->op == TOKnull && t1->ty == Tpointer && t1->nextOf()->ty == Tvoid ||
+         e1->op == TOKarrayliteral && t1->ty == Tsarray && t1->nextOf()->ty == Tvoid && ((TypeSArray *)t1)->dim->toInteger() == 0 ||
+         isVoidArrayLiteral(e1, t2))
+       )
     {
         /*  (void*   op T[n]) => T[]
          *  (void*   op T[])  => T[]
@@ -2619,8 +2630,8 @@ Lagain:
          */
         goto Lx2;
     }
-    else if ((t1->ty == Tsarray || t1->ty == Tarray) &&
-             (m = t1->implicitConvTo(t2)) != MATCHnomatch)
+    if ((t1->ty == Tsarray || t1->ty == Tarray) &&
+        (m = t1->implicitConvTo(t2)) != MATCHnomatch)
     {
         if (t1->ty == Tsarray && e2->op == TOKarrayliteral)
             goto Lt1;
@@ -2636,16 +2647,16 @@ Lagain:
         }
         goto Lt2;
     }
-    else if ((t2->ty == Tsarray || t2->ty == Tarray) && t2->implicitConvTo(t1))
+    if ((t2->ty == Tsarray || t2->ty == Tarray) && t2->implicitConvTo(t1))
     {
         if (t2->ty == Tsarray && e1->op == TOKarrayliteral)
             goto Lt2;
         goto Lt1;
     }
-    else if ((t1->ty == Tsarray || t1->ty == Tarray || t1->ty == Tpointer) &&
-             (t2->ty == Tsarray || t2->ty == Tarray || t2->ty == Tpointer) &&
-             t1->nextOf()->mod != t2->nextOf()->mod
-            )
+    if ((t1->ty == Tsarray || t1->ty == Tarray || t1->ty == Tpointer) &&
+        (t2->ty == Tsarray || t2->ty == Tarray || t2->ty == Tpointer) &&
+        t1->nextOf()->mod != t2->nextOf()->mod
+       )
     {
         /* If one is mutable and the other invariant, then retry
          * with both of them as const
@@ -2674,7 +2685,7 @@ Lagain:
         t = t1;
         goto Lagain;
     }
-    else if (t1->ty == Tclass && t2->ty == Tclass)
+    if (t1->ty == Tclass && t2->ty == Tclass)
     {
         if (t1->mod != t2->mod)
         {
@@ -2694,7 +2705,7 @@ Lagain:
         }
         goto Lcc;
     }
-    else if (t1->ty == Tclass || t2->ty == Tclass)
+    if (t1->ty == Tclass || t2->ty == Tclass)
     {
 Lcc:
         while (1)
@@ -2705,6 +2716,7 @@ Lcc:
             if (i1 && i2)
             {
                 // We have the case of class vs. void*, so pick class
+                // -> is this necessary? implicit conversion from class to void* is not allowed today.
                 if (t1->ty == Tpointer)
                     i1 = MATCHnomatch;
                 else if (t2->ty == Tpointer)
@@ -2730,6 +2742,7 @@ Lcc:
                  */
                 ClassDeclaration *cd1 = tc1->sym->baseClass;
                 ClassDeclaration *cd2 = tc2->sym->baseClass;
+                // should consider common base interface.
 
                 if (cd1 && cd2)
                 {
@@ -2764,12 +2777,15 @@ Lcc:
                 e2 = resolveAliasThis(sc, e2);
                 t2 = e2->type;
                 continue;
+
+                // Q. typeMerge should not see aliasthis types?
             }
             else
                 goto Lincompatible;
         }
+        goto Lret;
     }
-    else if (t1->ty == Tstruct && t2->ty == Tstruct)
+    if (t1->ty == Tstruct && t2->ty == Tstruct)
     {
         if (t1->mod != t2->mod)
         {
@@ -2835,8 +2851,9 @@ Lcc:
             t = t1;
             goto Lagain;
         }
+        goto Lret;
     }
-    else if (t1->ty == Tstruct || t2->ty == Tstruct)
+    if (t1->ty == Tstruct || t2->ty == Tstruct)
     {
         if (t1->ty == Tstruct && ((TypeStruct *)t1)->sym->aliasthis)
         {
@@ -2864,48 +2881,51 @@ Lcc:
         }
         goto Lincompatible;
     }
-    else if ((e1->op == TOKstring || e1->op == TOKnull) && e1->implicitConvTo(t2))
+    if ((e1->op == TOKstring || e1->op == TOKnull) && e1->implicitConvTo(t2))
     {
         goto Lt2;
     }
-    else if ((e2->op == TOKstring || e2->op == TOKnull) && e2->implicitConvTo(t1))
+    if ((e2->op == TOKstring || e2->op == TOKnull) && e2->implicitConvTo(t1))
     {
         goto Lt1;
     }
-    else if (t1->ty == Tsarray && t2->ty == Tsarray &&
-             e2->implicitConvTo(t1->nextOf()->arrayOf()))
+    if (t1->ty == Tsarray && t2->ty == Tsarray &&
+        e2->implicitConvTo(t1->nextOf()->arrayOf()))
     {
      Lx1:
         t = t1->nextOf()->arrayOf();    // T[]
         e1 = e1->castTo(sc, t);
         e2 = e2->castTo(sc, t);
+        goto Lret;
     }
-    else if (t1->ty == Tsarray && t2->ty == Tsarray &&
-             e1->implicitConvTo(t2->nextOf()->arrayOf()))
+    if (t1->ty == Tsarray && t2->ty == Tsarray &&
+        e1->implicitConvTo(t2->nextOf()->arrayOf()))
     {
      Lx2:
         t = t2->nextOf()->arrayOf();
         e1 = e1->castTo(sc, t);
         e2 = e2->castTo(sc, t);
+        goto Lret;
     }
-    else if (t1->ty == Tvector && t2->ty != Tvector &&
-             e2->implicitConvTo(t1))
+    if (t1->ty == Tvector && t2->ty != Tvector &&
+        e2->implicitConvTo(t1))
     {
         e2 = e2->castTo(sc, t1);
         t2 = t1;
         t = t1;
         goto Lagain;
     }
-    else if (t2->ty == Tvector && t1->ty != Tvector &&
-             e1->implicitConvTo(t2))
+    if (t2->ty == Tvector && t1->ty != Tvector &&
+        e1->implicitConvTo(t2))
     {
         e1 = e1->castTo(sc, t2);
         t1 = t2;
         t = t1;
         goto Lagain;
     }
-    else if (t1->isintegral() && t2->isintegral())
+    if (t1->isintegral() && t2->isintegral())
     {
+        // Does reach heare?
         if (t1->ty != t2->ty)
         {
             e1 = integralPromotions(e1, sc);
@@ -2925,34 +2945,33 @@ Lcc:
         e2 = e2->castTo(sc, t);
         goto Lagain;
     }
-    else if (t1->ty == Tnull && t2->ty == Tnull)
+    if (t1->ty == Tnull && t2->ty == Tnull)
     {
-        unsigned char mod = MODmerge(t1->mod, t2->mod);
-
-        t = t1->castMod(mod);
+        t = t1->castMod(MODmerge(t1->mod, t2->mod));
         e1 = e1->castTo(sc, t);
         e2 = e2->castTo(sc, t);
         goto Lret;
     }
-    else if (t2->ty == Tnull &&
+    if (t2->ty == Tnull &&
         (t1->ty == Tpointer || t1->ty == Taarray || t1->ty == Tarray))
     {
         goto Lt1;
     }
-    else if (t1->ty == Tnull &&
+    if (t1->ty == Tnull &&
         (t2->ty == Tpointer || t2->ty == Taarray || t2->ty == Tarray))
     {
         goto Lt2;
     }
-    else if (e->op != TOKquestion && t1->ty == Tarray &&
-             isArrayOperand(e1) && e2->implicitConvTo(t1->nextOf()))
+    if (e->op != TOKquestion && t1->ty == Tarray &&
+        isArrayOperand(e1) && e2->implicitConvTo(t1->nextOf()))
     {
         // T[] op T
         e2 = e2->castTo(sc, t1->nextOf());
         t = t1->nextOf()->arrayOf();
+        goto Lret;
     }
-    else if (e->op != TOKquestion && t2->ty == Tarray &&
-             isArrayOperand(e2) && e1->implicitConvTo(t2->nextOf()))
+    if (e->op != TOKquestion && t2->ty == Tarray &&
+        isArrayOperand(e2) && e1->implicitConvTo(t2->nextOf()))
     {
         // T op T[]
         e1 = e1->castTo(sc, t2->nextOf());
@@ -2969,12 +2988,11 @@ Lcc:
             e1 = e2;
             e2 = tmp;
         }
+        goto Lret;
     }
-    else
-    {
-     Lincompatible:
-        return 0;
-    }
+Lincompatible:
+    return 0;
+
 Lret:
     if (!*pt)
         *pt = t;
