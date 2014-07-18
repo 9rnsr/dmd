@@ -156,10 +156,14 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
 #endif
         }
     };
-
+#if 1
     ImplicitCastTo v(sc, t);
     e->accept(&v);
     return v.result;
+#else
+    Expression *eresult = NULL;
+    MATCH m = expImplicitConvTo(e, sc, t, &eresult)
+#endif
 }
 
 /*******************************************
