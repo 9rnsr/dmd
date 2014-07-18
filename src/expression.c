@@ -11540,21 +11540,27 @@ Expression *AssignExp::semantic(Scope *sc)
         Expression *e1x = e1;
         Expression *e2x = e2;
         Type *t2 = e2x->type->toBasetype();
+        printf("e1 = %s %s\n", e1x->type->toChars(), e1x->toChars());
+        printf("e2 = %s %s\n", e2x->type->toChars(), e2x->toChars());
 
         if (e2x->implicitConvTo(e1x->type))
         {
+            printf("\tL%d\n", __LINE__);
             if (op != TOKblit &&
                 (e2x->op == TOKslice && ((UnaExp *)e2x)->e1->isLvalue() ||
                  e2x->op == TOKcast  && ((UnaExp *)e2x)->e1->isLvalue() ||
                  e2x->op != TOKslice && e2x->isLvalue()))
             {
+            printf("\tL%d\n", __LINE__);
                 e1x->checkPostblit(sc, t1);
             }
+            printf("\tL%d\n", __LINE__);
         }
         else
         {
             if (e2x->implicitConvTo(t1->nextOf()->arrayOf()) > MATCHnomatch)
             {
+            printf("\tL%d\n", __LINE__);
                 uinteger_t dim1 = ((TypeSArray *)t1)->dim->toInteger();
                 uinteger_t dim2 = dim1;
                 if (e2x->op == TOKarrayliteral)
@@ -11573,12 +11579,15 @@ Expression *AssignExp::semantic(Scope *sc)
                     error("mismatched array lengths, %d and %d", (int)dim1, (int)dim2);
                     return new ErrorExp();
                 }
+            printf("\tL%d\n", __LINE__);
             }
+            printf("\tL%d\n", __LINE__);
 
             // May be block or element-wise assignment, so
             // convert e1 to e1[]
             if (op != TOKassign)
             {
+            printf("\tL%d\n", __LINE__);
                 // If multidimensional static array, treat as one large array
                 dinteger_t dim = ((TypeSArray *)t1)->dim->toInteger();
                 Type *t = t1;
@@ -11590,9 +11599,11 @@ Expression *AssignExp::semantic(Scope *sc)
                     dim *= ((TypeSArray *)t)->dim->toInteger();
                     e1x->type = t->nextOf()->sarrayOf(dim);
                 }
+            printf("\tL%d\n", __LINE__);
             }
             e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
             e1x = e1x->semantic(sc);
+            printf("\tL%d\n", __LINE__);
         }
         if (e1x->op == TOKerror)
             return e1x;
@@ -11644,6 +11655,7 @@ Expression *AssignExp::semantic(Scope *sc)
 
         if (e1x->op == TOKerror)
             return e1x;
+        printf("\tL%d e1x = %s\n", __LINE__, e1x->toChars());
         e1 = e1x;
     }
 
@@ -11651,6 +11663,7 @@ Expression *AssignExp::semantic(Scope *sc)
      */
     Expression *e2x = e2;
     Type *t2 = e2x->type->toBasetype();
+    printf("\tL%d e2x = %s\n", __LINE__, e2x->toChars());
 
     // If it is a array, get the element type. Note that it may be
     // multi-dimensional.
@@ -11753,6 +11766,7 @@ Expression *AssignExp::semantic(Scope *sc)
     }
     else
     {
+        printf("\tL%d e2x = %s %s\n", __LINE__, e2x->type->toChars(), e2x->toChars());
         if (0 && global.params.warnings && !global.gag && op == TOKassign &&
             t1->ty == Tarray && t2->ty == Tsarray &&
             e2x->op != TOKslice &&
@@ -11769,6 +11783,7 @@ Expression *AssignExp::semantic(Scope *sc)
             e2x = e2x->castTo(sc, e1->type);
         else
             e2x = e2x->implicitCastTo(sc, e1->type);
+        printf("\tL%d e2x = %s %s\n", __LINE__, e2x->type->toChars(), e2x->toChars());
     }
     if (e2x->op == TOKerror)
         return e2x;

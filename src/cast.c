@@ -57,6 +57,8 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
             MATCH match = e->implicitConvTo(t);
             if (match)
             {
+                //e = e->optimize(WANTflags | WANTvalue);
+
                 if (match == MATCHconst &&
                     (e->type->constConv(t) ||
                      !e->isLvalue() && e->type->immutableOf()->equals(t->immutableOf())))
@@ -140,6 +142,28 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
             Type *tb = result->type->toBasetype();
             if (tb->ty == Tarray)
                 semanticTypeInfo(sc, ((TypeDArray *)tb)->next);
+        }
+
+        void visit(SliceExp *e)
+        {
+            visit((Expression *)e);
+#if 1
+            if (result->op != TOKslice)
+                return;
+
+            e = (SliceExp *)result;
+            if (e->e1->op == TOKarrayliteral)
+            {
+                ArrayLiteralExp *ale = (ArrayLiteralExp *)e->e1;
+                Type *tb = t->toBasetype();
+                Type *tx;
+                if (tb->ty == Tsarray)
+                    tx = tb->nextOf()->sarrayOf(ale->elements ? ale->elements->dim : 0);
+                else
+                    tx = tb->nextOf()->arrayOf();
+                e->e1 = ale->implicitCastTo(sc, tx);
+            }
+#endif
         }
     };
 
