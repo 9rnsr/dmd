@@ -1578,7 +1578,7 @@ Lretry:
             }
             unsigned wm = 0;
             MATCH m = deduceType(oarg, paramscope, prmtype, parameters, dedtypes, &wm, inferStart);
-            printf("\tL%d deduceType m = %d, wm = x%x, wildmatch = x%x\n", __LINE__, m, wm, wildmatch);
+            //printf("\tL%d deduceType m = %d, wm = x%x, wildmatch = x%x\n", __LINE__, m, wm, wildmatch);
             wildmatch |= wm;
 
             /* If no match, see if the argument can be matched by using
@@ -3304,7 +3304,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 TypeIdentifier *tident = (TypeIdentifier *)tparam;
                 if (tident->idents.dim > 0)
                 {
-                    //printf("matching %s to %s\n", tparam->toChars(), toChars());
+                    //printf("matching %s to %s\n", tparam->toChars(), t->toChars());
                     Dsymbol *s = t->toDsymbol(sc);
                     for (size_t j = tident->idents.dim; j-- > 0; )
                     {
@@ -3340,6 +3340,8 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                         if (!tt)
                             goto Lnomatch;
                         Type *at = (Type *)(*dedtypes)[i];
+                        if (at && at->ty == Ttypeof)
+                            at = ((TypeTypeof *)at)->exp->type;
                         if (!at || tt->equals(at))
                         {
                             (*dedtypes)[i] = tt;
@@ -4367,13 +4369,13 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
 
         void visit(Expression *e)
         {
-            //printf("Expression::deduceType(e = %s, tparam = %s)\n", e->toChars(), tparam->toChars());
             size_t i = templateParameterLookup(tparam, parameters);
-            if (i == IDX_NOTFOUND)
+            if (i == IDX_NOTFOUND || ((TypeIdentifier *)tparam)->idents.dim > 0)
             {
                 e->type->accept(this);
                 return;
             }
+            //printf("Expression::deduceType(e = %s, tparam = %s)\n", e->toChars(), tparam->toChars());
 #if 0
             if (Type *at = isType((*dedtypes)[i]))
             {
