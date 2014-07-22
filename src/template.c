@@ -1554,7 +1554,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
                 goto Lnomatch;
 
 Lretry:
-#if 0
+#if 1
             printf("\tfarg->type   = %s\n", farg->type->toChars());
             printf("\tfparam->type = %s\n", prmtype->toChars());
 #endif
@@ -1615,8 +1615,7 @@ Lretry:
 
             unsigned wm = 0;
             MATCH m = deduceType(farg, paramscope, prmtype, parameters, dedtypes, &wm, inferStart);
-            //printf("\tdeduceType m = %d\n", m);
-            //printf("\twildmatch = x%x m = %d\n", wildmatch, m);
+            printf("\tdeduceType m = %d, wm = x%x, wildmatch = x%x\n", m, wm, wildmatch);
             wildmatch |= wm;
 
             /* If no match, see if the argument can be matched by using
@@ -3415,6 +3414,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     if (!at)
                     {
                         (*dedtypes)[i] = tt;
+                        printf("\t\ttparam = %s, dedtypes[%d] = %s, wx = x%x\n", tparam->toChars(), i, tt->toChars(), wx);
                         *wm |= wx;
                         goto Lconst;
                     }
@@ -3444,6 +3444,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     if (!at)
                     {
                         (*dedtypes)[i] = tt;
+                        printf("\t\ttparam = %s, dedtypes[%d] = %s\n", tparam->toChars(), i, tt->toChars());
                         if (m == MATCHexact)
                             goto Lexact;
                         else
@@ -3529,7 +3530,9 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 if (wm && t->ty == Taarray && tparam->isWild())
                 {
                     // Bugzilla 12403: In IFTI, stop inout matching on transitive part of AA types.
+                    printf("+tpn = %s\n", tpn->toChars());
                     tpn = tpn->substWildTo(MODmutable);
+                    printf("-tpn = %s\n", tpn->toChars());
                 }
 
                 result = deduceType(t->nextOf(), sc, tpn, parameters, dedtypes, wm);
