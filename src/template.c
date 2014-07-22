@@ -1571,9 +1571,12 @@ Lretry:
              * to the corresponding parameter type qualifier,
              * to pass through deduceType.
              */
-            if ((argtype->ty == Tarray || argtype->ty == Tpointer) &&
+            size_t i = templateParameterLookup(prmtype, parameters);
+            if (i >= 0 &&
+                (argtype->ty == Tarray || argtype->ty == Tpointer) &&
                 (!(fparam->storageClass & STCref) ||
                  (fparam->storageClass & STCauto) && !farg->isLvalue()))
+            if (!(*dedtypes)[i] || ((Type *)(*dedtypes)[i])->ty == Ttypeof)
             {
                 /*     prmtype          argtype              adjusted argtype   U
                  * foo(            U)   immutable(T[])    => immutable(T)[]     immutable(int)[]
@@ -1615,7 +1618,7 @@ Lretry:
 
             unsigned wm = 0;
             MATCH m = deduceType(farg, paramscope, prmtype, parameters, dedtypes, &wm, inferStart);
-            printf("\tdeduceType m = %d, wm = x%x, wildmatch = x%x\n", m, wm, wildmatch);
+            printf("\tL%d deduceType m = %d, wm = x%x, wildmatch = x%x\n", __LINE__, m, wm, wildmatch);
             wildmatch |= wm;
 
             /* If no match, see if the argument can be matched by using
@@ -3401,6 +3404,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 Type *tt;
                 Type *at = (Type *)(*dedtypes)[i];
 
+                printf("\t\tL%d tparam = %s, dedtypes[%d] = %s\n", __LINE__, tparam->toChars(), i, at ? at->toChars() : NULL);
                 if (at && at->ty == Ttypeof)    // type vs expression
                 {
                     result = ((TypeTypeof *)at)->exp->implicitConvTo(t);
@@ -3411,6 +3415,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
 
                 if (unsigned char wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
                 {
+                    // strong inout match
                     if (!at)
                     {
                         (*dedtypes)[i] = tt;
@@ -4349,6 +4354,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             Type *tt;
             if (unsigned char wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
             {
+                // weak inout match
                 *wm |= wx;
                 result = MATCHconst;
             }
