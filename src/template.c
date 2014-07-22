@@ -4405,15 +4405,15 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 ((TypeTypeof *)at)->idents.push(tt);
                 (*dedtypes)[i] = at;
             }
+            else if (at->ty == Ttypeof)
+                tt = (Type *)((TypeTypeof *)at)->idents[0];
             else
-            {
-                at = at->addMod(tparam->mod);
-                if (wm)
-                    at = at->substWildTo(*wm);
+                tt = at;
 
-                if (e->type->implicitConvTo(at))
-                    result = MATCHconvert;
-            }
+            tt = tt->addMod(tparam->mod);
+            if (wm && *wm)
+                tt = tt->substWildTo(*wm);
+            result = e->implicitConvTo(tt);
         }
 #if 0
         void visit(IntegerExp *e)
