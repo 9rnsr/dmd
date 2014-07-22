@@ -1823,7 +1823,8 @@ Lmatch:
     {
         Type *at = isType((*dedtypes)[i]);
         if (at && at->ty == Ttypeof)
-            (*dedtypes)[i] = ((TypeTypeof *)at)->exp->type;    // 'unbox'
+          //(*dedtypes)[i] = ((TypeTypeof *)at)->exp->type;    // 'unbox'
+            (*dedtypes)[i] = ((TypeTypeof *)at)->idents[0];    // 'unbox'
     }
     for (size_t i = ntargs; i < dedargs->dim; i++)
     {
@@ -3298,7 +3299,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
 
         void visit(Type *t)
         {
-        #if 0
+        #if 1
             printf("Type::deduceType()\n");
             printf("\tthis   = %d, ", t->ty); t->print();
             printf("\ttparam = %d, ", tparam->ty); tparam->print();
@@ -3401,8 +3402,9 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 Type *tt;
                 Type *at = (Type *)(*dedtypes)[i];
 
-                //printf("\t\tL%d tparam = %s, dedtypes[%d] = %s\n", __LINE__, tparam->toChars(), i, at ? at->toChars() : NULL);
+                printf("\t\tL%d tparam = %s, dedtypes[%d] = %s\n", __LINE__, tparam->toChars(), i, at ? at->toChars() : NULL);
 
+#if 0
                 if (wm && *wm == MODmutable)
                 {
                     // this is in the transitive part of inout parameter type
@@ -3418,9 +3420,14 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                         printf("-tparam = %s, *wm = x%x\n", tparam->toChars(), *wm);
                     }
                 }
-
+#endif
                 if (unsigned char wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
                 {
+                    if (*wm == MODmutable)
+                    {
+                        printf("\t\tL%d t = %s, tt = %s\n", __LINE__, t->toChars(), tt->toChars());
+                    }
+
                     // strong inout match
                     if (!at)
                     {
@@ -3555,7 +3562,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 if (wm && t->ty == Taarray && tparam->isWild())
                 {
                     // Bugzilla 12403: In IFTI, stop inout matching on transitive part of AA types.
-                    //printf("+tpn = %s, *wm = x%x\n", tpn->toChars(), *wm);
+                    printf("+tpn = %s, *wm = x%x\n", tpn->toChars(), *wm);
                     //tpn = tpn->substWildTo(MODmutable);
                     //printf("-tpn = %s\n", tpn->toChars());
                     unsigned wmx = MODmutable;  // ignore
@@ -4361,6 +4368,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             printf("Expression::deduceType(tparam = %s, e = %s)\n", tparam->toChars(), e->toChars());
             Type *at = (Type *)(*dedtypes)[i];
             printf("\tat = %s\n", at ? at->toChars() : NULL);
+#if 0
             if (at && at->ty == Ttypeof)
             {
                 printf("*** at = %s\n", at->toChars());
@@ -4374,7 +4382,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             else
             {
             }
-
+#endif
             if (Type *at = isType((*dedtypes)[i]))
             {
                 printf("\twm = x%x\n", wm ? *wm : -1);
@@ -4387,6 +4395,11 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 if (e->type->implicitConvTo(at))
                     result = MATCHconvert;
             }
+            else
+            {
+                e->type->accept(this);
+                return;
+            }
         }
 
         bool deduceExpType(Expression *e)
@@ -4395,38 +4408,8 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             if (i == IDX_NOTFOUND)
                 return false;
 
-            Type *t = e->type;
-            Type *tt;
-            if (unsigned char wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
-            {
-                *wm |= wx;
-                result = MATCHconst;
-            }
-            else
-            {
-                result = deduceTypeHelper(t, &tt, tparam);
-            }
-            if (result <= MATCHnomatch)
-                return true;
-
             Type *at = (Type *)(*dedtypes)[i];
-            if (!at)                        // expression vs ()
-            {
-                /* Use TypeTypeof as the 'box' to save polymopthism.
-                 *
-                 *  auto foo(T)(T arg);
-                 *  foo(1);
-                 *      // 1: deduceType(oarg='1', tparam='T', ...)
-                 *      //      T <= TypeTypeof(1)
-                 */
-                if (t != tt)
-                {
-                    e = e->copy();
-                    e->type = tt;
-                }
-                (*dedtypes)[i] = new TypeTypeof(e->loc, e);
-            }
-            else if (at->ty == Ttypeof)     // expression vs expression
+            if (at && at->ty == Ttypeof)     // expression vs expression
             {
                 /* Calculate common type of passed expressions.
                  *
@@ -4452,9 +4435,44 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     return true;
                 }
                 if (ec == condexp)
-                {
-                    ((TypeTypeof *)at)->exp = condexp;
-                }
+                    e = condexp;
+            }
+            Type *t = e->type;
+
+            Type *tt;
+            if (unsigned char wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
+            {
+                *wm |= wx;
+                result = MATCHconst;
+            }
+            else
+            {
+                result = deduceTypeHelper(t, &tt, tparam);
+            }
+            if (result <= MATCHnomatch)
+                return true;
+
+            if (!at)                        // expression vs ()
+            {
+                /* Use TypeTypeof as the 'box' to save polymopthism.
+                 *
+                 *  auto foo(T)(T arg);
+                 *  foo(1);
+                 *      // 1: deduceType(oarg='1', tparam='T', ...)
+                 *      //      T <= TypeTypeof(1)
+                 */
+                //if (t != tt)
+                //{
+                //    e = e->copy();
+                //    e->type = tt;
+                //}
+                at = new TypeTypeof(e->loc, e);
+                ((TypeTypeof *)at)->idents.push(tt);
+                (*dedtypes)[i] = at;
+            }
+            else if (at->ty == Ttypeof)
+            {
+                ((TypeTypeof *)at)->idents[0] = tt;
             }
             else                            // expression vs type
             {
