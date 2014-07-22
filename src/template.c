@@ -4398,6 +4398,13 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             else
             {
                 e->type->accept(this);
+                if (result > MATCHnomatch)
+                {
+                    // save expression always
+                    Type *at = new TypeTypeof(e->loc, e);
+                    ((TypeTypeof *)at)->idents.push(e->type);
+                    (*dedtypes)[i] = at;
+                }
                 return;
             }
         }
