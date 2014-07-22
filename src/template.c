@@ -3410,12 +3410,12 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     if (at && at->ty == Ttypeof)
                     {
                         // prefer this type vs Tident match rather than previous expr vs Tident match
-                        //printf("-Bug13180 tparam = %s, *wm = x%x\n", tparam->toChars(), *wm);
+                        printf("-Bug13180 tparam = %s, *wm = x%x\n", tparam->toChars(), *wm);
                     }
                     else
                     {
                         tparam = tparam->substWildTo(MODmutable);
-                        //printf("-tparam = %s, *wm = x%x\n", tparam->toChars(), *wm);
+                        printf("-tparam = %s, *wm = x%x\n", tparam->toChars(), *wm);
                     }
                 }
 
@@ -3425,14 +3425,14 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     if (!at)
                     {
                         (*dedtypes)[i] = tt;
-                        //printf("\t\tL%d, tt = %s, wx = x%x\n", __LINE__, tt->toChars(), wx);
+                        printf("\t\tL%d, tt = %s, wx = x%x\n", __LINE__, tt->toChars(), wx);
                         *wm |= wx;
                         goto Lconst;
                     }
                     else if (at && at->ty == Ttypeof)    // type vs expression
                     {
                         (*dedtypes)[i] = tt;
-                        //printf("\t\tL%d, tt = %s, wx = x%x\n", __LINE__, tt->toChars(), wx);
+                        printf("\t\tL%d, tt = %s, wx = x%x\n", __LINE__, tt->toChars(), wx);
                         *wm |= wx;
                         goto Lconst;
                     }
@@ -4351,18 +4351,41 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
 
         void visit(Expression *e)
         {
-            e->type->accept(this);
-            if (result > MATCHnomatch)
-                return;
-
             size_t i = templateParameterLookup(tparam, parameters);
-            if (i != IDX_NOTFOUND)
+            if (i == IDX_NOTFOUND)
             {
-                if (Type *at = isType((*dedtypes)[i]))
-                {
-                    if (e->type->implicitConvTo(at))
-                        result = MATCHconvert;
-                }
+                e->type->accept(this);
+                return;
+            }
+
+            printf("Expression::deduceType(tparam = %s, e = %s)\n", tparam->toChars(), e->toChars());
+            Type *at = (Type *)(*dedtypes)[i];
+            printf("\tat = %s\n", at ? at->toChars() : NULL);
+            if (at && at->ty == Ttypeof)
+            {
+                printf("*** at = %s\n", at->toChars());
+            }
+
+            Type *t = e->type;
+            Type *tt;
+            if (unsigned char wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
+            {
+            }
+            else
+            {
+            }
+
+            if (Type *at = isType((*dedtypes)[i]))
+            {
+                printf("\twm = x%x\n", wm ? *wm : -1);
+                at = at->addMod(tparam->mod);
+                printf("\t1> at = %s\n", at->toChars());
+                if (wm)
+                    at = at->substWildTo(*wm);
+                printf("\t2> at = %s\n", at->toChars());
+
+                if (e->type->implicitConvTo(at))
+                    result = MATCHconvert;
             }
         }
 
