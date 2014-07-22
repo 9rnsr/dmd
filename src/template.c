@@ -4369,26 +4369,25 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             }
 
             Type *at = (Type *)(*dedtypes)[i];
-            Type *t = e->type;
             Type *tt;
-            if (unsigned char wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
+            if (unsigned char wx = wm ? deduceWildHelper(e->type, &tt, tparam) : 0)
             {
                 *wm |= wx;
                 result = MATCHconst;
             }
+            else if (at && at->ty == Ttypeof)    // expression vs expression
+            {
+                e = commonType(((TypeTypeof *)at)->exp, e);
+                if (!e)
+                    return;
+                result = deduceTypeHelper(e->type, &tt, tparam);
+
+                ((TypeTypeof *)at)->exp = e;
+                ((TypeTypeof *)at)->idents[0] = e->type;
+            }
             else
             {
-                if (at && at->ty == Ttypeof)    // expression vs expression
-                {
-                    e = commonType(((TypeTypeof *)at)->exp, e);
-                    if (!e)
-                    //{
-                    //    result = MATCHnomatch;
-                        return;
-                    //}
-                    t = e->type;
-                }
-                result = deduceTypeHelper(t, &tt, tparam);
+                result = deduceTypeHelper(e->type, &tt, tparam);
             }
             if (result <= MATCHnomatch)
                 return;
@@ -4405,12 +4404,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 at = new TypeTypeof(e->loc, e);
                 ((TypeTypeof *)at)->idents.push(tt);
                 (*dedtypes)[i] = at;
-                return;
-            }
-            else if (at->ty == Ttypeof && !(wm && *wm)) // necessary
-            {
-                ((TypeTypeof *)at)->exp = e;
-                ((TypeTypeof *)at)->idents[0] = t;
             }
             else
             {
@@ -4422,7 +4415,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     result = MATCHconvert;
             }
         }
-
+#if 0
         void visit(IntegerExp *e)
         {
             visit((Expression *)e);
@@ -4437,7 +4430,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
         {
             visit((Expression *)e);
         }
-
+#endif
         void visit(StringExp *e)
         {
             Type *taai;
@@ -4450,7 +4443,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 e->type->nextOf()->sarrayOf(e->len)->accept(this);
                 return;
             }
-
             visit((Expression *)e);
         }
 
@@ -4481,7 +4473,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 e->type->nextOf()->sarrayOf(e->elements->dim)->accept(this);
                 return;
             }
-
             visit((Expression *)e);
         }
 
