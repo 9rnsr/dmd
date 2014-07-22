@@ -1567,57 +1567,19 @@ Lretry:
             farg = farg->optimize(WANTvalue, (fparam->storageClass & (STCref | STCout)) != 0);
             //printf("farg = %s %s\n", farg->type->toChars(), farg->toChars());
 
-            /* Adjust top const of the dynamic array type or pointer type argument
-             * to the corresponding parameter type qualifier,
-             * to pass through deduceType.
-             */
-            size_t i = templateParameterLookup(prmtype, parameters);
-            if (i >= 0 &&
-                (argtype->ty == Tarray || argtype->ty == Tpointer) &&
-                (!(fparam->storageClass & STCref) ||
-                 (fparam->storageClass & STCauto) && !farg->isLvalue()))
-            if (!(*dedtypes)[i] || ((Type *)(*dedtypes)[i])->ty == Ttypeof)
-            {
-                /*     prmtype          argtype              adjusted argtype   U
-                 * foo(            U)   immutable(T[])    => immutable(T)[]     immutable(int)[]
-                 *
-                 * foo(  immutable U)   immutable(T)[]    => immutable(T[])     immutable(int)[]
-                 * foo(      const U)       const(T)[]    =>     const(T[])         const(int)[]
-                 * foo(      inout U)   immutable(T[])    => immutable(T[])               int []
-                 *
-                 * foo(      inout U)   inout(const(T[])) =>     inout(T[])         const(int)[]
-                 * foo(inout const U)   inout(const(T)[]) =>           T[]                int []
-                 *
-                 * foo(     shared U)   shared(T)[]       =>    shared(T[])        shared(int)[]
-                 *
-                 * Then, U will be deduced to some_qual(V)[]
-                 */
-                //printf("+argtype = %s, prmtype = %s\n", argtype->toChars(), prmtype->toChars());
-                MOD m = 0;
-                MOD margn = argtype->nextOf()->mod;
-                if (!prmtype->isMutable())
-                {
-                    m = margn & (MODimmutable | MODwild | MODconst);
-                    if (prmtype->isWild() && m == MODwildconst)
-                        m &= prmtype->mod;
-                }
-                if (prmtype->isShared())
-                    m |= (margn & MODshared);
+            RootObject *oarg = farg;
 
-                argtype = argtype->castMod(m);
-                //printf("-argtype = %s, m = x%x\n", argtype->toChars(), m);
-                if (!farg->type->equals(argtype))
-                {
-                    farg = farg->copy();
-                    farg->type = argtype;
-                }
+            if ((fparam->storageClass & STCref) ||
+                (fparam->storageClass & STCauto) && farg->isLvalue())
+            {
+                oarg = farg->type;
             }
 
             if (fvarargs == 2 && parami + 1 == nfparams && argi + 1 < nfargs)
                 goto Lvarargs;
 
             unsigned wm = 0;
-            MATCH m = deduceType(farg, paramscope, prmtype, parameters, dedtypes, &wm, inferStart);
+            MATCH m = deduceType(oarg, paramscope, prmtype, parameters, dedtypes, &wm, inferStart);
             printf("\tL%d deduceType m = %d, wm = x%x, wildmatch = x%x\n", __LINE__, m, wm, wildmatch);
             wildmatch |= wm;
 
@@ -4351,6 +4313,57 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 return false;
 
             Type *t = e->type;
+
+            /* Adjust top const of the dynamic array type or pointer type argument
+             * to the corresponding parameter type qualifier,
+             * to pass through deduceType.
+             */
+            Type *argtype = t;
+            Type *prmtype = tparam;
+            if ((argtype->ty == Tarray || argtype->ty == Tpointer)/* &&
+                (!(fparam->storageClass & STCref) ||
+                 (fparam->storageClass & STCauto) && !farg->isLvalue())*/)
+            //if (!(*dedtypes)[i] || ((Type *)(*dedtypes)[i])->ty == Ttypeof)
+            {
+                /*     prmtype          argtype              adjusted argtype   U
+                 * foo(            U)   immutable(T[])    => immutable(T)[]     immutable(int)[]
+                 *
+                 * foo(  immutable U)   immutable(T)[]    => immutable(T[])     immutable(int)[]
+                 * foo(      const U)       const(T)[]    =>     const(T[])         const(int)[]
+                 * foo(      inout U)   immutable(T[])    => immutable(T[])               int []
+                 *
+                 * foo(      inout U)   inout(const(T[])) =>     inout(T[])         const(int)[]
+                 * foo(inout const U)   inout(const(T)[]) =>           T[]                int []
+                 *
+                 * foo(     shared U)   shared(T)[]       =>    shared(T[])        shared(int)[]
+                 *
+                 * Then, U will be deduced to some_qual(V)[]
+                 */
+                //printf("+argtype = %s, prmtype = %s\n", argtype->toChars(), prmtype->toChars());
+                MOD m = 0;
+                MOD margn = argtype->nextOf()->mod;
+                if (!prmtype->isMutable())
+                {
+                    m = margn & (MODimmutable | MODwild | MODconst);
+                    if (prmtype->isWild() && m == MODwildconst)
+                        m &= prmtype->mod;
+                }
+                if (prmtype->isShared())
+                    m |= (margn & MODshared);
+
+                argtype = argtype->castMod(m);
+                //printf("-argtype = %s, m = x%x\n", argtype->toChars(), m);
+                //if (!farg->type->equals(argtype))
+                //{
+                //    farg = farg->copy();
+                //    farg->type = argtype;
+                //}
+
+                t = argtype;
+            }
+
+
+
             Type *tt;
             if (unsigned char wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
             {
