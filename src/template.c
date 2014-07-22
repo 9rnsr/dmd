@@ -3366,7 +3366,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 Type *tt;
                 Type *at = (Type *)(*dedtypes)[i];
 
-                printf("\t\tL%d tparam = %s, dedtypes[%d] = %s\n", __LINE__, tparam->toChars(), i, at ? at->toChars() : NULL);
+                //printf("\t\tL%d tparam = %s, dedtypes[%d] = %s\n", __LINE__, tparam->toChars(), i, at ? at->toChars() : NULL);
 
                 if (wm && *wm == MODmutable)
                 {
@@ -3375,12 +3375,12 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     if (at && at->ty == Ttypeof)
                     {
                         // prefer this type vs Tident match rather than previous expr vs Tident match
-                        printf("-Bug13180 tparam = %s, *wm = x%x\n", tparam->toChars(), *wm);
+                        //printf("-Bug13180 tparam = %s, *wm = x%x\n", tparam->toChars(), *wm);
                     }
                     else
                     {
                         tparam = tparam->substWildTo(MODmutable);
-                        printf("-tparam = %s, *wm = x%x\n", tparam->toChars(), *wm);
+                        //printf("-tparam = %s, *wm = x%x\n", tparam->toChars(), *wm);
                     }
                 }
 
@@ -3390,14 +3390,14 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     if (!at)
                     {
                         (*dedtypes)[i] = tt;
-                        printf("\t\tL%d, tt = %s, wx = x%x\n", __LINE__, tt->toChars(), wx);
+                        //printf("\t\tL%d, tt = %s, wx = x%x\n", __LINE__, tt->toChars(), wx);
                         *wm |= wx;
                         goto Lconst;
                     }
                     else if (at && at->ty == Ttypeof)    // type vs expression
                     {
                         (*dedtypes)[i] = tt;
-                        printf("\t\tL%d, tt = %s, wx = x%x\n", __LINE__, tt->toChars(), wx);
+                        //printf("\t\tL%d, tt = %s, wx = x%x\n", __LINE__, tt->toChars(), wx);
                         *wm |= wx;
                         goto Lconst;
                     }
@@ -3520,7 +3520,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 if (wm && t->ty == Taarray && tparam->isWild())
                 {
                     // Bugzilla 12403: In IFTI, stop inout matching on transitive part of AA types.
-                    printf("+tpn = %s, *wm = x%x\n", tpn->toChars(), *wm);
+                    //printf("+tpn = %s, *wm = x%x\n", tpn->toChars(), *wm);
                     //tpn = tpn->substWildTo(MODmutable);
                     //printf("-tpn = %s\n", tpn->toChars());
                     unsigned wmx = MODmutable;  // ignore
