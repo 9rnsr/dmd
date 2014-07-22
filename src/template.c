@@ -1554,7 +1554,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
                 goto Lnomatch;
 
 Lretry:
-#if 1
+#if 0
             printf("\tfarg->type   = %s\n", farg->type->toChars());
             printf("\tfparam->type = %s\n", prmtype->toChars());
 #endif
@@ -1580,7 +1580,7 @@ Lretry:
 
             unsigned wm = 0;
             MATCH m = deduceType(oarg, paramscope, prmtype, parameters, dedtypes, &wm, inferStart);
-            printf("\tL%d deduceType m = %d, wm = x%x, wildmatch = x%x\n", __LINE__, m, wm, wildmatch);
+            //printf("\tL%d deduceType m = %d, wm = x%x, wildmatch = x%x\n", __LINE__, m, wm, wildmatch);
             wildmatch |= wm;
 
             /* If no match, see if the argument can be matched by using
@@ -3366,7 +3366,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 Type *tt;
                 Type *at = (Type *)(*dedtypes)[i];
 
-                printf("\t\tL%d tparam = %s, dedtypes[%d] = %s\n", __LINE__, tparam->toChars(), i, at ? at->toChars() : NULL);
+                //printf("\t\tL%d tparam = %s, dedtypes[%d] = %s\n", __LINE__, tparam->toChars(), i, at ? at->toChars() : NULL);
                 if (at && at->ty == Ttypeof)    // type vs expression
                 {
                     result = ((TypeTypeof *)at)->exp->implicitConvTo(t);
@@ -3381,7 +3381,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     if (!at)
                     {
                         (*dedtypes)[i] = tt;
-                        printf("\t\ttparam = %s, dedtypes[%d] = %s, wx = x%x\n", tparam->toChars(), i, tt->toChars(), wx);
+                        //printf("\t\ttparam = %s, dedtypes[%d] = %s, wx = x%x\n", tparam->toChars(), i, tt->toChars(), wx);
                         *wm |= wx;
                         goto Lconst;
                     }
@@ -3411,7 +3411,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     if (!at)
                     {
                         (*dedtypes)[i] = tt;
-                        printf("\t\ttparam = %s, dedtypes[%d] = %s\n", tparam->toChars(), i, tt->toChars());
+                        //printf("\t\ttparam = %s, dedtypes[%d] = %s\n", tparam->toChars(), i, tt->toChars());
                         if (m == MATCHexact)
                             goto Lexact;
                         else
@@ -3497,9 +3497,9 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 if (wm && t->ty == Taarray && tparam->isWild())
                 {
                     // Bugzilla 12403: In IFTI, stop inout matching on transitive part of AA types.
-                    printf("+tpn = %s\n", tpn->toChars());
+                    //printf("+tpn = %s\n", tpn->toChars());
                     tpn = tpn->substWildTo(MODmutable);
-                    printf("-tpn = %s\n", tpn->toChars());
+                    //printf("-tpn = %s\n", tpn->toChars());
                 }
 
                 result = deduceType(t->nextOf(), sc, tpn, parameters, dedtypes, wm);
