@@ -1567,20 +1567,18 @@ Lretry:
             farg = farg->optimize(WANTvalue, (fparam->storageClass & (STCref | STCout)) != 0);
             //printf("farg = %s %s\n", farg->type->toChars(), farg->toChars());
 
-            RootObject *oarg = farg;
+            if (fvarargs == 2 && parami + 1 == nfparams && argi + 1 < nfargs)
+                goto Lvarargs;
 
-            if ((fparam->storageClass & STCref) ||
+            RootObject *oarg = farg;
+            if ((fparam->storageClass & (STCref | STCout)) ||
                 (fparam->storageClass & STCauto) && farg->isLvalue())
             {
                 oarg = farg->type;
             }
-
-            if (fvarargs == 2 && parami + 1 == nfparams && argi + 1 < nfargs)
-                goto Lvarargs;
-
             unsigned wm = 0;
             MATCH m = deduceType(oarg, paramscope, prmtype, parameters, dedtypes, &wm, inferStart);
-            //printf("\tL%d deduceType m = %d, wm = x%x, wildmatch = x%x\n", __LINE__, m, wm, wildmatch);
+            printf("\tL%d deduceType m = %d, wm = x%x, wildmatch = x%x\n", __LINE__, m, wm, wildmatch);
             wildmatch |= wm;
 
             /* If no match, see if the argument can be matched by using
@@ -3370,17 +3368,17 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
 
                 if (wm && *wm == MODmutable)
                 {
+                    // this is in the transitive part of inout parameter type
+
                     if (at && at->ty == Ttypeof)
                     {
+                        // prefer this type vs Tident match rather than previous expr vs Tident match
                         printf("-Bug13180 tparam = %s, *wm = x%x\n", tparam->toChars(), *wm);
-                        
                     }
                     else
                     {
-
-                    tparam = tparam->substWildTo(MODmutable);
-                    printf("-tparam = %s, *wm = x%x\n", tparam->toChars(), *wm);
-
+                        tparam = tparam->substWildTo(MODmutable);
+                        printf("-tparam = %s, *wm = x%x\n", tparam->toChars(), *wm);
                     }
                 }
 
