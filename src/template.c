@@ -4407,7 +4407,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 return;
             printf("\ttt = %s\n", tt->toChars());
 
-            if (at && at->ty == Ttypeof)     // expression vs expression
+            if (at && at->ty == Ttypeof && !(wm && *wm))     // expression vs expression
             {
                 //at = (Type *)((TypeTypeof *)at)->idents[0];
 
@@ -4453,7 +4453,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 //}
                 return;
             }
-            else if (at->ty == Ttypeof)
+            else if (at->ty == Ttypeof && !(wm && *wm))
             {
                 ((TypeTypeof *)at)->idents[0] = t;
             }
