@@ -4289,36 +4289,13 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             visit((Type *)t);
         }
 
-        void visit(Expression *e)
+        Type *topQual(Expression *e)
         {
-            e->type->accept(this);
-            if (result > MATCHnomatch)
-                return;
-
-            size_t i = templateParameterLookup(tparam, parameters);
-            if (i != IDX_NOTFOUND)
-            {
-                if (Type *at = isType((*dedtypes)[i]))
-                {
-                    if (e->type->implicitConvTo(at))
-                        result = MATCHconvert;
-                }
-            }
-        }
-
-        bool deduceExpType(Expression *e)
-        {
-            size_t i = templateParameterLookup(tparam, parameters);
-            if (i == IDX_NOTFOUND)
-                return false;
-
-            Type *t = e->type;
-
             /* Adjust top const of the dynamic array type or pointer type argument
              * to the corresponding parameter type qualifier,
              * to pass through deduceType.
              */
-            Type *argtype = t;
+            Type *argtype = e->type;
             Type *prmtype = tparam;
             if ((argtype->ty == Tarray || argtype->ty == Tpointer)/* &&
                 (!(fparam->storageClass & STCref) ||
@@ -4359,10 +4336,44 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 //    farg->type = argtype;
                 //}
 
-                t = argtype;
+                //t = argtype;
+            }
+            return argtype;
+
+        }
+
+        void visit(Expression *e)
+        {
+            size_t i = templateParameterLookup(tparam, parameters);
+            if (i == IDX_NOTFOUND)
+            {
+                e->type->accept(this);
+                return;
             }
 
+            if (Type *at = isType((*dedtypes)[i]))
+            {
+                if (e->type->implicitConvTo(at))
+                    result = MATCHconvert;
+            }
+            else
+            {
+                Type *t = topQual(e);
+                printf("e = %s, t = %s\n", e->toChars(), t->toChars());
+                t->accept(this);
+                if ((*dedtypes)[i])
+                    printf("-> (*dedtypes)[i] = %s\n", (*dedtypes)[i]->toChars());
+                return;
+            }
+        }
 
+        bool deduceExpType(Expression *e)
+        {
+            size_t i = templateParameterLookup(tparam, parameters);
+            if (i == IDX_NOTFOUND)
+                return false;
+
+            Type *t = topQual(e);
 
             Type *tt;
             if (unsigned char wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
