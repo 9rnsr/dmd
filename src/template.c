@@ -3378,6 +3378,11 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                         if (!tt)
                             goto Lnomatch;
                         Type *at = (Type *)(*dedtypes)[i];
+                        if (at && at->ty == Ttypeof)
+                        {
+                            //printf("** at = %s\n", at->toChars());
+                            at = (Type *)((TypeTypeof *)at)->idents[0];
+                        }
                         if (!at || tt->equals(at))
                         {
                             (*dedtypes)[i] = tt;
@@ -3404,7 +3409,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
 
                 printf("\t\tL%d tparam = %s, dedtypes[%d] = %s\n", __LINE__, tparam->toChars(), i, at ? at->toChars() : NULL);
 
-#if 0
+#if 1
                 if (wm && *wm == MODmutable)
                 {
                     // this is in the transitive part of inout parameter type
@@ -3423,10 +3428,10 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
 #endif
                 if (unsigned char wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
                 {
-                    if (*wm == MODmutable)
-                    {
-                        printf("\t\tL%d t = %s, tt = %s\n", __LINE__, t->toChars(), tt->toChars());
-                    }
+                    //if (*wm == MODmutable)
+                    //{
+                    //    printf("\t\tL%d t = %s, tt = %s\n", __LINE__, t->toChars(), tt->toChars());
+                    //}
 
                     // strong inout match
                     if (!at)
@@ -4359,7 +4364,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
         void visit(Expression *e)
         {
             size_t i = templateParameterLookup(tparam, parameters);
-            if (i == IDX_NOTFOUND)
+            if (i == IDX_NOTFOUND || ((TypeIdentifier *)tparam)->idents.dim > 0)
             {
                 e->type->accept(this);
                 return;
