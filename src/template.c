@@ -4343,31 +4343,9 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             Type *at = (Type *)(*dedtypes)[i];
             if (at && at->ty == Ttypeof)     // expression vs expression
             {
-                /* Calculate common type of passed expressions.
-                 *
-                 *  auto foo(T)(T arg1, T arg2);
-                 *  foo(1, 2L);
-                 *      // 1: deduceType(oarg='1', tparam='T', ...)
-                 *      //      T <= TypeTypeof(1)
-                 *      // 2: deduceType(oarg='1', tparam='T', ...)
-                 *      //      T <= TypeTypeof(idexp ? 1 : 2L)
-                 */
-                static IdentifierExp *idexp = NULL; // dummy condition
-                if (!idexp)
-                {
-                    idexp = new IdentifierExp(Loc(), Id::empty);
-                    idexp->type = Type::tbool;
-                }
-                CondExp *condexp = new CondExp(e->loc, idexp, ((TypeTypeof *)at)->exp, e);
-                unsigned olderrors = global.startGagging();
-                Expression *ec = condexp->semantic(sc);
-                if (global.endGagging(olderrors))
-                {
-                    result = MATCHnomatch;
+                e = commonType(((TypeTypeof *)at)->exp, e);
+                if (!e)
                     return true;
-                }
-                if (ec == condexp)
-                    e = condexp;
             }
             Type *t = e->type;
 
@@ -4399,6 +4377,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             }
             else if (at->ty == Ttypeof)
             {
+                ((TypeTypeof *)at)->exp = e;
                 ((TypeTypeof *)at)->idents[0] = tt;
             }
             else                            // expression vs type
@@ -4419,6 +4398,31 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 result = e->implicitConvTo(at);
             }
             return true;
+        }
+
+        Expression *commonType(Expression *e1, Expression *e2)
+        {
+            /* Calculate common type of passed expressions.
+             *
+             *  auto foo(T)(T arg1, T arg2);
+             *  foo(1, 2L);
+             *      // 1: deduceType(oarg='1', tparam='T', ...)
+             *      //      T <= TypeTypeof(1)
+             *      // 2: deduceType(oarg='1', tparam='T', ...)
+             *      //      T <= TypeTypeof(idexp ? 1 : 2L)
+             */
+            static IdentifierExp *idexp = NULL; // dummy condition
+            if (!idexp)
+            {
+                idexp = new IdentifierExp(Loc(), Id::empty);
+                idexp->type = Type::tbool;
+            }
+            CondExp *condexp = new CondExp(e1->loc, idexp, e1, e2);
+            unsigned olderrors = global.startGagging();
+            Expression *ec = condexp->semantic(sc);
+            if (global.endGagging(olderrors) || ec != condexp)
+                return NULL;
+            return condexp;
         }
 
         void visit(Expression *e)
@@ -4447,31 +4451,12 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             Type *at = (Type *)(*dedtypes)[i];
             if (at && at->ty == Ttypeof && !(wm && *wm))     // expression vs expression
             {
-                /* Calculate common type of passed expressions.
-                 *
-                 *  auto foo(T)(T arg1, T arg2);
-                 *  foo(1, 2L);
-                 *      // 1: deduceType(oarg='1', tparam='T', ...)
-                 *      //      T <= TypeTypeof(1)
-                 *      // 2: deduceType(oarg='1', tparam='T', ...)
-                 *      //      T <= TypeTypeof(idexp ? 1 : 2L)
-                 */
-                static IdentifierExp *idexp = NULL; // dummy condition
-                if (!idexp)
-                {
-                    idexp = new IdentifierExp(Loc(), Id::empty);
-                    idexp->type = Type::tbool;
-                }
-                CondExp *condexp = new CondExp(e->loc, idexp, ((TypeTypeof *)at)->exp, e);
-                unsigned olderrors = global.startGagging();
-                Expression *ec = condexp->semantic(sc);
-                if (global.endGagging(olderrors))
+                e = commonType(((TypeTypeof *)at)->exp, e);
+                if (!e)
                 {
                     result = MATCHnomatch;
                     return;
                 }
-                if (ec == condexp)
-                    e = condexp;
             }
             t = e->type;
 
