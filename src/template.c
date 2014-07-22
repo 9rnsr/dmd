@@ -3309,6 +3309,17 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             if (t == tparam)
                 goto Lexact;
 
+#if 0
+void rationalPoly(T)(T x, const(T)[] y, const(T)[] z) {}
+
+void main()
+{
+    real x;
+    immutable(real[7]) y;
+    immutable(real[8]) z;
+    rationalPoly(x, y, z);
+}
+#endif
             if (tparam->ty == Tident)
             {
                 // Determine which parameter tparam is
@@ -3419,6 +3430,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 else if (at && at->ty == Ttypeof)    // type vs expression
                 {
                     result = ((TypeTypeof *)at)->exp->implicitConvTo(t);
+printf("L%d at = %s, t = %s, result = %d\n", __LINE__, at->toChars(), t->toChars(), result);
                     if (result > MATCHnomatch)
                         (*dedtypes)[i] = t;
                     return;
@@ -3453,6 +3465,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 }
 
                 MATCH m = deduceTypeHelper(t, &tt, tparam);
+printf("L%d t = %s, m = %d\n", __LINE__, t->toChars(), m);
                 if (m)
                 {
                     if (!at)
@@ -3463,6 +3476,17 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                         else
                             goto Lconst;
                     }
+                    if (at->ty == Ttypeof)
+                    {
+                        //at = (Type *)((TypeTypeof *)at)->idents[0];
+
+                        result = ((TypeTypeof *)at)->exp->implicitConvTo(t);
+    printf("L%d at = %s, t = %s, result = %d\n", __LINE__, at->toChars(), t->toChars(), result);
+                        if (result > MATCHnomatch)
+                            (*dedtypes)[i] = t;
+                        return;
+                    }
+//printf("L%d tt = %s, at = %s\n", __LINE__, tt->toChars(), at->toChars());
 
                     if (tt->equals(at))
                     {
@@ -4353,6 +4377,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             }
             else if (at && at->ty == Ttypeof)    // expression vs expression
             {
+printf("L%d\n", __LINE__);
                 /* Calculate common type of passed expressions.
                  *
                  *  auto foo(T)(T arg1, T arg2);
@@ -4384,6 +4409,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             }
             else
             {
+printf("L%d\n", __LINE__);
                 result = deduceTypeHelper(e->type, &tt, tparam);
             }
             if (result <= MATCHnomatch)
@@ -4401,6 +4427,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 at = new TypeTypeof(e->loc, e);
                 ((TypeTypeof *)at)->idents.push(tt);
                 (*dedtypes)[i] = at;
+printf("L%d\n", __LINE__);
             }
             else if (at->ty == Ttypeof)
                 tt = (Type *)((TypeTypeof *)at)->idents[0];
@@ -4410,7 +4437,9 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             tt = tt->addMod(tparam->mod);
             if (wm && *wm)
                 tt = tt->substWildTo(*wm);
+printf("L%d e = %s\n", __LINE__, e->toChars());
             result = e->implicitConvTo(tt);
+printf("L%d\n", __LINE__);
         }
 
         void visit(StringExp *e)
