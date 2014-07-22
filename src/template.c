@@ -1823,8 +1823,11 @@ Lmatch:
     {
         Type *at = isType((*dedtypes)[i]);
         if (at && at->ty == Ttypeof)
+        {
           //(*dedtypes)[i] = ((TypeTypeof *)at)->exp->type;    // 'unbox'
             (*dedtypes)[i] = ((TypeTypeof *)at)->idents[0];    // 'unbox'
+            printf("[%d] unbox => %s\n", i, (*dedtypes)[i]->toChars());
+        }
     }
     for (size_t i = ntargs; i < dedargs->dim; i++)
     {
@@ -4388,8 +4391,45 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             {
             }
 #endif
-            if (Type *at = isType((*dedtypes)[i]))
+
+            Type *t = e->type;
+            Type *tt;
+            if (unsigned char wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
             {
+                *wm |= wx;
+                result = MATCHconst;
+            }
+            else
+            {
+                result = deduceTypeHelper(t, &tt, tparam);
+            }
+            if (result <= MATCHnomatch)
+                return;
+            printf("\ttt = %s\n", tt->toChars());
+
+            if (at && at->ty == Ttypeof)
+            {
+                at = (Type *)((TypeTypeof *)at)->idents[0];
+            }
+
+            if (!at)
+            {
+                //e->type->accept(this);
+                //if (result > MATCHnomatch)
+                //{
+                    // save expression always
+                    at = new TypeTypeof(e->loc, e);
+                    ((TypeTypeof *)at)->idents.push(tt);
+                    (*dedtypes)[i] = at;
+                //}
+                return;
+            }
+            else
+            {
+#if 0
+                //e->type->accept(this);
+                tt->accept(this);
+#else
                 printf("\twm = x%x\n", wm ? *wm : -1);
                 at = at->addMod(tparam->mod);
                 printf("\t1> at = %s\n", at->toChars());
@@ -4399,18 +4439,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
 
                 if (e->type->implicitConvTo(at))
                     result = MATCHconvert;
-            }
-            else
-            {
-                e->type->accept(this);
-                if (result > MATCHnomatch)
-                {
-                    // save expression always
-                    Type *at = new TypeTypeof(e->loc, e);
-                    ((TypeTypeof *)at)->idents.push(e->type);
-                    (*dedtypes)[i] = at;
-                }
-                return;
+#endif
             }
         }
 
