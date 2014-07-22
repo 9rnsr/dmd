@@ -4407,10 +4407,39 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 return;
             printf("\ttt = %s\n", tt->toChars());
 
-            if (at && at->ty == Ttypeof)
+            if (at && at->ty == Ttypeof)     // expression vs expression
             {
-                at = (Type *)((TypeTypeof *)at)->idents[0];
+                //at = (Type *)((TypeTypeof *)at)->idents[0];
+
+                /* Calculate common type of passed expressions.
+                 *
+                 *  auto foo(T)(T arg1, T arg2);
+                 *  foo(1, 2L);
+                 *      // 1: deduceType(oarg='1', tparam='T', ...)
+                 *      //      T <= TypeTypeof(1)
+                 *      // 2: deduceType(oarg='1', tparam='T', ...)
+                 *      //      T <= TypeTypeof(idexp ? 1 : 2L)
+                 */
+                static IdentifierExp *idexp = NULL; // dummy condition
+                if (!idexp)
+                {
+                    idexp = new IdentifierExp(Loc(), Id::empty);
+                    idexp->type = Type::tbool;
+                }
+                CondExp *condexp = new CondExp(e->loc, idexp, ((TypeTypeof *)at)->exp, e);
+                unsigned olderrors = global.startGagging();
+                Expression *ec = condexp->semantic(sc);
+                if (global.endGagging(olderrors))
+                {
+                    result = MATCHnomatch;
+                    return;
+                }
+                if (ec == condexp)
+                    e = condexp;
+
+                printf("==> e->type = %s\n", e->type->toChars());
             }
+            /*Type **/t = e->type;
 
             if (!at)
             {
@@ -4423,6 +4452,10 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     (*dedtypes)[i] = at;
                 //}
                 return;
+            }
+            else if (at->ty == Ttypeof)
+            {
+                ((TypeTypeof *)at)->idents[0] = t;
             }
             else
             {
