@@ -4359,75 +4359,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             return condexp;
         }
 
-        bool deduceExpType(Expression *e)
-        {
-            size_t i = templateParameterLookup(tparam, parameters);
-            if (i == IDX_NOTFOUND || ((TypeIdentifier *)tparam)->idents.dim > 0)
-                return false;
-
-            Type *at = (Type *)(*dedtypes)[i];
-            Type *t = e->type;
-            Type *tt;
-            if (unsigned char wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
-            {
-                *wm |= wx;
-                result = MATCHconst;
-            }
-            else
-            {
-                if (at && at->ty == Ttypeof)    // expression vs expression
-                {
-                    e = commonType(((TypeTypeof *)at)->exp, e);
-                    if (!e)
-                        return true;
-                    t = e->type;
-                }
-                result = deduceTypeHelper(t, &tt, tparam);
-            }
-            if (result <= MATCHnomatch)
-                return true;
-
-            if (!at)                        // expression vs ()
-            {
-                /* Use TypeTypeof as the 'box' to save polymopthism.
-                 *
-                 *  auto foo(T)(T arg);
-                 *  foo(1);
-                 *      // 1: deduceType(oarg='1', tparam='T', ...)
-                 *      //      T <= TypeTypeof(1)
-                 */
-                at = new TypeTypeof(e->loc, e);
-                ((TypeTypeof *)at)->idents.push(tt);
-                (*dedtypes)[i] = at;
-            }
-            //else if (at->ty == Ttypeof)
-            else if (at->ty == Ttypeof && !(wm && *wm)) // necessary?
-            {
-                ((TypeTypeof *)at)->exp = e;
-                ((TypeTypeof *)at)->idents[0] = tt;
-            }
-            else                            // expression vs type
-            {
-                at = at->addMod(tparam->mod);
-                if (wm)
-                    at = at->substWildTo(*wm);
-
-                /* Check the expression is implicitly convertible to the already deduced type.
-                 *
-                 *  auto foo(T)(T arg1, T arg2);
-                 *  short v; foo(v, 1);
-                 *      // 1: deduceType(oarg='v', tparam='T', ...)
-                 *      //      T <= short
-                 *      // 2: deduceType(oarg='1', tparam='T', ...)
-                 *      //      T <= short  (because '1' is implicitly convertible to short)
-                 */
-                //result = e->implicitConvTo(at);
-                if (e->type->implicitConvTo(at))
-                    result = MATCHconvert;
-            }
-            return true;
-        }
-
         void visit(Expression *e)
         {
             size_t i = templateParameterLookup(tparam, parameters);
@@ -4494,22 +4425,16 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
 
         void visit(IntegerExp *e)
         {
-            if (deduceExpType(e))
-                return;
             visit((Expression *)e);
         }
 
         void visit(RealExp *e)
         {
-            if (deduceExpType(e))
-                return;
             visit((Expression *)e);
         }
 
         void visit(NullExp *e)
         {
-            if (deduceExpType(e))
-                return;
             visit((Expression *)e);
         }
 
@@ -4526,8 +4451,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 return;
             }
 
-            if (deduceExpType(e))
-                return;
             visit((Expression *)e);
         }
 
@@ -4559,8 +4482,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 return;
             }
 
-            if (deduceExpType(e))   // Bugzilla 13026
-                return;
             visit((Expression *)e);
         }
 
