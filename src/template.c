@@ -3366,14 +3366,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 Type *tt;
                 Type *at = (Type *)(*dedtypes)[i];
 
-                //printf("\t\tL%d tparam = %s, dedtypes[%d] = %s\n", __LINE__, tparam->toChars(), i, at ? at->toChars() : NULL);
-                if (at && at->ty == Ttypeof)    // type vs expression
-                {
-                    result = ((TypeTypeof *)at)->exp->implicitConvTo(t);
-                    if (result > MATCHnomatch)
-                        (*dedtypes)[i] = t;
-                    return;
-                }
+                printf("\t\tL%d tparam = %s, dedtypes[%d] = %s\n", __LINE__, tparam->toChars(), i, at ? at->toChars() : NULL);
 
                 if (unsigned char wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
                 {
@@ -3382,6 +3375,13 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     {
                         (*dedtypes)[i] = tt;
                         //printf("\t\ttparam = %s, dedtypes[%d] = %s, wx = x%x\n", tparam->toChars(), i, tt->toChars(), wx);
+                        *wm |= wx;
+                        goto Lconst;
+                    }
+                    else if (at && at->ty == Ttypeof)    // type vs expression
+                    {
+                        (*dedtypes)[i] = tt;
+                        printf("\t\ttparam = %s, dedtypes[%d] = %s, wx = x%x\n", tparam->toChars(), i, tt->toChars(), wx);
                         *wm |= wx;
                         goto Lconst;
                     }
@@ -3403,6 +3403,13 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                         goto Lconst;
                     }
                     goto Lnomatch;
+                }
+                else if (at && at->ty == Ttypeof)    // type vs expression
+                {
+                    result = ((TypeTypeof *)at)->exp->implicitConvTo(t);
+                    if (result > MATCHnomatch)
+                        (*dedtypes)[i] = t;
+                    return;
                 }
 
                 MATCH m = deduceTypeHelper(t, &tt, tparam);
@@ -4350,7 +4357,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 e->type->accept(this);
                 return;
             }
-
+#if 0
             if (Type *at = isType((*dedtypes)[i]))
             {
                 if (e->type->implicitConvTo(at))
@@ -4365,13 +4372,8 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     printf("-> (*dedtypes)[i] = %s\n", (*dedtypes)[i]->toChars());
                 return;
             }
-        }
-
-        bool deduceExpType(Expression *e)
-        {
-            size_t i = templateParameterLookup(tparam, parameters);
-            if (i == IDX_NOTFOUND)
-                return false;
+#endif
+            // expression vs Tident
 
             Type *t = topQual(e);
 
@@ -4387,7 +4389,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 result = deduceTypeHelper(t, &tt, tparam);
             }
             if (result <= MATCHnomatch)
-                return true;
+                return;
 
             Type *at = (Type *)(*dedtypes)[i];
             if (!at)                        // expression vs ()
@@ -4401,8 +4403,14 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                  */
                 if (t != tt)
                 {
+                    //if (tparam->mod & MODwild)
+                    //{
+                    //}
+                    //else
+                    {
                     e = e->copy();
                     e->type = tt;
+                    }
                 }
                 (*dedtypes)[i] = new TypeTypeof(e->loc, e);
             }
@@ -4429,7 +4437,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 if (global.endGagging(olderrors))
                 {
                     result = MATCHnomatch;
-                    return true;
+                    return;
                 }
                 if (ec == condexp)
                 {
@@ -4453,35 +4461,39 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                  */
                 result = e->implicitConvTo(at);
             }
-            return true;
+            //return true;
         }
+
+        //bool deduceExpType(Expression *e)
+        //{
+        //    size_t i = templateParameterLookup(tparam, parameters);
+        //    if (i == IDX_NOTFOUND)
+        //        return false;
+        //}
 
         void visit(IntegerExp *e)
         {
-            if (deduceExpType(e))
-                return;
+            //if (deduceExpType(e))
+            //    return;
             visit((Expression *)e);
         }
 
         void visit(RealExp *e)
         {
-            if (deduceExpType(e))
-                return;
+            //if (deduceExpType(e))
+            //    return;
             visit((Expression *)e);
         }
 
         void visit(NullExp *e)
         {
-            if (deduceExpType(e))
-                return;
+            //if (deduceExpType(e))
+            //    return;
             visit((Expression *)e);
         }
 
         void visit(StringExp *e)
         {
-            if (deduceExpType(e))
-                return;
-
             Type *taai;
             if (e->type->ty == Tarray &&
                 (tparam->ty == Tsarray ||
@@ -4492,6 +4504,9 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 e->type->nextOf()->sarrayOf(e->len)->accept(this);
                 return;
             }
+
+            //if (deduceExpType(e))
+            //    return;
             visit((Expression *)e);
         }
 
@@ -4523,9 +4538,8 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 return;
             }
 
-            if (deduceExpType(e))   // Bugzilla 13026
-                return;
-
+            //if (deduceExpType(e))   // Bugzilla 13026
+            //    return;
             visit((Expression *)e);
         }
 
