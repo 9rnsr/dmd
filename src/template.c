@@ -1571,10 +1571,10 @@ Lretry:
                 goto Lvarargs;
 
             RootObject *oarg = farg;
-            if ((fparam->storageClass & (STCref | STCout)) ||
-                (fparam->storageClass & STCauto) && farg->isLvalue())
+            if (fparam->storageClass & (STCref | STCout))
             {
-                oarg = farg->type;
+                if (!(fparam->storageClass & STCauto) || farg->isLvalue())
+                    oarg = farg->type;
             }
             unsigned wm = 0;
             MATCH m = deduceType(oarg, paramscope, prmtype, parameters, dedtypes, &wm, inferStart);
@@ -4367,6 +4367,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
 
         void visit(Expression *e)
         {
+            //printf("Expression::deduceType(e = %s, tparam = %s)\n", e->toChars(), tparam->toChars());
             size_t i = templateParameterLookup(tparam, parameters);
             if (i == IDX_NOTFOUND)
             {
@@ -4407,6 +4408,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             if (result <= MATCHnomatch)
                 return;
 
+            //printf("L%d t = %s, tt = %s\n", __LINE__, t->toChars(), tt->toChars());
             Type *at = (Type *)(*dedtypes)[i];
             if (!at)                        // expression vs ()
             {
@@ -4417,7 +4419,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                  *      // 1: deduceType(oarg='1', tparam='T', ...)
                  *      //      T <= TypeTypeof(1)
                  */
-                if (t != tt)
+                //if (t != tt)
                 {
                     //if (tparam->mod & MODwild)
                     //{
