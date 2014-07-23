@@ -3309,17 +3309,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             if (t == tparam)
                 goto Lexact;
 
-#if 0
-void rationalPoly(T)(T x, const(T)[] y, const(T)[] z) {}
-
-void main()
-{
-    real x;
-    immutable(real[7]) y;
-    immutable(real[8]) z;
-    rationalPoly(x, y, z);
-}
-#endif
             if (tparam->ty == Tident)
             {
                 // Determine which parameter tparam is
@@ -3411,10 +3400,11 @@ void main()
                 // Found the corresponding parameter tp
                 if (!tp->isTemplateTypeParameter())
                     goto Lnomatch;
-                Type *tt;
-                Type *at = (Type *)(*dedtypes)[i];
 
-                if (wm && *wm == MODmutable)
+                bool inTransitivePart = (wm && *wm == MODmutable);
+                Type *at = (Type *)(*dedtypes)[i];
+#if 0
+                if (inTransitivePart)
                 {
                     // this is in the transitive part of inout parameter type
                     if (at && at->ty == Ttypeof)
@@ -3435,16 +3425,29 @@ printf("L%d at = %s, t = %s, result = %d\n", __LINE__, at->toChars(), t->toChars
                         (*dedtypes)[i] = t;
                     return;
                 }
-
+#endif
+                printf("L%d at = %s, t = %s, tparam = %s\n", __LINE__, at ? at->toChars() : NULL, t->toChars(), tparam->toChars());
+                Type *tt;
                 if (unsigned char wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
                 {
+                    if (inTransitivePart)
+                    {
+                        if (at && at->ty == Ttypeof)
+                        {
+                            // override previous exp vs Tident match result.
+                            // prefer this type vs Tident match rather than previous expr vs Tident match
+                            //printf("-Bug13180 tparam = %s, *wm = x%x\n", tparam->toChars(), *wm);
+                        }
+                        else
+                            goto Lx;
+                    }
+
                     if (!at || at->ty == Ttypeof)
                     {
                         (*dedtypes)[i] = tt;
                         *wm |= wx;
                         goto Lconst;
                     }
-
                     if (tt->equals(at))
                     {
                         goto Lconst;
@@ -3461,13 +3464,19 @@ printf("L%d at = %s, t = %s, result = %d\n", __LINE__, at->toChars(), t->toChars
                         *wm |= MODconst;
                         goto Lconst;
                     }
-                    goto Lnomatch;
                 }
-
-                MATCH m = deduceTypeHelper(t, &tt, tparam);
-printf("L%d t = %s, m = %d\n", __LINE__, t->toChars(), m);
-                if (m)
+                else
                 {
+                Lx:
+                    if (inTransitivePart)
+                    {
+                        tparam = tparam->substWildTo(MODmutable);   // tparam->mutableOf();
+                    }
+                    MATCH m = deduceTypeHelper(t, &tt, tparam);
+                    printf("L%d t = %s, tparam = %s, m = %d\n", __LINE__, t->toChars(), tparam->toChars(), m);
+                    if (m <= MATCHnomatch)
+                        goto Lnomatch;
+
                     if (!at)
                     {
                         (*dedtypes)[i] = tt;
@@ -3479,14 +3488,15 @@ printf("L%d t = %s, m = %d\n", __LINE__, t->toChars(), m);
                     if (at->ty == Ttypeof)
                     {
                         //at = (Type *)((TypeTypeof *)at)->idents[0];
+                        Type *tx = tt->addMod(tparam->mod);
 
-                        result = ((TypeTypeof *)at)->exp->implicitConvTo(t);
-    printf("L%d at = %s, t = %s, result = %d\n", __LINE__, at->toChars(), t->toChars(), result);
+                        result = ((TypeTypeof *)at)->exp->implicitConvTo(tx);
+                        //printf("L%d at = %s, t = %s, tt = %s, tx = %s, result = %d\n", __LINE__, at->toChars(), t->toChars(), tt->toChars(), tx->toChars(), result);
                         if (result > MATCHnomatch)
-                            (*dedtypes)[i] = t;
+                            (*dedtypes)[i] = tt;
                         return;
                     }
-//printf("L%d tt = %s, at = %s\n", __LINE__, tt->toChars(), at->toChars());
+                    //printf("L%d tt = %s, at = %s\n", __LINE__, tt->toChars(), at->toChars());
 
                     if (tt->equals(at))
                     {
@@ -4409,7 +4419,7 @@ printf("L%d\n", __LINE__);
             }
             else
             {
-printf("L%d\n", __LINE__);
+//printf("L%d\n", __LINE__);
                 result = deduceTypeHelper(e->type, &tt, tparam);
             }
             if (result <= MATCHnomatch)
@@ -4427,7 +4437,7 @@ printf("L%d\n", __LINE__);
                 at = new TypeTypeof(e->loc, e);
                 ((TypeTypeof *)at)->idents.push(tt);
                 (*dedtypes)[i] = at;
-printf("L%d\n", __LINE__);
+//printf("L%d\n", __LINE__);
             }
             else if (at->ty == Ttypeof)
                 tt = (Type *)((TypeTypeof *)at)->idents[0];
@@ -4437,9 +4447,9 @@ printf("L%d\n", __LINE__);
             tt = tt->addMod(tparam->mod);
             if (wm && *wm)
                 tt = tt->substWildTo(*wm);
-printf("L%d e = %s\n", __LINE__, e->toChars());
+//printf("L%d e = %s\n", __LINE__, e->toChars());
             result = e->implicitConvTo(tt);
-printf("L%d\n", __LINE__);
+//printf("L%d\n", __LINE__);
         }
 
         void visit(StringExp *e)
