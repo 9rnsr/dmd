@@ -3401,32 +3401,9 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 if (!tp->isTemplateTypeParameter())
                     goto Lnomatch;
 
+                //printf("L%d at = %s, t = %s, tparam = %s\n", __LINE__, at ? at->toChars() : NULL, t->toChars(), tparam->toChars());
                 bool inTransitivePart = (wm && *wm == MODmutable);
                 Type *at = (Type *)(*dedtypes)[i];
-#if 0
-                if (inTransitivePart)
-                {
-                    // this is in the transitive part of inout parameter type
-                    if (at && at->ty == Ttypeof)
-                    {
-                        // prefer this type vs Tident match rather than previous expr vs Tident match
-                        //printf("-Bug13180 tparam = %s, *wm = x%x\n", tparam->toChars(), *wm);
-                    }
-                    else
-                    {
-                        tparam = tparam->substWildTo(MODmutable);
-                    }
-                }
-                else if (at && at->ty == Ttypeof)    // type vs expression
-                {
-                    result = ((TypeTypeof *)at)->exp->implicitConvTo(t);
-printf("L%d at = %s, t = %s, result = %d\n", __LINE__, at->toChars(), t->toChars(), result);
-                    if (result > MATCHnomatch)
-                        (*dedtypes)[i] = t;
-                    return;
-                }
-#endif
-                printf("L%d at = %s, t = %s, tparam = %s\n", __LINE__, at ? at->toChars() : NULL, t->toChars(), tparam->toChars());
                 Type *tt;
                 if (unsigned char wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
                 {
@@ -3473,7 +3450,7 @@ printf("L%d at = %s, t = %s, result = %d\n", __LINE__, at->toChars(), t->toChars
                         tparam = tparam->substWildTo(MODmutable);   // tparam->mutableOf();
                     }
                     MATCH m = deduceTypeHelper(t, &tt, tparam);
-                    printf("L%d t = %s, tparam = %s, m = %d\n", __LINE__, t->toChars(), tparam->toChars(), m);
+                    //printf("L%d t = %s, tparam = %s, m = %d\n", __LINE__, t->toChars(), tparam->toChars(), m);
                     if (m <= MATCHnomatch)
                         goto Lnomatch;
 
@@ -4387,7 +4364,7 @@ printf("L%d at = %s, t = %s, result = %d\n", __LINE__, at->toChars(), t->toChars
             }
             else if (at && at->ty == Ttypeof)    // expression vs expression
             {
-printf("L%d\n", __LINE__);
+//printf("L%d\n", __LINE__);
                 /* Calculate common type of passed expressions.
                  *
                  *  auto foo(T)(T arg1, T arg2);
