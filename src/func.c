@@ -2321,7 +2321,7 @@ bool FuncDeclaration::equals(RootObject *o)
 
     Dsymbol *s = isDsymbol(o);
     if (!s)
-        return false
+        return false;
 
     FuncDeclaration *fd1 = this;
     FuncDeclaration *fd2 = s->isFuncDeclaration();

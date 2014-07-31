@@ -40,7 +40,7 @@
 #define IDX_NOTFOUND (0x12345678)               // index is not found
 
 size_t templateParameterLookup(Type *tparam, TemplateParameters *parameters);
-int arrayObjectMatch(Objects *oa1, Objects *oa2);
+bool arrayObjectMatch(Objects *oa1, Objects *oa2);
 hash_t arrayObjectHash(Objects *oa1);
 unsigned char deduceWildHelper(Type *t, Type **at, Type *tparam);
 MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam);
@@ -266,7 +266,7 @@ bool definitelyValueParameter(Expression *e)
  * Else, return 0.
  */
 
-int match(RootObject *o1, RootObject *o2)
+bool match(RootObject *o1, RootObject *o2)
 {
     Type *t1 = isType(o1);
     Type *t2 = isType(o2);
@@ -332,33 +332,31 @@ int match(RootObject *o1, RootObject *o2)
             goto Lnomatch;
     }
     //printf("match\n");
-    return 1;   // match
+    return true;
 
 Lnomatch:
     //printf("nomatch\n");
-    return 0;   // nomatch;
+    return false;
 }
 
 
 /************************************
  * Match an array of them.
  */
-int arrayObjectMatch(Objects *oa1, Objects *oa2)
+bool arrayObjectMatch(Objects *oa1, Objects *oa2)
 {
     if (oa1 == oa2)
-        return 1;
+        return true;
     if (oa1->dim != oa2->dim)
-        return 0;
+        return false;
     for (size_t j = 0; j < oa1->dim; j++)
     {
         RootObject *o1 = (*oa1)[j];
         RootObject *o2 = (*oa2)[j];
         if (!match(o1, o2))
-        {
-            return 0;
-        }
+            return false;
     }
-    return 1;
+    return true;
 }
 
 
