@@ -411,11 +411,7 @@ void ObjectToCBuffer(OutBuffer *buf, HdrGenState *hgs, RootObject *oarg)
     Expression *e = isExpression(oarg);
     Dsymbol *s = isDsymbol(oarg);
     Tuple *v = isTuple(oarg);
-    /* The logic of this should match what genIdent() does. The _dynamic_cast()
-     * function relies on all the pretty strings to be unique for different classes
-     * (see Bugzilla 7375).
-     * Perhaps it would be better to demangle what genIdent() does.
-     */
+
     if (t)
     {
         //printf("\tt: %s ty = %d\n", t->toChars(), t->ty);
@@ -423,8 +419,6 @@ void ObjectToCBuffer(OutBuffer *buf, HdrGenState *hgs, RootObject *oarg)
     }
     else if (e)
     {
-        if (e->op == TOKvar)
-            e = e->optimize(WANTvalue);         // added to fix Bugzilla 7375
         e->toCBuffer(buf, hgs);
     }
     else if (s)
