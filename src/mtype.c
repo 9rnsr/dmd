@@ -267,7 +267,8 @@ void Type::init()
     mangleChar[Tnull] = 'n';    // same as TypeNone
 
     for (size_t i = 0; i < TMAX; i++)
-    {   if (!mangleChar[i])
+    {
+        if (!mangleChar[i])
             fprintf(stderr, "ty = %llu\n", (ulonglong)i);
         assert(mangleChar[i]);
     }
@@ -283,7 +284,8 @@ void Type::init()
           Tchar, Twchar, Tdchar, Terror };
 
     for (size_t i = 0; basetab[i] != Terror; i++)
-    {   Type *t = new TypeBasic(basetab[i]);
+    {
+        Type *t = new TypeBasic(basetab[i]);
         t = t->merge();
         basic[basetab[i]] = t;
     }
@@ -1056,50 +1058,21 @@ StorageClass ModToStc(unsigned mod)
  */
 
 Type *Type::castMod(MOD mod)
-{   Type *t;
-
+{
     switch (mod)
     {
-        case 0:
-            t = unSharedOf()->mutableOf();
-            break;
-
-        case MODconst:
-            t = unSharedOf()->constOf();
-            break;
-
-        case MODwild:
-            t = unSharedOf()->wildOf();
-            break;
-
-        case MODwildconst:
-            t = unSharedOf()->wildConstOf();
-            break;
-
-        case MODshared:
-            t = mutableOf()->sharedOf();
-            break;
-
-        case MODshared | MODconst:
-            t = sharedConstOf();
-            break;
-
-        case MODshared | MODwild:
-            t = sharedWildOf();
-            break;
-
-        case MODshared | MODwildconst:
-            t = sharedWildConstOf();
-            break;
-
-        case MODimmutable:
-            t = immutableOf();
-            break;
-
-        default:
-            assert(0);
+        case 0:                         return unSharedOf()->mutableOf();
+        case MODconst:                  return unSharedOf()->constOf();
+        case MODwild:                   return unSharedOf()->wildOf();
+        case MODwildconst:              return unSharedOf()->wildConstOf();
+        case MODshared:                 return mutableOf()->sharedOf();
+        case MODshared | MODconst:      return sharedConstOf();
+        case MODshared | MODwild:       return sharedWildOf();
+        case MODshared | MODwildconst:  return sharedWildConstOf();
+        case MODimmutable:              return immutableOf();
+        default:                        assert(0);
     }
-    return t;
+    return NULL;    // never reached
 }
 
 /************************************
@@ -1477,34 +1450,17 @@ MOD MODmerge(MOD mod1, MOD mod2)
 void MODtoDecoBuffer(OutBuffer *buf, MOD mod)
 {
     switch (mod)
-    {   case 0:
-            break;
-        case MODconst:
-            buf->writeByte('x');
-            break;
-        case MODimmutable:
-            buf->writeByte('y');
-            break;
-        case MODshared:
-            buf->writeByte('O');
-            break;
-        case MODshared | MODconst:
-            buf->writestring("Ox");
-            break;
-        case MODwild:
-            buf->writestring("Ng");
-            break;
-        case MODwildconst:
-            buf->writestring("Ngx");
-            break;
-        case MODshared | MODwild:
-            buf->writestring("ONg");
-            break;
-        case MODshared | MODwildconst:
-            buf->writestring("ONgx");
-            break;
-        default:
-            assert(0);
+    {
+        case 0:                                                     break;
+        case MODconst:                  buf->writeByte('x');        break;
+        case MODimmutable:              buf->writeByte('y');        break;
+        case MODshared:                 buf->writeByte('O');        break;
+        case MODshared | MODconst:      buf->writestring("Ox");     break;
+        case MODwild:                   buf->writestring("Ng");     break;
+        case MODwildconst:              buf->writestring("Ngx");    break;
+        case MODshared | MODwild:       buf->writestring("ONg");    break;
+        case MODshared | MODwildconst:  buf->writestring("ONgx");   break;
+        default:                        assert(0);
     }
 }
 
@@ -1761,7 +1717,8 @@ Type *Type::merge()
         toDecoBuffer(&buf);
         StringValue *sv = stringtable.update((char *)buf.data, buf.offset);
         if (sv->ptrvalue)
-        {   t = (Type *) sv->ptrvalue;
+        {
+            t = (Type *) sv->ptrvalue;
 #ifdef DEBUG
             if (!t->deco)
                 printf("t = %s\n", t->toChars());
@@ -1793,7 +1750,8 @@ Type *Type::merge2()
 
     StringValue *sv = stringtable.lookup((char *)t->deco, strlen(t->deco));
     if (sv && sv->ptrvalue)
-    {   t = (Type *) sv->ptrvalue;
+    {
+        t = (Type *) sv->ptrvalue;
         assert(t->deco);
     }
     else
@@ -2168,7 +2126,8 @@ Type *Type::toHeadMutable()
  * If flag == 1, don't report "not a property" error and just return NULL.
  */
 Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
-{   Expression *e;
+{
+    Expression *e;
 
 #if LOGDOTEXP
     printf("Type::getProperty(type = '%s', ident = '%s')\n", toChars(), ident->toChars());
@@ -2214,7 +2173,8 @@ Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
         }
     }
     else if (ident == Id::stringof)
-    {   char *s = toChars();
+    {
+        char *s = toChars();
         e = new StringExp(loc, s, strlen(s), 'c');
         Scope sc;
         e = e->semantic(&sc);
@@ -2248,7 +2208,8 @@ Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
  * If flag == 1, don't report "not a property" error and just return NULL.
  */
 Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
-{   VarDeclaration *v = NULL;
+{
+    VarDeclaration *v = NULL;
 
 #if LOGDOTEXP
     printf("Type::dotExp(e = '%s', ident = '%s')\n", e->toChars(), ident->toChars());
@@ -2300,7 +2261,8 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
         e = getTypeInfo(sc);
     }
     else if (ident == Id::stringof)
-    {   /* Bugzilla 3796: this should demangle e->type->deco rather than
+    {
+        /* Bugzilla 3796: this should demangle e->type->deco rather than
          * pretty-printing the type.
          */
         char *s = e->toChars();
@@ -2348,7 +2310,8 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
          */
         Dsymbol *fd = search_function(sym, Id::opDot);
         if (fd)
-        {   /* Rewrite e.ident as:
+        {
+            /* Rewrite e.ident as:
              *  e.opDot().ident
              */
             e = build_overload(e->loc, sc, e, NULL, fd);
@@ -2392,7 +2355,8 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
         /* See if we should forward to the alias this.
          */
         if (sym->aliasthis)
-        {   /* Rewrite e.ident as:
+        {
+            /* Rewrite e.ident as:
              *  e.aliasthis.ident
              */
             e = resolveAliasThis(sc, e);
@@ -2427,7 +2391,8 @@ Identifier *Type::getTypeInfoIdent(int internal)
     buf.reserve(32);
 
     if (internal)
-    {   buf.writeByte(mangleChar[ty]);
+    {
+        buf.writeByte(mangleChar[ty]);
         if (ty == Tarray)
             buf.writeByte(mangleChar[((TypeArray *)this)->next->ty]);
     }
@@ -2531,8 +2496,8 @@ Type *Type::baseElemOf()
  * fit into.
  */
 uinteger_t Type::sizemask()
-{   uinteger_t m;
-
+{
+    uinteger_t m;
     switch (toBasetype()->ty)
     {
         case Tbool:     m = 1;                          break;
@@ -2834,13 +2799,15 @@ MATCH TypeNext::constConv(Type *to)
 
     MATCH m;
     if (to->isConst())  // whole tail const conversion
-    {   // Recursive shared level check
+    {
+        // Recursive shared level check
         m = next->constConv(tn);
         if (m == MATCHexact)
             m = MATCHconst;
     }
     else
-    {   //printf("\tnext => %s, to->next => %s\n", next->toChars(), tn->toChars());
+    {
+        //printf("\tnext => %s, to->next => %s\n", next->toChars(), tn->toChars());
         m = next->equals(tn) ? MATCHconst : MATCHnomatch;
     }
     return m;
@@ -2890,7 +2857,8 @@ void TypeNext::transitive()
 
 TypeBasic::TypeBasic(TY ty)
         : Type(ty)
-{   const char *d;
+{
+    const char *d;
     unsigned flags;
 
     flags = 0;
@@ -3017,36 +2985,54 @@ char *TypeBasic::toChars()
 }
 
 d_uns64 TypeBasic::size(Loc loc)
-{   unsigned size;
+{
+    unsigned size;
 
     //printf("TypeBasic::size()\n");
     switch (ty)
     {
         case Tint8:
-        case Tuns8:     size = 1;       break;
+        case Tuns8:
+            size = 1;
+            break;
+
         case Tint16:
-        case Tuns16:    size = 2;       break;
+        case Tuns16:
+            size = 2;
+            break;
+
         case Tint32:
         case Tuns32:
         case Tfloat32:
         case Timaginary32:
-                        size = 4;       break;
+            size = 4;
+            break;
+
         case Tint64:
         case Tuns64:
         case Tfloat64:
         case Timaginary64:
-                        size = 8;       break;
+            size = 8;
+            break;
+
         case Tfloat80:
         case Timaginary80:
-                        size = Target::realsize; break;
+            size = Target::realsize;
+            break;
+
         case Tcomplex32:
-                        size = 8;               break;
+            size = 8;
+            break;
+
         case Tcomplex64:
         case Tint128:
         case Tuns128:
-                        size = 16;              break;
+            size = 16;
+            break;
+
         case Tcomplex80:
-                        size = Target::realsize * 2; break;
+            size = Target::realsize * 2;
+            break;
 
         case Tvoid:
             //size = Type::size();      // error message
@@ -3359,8 +3345,8 @@ Expression *TypeBasic::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         }
     }
     else if (ident == Id::im)
-    {   Type *t2;
-
+    {
+        Type *t2;
         switch (ty)
         {
             case Tcomplex32:    t = timaginary32;       t2 = tfloat32;  goto L3;
@@ -3428,7 +3414,8 @@ Expression *TypeBasic::defaultInit(Loc loc)
         case Tcomplex32:
         case Tcomplex64:
         case Tcomplex80:
-        {   // Can't use fvalue + I*fvalue (the im part becomes a quiet NaN).
+        {
+            // Can't use fvalue + I*fvalue (the im part becomes a quiet NaN).
             complex_t cvalue;
             ((real_t *)&cvalue)[0] = Port::snan;
             ((real_t *)&cvalue)[1] = Port::snan;
@@ -3542,7 +3529,8 @@ MATCH TypeBasic::implicitConvTo(Type *to)
 
         // If converting from integral to integral
         if (tob->flags & TFLAGSintegral)
-        {   d_uns64 sz = size(Loc());
+        {
+            d_uns64 sz = size(Loc());
             d_uns64 tosz = tob->size(Loc());
 
             /* Can't convert to smaller size
@@ -3617,18 +3605,21 @@ Type *TypeVector::semantic(Loc loc, Scope *sc)
         return terror;
     basetype = basetype->toBasetype()->mutableOf();
     if (basetype->ty != Tsarray)
-    {   error(loc, "T in __vector(T) must be a static array, not %s", basetype->toChars());
+    {
+        error(loc, "T in __vector(T) must be a static array, not %s", basetype->toChars());
         return terror;
     }
     TypeSArray *t = (TypeSArray *)basetype;
     d_uns64 sz = t->size(loc);
     if (sz != 16 && sz != 32)
-    {   error(loc, "base type of __vector must be a 16 or 32 byte static array, not %s", t->toChars());
+    {
+        error(loc, "base type of __vector must be a 16 or 32 byte static array, not %s", t->toChars());
         return terror;
     }
     TypeBasic *tb = t->nextOf()->isTypeBasic();
     if (!tb || !(tb->flags & TFLAGSvector))
-    {   error(loc, "base type of __vector must be a static array of an arithmetic type, not %s", t->toChars());
+    {
+        error(loc, "base type of __vector must be a static array of an arithmetic type, not %s", t->toChars());
         return terror;
     }
     return merge();
@@ -3770,11 +3761,11 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         }
     }
 
-    if (!n->isMutable())
-        if (ident == Id::sort || ident == Id::reverse)
-        {   error(e->loc, "can only %s a mutable array", ident->toChars());
-            goto Lerror;
-        }
+    if (!n->isMutable() && (ident == Id::sort || ident == Id::reverse))
+    {
+        error(e->loc, "can only %s a mutable array", ident->toChars());
+        goto Lerror;
+    }
 
     if (ident == Id::reverse && (n->ty == Tchar || n->ty == Twchar))
     {
@@ -3782,7 +3773,8 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         static FuncDeclaration *reverseFd[2] = { NULL, NULL };
 
         int i = n->ty == Twchar;
-        if (!reverseFd[i]) {
+        if (!reverseFd[i])
+        {
             Parameters *args = new Parameters;
             Type *next = n->ty == Twchar ? Type::twchar : Type::tchar;
             Type *arrty = next->arrayOf();
@@ -3803,7 +3795,8 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         static FuncDeclaration *sortFd[2] = { NULL, NULL };
 
         int i = n->ty == Twchar;
-        if (!sortFd[i]) {
+        if (!sortFd[i])
+        {
             Parameters *args = new Parameters;
             Type *next = n->ty == Twchar ? Type::twchar : Type::tchar;
             Type *arrty = next->arrayOf();
@@ -3828,7 +3821,8 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         assert(size);
 
         static FuncDeclaration *adReverse_fd = NULL;
-        if (!adReverse_fd) {
+        if (!adReverse_fd)
+        {
             Parameters* args = new Parameters;
             args->push(new Parameter(0, Type::tvoid->arrayOf(), NULL, NULL));
             args->push(new Parameter(0, Type::tsize_t, NULL, NULL));
@@ -3850,7 +3844,8 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         Expression *ec;
         Expressions *arguments;
 
-        if (!fd) {
+        if (!fd)
+        {
             Parameters* args = new Parameters;
             args->push(new Parameter(0, Type::tvoid->arrayOf(), NULL, NULL));
             args->push(new Parameter(0, Type::dtypeinfo->type, NULL, NULL));
@@ -3904,25 +3899,22 @@ Type *TypeSArray::syntaxCopy()
 }
 
 d_uns64 TypeSArray::size(Loc loc)
-{   dinteger_t sz;
-
+{
     if (!dim)
         return Type::size(loc);
-    sz = dim->toInteger();
 
-    {   dinteger_t n, n2;
-
-        n = next->size();
-        n2 = n * sz;
-        if (n && (n2 / n) != sz)
-            goto Loverflow;
-        sz = n2;
+    dinteger_t sz = dim->toInteger();
+    dinteger_t n = next->size();
+    dinteger_t n2 = n * sz;
+    if (n && (n2 / n) != sz)
+    {
+        error(loc, "index %lld overflow for static array", (long long)sz);
+        sz = SIZE_INVALID;
     }
-    return sz;
+    else
+        sz = n2;
 
-Loverflow:
-    error(loc, "index %lld overflow for static array", (long long)sz);
-    return SIZE_INVALID;
+    return sz;
 }
 
 unsigned TypeSArray::alignsize()
@@ -4070,19 +4062,22 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
     Dsymbol *s;
     next->resolve(loc, sc, &e, &t, &s);
     if (dim && s && s->isTupleDeclaration())
-    {   TupleDeclaration *sd = s->isTupleDeclaration();
+    {
+        TupleDeclaration *sd = s->isTupleDeclaration();
 
         dim = semanticLength(sc, sd, dim);
         dim = dim->ctfeInterpret();
         uinteger_t d = dim->toUInteger();
 
         if (d >= sd->objects->dim)
-        {   error(loc, "tuple index %llu exceeds %u", d, sd->objects->dim);
+        {
+            error(loc, "tuple index %llu exceeds %u", d, sd->objects->dim);
             return Type::terror;
         }
         RootObject *o = (*sd->objects)[(size_t)d];
         if (o->dyncast() != DYNCAST_TYPE)
-        {   error(loc, "%s is not a type", toChars());
+        {
+            error(loc, "%s is not a type", toChars());
             return Type::terror;
         }
         t = ((Type *)o)->addMod(this->mod);
@@ -4096,8 +4091,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
     Type *tbn = tn->toBasetype();
 
     if (dim)
-    {   dinteger_t n, n2;
-
+    {
         unsigned int errors = global.errors;
         dim = semanticLength(sc, tbn, dim);
         if (errors != global.errors)
@@ -4125,44 +4119,46 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
             goto Lerror;
 
         if (d1 != d2)
-            goto Loverflow;
+        {
+          Loverflow:
+            error(loc, "index %lld overflow for static array", d1);
+            goto Lerror;
+        }
 
         if (tbn->isintegral() ||
-                 tbn->isfloating() ||
-                 tbn->ty == Tpointer ||
-                 tbn->ty == Tarray ||
-                 tbn->ty == Tsarray ||
-                 tbn->ty == Taarray ||
-                 (tbn->ty == Tstruct && (((TypeStruct *)tbn)->sym->sizeok == SIZEOKdone)) ||
-                 tbn->ty == Tclass)
+            tbn->isfloating() ||
+            tbn->ty == Tpointer ||
+            tbn->ty == Tarray ||
+            tbn->ty == Tsarray ||
+            tbn->ty == Taarray ||
+            tbn->ty == Tstruct && (((TypeStruct *)tbn)->sym->sizeok == SIZEOKdone) ||
+            tbn->ty == Tclass)
         {
             /* Only do this for types that don't need to have semantic()
              * run on them for the size, since they may be forward referenced.
              */
-            n = tbn->size(loc);
-            n2 = n * d2;
+            dinteger_t n = tbn->size(loc);
+            dinteger_t n2 = n * d2;
             if ((int)n2 < 0)
                 goto Loverflow;
             if (n2 >= 0x1000000)        // put a 'reasonable' limit on it
                 goto Loverflow;
             if (n && n2 / n != d2)
-            {
-              Loverflow:
-                error(loc, "index %lld overflow for static array", d1);
-                goto Lerror;
-            }
+                goto Loverflow;
         }
     }
     switch (tbn->ty)
     {
         case Ttuple:
-        {   // Index the tuple to get the type
+        {
+            // Index the tuple to get the type
             assert(dim);
             TypeTuple *tt = (TypeTuple *)tbn;
             uinteger_t d = dim->toUInteger();
 
             if (d >= tt->arguments->dim)
-            {   error(loc, "tuple index %llu exceeds %u", d, tt->arguments->dim);
+            {
+                error(loc, "tuple index %llu exceeds %u", d, tt->arguments->dim);
                 goto Lerror;
             }
             Parameter *arg = (*tt->arguments)[(size_t)d];
@@ -4176,7 +4172,8 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
             break;
     }
     if (tbn->isscope())
-    {   error(loc, "cannot have array of scope %s", tbn->toChars());
+    {
+        error(loc, "cannot have array of scope %s", tbn->toChars());
         goto Lerror;
     }
 
@@ -4378,7 +4375,8 @@ Expression *TypeSArray::toExpression()
 {
     Expression *e = next->toExpression();
     if (e)
-    {   Expressions *arguments = new Expressions();
+    {
+        Expressions *arguments = new Expressions();
         arguments->push(dim);
         e = new ArrayExp(dim->loc, e, arguments);
     }
@@ -4422,7 +4420,8 @@ Type *TypeDArray::syntaxCopy()
     if (t == next)
         t = this;
     else
-    {   t = new TypeDArray(t);
+    {
+        t = new TypeDArray(t);
         t->mod = mod;
     }
     return t;
@@ -4459,7 +4458,8 @@ Type *TypeDArray::semantic(Loc loc, Scope *sc)
             break;
     }
     if (tn->isscope())
-    {   error(loc, "cannot have array of scope %s", tn->toChars());
+    {
+        error(loc, "cannot have array of scope %s", tn->toChars());
         return Type::terror;
     }
     next = tn;
@@ -4515,8 +4515,8 @@ Expression *TypeDArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
     if (ident == Id::length)
     {
         if (e->op == TOKstring)
-        {   StringExp *se = (StringExp *)e;
-
+        {
+            StringExp *se = (StringExp *)e;
             return new IntegerExp(se->loc, se->len, Type::tindex);
         }
         if (e->op == TOKnull)
@@ -4641,7 +4641,8 @@ Type *TypeAArray::syntaxCopy()
     if (t == next && ti == index)
         t = this;
     else
-    {   t = new TypeAArray(t, ti);
+    {
+        t = new TypeAArray(t, ti);
         t->mod = mod;
     }
     return t;
@@ -4836,7 +4837,8 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
             return Type::terror;
     }
     if (next->isscope())
-    {   error(loc, "cannot have array of scope %s", next->toChars());
+    {
+        error(loc, "cannot have array of scope %s", next->toChars());
         return Type::terror;
     }
     return merge();
@@ -4952,7 +4954,8 @@ MATCH TypeAArray::implicitConvTo(Type *to)
         return MATCHexact;
 
     if (to->ty == Taarray)
-    {   TypeAArray *ta = (TypeAArray *)to;
+    {
+        TypeAArray *ta = (TypeAArray *)to;
 
         if (!MODimplicitConv(next->mod, ta->next->mod))
             return MATCHnomatch;        // not const-compatible
@@ -5001,7 +5004,8 @@ Type *TypePointer::syntaxCopy()
     if (t == next)
         t = this;
     else
-    {   t = new TypePointer(t);
+    {
+        t = new TypePointer(t);
         t->mod = mod;
     }
     return t;
@@ -5028,7 +5032,8 @@ Type *TypePointer::semantic(Loc loc, Scope *sc)
     }
     next = n;
     if (next->ty != Tfunction)
-    {   transitive();
+    {
+        transitive();
         return merge();
     }
 #if 0
@@ -5172,7 +5177,8 @@ Type *TypeReference::syntaxCopy()
     if (t == next)
         t = this;
     else
-    {   t = new TypeReference(t);
+    {
+        t = new TypeReference(t);
         t->mod = mod;
     }
     return t;
@@ -5336,13 +5342,13 @@ int Type::covariant(Type *t, StorageClass *pstc)
             goto Ldistinct;
 
         for (size_t i = 0; i < dim; i++)
-        {   Parameter *arg1 = Parameter::getNth(t1->parameters, i);
+        {
+            Parameter *arg1 = Parameter::getNth(t1->parameters, i);
             Parameter *arg2 = Parameter::getNth(t2->parameters, i);
 
             if (!arg1->type->equals(arg2->type))
-            {
                 goto Ldistinct;
-            }
+
             const StorageClass sc = STCref | STCin | STCout | STClazy;
             if ((arg1->storageClass & sc) != (arg2->storageClass & sc))
                 inoutmismatch = 1;
@@ -5445,7 +5451,8 @@ Lcovariant:
         stc |= STCsafe;
 
     if (stc)
-    {   if (pstc)
+    {
+        if (pstc)
             *pstc = stc;
         goto Lnotcovariant;
     }
@@ -5578,7 +5585,8 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
      */
     if (tf->trust == TRUSTdefault)
         for (Dsymbol *p = sc->func; p; p = p->toParent2())
-        {   FuncDeclaration *fd = p->isFuncDeclaration();
+        {
+            FuncDeclaration *fd = p->isFuncDeclaration();
             if (fd)
             {
                 if (fd->isSafeBypassingInference())
@@ -5942,7 +5950,8 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
     unsigned char wildmatch = 0;
 
     if (tthis)
-    {   Type *t = tthis;
+    {
+        Type *t = tthis;
         if (t->toBasetype()->ty == Tpointer)
             t = t->toBasetype()->nextOf();      // change struct* to struct
         if (t->mod != mod)
@@ -6008,7 +6017,8 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
         else if (wildmatch & MODwild)
             wildmatch = MODwild;
         else
-        {   assert(wildmatch & MODmutable);
+        {
+            assert(wildmatch & MODmutable);
             wildmatch = MODmutable;
         }
     }
@@ -6103,7 +6113,8 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
                 goto Nomatch;
         }
         else if (p->storageClass & STCout)
-        {   if (m && !arg->isLvalue())
+        {
+            if (m && !arg->isLvalue())
                 goto Nomatch;
         }
         }
@@ -6119,7 +6130,8 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
         {
           L1:
             if (varargs == 2 && u + 1 == nparams)       // if last varargs param
-            {   Type *tb = p->type->toBasetype();
+            {
+                Type *tb = p->type->toBasetype();
                 TypeSArray *tsa;
                 dinteger_t sz;
 
@@ -6196,7 +6208,8 @@ bool TypeFunction::hasLazyParameters()
 {
     size_t dim = Parameter::dim(parameters);
     for (size_t i = 0; i < dim; i++)
-    {   Parameter *fparam = Parameter::getNth(parameters, i);
+    {
+        Parameter *fparam = Parameter::getNth(parameters, i);
         if (fparam->storageClass & STClazy)
             return true;
     }
@@ -6226,12 +6239,14 @@ bool TypeFunction::parameterEscapes(Parameter *p)
         return true;
 
     if (purity > PUREweak)
-    {   /* With pure functions, we need only be concerned if p escapes
+    {
+        /* With pure functions, we need only be concerned if p escapes
          * via any return statement.
          */
         Type* tret = nextOf()->toBasetype();
         if (!isref && !tret->hasPointers())
-        {   /* The result has no references, so p could not be escaping
+        {
+            /* The result has no references, so p could not be escaping
              * that way.
              */
             return false;
@@ -6338,7 +6353,8 @@ Type *TypeDelegate::syntaxCopy()
     if (t == next)
         t = this;
     else
-    {   t = new TypeDelegate(t);
+    {
+        t = new TypeDelegate(t);
         t->mod = mod;
     }
     return t;
@@ -6611,7 +6627,8 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                 else
                 {
                     if (id->dyncast() == DYNCAST_DSYMBOL)
-                    {   // searchX already handles errors for template instances
+                    {
+                        // searchX already handles errors for template instances
                         assert(global.errors);
                     }
                     else
@@ -6695,7 +6712,8 @@ L1:
                     for (Scope *scx = sc; 1; scx = scx->enclosing)
                     {
                         if (!scx)
-                        {   error(loc, "forward reference to '%s'", t->toChars());
+                        {
+                            error(loc, "forward reference to '%s'", t->toChars());
                             *pt = Type::terror;
                             return;
                         }
@@ -6839,7 +6857,8 @@ Dsymbol *TypeIdentifier::toDsymbol(Scope *sc)
             RootObject *id = idents[i];
             s = s->searchX(loc, sc, id);
             if (!s)                 // failed to find a symbol
-            {   //printf("\tdidn't find a symbol\n");
+            {
+                //printf("\tdidn't find a symbol\n");
                 break;
             }
         }
@@ -6863,7 +6882,8 @@ Type *TypeIdentifier::semantic(Loc loc, Scope *sc)
         {
             TypeTypedef *tt = (TypeTypedef *)t;
             if (tt->sym->sem == SemanticIn)
-            {   error(loc, "circular reference of typedef %s", tt->toChars());
+            {
+                error(loc, "circular reference of typedef %s", tt->toChars());
                 return terror;
             }
         }
@@ -6979,7 +6999,8 @@ Type *TypeInstance::semantic(Loc loc, Scope *sc)
     if (!t)
     {
         if (!e && s && s->errors)
-        {   // if there was an error evaluating the symbol, it might actually
+        {
+            // if there was an error evaluating the symbol, it might actually
             // be a type. Avoid misleading error messages.
             error(loc, "%s had previous errors", toChars());
         }
@@ -7703,20 +7724,15 @@ Type *TypeTypedef::toBasetype()
 }
 
 MATCH TypeTypedef::implicitConvTo(Type *to)
-{   MATCH m;
-
+{
     //printf("TypeTypedef::implicitConvTo(to = %s) %s\n", to->toChars(), toChars());
     if (equals(to))
-        m = MATCHexact;         // exact match
-    else if (sym->basetype->implicitConvTo(to))
-        m = MATCHconvert;       // match with conversions
-    else if (ty == to->ty && sym == ((TypeTypedef *)to)->sym)
-    {
-        m = constConv(to);
-    }
-    else
-        m = MATCHnomatch;       // no match
-    return m;
+        return MATCHexact;          // exact match
+    if (sym->basetype->implicitConvTo(to))
+        return MATCHconvert;        // match with conversions
+    if (ty == to->ty && sym == ((TypeTypedef *)to)->sym)
+        return constConv(to);
+    return MATCHnomatch;            // no match
 }
 
 MATCH TypeTypedef::constConv(Type *to)
@@ -7755,7 +7771,8 @@ Expression *TypeTypedef::defaultInit(Loc loc)
     Expression *e = bt->defaultInit(loc);
     e->type = this;
     while (bt->ty == Tsarray)
-    {   TypeSArray *tsa = (TypeSArray *)bt;
+    {
+        TypeSArray *tsa = (TypeSArray *)bt;
         e->type = tsa->next;
         bt = tsa->next->toBasetype();
     }
@@ -8275,7 +8292,8 @@ int TypeStruct::hasPointers()
 }
 
 MATCH TypeStruct::implicitConvTo(Type *to)
-{   MATCH m;
+{
+    MATCH m;
 
     //printf("TypeStruct::implicitConvTo(%s => %s)\n", toChars(), to->toChars());
 
@@ -8747,7 +8765,8 @@ L1:
                     return e;
                 }
                 if (tcd && tcd->isNested())
-                {   /* e1 is the 'this' pointer for an inner class: tcd.
+                {
+                    /* e1 is the 'this' pointer for an inner class: tcd.
                      * Rewrite it as the 'this' pointer for the outer class.
                      */
 
@@ -8763,7 +8782,8 @@ L1:
                     for (s = tcd->toParent();
                          s && s->isFuncDeclaration();
                          s = s->toParent())
-                    {   FuncDeclaration *f = s->isFuncDeclaration();
+                    {
+                        FuncDeclaration *f = s->isFuncDeclaration();
                         if (f->vthis)
                         {
                             //printf("rewriting e1 to %s's this\n", f->toChars());
@@ -8777,7 +8797,8 @@ L1:
                         }
                     }
                     if (s && s->isClassDeclaration())
-                    {   e1->type = s->isClassDeclaration()->type;
+                    {
+                        e1->type = s->isClassDeclaration()->type;
                         e1->type = e1->type->addMod(t->mod);
                         if (n > 1)
                             e1 = e1->semantic(sc);
@@ -8977,7 +8998,8 @@ TypeTuple::TypeTuple(Expressions *exps)
     {
         arguments->setDim(exps->dim);
         for (size_t i = 0; i < exps->dim; i++)
-        {   Expression *e = (*exps)[i];
+        {
+            Expression *e = (*exps)[i];
             if (e->type->ty == Ttuple)
                 e->error("cannot form tuple of tuples");
             Parameter *arg = new Parameter(STCundefined, e->type, NULL, NULL);
@@ -9077,7 +9099,8 @@ Type *TypeTuple::makeConst()
     t->arguments = new Parameters();
     t->arguments->setDim(arguments->dim);
     for (size_t i = 0; i < arguments->dim; i++)
-    {   Parameter *arg = (*arguments)[i];
+    {
+        Parameter *arg = (*arguments)[i];
         Parameter *narg = new Parameter(arg->storageClass, arg->type->constOf(), arg->ident, arg->defaultArg);
         (*t->arguments)[i] = (Parameter *)narg;
     }
@@ -9097,7 +9120,8 @@ void TypeTuple::toDecoBuffer(OutBuffer *buf, int flag)
 }
 
 Expression *TypeTuple::getProperty(Loc loc, Identifier *ident, int flag)
-{   Expression *e;
+{
+    Expression *e;
 
 #if LOGDOTEXP
     printf("TypeTuple::getProperty(type = '%s', ident = '%s')\n", toChars(), ident->toChars());
@@ -9351,18 +9375,18 @@ Parameter *Parameter::syntaxCopy()
 }
 
 Parameters *Parameter::arraySyntaxCopy(Parameters *args)
-{   Parameters *a = NULL;
+{
+    if (!args)
+        return NULL;
 
-    if (args)
+    Parameters *a = new Parameters();
+    a->setDim(args->dim);
+    for (size_t i = 0; i < a->dim; i++)
     {
-        a = new Parameters();
-        a->setDim(args->dim);
-        for (size_t i = 0; i < a->dim; i++)
-        {   Parameter *arg = (*args)[i];
+        Parameter *arg = (*args)[i];
 
-            arg = arg->syntaxCopy();
-            (*a)[i] = arg;
-        }
+        arg = arg->syntaxCopy();
+        (*a)[i] = arg;
     }
     return a;
 }
@@ -9417,7 +9441,8 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
 
             argbuf.reset();
             if (arg->storageClass & STCalias)
-            {   if (arg->ident)
+            {
+                if (arg->ident)
                     argbuf.writestring(arg->ident->toChars());
             }
             else if (arg->type->ty == Tident &&
@@ -9511,7 +9536,8 @@ void Parameter::toDecoBuffer(OutBuffer *buf)
     if (storageClass & STCscope)
         buf->writeByte('M');
     switch (storageClass & (STCin | STCout | STCref | STClazy))
-    {   case 0:
+    {
+        case 0:
         case STCin:
             break;
         case STCout:
@@ -9576,7 +9602,8 @@ static int getNthParamDg(void *ctx, size_t n, Parameter *arg)
 {
     GetNthParamCtx *p = (GetNthParamCtx *)ctx;
     if (n == p->nth)
-    {   p->arg = arg;
+    {
+        p->arg = arg;
         return 1;
     }
     return 0;
@@ -9606,11 +9633,12 @@ int Parameter::foreach(Parameters *args, Parameter::ForeachDg dg, void *ctx, siz
     size_t n = pn ? *pn : 0; // take over index
     int result = 0;
     for (size_t i = 0; i < args->dim; i++)
-    {   Parameter *arg = (*args)[i];
+    {
+        Parameter *arg = (*args)[i];
         Type *t = arg->type->toBasetype();
-
         if (t->ty == Ttuple)
-        {   TypeTuple *tu = (TypeTuple *)t;
+        {
+            TypeTuple *tu = (TypeTuple *)t;
             result = foreach(tu->arguments, dg, ctx, &n);
         }
         else
