@@ -509,10 +509,7 @@ FuncDeclaration *buildXopEquals(StructDeclaration *sd, Scope *sc)
         e = e->semantic(sc);
         Dsymbol *s = getDsymbol(e);
         if (!s)
-        {
-            ::error(Loc(), "ICE: %s not found in object module. You must update druntime", id->toChars());
-            fatal();
-        }
+            fatal("ICE: %s not found in object module. You must update druntime", id->toChars());
         assert(s);
         sd->xerreq = s->isFuncDeclaration();
     }
@@ -635,10 +632,7 @@ FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc)
         e = e->semantic(sc);
         Dsymbol *s = getDsymbol(e);
         if (!s)
-        {
-            ::error(Loc(), "ICE: %s not found in object module. You must update druntime", id->toChars());
-            fatal();
-        }
+            fatal("ICE: %s not found in object module. You must update druntime", id->toChars());
         assert(s);
         sd->xerrcmp = s->isFuncDeclaration();
     }

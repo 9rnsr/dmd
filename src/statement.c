@@ -4159,14 +4159,12 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
             return new ErrorStatement();
         }
         else if (cd->isInterfaceDeclaration())
-        {   /* Cast the interface to an object, as the object has the monitor,
+        {
+            /* Cast the interface to an object, as the object has the monitor,
              * not the interface.
              */
             if (!ClassDeclaration::object)
-            {
-                error("missing or corrupt object.d");
-                fatal();
-            }
+                ObjectNotFound(Id::Object);
 
             Type *t = ClassDeclaration::object->type;
             t = t->semantic(Loc(), sc)->toBasetype();

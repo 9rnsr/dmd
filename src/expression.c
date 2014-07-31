@@ -12771,8 +12771,7 @@ Expression *PowExp::semantic(Scope *sc)
     Module *mmath = loadStdMath();
     if (!mmath)
     {
-        //error("requires std.math for ^^ operators");
-        //fatal();
+        //fatal(loc, "requires std.math for ^^ operators");
 
         // Leave handling of PowExp to the backend, or throw
         // an error gracefully if no backend support exists.

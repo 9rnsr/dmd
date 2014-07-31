@@ -2248,8 +2248,7 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
 
 void ObjectNotFound(Identifier *id)
 {
-    Type::error(Loc(), "%s not found. object.d may be incorrectly installed or corrupt.", id->toChars());
-    fatal();
+    fatal("%s not found. object.d may be incorrectly installed or corrupt, compile with -v switch", id->toChars());
 }
 
 /******************************** SymbolDeclaration ********************************/
@@ -2324,9 +2323,7 @@ TypeInfoConstDeclaration::TypeInfoConstDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
     if (!Type::typeinfoconst)
-    {
         ObjectNotFound(Id::TypeInfo_Const);
-    }
     type = Type::typeinfoconst->type;
 }
 
@@ -2341,9 +2338,7 @@ TypeInfoInvariantDeclaration::TypeInfoInvariantDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
     if (!Type::typeinfoinvariant)
-    {
         ObjectNotFound(Id::TypeInfo_Invariant);
-    }
     type = Type::typeinfoinvariant->type;
 }
 
@@ -2358,9 +2353,7 @@ TypeInfoSharedDeclaration::TypeInfoSharedDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
     if (!Type::typeinfoshared)
-    {
         ObjectNotFound(Id::TypeInfo_Shared);
-    }
     type = Type::typeinfoshared->type;
 }
 
@@ -2375,9 +2368,7 @@ TypeInfoWildDeclaration::TypeInfoWildDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
     if (!Type::typeinfowild)
-    {
         ObjectNotFound(Id::TypeInfo_Wild);
-    }
     type = Type::typeinfowild->type;
 }
 
@@ -2392,9 +2383,7 @@ TypeInfoStructDeclaration::TypeInfoStructDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
     if (!Type::typeinfostruct)
-    {
         ObjectNotFound(Id::TypeInfo_Struct);
-    }
     type = Type::typeinfostruct->type;
 }
 
@@ -2409,9 +2398,7 @@ TypeInfoClassDeclaration::TypeInfoClassDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
     if (!Type::typeinfoclass)
-    {
         ObjectNotFound(Id::TypeInfo_Class);
-    }
     type = Type::typeinfoclass->type;
 }
 
@@ -2426,9 +2413,7 @@ TypeInfoInterfaceDeclaration::TypeInfoInterfaceDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
     if (!Type::typeinfointerface)
-    {
         ObjectNotFound(Id::TypeInfo_Interface);
-    }
     type = Type::typeinfointerface->type;
 }
 
@@ -2443,9 +2428,7 @@ TypeInfoTypedefDeclaration::TypeInfoTypedefDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
     if (!Type::typeinfotypedef)
-    {
         ObjectNotFound(Id::TypeInfo_Typedef);
-    }
     type = Type::typeinfotypedef->type;
 }
 
@@ -2460,9 +2443,7 @@ TypeInfoPointerDeclaration::TypeInfoPointerDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
     if (!Type::typeinfopointer)
-    {
         ObjectNotFound(Id::TypeInfo_Pointer);
-    }
     type = Type::typeinfopointer->type;
 }
 
@@ -2477,9 +2458,7 @@ TypeInfoArrayDeclaration::TypeInfoArrayDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
     if (!Type::typeinfoarray)
-    {
         ObjectNotFound(Id::TypeInfo_Array);
-    }
     type = Type::typeinfoarray->type;
 }
 
@@ -2494,9 +2473,7 @@ TypeInfoStaticArrayDeclaration::TypeInfoStaticArrayDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
     if (!Type::typeinfostaticarray)
-    {
         ObjectNotFound(Id::TypeInfo_StaticArray);
-    }
     type = Type::typeinfostaticarray->type;
 }
 
@@ -2511,9 +2488,7 @@ TypeInfoAssociativeArrayDeclaration::TypeInfoAssociativeArrayDeclaration(Type *t
     : TypeInfoDeclaration(tinfo, 0)
 {
     if (!Type::typeinfoassociativearray)
-    {
         ObjectNotFound(Id::TypeInfo_AssociativeArray);
-    }
     type = Type::typeinfoassociativearray->type;
 }
 
@@ -2528,9 +2503,7 @@ TypeInfoVectorDeclaration::TypeInfoVectorDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
     if (!Type::typeinfovector)
-    {
         ObjectNotFound(Id::TypeInfo_Vector);
-    }
     type = Type::typeinfovector->type;
 }
 
@@ -2545,9 +2518,7 @@ TypeInfoEnumDeclaration::TypeInfoEnumDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
     if (!Type::typeinfoenum)
-    {
         ObjectNotFound(Id::TypeInfo_Enum);
-    }
     type = Type::typeinfoenum->type;
 }
 
@@ -2562,9 +2533,7 @@ TypeInfoFunctionDeclaration::TypeInfoFunctionDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
     if (!Type::typeinfofunction)
-    {
         ObjectNotFound(Id::TypeInfo_Function);
-    }
     type = Type::typeinfofunction->type;
 }
 
@@ -2579,9 +2548,7 @@ TypeInfoDelegateDeclaration::TypeInfoDelegateDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
     if (!Type::typeinfodelegate)
-    {
         ObjectNotFound(Id::TypeInfo_Delegate);
-    }
     type = Type::typeinfodelegate->type;
 }
 
@@ -2596,9 +2563,7 @@ TypeInfoTupleDeclaration::TypeInfoTupleDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
     if (!Type::typeinfotypelist)
-    {
         ObjectNotFound(Id::TypeInfo_Tuple);
-    }
     type = Type::typeinfotypelist->type;
 }
 

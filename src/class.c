@@ -509,10 +509,7 @@ void ClassDeclaration::semantic(Scope *sc)
         if (!baseClass && ident != Id::Object && !cpp)
         {
             if (!object)
-            {
-                error("missing or corrupt object.d");
-                fatal();
-            }
+                ObjectNotFound(Id::Object);
 
             Type *t = object->type;
             t = t->semantic(loc, sc)->toBasetype();

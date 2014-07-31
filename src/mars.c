@@ -225,7 +225,8 @@ void error(Loc loc, const char *format, ...)
 }
 
 void error(const char *filename, unsigned linnum, unsigned charnum, const char *format, ...)
-{   Loc loc;
+{
+    Loc loc;
     loc.filename = (char *)filename;
     loc.linnum = linnum;
     loc.charnum = charnum;
@@ -299,8 +300,7 @@ void verror(Loc loc, const char *format, va_list ap,
     {
         verrorPrint(loc, header, format, ap, p1, p2);
         if (global.errors >= 20)        // moderate blizzard of cascading messages
-                fatal();
-//halt();
+            fatal();
     }
     else
     {
@@ -323,7 +323,6 @@ void vwarning(Loc loc, const char *format, va_list ap)
     if (global.params.warnings && !global.gag)
     {
         verrorPrint(loc, "Warning: ", format, ap);
-//halt();
         if (global.params.warnings == 1)
             global.warnings++;  // warnings don't count if gagged
     }
@@ -343,8 +342,7 @@ void readFile(Loc loc, File *f)
 {
     if (f->read())
     {
-        error(loc, "Error reading file '%s'", f->name->toChars());
-        fatal();
+        fatal(loc, "Error reading file '%s'", f->name->toChars());
     }
 }
 
@@ -352,8 +350,7 @@ void writeFile(Loc loc, File *f)
 {
     if (f->write())
     {
-        error(loc, "Error writing file '%s'", f->name->toChars());
-        fatal();
+        fatal(loc, "Error writing file '%s'", f->name->toChars());
     }
 }
 
@@ -364,8 +361,7 @@ void ensurePathToNameExists(Loc loc, const char *name)
     {
         if (FileName::ensurePathExists(pt))
         {
-            error(loc, "cannot create directory %s", pt);
-            fatal();
+            fatal(loc, "cannot create directory %s", pt);
         }
     }
     FileName::free(pt);
@@ -383,6 +379,30 @@ void fatal()
     halt();
 #endif
     exit(EXIT_FAILURE);
+}
+
+void fatal(const char *format, ...)
+{
+    global.gag = 0;
+
+    va_list ap;
+    va_start(ap, format);
+    verror(Loc(), format, ap);
+    va_end( ap );
+
+    fatal();
+}
+
+void fatal(Loc loc, const char *format, ...)
+{
+    global.gag = 0;
+
+    va_list ap;
+    va_start(ap, format);
+    verror(loc, format, ap);
+    va_end( ap );
+
+    fatal();
 }
 
 /**************************************
@@ -557,8 +577,7 @@ int tryMain(size_t argc, const char *argv[])
     if (argc < 1 || !argv)
     {
       Largs:
-        error(Loc(), "missing or null command line arguments");
-        fatal();
+        fatal("missing or null command line arguments");
     }
     for (size_t i = 0; i < argc; i++)
     {
@@ -1238,8 +1257,7 @@ Language changes listed by -transition=id:\n\
     }
     else if (global.params.run)
     {
-        error(Loc(), "flags conflict with -run");
-        fatal();
+        fatal("flags conflict with -run");
     }
     else if (global.params.lib)
     {
@@ -1459,13 +1477,12 @@ Language changes listed by -transition=id:\n\
                     strcmp(name, ".") == 0)
                 {
                 Linvalid:
-                    error(Loc(), "invalid file name '%s'", files[i]);
-                    fatal();
+                    fatal("invalid file name '%s'", files[i]);
                 }
             }
             else
-            {   error(Loc(), "unrecognized file extension %s", ext);
-                fatal();
+            {
+                fatal("unrecognized file extension %s", ext);
             }
         }
         else
@@ -1543,8 +1560,7 @@ Language changes listed by -transition=id:\n\
 #if ASYNCREAD
         if (aw->read(filei))
         {
-            error(Loc(), "cannot read file %s", m->srcfile->name->toChars());
-            fatal();
+            fatal("cannot read file %s", m->srcfile->name->toChars());
         }
 #endif
         m->parse();
@@ -1578,8 +1594,7 @@ Language changes listed by -transition=id:\n\
     if (anydocfiles && modules.dim &&
         (global.params.oneobj || global.params.objname))
     {
-        error(Loc(), "conflicting Ddoc and obj generation options");
-        fatal();
+        fatal("conflicting Ddoc and obj generation options");
     }
     if (global.errors)
         fatal();

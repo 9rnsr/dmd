@@ -4799,10 +4799,7 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
             cd->semantic(NULL);
 
         if (!ClassDeclaration::object)
-        {
-            error(Loc(), "missing or corrupt object.d");
-            fatal();
-        }
+            ObjectNotFound(Id::Object);
 
         static FuncDeclaration *feq   = NULL;
         static FuncDeclaration *fcmp  = NULL;

@@ -111,8 +111,7 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
         !FileName::equalsExt(srcfilename, global.hdr_ext) &&
         !FileName::equalsExt(srcfilename, "dd"))
     {
-        error("source file name '%s' must have .%s extension", srcfilename, global.mars_ext);
-        fatal();
+        fatal("source file name '%s' must have .%s extension", srcfilename, global.mars_ext);
     }
     srcfile = new File(srcfilename);
 
@@ -176,8 +175,8 @@ File *Module::setOutfile(const char *name, const char *dir, const char *arg, con
     }
 
     if (FileName::equals(docfilename, srcfile->name->str))
-    {   error("Source file and output file have same name '%s'", srcfile->name->str);
-        fatal();
+    {
+        fatal("Source file and output file have same name '%s'", srcfile->name->str);
     }
 
     return new File(docfilename);
@@ -365,9 +364,7 @@ void Module::parse()
                 unsigned *pumax = &pu[buflen / 4];
 
                 if (buflen & 3)
-                {   error("odd length of UTF-32 char source %u", buflen);
-                    fatal();
-                }
+                    fatal(loc, "odd length of UTF-32 char source %u", buflen);
 
                 dbuf.reserve(buflen / 4);
                 for (pu += bom; pu < pumax; pu++)
@@ -377,9 +374,7 @@ void Module::parse()
                     if (u & ~0x7F)
                     {
                         if (u > 0x10FFFF)
-                        {   error("UTF-32 value %08x greater than 0x10FFFF", u);
-                            fatal();
-                        }
+                            fatal(loc, "UTF-32 value %08x greater than 0x10FFFF", u);
                         dbuf.writeUTF8(u);
                     }
                     else
@@ -400,9 +395,7 @@ void Module::parse()
                 unsigned short *pumax = &pu[buflen / 2];
 
                 if (buflen & 1)
-                {   error("odd length of UTF-16 char source %u", buflen);
-                    fatal();
-                }
+                    fatal(loc, "odd length of UTF-16 char source %u", buflen);
 
                 dbuf.reserve(buflen / 2);
                 for (pu += bom; pu < pumax; pu++)
@@ -414,25 +407,17 @@ void Module::parse()
                         {   unsigned u2;
 
                             if (++pu > pumax)
-                            {   error("surrogate UTF-16 high value %04x at EOF", u);
-                                fatal();
-                            }
+                                fatal(loc, "surrogate UTF-16 high value %04x at EOF", u);
                             u2 = le ? readwordLE(pu) : readwordBE(pu);
                             if (u2 < 0xDC00 || u2 > 0xDFFF)
-                            {   error("surrogate UTF-16 low value %04x out of range", u2);
-                                fatal();
-                            }
+                                fatal(loc, "surrogate UTF-16 low value %04x out of range", u2);
                             u = (u - 0xD7C0) << 10;
                             u |= (u2 - 0xDC00);
                         }
                         else if (u >= 0xDC00 && u <= 0xDFFF)
-                        {   error("unpaired surrogate UTF-16 value %04x", u);
-                            fatal();
-                        }
+                            fatal(loc, "unpaired surrogate UTF-16 value %04x", u);
                         else if (u == 0xFFFE || u == 0xFFFF)
-                        {   error("illegal UTF-16 value %04x", u);
-                            fatal();
-                        }
+                            fatal(loc, "illegal UTF-16 value %04x", u);
                         dbuf.writeUTF8(u);
                     }
                     else
@@ -495,9 +480,7 @@ void Module::parse()
 
             // It's UTF-8
             if (buf[0] >= 0x80)
-            {   error("source file must start with BOM or ASCII character, not \\x%02X", buf[0]);
-                fatal();
-            }
+                fatal(loc, "source file must start with BOM or ASCII character, not \\x%02X", buf[0]);
         }
     }
 

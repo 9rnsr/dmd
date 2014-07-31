@@ -102,10 +102,7 @@ void Type::genTypeInfo(Scope *sc)
 {
     //printf("Type::genTypeInfo() %p, %s\n", this, toChars());
     if (!Type::dtypeinfo)
-    {
-        error(Loc(), "TypeInfo not found. object.d may be incorrectly installed or corrupt, compile with -v switch");
-        fatal();
-    }
+        ObjectNotFound(Id::TypeInfo);
 
     Type *t = merge2(); // do this since not all Type's are merge'd
     if (!t->vtinfo)
@@ -247,15 +244,14 @@ private:
      */
     static void verifyStructSize(ClassDeclaration *typeclass, size_t expected)
     {
-            if (typeclass->structsize != expected)
-            {
+        if (typeclass->structsize != expected)
+        {
 #ifdef DEBUG
-                printf("expected = x%x, %s.structsize = x%x\n", expected,
-                    typeclass->toChars(), typeclass->structsize);
+            printf("expected = x%x, %s.structsize = x%x\n", expected,
+                typeclass->toChars(), typeclass->structsize);
 #endif
-                error(typeclass->loc, "mismatch between compiler and object.d or object.di found. Check installation and import paths with -v compiler switch.");
-                fatal();
-            }
+            fatal(typeclass->loc, "mismatch between compiler and object.d or object.di found. Check installation and import paths with -v compiler switch.");
+        }
     }
 
 public:

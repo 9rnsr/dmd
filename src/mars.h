@@ -386,6 +386,8 @@ void fatal();
 #else
 void fatal();
 #endif
+void fatal(const char *format, ...);
+void fatal(Loc loc, const char *format, ...);
 
 void err_nomem();
 int runLINK();

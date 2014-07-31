@@ -305,8 +305,7 @@ void ClassDeclaration::toObjFile(bool multiobj)
 #ifdef DEBUG
             printf("CLASSINFO_SIZE = x%x, Type::typeinfoclass->structsize = x%x\n", offset, Type::typeinfoclass->structsize);
 #endif
-            error("mismatch between dmd and object.d or object.di found. Check installation and import paths with -v compiler switch.");
-            fatal();
+            fatal(loc, "mismatch between dmd and object.d or object.di found. Check installation and import paths with -v compiler switch.");
         }
     }
 
@@ -751,8 +750,7 @@ void InterfaceDeclaration::toObjFile(bool multiobj)
         {
             if (Type::typeinfoclass->structsize != offset)
             {
-                error("mismatch between dmd and object.d or object.di found. Check installation and import paths with -v compiler switch.");
-                fatal();
+                fatal(loc, "mismatch between dmd and object.d or object.di found. Check installation and import paths with -v compiler switch.");
             }
         }
         dtxoff(&dt, csym, offset, TYnptr);      // (*)

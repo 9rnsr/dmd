@@ -6267,11 +6267,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     static int nest;
     //printf("%d\n", nest);
     if (++nest > 500)
-    {
-        global.gag = 0;                 // ensure error message gets printed
-        error("recursive expansion");
-        fatal();
-    }
+        fatal(loc, "recursive expansion");
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
@@ -6375,11 +6371,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         static int nest3;
         //printf("%d\n", nest);
         if (++nest3 > 300)
-        {
-            global.gag = 0;            // ensure error message gets printed
-            error("recursive expansion");
-            fatal();
-        }
+            fatal(loc, "recursive expansion");
         semantic3(sc2);
         --nest3;
 
@@ -6399,11 +6391,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         {
             ti = ti->tinst;
             if (++nest > 500)
-            {
-                global.gag = 0;            // ensure error message gets printed
-                error("recursive expansion");
-                fatal();
-            }
+                fatal(loc, "recursive expansion");
         }
         if (ti && ti->deferred)
         {
@@ -8230,30 +8218,22 @@ void TemplateMixin::semantic(Scope *sc)
     static int nest;
     //printf("%d\n", nest);
     if (++nest > 500)
-    {
-        global.gag = 0;                 // ensure error message gets printed
-        error("recursive expansion");
-        fatal();
-    }
-
+        fatal(loc, "recursive expansion");
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
         s->setScope(sc2);
     }
-
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
         s->importAll(sc2);
     }
-
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
         s->semantic(sc2);
     }
-
     nest--;
 
     if (!sc->func && Module::deferred.dim > deferred_dim)
