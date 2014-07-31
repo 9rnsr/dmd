@@ -93,7 +93,7 @@ Parameter *isParameter(RootObject *o)
 /**************************************
  * Is this Object an error?
  */
-int isError(RootObject *o)
+bool isError(RootObject *o)
 {
     Type *t = isType(o);
     if (t)
@@ -106,23 +106,22 @@ int isError(RootObject *o)
         return arrayObjectIsError(&v->objects);
     Dsymbol *s = isDsymbol(o);
     assert(s);
-    if (s->errors)
-        return 1;
-    return s->parent ? isError(s->parent) : 0;
+    // if o is Parameter or others, may fail
+    return s->errors || (s->parent ? isError(s->parent) : false);
 }
 
 /**************************************
  * Are any of the Objects an error?
  */
-int arrayObjectIsError(Objects *args)
+bool arrayObjectIsError(Objects *args)
 {
     for (size_t i = 0; i < args->dim; i++)
     {
         RootObject *o = (*args)[i];
         if (isError(o))
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 /***********************
