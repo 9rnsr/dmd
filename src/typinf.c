@@ -42,7 +42,8 @@ Symbol *toSymbol(Dsymbol *s);
  */
 
 Expression *Type::getInternalTypeInfo(Scope *sc)
-{   TypeInfoDeclaration *tid;
+{
+    TypeInfoDeclaration *tid;
     Expression *e;
     Type *t;
     static TypeInfoDeclaration *internalTI[TMAX];
@@ -76,7 +77,8 @@ Expression *Type::getInternalTypeInfo(Scope *sc)
         Linternal:
             tid = internalTI[t->ty];
             if (!tid)
-            {   tid = TypeInfoDeclaration::create(t, 1);
+            {
+                tid = TypeInfoDeclaration::create(t, 1);
                 internalTI[t->ty] = tid;
             }
             e = VarExp::create(Loc(), tid);
@@ -722,7 +724,8 @@ public:
 
         dt_t *dt = NULL;
         for (size_t i = 0; i < dim; i++)
-        {   Parameter *arg = (*tu->arguments)[i];
+        {
+            Parameter *arg = (*tu->arguments)[i];
             Expression *e = arg->type->getTypeInfo(NULL);
             e = e->optimize(WANTvalue);
             e->toDt(&dt);

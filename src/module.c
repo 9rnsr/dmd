@@ -168,7 +168,8 @@ File *Module::setOutfile(const char *name, const char *dir, const char *arg, con
 
         // If argdoc doesn't have an absolute path, make it relative to dir
         if (!FileName::absolute(argdoc))
-        {   //FileName::ensurePathExists(dir);
+        {
+            //FileName::ensurePathExists(dir);
             argdoc = FileName::combine(dir, argdoc);
         }
         docfilename = FileName::forceExt(argdoc, ext);
@@ -209,7 +210,8 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
         OutBuffer buf;
 
         for (size_t i = 0; i < packages->dim; i++)
-        {   Identifier *pid = (*packages)[i];
+        {
+            Identifier *pid = (*packages)[i];
 
             buf.writestring(pid->toChars());
 #if _WIN32
@@ -282,7 +284,8 @@ bool Module::read(Loc loc)
         }
 
         if (!global.gag)
-        {   /* Print path
+        {
+            /* Print path
              */
             if (global.path)
             {
@@ -355,7 +358,8 @@ void Module::parse()
         if (buf[0] == 0xFF && buf[1] == 0xFE)
         {
             if (buflen >= 4 && buf[2] == 0 && buf[3] == 0)
-            {   // UTF-32LE
+            {
+                // UTF-32LE
                 le = 1;
 
             Lutf32:
@@ -368,9 +372,8 @@ void Module::parse()
 
                 dbuf.reserve(buflen / 4);
                 for (pu += bom; pu < pumax; pu++)
-                {   unsigned u;
-
-                    u = le ? readlongLE(pu) : readlongBE(pu);
+                {
+                    unsigned u = le ? readlongLE(pu) : readlongBE(pu);
                     if (u & ~0x7F)
                     {
                         if (u > 0x10FFFF)
@@ -385,7 +388,8 @@ void Module::parse()
                 buf = (utf8_t *) dbuf.extractData();
             }
             else
-            {   // UTF-16LE (X86)
+            {
+                // UTF-16LE (X86)
                 // Convert it to UTF-8
                 le = 1;
 
@@ -399,16 +403,15 @@ void Module::parse()
 
                 dbuf.reserve(buflen / 2);
                 for (pu += bom; pu < pumax; pu++)
-                {   unsigned u;
-
-                    u = le ? readwordLE(pu) : readwordBE(pu);
+                {
+                    unsigned u = le ? readwordLE(pu) : readwordBE(pu);
                     if (u & ~0x7F)
-                    {   if (u >= 0xD800 && u <= 0xDBFF)
-                        {   unsigned u2;
-
+                    {
+                        if (u >= 0xD800 && u <= 0xDBFF)
+                        {
                             if (++pu > pumax)
                                 fatal(loc, "surrogate UTF-16 high value %04x at EOF", u);
-                            u2 = le ? readwordLE(pu) : readwordBE(pu);
+                            unsigned u2 = le ? readwordLE(pu) : readwordBE(pu);
                             if (u2 < 0xDC00 || u2 > 0xDFFF)
                                 fatal(loc, "surrogate UTF-16 low value %04x out of range", u2);
                             u = (u - 0xD7C0) << 10;
@@ -429,18 +432,20 @@ void Module::parse()
             }
         }
         else if (buf[0] == 0xFE && buf[1] == 0xFF)
-        {   // UTF-16BE
+        {
+            // UTF-16BE
             le = 0;
             goto Lutf16;
         }
         else if (buflen >= 4 && buf[0] == 0 && buf[1] == 0 && buf[2] == 0xFE && buf[3] == 0xFF)
-        {   // UTF-32BE
+        {
+            // UTF-32BE
             le = 0;
             goto Lutf32;
         }
         else if (buflen >= 3 && buf[0] == 0xEF && buf[1] == 0xBB && buf[2] == 0xBF)
-        {   // UTF-8
-
+        {
+            // UTF-8
             buf += 3;
             buflen -= 3;
         }
@@ -453,13 +458,16 @@ void Module::parse()
 
             bom = 0;
             if (buflen >= 4)
-            {   if (buf[1] == 0 && buf[2] == 0 && buf[3] == 0)
-                {   // UTF-32LE
+            {
+                if (buf[1] == 0 && buf[2] == 0 && buf[3] == 0)
+                {
+                    // UTF-32LE
                     le = 1;
                     goto Lutf32;
                 }
                 else if (buf[0] == 0 && buf[1] == 0 && buf[2] == 0)
-                {   // UTF-32BE
+                {
+                    // UTF-32BE
                     le = 0;
                     goto Lutf32;
                 }
@@ -467,12 +475,14 @@ void Module::parse()
             if (buflen >= 2)
             {
                 if (buf[1] == 0)
-                {   // UTF-16LE
+                {
+                    // UTF-16LE
                     le = 1;
                     goto Lutf16;
                 }
                 else if (buf[0] == 0)
-                {   // UTF-16BE
+                {
+                    // UTF-16BE
                     le = 0;
                     goto Lutf16;
                 }
