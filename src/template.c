@@ -290,41 +290,39 @@ int match(RootObject *o1, RootObject *o2)
 
     if (t1)
     {
+        if (!t2)
+            goto Lnomatch;
         //printf("t1 = %s\n", t1->toChars());
         //printf("t2 = %s\n", t2->toChars());
-        if (!t2 || !t1->equals(t2))
+        if (!t1->equals(t2))
             goto Lnomatch;
     }
     else if (e1)
     {
-#if 0
-        if (e1 && e2)
-        {
-            printf("match %d\n", e1->equals(e2));
-            printf("\te1 = %p %s %s %s\n", e1, e1->type->toChars(), Token::toChars(e1->op), e1->toChars());
-            printf("\te2 = %p %s %s %s\n", e2, e2->type->toChars(), Token::toChars(e2->op), e2->toChars());
-        }
-#endif
         if (!e2)
             goto Lnomatch;
+#if 0
+        printf("match %d\n", e1->equals(e2));
+        printf("\te1 = %p %s %s %s\n", e1, e1->type->toChars(), Token::toChars(e1->op), e1->toChars());
+        printf("\te2 = %p %s %s %s\n", e2, e2->type->toChars(), Token::toChars(e2->op), e2->toChars());
+#endif
         if (!e1->equals(e2))
             goto Lnomatch;
     }
     else if (s1)
     {
-        if (s2)
-        {
-            if (!s1->equals(s2))
-                goto Lnomatch;
-            if (s1->parent != s2->parent &&
-                !s1->isFuncDeclaration() &&
-                !s2->isFuncDeclaration())
-            {
-                goto Lnomatch;
-            }
-        }
-        else
+        if (!s2)
             goto Lnomatch;
+        if (!s1->equals(s2))
+            goto Lnomatch;
+        // note that, Dsymbol::equals does not consider parent difference
+        if (s1->parent != s2->parent &&
+            !s1->isFuncDeclaration() &&
+            !s2->isFuncDeclaration())
+        {
+            // why this is necessary?
+            goto Lnomatch;
+        }
     }
     else if (u1)
     {

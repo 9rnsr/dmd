@@ -2320,32 +2320,31 @@ bool FuncDeclaration::equals(RootObject *o)
         return true;
 
     Dsymbol *s = isDsymbol(o);
-    if (s)
+    if (!s)
+        return false
+
+    FuncDeclaration *fd1 = this;
+    FuncDeclaration *fd2 = s->isFuncDeclaration();
+    if (!fd2)
+        return false;
+
+    FuncAliasDeclaration *fa1 = fd1->isFuncAliasDeclaration();
+    FuncAliasDeclaration *fa2 = fd2->isFuncAliasDeclaration();
+    if (fa1 && fa2)
     {
-        FuncDeclaration *fd1 = this;
-        FuncDeclaration *fd2 = s->isFuncDeclaration();
-        if (!fd2)
-            return false;
-
-        FuncAliasDeclaration *fa1 = fd1->isFuncAliasDeclaration();
-        FuncAliasDeclaration *fa2 = fd2->isFuncAliasDeclaration();
-        if (fa1 && fa2)
-        {
-            return fa1->toAliasFunc()->equals(fa2->toAliasFunc()) &&
-                   fa1->hasOverloads == fa2->hasOverloads;
-        }
-
-        if (fa1 && (fd1 = fa1->toAliasFunc())->isUnique() && !fa1->hasOverloads)
-            fa1 = NULL;
-        if (fa2 && (fd2 = fa2->toAliasFunc())->isUnique() && !fa2->hasOverloads)
-            fa2 = NULL;
-        if ((fa1 != NULL) != (fa2 != NULL))
-            return false;
-
-        return fd1->toParent()->equals(fd2->toParent()) &&
-            fd1->ident->equals(fd2->ident) && fd1->type->equals(fd2->type);
+        return fa1->toAliasFunc()->equals(fa2->toAliasFunc()) &&
+               fa1->hasOverloads == fa2->hasOverloads;
     }
-    return false;
+
+    if (fa1 && (fd1 = fa1->toAliasFunc())->isUnique() && !fa1->hasOverloads)
+        fa1 = NULL;
+    if (fa2 && (fd2 = fa2->toAliasFunc())->isUnique() && !fa2->hasOverloads)
+        fa2 = NULL;
+    if ((fa1 != NULL) != (fa2 != NULL))
+        return false;
+
+    return fd1->toParent()->equals(fd2->toParent()) &&
+        fd1->ident->equals(fd2->ident) && fd1->type->equals(fd2->type);
 }
 
 void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
