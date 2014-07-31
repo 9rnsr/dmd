@@ -6300,6 +6300,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
      */
     if (fargs && aliasdecl)
     {
+        // Can we move out from TemplateInstance::semantic?
         FuncDeclaration *fd = aliasdecl->isFuncDeclaration();
         if (fd)
         {
