@@ -519,26 +519,19 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
 Dsymbol *TemplateDeclaration::syntaxCopy(Dsymbol *)
 {
     //printf("TemplateDeclaration::syntaxCopy()\n");
-    TemplateDeclaration *td;
-    TemplateParameters *p;
-
-    p = NULL;
+    TemplateParameters *p = NULL;
     if (parameters)
     {
         p = new TemplateParameters();
         p->setDim(parameters->dim);
         for (size_t i = 0; i < p->dim; i++)
         {
-            TemplateParameter *tp = (*parameters)[i];
-            (*p)[i] = tp->syntaxCopy();
+            (*p)[i] = (*parameters)[i]->syntaxCopy();
         }
     }
-    Expression *e = NULL;
-    if (constraint)
-        e = constraint->syntaxCopy();
+    Expression *e = constraint ? constraint->syntaxCopy() : NULL;
     Dsymbols *d = Dsymbol::arraySyntaxCopy(members);
-    td = new TemplateDeclaration(loc, ident, p, e, d, ismixin, literal);
-    return td;
+    return new TemplateDeclaration(loc, ident, p, e, d, ismixin, literal);
 }
 
 void TemplateDeclaration::semantic(Scope *sc)
@@ -553,7 +546,7 @@ void TemplateDeclaration::semantic(Scope *sc)
     semanticRun = PASSsemantic;
 
     // Remember templates defined in module object that we need to know about
-    if (sc->module && sc->module->ident == Id::object)
+    if (sc->module && sc->module->ident == Id::object)      // problematic identifier based comparison
     {
         if (ident == Id::RTInfo)
             Type::rtinfo = this;
@@ -572,10 +565,10 @@ void TemplateDeclaration::semantic(Scope *sc)
     /* Remember Scope for later instantiations, but make
      * a copy since attributes can change.
      */
-    if (!this->scope)
+    if (!scope)
     {
-        this->scope = sc->copy();
-        this->scope->setNoFree();
+        scope = sc->copy();
+        scope->setNoFree();
     }
 
     // Set up scope for parameters
@@ -591,6 +584,7 @@ void TemplateDeclaration::semantic(Scope *sc)
 
     protection = sc->protection;
 
+    // why origParameters necessary?
     if (global.params.doDocComments)
     {
         origParameters = new TemplateParameters();
@@ -605,14 +599,12 @@ void TemplateDeclaration::semantic(Scope *sc)
     for (size_t i = 0; i < parameters->dim; i++)
     {
         TemplateParameter *tp = (*parameters)[i];
-
         tp->declareParameter(paramscope);
     }
 
     for (size_t i = 0; i < parameters->dim; i++)
     {
         TemplateParameter *tp = (*parameters)[i];
-
         tp->semantic(paramscope, parameters);
         if (i + 1 != parameters->dim && tp->isTemplateTupleParameter())
         {
