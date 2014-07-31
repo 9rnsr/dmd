@@ -5916,71 +5916,9 @@ Dsymbol *TemplateInstance::syntaxCopy(Dsymbol *s)
     return ti;
 }
 
-
 void TemplateInstance::semantic(Scope *sc)
 {
     semantic(sc, NULL);
-}
-
-void TemplateInstance::expandMembers(Scope *sc2)
-{
-    for (size_t i = 0; i < members->dim; i++)
-    {
-        Dsymbol *s = (*members)[i];
-        s->setScope(sc2);
-    }
-
-    for (size_t i = 0; i < members->dim; i++)
-    {
-        Dsymbol *s = (*members)[i];
-        s->importAll(sc2);
-    }
-
-    for (size_t i = 0; i < members->dim; i++)
-    {
-        Dsymbol *s = (*members)[i];
-        //printf("\t[%d] semantic on '%s' %p kind %s in '%s'\n", i, s->toChars(), s, s->kind(), this->toChars());
-        //printf("test: enclosing = %d, sc2->parent = %s\n", enclosing, sc2->parent->toChars());
-//      if (enclosing)
-//          s->parent = sc->parent;
-        //printf("test3: enclosing = %d, s->parent = %s\n", enclosing, s->parent->toChars());
-        s->semantic(sc2);
-        //printf("test4: enclosing = %d, s->parent = %s\n", enclosing, s->parent->toChars());
-        sc2->module->runDeferredSemantic();
-    }
-}
-
-void TemplateInstance::tryExpandMembers(Scope *sc2)
-{
-    static int nest;
-    // extracted to a function to allow windows SEH to work without destructors in the same function
-    //printf("%d\n", nest);
-    if (++nest > 500)
-    {
-        global.gag = 0;                 // ensure error message gets printed
-        error("recursive expansion");
-        fatal();
-    }
-
-    expandMembers(sc2);
-
-    nest--;
-}
-
-void TemplateInstance::trySemantic3(Scope *sc2)
-{
-    // extracted to a function to allow windows SEH to work without destructors in the same function
-    static int nest;
-    //printf("%d\n", nest);
-    if (++nest > 300)
-    {
-        global.gag = 0;            // ensure error message gets printed
-        error("recursive expansion");
-        fatal();
-    }
-    semantic3(sc2);
-
-    --nest;
 }
 
 void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
@@ -6326,9 +6264,34 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     if (enclosing && tempdecl->isstatic)
         sc2->stc &= ~STCstatic;
 
-    tryExpandMembers(sc2);
-
-    semanticRun = PASSsemanticdone;
+    static int nest;
+    //printf("%d\n", nest);
+    if (++nest > 500)
+    {
+        global.gag = 0;                 // ensure error message gets printed
+        error("recursive expansion");
+        fatal();
+    }
+    for (size_t i = 0; i < members->dim; i++)
+    {
+        Dsymbol *s = (*members)[i];
+        s->setScope(sc2);
+    }
+    for (size_t i = 0; i < members->dim; i++)
+    {
+        Dsymbol *s = (*members)[i];
+        s->importAll(sc2);
+    }
+    for (size_t i = 0; i < members->dim; i++)
+    {
+        Dsymbol *s = (*members)[i];
+        //printf("\t[%d] semantic on '%s' %p kind %s in '%s'\n", i, s->toChars(), s, s->kind(), this->toChars());
+        //printf("test: enclosing = %d, sc2->parent = %s\n", enclosing, sc2->parent->toChars());
+        s->semantic(sc2);
+        //printf("test4: enclosing = %d, s->parent = %s\n", enclosing, s->parent->toChars());
+        sc2->module->runDeferredSemantic();
+    }
+    nest--;
 
     /* ConditionalDeclaration may introduce eponymous declaration,
      * so we should find it once again after semantic.
@@ -6348,6 +6311,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
             aliasdecl = s;
         }
     }
+
+    semanticRun = PASSsemanticdone;
 
     if (global.errors != errorsave)
         goto Laftersemantic;
@@ -6407,7 +6372,16 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         this->deferred = &deferred;
 
         //printf("Run semantic3 on %s\n", toChars());
-        trySemantic3(sc2);
+        static int nest3;
+        //printf("%d\n", nest);
+        if (++nest3 > 300)
+        {
+            global.gag = 0;            // ensure error message gets printed
+            error("recursive expansion");
+            fatal();
+        }
+        semantic3(sc2);
+        --nest3;
 
         for (size_t i = 0; i < deferred.dim; i++)
         {

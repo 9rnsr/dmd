@@ -363,9 +363,6 @@ public:
     bool hasNestedArgs(Objects *tiargs, bool isstatic);
     void declareParameters(Scope *sc);
     Identifier *genIdent(Objects *args);
-    void expandMembers(Scope *sc);
-    void tryExpandMembers(Scope *sc);
-    void trySemantic3(Scope *sc2);
 
     TemplateInstance *isTemplateInstance() { return this; }
     void accept(Visitor *v) { v->visit(this); }
