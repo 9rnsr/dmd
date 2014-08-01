@@ -97,7 +97,7 @@ public:
 
     bool evaluateConstraint(TemplateInstance *ti, Scope *sc, Scope *paramscope, Objects *dedtypes, FuncDeclaration *fd);
 
-    MATCH matchWithInstance(Scope *sc, TemplateInstance *ti, Objects *atypes, Expressions *fargs, int flag);
+    MATCH matchWithInstance(Scope *sc, TemplateInstance *ti, Objects *atypes, int flag);
     MATCH leastAsSpecialized(Scope *sc, TemplateDeclaration *td2, Expressions *fargs);
 
     MATCH deduceFunctionTemplateMatch(TemplateInstance *ti, Scope *sc, FuncDeclaration *&fd, Type *tthis, Expressions *fargs);
@@ -335,7 +335,6 @@ public:
     TemplateInstance(Loc loc, TemplateDeclaration *tempdecl, Objects *tiargs);
     static Objects *arraySyntaxCopy(Objects *objs);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc, Expressions *fargs);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
@@ -358,7 +357,7 @@ public:
     bool updateTempDecl(Scope *sc, Dsymbol *s);
     static bool semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int flags);
     bool semanticTiargs(Scope *sc);
-    bool findBestMatch(Scope *sc, Expressions *fargs);
+    bool findBestMatch(Scope *sc);
     bool needsTypeInference(Scope *sc, int flag = 0);
     bool hasNestedArgs(Objects *tiargs, bool isstatic);
     void declareParameters(Scope *sc);

@@ -872,7 +872,7 @@ bool TemplateDeclaration::evaluateConstraint(
  */
 
 MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
-        Objects *dedtypes, Expressions *fargs, int flag)
+        Objects *dedtypes, int flag)
 {
 #define LOGM 0
 #if LOGM
@@ -994,7 +994,7 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
             tf->next = NULL;
 
             // Resolve parameter types and 'auto ref's.
-            tf->fargs = fargs;
+            tf->fargs = ti->fargs;
             fd->type = tf->semantic(loc, paramscope);
             fd->originalType = fd->type;    // for mangling
             if (fd->type->ty != Tfunction)
@@ -1093,13 +1093,14 @@ MATCH TemplateDeclaration::leastAsSpecialized(Scope *sc, TemplateDeclaration *td
 
         ti.tiargs->push(p);
     }
+    ti.fargs = fargs;
 
     // Temporary Array to hold deduced types
     Objects dedtypes;
     dedtypes.setDim(td2->parameters->dim);
 
     // Attempt a type deduction
-    MATCH m = td2->matchWithInstance(sc, &ti, &dedtypes, fargs, 1);
+    MATCH m = td2->matchWithInstance(sc, &ti, &dedtypes, 1);
     if (m > MATCHnomatch)
     {
         /* A non-variadic template is more specialized than a
@@ -2219,16 +2220,18 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
                 ti->instantiatingModule = ti->tinst->instantiatingModule;
             else
                 ti->instantiatingModule = sc->instantiatingModule();
+            ti->fargs = fargs;
 
             Objects dedtypes;
             dedtypes.setDim(td->parameters->dim);
             assert(td->semanticRun != PASSinit);
-            MATCH mta = td->matchWithInstance(sc, ti, &dedtypes, fargs, 0);
+            MATCH mta = td->matchWithInstance(sc, ti, &dedtypes, 0);
             //printf("matchWithInstance = %d\n", mta);
             if (mta <= MATCHnomatch || mta < ta_last)      // no match or less match
                 return 0;
 
-            ti->semantic(sc, fargs);
+            ti->fargs = fargs;
+            ti->semantic(sc);
             if (!ti->inst)                  // if template failed to expand
                 return 0;
 
@@ -2484,7 +2487,8 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         if (!sc) sc = p.td_best->scope; // workaround for Type::aliasthisOf
 
         TemplateInstance *ti = new TemplateInstance(loc, p.td_best, p.ti_best->tiargs);
-        ti->semantic(sc, fargs);
+        ti->fargs = fargs;
+        ti->semantic(sc);
 
         m->lastf = ti->toAlias()->isFuncDeclaration();
         if (ti->errors || !m->lastf)
@@ -5917,11 +5921,6 @@ Dsymbol *TemplateInstance::syntaxCopy(Dsymbol *s)
 
 void TemplateInstance::semantic(Scope *sc)
 {
-    semantic(sc, NULL);
-}
-
-void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
-{
     //printf("TemplateInstance::semantic('%s', this=%p, gag = %d, sc = %p)\n", toChars(), this, global.gag, sc);
 #if 0
     for (Dsymbol *s = this; s; s = s->parent)
@@ -5979,7 +5978,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
      */
     if (!findTempDecl(sc, NULL) ||
         !semanticTiargs(sc) ||
-        !findBestMatch(sc, fargs))
+        !findBestMatch(sc))
     {
         if (global.gag)
         {
@@ -5999,8 +5998,6 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         error("mixin templates are not regular templates");
 
     hasNestedArgs(tiargs, tempdecl->isstatic);
-
-    this->fargs = fargs;
 
     /* See if there is an existing TemplateInstantiation that already
      * implements the typeargs. If so, just refer to that one instead.
@@ -6940,7 +6937,7 @@ bool TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
     return !err;
 }
 
-bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
+bool TemplateInstance::findBestMatch(Scope *sc)
 {
     if (havetempdecl)
     {
@@ -6949,7 +6946,7 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
         assert(tempdecl->scope);
         // Deduce tdtypes
         tdtypes.setDim(tempdecl->parameters->dim);
-        if (!tempdecl->matchWithInstance(sc, this, &tdtypes, fargs, 2))
+        if (!tempdecl->matchWithInstance(sc, this, &tdtypes, 2))
         {
             error("incompatible arguments for template instantiation");
             return false;
@@ -6999,7 +6996,7 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
         dedtypes.setDim(td->parameters->dim);
         dedtypes.zero();
         assert(td->semanticRun != PASSinit);
-        MATCH m = td->matchWithInstance(sc, ti, &dedtypes, ti->fargs, 0);
+        MATCH m = td->matchWithInstance(sc, ti, &dedtypes, 0);
         //printf("matchWithInstance = %d\n", m);
         if (m <= MATCHnomatch)                 // no match at all
             return 0;
@@ -7228,6 +7225,7 @@ bool TemplateInstance::needsTypeInference(Scope *sc, int flag)
                 ti->instantiatingModule = ti->tinst->instantiatingModule;
             else
                 ti->instantiatingModule = sc->instantiatingModule();
+            assert(ti->fargs == NULL);
 
             /* Calculate the need for overload resolution.
              * When only one template can match with tiargs, inference is not necessary.
@@ -7235,7 +7233,7 @@ bool TemplateInstance::needsTypeInference(Scope *sc, int flag)
             dedtypes.setDim(td->parameters->dim);
             dedtypes.zero();
             assert(td->semanticRun != PASSinit);
-            MATCH m = td->matchWithInstance(sc, ti, &dedtypes, NULL, 1);
+            MATCH m = td->matchWithInstance(sc, ti, &dedtypes, 1);
             if (m <= MATCHnomatch)
                 return 0;
         }
@@ -8045,13 +8043,14 @@ void TemplateMixin::semantic(Scope *sc)
         scope = NULL;
     }
 
+    assert(fargs == NULL);
 
     /* Run semantic on each argument, place results in tiargs[],
      * then find best match template with tiargs
      */
     if (!findTempDecl(sc) ||
         !semanticTiargs(sc) ||
-        !findBestMatch(sc, NULL))
+        !findBestMatch(sc))
     {
         if (semanticRun == PASSinit)    // forward reference had occured
         {
