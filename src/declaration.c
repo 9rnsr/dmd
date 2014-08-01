@@ -905,10 +905,6 @@ void VarDeclaration::semantic(Scope *sc)
     //if (strcmp(toChars(), "mul") == 0) halt();
 #endif
 
-//    if (sem > SemanticStart)
-//      return;
-//    sem = SemanticIn;
-
     if (sem >= SemanticDone)
         return;
 
@@ -968,11 +964,10 @@ void VarDeclaration::semantic(Scope *sc)
         inuse--;
     }
     //printf(" semantic type = %s\n", type ? type->toChars() : "null");
-
     type->checkDeprecated(loc, sc);
+
     linkage = sc->linkage;
-    this->parent = sc->parent;
-    //printf("this = %p, parent = %p, '%s'\n", this, parent, parent->toChars());
+    parent = sc->parent;
     protection = sc->protection;
 
     /* If scope's alignment is the default, use the type's alignment,
@@ -982,6 +977,7 @@ void VarDeclaration::semantic(Scope *sc)
     if (alignment == STRUCTALIGN_DEFAULT)
         alignment = type->alignment();          // use type's alignment
 
+    //printf("this = %p, parent = %p, '%s'\n", this, parent, parent->toChars());
     //printf("sc->stc = %x\n", sc->stc);
     //printf("storage_class = x%x\n", storage_class);
 
@@ -1630,6 +1626,9 @@ void VarDeclaration::semantic2(Scope *sc)
         // Inside unions, default to void initializers
     if (!init && sc->inunion && !toParent()->isFuncDeclaration())
     {
+        // sc->inunion is not reliable.
+        // And field offset calculation is now independent to semantic analysis timing
+        // So overlapped fields does not have VoidInitializer always.
         AggregateDeclaration *aad = parent->isAggregateDeclaration();
         if (aad)
         {
