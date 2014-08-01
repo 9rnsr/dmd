@@ -2822,9 +2822,8 @@ PROT TemplateDeclaration::prot()
  * If so, return that existing instance.
  */
 
-TemplateInstance *TemplateDeclaration::findExistingInstance(TemplateInstance *tithis, Expressions *fargs)
+TemplateInstance *TemplateDeclaration::findExistingInstance(TemplateInstance *tithis)
 {
-    tithis->fargs = fargs;
     hash_t hash = tithis->hashCode();
 
     if (!buckets.dim)
@@ -6001,11 +6000,13 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 
     hasNestedArgs(tiargs, tempdecl->isstatic);
 
+    this->fargs = fargs;
+
     /* See if there is an existing TemplateInstantiation that already
      * implements the typeargs. If so, just refer to that one instead.
      */
     {
-        TemplateInstance *ti = tempdecl->findExistingInstance(this, fargs);
+        TemplateInstance *ti = tempdecl->findExistingInstance(this);
         if (ti)
         {
             // It's a match
