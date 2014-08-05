@@ -541,12 +541,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                 e->fd->vthis = NULL;
             }
             Symbol *s = toSymbol(e->fd);
-            if (e->fd->isNested())
-            {
-                e->error("non-constant nested delegate literal expression %s", e->toChars());
-                pdt = NULL;
-                return;
-            }
+            assert(!e->fd->isNested());
             e->fd->toObjFile(0);
             pdt = dtxoff(pdt, s, 0);
         }

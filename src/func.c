@@ -1275,20 +1275,27 @@ void FuncDeclaration::semantic3(Scope *sc)
         sc2->fieldinit = NULL;
         sc2->fieldinit_dim = 0;
 
-        if (isMember2())
+        FuncLiteralDeclaration *fld = isFuncLiteralDeclaration();
+        if (fld)
         {
-            FuncLiteralDeclaration *fld = isFuncLiteralDeclaration();
-            if (fld && !sc->intypeof)
+            Dsymbol *p = isMember2();
+            if (!p)
+                p = toParent2()->isModule();
+            if (p)
             {
-                if (fld->tok == TOKreserved)
-                    fld->tok = TOKfunction;
-                if (isNested())
+                //printf("fld = %s, p = %s %s\n", fld->toChars(), p->kind(), p->toChars());
+                if (!sc->intypeof)
                 {
-                    error("cannot be class members");
-                    return;
+                    if (fld->tok == TOKreserved)
+                        fld->tok = TOKfunction;
+                    if (isNested())
+                    {
+                        error("cannot be %s members", p->kind());
+                        return;
+                    }
                 }
+                assert(!isNested() || sc->intypeof);    // can't be both member and nested
             }
-            assert(!isNested() || sc->intypeof);    // can't be both member and nested
         }
 
         // Declare 'this'
