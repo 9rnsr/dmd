@@ -669,6 +669,15 @@ void TemplateDeclaration::semantic(Scope *sc)
     {
         onemember = s;
         s->parent = this;
+
+        if (AggregateDeclaration *ad = s->isAggregateDeclaration())
+        {
+            if (Dsymbol *ctor = Dsymbol::oneMembers(ad->members, Id::ctor))
+            {
+                printf("'%s', '%s'\n", ad->toChars(), ctor->toChars());
+                ad->ctor = ctor;
+            }
+        }
     }
 
     /* BUG: should check:
@@ -2225,6 +2234,13 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
 
         FuncDeclaration *f;
         f = td->onemember ? td->onemember->isFuncDeclaration() : NULL;
+        if (!f && td->onemember)
+        {
+            AggregateDeclaration *ad = td->onemember->isAggregateDeclaration();
+            f = ad && ad->ctor ? ad->ctor->isFuncDeclaration() : NULL;
+            if (f)
+                printf("[%s] ctorCall ad = %s, ctor = %s\n", loc.toChars(), td->onemember->toChars(), f->toChars());
+        }
         if (!f)
         {
             if (!tiargs)

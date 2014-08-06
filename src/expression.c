@@ -8294,6 +8294,8 @@ Lagain:
                 return ex;
         }
 
+        printf("e1 = %s %s\n", Token::toChars(e1->op), e1->toChars());
+
         /* Look for e1 being a lazy parameter
          */
         if (e1->op == TOKvar)
@@ -8310,11 +8312,33 @@ Lagain:
                 ve->type = t->semantic(loc, sc);
             }
         }
+#if 0
+        if (e1->op == TOKtemplate)
+        {
+            TemplateDeclaration *td = ((TemplateExp *)e1)->td;
 
+            if (AggregateDeclaration *ad = td->onemember ? td->onemember->isAggregateDeclaration() : NULL)
+            {
+                if (ad->ctor)
+                {
+                    printf("[%s] call ad = %s, ctor = %s\n", loc.toChars(), ad->toChars(), ad->ctor->toChars());
+                    FuncDeclaration *f = resolveFuncCall(loc, sc, ad->ctor, NULL, NULL, arguments);
+                    if (f)
+                        printf("\tf = %s\n", f->toPrettyChars());
+                }
+            }
+        }
+#endif
         if (e1->op == TOKimport)
         {
             // Perhaps this should be moved to ScopeExp::semantic()
             ScopeExp *se = (ScopeExp *)e1;
+
+            if (TemplateDeclaration *td = se->sds->isTemplateDeclaration())
+            {
+                printf("L%d [%s] call td = %s\n", __LINE__, loc.toChars(), td->toChars());
+            }
+
             e1 = new DsymbolExp(loc, se->sds);
             e1 = e1->semantic(sc);
         }
