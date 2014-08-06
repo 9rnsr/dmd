@@ -2639,7 +2639,7 @@ bool IntegerExp::equals(RootObject *o)
     if (((Expression *)o)->op == TOKint64)
     {
         IntegerExp *ne = (IntegerExp *)o;
-        if (type->toHeadMutable()->equals(ne->type->toHeadMutable()) &&
+        if (type->->equals(ne->type) &&
             value == ne->value)
         {
             return true;
@@ -2838,7 +2838,7 @@ bool RealExp::equals(RootObject *o)
     if (((Expression *)o)->op == TOKfloat64)
     {
         RealExp *ne = (RealExp *)o;
-        if (type->toHeadMutable()->equals(ne->type->toHeadMutable()) &&
+        if (type->equals(ne->type) &&
             RealEquals(value, ne->value))
         {
             return true;
@@ -2974,7 +2974,7 @@ bool ComplexExp::equals(RootObject *o)
     if (((Expression *)o)->op == TOKcomplex80)
     {
         ComplexExp *ne = (ComplexExp *)o;
-        if (type->toHeadMutable()->equals(ne->type->toHeadMutable()) &&
+        if (type->equals(ne->type) &&
             RealEquals(creall(value), creall(ne->value)) &&
             RealEquals(cimagl(value), cimagl(ne->value)))
         {
@@ -5206,7 +5206,7 @@ bool VarExp::equals(RootObject *o)
     if (((Expression *)o)->op == TOKvar)
     {
         VarExp *ne = (VarExp *)o;
-        if (type->toHeadMutable()->equals(ne->type->toHeadMutable()) &&
+        if (type->toHeadMutable()->equals(ne->type->toHeadMutable()) && // todo
             var == ne->var)
         {
             return true;
