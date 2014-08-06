@@ -383,7 +383,6 @@ Dsymbol *StorageClassDeclaration::syntaxCopy(Dsymbol *s)
 
 bool StorageClassDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
 {
-
     bool t = Dsymbol::oneMembers(decl, ps, ident);
     if (t && *ps)
     {

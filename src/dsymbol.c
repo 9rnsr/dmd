@@ -120,6 +120,12 @@ bool Dsymbol::oneMember(Dsymbol **ps, Identifier *ident)
  * Same as Dsymbol::oneMember(), but look at an array of Dsymbols.
  */
 
+Dsymbol *Dsymbol::oneMembers(Dsymbols *members, Identifier *ident)
+{
+    Dsymbol *s;
+    return oneMembers(members, &s, ident) ? s : NULL;
+}
+
 bool Dsymbol::oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident)
 {
     //printf("Dsymbol::oneMembers() %d\n", members ? members->dim : 0);

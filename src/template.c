@@ -515,10 +515,9 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
 
     // Compute in advance for Ddoc's use
     // Bugzilla 11153: ident could be NULL if parsing fails.
-    if (members && ident)
+    if (ident)
     {
-        Dsymbol *s;
-        if (Dsymbol::oneMembers(members, &s, ident) && s)
+        if (Dsymbol *s = Dsymbol::oneMembers(members, ident))
         {
             onemember = s;
             s->parent = this;
@@ -666,14 +665,10 @@ void TemplateDeclaration::semantic(Scope *sc)
 
     // Compute again
     onemember = NULL;
-    if (members)
+    if (Dsymbol *s = Dsymbol::oneMembers(members, ident))
     {
-        Dsymbol *s;
-        if (Dsymbol::oneMembers(members, &s, ident) && s)
-        {
-            onemember = s;
-            s->parent = this;
-        }
+        onemember = s;
+        s->parent = this;
     }
 
     /* BUG: should check:
@@ -6307,17 +6302,13 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
      * If so, this template instance becomes an alias for that member.
      */
     //printf("members->dim = %d\n", members->dim);
-    if (members->dim)
+    if (Dsymbol *s = Dsymbol::oneMembers(members, tempdecl->ident))
     {
-        Dsymbol *s;
-        if (Dsymbol::oneMembers(members, &s, tempdecl->ident) && s)
-        {
-            //printf("s->kind = '%s'\n", s->kind());
-            //s->print();
-            //printf("'%s', '%s'\n", s->ident->toChars(), tempdecl->ident->toChars());
-            //printf("setting aliasdecl\n");
-            aliasdecl = s;
-        }
+        //printf("s->kind = '%s'\n", s->kind());
+        //s->print();
+        //printf("'%s', '%s'\n", s->ident->toChars(), tempdecl->ident->toChars());
+        //printf("setting aliasdecl\n");
+        aliasdecl = s;
     }
 
     /* If function template declaration
@@ -6356,19 +6347,15 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     /* ConditionalDeclaration may introduce eponymous declaration,
      * so we should find it once again after semantic.
      */
-    if (members->dim)
+    if (Dsymbol *s = Dsymbol::oneMembers(members, tempdecl->ident))
     {
-        Dsymbol *s;
-        if (Dsymbol::oneMembers(members, &s, tempdecl->ident) && s)
+        if (!aliasdecl || aliasdecl != s)
         {
-            if (!aliasdecl || aliasdecl != s)
-            {
-                //printf("s->kind = '%s'\n", s->kind());
-                //s->print();
-                //printf("'%s', '%s'\n", s->ident->toChars(), tempdecl->ident->toChars());
-                //printf("setting aliasdecl 2\n");
-                aliasdecl = s;
-            }
+            //printf("s->kind = '%s'\n", s->kind());
+            //s->print();
+            //printf("'%s', '%s'\n", s->ident->toChars(), tempdecl->ident->toChars());
+            //printf("setting aliasdecl 2\n");
+            aliasdecl = s;
         }
     }
 
