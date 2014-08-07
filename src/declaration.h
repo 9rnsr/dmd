@@ -91,6 +91,9 @@ const StorageClass STCStorageClass = (STCauto | STCscope | STCstatic | STCextern
     STCmanifest | STCimmutable | STCshared | STCwild | STCnothrow | STCnogc | STCpure | STCref | STCtls |
     STCgshared | STCproperty | STCsafe | STCtrusted | STCsystem | STCdisable);
 
+// in hdrgen.c
+void stcToBuffer(OutBuffer *buf, StorageClass stc);
+
 struct Match
 {
     int count;                  // number of matches found

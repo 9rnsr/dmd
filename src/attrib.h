@@ -68,9 +68,6 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
     bool oneMember(Dsymbol **ps, Identifier *ident);
-
-    static const char *stcToChars(char tmp[], StorageClass& stc);
-    static void stcToCBuffer(OutBuffer *buf, StorageClass stc);
     void accept(Visitor *v) { v->visit(this); }
 };
 

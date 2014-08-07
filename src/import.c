@@ -21,7 +21,6 @@
 #include "mtype.h"
 #include "declaration.h"
 #include "id.h"
-#include "attrib.h"
 
 /********************************* Import ****************************/
 
@@ -320,7 +319,10 @@ void Import::semantic(Scope *sc)
         protectionToBuffer(ob, Prot(protection));
         ob->writeByte(' ');
         if (isstatic)
-            StorageClassDeclaration::stcToCBuffer(ob, STCstatic);
+        {
+            stcToBuffer(ob, STCstatic);
+            ob->writeByte(' ');
+        }
         ob->writestring(": ");
 
         if (packages)

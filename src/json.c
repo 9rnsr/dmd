@@ -31,6 +31,8 @@
 #include "import.h"
 #include "id.h"
 
+void stcPickToBuffer(OutBuffer *buf, StorageClass &stc);
+
 class ToJsonVisitor : public Visitor
 {
 public:
@@ -339,13 +341,12 @@ public:
             propertyStart(name);
             arrayStart();
 
+            OutBuffer propbuf;
             while (stc)
             {
-                const size_t BUFFER_LEN = 20;
-                char tmp[BUFFER_LEN];
-                const char *p = StorageClassDeclaration::stcToChars(tmp, stc);
-                assert(p);
-                assert(strlen(p) < BUFFER_LEN);
+                propbuf.reset();
+                stcPickToBuffer(&propbuf, stc);
+                const char *p = propbuf.peekString();
                 if (p[0] == '@')
                 {
                     indent();

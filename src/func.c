@@ -15,7 +15,6 @@
 #include "mars.h"
 #include "init.h"
 #include "declaration.h"
-#include "attrib.h"
 #include "expression.h"
 #include "scope.h"
 #include "mtype.h"
@@ -4688,7 +4687,7 @@ void StaticCtorDeclaration::semantic(Scope *sc)
     if (storage_class & (STCimmutable | STCconst | STCshared | STCwild))
     {
         OutBuffer buf;
-        StorageClassDeclaration::stcToCBuffer(&buf, storage_class & (STCimmutable | STCconst | STCshared | STCwild));
+        stcToBuffer(&buf, storage_class & (STCimmutable | STCconst | STCshared | STCwild));
         ::error(loc, "static constructors cannot be %s", buf.peekString());
     }
 

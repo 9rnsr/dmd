@@ -1203,9 +1203,8 @@ Lnomatch:
         {
             if (storage_class & (STCconst | STCimmutable) && init && !init->isVoidInitializer())
             {
-                StorageClass stc = storage_class & (STCconst | STCimmutable);
                 deprecation(loc, "%s field with initializer should be static, __gshared, or an enum",
-                    StorageClassDeclaration::stcToChars(NULL, stc));
+                    (storage_class & STCimmutable ? "immutable" : "const"));
                 if (!tb->isTypeBasic())
                     storage_class |= STCstatic;
             }
