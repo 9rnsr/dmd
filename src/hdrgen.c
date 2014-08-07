@@ -724,17 +724,17 @@ public:
             unsigned char m = t->mod & ~(t->mod & modMask);
             if (m & MODshared)
             {
-                MODtoBuffer(buf, MODshared);
+                modToBuffer(buf, MODshared);
                 buf->writeByte('(');
             }
             if (m & MODwild)
             {
-                MODtoBuffer(buf, MODwild);
+                modToBuffer(buf, MODwild);
                 buf->writeByte('(');
             }
             if (m & (MODconst | MODimmutable))
             {
-                MODtoBuffer(buf, m & (MODconst | MODimmutable));
+                modToBuffer(buf, m & (MODconst | MODimmutable));
                 buf->writeByte('(');
             }
 
@@ -886,7 +886,7 @@ public:
         if (t->mod)
         {
             buf->writeByte(' ');
-            MODtoBuffer(buf, t->mod);
+            modToBuffer(buf, t->mod);
         }
         t->attributesApply(&pas, &PrePostAppendStrings::fp);
 
@@ -910,7 +910,7 @@ public:
          */
         if (t->mod)
         {
-            MODtoBuffer(buf, t->mod);
+            modToBuffer(buf, t->mod);
             buf->writeByte(' ');
         }
         t->attributesApply(&pas, &PrePostAppendStrings::fp);
@@ -2647,7 +2647,7 @@ public:
             typeToBuffer(e->to, NULL);
         else
         {
-            MODtoBuffer(buf, e->mod);
+            modToBuffer(buf, e->mod);
         }
         buf->writeByte(')');
         expToBuffer(e->e1, precedence[e->op]);
@@ -2956,6 +2956,66 @@ void toCBuffer(Initializer *iz, OutBuffer *buf, HdrGenState *hgs)
 {
     PrettyPrintVisitor v(buf, hgs);
     iz->accept(&v);
+}
+
+/*********************************
+ * Store modifier name into buf.
+ */
+void modToBuffer(OutBuffer *buf, MOD mod)
+{
+    switch (mod)
+    {
+        case 0:
+            break;
+
+        case MODimmutable:
+            buf->writestring(Token::tochars[TOKimmutable]);
+            break;
+
+        case MODshared:
+            buf->writestring(Token::tochars[TOKshared]);
+            break;
+
+        case MODshared | MODconst:
+            buf->writestring(Token::tochars[TOKshared]);
+            buf->writeByte(' ');
+            /* fall through */
+        case MODconst:
+            buf->writestring(Token::tochars[TOKconst]);
+            break;
+
+        case MODshared | MODwild:
+            buf->writestring(Token::tochars[TOKshared]);
+            buf->writeByte(' ');
+            /* fall through */
+        case MODwild:
+            buf->writestring(Token::tochars[TOKwild]);
+            break;
+
+        case MODshared | MODwildconst:
+            buf->writestring(Token::tochars[TOKshared]);
+            buf->writeByte(' ');
+            /* fall through */
+        case MODwildconst:
+            buf->writestring(Token::tochars[TOKwild]);
+            buf->writeByte(' ');
+            buf->writestring(Token::tochars[TOKconst]);
+            break;
+
+        default:
+            assert(0);
+    }
+}
+
+/*********************************
+ * Return modifier name.
+ */
+const char *modToChars(MOD mod)
+{
+    OutBuffer buf;
+    buf.reserve(16);
+    modToBuffer(&buf, mod);
+    return buf.extractString();
 }
 
 void trustToBuffer(OutBuffer *buf, TRUST trust)

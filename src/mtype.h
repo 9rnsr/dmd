@@ -126,6 +126,10 @@ enum MODFlags
 };
 typedef unsigned char MOD;
 
+// in hdrgen.c
+void modToBuffer(OutBuffer *buf, MOD mod);
+const char *modToChars(MOD mod);
+
 class Type : public RootObject
 {
 public:
@@ -254,8 +258,6 @@ public:
     Type *trySemantic(Loc loc, Scope *sc);
     Type *merge();
     Type *merge2();
-    void modToBuffer(OutBuffer *buf);
-    char *modToChars();
 
     /** For each active modifier (MODconst, MODimmutable, etc) call fp with a
     void* for the work param and a string representation of the attribute. */
@@ -998,8 +1000,6 @@ public:
 
 int arrayTypeCompatible(Loc loc, Type *t1, Type *t2);
 int arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2);
-void MODtoBuffer(OutBuffer *buf, MOD mod);
-char *MODtoChars(MOD mod);
 bool MODimplicitConv(MOD modfrom, MOD modto);
 bool MODmethodConv(MOD modfrom, MOD modto);
 MOD MODmerge(MOD mod1, MOD mod2);

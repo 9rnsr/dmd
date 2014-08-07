@@ -799,7 +799,7 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
                 if (!eleft->type->isMutable())
                 {
                     ce->error("cannot remove key from %s associative array %s",
-                            MODtoChars(t->mod), eleft->toChars());
+                            modToChars(t->mod), eleft->toChars());
                     return new ErrorExp();
                 }
                 Expression *key = (*ce->arguments)[0];
@@ -1608,7 +1608,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
         else if (tf->isWild())
         {
         Linouterr:
-            const char *s = wildmatch == MODmutable ? "mutable" : MODtoChars(wildmatch);
+            const char *s = wildmatch == MODmutable ? "mutable" : modToChars(wildmatch);
             error(loc, "modify inout to %s is not allowed inside inout function", s);
             return Type::terror;
         }
@@ -1801,9 +1801,9 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 tret = tret->substWildTo(wildmatch);
             if (!tret->implicitConvTo(tthis))
             {
-                const char* s1 = tret ->isNaked() ? " mutable" : tret ->modToChars();
-                const char* s2 = tthis->isNaked() ? " mutable" : tthis->modToChars();
-                ::error(loc, "inout constructor %s creates%s object, not%s",
+                const char* s1 = tret ->isNaked() ? "mutable" : modToChars(tret ->mod);
+                const char* s2 = tthis->isNaked() ? "mutable" : modToChars(tthis->mod);
+                ::error(loc, "inout constructor %s creates %s object, not %s",
                         fd->toPrettyChars(), s1, s2);
             }
         }
@@ -2116,7 +2116,7 @@ Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
         assert(type);
         if (!type->isMutable())
         {
-            error("cannot modify %s expression %s", MODtoChars(type->mod), toChars());
+            error("cannot modify %s expression %s", modToChars(type->mod), toChars());
             return new ErrorExp();
         }
         else if (!type->isAssignable())
@@ -7402,7 +7402,7 @@ int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1)
                         result = false;
                     else
                     {
-                        const char *modStr = !var->type->isMutable() ? MODtoChars(var->type->mod) : MODtoChars(e1->type->mod);
+                        const char *modStr = !var->type->isMutable() ? modToChars(var->type->mod) : modToChars(e1->type->mod);
                         ::error(loc, "%s field '%s' initialized multiple times", modStr, var->toChars());
                     }
                 }
@@ -7412,7 +7412,7 @@ int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1)
                         result = false;
                     else
                     {
-                        const char *modStr = !var->type->isMutable() ? MODtoChars(var->type->mod) : MODtoChars(e1->type->mod);
+                        const char *modStr = !var->type->isMutable() ? modToChars(var->type->mod) : modToChars(e1->type->mod);
                         ::error(loc, "%s field '%s' initialization is not allowed in loops or after labels", modStr, var->toChars());
                     }
                 }
@@ -7426,13 +7426,13 @@ int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1)
                 {
                     const char *p = var->isField() ? "field" : var->kind();
                     ::error(loc, "%s %s '%s' initialization is not allowed in foreach loop",
-                        MODtoChars(var->type->mod), p, var->toChars());
+                        modToChars(var->type->mod), p, var->toChars());
                 }
                 else
                 {
                     const char *p = var->isField() ? "field" : var->kind();
                     ::error(loc, "%s %s '%s' initialization is not allowed in nested function '%s'",
-                        MODtoChars(var->type->mod), p, var->toChars(), sc->func->toChars());
+                        modToChars(var->type->mod), p, var->toChars(), sc->func->toChars());
                 }
             }
             return result;
@@ -8586,8 +8586,11 @@ Lagain:
             buf.writeByte('(');
             argExpTypesToCBuffer(&buf, arguments);
             buf.writeByte(')');
-            if (tthis)
-                tthis->modToBuffer(&buf);
+            if (tthis && tthis->mod)
+            {
+                buf.writeByte(' ');
+                modToBuffer(&buf, tthis->mod);
+            }
 
             //printf("tf = %s, args = %s\n", tf->deco, (*arguments)[0]->type->deco);
             ::error(loc, "%s %s %s is not callable using argument types %s",
