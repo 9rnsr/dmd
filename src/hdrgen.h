@@ -37,7 +37,7 @@ void toCBufferInstance(TemplateInstance *ti, OutBuffer *buf, bool qualifyTypes =
 void functionToBufferFull(TypeFunction *tf, OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TemplateDeclaration *td);
 void functionToBufferWithIdent(TypeFunction *t, OutBuffer *buf, const char *ident);
 
-void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments);
+void argExpTypesToCBuffer(OutBuffer *buf, Type *tthis, Expressions *arguments);
 
 void arrayObjectsToBuffer(OutBuffer *buf, Objects *objects);
 

@@ -3273,14 +3273,7 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
     arrayObjectsToBuffer(&tiargsBuf, tiargs);
 
     OutBuffer fargsBuf;
-    fargsBuf.writeByte('(');
-    argExpTypesToCBuffer(&fargsBuf, fargs);
-    fargsBuf.writeByte(')');
-    if (tthis && tthis->mod)
-    {
-        fargsBuf.writeByte(' ');
-        modToBuffer(&fargsBuf, tthis->mod);
-    }
+    argExpTypesToCBuffer(&fargsBuf, tthis, fargs);
 
     const int numOverloadsDisplay = 5; // sensible number to display
 
