@@ -13594,19 +13594,7 @@ Expression *PrettyFuncInitExp::resolveLoc(Loc loc, Scope *sc)
     else
         fd = sc->func;
 
-    const char *s;
-    if (fd)
-    {
-        const char *funcStr = fd->Dsymbol::toPrettyChars();
-        OutBuffer buf;
-        functionToBufferWithIdent((TypeFunction *)fd->type, &buf, funcStr);
-        s = buf.extractString();
-    }
-    else
-    {
-        s = "";
-    }
-
+    const char *s = fd ? fd->toFullSignature(true) : "";
     Expression *e = new StringExp(loc, (char *)s);
     e = e->semantic(sc);
     e = e->castTo(sc, type);

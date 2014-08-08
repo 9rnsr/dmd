@@ -3170,6 +3170,7 @@ struct FuncCandidateWalker
         FuncCandidateWalker *p = (FuncCandidateWalker *)param;
         TypeFunction *tf = (TypeFunction *)f->type;
 
+        // should also print this qualifier?
         ::errorSupplemental(f->loc, "%s%s", f->toPrettyChars(),
             parametersTypeToChars(tf->parameters, tf->varargs));
 
@@ -3483,14 +3484,6 @@ const char *FuncDeclaration::toPrettyChars(bool QualifyTypes)
         return "D main";
     else
         return Dsymbol::toPrettyChars(QualifyTypes);
-}
-
-/** for diagnostics, e.g. 'int foo(int x, int y) pure' */
-const char *FuncDeclaration::toFullSignature()
-{
-    OutBuffer buf;
-    functionToBufferWithIdent((TypeFunction *)type, &buf, toChars());
-    return buf.extractString();
 }
 
 bool FuncDeclaration::isMain()

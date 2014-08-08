@@ -3227,6 +3227,27 @@ void functionToBufferWithIdent(TypeFunction *tf, OutBuffer *buf, const char *ide
     v.visitFuncIdentWithPostfix(tf, ident);
 }
 
+/*
+    use cases:
+
+    foo             // toChars
+    p1.m1.foo       // toPrettyChars
+    int foo(int x, int y)           // toFullSignature(false)
+    int p1.m1.foo(int x, int y)     // toFullSignature(true)
+*/
+/** for diagnostics, e.g. 'int foo(int x, int y) pure' */
+const char *FuncDeclaration::toFullSignature(bool qualifiedName)
+{
+    OutBuffer buf;
+    const char *s = qualifiedName ? Dsymbol::toPrettyChars() : toChars();
+
+    HdrGenState hgs;
+    PrettyPrintVisitor v(&buf, &hgs);
+    v.visitFuncIdentWithPostfix((TypeFunction *)type, s);
+
+    return buf.extractString();
+}
+
 void toCBuffer(Expression *e, OutBuffer *buf, HdrGenState *hgs)
 {
     PrettyPrintVisitor v(buf, hgs);
