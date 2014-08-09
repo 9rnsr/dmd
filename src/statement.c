@@ -87,13 +87,8 @@ void Statement::print()
 
 char *Statement::toChars()
 {
-    HdrGenState hgs;
-
-    OutBuffer buf;
-    ::toCBuffer(this, &buf, &hgs);
-    return buf.extractString();
+    return ::toChars(this);
 }
-
 
 Statement *Statement::semantic(Scope *sc)
 {

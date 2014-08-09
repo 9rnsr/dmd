@@ -532,11 +532,6 @@ Scope *LinkDeclaration::newScope(Scope *sc)
     return createNewScope(sc, sc->stc, this->linkage, sc->protection, sc->explicitProtection, sc->structalign);
 }
 
-char *LinkDeclaration::toChars()
-{
-    return (char *)"extern ()";
-}
-
 /********************************* ProtDeclaration ****************************/
 
 /**

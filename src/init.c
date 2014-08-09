@@ -47,10 +47,7 @@ Initializers *Initializer::arraySyntaxCopy(Initializers *ai)
 
 char *Initializer::toChars()
 {
-    OutBuffer buf;
-    HdrGenState hgs;
-    ::toCBuffer(this, &buf, &hgs);
-    return buf.extractString();
+    return ::toChars(this);
 }
 
 /********************************** ErrorInitializer ***************************/

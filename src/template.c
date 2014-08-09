@@ -2610,44 +2610,6 @@ bool TemplateDeclaration::hasStaticCtorOrDtor()
     return false;               // don't scan uninstantiated templates
 }
 
-char *TemplateDeclaration::toChars()
-{
-    if (literal)
-        return Dsymbol::toChars();
-
-    OutBuffer buf;
-    HdrGenState hgs;
-
-    buf.writestring(ident->toChars());
-    buf.writeByte('(');
-    for (size_t i = 0; i < parameters->dim; i++)
-    {
-        TemplateParameter *tp = (*parameters)[i];
-        if (i)
-            buf.writestring(", ");
-        ::toCBuffer(tp, &buf, &hgs);
-    }
-    buf.writeByte(')');
-
-    if (onemember)
-    {
-        FuncDeclaration *fd = onemember->isFuncDeclaration();
-        if (fd && fd->type)
-        {
-            TypeFunction *tf = (TypeFunction *)fd->type;
-            buf.writestring(parametersTypeToChars(tf->parameters, tf->varargs));
-        }
-    }
-
-    if (constraint)
-    {
-        buf.writestring(" if (");
-        ::toCBuffer(constraint, &buf, &hgs);
-        buf.writeByte(')');
-    }
-    return buf.extractString();
-}
-
 Prot TemplateDeclaration::prot()
 {
     return protection;
@@ -7592,20 +7554,6 @@ bool TemplateInstance::oneMember(Dsymbol **ps, Identifier *ident)
     return true;
 }
 
-char *TemplateInstance::toChars()
-{
-    OutBuffer buf;
-    toCBufferInstance(this, &buf);
-    return buf.extractString();
-}
-
-char *TemplateInstance::toPrettyCharsHelper()
-{
-    OutBuffer buf;
-    toCBufferInstance(this, &buf, true);
-    return buf.extractString();
-}
-
 int TemplateInstance::compare(RootObject *o)
 {
     TemplateInstance *ti = (TemplateInstance *)o;
@@ -8276,11 +8224,4 @@ void TemplateMixin::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, 
             s->setFieldOffset(ad, poffset, isunion);
         }
     }
-}
-
-char *TemplateMixin::toChars()
-{
-    OutBuffer buf;
-    toCBufferInstance(this, &buf);
-    return buf.extractString();
 }

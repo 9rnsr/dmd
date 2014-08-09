@@ -1916,10 +1916,7 @@ void Expression::print()
 
 char *Expression::toChars()
 {
-    OutBuffer buf;
-    HdrGenState hgs;
-    toCBuffer(this, &buf, &hgs);
-    return buf.extractString();
+    return ::toChars(this);
 }
 
 void Expression::error(const char *format, ...)
@@ -5623,11 +5620,6 @@ Expression *FuncExp::semantic(Scope *sc, Expressions *arguments)
         return new ErrorExp();
     }
     return semantic(sc);
-}
-
-char *FuncExp::toChars()
-{
-    return fd->toChars();
 }
 
 /******************************** DeclarationExp **************************/

@@ -93,7 +93,6 @@ public:
     LinkDeclaration(LINK p, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
-    char *toChars();
     void accept(Visitor *v) { v->visit(this); }
 };
 

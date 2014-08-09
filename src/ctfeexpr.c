@@ -107,11 +107,6 @@ VoidInitExp::VoidInitExp(VarDeclaration *var, Type *type)
     this->type = var->type;
 }
 
-char *VoidInitExp::toChars()
-{
-    return (char *)"void";
-}
-
 // Return index of the field, or -1 if not found
 // Same as getFieldIndex, but checks for a direct match with the VarDeclaration
 int findFieldIndexByName(StructDeclaration *sd, VarDeclaration *v)
@@ -130,11 +125,6 @@ ThrownExceptionExp::ThrownExceptionExp(Loc loc, ClassReferenceExp *victim) : Exp
 {
     this->thrown = victim;
     this->type = victim->type;
-}
-
-char *ThrownExceptionExp::toChars()
-{
-    return (char *)"CTFE ThrownException";
 }
 
 // Generate an error message when this exception is not caught

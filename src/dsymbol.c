@@ -33,6 +33,7 @@
 #include "template.h"
 #include "attrib.h"
 #include "enum.h"
+#include "hdrgen.h"
 
 
 /****************************** Dsymbol ******************************/
@@ -205,43 +206,7 @@ Identifier *Dsymbol::getIdent()
 
 char *Dsymbol::toChars()
 {
-    return ident ? ident->toChars() : (char *)"__anonymous";
-}
-
-char *Dsymbol::toPrettyCharsHelper()
-{
-    return toChars();
-}
-
-const char *Dsymbol::toPrettyChars(bool QualifyTypes)
-{   Dsymbol *p;
-    char *s;
-    char *q;
-    size_t len;
-
-    //printf("Dsymbol::toPrettyChars() '%s'\n", toChars());
-    if (!parent)
-        return toChars();
-
-    len = 0;
-    for (p = this; p; p = p->parent)
-        len += strlen(QualifyTypes ? p->toPrettyCharsHelper() : p->toChars()) + 1;
-
-    s = (char *)mem.malloc(len);
-    q = s + len - 1;
-    *q = 0;
-    for (p = this; p; p = p->parent)
-    {
-        char *t = QualifyTypes ? p->toPrettyCharsHelper() : p->toChars();
-        len = strlen(t);
-        q -= len;
-        memcpy(q, t, len);
-        if (q == s)
-            break;
-        q--;
-        *q = '.';
-    }
-    return s;
+    return ::toChars(this);
 }
 
 Loc& Dsymbol::getLoc()

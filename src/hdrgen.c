@@ -3077,12 +3077,6 @@ void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments)
     }
 }
 
-void toCBuffer(TemplateParameter *tp, OutBuffer *buf, HdrGenState *hgs)
-{
-    PrettyPrintVisitor v(buf, hgs);
-    tp->accept(&v);
-}
-
 void arrayObjectsToBuffer(OutBuffer *buf, Objects *objects)
 {
     if (!objects || !objects->dim)
@@ -3104,5 +3098,236 @@ const char *parametersTypeToChars(Parameters *parameters, int varargs)
     HdrGenState hgs;
     PrettyPrintVisitor v(&buf, &hgs);
     v.parametersToBuffer(parameters, varargs);
+    return buf.extractString();
+}
+
+/*********************************** toChars **********************************/
+
+char *toChars(Statement *s)
+{
+    OutBuffer buf;
+    HdrGenState hgs;
+    PrettyPrintVisitor v(&buf, &hgs);
+    s->accept(&v);
+    return buf.extractString();
+}
+
+char *toChars(Type *t)
+{
+    OutBuffer buf;
+    HdrGenState hgs;
+    buf.reserve(16);
+    PrettyPrintVisitor v(&buf, &hgs);
+    v.typeToBuffer(t, NULL);
+    return buf.extractString();
+}
+
+char *TypeStruct::toChars()
+{
+    //printf("sym.parent: %s, deco = %s\n", sym->parent->toChars(), deco);
+    if (mod)
+        return Type::toChars();
+    TemplateInstance *ti = sym->parent->isTemplateInstance();
+    if (ti && ti->toAlias() == sym)
+    {
+        return ti->toChars();
+    }
+    return sym->toChars();
+}
+
+char *TypeClass::toChars()
+{
+    if (mod)
+        return Type::toChars();
+    return (char *)sym->toPrettyChars();
+}
+
+char *toChars(Dsymbol *s)
+{
+    return s->ident ? s->ident->toChars() : (char *)"__anonymous";
+}
+
+//char *LinkDeclaration::toChars()
+//{
+//    return (char *)"extern ()";
+//}
+
+char *TemplateDeclaration::toChars()
+{
+    if (literal)
+        return Dsymbol::toChars();
+
+    OutBuffer buf;
+    HdrGenState hgs;
+    PrettyPrintVisitor v(&buf, &hgs);
+
+    buf.writestring(ident->toChars());
+    buf.writeByte('(');
+    for (size_t i = 0; i < parameters->dim; i++)
+    {
+        if (i)
+            buf.writestring(", ");
+        (*parameters)[i]->accept(&v);
+    }
+    buf.writeByte(')');
+
+    if (onemember)
+    {
+        FuncDeclaration *fd = onemember->isFuncDeclaration();
+        if (fd && fd->type)
+        {
+            TypeFunction *tf = (TypeFunction *)fd->type;
+            v.parametersToBuffer(tf->parameters, tf->varargs);
+        }
+    }
+
+    if (constraint)
+    {
+        buf.writestring(" if (");
+        constraint->accept(&v);
+        buf.writeByte(')');
+    }
+    return buf.extractString();
+}
+
+char *TemplateInstance::toChars()
+{
+    OutBuffer buf;
+    HdrGenState hgs;
+    PrettyPrintVisitor v(&buf, &hgs);
+    v.visit(this);
+    return buf.extractString();
+}
+
+char *TypeInfoDeclaration::toChars()
+{
+    //printf("TypeInfoDeclaration::toChars() tinfo = %s\n", tinfo->toChars());
+    OutBuffer buf;
+    buf.writestring("typeid(");
+    buf.writestring(tinfo->toChars());
+    buf.writeByte(')');
+    return buf.extractString();
+}
+
+char *CtorDeclaration::toChars()
+{
+    return (char *)"this";
+}
+
+char *DtorDeclaration::toChars()
+{
+    return (char *)"~this";
+}
+
+char *toChars(Initializer *iz)
+{
+    OutBuffer buf;
+    HdrGenState hgs;
+    PrettyPrintVisitor v(&buf, &hgs);
+    iz->accept(&v);
+    return buf.extractString();
+}
+
+char *toChars(Expression *e)
+{
+    OutBuffer buf;
+    HdrGenState hgs;
+    PrettyPrintVisitor v(&buf, &hgs);
+    e->accept(&v);
+    return buf.extractString();
+}
+
+char *FuncExp::toChars()
+{
+    return fd->toChars();
+}
+
+char *VoidInitExp::toChars()
+{
+    return (char *)"void";
+}
+
+char *ThrownExceptionExp::toChars()
+{
+    return (char *)"CTFE ThrownException";
+}
+
+char *ModuleDeclaration::toChars()
+{
+    OutBuffer buf;
+
+    if (packages && packages->dim)
+    {
+        for (size_t i = 0; i < packages->dim; i++)
+        {
+            Identifier *pid = (*packages)[i];
+            buf.writestring(pid->toChars());
+            buf.writeByte('.');
+        }
+    }
+    buf.writestring(id->toChars());
+    return buf.extractString();
+}
+
+/******************************** toPrettyChars *******************************/
+
+char *Type::toPrettyChars(bool QualifyTypes)
+{
+    OutBuffer buf;
+    buf.reserve(16);
+
+    HdrGenState hgs;
+    hgs.fullQual = QualifyTypes;
+
+    PrettyPrintVisitor v(&buf, &hgs);
+    v.typeToBuffer(this, NULL);
+
+    return buf.extractString();
+}
+
+char *Dsymbol::toPrettyCharsHelper()
+{
+    return toChars();
+}
+
+const char *Dsymbol::toPrettyChars(bool QualifyTypes)
+{
+    Dsymbol *p;
+    char *s;
+    char *q;
+    size_t len;
+
+    //printf("Dsymbol::toPrettyChars() '%s'\n", toChars());
+    if (!parent)
+        return toChars();
+
+    len = 0;
+    for (p = this; p; p = p->parent)
+        len += strlen(QualifyTypes ? p->toPrettyCharsHelper() : p->toChars()) + 1;
+
+    s = (char *)mem.malloc(len);
+    q = s + len - 1;
+    *q = 0;
+    for (p = this; p; p = p->parent)
+    {
+        char *t = QualifyTypes ? p->toPrettyCharsHelper() : p->toChars();
+        len = strlen(t);
+        q -= len;
+        memcpy(q, t, len);
+        if (q == s)
+            break;
+        q--;
+        *q = '.';
+    }
+    return s;
+}
+
+char *TemplateInstance::toPrettyCharsHelper()
+{
+    OutBuffer buf;
+    HdrGenState hgs;
+    hgs.fullQual = true;
+    PrettyPrintVisitor v(&buf, &hgs);
+    v.visit(this);
     return buf.extractString();
 }

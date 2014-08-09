@@ -4477,11 +4477,6 @@ const char *CtorDeclaration::kind()
     return "constructor";
 }
 
-char *CtorDeclaration::toChars()
-{
-    return (char *)"this";
-}
-
 bool CtorDeclaration::isVirtual()
 {
     return false;
@@ -4632,11 +4627,6 @@ bool DtorDeclaration::addPostInvariant()
 const char *DtorDeclaration::kind()
 {
     return "destructor";
-}
-
-char *DtorDeclaration::toChars()
-{
-    return (char *)"~this";
 }
 
 bool DtorDeclaration::isVirtual()

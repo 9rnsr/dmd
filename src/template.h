@@ -385,7 +385,7 @@ public:
     int apply(Dsymbol_apply_ft_t fp, void *param);
     bool hasPointers();
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
-    char *toChars();
+    //char *toChars();
 
     void toObjFile(bool multiobj);                       // compile to .obj file
 

@@ -1042,23 +1042,6 @@ ModuleDeclaration::ModuleDeclaration(Loc loc, Identifiers *packages, Identifier 
     this->msg = NULL;
 }
 
-char *ModuleDeclaration::toChars()
-{
-    OutBuffer buf;
-
-    if (packages && packages->dim)
-    {
-        for (size_t i = 0; i < packages->dim; i++)
-        {
-            Identifier *pid = (*packages)[i];
-            buf.writestring(pid->toChars());
-            buf.writeByte('.');
-        }
-    }
-    buf.writestring(id->toChars());
-    return buf.extractString();
-}
-
 /* =========================== Package ===================== */
 
 Package::Package(Identifier *ident)
