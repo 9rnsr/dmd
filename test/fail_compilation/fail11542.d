@@ -4,9 +4,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail11542.d(16): Error: object.Exception is thrown but not caught
+fail_compilation/fail11542.d(16): Error: Exception is thrown but not caught
 fail_compilation/fail11542.d(13): Error: function 'fail11542.test_success1' is nothrow yet may throw
-fail_compilation/fail11542.d(26): Error: object.Exception is thrown but not caught
+fail_compilation/fail11542.d(26): Error: Exception is thrown but not caught
 fail_compilation/fail11542.d(23): Error: function 'fail11542.test_success3' is nothrow yet may throw
 ---
 */
@@ -29,7 +29,7 @@ void test_success3() nothrow
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail11542.d(39): Error: object.Exception is thrown but not caught
+fail_compilation/fail11542.d(39): Error: Exception is thrown but not caught
 fail_compilation/fail11542.d(36): Error: function 'fail11542.test_failure1' is nothrow yet may throw
 ---
 */
@@ -52,7 +52,7 @@ void est_failure3() nothrow
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail11542.d(62): Error: object.Exception is thrown but not caught
+fail_compilation/fail11542.d(62): Error: Exception is thrown but not caught
 fail_compilation/fail11542.d(59): Error: function 'fail11542.test_exit1' is nothrow yet may throw
 ---
 */

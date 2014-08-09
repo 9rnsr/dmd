@@ -778,7 +778,6 @@ public:
     const char *kind();
     d_uns64 size(Loc loc);
     unsigned alignsize();
-    char *toChars();
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);
@@ -888,7 +887,6 @@ public:
     TypeClass(ClassDeclaration *sym);
     const char *kind();
     d_uns64 size(Loc loc);
-    char *toChars();
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);

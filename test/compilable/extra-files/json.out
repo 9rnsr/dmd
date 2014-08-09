@@ -275,7 +275,6 @@
       "line" : 39,
       "char" : 7,
       "deco" : "C4json4Bar2",
-      "originalType" : "Bar2",
      },
      {
       "name" : "U",
@@ -303,7 +302,6 @@
         "line" : 45,
         "char" : 10,
         "deco" : "C6Object",
-        "originalType" : "Object",
        }
       ]
      }

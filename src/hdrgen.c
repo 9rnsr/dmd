@@ -3122,26 +3122,6 @@ char *toChars(Type *t)
     return buf.extractString();
 }
 
-char *TypeStruct::toChars()
-{
-    //printf("sym.parent: %s, deco = %s\n", sym->parent->toChars(), deco);
-    if (mod)
-        return Type::toChars();
-    TemplateInstance *ti = sym->parent->isTemplateInstance();
-    if (ti && ti->toAlias() == sym)
-    {
-        return ti->toChars();
-    }
-    return sym->toChars();
-}
-
-char *TypeClass::toChars()
-{
-    if (mod)
-        return Type::toChars();
-    return (char *)sym->toPrettyChars();
-}
-
 char *toChars(Dsymbol *s)
 {
     return s->ident ? s->ident->toChars() : (char *)"__anonymous";
