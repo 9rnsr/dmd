@@ -3114,9 +3114,14 @@ char *toChars(Statement *s)
 
 char *toChars(Type *t)
 {
+    if (t->ty == Tclass && !t->mod)
+    {
+        //hgs.fullQual = true;
+        return (char *)((TypeClass *)t)->sym->toPrettyChars();
+    }
+
     OutBuffer buf;
     HdrGenState hgs;
-    buf.reserve(16);
     PrettyPrintVisitor v(&buf, &hgs);
     v.typeToBuffer(t, NULL);
     return buf.extractString();
@@ -3126,11 +3131,6 @@ char *toChars(Dsymbol *s)
 {
     return s->ident ? s->ident->toChars() : (char *)"__anonymous";
 }
-
-//char *LinkDeclaration::toChars()
-//{
-//    return (char *)"extern ()";
-//}
 
 char *TemplateDeclaration::toChars()
 {

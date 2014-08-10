@@ -6,10 +6,10 @@ bool cond;
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail12809.d(19): Error: Exception is thrown but not caught
+fail_compilation/fail12809.d(19): Error: object.Exception is thrown but not caught
 fail_compilation/fail12809.d(16): Error: function 'fail12809.test_finally1' is nothrow yet may throw
-fail_compilation/fail12809.d(35): Error: Exception is thrown but not caught
-fail_compilation/fail12809.d(39): Error: Exception is thrown but not caught
+fail_compilation/fail12809.d(35): Error: object.Exception is thrown but not caught
+fail_compilation/fail12809.d(39): Error: object.Exception is thrown but not caught
 fail_compilation/fail12809.d(32): Error: function 'fail12809.test_finally3' is nothrow yet may throw
 ---
 */
@@ -44,10 +44,10 @@ void test_finally3() nothrow
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail12809.d(59): Error: Exception is thrown but not caught
+fail_compilation/fail12809.d(59): Error: object.Exception is thrown but not caught
 fail_compilation/fail12809.d(54): Error: function 'fail12809.test_finally4' is nothrow yet may throw
-fail_compilation/fail12809.d(75): Error: Exception is thrown but not caught
-fail_compilation/fail12809.d(79): Error: Exception is thrown but not caught
+fail_compilation/fail12809.d(75): Error: object.Exception is thrown but not caught
+fail_compilation/fail12809.d(79): Error: object.Exception is thrown but not caught
 fail_compilation/fail12809.d(70): Error: function 'fail12809.test_finally6' is nothrow yet may throw
 ---
 */
