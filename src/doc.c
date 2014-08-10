@@ -545,7 +545,7 @@ static bool emitAnchorName(OutBuffer *buf, Dsymbol *s, Scope *sc)
     {
         /* We just want the identifier, not overloads like TemplateDeclaration::toChars.
          * We don't want the template parameter list and constraints. */
-        buf->writestring(s->Dsymbol::toChars());
+        buf->writestring(s->ident ? s->ident->toChars() : (char *)"__anonymous");
     }
 
     return true;

@@ -89,7 +89,6 @@ public:
     bool overloadInsert(Dsymbol *s);
     bool hasStaticCtorOrDtor();
     const char *kind();
-    char *toChars();
 
     Prot prot();
 
@@ -342,7 +341,6 @@ public:
     Dsymbol *toAlias();                 // resolve real symbol
     const char *kind();
     bool oneMember(Dsymbol **ps, Identifier *ident);
-    char *toChars();
     void printInstantiationTrace();
     Identifier *getIdent();
     int compare(RootObject *o);
@@ -384,7 +382,6 @@ public:
     int apply(Dsymbol_apply_ft_t fp, void *param);
     bool hasPointers();
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
-    //char *toChars();
 
     void toObjFile(bool multiobj);                       // compile to .obj file
 

@@ -3129,74 +3129,69 @@ char *toChars(Type *t)
 
 char *toChars(Dsymbol *s)
 {
-    return s->ident ? s->ident->toChars() : (char *)"__anonymous";
-}
-
-char *TemplateDeclaration::toChars()
-{
-    if (literal)
-        return Dsymbol::toChars();
-
-    OutBuffer buf;
-    HdrGenState hgs;
-    PrettyPrintVisitor v(&buf, &hgs);
-
-    buf.writestring(ident->toChars());
-    buf.writeByte('(');
-    for (size_t i = 0; i < parameters->dim; i++)
+    if (TemplateDeclaration *td = s->isTemplateDeclaration())
     {
-        if (i)
-            buf.writestring(", ");
-        (*parameters)[i]->accept(&v);
-    }
-    buf.writeByte(')');
+        if (td->literal)
+            return td->ident->toChars();
 
-    if (onemember)
-    {
-        FuncDeclaration *fd = onemember->isFuncDeclaration();
-        if (fd && fd->type)
+        OutBuffer buf;
+        HdrGenState hgs;
+        PrettyPrintVisitor v(&buf, &hgs);
+
+        buf.writestring(td->ident->toChars());
+        buf.writeByte('(');
+        for (size_t i = 0; i < td->parameters->dim; i++)
         {
-            TypeFunction *tf = (TypeFunction *)fd->type;
-            v.parametersToBuffer(tf->parameters, tf->varargs);
+            if (i)
+                buf.writestring(", ");
+            (*td->parameters)[i]->accept(&v);
         }
-    }
-
-    if (constraint)
-    {
-        buf.writestring(" if (");
-        constraint->accept(&v);
         buf.writeByte(')');
+
+        if (td->onemember)
+        {
+            FuncDeclaration *fd = td->onemember->isFuncDeclaration();
+            if (fd && fd->type)
+            {
+                TypeFunction *tf = (TypeFunction *)fd->type;
+                v.parametersToBuffer(tf->parameters, tf->varargs);
+            }
+        }
+
+        if (td->constraint)
+        {
+            buf.writestring(" if (");
+            td->constraint->accept(&v);
+            buf.writeByte(')');
+        }
+        return buf.extractString();
     }
-    return buf.extractString();
-}
-
-char *TemplateInstance::toChars()
-{
-    OutBuffer buf;
-    HdrGenState hgs;
-    PrettyPrintVisitor v(&buf, &hgs);
-    v.visit(this);
-    return buf.extractString();
-}
-
-char *TypeInfoDeclaration::toChars()
-{
-    //printf("TypeInfoDeclaration::toChars() tinfo = %s\n", tinfo->toChars());
-    OutBuffer buf;
-    buf.writestring("typeid(");
-    buf.writestring(tinfo->toChars());
-    buf.writeByte(')');
-    return buf.extractString();
-}
-
-char *CtorDeclaration::toChars()
-{
-    return (char *)"this";
-}
-
-char *DtorDeclaration::toChars()
-{
-    return (char *)"~this";
+    if (TemplateInstance *ti = s->isTemplateInstance())
+    {
+        OutBuffer buf;
+        HdrGenState hgs;
+        PrettyPrintVisitor v(&buf, &hgs);
+        v.visit(ti);
+        return buf.extractString();
+    }
+    if (TypeInfoDeclaration *d = s->isTypeInfoDeclaration())
+    {
+        //printf("TypeInfoDeclaration::toChars() tinfo = %s\n", tinfo->toChars());
+        OutBuffer buf;
+        buf.writestring("typeid(");
+        buf.writestring(d->tinfo->toChars());
+        buf.writeByte(')');
+        return buf.extractString();
+    }
+    if (s->isCtorDeclaration())
+    {
+        return (char *)"this";
+    }
+    if (s->isDtorDeclaration())
+    {
+        return (char *)"~this";
+    }
+    return s->ident ? s->ident->toChars() : (char *)"__anonymous";
 }
 
 char *toChars(Initializer *iz)
