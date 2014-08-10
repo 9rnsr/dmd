@@ -46,5 +46,7 @@ char *toChars(Dsymbol *s);
 char *toChars(Initializer *iz);
 char *toChars(Expression *e);
 
+char *toChars(ModuleDeclaration *md);
+
 char *toPrettyChars(Type *t, bool qualifyTypes);
 char *toPrettyChars(Dsymbol *s, bool qualifyTypes);

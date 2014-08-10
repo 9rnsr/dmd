@@ -23,6 +23,7 @@
 #include "dsymbol.h"
 #include "expression.h"
 #include "lexer.h"
+#include "hdrgen.h"
 
 #ifdef IN_GCC
 #include "d-dmd-gcc.h"
@@ -1040,6 +1041,11 @@ ModuleDeclaration::ModuleDeclaration(Loc loc, Identifiers *packages, Identifier 
     this->safe = safe;
     this->isdeprecated = false;
     this->msg = NULL;
+}
+
+char *ModuleDeclaration::toChars()
+{
+    return ::toChars(this);
 }
 
 /* =========================== Package ===================== */

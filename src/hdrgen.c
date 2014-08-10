@@ -3227,20 +3227,20 @@ char *ThrownExceptionExp::toChars()
     return (char *)"CTFE ThrownException";
 }
 
-char *ModuleDeclaration::toChars()
+char *toChars(ModuleDeclaration *md)
 {
     OutBuffer buf;
 
-    if (packages && packages->dim)
+    if (md->packages && md->packages->dim)
     {
-        for (size_t i = 0; i < packages->dim; i++)
+        for (size_t i = 0; i < md->packages->dim; i++)
         {
-            Identifier *pid = (*packages)[i];
+            Identifier *pid = (*md->packages)[i];
             buf.writestring(pid->toChars());
             buf.writeByte('.');
         }
     }
-    buf.writestring(id->toChars());
+    buf.writestring(md->id->toChars());
     return buf.extractString();
 }
 
