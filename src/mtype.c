@@ -1491,6 +1491,11 @@ char *Type::toChars()
     return ::toChars(this);
 }
 
+char *Type::toPrettyChars(bool qualifyTypes)
+{
+    return ::toPrettyChars(this, qualifyTypes);
+}
+
 /*********************************
  * Store this type's modifier name into buf.
  */

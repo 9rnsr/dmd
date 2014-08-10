@@ -648,7 +648,6 @@ public:
     AggregateDeclaration *isThis();
     AggregateDeclaration *isMember2();
     int getLevel(Loc loc, Scope *sc, FuncDeclaration *fd); // lexical nesting level difference
-    const char *toPrettyChars(bool QualifyTypes = false);
     const char *toFullSignature();  // for diagnostics, e.g. 'int foo(int x, int y) pure'
     bool isMain();
     bool isWinMain();
@@ -733,6 +732,7 @@ public:
     FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type, TOK tok,
         ForeachStatement *fes, Identifier *id = NULL);
     Dsymbol *syntaxCopy(Dsymbol *);
+    const char *kind();
     bool isNested();
     bool isVirtual();
     bool addPreInvariant();
@@ -741,8 +741,6 @@ public:
     void modifyReturns(Scope *sc, Type *tret);
 
     FuncLiteralDeclaration *isFuncLiteralDeclaration() { return this; }
-    const char *kind();
-    const char *toPrettyChars(bool QualifyTypes = false);
     void accept(Visitor *v) { v->visit(this); }
 };
 

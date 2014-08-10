@@ -343,7 +343,6 @@ public:
     const char *kind();
     bool oneMember(Dsymbol **ps, Identifier *ident);
     char *toChars();
-    char* toPrettyCharsHelper();
     void printInstantiationTrace();
     Identifier *getIdent();
     int compare(RootObject *o);

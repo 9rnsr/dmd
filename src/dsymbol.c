@@ -209,6 +209,11 @@ char *Dsymbol::toChars()
     return ::toChars(this);
 }
 
+const char *Dsymbol::toPrettyChars(bool qualifyTypes)
+{
+    return ::toPrettyChars(this, qualifyTypes);
+}
+
 Loc& Dsymbol::getLoc()
 {
     if (!loc.filename)  // avoid bug 5861.

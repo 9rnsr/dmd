@@ -168,7 +168,6 @@ public:
     Dsymbol(Identifier *);
     static Dsymbol *create(Identifier *);
     char *toChars();
-    virtual char *toPrettyCharsHelper(); // helper to print fully qualified (template) arguments
     Loc& getLoc();
     char *locToChars();
     bool equals(RootObject *o);

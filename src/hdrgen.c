@@ -3251,63 +3251,49 @@ char *ModuleDeclaration::toChars()
 
 /******************************** toPrettyChars *******************************/
 
-char *Type::toPrettyChars(bool QualifyTypes)
+char *toPrettyChars(Type *t, bool qualifyTypes)
 {
     OutBuffer buf;
-    buf.reserve(16);
-
     HdrGenState hgs;
-    hgs.fullQual = QualifyTypes;
-
+    hgs.fullQual = qualifyTypes;
     PrettyPrintVisitor v(&buf, &hgs);
-    v.typeToBuffer(this, NULL);
-
+    v.typeToBuffer(t, NULL);
     return buf.extractString();
 }
 
-char *Dsymbol::toPrettyCharsHelper()
+char *toPrettyChars(Dsymbol *s, bool qualifyTypes)
 {
-    return toChars();
-}
-
-const char *Dsymbol::toPrettyChars(bool QualifyTypes)
-{
-    Dsymbol *p;
-    char *s;
-    char *q;
-    size_t len;
-
-    //printf("Dsymbol::toPrettyChars() '%s'\n", toChars());
-    if (!parent)
-        return toChars();
-
-    len = 0;
-    for (p = this; p; p = p->parent)
-        len += strlen(QualifyTypes ? p->toPrettyCharsHelper() : p->toChars()) + 1;
-
-    s = (char *)mem.malloc(len);
-    q = s + len - 1;
-    *q = 0;
-    for (p = this; p; p = p->parent)
+    struct PrettyCharHelper
     {
-        char *t = QualifyTypes ? p->toPrettyCharsHelper() : p->toChars();
-        len = strlen(t);
-        q -= len;
-        memcpy(q, t, len);
-        if (q == s)
-            break;
-        q--;
-        *q = '.';
-    }
-    return s;
-}
+        static void fp(Dsymbol *s, PrettyPrintVisitor *v)
+        {
+            if (s->parent)
+            {
+                fp(s->parent, v);
+                v->buf->writeByte('.');
+            }
+            if (TemplateInstance *ti = s->isTemplateInstance())
+                v->visit(ti);   // also for TemplateMixin
+            else
+                v->buf->writestring(s->toChars());
+        }
+    };
 
-char *TemplateInstance::toPrettyCharsHelper()
-{
+    if (FuncDeclaration *fd = s->isFuncDeclaration())
+    {
+        if (fd->isMain())
+            return "D main";
+        if (s->isFuncLiteralDeclaration() && s->parent) // why this is necessary?
+        {
+            if (TemplateInstance *ti = s->parent->isTemplateInstance())
+                s = ti->tempdecl;
+        }
+    }
+
     OutBuffer buf;
     HdrGenState hgs;
-    hgs.fullQual = true;
+    hgs.fullQual = qualifyTypes;    // todo?
     PrettyPrintVisitor v(&buf, &hgs);
-    v.visit(this);
+    PrettyCharHelper::fp(s, &v);
     return buf.extractString();
 }

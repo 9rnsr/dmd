@@ -3482,14 +3482,6 @@ Lerr:
     return 1;
 }
 
-const char *FuncDeclaration::toPrettyChars(bool QualifyTypes)
-{
-    if (isMain())
-        return "D main";
-    else
-        return Dsymbol::toPrettyChars(QualifyTypes);
-}
-
 /** for diagnostics, e.g. 'int foo(int x, int y) pure' */
 const char *FuncDeclaration::toFullSignature()
 {
@@ -4394,17 +4386,6 @@ const char *FuncLiteralDeclaration::kind()
 {
     // GCC requires the (char*) casts
     return (tok != TOKfunction) ? (char*)"delegate" : (char*)"function";
-}
-
-const char *FuncLiteralDeclaration::toPrettyChars(bool QualifyTypes)
-{
-    if (parent)
-    {
-        TemplateInstance *ti = parent->isTemplateInstance();
-        if (ti)
-            return ti->tempdecl->toPrettyChars(QualifyTypes);
-    }
-    return Dsymbol::toPrettyChars(QualifyTypes);
 }
 
 /********************************* CtorDeclaration ****************************/

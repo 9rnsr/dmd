@@ -45,3 +45,6 @@ char *toChars(Type *t);
 char *toChars(Dsymbol *s);
 char *toChars(Initializer *iz);
 char *toChars(Expression *e);
+
+char *toPrettyChars(Type *t, bool qualifyTypes);
+char *toPrettyChars(Dsymbol *s, bool qualifyTypes);
