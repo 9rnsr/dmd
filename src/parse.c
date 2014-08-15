@@ -2929,6 +2929,22 @@ Type *Parser::parseBasicType2(Type *t)
                     t = new TypeAArray(t, index);
                     check(TOKrbracket);
                 }
+                else if (token.value == TOKauto ||
+                         token.value == TOKconst ||
+                         token.value == TOKimmutable ||
+                         token.value == TOKwild ||
+                         token.value == TOKshared)
+                {
+                    Type *index = new TypeIdentifier(token.loc, Id::empty);
+                    if (token.value == TOKauto)
+                        nextToken();
+                    else
+                        index = index->addSTC(parseTypeCtor());     // [auto ...]
+                    if (token.value != TOKrbracket)
+                        index = parseBasicType3(index);
+                    t = new TypeAArray(t, index);
+                    check(TOKrbracket);
+                }
                 else
                 {
                     //printf("it's type[expression]\n");
@@ -3015,6 +3031,22 @@ Type *Parser::parseBasicType3(Type *t)
                     // It's an associative array declaration
                     //printf("it's an associative array\n");
                     Type *index = parseType();          // [ type ]
+                    t = new TypeAArray(t, index);
+                    check(TOKrbracket);
+                }
+                else if (token.value == TOKauto ||
+                         token.value == TOKconst ||
+                         token.value == TOKimmutable ||
+                         token.value == TOKwild ||
+                         token.value == TOKshared)
+                {
+                    Type *index = new TypeIdentifier(token.loc, Id::empty);
+                    if (token.value == TOKauto)
+                        nextToken();
+                    else
+                        index = index->addSTC(parseTypeCtor());     // [auto ...]
+                    if (token.value != TOKrbracket)
+                        index = parseBasicType3(index);
                     t = new TypeAArray(t, index);
                     check(TOKrbracket);
                 }
@@ -6142,6 +6174,27 @@ int Parser::skipBasicType3(Token **pt)
                 else if (isDeclaration(t, 0, TOKrbracket, &t))
                 {
                     // It's an associative array declaration
+                    t = peek(t);
+                }
+                else if (t->value == TOKauto ||
+                         t->value == TOKconst ||
+                         t->value == TOKimmutable ||
+                         t->value == TOKwild ||
+                         t->value == TOKshared)
+                {
+                    do
+                    {
+                        t = peek(t);
+                    }
+                    while (t->value == TOKauto ||
+                           t->value == TOKconst ||
+                           t->value == TOKimmutable ||
+                           t->value == TOKwild ||
+                           t->value == TOKshared);
+                    if (!skipBasicType3(&t))
+                        return false;
+                    if (t->value != TOKrbracket)
+                        return false;
                     t = peek(t);
                 }
                 else
