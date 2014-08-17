@@ -4177,14 +4177,8 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     idexp = new IdentifierExp(Loc(), Id::empty);
                     idexp->type = Type::tbool;
                 }
-                CondExp *condexp = new CondExp(e->loc, idexp, ((TypeTypeof *)at)->exp, e);
-                unsigned olderrors = global.startGagging();
+                CondExp *condexp = new CondExp(Loc(), idexp, ((TypeTypeof *)at)->exp, e);
                 Expression *ec = condexp->semantic(sc);
-                if (global.endGagging(olderrors))
-                {
-                    result = MATCHnomatch;
-                    return true;
-                }
                 if (ec == condexp)
                 {
                     ((TypeTypeof *)at)->exp = condexp;
@@ -4272,10 +4266,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 e->type->nextOf()->sarrayOf(e->elements->dim)->accept(this);
                 return;
             }
-
-            if (deduceExpType(e))   // Bugzilla 13026
-                return;
-
             visit((Expression *)e);
         }
 
