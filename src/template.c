@@ -3073,8 +3073,6 @@ MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam)
  *      dedtypes = [ int ]      // Array of Expression/Type's
  */
 
-static Expression *emptyArrayElement = NULL;
-
 MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *parameters,
         Objects *dedtypes, unsigned *wm, size_t inferStart)
 {
@@ -3260,14 +3258,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     }
                     if (at->ty == Ttypeof)
                     {
-                        TypeTypeof *xt = ((TypeTypeof *)at);
-                        if (xt->exp == emptyArrayElement)
-                        {
-                            (*dedtypes)[i] = tt;
-                            result = MATCHexact;
-                            return;
-                        }
-
                         Type *tx = tt->addMod(tparam->mod);
                         result = ((TypeTypeof *)at)->exp->implicitConvTo(tx);
                         if (result > MATCHnomatch)
@@ -4164,41 +4154,33 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             }
             else if (at && at->ty == Ttypeof)    // expression vs expression
             {
-                TypeTypeof *xt = ((TypeTypeof *)at);
-                if (xt->exp == emptyArrayElement)
+                /* Calculate common type of passed expressions.
+                 *
+                 *  auto foo(T)(T arg1, T arg2);
+                 *  foo(1, 2L);
+                 *      // 1: deduceType(oarg='1', tparam='T', ...)
+                 *      //      T <= TypeTypeof(1)
+                 *      // 2: deduceType(oarg='1', tparam='T', ...)
+                 *      //      T <= TypeTypeof(idexp ? 1 : 2L)
+                 */
+                static IdentifierExp *idexp = NULL; // dummy condition
+                if (!idexp)
                 {
-                    xt->exp = e;
-                    xt->idents[0] = e->type;
+                    idexp = new IdentifierExp(Loc(), Id::empty);
+                    idexp->type = Type::tbool;
                 }
-                else
+                CondExp *condexp = new CondExp(e->loc, idexp, ((TypeTypeof *)at)->exp, e);
+                unsigned olderrors = global.startGagging();
+                Expression *ec = condexp->semantic(sc);
+                if (global.endGagging(olderrors))
+                    return;
+                if (ec == condexp)
                 {
-                    /* Calculate common type of passed expressions.
-                     *
-                     *  auto foo(T)(T arg1, T arg2);
-                     *  foo(1, 2L);
-                     *      // 1: deduceType(oarg='1', tparam='T', ...)
-                     *      //      T <= TypeTypeof(1)
-                     *      // 2: deduceType(oarg='1', tparam='T', ...)
-                     *      //      T <= TypeTypeof(idexp ? 1 : 2L)
-                     */
-                    static IdentifierExp *idexp = NULL; // dummy condition
-                    if (!idexp)
-                    {
-                        idexp = new IdentifierExp(Loc(), Id::empty);
-                        idexp->type = Type::tbool;
-                    }
-                    CondExp *condexp = new CondExp(e->loc, idexp, xt->exp, e);
-                    unsigned olderrors = global.startGagging();
-                    Expression *ec = condexp->semantic(sc);
-                    if (global.endGagging(olderrors))
-                        return;
-                    if (ec == condexp)
-                    {
-                        e = condexp;
-                        xt->exp = e;
-                        xt->idents[0] = e->type;
-                    }
+                    e = condexp;
+                    ((TypeTypeof *)at)->exp = e;
+                    ((TypeTypeof *)at)->idents[0] = e->type;
                 }
+
                 result = deduceTypeHelper(e->type, &tt, tparam);
             }
             else
@@ -4249,29 +4231,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
 
         void visit(ArrayLiteralExp *e)
         {
-            if ((!e->elements || !e->elements->dim) &&
-                e->type->toBasetype()->nextOf()->ty == Tvoid &&
-                (tparam->ty == Tarray/* || tparam->ty == Tsarray || tparam->ty == Taarray*/))
-            {
-                if (!emptyArrayElement)
-                {
-                    emptyArrayElement = new IdentifierExp(Loc(), Id::p);    // dummy
-                    emptyArrayElement->type = Type::tvoid;
-                }
-
-                // T[] <- [] (void[])
-                Type *tn = ((TypeNext *)tparam)->next;
-                size_t i = templateParameterLookup(tn, parameters);
-                if (i != IDX_NOTFOUND && ((TypeIdentifier *)tn)->idents.dim == 0)
-                {
-                    if ((*dedtypes)[i])
-                        result = MATCHexact;
-                    else
-                        result = deduceType(emptyArrayElement, sc, tn, parameters, dedtypes, wm);
-                    return;
-                }
-            }
-
             if (tparam->ty == Tarray && e->elements && e->elements->dim)
             {
                 Type *tn = ((TypeDArray *)tparam)->next;
