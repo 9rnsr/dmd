@@ -3709,21 +3709,6 @@ void test11768(inout int = 0)
 }
 
 /************************************/
-// 12403
-
-void test12403()
-{
-    void func(K, V)(inout(V[K]) aa)
-    {
-        static assert(is(V == const int));
-        static assert(is(K == int));
-    }
-
-    const(int)[int] m;
-    func(m);
-}
-
-/************************************/
 // 13011
 
 void test13011()

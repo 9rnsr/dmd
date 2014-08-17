@@ -3312,14 +3312,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     return;
                 }
 
-                Type *tpn = tparam->nextOf();
-                if (wm && t->ty == Taarray && tparam->isWild())
-                {
-                    // Bugzilla 12403: In IFTI, stop inout matching on transitive part of AA types.
-                    tpn = tpn->substWildTo(MODmutable);
-                }
-
-                result = deduceType(t->nextOf(), sc, tpn, parameters, dedtypes, wm);
+                result = deduceType(t->nextOf(), sc, tparam->nextOf(), parameters, dedtypes, wm);
                 return;
             }
 
