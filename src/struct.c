@@ -708,7 +708,6 @@ void StructDeclaration::semantic(Scope *sc)
             return;
         }
     }
-    semanticRun = PASSsemantic;
 
     if (!members)               // if opaque declaration
     {
@@ -718,7 +717,7 @@ void StructDeclaration::semantic(Scope *sc)
     if (!symtab)
         symtab = new DsymbolTable();
 
-    if (sizeok == SIZEOKnone)            // if not already done the addMember step
+    if (semanticRun == PASSinit && sizeok == SIZEOKnone)    // if not already done the addMember step
     {
         for (size_t i = 0; i < members->dim; i++)
         {
@@ -727,6 +726,8 @@ void StructDeclaration::semantic(Scope *sc)
             s->addMember(sc, this, 1);
         }
     }
+
+    semanticRun = PASSsemantic;
 
     sizeok = SIZEOKnone;
     Scope *sc2 = sc->push(this);
