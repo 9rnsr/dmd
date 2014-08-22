@@ -4118,6 +4118,62 @@ void test13374()
 }
 
 /******************************************/
+// XXXXX
+
+template TestXXXXXA1(E)
+{
+    template TestA2(alias f)
+    {
+        auto impl(int a) { return f(a); }
+    }
+}
+
+template TestXXXXXB1(alias f)
+{
+    template TestB2(E)
+    {
+        template TestB3(alias g)
+        {
+            auto impl(int a, int b) { return f(a) + g(b); }
+        }
+    }
+}
+
+void funcXXXXX(alias foo)()
+{
+    alias TestA1 = TestXXXXXA1;
+    alias TestB1 = TestXXXXXB1;
+
+    /* TestA1!int does not capture any context, so the template
+     * TestA1!int.TestA2 can be treated as a "global template".
+     */
+    alias A = TestA1!int.TestA2!foo;
+    assert(A.impl(1) == 1);
+
+    // bar is a nested function in func!foo()
+    int bar(int x) { return x; }
+
+    /* TestB3!bar is nested in func!foo(), and func!foo() is nested in main().
+     * On the other hand, the impl function will be nested in func!foo(), therefore its body
+     * can reach valid main() and func!foo context to evaluate f(a) and g(b) in runtime.
+     */
+    alias B = TestB1!foo.TestB2!int.TestB3!bar;
+    assert(B.impl(1,2) == 3);
+
+    /* TestB3!foo is nested in main(), so it cannot access the context of func!foo() in runtime.
+     * Therefore TestB3!foo can touch valid context via the ancestor instantiation TestB1!bar.
+     */
+    static assert(!__traits(compiles, TestB1!bar.TestB2!int.TestB3!foo));
+
+}
+
+void testXXXXX()
+{
+    int n = 1;
+    funcXXXXX!(a => a * 1)();
+}
+
+/******************************************/
 
 int main()
 {
@@ -4222,6 +4278,7 @@ int main()
     test13294();
     test13299();
     test13374();
+    testXXXXX();
 
     printf("Success\n");
     return 0;

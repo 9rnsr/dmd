@@ -7251,9 +7251,9 @@ bool TemplateInstance::hasNestedArgs(Objects *args, bool isstatic)
                 ))
             {
                 // if module level template
+                Dsymbol *dparent = sa->toParent2();
                 if (isstatic)
                 {
-                    Dsymbol *dparent = sa->toParent2();
                     if (!enclosing)
                         enclosing = dparent;
                     else if (enclosing != dparent)
@@ -7282,7 +7282,40 @@ bool TemplateInstance::hasNestedArgs(Objects *args, bool isstatic)
                     nested |= 1;
                 }
                 else
-                    error("cannot use local '%s' as parameter to non-global template %s", sa->toChars(), tempdecl->toChars());
+                {
+                    TemplateInstance *ti = this;
+                    while ((ti = ti->tempdecl->isInstantiated()) != NULL)
+                    {
+                        if (!ti->enclosing)
+                            continue;
+                        //printf("ti->enclosing = %p,  dparent = %p\n", ti->enclosing, dparent);
+
+                        /* Check that dparent is same or more deeply than ti->enclosing.
+                         * By that, guarantee that all enclosing instances members are
+                         * always accessible from the code in this instance.
+                         *
+                         * template Test1(alias f) {
+                         *   template Test2(E) {
+                         *     template Test3(alias g) {
+                         *       auto impl(int a, int b) {
+                         *         return f(a) + g(b);  // always valid when instantiation succeeds
+                         *       }
+                         *     }
+                         *   }
+                         * }
+                         */
+                        for (Dsymbol *p = dparent; p; p = p->parent)
+                        {
+                            if (p == ti->enclosing)
+                            {
+                                enclosing = dparent;
+                                goto L1;        // dparent is most nested
+                            }
+                        }
+                        error("cannot use local '%s' as parameter to non-global template %s",
+                                sa->toChars(), tempdecl->toChars());
+                    }
+                }
             }
         }
         else if (va)
