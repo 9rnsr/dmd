@@ -1501,21 +1501,24 @@ Lretry:
             RootObject *oarg = farg;
 
             if ((fparam->storageClass & STCref) &&
-                !(fparam->storageClass & STCauto) || farg->isLvalue())
+                (!(fparam->storageClass & STCauto) || farg->isLvalue()))
             {
                 oarg = argtype;
             }
             else
             {
+//printf("[%s] farg = %s %s, prmtype = %s\n", farg->loc.toChars(), farg->type->toChars(), farg->toChars(), prmtype->toChars());
             /* Adjust top const of the dynamic array type or pointer type argument
              * to the corresponding parameter type qualifier,
              * to pass through deduceType.
              */
             Type *at = argtype;
-            if ((argtype->ty == Tarray || argtype->ty == Tpointer) &&
-                ((prmtype->mod & MODwild) || deduceTypeHelper(argtype, &at, prmtype)) &&
+            if ((argtype->ty == Tarray || argtype->ty == Tpointer)
+                &&
+                ((prmtype->mod & MODwild) || deduceTypeHelper(argtype, &at, prmtype))
+                /* &&
                 (!(fparam->storageClass & STCref) ||
-                 (fparam->storageClass & STCauto) && !farg->isLvalue()))
+                 (fparam->storageClass & STCauto) && !farg->isLvalue())*/)
             {
                 if ((prmtype->mod & MODwild) || prmtype->mod == 0)
                 {
