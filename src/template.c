@@ -1491,34 +1491,7 @@ Lretry:
 #endif
             Type *argtype = farg->type;
 
-            /* Allow expressions that have CT-known boundaries and type [] to match with [dim]
-             */
-            Type *taai;
-            if ( argtype->ty == Tarray &&
-                (prmtype->ty == Tsarray ||
-                 prmtype->ty == Taarray && (taai = ((TypeAArray *)prmtype)->index)->ty == Tident &&
-                                           ((TypeIdentifier *)taai)->idents.dim == 0))
-            {
-                if (farg->op == TOKstring)
-                {
-                    StringExp *se = (StringExp *)farg;
-                    argtype = argtype->nextOf()->sarrayOf(se->len);
-                }
-                else if (farg->op == TOKslice)
-                {
-                    SliceExp *se = (SliceExp *)farg;
-                    Type *tsa = toStaticArrayType(se);
-                    if (tsa)
-                        argtype = tsa;
-                }
-                else if (farg->op == TOKarrayliteral)
-                {
-                    ArrayLiteralExp *ae = (ArrayLiteralExp *)farg;
-                    argtype = argtype->nextOf()->sarrayOf(ae->elements->dim);
-                }
-            }
-
-            if (!(fparam->storageClass & STClazy) && argtype->ty == Tvoid)
+            if (!(fparam->storageClass & STClazy) && argtype->ty == Tvoid && farg->op != TOKfunction)
                 goto Lnomatch;
 
             // Bugzilla 12876: optimize arugument to allow CT-known length matching
@@ -1568,8 +1541,17 @@ Lretry:
             /* If no match, see if the argument can be matched by using
              * implicit conversions.
              */
-            if (m == MATCHnomatch/* && prmtype->deco*/) // for issue 13223
-                m = farg->implicitConvTo(prmtype);
+            if (m == MATCHnomatch)
+            {
+                if (prmtype->deco)
+                    m = farg->implicitConvTo(prmtype);
+                if (farg->op == TOKarrayliteral && prmtype->ty == Tarray)   // Bugzilla13223
+                {
+                    ArrayLiteralExp *ale = (ArrayLiteralExp *)farg;
+                    if (!ale->elements || !ale->elements->dim)
+                        m = farg->implicitConvTo(prmtype);
+                }
+            }
 
             /* If no match, see if there's a conversion to a delegate
              */
@@ -4108,6 +4090,11 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 return;
             }
             visit((Type *)t);
+        }
+
+        void visit(Expression *e)
+        {
+            visit(e->type);
         }
 
         void visit(FuncExp *e)
