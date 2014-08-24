@@ -1491,7 +1491,34 @@ Lretry:
 #endif
             Type *argtype = farg->type;
 
-            if (!(fparam->storageClass & STClazy) && argtype->ty == Tvoid && farg->op != TOKfunction)
+            /* Allow expressions that have CT-known boundaries and type [] to match with [dim]
+             */
+            Type *taai;
+            if ( argtype->ty == Tarray &&
+                (prmtype->ty == Tsarray ||
+                 prmtype->ty == Taarray && (taai = ((TypeAArray *)prmtype)->index)->ty == Tident &&
+                                           ((TypeIdentifier *)taai)->idents.dim == 0))
+            {
+                if (farg->op == TOKstring)
+                {
+                    StringExp *se = (StringExp *)farg;
+                    argtype = argtype->nextOf()->sarrayOf(se->len);
+                }
+                else if (farg->op == TOKslice)
+                {
+                    SliceExp *se = (SliceExp *)farg;
+                    Type *tsa = toStaticArrayType(se);
+                    if (tsa)
+                        argtype = tsa;
+                }
+                else if (farg->op == TOKarrayliteral)
+                {
+                    ArrayLiteralExp *ae = (ArrayLiteralExp *)farg;
+                    argtype = argtype->nextOf()->sarrayOf(ae->elements->dim);
+                }
+            }
+
+            if (!(fparam->storageClass & STClazy) && argtype->ty == Tvoid)
                 goto Lnomatch;
 
             // Bugzilla 12876: optimize arugument to allow CT-known length matching
@@ -1524,15 +1551,14 @@ Lretry:
                      */
                     argtype = at->addMod(prmtype->mod);
                 }
-                if (!farg->type->equals(argtype))
-                {
-                    farg = farg->copy();
-                    farg->type = argtype;
-                }
             }
 
             if (fvarargs == 2 && parami + 1 == nfparams && argi + 1 < nfargs)
                 goto Lvarargs;
+
+            RootObject *oarg = argtype;
+            if (farg->op == TOKfunction)
+                oarg = farg;
 
             unsigned wm = 0;
             MATCH m = deduceType(farg, paramscope, prmtype, parameters, dedtypes, &wm, inferStart);
