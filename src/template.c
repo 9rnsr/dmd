@@ -3151,7 +3151,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 TypeIdentifier *tident = (TypeIdentifier *)tparam;
                 if (tident->idents.dim > 0)
                 {
-                    //printf("matching %s to %s\n", tparam->toChars(), toChars());
+                    //printf("matching %s to %s\n", tparam->toChars(), t->toChars());
                     Dsymbol *s = t->toDsymbol(sc);
                     for (size_t j = tident->idents.dim; j-- > 0; )
                     {
@@ -3187,6 +3187,8 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                         if (!tt)
                             goto Lnomatch;
                         Type *at = (Type *)(*dedtypes)[i];
+                        if (at && at->ty == Ttypeof)
+                            at = (Type *)((TypeTypeof *)at)->idents[0];
                         if (!at || tt->equals(at))
                         {
                             (*dedtypes)[i] = tt;
