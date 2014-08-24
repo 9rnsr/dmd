@@ -1569,7 +1569,7 @@ Lretry:
             /* If no match, see if the argument can be matched by using
              * implicit conversions.
              */
-            if (m == MATCHnomatch && prmtype->deco)
+            if (m == MATCHnomatch/* && prmtype->deco*/) // for issue 13223
                 m = farg->implicitConvTo(prmtype);
 
             /* If no match, see if there's a conversion to a delegate
