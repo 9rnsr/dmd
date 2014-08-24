@@ -1498,6 +1498,15 @@ Lretry:
             farg = farg->optimize(WANTvalue, (fparam->storageClass & (STCref | STCout)) != 0);
             //printf("farg = %s %s\n", farg->type->toChars(), farg->toChars());
 
+            RootObject *oarg = farg;
+
+            if ((fparam->storageClass & STCref) &&
+                !(fparam->storageClass & STCauto) || farg->isLvalue())
+            {
+                oarg = argtype;
+            }
+            else
+            {
             /* Adjust top const of the dynamic array type or pointer type argument
              * to the corresponding parameter type qualifier,
              * to pass through deduceType.
@@ -1524,14 +1533,17 @@ Lretry:
                      */
                     argtype = at->addMod(prmtype->mod);
                 }
+                if (!farg->type->equals(argtype))
+                {
+                    farg = farg->copy();
+                    farg->type = argtype;
+                    oarg = farg;
+                }
+            }
             }
 
             if (fvarargs == 2 && parami + 1 == nfparams && argi + 1 < nfargs)
                 goto Lvarargs;
-
-            RootObject *oarg = argtype;
-            if (farg->op == TOKfunction)
-                oarg = farg;
 
             unsigned wm = 0;
             MATCH m = deduceType(oarg, paramscope, prmtype, parameters, dedtypes, &wm, inferStart);
@@ -1748,6 +1760,12 @@ Lretry:
 
 Lmatch:
 
+    for (size_t i = 0; i < dedtypes->dim; i++)
+    {
+        Type *at = isType((*dedtypes)[i]);
+        if (at && at->ty == Ttypeof)
+            (*dedtypes)[i] = ((TypeTypeof *)at)->idents[0];    // 'unbox'
+    }
     for (size_t i = ntargs; i < dedargs->dim; i++)
     {
         TemplateParameter *tparam = (*parameters)[i];
@@ -3190,6 +3208,16 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 Type *tt;
                 Type *at = (Type *)(*dedtypes)[i];
 
+                if (at && at->ty == Ttypeof)    // type vs expression
+                {
+                    // todo
+                    //result = ((TypeTypeof *)at)->exp->implicitConvTo(t);
+                    //if (result > MATCHnomatch)
+                    //    (*dedtypes)[i] = t;
+                    //return;
+                    at = NULL;
+                }
+
                 if (unsigned char wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
                 {
                     if (!at)
@@ -4094,7 +4122,107 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
 
         void visit(Expression *e)
         {
-            visit(e->type);
+            size_t i = templateParameterLookup(tparam, parameters);
+            if (i == IDX_NOTFOUND || ((TypeIdentifier *)tparam)->idents.dim > 0)
+            {
+                e->type->accept(this);
+                return;
+            }
+
+            RootObject *o = (*dedtypes)[i];
+
+            e->type->accept(this);
+            if (result > MATCHnomatch)
+            {
+                if (!o)
+                {
+                    TypeTypeof *at = new TypeTypeof(e->loc, e);
+                    at->idents.push((*dedtypes)[i]);
+                    (*dedtypes)[i] = at;
+                }
+                return;
+            }
+
+            Type *at = (Type *)(*dedtypes)[i];
+            Type *tt;
+            assert(at);
+            if (at->ty == Ttypeof)
+                at = (Type *)((TypeTypeof *)at)->idents[0];
+            tt = at->addMod(tparam->mod);
+            if (wm && *wm)
+                tt = tt->substWildTo(*wm);
+
+            result = e->implicitConvTo(tt);
+        }
+
+        void visit(StringExp *e)
+        {
+            Type *taai;
+            if (e->type->ty == Tarray &&
+                (tparam->ty == Tsarray ||
+                 tparam->ty == Taarray && (taai = ((TypeAArray *)tparam)->index)->ty == Tident &&
+                                          ((TypeIdentifier *)taai)->idents.dim == 0))
+            {
+                // Consider compile-time known boundaries
+                e->type->nextOf()->sarrayOf(e->len)->accept(this);
+                return;
+            }
+
+            visit((Expression *)e);
+        }
+
+        void visit(ArrayLiteralExp *e)
+        {
+            if (tparam->ty == Tarray && e->elements && e->elements->dim)
+            {
+                Type *tn = ((TypeDArray *)tparam)->next;
+                result = MATCHexact;
+                for (size_t i = 0; i < e->elements->dim; i++)
+                {
+                    MATCH m = deduceType((*e->elements)[i], sc, tn, parameters, dedtypes, wm);
+                    if (m < result)
+                        result = m;
+                    if (result <= MATCHnomatch)
+                        break;
+                }
+                return;
+            }
+
+            Type *taai;
+            if (e->type->ty == Tarray &&
+                (tparam->ty == Tsarray ||
+                 tparam->ty == Taarray && (taai = ((TypeAArray *)tparam)->index)->ty == Tident &&
+                                          ((TypeIdentifier *)taai)->idents.dim == 0))
+            {
+                // Consider compile-time known boundaries
+                e->type->nextOf()->sarrayOf(e->elements->dim)->accept(this);
+                return;
+            }
+            visit((Expression *)e);
+        }
+
+        void visit(AssocArrayLiteralExp *e)
+        {
+            if (tparam->ty == Taarray && e->keys && e->keys->dim)
+            {
+                TypeAArray *taa = (TypeAArray *)tparam;
+                result = MATCHexact;
+                for (size_t i = 0; i < e->keys->dim; i++)
+                {
+                    MATCH m1 = deduceType((*e->keys)[i], sc, taa->index, parameters, dedtypes, wm);
+                    if (m1 < result)
+                        result = m1;
+                    if (result <= MATCHnomatch)
+                        break;
+                    MATCH m2 = deduceType((*e->values)[i], sc, taa->next, parameters, dedtypes, wm);
+                    if (m2 < result)
+                        result = m2;
+                    if (result <= MATCHnomatch)
+                        break;
+                }
+                return;
+            }
+            visit((Expression *)e);
         }
 
         void visit(FuncExp *e)
@@ -4179,6 +4307,29 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             }
             //printf("tparam = %s <= e->type = %s, t = %s\n", tparam->toChars(), e->type->toChars(), t->toChars());
             visit(t);
+        }
+
+        void visit(SliceExp *e)
+        {
+            Type *taai;
+            if (e->type->ty == Tarray &&
+                (tparam->ty == Tsarray ||
+                 tparam->ty == Taarray && (taai = ((TypeAArray *)tparam)->index)->ty == Tident &&
+                                          ((TypeIdentifier *)taai)->idents.dim == 0))
+            {
+                // Consider compile-time known boundaries
+                if (Type *tsa = toStaticArrayType(e))
+                {
+                    tsa->accept(this);
+                    return;
+                }
+            }
+            visit((Expression *)e);
+        }
+
+        void visit(CommaExp *e)
+        {
+            ((CommaExp *)e)->e2->accept(this);
         }
     };
 
