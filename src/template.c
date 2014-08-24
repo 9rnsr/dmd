@@ -1561,9 +1561,8 @@ Lretry:
                 oarg = farg;
 
             unsigned wm = 0;
-            MATCH m = deduceType(farg, paramscope, prmtype, parameters, dedtypes, &wm, inferStart);
-            //printf("\tdeduceType m = %d\n", m);
-            //printf("\twildmatch = x%x m = %d\n", wildmatch, m);
+            MATCH m = deduceType(oarg, paramscope, prmtype, parameters, dedtypes, &wm, inferStart);
+            //printf("\tL%d deduceType m = %d, wm = x%x, wildmatch = x%x\n", __LINE__, m, wm, wildmatch);
             wildmatch |= wm;
 
             /* If no match, see if the argument can be matched by using
@@ -1767,12 +1766,6 @@ Lretry:
 
 Lmatch:
 
-    for (size_t i = 0; i < dedtypes->dim; i++)
-    {
-        Type *at = isType((*dedtypes)[i]);
-        if (at && at->ty == Ttypeof)
-            (*dedtypes)[i] = ((TypeTypeof *)at)->exp->type;    // 'unbox'
-    }
     for (size_t i = ntargs; i < dedargs->dim; i++)
     {
         TemplateParameter *tparam = (*parameters)[i];
@@ -3215,14 +3208,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 Type *tt;
                 Type *at = (Type *)(*dedtypes)[i];
 
-                if (at && at->ty == Ttypeof)    // type vs expression
-                {
-                    result = ((TypeTypeof *)at)->exp->implicitConvTo(t);
-                    if (result > MATCHnomatch)
-                        (*dedtypes)[i] = t;
-                    return;
-                }
-
                 if (unsigned char wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
                 {
                     if (!at)
@@ -4125,193 +4110,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             visit((Type *)t);
         }
 
-        void visit(Expression *e)
-        {
-            e->type->accept(this);
-            if (result > MATCHnomatch)
-                return;
-
-            size_t i = templateParameterLookup(tparam, parameters);
-            if (i != IDX_NOTFOUND)
-            {
-                if (Type *at = isType((*dedtypes)[i]))
-                {
-                    if (e->type->implicitConvTo(at))
-                        result = MATCHconvert;
-                }
-            }
-        }
-
-        bool deduceExpType(Expression *e)
-        {
-            size_t i = templateParameterLookup(tparam, parameters);
-            if (i == IDX_NOTFOUND)
-                return false;
-
-            Type *t = e->type;
-            Type *tt;
-            if (unsigned char wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
-            {
-                *wm |= wx;
-                result = MATCHconst;
-            }
-            else
-            {
-                result = deduceTypeHelper(t, &tt, tparam);
-            }
-            if (result <= MATCHnomatch)
-                return true;
-
-            Type *at = (Type *)(*dedtypes)[i];
-            if (!at)                        // expression vs ()
-            {
-                /* Use TypeTypeof as the 'box' to save polymopthism.
-                 *
-                 *  auto foo(T)(T arg);
-                 *  foo(1);
-                 *      // 1: deduceType(oarg='1', tparam='T', ...)
-                 *      //      T <= TypeTypeof(1)
-                 */
-                if (t != tt)
-                {
-                    e = e->copy();
-                    e->type = tt;
-                }
-                (*dedtypes)[i] = new TypeTypeof(e->loc, e);
-            }
-            else if (at->ty == Ttypeof)     // expression vs expression
-            {
-                /* Calculate common type of passed expressions.
-                 *
-                 *  auto foo(T)(T arg1, T arg2);
-                 *  foo(1, 2L);
-                 *      // 1: deduceType(oarg='1', tparam='T', ...)
-                 *      //      T <= TypeTypeof(1)
-                 *      // 2: deduceType(oarg='1', tparam='T', ...)
-                 *      //      T <= TypeTypeof(idexp ? 1 : 2L)
-                 */
-                static IdentifierExp *idexp = NULL; // dummy condition
-                if (!idexp)
-                {
-                    idexp = new IdentifierExp(Loc(), Id::empty);
-                    idexp->type = Type::tbool;
-                }
-                CondExp *condexp = new CondExp(Loc(), idexp, ((TypeTypeof *)at)->exp, e);
-                Expression *ec = condexp->semantic(sc);
-                if (ec == condexp)
-                {
-                    ((TypeTypeof *)at)->exp = condexp;
-                }
-            }
-            else                            // expression vs type
-            {
-                /* Check the expression is implicitly convertible to the already deduced type.
-                 *
-                 *  auto foo(T)(T arg1, T arg2);
-                 *  short v; foo(v, 1);
-                 *      // 1: deduceType(oarg='v', tparam='T', ...)
-                 *      //      T <= short
-                 *      // 2: deduceType(oarg='1', tparam='T', ...)
-                 *      //      T <= short  (because '1' is implicitly convertible to short)
-                 */
-                result = e->implicitConvTo(at);
-            }
-            return true;
-        }
-
-        void visit(IntegerExp *e)
-        {
-            if (deduceExpType(e))
-                return;
-            visit((Expression *)e);
-        }
-
-        void visit(RealExp *e)
-        {
-            if (deduceExpType(e))
-                return;
-            visit((Expression *)e);
-        }
-
-        void visit(NullExp *e)
-        {
-            if (deduceExpType(e))
-                return;
-            visit((Expression *)e);
-        }
-
-        void visit(StringExp *e)
-        {
-            if (deduceExpType(e))
-                return;
-
-            Type *taai;
-            if (e->type->ty == Tarray &&
-                (tparam->ty == Tsarray ||
-                 tparam->ty == Taarray && (taai = ((TypeAArray *)tparam)->index)->ty == Tident &&
-                                          ((TypeIdentifier *)taai)->idents.dim == 0))
-            {
-                // Consider compile-time known boundaries
-                e->type->nextOf()->sarrayOf(e->len)->accept(this);
-                return;
-            }
-            visit((Expression *)e);
-        }
-
-        void visit(ArrayLiteralExp *e)
-        {
-            if (tparam->ty == Tarray && e->elements && e->elements->dim)
-            {
-                Type *tn = ((TypeDArray *)tparam)->next;
-                result = MATCHexact;
-                for (size_t i = 0; i < e->elements->dim; i++)
-                {
-                    MATCH m = deduceType((*e->elements)[i], sc, tn, parameters, dedtypes, wm);
-                    if (m < result)
-                        result = m;
-                    if (result <= MATCHnomatch)
-                        break;
-                }
-                return;
-            }
-
-            Type *taai;
-            if (e->type->ty == Tarray &&
-                (tparam->ty == Tsarray ||
-                 tparam->ty == Taarray && (taai = ((TypeAArray *)tparam)->index)->ty == Tident &&
-                                          ((TypeIdentifier *)taai)->idents.dim == 0))
-            {
-                // Consider compile-time known boundaries
-                e->type->nextOf()->sarrayOf(e->elements->dim)->accept(this);
-                return;
-            }
-            visit((Expression *)e);
-        }
-
-        void visit(AssocArrayLiteralExp *e)
-        {
-            if (tparam->ty == Taarray && e->keys && e->keys->dim)
-            {
-                TypeAArray *taa = (TypeAArray *)tparam;
-                result = MATCHexact;
-                for (size_t i = 0; i < e->keys->dim; i++)
-                {
-                    MATCH m1 = deduceType((*e->keys)[i], sc, taa->index, parameters, dedtypes, wm);
-                    if (m1 < result)
-                        result = m1;
-                    if (result <= MATCHnomatch)
-                        break;
-                    MATCH m2 = deduceType((*e->values)[i], sc, taa->next, parameters, dedtypes, wm);
-                    if (m2 < result)
-                        result = m2;
-                    if (result <= MATCHnomatch)
-                        break;
-                }
-                return;
-            }
-            visit((Expression *)e);
-        }
-
         void visit(FuncExp *e)
         {
             //printf("e->type = %s, tparam = %s\n", e->type->toChars(), tparam->toChars());
@@ -4394,29 +4192,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             }
             //printf("tparam = %s <= e->type = %s, t = %s\n", tparam->toChars(), e->type->toChars(), t->toChars());
             visit(t);
-        }
-
-        void visit(SliceExp *e)
-        {
-            Type *taai;
-            if (e->type->ty == Tarray &&
-                (tparam->ty == Tsarray ||
-                 tparam->ty == Taarray && (taai = ((TypeAArray *)tparam)->index)->ty == Tident &&
-                                          ((TypeIdentifier *)taai)->idents.dim == 0))
-            {
-                // Consider compile-time known boundaries
-                if (Type *tsa = toStaticArrayType(e))
-                {
-                    tsa->accept(this);
-                    return;
-                }
-            }
-            visit((Expression *)e);
-        }
-
-        void visit(CommaExp *e)
-        {
-            ((CommaExp *)e)->e2->accept(this);
         }
     };
 
