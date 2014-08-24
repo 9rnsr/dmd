@@ -1768,6 +1768,7 @@ Lmatch:
         Type *at = isType((*dedtypes)[i]);
         if (at && at->ty == Ttypeof)
             (*dedtypes)[i] = ((TypeTypeof *)at)->idents[0];    // 'unbox'
+       //if (at) printf("deduced[%d] at = %s\n", i, at->toChars());
     }
     for (size_t i = ntargs; i < dedargs->dim; i++)
     {
@@ -3086,6 +3087,12 @@ MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam)
  *      dedtypes = [ int ]      // Array of Expression/Type's
  */
 
+//struct DedInfo
+//{
+//    Expressions *args;
+//    
+//}
+
 MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *parameters,
         Objects *dedtypes, unsigned *wm, size_t inferStart)
 {
@@ -3096,6 +3103,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
         Type *tparam;
         TemplateParameters *parameters;
         Objects *dedtypes;
+        //DedInfo *infos;
         unsigned *wm;
         size_t inferStart;
         MATCH result;
@@ -3220,7 +3228,9 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     //if (result > MATCHnomatch)
                     //    (*dedtypes)[i] = t;
                     //return;
-                    at = NULL;
+
+                    //at = NULL;
+                    at = (Type *)((TypeTypeof *)at)->idents[0];
                 }
 
                 if (unsigned char wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
