@@ -3603,7 +3603,8 @@ void test13223()
     }
     int[] a = [1, 2];
     static assert(is(typeof(f1(a, [])) == int[]));
-  //static assert(is(typeof(f2([], a)) == int[]));
+    static assert(is(typeof(f2([], a)) == int[]));
+
     static assert(is(typeof(f1(a, null)) == int[]));
     static assert(is(typeof(f2(null, a)) == int[]));
 

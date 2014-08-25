@@ -3093,6 +3093,8 @@ MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam)
 //    
 //}
 
+static Expression *emptyArrayElement = NULL;
+
 MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *parameters,
         Objects *dedtypes, unsigned *wm, size_t inferStart)
 {
@@ -3116,6 +3118,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
 
         MATCH deduceIdent(Type *t, TypeIdentifier *tident, size_t i)
         {
+            //printf("deduceIdent(t = %s, tident = %s, i = %d)\n", t->toChars(), tident->toChars(), i);
             TemplateParameter *tp = (*parameters)[i];
 
             // Found the corresponding parameter tp
@@ -3133,7 +3136,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     return MATCHconst;
                 }
 
-                if (at && at->ty == Ttypeof)    // type vs expression
+                if (at && at->ty == Ttypeof)    // type vs expressions
                 {
                     // todo
                 }
@@ -3169,7 +3172,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                         return MATCHconst;
                 }
 
-                // type vs expression
+                // type vs expressions
                 if (at->ty == Ttypeof)
                 {
                     TypeTypeof *xt = (TypeTypeof *)at;
@@ -3177,6 +3180,8 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     for (size_t j = 1; j < xt->idents.dim; j++)
                     {
                         Expression *e = (Expression *)xt->idents[j];
+                        if (e == emptyArrayElement)
+                            continue;
                         MATCH m = e->implicitConvTo(tt/* ->addMod(???) */);
                         if (match > m)
                             match = m;
@@ -4162,6 +4167,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
 
         void visit(Expression *e)
         {
+            //printf("visit(e = %s)\n", e->toChars());
             size_t i = templateParameterLookup(tparam, parameters);
             if (i == IDX_NOTFOUND || ((TypeIdentifier *)tparam)->idents.dim > 0)
             {
@@ -4212,6 +4218,8 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 for (size_t j = 1; j < xt->idents.dim; j++)
                 {
                     Expression *e = (Expression *)xt->idents[j];
+                    if (e == emptyArrayElement)
+                        continue;
                     MATCH m = e->implicitConvTo(tt/* ->addMod(???) */);
                     if (match1 > m)
                         match1 = m;
@@ -4293,6 +4301,29 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
 
         void visit(ArrayLiteralExp *e)
         {
+            if ((!e->elements || !e->elements->dim) &&
+                e->type->toBasetype()->nextOf()->ty == Tvoid &&
+                (tparam->ty == Tarray/* || tparam->ty == Tsarray || tparam->ty == Taarray*/))
+            {
+                if (!emptyArrayElement)
+                {
+                    emptyArrayElement = new IdentifierExp(Loc(), Id::p);    // dummy
+                    emptyArrayElement->type = Type::tvoid;
+                }
+
+                // T[] <- [] (void[])
+                Type *tn = ((TypeNext *)tparam)->next;
+                size_t i = templateParameterLookup(tn, parameters);
+                if (i != IDX_NOTFOUND && ((TypeIdentifier *)tn)->idents.dim == 0)
+                {
+                    if ((*dedtypes)[i])
+                        result = MATCHexact;
+                    else
+                        result = deduceType(emptyArrayElement, sc, tn, parameters, dedtypes, wm);
+                    return;
+                }
+            }
+
             if (tparam->ty == Tarray && e->elements && e->elements->dim)
             {
                 Type *tn = ((TypeDArray *)tparam)->next;
