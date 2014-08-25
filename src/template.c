@@ -4185,9 +4185,15 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 return;
             }
 
-            TemplateParameter *tp = (*parameters)[i];
-            if (!tp->isTemplateTypeParameter())
+            TemplateTypeParameter *tp = (*parameters)[i]->isTemplateTypeParameter();
+            if (!tp)
                 return; // nomatch
+
+            if (e == emptyArrayElement && tp->defaultType)
+            {
+                tp->defaultType->accept(this);
+                return;
+            }
 
             Type *at = (Type *)(*dedtypes)[i];
             Type *tt;
