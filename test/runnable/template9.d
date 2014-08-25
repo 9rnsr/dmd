@@ -3651,7 +3651,7 @@ void test13223()
 
     T[] f3(T)(T[] a) { return a; }
     static assert(is(typeof(f3([])) == void[]));
-  //static assert(is(typeof(f3(null)) == void[]));
+    static assert(is(typeof(f3(null)) == void[]));
 
     T f4(T)(T a) { return a; }
     static assert(is(typeof(f4([])) == void[]));

@@ -1587,7 +1587,7 @@ Lretry:
             {
                 if (prmtype->deco)
                     m = farg->implicitConvTo(prmtype);
-                if (farg->op == TOKarrayliteral && prmtype->ty == Tarray)   // Bugzilla13223
+                if (0 && farg->op == TOKarrayliteral && prmtype->ty == Tarray)   // Bugzilla13223
                 {
                     ArrayLiteralExp *ale = (ArrayLiteralExp *)farg;
                     if (!ale->elements || !ale->elements->dim)
@@ -4256,7 +4256,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
 
         void visit(Expression *e)
         {
-            //printf("visit(e = %s)\n", e->toChars());
+            //printf("Expression::deduceType(e = %s)\n", e->toChars());
             size_t i = templateParameterLookup(tparam, parameters);
             if (i == IDX_NOTFOUND || ((TypeIdentifier *)tparam)->idents.dim > 0)
             {
@@ -4473,6 +4473,32 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 }
             }
 #endif
+        }
+
+        void visit(NullExp *e)
+        {
+            if (tparam->ty == Tarray && e->type->ty == Tnull)
+            {
+                if (!emptyArrayElement)
+                {
+                    emptyArrayElement = new IdentifierExp(Loc(), Id::p);    // dummy
+                    emptyArrayElement->type = Type::tvoid;
+                }
+
+                // T[] <- null (void[])
+                Type *tn = ((TypeNext *)tparam)->next;
+                size_t i = templateParameterLookup(tn, parameters);
+                if (i != IDX_NOTFOUND && ((TypeIdentifier *)tn)->idents.dim == 0)
+                {
+                    if ((*dedtypes)[i])
+                        result = MATCHexact;
+                    else
+                        result = deduceType(emptyArrayElement, sc, tn, parameters, dedtypes, wm);
+                    return;
+                }
+            }
+
+            visit((Expression *)e);
         }
 
         void visit(StringExp *e)
