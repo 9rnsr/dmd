@@ -1074,6 +1074,19 @@ MATCH TemplateDeclaration::leastAsSpecialized(Scope *sc, TemplateDeclaration *td
     return MATCHnomatch;
 }
 
+struct TypeDeduced : Type
+{
+    TypeDeduced(Type *tt, Expression *e, Type *tparam)
+        : Type(Tnone)
+    {
+        tded = tt;
+        argexps.push(e);
+        tparams.push(tparam);
+    }
+    Type *tded;
+    Expressions argexps;    // corresponding expressions
+    Types tparams;          // mod
+};
 
 /*************************************************
  * Match function arguments against a specific template function.
@@ -1768,8 +1781,8 @@ Lmatch:
     for (size_t i = 0; i < dedtypes->dim; i++)
     {
         Type *at = isType((*dedtypes)[i]);
-        if (at && at->ty == Ttypeof)
-            (*dedtypes)[i] = ((TypeTypeof *)at)->idents[0];    // 'unbox'
+        if (at && at->ty == Tnone)
+            (*dedtypes)[i] = ((TypeDeduced *)at)->tded;     // 'unbox'
        //if (at) printf("deduced[%d] at = %s\n", i, at->toChars());
     }
     for (size_t i = ntargs; i < dedargs->dim; i++)
@@ -3139,12 +3152,12 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     return MATCHconst;
                 }
 
-                if (at && at->ty == Ttypeof)    // type vs expressions
+                if (at && at->ty == Tnone)      // type vs expressions
                 {
-                    TypeTypeof *xt = (TypeTypeof *)at;
+                    TypeDeduced *xt = (TypeDeduced *)at;
                     //printf("\tL%d, at = %s\n", __LINE__, xt->idents[0]->toChars());
                     // todo
-                    at = (Type *)xt->idents[0];
+                    at = xt->tded;
                 }
 
                 if (tt->equals(at))
@@ -3179,13 +3192,13 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 }
 
                 // type vs expressions
-                if (at->ty == Ttypeof)
+                if (at->ty == Tnone)
                 {
-                    TypeTypeof *xt = (TypeTypeof *)at;
+                    TypeDeduced *xt = (TypeDeduced *)at;
                     match = MATCHexact;
-                    for (size_t j = 1; j < xt->idents.dim; j++)
+                    for (size_t j = 0; j < xt->argexps.dim; j++)
                     {
-                        Expression *e = (Expression *)xt->idents[j];
+                        Expression *e = xt->argexps[j];
                         if (e == emptyArrayElement)
                             continue;
                         MATCH m = e->implicitConvTo(tt/* ->addMod(???) */);
@@ -3201,7 +3214,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     }
 
                     // fall down to type vs type.
-                    at = (Type *)xt->idents[0];
+                    at = xt->tded;
                 }
 
                 // type vs type
@@ -3303,8 +3316,8 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                         if (!tt)
                             goto Lnomatch;
                         Type *at = (Type *)(*dedtypes)[i];
-                        if (at && at->ty == Ttypeof)
-                            at = (Type *)((TypeTypeof *)at)->idents[0];
+                        if (at && at->ty == Tnone)
+                            at = ((TypeDeduced *)at)->tded;
                         if (!at || tt->equals(at))
                         {
                             (*dedtypes)[i] = tt;
@@ -4241,20 +4254,17 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 // expression vs (none)
                 if (!at)
                 {
-                    TypeTypeof *xt = new TypeTypeof(e->loc, e);
-                    xt->idents.push(tt);    // idents[0]
-                    xt->idents.push(e);     // idents[1]
-                    (*dedtypes)[i] = xt;
+                    (*dedtypes)[i] = new TypeDeduced(tt, e, tparam);
                     //result = MATCHexact;
                     //printf("!at e = %s %s, tt = %s, wx = x%x\n", e->type->toChars(), e->toChars(), tt->toChars(), wx);
                     return;
                 }
 
-                TypeTypeof *xt = NULL;
-                if (at->ty == Ttypeof)
+                TypeDeduced *xt = NULL;
+                if (at->ty == Tnone)
                 {
-                    xt = (TypeTypeof *)at;
-                    at = (Type *)xt->idents[0];
+                    xt = (TypeDeduced *)at;
+                    at = xt->tded;
                 }
 
                 // From previous matched expressions to current deduced type
@@ -4262,9 +4272,9 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 if (xt)
                 {
                     match1 = MATCHexact;
-                    for (size_t j = 1; j < xt->idents.dim; j++)
+                    for (size_t j = 0; j < xt->argexps.dim; j++)
                     {
-                        Expression *e = (Expression *)xt->idents[j];
+                        Expression *e = xt->argexps[j];
                         if (e == emptyArrayElement)
                             continue;
                         MATCH m = e->implicitConvTo(tt/* ->addMod(???) */->substWildTo(*wm));
@@ -4291,7 +4301,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 {
                     // Prefer current match: tt
                     if (xt)
-                        xt->idents[0] = tt, xt->idents.push(e);
+                        xt->tded = tt, xt->argexps.push(e);
                     else
                         (*dedtypes)[i] = tt;
                     result = match1;
@@ -4301,7 +4311,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 {
                     // Prefer previous match: (*dedtypes)[i]
                     if (xt)
-                        xt->idents.push(e);
+                        xt->argexps.push(e);
                     result = match2;
                     return;
                 }
@@ -4317,19 +4327,16 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             // expression vs (none)
             if (!at)
             {
-                TypeTypeof *xt = new TypeTypeof(e->loc, e);
-                xt->idents.push(tt);    // idents[0]
-                xt->idents.push(e);     // idents[1]
-                (*dedtypes)[i] = xt;
+                (*dedtypes)[i] = new TypeDeduced(tt, e, tparam);
                 //result = MATCHexact;
                 return;
             }
 
-            TypeTypeof *xt = NULL;
-            if (at->ty == Ttypeof)
+            TypeDeduced *xt = NULL;
+            if (at->ty == Tnone)
             {
-                xt = (TypeTypeof *)at;
-                at = (Type *)xt->idents[0];
+                xt = (TypeDeduced *)at;
+                at = xt->tded;
             }
 
             // From previous matched expressions to current deduced type
@@ -4337,9 +4344,9 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             if (xt)
             {
                 match1 = MATCHexact;
-                for (size_t j = 1; j < xt->idents.dim; j++)
+                for (size_t j = 0; j < xt->argexps.dim; j++)
                 {
-                    Expression *e = (Expression *)xt->idents[j];
+                    Expression *e = xt->argexps[j];
                     if (e == emptyArrayElement)
                         continue;
                     MATCH m = e->implicitConvTo(tt/* ->addMod(???) */);
@@ -4363,7 +4370,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             {
                 // Prefer current match: tt
                 if (xt)
-                    xt->idents[0] = tt, xt->idents.push(e);
+                    xt->tded = tt, xt->argexps.push(e);
                 else
                     (*dedtypes)[i] = tt;
                 result = match1;
@@ -4373,7 +4380,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             {
                 // Prefer previous match: (*dedtypes)[i]
                 if (xt)
-                    xt->idents.push(e);
+                    xt->argexps.push(e);
                 result = match2;
                 return;
             }
