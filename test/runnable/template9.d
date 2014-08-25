@@ -3889,6 +3889,32 @@ void test13223()
     translate(null);
 }
 
+void test13223a()
+{
+    T f(T)(T, T) { return T.init; }
+
+    immutable i = 0;
+    const c = 0;
+    auto m = 0;
+    shared s = 0;
+
+    static assert(is(typeof(f(i, i)) == immutable int));
+    static assert(is(typeof(f(i, c)) ==     const int));
+    static assert(is(typeof(f(c, i)) ==     const int));
+    static assert(is(typeof(f(i, m)) ==           int));
+    static assert(is(typeof(f(m, i)) ==           int));
+    static assert(is(typeof(f(c, m)) ==           int));
+    static assert(is(typeof(f(m, c)) ==           int));
+    static assert(is(typeof(f(m, m)) ==           int));
+    static assert(is(typeof(f(i, s)) ==    shared int));
+    static assert(is(typeof(f(s, i)) ==    shared int));
+    static assert(is(typeof(f(c, s)) ==    shared int));
+    static assert(is(typeof(f(s, c)) ==    shared int));
+    static assert(is(typeof(f(s, s)) ==    shared int));
+    static assert(is(typeof(f(s, m)) ==           int));
+    static assert(is(typeof(f(m, s)) ==           int));
+}
+
 /******************************************/
 // 13235
 
