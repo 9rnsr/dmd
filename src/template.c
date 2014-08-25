@@ -1524,52 +1524,10 @@ Lretry:
             //printf("farg = %s %s\n", farg->type->toChars(), farg->toChars());
 
             RootObject *oarg = farg;
-
             if ((fparam->storageClass & STCref) &&
                 (!(fparam->storageClass & STCauto) || farg->isLvalue()))
             {
                 oarg = argtype;
-            }
-            else
-            {
-#if 0
-//printf("[%s] farg = %s %s, prmtype = %s\n", farg->loc.toChars(), farg->type->toChars(), farg->toChars(), prmtype->toChars());
-            /* Adjust top const of the dynamic array type or pointer type argument
-             * to the corresponding parameter type qualifier,
-             * to pass through deduceType.
-             */
-            Type *at = argtype;
-            if ((argtype->ty == Tarray || argtype->ty == Tpointer)
-                &&
-                ((prmtype->mod & MODwild) || deduceTypeHelper(argtype, &at, prmtype))
-                /* &&
-                (!(fparam->storageClass & STCref) ||
-                 (fparam->storageClass & STCauto) && !farg->isLvalue())*/)
-            {
-                if ((prmtype->mod & MODwild) || prmtype->mod == 0)
-                {
-                    /*     prmtype      argtype                Adjusted argtype
-                     * foo(      U)     immutable(int[])    => immutable(int)[]
-                     * foo(inout U)     immutable(int[])    => immutable(int)[]
-                     */
-                    argtype = at->mutableOf();
-                }
-                else
-                {
-                    /*     prmtype      argtype                Adjusted argtype
-                     * foo(immutable U) immutable(int)[]    => immutable(int[])
-                     * foo(    const U) immutable(int[])    => const(immutable(int)[])
-                     */
-                    argtype = at->addMod(prmtype->mod);
-                }
-                if (!farg->type->equals(argtype))
-                {
-                    farg = farg->copy();
-                    farg->type = argtype;
-                    oarg = farg;
-                }
-            }
-#endif
             }
 
             if (fvarargs == 2 && parami + 1 == nfparams && argi + 1 < nfargs)
@@ -1799,53 +1757,22 @@ Lmatch:
             Type *tt = xt->tded;    // 'unbox'
             //printf("dedtypes[%d] xt->tded = %s\n", i, tt->toChars());
 
-            //MOD modparam = MODimmutable | MODconst | MODwild | MODshared;
             bool iswild = true;
             for (size_t j = 0; iswild && j < xt->tparams.dim; j++)
                 iswild = iswild && xt->tparams[j]->isWild();
             if (iswild)
                 tt = tt->unqualify(MODimmutable | MODconst);
 
-            if (//wm && (tparam->mod & MODwild) &&
-                (tt->ty == Tarray || tt->ty == Tpointer))
+            if (tt->ty == Tarray || tt->ty == Tpointer)
             {
                 tt = tt->mutableOf();
-            #if 0
-                /*     tparam           tt                   adjusted tt        U
-                 * foo(            U)   immutable(T[])    => immutable(T)[]     immutable(int)[]
-                 *
-                 * foo(  immutable U)   immutable(T)[]    => immutable(T[])     immutable(int)[]
-                 * foo(      const U)       const(T)[]    =>     const(T[])         const(int)[]
-                 * foo(      inout U)   immutable(T[])    => immutable(T[])               int []
-                 *
-                 * foo(      inout U)   inout(const(T[])) =>     inout(T[])         const(int)[]
-                 * foo(inout const U)   inout(const(T)[]) =>           T[]                int []
-                 *
-                 * foo(     shared U)   shared(T)[]       =>    shared(T[])        shared(int)[]
-                 *
-                 * Then, U will be deduced to some_qual(V)[]
-                 */
-                //printf("+tt = %s, tparam = %s\n", tt->toChars(), tparam->toChars());
-                MOD m = 0;
-                MOD margn = tt->nextOf()->mod;
-                if (!tparam->isMutable())
-                {
-                    m = margn & (MODimmutable | MODwild | MODconst);
-                    if (tparam->isWild() && m == MODwildconst)
-                        m &= tparam->mod;
-                }
-                if (tparam->isShared())
-                    m |= (margn & MODshared);
-
-                tt = tt->castMod(m);
-            #endif
                 //printf("-tt = %s, m = x%x\n", tt->toChars(), m);
             }
 
             (*dedtypes)[i] = tt;
             delete xt;
         }
-       //if (at) printf("deduced[%d] at = %s\n", i, at->toChars());
+        //if (at) printf("deduced[%d] at = %s\n", i, at->toChars());
     }
     for (size_t i = ntargs; i < dedargs->dim; i++)
     {
@@ -3164,12 +3091,6 @@ MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam)
  *      dedtypes = [ int ]      // Array of Expression/Type's
  */
 
-//struct DedInfo
-//{
-//    Expressions *args;
-//    
-//}
-
 static Expression *emptyArrayElement = NULL;
 
 MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *parameters,
@@ -3182,7 +3103,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
         Type *tparam;
         TemplateParameters *parameters;
         Objects *dedtypes;
-        //DedInfo *infos;
         unsigned *wm;
         size_t inferStart;
         MATCH result;
@@ -3220,6 +3140,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     //printf("\tL%d, at = %s\n", __LINE__, xt->idents[0]->toChars());
                     // todo
                     at = xt->tded;
+                    delete xt;
                 }
 
                 if (tt->equals(at))
@@ -4268,117 +4189,11 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             if (!tp->isTemplateTypeParameter())
                 return; // nomatch
 
-            Type *et = e->type;
-        #if 0
-            if (wm && (tparam->mod & MODwild) &&
-                (et->ty == Tarray || et->ty == Tpointer))
-            {
-                /*     tparam           et                   adjusted et        U
-                 * foo(            U)   immutable(T[])    => immutable(T)[]     immutable(int)[]
-                 *
-                 * foo(  immutable U)   immutable(T)[]    => immutable(T[])     immutable(int)[]
-                 * foo(      const U)       const(T)[]    =>     const(T[])         const(int)[]
-                 * foo(      inout U)   immutable(T[])    => immutable(T[])               int []
-                 *
-                 * foo(      inout U)   inout(const(T[])) =>     inout(T[])         const(int)[]
-                 * foo(inout const U)   inout(const(T)[]) =>           T[]                int []
-                 *
-                 * foo(     shared U)   shared(T)[]       =>    shared(T[])        shared(int)[]
-                 *
-                 * Then, U will be deduced to some_qual(V)[]
-                 */
-                //printf("+et = %s, tparam = %s\n", et->toChars(), tparam->toChars());
-                MOD m = 0;
-                MOD margn = et->nextOf()->mod;
-                if (!tparam->isMutable())
-                {
-                    m = margn & (MODimmutable | MODwild | MODconst);
-                    if (tparam->isWild() && m == MODwildconst)
-                        m &= tparam->mod;
-                }
-                if (tparam->isShared())
-                    m |= (margn & MODshared);
-
-                et = et->castMod(m);
-                //printf("-et = %s, m = x%x\n", et->toChars(), m);
-                //if (!farg->type->equals(et))
-                //{
-                //    farg = farg->copy();
-                //    farg->type = et;
-                //}
-            }
-        #endif
             Type *at = (Type *)(*dedtypes)[i];
             Type *tt;
-            if (unsigned char wx = wm ? deduceWildHelper(et, &tt, tparam) : 0)
+            if (unsigned char wx = wm ? deduceWildHelper(e->type, &tt, tparam) : 0)
             {
                 result = MATCHconst;
-#if 1   // duplicatee
-                // expression vs (none)
-                if (!at)
-                {
-                    (*dedtypes)[i] = new TypeDeduced(tt, e, tparam);
-                    //result = MATCHexact;
-                    //printf("!at e = %s %s, tt = %s, wx = x%x\n", e->type->toChars(), e->toChars(), tt->toChars(), wx);
-                    return;
-                }
-
-                TypeDeduced *xt = NULL;
-                if (at->ty == Tnone)
-                {
-                    xt = (TypeDeduced *)at;
-                    at = xt->tded;
-                }
-
-                // From previous matched expressions to current deduced type
-                MATCH match1 = MATCHnomatch;
-                if (xt)
-                {
-                    match1 = MATCHexact;
-                    for (size_t j = 0; j < xt->argexps.dim; j++)
-                    {
-                        Expression *e = xt->argexps[j];
-                        if (e == emptyArrayElement)
-                            continue;
-                        MATCH m = e->implicitConvTo(tt->addMod(xt->tparams[j]->mod)->substWildTo(*wm));
-                        if (match1 > m)
-                            match1 = m;
-                        if (match1 <= MATCHnomatch)
-                            break;
-                    }
-                }
-                // From current expresssion to previous deduced type
-                MATCH match2 = e->implicitConvTo(at->addMod(tparam->mod)->substWildTo(*wm));
-
-                //printf(" at e = %s %s, tt = %s, wx = x%x, m1 = %d, m2 = %d\n",
-                //    e->type->toChars(), e->toChars(), tt->toChars(), wx, match1, match2);
-
-                if (match1 > MATCHnomatch && match2 > MATCHnomatch)
-                {
-                    if (at->implicitConvTo(tt) <= MATCHnomatch)
-                        match1 = MATCHnomatch;  // Prefer at
-                    else if (tt->implicitConvTo(at) <= MATCHnomatch)
-                        match2 = MATCHnomatch;  // Prefer tt
-                }
-                if (match1 > MATCHnomatch)
-                {
-                    // Prefer current match: tt
-                    if (xt)
-                        xt->update(tt, e, tparam);
-                    else
-                        (*dedtypes)[i] = tt;
-                    result = match1;
-                    return;
-                }
-                else if (match2 > MATCHnomatch)
-                {
-                    // Prefer previous match: (*dedtypes)[i]
-                    if (xt)
-                        xt->update(e, tparam);
-                    result = match2;
-                    return;
-                }
-#endif
             }
             else if (MATCH m = deduceTypeHelper(e->type, &tt, tparam))
             {
@@ -4391,7 +4206,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             if (!at)
             {
                 (*dedtypes)[i] = new TypeDeduced(tt, e, tparam);
-                //result = MATCHexact;
                 return;
             }
 
@@ -4412,7 +4226,10 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     Expression *e = xt->argexps[j];
                     if (e == emptyArrayElement)
                         continue;
-                    MATCH m = e->implicitConvTo(tt->addMod(xt->tparams[j]->mod));
+                    Type *pt = tt->addMod(xt->tparams[j]->mod);
+                    if (wm && *wm)
+                        pt = pt->substWildTo(*wm);  // todo
+                    MATCH m = e->implicitConvTo(pt);
                     if (match1 > m)
                         match1 = m;
                     if (match1 <= MATCHnomatch)
@@ -4420,7 +4237,10 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 }
             }
             // From current expresssion to previous deduced type
-            MATCH match2 = e->implicitConvTo(at->addMod(tparam->mod));
+            Type *pt = at->addMod(tparam->mod);
+            if (wm && *wm)
+                pt = pt->substWildTo(*wm);  // todo
+            MATCH match2 = e->implicitConvTo(pt);
 
             if (match1 > MATCHnomatch && match2 > MATCHnomatch)
             {
@@ -4448,31 +4268,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 return;
             }
 
-#if 0
-            if (xt)
-            {
-                TypeTypeof *xt = (TypeTypeof *)at;
-                at = (Type *)xt->idents[0];
-
-                // exact match of deduced types
-                if (tt->equals(at))
-                {
-                    result = MATCHexact;
-                    return;
-                }
-                if (tt->ty == Tclass && at->ty == Tclass)
-                {
-                    result = tt->implicitConvTo(at);
-                    return;
-                }
-                if (tt->ty == Tsarray && at->ty == Tarray &&
-                    tt->nextOf()->implicitConvTo(at->nextOf()) >= MATCHconst)
-                {
-                    result = MATCHexact;
-                    return;
-                }
-            }
-#endif
+            // todo?
         }
 
         void visit(NullExp *e)
@@ -4497,7 +4293,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     return;
                 }
             }
-
             visit((Expression *)e);
         }
 
@@ -4513,7 +4308,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 e->type->nextOf()->sarrayOf(e->len)->accept(this);
                 return;
             }
-
             visit((Expression *)e);
         }
 
