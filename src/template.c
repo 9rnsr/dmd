@@ -1507,6 +1507,7 @@ Lretry:
             }
             else
             {
+#if 0
 //printf("[%s] farg = %s %s, prmtype = %s\n", farg->loc.toChars(), farg->type->toChars(), farg->toChars(), prmtype->toChars());
             /* Adjust top const of the dynamic array type or pointer type argument
              * to the corresponding parameter type qualifier,
@@ -1543,6 +1544,7 @@ Lretry:
                     oarg = farg;
                 }
             }
+#endif
             }
 
             if (fvarargs == 2 && parami + 1 == nfparams && argi + 1 < nfargs)
@@ -3131,6 +3133,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             {
                 if (!at)
                 {
+                //printf("\tL%d\n", __LINE__);
                     (*dedtypes)[i] = tt;
                     *wm |= wx;
                     return MATCHconst;
@@ -3138,7 +3141,10 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
 
                 if (at && at->ty == Ttypeof)    // type vs expressions
                 {
+                    TypeTypeof *xt = (TypeTypeof *)at;
+                    //printf("\tL%d, at = %s\n", __LINE__, xt->idents[0]->toChars());
                     // todo
+                    at = (Type *)xt->idents[0];
                 }
 
                 if (tt->equals(at))

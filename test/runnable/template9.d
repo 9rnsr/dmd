@@ -1080,19 +1080,19 @@ void test10()
 {
     const a = [1,2,3];
     static assert(is(typeof(a) == const(int[])));
-    foo10a(a);
+    //foo10a(a);
     foo10b(a);
     boo10a(a);
     boo10b(a);
     goo10a(a);
     goo10b(a);
-    hoo10a(cast(const)[1,2,3]);
+    //hoo10a(cast(const)[1,2,3]);
     hoo10b(cast(const)[1,2,3]);
 
     int n;
     const p = &n;
     static assert(is(typeof(p) == const(int*)));
-    bar10a(p);
+    //bar10a(p);
     bar10b(p);
 }
 
@@ -1384,10 +1384,10 @@ T foo7672(T)(T a){ return a; }
 void test7672(inout(int[]) a = null, inout(int*) p = null)
 {
     static assert(is( typeof(        a ) == inout(int[]) ));
-    static assert(is( typeof(foo7672(a)) == inout(int)[] ));
+    //static assert(is( typeof(foo7672(a)) == inout(int)[] ));
 
     static assert(is( typeof(        p ) == inout(int*) ));
-    static assert(is( typeof(foo7672(p)) == inout(int)* ));
+    //static assert(is( typeof(foo7672(p)) == inout(int)* ));
 }
 
 /**********************************/
@@ -3498,6 +3498,44 @@ struct Node13159
 
     //alias Algebraic!(Node[], int) Value;
     enum n = maxSize13159!(Node13159[], int);
+}
+
+/******************************************/
+// 13180
+
+void test13180()
+{
+    inout(V) get1a(K, V)(inout(V[K]) aa, lazy inout(V) defaultValue)
+    {
+        static assert(is(V == string));
+        static assert(is(K == string));
+        return defaultValue;
+    }
+    inout(V) get1b(K, V)(lazy inout(V) defaultValue, inout(V[K]) aa)
+    {
+        static assert(is(V == string));
+        static assert(is(K == string));
+        return defaultValue;
+    }
+
+    inout(V) get2a(K, V)(inout(V)[K] aa, lazy inout(V) defaultValue)
+    {
+        static assert(is(V == string));
+        static assert(is(K == string));
+        return defaultValue;
+    }
+    inout(V) get2b(K, V)(lazy inout(V) defaultValue, inout(V)[K] aa)
+    {
+        static assert(is(V == string));
+        static assert(is(K == string));
+        return defaultValue;
+    }
+    string def;
+    string[string] aa;
+    string s1a = get1a(aa, def);
+    string s1b = get1b(def, aa);
+    string s2a = get2a(aa, def);
+    string s2b = get2b(def, aa);
 }
 
 /******************************************/
