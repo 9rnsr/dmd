@@ -1080,19 +1080,19 @@ void test10()
 {
     const a = [1,2,3];
     static assert(is(typeof(a) == const(int[])));
-    //foo10a(a);
+    foo10a(a);
     foo10b(a);
     boo10a(a);
     boo10b(a);
     goo10a(a);
     goo10b(a);
-    //hoo10a(cast(const)[1,2,3]);
+    hoo10a(cast(const)[1,2,3]);
     hoo10b(cast(const)[1,2,3]);
 
     int n;
     const p = &n;
     static assert(is(typeof(p) == const(int*)));
-    //bar10a(p);
+    bar10a(p);
     bar10b(p);
 }
 
@@ -1384,10 +1384,10 @@ T foo7672(T)(T a){ return a; }
 void test7672(inout(int[]) a = null, inout(int*) p = null)
 {
     static assert(is( typeof(        a ) == inout(int[]) ));
-    //static assert(is( typeof(foo7672(a)) == inout(int)[] ));
+    static assert(is( typeof(foo7672(a)) == inout(int)[] ));
 
     static assert(is( typeof(        p ) == inout(int*) ));
-    //static assert(is( typeof(foo7672(p)) == inout(int)* ));
+    static assert(is( typeof(foo7672(p)) == inout(int)* ));
 }
 
 /**********************************/
