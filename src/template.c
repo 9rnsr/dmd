@@ -3124,18 +3124,6 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             Type *tt;
             Type *at = (Type *)(*dedtypes)[i];
 
-            if (at && at->ty == Ttypeof)    // type vs expression
-            {
-                // todo
-                //result = ((TypeTypeof *)at)->exp->implicitConvTo(t);
-                //if (result > MATCHnomatch)
-                //    (*dedtypes)[i] = t;
-                //return;
-
-                //at = NULL;
-                at = (Type *)((TypeTypeof *)at)->idents[0];
-            }
-
             if (unsigned char wx = wm ? deduceWildHelper(t, &tt, tident) : 0)
             {
                 if (!at)
@@ -3143,6 +3131,11 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     (*dedtypes)[i] = tt;
                     *wm |= wx;
                     return MATCHconst;
+                }
+
+                if (at && at->ty == Ttypeof)    // type vs expression
+                {
+                    // todo
                 }
 
                 if (tt->equals(at))
@@ -3164,18 +3157,43 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 return MATCHnomatch;
             }
 
-            MATCH m = deduceTypeHelper(t, &tt, tident);
-            if (m)
+            if (MATCH match = deduceTypeHelper(t, &tt, tident))
             {
+                // type vs none
                 if (!at)
                 {
                     (*dedtypes)[i] = tt;
-                    if (m == MATCHexact)
+                    if (match == MATCHexact)
                         return MATCHexact;
                     else
                         return MATCHconst;
                 }
 
+                // type vs expression
+                if (at->ty == Ttypeof)
+                {
+                    TypeTypeof *xt = (TypeTypeof *)at;
+                    match = MATCHexact;
+                    for (size_t j = 1; j < xt->idents.dim; j++)
+                    {
+                        Expression *e = (Expression *)xt->idents[j];
+                        MATCH m = e->implicitConvTo(tt/* ->addMod(???) */);
+                        if (match > m)
+                            match = m;
+                        if (match <= MATCHnomatch)
+                            break;
+                    }
+                    if (match > MATCHnomatch)
+                    {
+                        (*dedtypes)[i] = tt;
+                        return match;
+                    }
+
+                    // fall down to type vs type.
+                    at = (Type *)xt->idents[0];
+                }
+
+                // type vs type
                 if (tt->equals(at))
                 {
                     return MATCHexact;
