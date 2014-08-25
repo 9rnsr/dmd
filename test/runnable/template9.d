@@ -3879,8 +3879,8 @@ void test13223()
     static assert(is(typeof(f4(null)) == typeof(null)));
 
     T[][] f5(T)(T[][] a) { return a; }
-  //static assert(is(typeof(f5([])) == void[]));
-  //static assert(is(typeof(f5(null)) == void[]));
+    static assert(is(typeof(f5([])) == void[][]));
+    static assert(is(typeof(f5(null)) == void[][]));
 
     void translate(C = immutable char)(const(C)[] toRemove)
     {

@@ -4191,6 +4191,12 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             size_t i = templateParameterLookup(tparam, parameters);
             if (i == IDX_NOTFOUND || ((TypeIdentifier *)tparam)->idents.dim > 0)
             {
+                if (e == emptyArrayElement && tparam->ty == Tarray)
+                {
+                    Type *tn = ((TypeNext *)tparam)->next;
+                    result = deduceType(emptyArrayElement, sc, tn, parameters, dedtypes, wm);
+                    return;
+                }
                 e->type->accept(this);
                 return;
             }
@@ -4199,10 +4205,18 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             if (!tp)
                 return; // nomatch
 
-            if (e == emptyArrayElement && tp->defaultType)
+            if (e == emptyArrayElement)
             {
-                tp->defaultType->accept(this);
-                return;
+                if ((*dedtypes)[i])
+                {
+                    result = MATCHexact;
+                    return;
+                }
+                if (tp->defaultType)
+                {
+                    tp->defaultType->accept(this);
+                    return;
+                }
             }
 
             Type *at = (Type *)(*dedtypes)[i];
@@ -4309,27 +4323,26 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             // todo?
         }
 
+        MATCH deduceEmptyArray()
+        {
+            if (!emptyArrayElement)
+            {
+                emptyArrayElement = new IdentifierExp(Loc(), Id::p);    // dummy
+                emptyArrayElement->type = Type::tvoid;
+            }
+            assert(tparam->ty == Tarray);
+
+            Type *tn = ((TypeNext *)tparam)->next;
+            return deduceType(emptyArrayElement, sc, tn, parameters, dedtypes, wm);
+        }
+
         void visit(NullExp *e)
         {
             if (tparam->ty == Tarray && e->type->ty == Tnull)
             {
-                if (!emptyArrayElement)
-                {
-                    emptyArrayElement = new IdentifierExp(Loc(), Id::p);    // dummy
-                    emptyArrayElement->type = Type::tvoid;
-                }
-
-                // T[] <- null (void[])
-                Type *tn = ((TypeNext *)tparam)->next;
-                size_t i = templateParameterLookup(tn, parameters);
-                if (i != IDX_NOTFOUND && ((TypeIdentifier *)tn)->idents.dim == 0)
-                {
-                    if ((*dedtypes)[i])
-                        result = MATCHexact;
-                    else
-                        result = deduceType(emptyArrayElement, sc, tn, parameters, dedtypes, wm);
-                    return;
-                }
+                // tparam:T[] <- e:null (void[])
+                result = deduceEmptyArray();
+                return;
             }
             visit((Expression *)e);
         }
@@ -4355,23 +4368,9 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 e->type->toBasetype()->nextOf()->ty == Tvoid &&
                 (tparam->ty == Tarray/* || tparam->ty == Tsarray || tparam->ty == Taarray*/))
             {
-                if (!emptyArrayElement)
-                {
-                    emptyArrayElement = new IdentifierExp(Loc(), Id::p);    // dummy
-                    emptyArrayElement->type = Type::tvoid;
-                }
-
-                // T[] <- [] (void[])
-                Type *tn = ((TypeNext *)tparam)->next;
-                size_t i = templateParameterLookup(tn, parameters);
-                if (i != IDX_NOTFOUND && ((TypeIdentifier *)tn)->idents.dim == 0)
-                {
-                    if ((*dedtypes)[i])
-                        result = MATCHexact;
-                    else
-                        result = deduceType(emptyArrayElement, sc, tn, parameters, dedtypes, wm);
-                    return;
-                }
+                // tparam:T[] <- e:[] (void[])
+                result = deduceEmptyArray();
+                return;
             }
 
             if (tparam->ty == Tarray && e->elements && e->elements->dim)
