@@ -1527,6 +1527,32 @@ Lretry:
             if ((fparam->storageClass & STCref) &&
                 (!(fparam->storageClass & STCauto) || farg->isLvalue()))
             {
+                /* Allow expressions that have CT-known boundaries and type [] to match with [dim]
+                 */
+                Type *taai;
+                if ( argtype->ty == Tarray &&
+                    (prmtype->ty == Tsarray ||
+                     prmtype->ty == Taarray && (taai = ((TypeAArray *)prmtype)->index)->ty == Tident &&
+                                               ((TypeIdentifier *)taai)->idents.dim == 0))
+                {
+                    if (farg->op == TOKstring)
+                    {
+                        StringExp *se = (StringExp *)farg;
+                        argtype = se->type->nextOf()->sarrayOf(se->len);
+                    }
+                    else if (farg->op == TOKarrayliteral)
+                    {
+                        ArrayLiteralExp *ae = (ArrayLiteralExp *)farg;
+                        argtype = ae->type->nextOf()->sarrayOf(ae->elements->dim);
+                    }
+                    else if (farg->op == TOKslice)
+                    {
+                        SliceExp *se = (SliceExp *)farg;
+                        if (Type *tsa = toStaticArrayType(se))
+                            argtype = tsa;
+                    }
+                }
+
                 oarg = argtype;
             }
 
