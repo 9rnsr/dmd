@@ -3114,6 +3114,85 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             result = MATCHnomatch;
         }
 
+        MATCH deduceIdent(Type *t, TypeIdentifier *tident, size_t i)
+        {
+            TemplateParameter *tp = (*parameters)[i];
+
+            // Found the corresponding parameter tp
+            if (!tp->isTemplateTypeParameter())
+                return MATCHnomatch;
+            Type *tt;
+            Type *at = (Type *)(*dedtypes)[i];
+
+            if (at && at->ty == Ttypeof)    // type vs expression
+            {
+                // todo
+                //result = ((TypeTypeof *)at)->exp->implicitConvTo(t);
+                //if (result > MATCHnomatch)
+                //    (*dedtypes)[i] = t;
+                //return;
+
+                //at = NULL;
+                at = (Type *)((TypeTypeof *)at)->idents[0];
+            }
+
+            if (unsigned char wx = wm ? deduceWildHelper(t, &tt, tident) : 0)
+            {
+                if (!at)
+                {
+                    (*dedtypes)[i] = tt;
+                    *wm |= wx;
+                    return MATCHconst;
+                }
+
+                if (tt->equals(at))
+                {
+                    return MATCHconst;
+                }
+                if (tt->implicitConvTo(at->constOf()))
+                {
+                    (*dedtypes)[i] = at->constOf()->mutableOf();
+                    *wm |= MODconst;
+                    return MATCHconst;
+                }
+                if (at->implicitConvTo(tt->constOf()))
+                {
+                    (*dedtypes)[i] = tt->constOf()->mutableOf();
+                    *wm |= MODconst;
+                    return MATCHconst;
+                }
+                return MATCHnomatch;
+            }
+
+            MATCH m = deduceTypeHelper(t, &tt, tident);
+            if (m)
+            {
+                if (!at)
+                {
+                    (*dedtypes)[i] = tt;
+                    if (m == MATCHexact)
+                        return MATCHexact;
+                    else
+                        return MATCHconst;
+                }
+
+                if (tt->equals(at))
+                {
+                    return MATCHexact;
+                }
+                if (tt->ty == Tclass && at->ty == Tclass)
+                {
+                    return tt->implicitConvTo(at);
+                }
+                if (tt->ty == Tsarray && at->ty == Tarray &&
+                    tt->nextOf()->implicitConvTo(at->nextOf()) >= MATCHconst)
+                {
+                    return MATCHexact;
+                }
+            }
+            return MATCHnomatch;
+        }
+
         void visit(Type *t)
         {
         #if 0
@@ -3215,80 +3294,8 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     goto Lnomatch;
                 }
 
-                // Found the corresponding parameter tp
-                if (!tp->isTemplateTypeParameter())
-                    goto Lnomatch;
-                Type *tt;
-                Type *at = (Type *)(*dedtypes)[i];
-
-                if (at && at->ty == Ttypeof)    // type vs expression
-                {
-                    // todo
-                    //result = ((TypeTypeof *)at)->exp->implicitConvTo(t);
-                    //if (result > MATCHnomatch)
-                    //    (*dedtypes)[i] = t;
-                    //return;
-
-                    //at = NULL;
-                    at = (Type *)((TypeTypeof *)at)->idents[0];
-                }
-
-                if (unsigned char wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
-                {
-                    if (!at)
-                    {
-                        (*dedtypes)[i] = tt;
-                        *wm |= wx;
-                        goto Lconst;
-                    }
-
-                    if (tt->equals(at))
-                    {
-                        goto Lconst;
-                    }
-                    if (tt->implicitConvTo(at->constOf()))
-                    {
-                        (*dedtypes)[i] = at->constOf()->mutableOf();
-                        *wm |= MODconst;
-                        goto Lconst;
-                    }
-                    if (at->implicitConvTo(tt->constOf()))
-                    {
-                        (*dedtypes)[i] = tt->constOf()->mutableOf();
-                        *wm |= MODconst;
-                        goto Lconst;
-                    }
-                    goto Lnomatch;
-                }
-
-                MATCH m = deduceTypeHelper(t, &tt, tparam);
-                if (m)
-                {
-                    if (!at)
-                    {
-                        (*dedtypes)[i] = tt;
-                        if (m == MATCHexact)
-                            goto Lexact;
-                        else
-                            goto Lconst;
-                    }
-
-                    if (tt->equals(at))
-                    {
-                        goto Lexact;
-                    }
-                    if (tt->ty == Tclass && at->ty == Tclass)
-                    {
-                        result = tt->implicitConvTo(at);
-                        return;
-                    }
-                    if (tt->ty == Tsarray && at->ty == Tarray &&
-                        tt->nextOf()->implicitConvTo(at->nextOf()) >= MATCHconst)
-                    {
-                        goto Lexact;
-                    }
-                }
-                goto Lnomatch;
+                result = deduceIdent(t, tident, i);
+                return;
             }
             else if (tparam->ty == Ttypeof)
             {
