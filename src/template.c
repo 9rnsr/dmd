@@ -1751,6 +1751,12 @@ Lmatch:
     for (size_t i = 0; i < dedtypes->dim; i++)
     {
         Type *at = isType((*dedtypes)[i]);
+
+        /* If the TemplateTypeParameter parameters[i] is
+         * 1. directly deduced from expressions,
+         * 2. and does not appear on ref parameters,
+         * 3. ...
+         */
         if (at && at->ty == Tnone)
         {
             TypeDeduced *xt = (TypeDeduced *)at;
@@ -1765,9 +1771,12 @@ Lmatch:
 
             if (tt->ty == Tarray || tt->ty == Tpointer)
                 tt = tt->mutableOf();
-        #if 1
+        #if 0
             if (tt->isTypeBasic())  // new!
+            {
+                printf("[%s] dedtypes[%d] xt->tded = %s\n", loc.toChars(), i, tt->toChars());
                 tt = tt->mutableOf();
+            }
         #endif
             //printf("-tt = %s, m = x%x\n", tt->toChars(), m);
             (*dedtypes)[i] = tt;
@@ -4255,7 +4264,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     match1 = MATCHnomatch;  // Prefer at
                 else if (tt->implicitConvTo(at) <= MATCHnomatch)
                     match2 = MATCHnomatch;  // Prefer tt
-#if 0
+#if 1
                 else if (tt->isTypeBasic() && tt->ty == at->ty && tt->mod != at->mod)
                 {
                     if (!tt->isMutable() && !at->isMutable())
