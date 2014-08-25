@@ -3159,7 +3159,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
 
             if (MATCH match = deduceTypeHelper(t, &tt, tident))
             {
-                // type vs none
+                // type vs (none)
                 if (!at)
                 {
                     (*dedtypes)[i] = tt;
@@ -4169,30 +4169,79 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 return;
             }
 
-            RootObject *o = (*dedtypes)[i];
-
-            e->type->accept(this);
-            if (result > MATCHnomatch)
-            {
-                if (!o)
-                {
-                    TypeTypeof *at = new TypeTypeof(e->loc, e);
-                    at->idents.push((*dedtypes)[i]);
-                    (*dedtypes)[i] = at;
-                }
-                return;
-            }
+            TemplateParameter *tp = (*parameters)[i];
+            if (!tp->isTemplateTypeParameter())
+                return; // nomatch
 
             Type *at = (Type *)(*dedtypes)[i];
             Type *tt;
-            assert(at);
-            if (at->ty == Ttypeof)
-                at = (Type *)((TypeTypeof *)at)->idents[0];
-            tt = at->addMod(tparam->mod);
-            if (wm && *wm)
-                tt = tt->substWildTo(*wm);
+            //if (unsigned char wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
+            //{
+            //}
+            MATCH match = deduceTypeHelper(e->type, &tt, tparam);
+            if (match <= MATCHnomatch)
+            {
+                return;
+            }
 
-            result = e->implicitConvTo(tt);
+            // expression vs (none)
+            if (!at)
+            {
+                TypeTypeof *xt = new TypeTypeof(e->loc, e);
+                xt->idents.push(tt);    // idents[0]
+                xt->idents.push(e);     // idents[1]
+                (*dedtypes)[i] = xt;
+                result = MATCHexact;
+                return;
+            }
+
+            if (at->ty == Ttypeof)
+            {
+                TypeTypeof *xt = (TypeTypeof *)at;
+                at = (Type *)xt->idents[0];
+                match = e->implicitConvTo(at->addMod(tparam->mod));
+                if (match > MATCHnomatch)
+                {
+                    result = match;
+                    return;
+                }
+
+                match = MATCHexact;
+                for (size_t j = 1; j < xt->idents.dim; j++)
+                {
+                    Expression *e = (Expression *)xt->idents[j];
+                    MATCH m = e->implicitConvTo(tt/* ->addMod(???) */);
+                    if (match > m)
+                        match = m;
+                    if (match <= MATCHnomatch)
+                        break;
+                }
+                if (match > MATCHnomatch)
+                {
+                    (*dedtypes)[i] = tt;
+                    result = match;
+                    return;
+                }
+
+                if (tt->equals(at))
+                {
+                    result = MATCHexact;
+                    return;
+                }
+                if (tt->ty == Tclass && at->ty == Tclass)
+                {
+                    result = tt->implicitConvTo(at);
+                    return;
+                }
+                if (tt->ty == Tsarray && at->ty == Tarray &&
+                    tt->nextOf()->implicitConvTo(at->nextOf()) >= MATCHconst)
+                {
+                    result = MATCHexact;
+                    return;
+                }
+            }
+
+            result = e->implicitConvTo(at->addMod(tparam->mod));
         }
 
         void visit(StringExp *e)

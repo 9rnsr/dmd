@@ -3295,24 +3295,24 @@ void test12290()
     static assert(is(typeof(func1b('a', "str"w)) == immutable wchar));
     static assert(is(typeof(func1a("str"d, 'a')) == immutable dchar));
     static assert(is(typeof(func1b('a', "str"d)) == immutable dchar));
-  //static assert(is(typeof(func1a([1,2,3], 1L)) == long));
-  //static assert(is(typeof(func1b(1L, [1,2,3])) == long));
-  //static assert(is(typeof(func1a([1,2,3], 1.5)) == double));
-  //static assert(is(typeof(func1b(1.5, [1,2,3])) == double));
+  //static assert(is(typeof(func1a([1,2,3], 1L)) == long)); // yet not implemented order dependent issue
+    static assert(is(typeof(func1b(1L, [1,2,3])) == long));
+    static assert(is(typeof(func1a([1,2,3], 1.5)) == double));
+    static assert(is(typeof(func1b(1.5, [1,2,3])) == double));
     static assert(is(typeof(func1a(["a","b"], "s"c)) ==  string));
     static assert(is(typeof(func1b("s"c, ["a","b"])) ==  string));
-  //static assert(is(typeof(func1a(["a","b"], "s"w)) == wstring));  // typeMerge bug
-  //static assert(is(typeof(func1b("s"w, ["a","b"])) == wstring));
-  //static assert(is(typeof(func1a(["a","b"], "s"d)) == dstring));  // typeMerge bug
-  //static assert(is(typeof(func1b("s"d, ["a","b"])) == dstring));
+    static assert(is(typeof(func1a(["a","b"], "s"w)) == wstring));  // typeMerge bug
+    static assert(is(typeof(func1b("s"w, ["a","b"])) == wstring));
+    static assert(is(typeof(func1a(["a","b"], "s"d)) == dstring));  // typeMerge bug
+    static assert(is(typeof(func1b("s"d, ["a","b"])) == dstring));
 
     auto func2a(K, V)(V[K], K, V) { return V[K].init; }
     auto func2b(K, V)(V, K, V[K]) { return V[K].init; }
 
     static assert(is(typeof(func2a(aa, 1, 1)) == short[short]));
     static assert(is(typeof(func2b(1, 1, aa)) == short[short]));
-  //static assert(is(typeof(func2a([1:10,2:20,3:30], 1L, 10L)) == long[long]));
-  //static assert(is(typeof(func2b(1L, 10L, [1:20,2:20,3:30])) == long[long]));
+  //static assert(is(typeof(func2a([1:10,2:20,3:30], 1L, 10L)) == long[long])); // yet not implemented order dependent issue
+    static assert(is(typeof(func2b(1L, 10L, [1:20,2:20,3:30])) == long[long]));
 
     auto func3a(T)(T, T) { return T.init; }
     auto func3b(T)(T, T) { return T.init; }
@@ -3330,18 +3330,18 @@ void test12290()
     static assert(is(typeof(func3a("str1" , "str2"c)) ==  string));
     static assert(is(typeof(func3b("str1"c, "str2" )) ==  string));
     static assert(is(typeof(func3a("str1" , "str2"w)) == wstring));
-  //static assert(is(typeof(func3b("str1"w, "str2" )) == wstring));
+    static assert(is(typeof(func3b("str1"w, "str2" )) == wstring));
     static assert(is(typeof(func3a("str1" , "str2"d)) == dstring));
-  //static assert(is(typeof(func3b("str1"d, "str2" )) == dstring));
+    static assert(is(typeof(func3b("str1"d, "str2" )) == dstring));
 
-    inout(V) get(K, V)(inout(V[K]) aa, K key, lazy V defaultValue) { return V.init; }
-
+    inout(V) get12220(K, V)(inout(V[K]) aa, K key, lazy V defaultValue) { return V.init; }
     short[short] hash12220;
-    short res12220 = get(hash12220, 1, 1);
+    short res12220 = get12220(hash12220, 1, 1);
 
+    void get12221(K, V)(inout(V[K]) aa, K key, lazy V defaultValue) {}
     short[short] hash12221;
     enum Key12221 : short { a }
-    get(hash12221, Key12221.a, Key12221.a);
+  //get(hash12221, Key12221.a, Key12221.a); // yet not implemented inout matching
 }
 
 /******************************************/
