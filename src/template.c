@@ -1800,8 +1800,11 @@ Lmatch:
             //printf("dedtypes[%d] xt->tded = %s\n", i, tt->toChars());
 
             //MOD modparam = MODimmutable | MODconst | MODwild | MODshared;
-            //for (size_t j = 0; j < xt->tparams.dim; j++)
-            //    modparam &= xt->tparams[j]->mod;
+            bool iswild = true;
+            for (size_t j = 0; iswild && j < xt->tparams.dim; j++)
+                iswild = iswild && xt->tparams[j]->isWild();
+            if (iswild)
+                tt = tt->unqualify(MODimmutable | MODconst);
 
             if (//wm && (tparam->mod & MODwild) &&
                 (tt->ty == Tarray || tt->ty == Tpointer))
