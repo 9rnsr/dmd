@@ -1076,6 +1076,10 @@ MATCH TemplateDeclaration::leastAsSpecialized(Scope *sc, TemplateDeclaration *td
 
 struct TypeDeduced : Type
 {
+    Type *tded;
+    Expressions argexps;    // corresponding expressions
+    Types tparams;          // mod
+
     TypeDeduced(Type *tt, Expression *e, Type *tparam)
         : Type(Tnone)
     {
@@ -1083,9 +1087,17 @@ struct TypeDeduced : Type
         argexps.push(e);
         tparams.push(tparam);
     }
-    Type *tded;
-    Expressions argexps;    // corresponding expressions
-    Types tparams;          // mod
+    void update(Expression *e, Type *tparam)
+    {
+        argexps.push(e);
+        tparams.push(tparam);
+    }
+    void update(Type *tt, Expression *e, Type *tparam)
+    {
+        tded = tt;
+        argexps.push(e);
+        tparams.push(tparam);
+    }
 };
 
 /*************************************************
@@ -3201,7 +3213,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                         Expression *e = xt->argexps[j];
                         if (e == emptyArrayElement)
                             continue;
-                        MATCH m = e->implicitConvTo(tt/* ->addMod(???) */);
+                        MATCH m = e->implicitConvTo(tt->addMod(xt->tparams[j]->mod));
                         if (match > m)
                             match = m;
                         if (match <= MATCHnomatch)
@@ -4277,7 +4289,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                         Expression *e = xt->argexps[j];
                         if (e == emptyArrayElement)
                             continue;
-                        MATCH m = e->implicitConvTo(tt/* ->addMod(???) */->substWildTo(*wm));
+                        MATCH m = e->implicitConvTo(tt->addMod(xt->tparams[j]->mod)->substWildTo(*wm));
                         if (match1 > m)
                             match1 = m;
                         if (match1 <= MATCHnomatch)
@@ -4301,7 +4313,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 {
                     // Prefer current match: tt
                     if (xt)
-                        xt->tded = tt, xt->argexps.push(e);
+                        xt->update(tt, e, tparam);
                     else
                         (*dedtypes)[i] = tt;
                     result = match1;
@@ -4311,7 +4323,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 {
                     // Prefer previous match: (*dedtypes)[i]
                     if (xt)
-                        xt->argexps.push(e);
+                        xt->update(e, tparam);
                     result = match2;
                     return;
                 }
@@ -4349,7 +4361,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     Expression *e = xt->argexps[j];
                     if (e == emptyArrayElement)
                         continue;
-                    MATCH m = e->implicitConvTo(tt/* ->addMod(???) */);
+                    MATCH m = e->implicitConvTo(tt->addMod(xt->tparams[j]->mod));
                     if (match1 > m)
                         match1 = m;
                     if (match1 <= MATCHnomatch)
@@ -4370,7 +4382,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             {
                 // Prefer current match: tt
                 if (xt)
-                    xt->tded = tt, xt->argexps.push(e);
+                    xt->update(tt, e, tparam);
                 else
                     (*dedtypes)[i] = tt;
                 result = match1;
@@ -4380,7 +4392,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             {
                 // Prefer previous match: (*dedtypes)[i]
                 if (xt)
-                    xt->argexps.push(e);
+                    xt->update(e, tparam);
                 result = match2;
                 return;
             }

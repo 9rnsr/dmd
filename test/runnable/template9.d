@@ -3538,7 +3538,7 @@ void test13180()
     string s1a = get1a(aa, def);
     string s1b = get1b(def, aa);
     string s2a = get2a(aa, def);
-    //string s2b = get2b(def, aa);
+    string s2b = get2b(def, aa);
 }
 
 /******************************************/
