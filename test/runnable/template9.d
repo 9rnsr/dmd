@@ -3733,6 +3733,40 @@ static assert(is(typeof(TypeTuple13252!(const     S13252())[0]) ==     const(S13
 static assert(is(typeof(TypeTuple13252!(immutable S13252())[0]) == immutable(S13252)));     // OK <- NG
 
 /******************************************/
+// 13294
+
+void test13294()
+{
+    void f(T)(const ref T src, ref T dst)
+    {
+        pragma(msg, "T = ", T);
+        static assert(!is(T == const));
+    }
+    {
+        const byte src;
+              byte dst;
+        f(src, dst);
+    }
+    {
+        const char src;
+              char dst;
+        f(src, dst);
+    }
+
+    // 13351
+    T add(T)(in T x, in T y)
+    {
+        T z;
+        z = x + y;
+        return z;
+    }
+    const double a = 1.0;
+    const double b = 2.0;
+    double c;
+    c = add(a,b);
+}
+
+/******************************************/
 // 13299
 
 struct Foo13299
@@ -3917,6 +3951,7 @@ int main()
     test12207();
     test12376();
     test13235();
+    test13294();
     test13299();
 
     printf("Success\n");
