@@ -3295,7 +3295,7 @@ void test12290()
     static assert(is(typeof(func1b('a', "str"w)) == immutable wchar));
     static assert(is(typeof(func1a("str"d, 'a')) == immutable dchar));
     static assert(is(typeof(func1b('a', "str"d)) == immutable dchar));
-  //static assert(is(typeof(func1a([1,2,3], 1L)) == long)); // yet not implemented order dependent issue
+    static assert(is(typeof(func1a([1,2,3], 1L)) == long));
     static assert(is(typeof(func1b(1L, [1,2,3])) == long));
     static assert(is(typeof(func1a([1,2,3], 1.5)) == double));
     static assert(is(typeof(func1b(1.5, [1,2,3])) == double));
@@ -3311,7 +3311,7 @@ void test12290()
 
     static assert(is(typeof(func2a(aa, 1, 1)) == short[short]));
     static assert(is(typeof(func2b(1, 1, aa)) == short[short]));
-  //static assert(is(typeof(func2a([1:10,2:20,3:30], 1L, 10L)) == long[long])); // yet not implemented order dependent issue
+    static assert(is(typeof(func2a([1:10,2:20,3:30], 1L, 10L)) == long[long]));
     static assert(is(typeof(func2b(1L, 10L, [1:20,2:20,3:30])) == long[long]));
 
     auto func3a(T)(T, T) { return T.init; }
@@ -3341,7 +3341,7 @@ void test12290()
     void get12221(K, V)(inout(V[K]) aa, K key, lazy V defaultValue) {}
     short[short] hash12221;
     enum Key12221 : short { a }
-  //get(hash12221, Key12221.a, Key12221.a); // yet not implemented inout matching
+    get(hash12221, Key12221.a, Key12221.a); // yet not implemented inout matching?
 }
 
 /******************************************/

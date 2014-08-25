@@ -4197,7 +4197,59 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 return;
             }
 
+            TypeTypeof *xt = NULL;
             if (at->ty == Ttypeof)
+            {
+                xt = (TypeTypeof *)at;
+                at = (Type *)xt->idents[0];
+            }
+
+            // From previous matched expressions to current deduced type
+            MATCH match1 = MATCHnomatch;
+            if (xt)
+            {
+                match1 = MATCHexact;
+                for (size_t j = 1; j < xt->idents.dim; j++)
+                {
+                    Expression *e = (Expression *)xt->idents[j];
+                    MATCH m = e->implicitConvTo(tt/* ->addMod(???) */);
+                    if (match1 > m)
+                        match1 = m;
+                    if (match1 <= MATCHnomatch)
+                        break;
+                }
+            }
+            // From current expresssion to previous deduced type
+            MATCH match2 = e->implicitConvTo(at->addMod(tparam->mod));
+
+            if (match1 > MATCHnomatch && match2 > MATCHnomatch)
+            {
+                if (at->implicitConvTo(tt) <= MATCHnomatch)
+                    match1 = MATCHnomatch;  // Prefer at
+                else if (tt->implicitConvTo(at) <= MATCHnomatch)
+                    match2 = MATCHnomatch;  // Prefer tt
+            }
+            if (match1 > MATCHnomatch)
+            {
+                // Prefer current match: tt
+                if (xt)
+                    xt->idents[0] = tt, xt->idents.push(e);
+                else
+                    (*dedtypes)[i] = tt;
+                result = match1;
+                return;
+            }
+            else if (match2 > MATCHnomatch)
+            {
+                // Prefer previous match: (*dedtypes)[i]
+                if (xt)
+                    xt->idents.push(e);
+                result = match2;
+                return;
+            }
+
+#if 0
+            if (xt)
             {
                 TypeTypeof *xt = (TypeTypeof *)at;
                 at = (Type *)xt->idents[0];
@@ -4219,38 +4271,8 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     result = MATCHexact;
                     return;
                 }
-
-                at = at->addMod(tparam->mod);
-
-                // a. test conversions from precedent matched expressions to current deduced type
-                result = MATCHexact;
-                for (size_t j = 1; j < xt->idents.dim; j++)
-                {
-                    Expression *e = (Expression *)xt->idents[j];
-                    MATCH m = e->implicitConvTo(tt/* ->addMod(???) */);
-                    if (result > m)
-                        result = m;
-                    if (result <= MATCHnomatch)
-                        break;
-                }
-                if (result > MATCHnomatch)
-                {
-                    (*dedtypes)[i] = tt;
-                    result = result;
-                    return;
-                }
             }
-            else
-                at = at->addMod(tparam->mod);
-
-            // b. test conversions from e to precedence deduced type
-            result = e->implicitConvTo(at);
-
-            // TODO: order of a and b will cause order dependent issue:
-            //    static assert(is(typeof(func1a([1,2,3], 1L)) == long)); // yet not implemented order dependent issue
-            //  //static assert(is(typeof(func1b(1L, [1,2,3])) == long));
-            //    static assert(is(typeof(func2a([1:10,2:20,3:30], 1L, 10L)) == long[long])); // yet not implemented order dependent issue
-            //  //static assert(is(typeof(func2b(1L, 10L, [1:20,2:20,3:30])) == long[long]));
+#endif
         }
 
         void visit(StringExp *e)
