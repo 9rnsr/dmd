@@ -1764,11 +1764,12 @@ Lmatch:
                 tt = tt->unqualify(MODimmutable | MODconst);
 
             if (tt->ty == Tarray || tt->ty == Tpointer)
-            {
                 tt = tt->mutableOf();
-                //printf("-tt = %s, m = x%x\n", tt->toChars(), m);
-            }
-
+        #if 1
+            if (tt->isTypeBasic())  // new!
+                tt = tt->mutableOf();
+        #endif
+            //printf("-tt = %s, m = x%x\n", tt->toChars(), m);
             (*dedtypes)[i] = tt;
             delete xt;
         }
@@ -4254,6 +4255,28 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     match1 = MATCHnomatch;  // Prefer at
                 else if (tt->implicitConvTo(at) <= MATCHnomatch)
                     match2 = MATCHnomatch;  // Prefer tt
+#if 0
+                else if (tt->isTypeBasic() && tt->ty == at->ty && tt->mod != at->mod)
+                {
+                    if (!tt->isMutable() && !at->isMutable())
+                        tt = tt->mutableOf()->addMod(MODmerge(tt->mod, at->mod));
+                    else if (tt->isMutable())
+                    {
+                        if (at->mod == 0)   // Prefer unshared
+                            match1 = MATCHnomatch;
+                        else
+                            match2 = MATCHnomatch;
+                    }
+                    else if (at->isMutable())
+                    {
+                        if (tt->mod == 0)   // Prefer unshared
+                            match2 = MATCHnomatch;
+                        else
+                            match1 = MATCHnomatch;
+                    }
+                    //printf("tt = %s, at = %s\n", tt->toChars(), at->toChars());
+                }
+#endif
             }
             if (match1 > MATCHnomatch)
             {
