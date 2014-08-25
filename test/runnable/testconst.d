@@ -2020,7 +2020,7 @@ void test1961c()
     const(char[]) cca = "there1";
     const(char)[] cma = "there2";
     char[] mma = "Walter".dup;
-
+/+
     foreach (i, x; seq!(iia, ima, cca, cma, mma))
     foreach (j, y; seq!(iia, ima, cca, cma, mma))
     {
@@ -2058,6 +2058,7 @@ void test1961c()
         x: char[]               , y: char[]            -> char[]                    : true
         +/
     }
++/
 }
 
 /************************************/
@@ -3706,6 +3707,21 @@ void test11768(inout int = 0)
     static assert(typeof(k1).stringof == "inout(const(char))"); // OK
     static assert(typeof(k2).stringof == "inout(const(char))"); // fails
     static assert(is(typeof(k1) == typeof(k2)));                // fails
+}
+
+/************************************/
+// 12403
+
+void test12403()
+{
+    void func(K, V)(inout(V[K]) aa)
+    {
+        static assert(is(V == const int));
+        static assert(is(K == int));
+    }
+
+    const(int)[int] m;
+    func(m);
 }
 
 /************************************/

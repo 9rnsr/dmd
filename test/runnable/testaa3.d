@@ -273,6 +273,15 @@ void test12214() pure nothrow
 }
 
 /***************************************************/
+// 12403
+
+void test12403()
+{
+    const(int)[int] m;
+    assert(m.get(0, 1) == 1);
+}
+
+/***************************************************/
 
 void main()
 {
@@ -294,4 +303,6 @@ void main()
     static assert(testRef());
     assert(testRet());
     static assert(testRet());
+
+    test12403();
 }
