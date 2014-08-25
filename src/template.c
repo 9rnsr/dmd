@@ -4175,14 +4175,16 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
 
             Type *at = (Type *)(*dedtypes)[i];
             Type *tt;
-            //if (unsigned char wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
-            //{
-            //}
-            MATCH match = deduceTypeHelper(e->type, &tt, tparam);
-            if (match <= MATCHnomatch)
+            if (unsigned char wx = wm ? deduceWildHelper(e->type, &tt, tparam) : 0)
             {
-                return;
+                result = MATCHconst;
             }
+            else if (MATCH m = deduceTypeHelper(e->type, &tt, tparam))
+            {
+                result = m;
+            }
+            else
+                return; // nomatch
 
             // expression vs (none)
             if (!at)
@@ -4191,7 +4193,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 xt->idents.push(tt);    // idents[0]
                 xt->idents.push(e);     // idents[1]
                 (*dedtypes)[i] = xt;
-                result = MATCHexact;
+                //result = MATCHexact;
                 return;
             }
 
@@ -4199,30 +4201,8 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             {
                 TypeTypeof *xt = (TypeTypeof *)at;
                 at = (Type *)xt->idents[0];
-                match = e->implicitConvTo(at->addMod(tparam->mod));
-                if (match > MATCHnomatch)
-                {
-                    result = match;
-                    return;
-                }
 
-                match = MATCHexact;
-                for (size_t j = 1; j < xt->idents.dim; j++)
-                {
-                    Expression *e = (Expression *)xt->idents[j];
-                    MATCH m = e->implicitConvTo(tt/* ->addMod(???) */);
-                    if (match > m)
-                        match = m;
-                    if (match <= MATCHnomatch)
-                        break;
-                }
-                if (match > MATCHnomatch)
-                {
-                    (*dedtypes)[i] = tt;
-                    result = match;
-                    return;
-                }
-
+                // exact match of deduced types
                 if (tt->equals(at))
                 {
                     result = MATCHexact;
@@ -4239,9 +4219,38 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     result = MATCHexact;
                     return;
                 }
-            }
 
-            result = e->implicitConvTo(at->addMod(tparam->mod));
+                at = at->addMod(tparam->mod);
+
+                // a. test conversions from precedent matched expressions to current deduced type
+                result = MATCHexact;
+                for (size_t j = 1; j < xt->idents.dim; j++)
+                {
+                    Expression *e = (Expression *)xt->idents[j];
+                    MATCH m = e->implicitConvTo(tt/* ->addMod(???) */);
+                    if (result > m)
+                        result = m;
+                    if (result <= MATCHnomatch)
+                        break;
+                }
+                if (result > MATCHnomatch)
+                {
+                    (*dedtypes)[i] = tt;
+                    result = result;
+                    return;
+                }
+            }
+            else
+                at = at->addMod(tparam->mod);
+
+            // b. test conversions from e to precedence deduced type
+            result = e->implicitConvTo(at);
+
+            // TODO: order of a and b will cause order dependent issue:
+            //    static assert(is(typeof(func1a([1,2,3], 1L)) == long)); // yet not implemented order dependent issue
+            //  //static assert(is(typeof(func1b(1L, [1,2,3])) == long));
+            //    static assert(is(typeof(func2a([1:10,2:20,3:30], 1L, 10L)) == long[long])); // yet not implemented order dependent issue
+            //  //static assert(is(typeof(func2b(1L, 10L, [1:20,2:20,3:30])) == long[long]));
         }
 
         void visit(StringExp *e)
