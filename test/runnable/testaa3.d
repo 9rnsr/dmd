@@ -273,6 +273,20 @@ void test12214() pure nothrow
 }
 
 /***************************************************/
+// 12220 & 12221
+
+void test12220()
+{
+    short[short] hash;
+    short k = hash.get(1, 2);
+    assert(k == 2);
+
+    enum Key : short { a = 10 }
+    short a = hash.get(Key.a, Key.a);
+    assert(a == 10);
+}
+
+/***************************************************/
 // 12403
 
 void test12403()
@@ -304,5 +318,6 @@ void main()
     assert(testRet());
     static assert(testRet());
 
+    test12220();
     test12403();
 }
