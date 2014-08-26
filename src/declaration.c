@@ -913,6 +913,8 @@ Type *semanticPartialType(Loc loc, Scope *sc, Type *t)
         return t->semantic(loc, sc);
 
     tn = semanticPartialType(loc, sc, tn);
+    if (tn->ty == Terror)
+        return tn;
 
     if (t->ty == Tarray)
     {
@@ -980,6 +982,8 @@ Type *semanticPartialType(Loc loc, Scope *sc, Type *t)
         if (isPartialType(index))
         {
             index = semanticPartialType(loc, sc, index);
+            if (index->ty == Terror)
+                return index;
             t = new TypeAArray(tn, index);
             if (tn->deco && index->deco)
                 t = t->semantic(loc, sc);
@@ -1012,6 +1016,8 @@ Type *semanticPartialType(Loc loc, Scope *sc, Type *t)
         }
         else
             index = index->semantic(loc, sc);
+        if (index->ty == Terror)
+            return index;
 
         t = new TypeAArray(tn, index);
         if (tn->deco)
@@ -1083,6 +1089,8 @@ Type *applyPartialType(Loc loc, Scope *sc, Type *t, Type *tx)
         if (t->ty == Taarray)
         {
             Type *index = applyPartialType(loc, sc, ((TypeAArray *)t)->index, ((TypeAArray *)tx)->index);
+            if (index->ty == Terror)
+                return index;
             return (new TypeAArray(tn, index))->semantic(loc, sc);
         }
         goto Lerror;
@@ -1104,6 +1112,11 @@ Type *applyPartialType(Loc loc, Scope *sc, Expression *exp, Type *tx)
     if (!tx)
         return t;
 
+    if (t->ty == Terror)
+        return t;
+    if (tx->ty == Terror)
+        return tx;
+
     if (tx->ty == Tident &&
         ((TypeIdentifier *)tx)->ident == Id::empty &&
         ((TypeIdentifier *)tx)->idents.dim == 0)
@@ -1121,7 +1134,7 @@ Type *applyPartialType(Loc loc, Scope *sc, Expression *exp, Type *tx)
         return Type::terror;
     }
 
-    if (tx->deco || tx->ty == Terror)
+    if (tx->deco)
         return tx;
     Type *txn = tx->nextOf();
     assert(txn);
