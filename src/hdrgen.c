@@ -776,7 +776,10 @@ public:
     {
         visitWithMask(t->next, t->mod);
         buf->writeByte('[');
-        sizeToBuffer(t->dim);
+        if (t->dim->op == TOKidentifier && ((IdentifierExp *)t->dim)->ident == Id::dollar)
+            buf->writeByte('$');
+        else
+            sizeToBuffer(t->dim);
         buf->writeByte(']');
     }
 
