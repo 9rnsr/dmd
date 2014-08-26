@@ -4173,6 +4173,34 @@ void testXXXXX()
     funcXXXXX!(a => a * 1)();
 }
 
+void main(string[] args)
+{
+    int n = 1;
+    void func() {n = 2;}  // nested function
+    foo!(func)();
+    assert(n == 2);
+}
+
+void foo(alias f)()
+{
+    alias A = Test1!int.Test2!f;
+    //pragma(msg, __traits(isNested, A.call));
+    A.call();
+}
+
+template Test1(E)
+{
+    template Test2(alias f)
+    {
+        auto call(A...)(A args)
+        {
+            auto dg = &f;
+            pragma(msg, typeof(dg));
+            assert(dg.ptr !is null);
+            return f(args); }
+    }
+}
+
 /******************************************/
 
 int main()
