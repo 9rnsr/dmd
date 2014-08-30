@@ -55,6 +55,7 @@ FuncDeclaration *search_toString(StructDeclaration *sd)
  */
 void semanticTypeInfo(Scope *sc, Type *t)
 {
+#if 0
     class FullTypeInfoVisitor : public Visitor
     {
     public:
@@ -120,6 +121,7 @@ void semanticTypeInfo(Scope *sc, Type *t)
     FullTypeInfoVisitor v;
     v.sc = sc;
     t->accept(&v);
+#endif
 }
 
 /********************************* AggregateDeclaration ****************************/
