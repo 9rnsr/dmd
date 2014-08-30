@@ -27,6 +27,7 @@
 
 char *toCppMangle(Dsymbol *s);
 void toBuffer(OutBuffer *buf, const char *id, Dsymbol *s);
+void MODtoDecoBuffer(OutBuffer *buf, MOD mod);
 
 void mangleFunc(OutBuffer *buf, FuncDeclaration *fd, bool inParent)
 {
@@ -39,27 +40,56 @@ void mangleFunc(OutBuffer *buf, FuncDeclaration *fd, bool inParent)
     //printf("fd->type = %s\n", fd->type->toChars());
     if (fd->needThis() || fd->isNested())
         buf->writeByte(Type::needThisPrefix());
-    if (inParent)
+    if (inParent || fd->type->deco)
     {
-        TypeFunction *tfx = (TypeFunction *)fd->type;
-        TypeFunction *tf = (TypeFunction *)fd->originalType;
+        TypeFunction *tf = (TypeFunction *)fd->type;
+        TypeFunction *tfx = (TypeFunction *)fd->originalType;
 
-        // replace with the actual parameter types
-        Parameters *prms = tf->parameters;
-        tf->parameters = tfx->parameters;
+        MODtoDecoBuffer(buf, tf->mod);
 
-        // do not mangle return type
-        Type *tret = tf->next;
-        tf->next = NULL;
+        unsigned char mc;
+        switch (tf->linkage)
+        {
+            case LINKd:             mc = 'F';       break;
+            case LINKc:             mc = 'U';       break;
+            case LINKwindows:       mc = 'W';       break;
+            case LINKpascal:        mc = 'V';       break;
+            case LINKcpp:           mc = 'R';       break;
+            default:
+                assert(0);
+        }
+        buf->writeByte(mc);
 
-        tf->toDecoBuffer(buf, 0);
+        if (tfx->purity || tfx->isnothrow || tfx->isnogc || tfx->isproperty || tfx->isref || tfx->trust)
+        {
+            if (tfx->purity)
+                buf->writestring("Na");
+            if (tfx->isnothrow)
+                buf->writestring("Nb");
+            if (tfx->isref)
+                buf->writestring("Nc");
+            if (tfx->isproperty)
+                buf->writestring("Nd");
+            if (tfx->isnogc)
+                buf->writestring("Ni");
+            switch (tfx->trust)
+            {
+                case TRUSTtrusted:
+                    buf->writestring("Ne");
+                    break;
+                case TRUSTsafe:
+                    buf->writestring("Nf");
+                    break;
+                default: break;
+            }
+        }
 
-        tf->parameters = prms;
-        tf->next = tret;
-    }
-    else if (fd->type->deco)
-    {
-        buf->writestring(fd->type->deco);
+        // Write argument types
+        Parameter::argsToDecoBuffer(buf, tf->parameters);
+        //if (buf->data[buf->offset - 1] == '@') halt();
+        buf->writeByte('Z' - tf->varargs);      // mark end of arg list
+        if (!inParent && tf->next != NULL)
+            tf->next->toDecoBuffer(buf);
     }
     else
     {
