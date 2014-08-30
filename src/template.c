@@ -7784,6 +7784,17 @@ hash_t TemplateInstance::hashCode()
  */
 bool TemplateInstance::needsCodegen()
 {
+    if (speculative)
+    {
+    for (TemplateInstance *ti = this; ti; ti = ti->tinst)
+    {
+        //printf("\tti = %s spec = %d\n", ti->toChars(), ti->speculative);
+        if (!ti->speculative)
+            return ti->needsCodegen();
+    }
+    return false;
+    }
+
     /* The issue is that if the importee is compiled with a different -debug
      * setting than the importer, the importer may believe it exists
      * in the compiled importee when it does not, when the instantiation
@@ -7829,14 +7840,7 @@ bool TemplateInstance::needsCodegen()
         }
     }
 
-    for (TemplateInstance *ti = this; ti; ti = ti->tinst)
-    {
-        //printf("\tti = %s spec = %d\n", ti->toChars(), ti->speculative);
-        if (!ti->speculative)
-            return true;
-    }
-
-    return false;
+    return true;
 }
 
 /* ======================== TemplateMixin ================================ */
