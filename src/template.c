@@ -5937,11 +5937,15 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
                 inst->gagged = false;
             }
 
+            //if (name == Id::eq)
+            //    printf("inst = %s spec = %d, this = [%s] spec = %d\n", inst->toChars(), inst->speculative, loc.toChars(), sc->speculative);
+
             // If the first instantiation was speculative, but this is not:
             if (inst->speculative && !sc->speculative)
             {
                 // Mark it is a non-speculative instantiation.
                 inst->speculative = false;
+                inst->instantiatingModule = mi;
             }
 
             // If the first instantiation was in speculative context, but this is not:
