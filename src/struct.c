@@ -270,6 +270,7 @@ void StructDeclaration::semanticTypeInfoMembers()
         unsigned errors = global.startGagging();
         xeq->semantic3(xeq->scope);
         if (global.endGagging(errors))
+            //assert(xeq->errors || xeq->semantic3Errors);//
             xeq = xerreq;
     }
 
@@ -280,7 +281,7 @@ void StructDeclaration::semanticTypeInfoMembers()
         unsigned errors = global.startGagging();
         xcmp->semantic3(xcmp->scope);
         if (global.endGagging(errors))
-            xcmp = xerrcmp;
+            assert(xcmp->errors);//xcmp = xerrcmp;
     }
 
     FuncDeclaration *ftostr = search_toString(this);

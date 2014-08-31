@@ -546,7 +546,7 @@ public:
 
     void visit(TypeInfoStructDeclaration *d)
     {
-        //printf("TypeInfoStructDeclaration::toDt() '%s'\n", toChars());
+        printf("TypeInfoStructDeclaration::toDt() '%s'\n", d->toChars());
         if (global.params.is64bit)
             verifyStructSize(Type::typeinfostruct, 17 * Target::ptrsize);
         else

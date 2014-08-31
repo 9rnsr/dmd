@@ -4557,6 +4557,7 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
             sd->semantic(NULL);
 
         // duplicate a part of StructDeclaration::semanticTypeInfoMembers
+#if 0
         if (sd->xeq &&
             sd->xeq->scope &&
             sd->xeq->semanticRun < PASSsemantic3done)
@@ -4566,10 +4567,11 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
             if (global.endGagging(errors))
                 sd->xeq = sd->xerreq;
         }
+#endif
 
         //printf("AA = %s, key: xeq = %p, xhash = %p\n", toChars(), sd->xeq, sd->xhash);
         const char *s = (index->toBasetype()->ty != Tstruct) ? "bottom of " : "";
-        if (!sd->xeq)
+        if (!sd->xeq)   // replace to sd->hasIdentityEqual(test only const comparison)
         {
             // If sd->xhash != NULL:
             //   sd or its fields have user-defined toHash.
