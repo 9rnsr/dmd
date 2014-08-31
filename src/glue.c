@@ -748,7 +748,7 @@ void FuncDeclaration::toObjFile(bool multiobj)
     ClassDeclaration *cd = parent->isClassDeclaration();
     int reverse;
 
-    printf("+FuncDeclaration::toObjFile(%p, %s.%s)\n", this, parent->toChars(), toChars());
+    //printf("FuncDeclaration::toObjFile(%p, %s.%s)\n", this, parent->toChars(), toChars());
 
     //if (type) printf("type = %s\n", type->toChars());
 #if 0
@@ -839,7 +839,6 @@ void FuncDeclaration::toObjFile(bool multiobj)
 
     // start code generation
     semanticRun = PASSobj;
-    printf("!FuncDeclaration::toObjFile(%p, %s.%s)\n", this, parent->toChars(), toChars());
 
     if (global.params.verbose)
         fprintf(global.stdmsg, "function  %s\n", toPrettyChars());
@@ -1326,7 +1325,6 @@ void FuncDeclaration::toObjFile(bool multiobj)
         //printf("Setting start address\n");
         objmod->startaddress(irs.startaddress);
     }
-    printf("-FuncDeclaration::toObjFile(%p, %s.%s)\n", this, parent->toChars(), toChars());
 }
 
 bool onlyOneMain(Loc loc)

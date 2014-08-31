@@ -466,7 +466,7 @@ FuncDeclaration *buildXopEquals(StructDeclaration *sd, Scope *sc)
     if (!needOpEquals(sd))
         return NULL;        // bitwise comparison would work
 
-    printf("+StructDeclaration::buildXopEquals() %s\n", sd->toChars());
+    //printf("StructDeclaration::buildXopEquals() %s\n", sd->toChars());
     if (Dsymbol *eq = search_function(sd, Id::eq))
     {
         if (FuncDeclaration *fd = eq->isFuncDeclaration())
@@ -489,7 +489,6 @@ FuncDeclaration *buildXopEquals(StructDeclaration *sd, Scope *sc)
         }
     }
 
-    printf(" StructDeclaration::buildXopEquals() %s\n", sd->toChars());
     if (!sd->xerreq)
     {
         // object._xopEquals

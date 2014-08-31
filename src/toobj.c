@@ -832,7 +832,7 @@ void InterfaceDeclaration::toObjFile(bool multiobj)
 
 void StructDeclaration::toObjFile(bool multiobj)
 {
-    printf("StructDeclaration::toObjFile('%s')\n", toChars());
+    //printf("StructDeclaration::toObjFile('%s')\n", toChars());
 
     if (type->ty == Terror)
     {
@@ -885,26 +885,8 @@ void StructDeclaration::toObjFile(bool multiobj)
             member->toObjFile(multiobj);
         }
 
-        if (xeq)
-        {
-#if 0
-            if (xeq->errors || xeq->semantic3Errors)
-            {
-printf("xeq = %p, err = %d, sem3err = %d\n", xeq, xeq->errors, xeq->semantic3Errors);
-                //Symbol *s = toSymbol(xeq);
-                //Symbol *serr = toSymbol(xerreq);
-                //assert(s->Sfunc->Falias == NULL);
-                //assert(serr != NULL);
-                //s->Sclass = SCfuncalias;
-                //s->Sfunc->Falias = serr;
-                //xeq->fbody = NULL;
-                //xeq = xerreq;
-            }
-            //else
-#endif
-            if (xeq && xeq != xerreq)
-                xeq->toObjFile(multiobj);
-        }
+        if (xeq && xeq != xerreq)
+            xeq->toObjFile(multiobj);
         if (xcmp && xcmp != xerrcmp)
             xcmp->toObjFile(multiobj);
         if (xhash)
@@ -1104,7 +1086,7 @@ void EnumDeclaration::toObjFile(bool multiobj)
 
 void TypeInfoDeclaration::toObjFile(bool multiobj)
 {
-    printf("TypeInfoDeclaration::toObjFile(%p '%s') protection %d\n", this, toChars(), protection);
+    //printf("TypeInfoDeclaration::toObjFile(%p '%s') protection %d\n", this, toChars(), protection);
 
     if (multiobj)
     {

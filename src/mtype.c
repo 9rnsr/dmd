@@ -4571,7 +4571,7 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
 
         //printf("AA = %s, key: xeq = %p, xhash = %p\n", toChars(), sd->xeq, sd->xhash);
         const char *s = (index->toBasetype()->ty != Tstruct) ? "bottom of " : "";
-        if (!sd->xeq)   // replace to sd->hasIdentityEqual(test only const comparison)
+        if (!sd->xeq)   // Should replace to sd->hasIdentityEqual(test only const comparison)
         {
             // If sd->xhash != NULL:
             //   sd or its fields have user-defined toHash.
