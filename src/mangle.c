@@ -204,11 +204,6 @@ public:
         //printf("TypeFunction::toDecoBuffer() t = %p %s\n", t, t->toChars());
         //static int nest; if (++nest == 50) *(char*)0=0;
 
-        mangleFuncType(t, t, t->mod, t->next);
-    }
-
-    void mangleFuncType(TypeFunction *t, TypeFunction *ta, unsigned char modMask, Type *tret)
-    {
         if (t->inuse)
         {
             t->inuse = 2;       // flag error to caller
@@ -216,6 +211,13 @@ public:
         }
         t->inuse++;
 
+        mangleFuncType(t, t, t->mod, t->next);
+
+        t->inuse--;
+    }
+
+    void mangleFuncType(TypeFunction *t, TypeFunction *ta, unsigned char modMask, Type *tret)
+    {
         if (modMask != t->mod)
             MODtoDecoBuffer(buf, t->mod);
 
@@ -263,8 +265,6 @@ public:
         buf->writeByte('Z' - t->varargs);   // mark end of arg list
         if (tret != NULL)
             visitWithMask(tret, 0);
-
-        t->inuse--;
     }
 
     void visit(TypeIdentifier *t)
@@ -372,15 +372,11 @@ public:
         //printf("fd->type = %s\n", fd->type->toChars());
         if (fd->needThis() || fd->isNested())
             buf->writeByte(Type::needThisPrefix());
-        if (inParent)
+        if (inParent || fd->type->deco)
         {
             TypeFunction *tf = (TypeFunction *)fd->type;
             TypeFunction *tfo = (TypeFunction *)fd->originalType;
-            mangleFuncType(tf, tfo, 0, NULL);
-        }
-        else if (fd->type->deco)
-        {
-            buf->writestring(fd->type->deco);
+            mangleFuncType(tf, tfo, 0, inParent ? NULL : tf->next);
         }
         else
         {

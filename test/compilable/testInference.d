@@ -257,7 +257,7 @@ void test8504()
 {
     static assert(typeof(foo8504!()).stringof == "pure nothrow @nogc @safe void()");
     static assert(typeof(foo8504!()).mangleof == "FNaNbNiNfZv");
-    static assert(foo8504!().mangleof == "_D13testInference12__T7foo8504Z7foo8504FNaNbNiNfZv");
+    static assert(foo8504!().mangleof == "_D13testInference12__T7foo8504Z7foo8504FZv");
 
     auto fp1 = toDelegate8504a(&testC8504);
     auto fp2 = toDelegate8504b(&testC8504);
