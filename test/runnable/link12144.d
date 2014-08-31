@@ -1,6 +1,6 @@
-// compile_separately: -g
-// extra_sources: imports/link12144a.d
-/+
+// COMPILE_SEPARATELY: -g
+// EXTRA_SOURCES: imports/link12144a.d
+
 import imports.link12144a;
 
 void main()
@@ -18,6 +18,3 @@ struct A12146
     // references TypeInfo of B12146
     // and it references __xopCmp
 }
-+/
-
-void main() {}

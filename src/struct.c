@@ -281,7 +281,8 @@ void StructDeclaration::semanticTypeInfoMembers()
         unsigned errors = global.startGagging();
         xcmp->semantic3(xcmp->scope);
         if (global.endGagging(errors))
-            assert(xcmp->errors);//xcmp = xerrcmp;
+            //assert(xcmp->errors);//
+            xcmp = xerrcmp;
     }
 
     FuncDeclaration *ftostr = search_toString(this);

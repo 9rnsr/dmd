@@ -887,6 +887,7 @@ void StructDeclaration::toObjFile(bool multiobj)
 
         if (xeq)
         {
+#if 0
             if (xeq->errors || xeq->semantic3Errors)
             {
 printf("xeq = %p, err = %d, sem3err = %d\n", xeq, xeq->errors, xeq->semantic3Errors);
@@ -900,6 +901,8 @@ printf("xeq = %p, err = %d, sem3err = %d\n", xeq, xeq->errors, xeq->semantic3Err
                 //xeq = xerreq;
             }
             //else
+#endif
+            if (xeq && xeq != xerreq)
                 xeq->toObjFile(multiobj);
         }
         if (xcmp && xcmp != xerrcmp)
@@ -1101,10 +1104,6 @@ void EnumDeclaration::toObjFile(bool multiobj)
 
 void TypeInfoDeclaration::toObjFile(bool multiobj)
 {
-    Dsymbol *sym = tinfo->toDsymbol(NULL);
-    if (sym && sym->inNonRoot())
-        return;
-
     printf("TypeInfoDeclaration::toObjFile(%p '%s') protection %d\n", this, toChars(), protection);
 
     if (multiobj)

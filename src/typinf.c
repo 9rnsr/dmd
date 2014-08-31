@@ -137,6 +137,13 @@ void Type::genTypeInfo(Scope *sc)
                 }
                 else
                 {
+                    if (t->mod == 0)
+                    {
+                        Dsymbol *sym = t->toDsymbol(NULL);
+                        if (sym && !sym->isInstantiated() && sym->inNonRoot())
+                            goto L1;
+                    }
+
                     // Find module that will go all the way to an object file
                     Module *m = sc->module->importedFrom;
                     m->members->push(t->vtinfo);
@@ -146,8 +153,19 @@ void Type::genTypeInfo(Scope *sc)
             }
             else                        // if in obj generation pass
             {
+                    if (t->mod == 0)
+                    {
+                        Dsymbol *sym = t->toDsymbol(NULL);
+                        if (sym && sym->inNonRoot())
+                            goto L1;
+                    }
+
+
                 t->vtinfo->toObjFile(global.params.multiobj);
+
             }
+        L1:
+            ;
         }
     }
     if (!vtinfo)
