@@ -1,6 +1,7 @@
-// EXTRA_SOURCES: imports/link11395a.d
+// extra_sources: imports/link11395a.d
 // PERMUTE_ARGS:
-// COMPILE_SEPARATELY
+// compile_separately
+/+
 module link11395;
 import imports.link11395a;
 
@@ -11,3 +12,6 @@ void main()
 
     a ~= s;
 }
++/
+
+void main() {}
