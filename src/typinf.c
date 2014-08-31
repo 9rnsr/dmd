@@ -134,40 +134,37 @@ void Type::genTypeInfo(Scope *sc)
                 {
                     // Bugzilla 13043: Avoid linking TypeInfo if it's not
                     // necessary for root module compilation
+                    goto Lskip;
                 }
-                else
+
+                if (t->mod == 0)
                 {
-                    if (t->mod == 0)
-                    {
-                        Dsymbol *sym = t->toDsymbol(NULL);
-                        if (sym && !sym->isInstantiated() && sym->inNonRoot())
-                            goto L1;
-                    }
-
-                    // Find module that will go all the way to an object file
-                    Module *m = sc->module->importedFrom;
-                    m->members->push(t->vtinfo);
-
-                    semanticTypeInfo(sc, t);
+                    Dsymbol *sym = t->toDsymbol(NULL);
+                    if (sym && !sym->isInstantiated() && sym->inNonRoot())
+                        goto Lskip;
                 }
+
+                // Find module that will go all the way to an object file
+                Module *m = sc->module->importedFrom;
+                m->members->push(t->vtinfo);
+
+                semanticTypeInfo(sc, t);
             }
             else                        // if in obj generation pass
             {
-                    if (t->mod == 0)
-                    {
-                        Dsymbol *sym = t->toDsymbol(NULL);
-                        if (sym && sym->inNonRoot())
-                            goto L1;
-                    }
-
+                if (t->mod == 0)
+                {
+                    Dsymbol *sym = t->toDsymbol(NULL);
+                    if (sym && sym->inNonRoot())
+                        goto Lskip;
+                }
 
                 t->vtinfo->toObjFile(global.params.multiobj);
 
             }
-        L1:
-            ;
         }
     }
+  Lskip:
     if (!vtinfo)
         vtinfo = t->vtinfo;     // Types aren't merged, but we can share the vtinfo's
     assert(vtinfo);
