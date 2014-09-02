@@ -4517,7 +4517,23 @@ void DtorDeclaration::semantic(Scope *sc)
         error("destructors are only for class/struct/union definitions, not %s %s", parent->kind(), parent->toChars());
     }
     else if (ident == Id::dtor && semanticRun < PASSsemantic)
-        ad->dtors.push(this);
+    {
+        bool insert = true;
+        bool inMixin = (this->parent->isTemplateMixin() != NULL);
+        for (size_t i = 0; ad->dtors.dim; i++)
+        {
+            FuncDeclaration *dd = ad->dtors[i];
+            if ((dd->parent->isTemplateMixin() != NULL) != inMixin)
+            {
+                if (!inMixin)
+                    ad->dtors[i] = this;
+                insert = false;
+                break;
+            }
+        }
+        if (insert)
+            ad->dtors.push(this);
+    }
 
     if (!type)
         type = new TypeFunction(NULL, Type::tvoid, false, LINKd, storage_class);

@@ -116,7 +116,7 @@ void test5()
 {
     T5* s = new T5();
     delete s;
-    assert(sdtor5 == 2);
+    assert(sdtor5 == 1);
 }
 
 /**********************************/
@@ -275,7 +275,7 @@ void test11()
 {
     T11 s = new T11();
     delete s;
-    assert(sdtor11 == 2);
+    assert(sdtor11 == 1);
 }
 
 /**********************************/
@@ -3350,6 +3350,38 @@ void test13303()
 }
 
 /**********************************/
+// 13408
+
+mixin template R13408()
+{
+    ~this() { assert(0); }
+}
+
+struct S13408a
+{
+    static int dtor;
+
+    mixin R13408;
+    ~this() { ++dtor; }
+}
+struct S13408b
+{
+    static int dtor;
+
+    ~this() { ++dtor; }
+    mixin R13408;
+}
+
+void test13408()
+{
+    { S13408a s; }
+    assert(S13408a.dtor == 1);
+
+    { S13408b s; }
+    assert(S13408b.dtor == 1);
+}
+
+/**********************************/
 
 int main()
 {
@@ -3454,6 +3486,7 @@ int main()
     test13089();
     test11763();
     test13303();
+    test13408();
 
     printf("Success\n");
     return 0;
