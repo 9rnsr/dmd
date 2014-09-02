@@ -243,7 +243,7 @@ public:
 
     void visit(VarExp *e)
     {
-        //printf("VarExp::inlineCost3() %s\n", toChars());
+        //printf("VarExp::inlineCost3() %s\n", e->toChars());
         Type *tb = e->type->toBasetype();
         if (tb->ty == Tstruct)
         {
@@ -748,20 +748,45 @@ Expression *doInline(Expression *e, InlineDoState *ids)
             VarDeclaration *v = e->var->isVarDeclaration();
             if (v && v->nestedrefs.dim && ids->vthis)
             {
+                printf("[%s]2 v = %s, v->nestedref.dim = %d, v->parent = %p, ids->vthis = (%p %s), ids->parent = %p %s, fd = %s\n",
+                    e->loc.toChars(), v->toChars(), v->nestedrefs.dim, v->parent,
+                    ids->vthis, ids->vthis->init->toChars(),
+                    ids->parent, ids->parent->toChars(), ids->fd->toChars());
+                //if (v->parent == ids->parent)
+                //{
+                //    result = e;
+                //    return;
+                //}
+
                 Dsymbol *s = ids->fd;
                 FuncDeclaration *fdv = v->toParent()->isFuncDeclaration();
                 assert(fdv);
+                printf("fdv = %s, hasNestedFrameRefs() = %d\n", fdv->toChars(), fdv->hasNestedFrameRefs());
                 result = new VarExp(e->loc, ids->vthis);
                 result->type = ids->vthis->type;
                 while (s != fdv)
                 {
+                    printf("\t1s = %p, ids->parent = %p, fdv = %p, result = %s\n", s, ids->parent, fdv, result->toChars());
+                    if (s == ids->parent)
+                    {
+                        break;
+                    }
+
                     FuncDeclaration *f = s->isFuncDeclaration();
                     if (AggregateDeclaration *ad = s->isThis())
                     {
+                        // result == a pointer to the instance object
                         assert(ad->vthis);
+                        assert(ad->enclosing);
+#if 0
+                        assert(ad->enclosing);
+                        s = ad->enclosing;
+                        continue;
+#else
                         result = new DotVarExp(e->loc, result, ad->vthis);
                         result->type = ad->vthis->type;
-                        s = ad->toParent2();
+                        s = ad->enclosing;//toParent2();
+#endif
                     }
                     else if (f && f->isNested())
                     {
@@ -776,10 +801,12 @@ Expression *doInline(Expression *e, InlineDoState *ids)
                     else
                         assert(0);
                     assert(s);
+                    printf("\t2s = %p, ids->parent = %p, fdv = %p, result = %s\n", s, ids->parent, fdv, result->toChars());
                 }
                 result = new DotVarExp(e->loc, result, v);
                 result->type = v->type;
-                //printf("\t==> result = %s, type = %s\n", result->toChars(), result->type->toChars());
+                printf("\t==> result = %s, type = %s, fdv->hasNestedFrameRefs() = %d\n",
+                    result->toChars(), result->type->toChars(), fdv->hasNestedFrameRefs());
                 return;
             }
 
@@ -1391,7 +1418,7 @@ public:
 
     void visitCallExp(CallExp *e, Expression *eret)
     {
-        //printf("CallExp::inlineScan()\n");
+        printf("CallExp::inlineScan() e = %s\n", e->toChars());
         inlineScan(&e->e1);
         arrayInlineScan(e->arguments);
 
@@ -1402,9 +1429,11 @@ public:
 
             if (fd && fd != parent && canInline(fd, 0, 0, 0))
             {
+                printf("+L%d\n", __LINE__);
                 Expression *ex = expandInline(fd, parent, eret, NULL, e->arguments, NULL);
                 if (ex)
                 {
+                printf("+L%d ex = %s\n", __LINE__, ex->toChars());
                     eresult = ex;
                     if (global.params.verbose)
                         fprintf(global.stdmsg, "inlined   %s =>\n          %s\n", fd->toPrettyChars(), parent->toPrettyChars());
@@ -1418,6 +1447,7 @@ public:
 
             if (fd && fd != parent && canInline(fd, 1, 0, 0))
             {
+                printf("+L%d\n", __LINE__);
                 if (dve->e1->op == TOKcall &&
                     dve->e1->type->toBasetype()->ty == Tstruct)
                 {
@@ -1432,6 +1462,7 @@ public:
                     Expression *ex = expandInline(fd, parent, eret, dve->e1, e->arguments, NULL);
                     if (ex)
                     {
+                printf("+L%d ex = %s\n", __LINE__, ex->toChars());
                         eresult = ex;
                         if (global.params.verbose)
                             fprintf(global.stdmsg, "inlined   %s =>\n          %s\n", fd->toPrettyChars(), parent->toPrettyChars());
@@ -1814,20 +1845,18 @@ static Expression *expandInline(FuncDeclaration *fd, FuncDeclaration *parent,
     }
 
     // Set up vthis
+    printf("expandInline fd = %s, ethis = %s\n", fd->toChars(), ethis ? ethis->toChars() : NULL);
     if (ethis)
     {
-        VarDeclaration *vthis;
-        ExpInitializer *ei;
-        VarExp *ve;
-
         if (ethis->type->ty == Tpointer)
-        {   Type *t = ethis->type->nextOf();
+        {
+            Type *t = ethis->type->nextOf();
             ethis = new PtrExp(ethis->loc, ethis);
             ethis->type = t;
         }
-        ei = new ExpInitializer(ethis->loc, ethis);
+        ExpInitializer *ei = new ExpInitializer(ethis->loc, ethis);
 
-        vthis = new VarDeclaration(ethis->loc, ethis->type, Id::This, ei);
+        VarDeclaration *vthis = new VarDeclaration(ethis->loc, ethis->type, Id::This, ei);
         if (ethis->type->ty != Tclass)
             vthis->storage_class = STCref;
         else
@@ -1835,19 +1864,52 @@ static Expression *expandInline(FuncDeclaration *fd, FuncDeclaration *parent,
         vthis->linkage = LINKd;
         vthis->parent = parent;
 
-        ve = new VarExp(vthis->loc, vthis);
+        VarExp *ve = new VarExp(vthis->loc, vthis);
         ve->type = vthis->type;
 
         ei->exp = new AssignExp(vthis->loc, ve, ethis);
         ei->exp->type = ve->type;
         if (ethis->type->ty != Tclass)
-        {   /* This is a reference initialization, not a simple assignment.
+        {
+            /* This is a reference initialization, not a simple assignment.
              */
             ei->exp->op = TOKconstruct;
         }
 
         ids.vthis = vthis;
     }
+#if 0
+    else if (fd->isNested() && fd->vthis && parent->vthis)
+    {
+        printf("fd = %s, parent - %s\n", fd->toChars(), parent->toChars());
+        Expression *ethis = new VarExp(parent->vthis->loc, parent->vthis);
+        ethis->type = Type::tvoidptr;
+
+        ExpInitializer *ei = new ExpInitializer(ethis->loc, ethis);
+
+        VarDeclaration *vthis = new VarDeclaration(ethis->loc, ethis->type, Id::This, ei);
+        if (ethis->type->ty != Tclass)
+            vthis->storage_class = STCref;
+        else
+            vthis->storage_class = STCin;
+        vthis->linkage = LINKd;
+        vthis->parent = parent;
+
+        VarExp *ve = new VarExp(vthis->loc, vthis);
+        ve->type = vthis->type;
+
+        ei->exp = new AssignExp(vthis->loc, ve, ethis);
+        ei->exp->type = ve->type;
+        if (ethis->type->ty != Tclass)
+        {
+            /* This is a reference initialization, not a simple assignment.
+             */
+            ei->exp->op = TOKconstruct;
+        }
+
+        ids.vthis = vthis;
+    }
+#endif
 
     // Set up parameters
     if (ethis)
