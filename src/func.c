@@ -1265,18 +1265,8 @@ void FuncDeclaration::semantic3(Scope *sc)
 
         if (sc->flags & SCOPEctfe)
         {
-            FuncLiteralDeclaration *fld = isFuncLiteralDeclaration();
-            if (fld && !sc->intypeof)
-            {
-                if (fld->tok == TOKreserved)
-                    fld->tok = TOKfunction;
-                if (isNested())
-                {
-                    error("cannot be class members");
-                    return;
-                }
-            }
-            assert(!isNested() || sc->intypeof);    // can't be both member and nested
+            // member, static nested function literal, or in typeof
+            assert(!isNested() || isStatic() || sc->intypeof);
         }
 
         // Declare 'this'
