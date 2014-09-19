@@ -413,12 +413,12 @@ void FuncDeclaration::semantic(Scope *sc)
     {
         Type *treq = fld->treq;
         assert(treq->nextOf()->ty == Tfunction);
-        if (treq->ty == Tdelegate)
+        /*if (treq->ty == Tdelegate)
             fld->tok = TOKdelegate;
-        else if (treq->ty == Tpointer && treq->nextOf()->ty == Tfunction)
+        else */if (treq->ty == Tpointer && treq->nextOf()->ty == Tfunction)
             fld->tok = TOKfunction;
-        else
-            assert(0);
+        //else
+        //    assert(0);
         linkage = ((TypeFunction *)treq->nextOf())->linkage;
     }
     else
@@ -1263,7 +1263,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         sc2->fieldinit = NULL;
         sc2->fieldinit_dim = 0;
 
-        if (isMember2())
+        if (sc->flags & SCOPEctfe)
         {
             FuncLiteralDeclaration *fld = isFuncLiteralDeclaration();
             if (fld && !sc->intypeof)
@@ -4038,7 +4038,11 @@ void FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
 
             // function literal has reference to enclosing scope is delegate
             if (FuncLiteralDeclaration *fld = fdthis->isFuncLiteralDeclaration())
+            {
                 fld->tok = TOKdelegate;
+                if (fld->storage_class & STCstatic)
+                    ::error(loc, "compile-time delegate literal cannot access outer local %s '%s'", kind(), toChars());
+            }
         }
     }
 }

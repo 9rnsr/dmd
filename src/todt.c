@@ -543,13 +543,12 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                 e->fd->vthis = NULL;
             }
             Symbol *s = toSymbol(e->fd);
+            e->fd->toObjFile(0);
             if (e->fd->isNested())
             {
-                e->error("non-constant nested delegate literal expression %s", e->toChars());
-                pdt = NULL;
-                return;
+                // Bugzilla 13494: Emit null context pointer for 'static nested' function literals
+                pdt = dtnzeros(pdt, Type::tvoidptr->size());
             }
-            e->fd->toObjFile(0);
             pdt = dtxoff(pdt, s, 0);
         }
 

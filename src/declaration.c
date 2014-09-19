@@ -1866,6 +1866,8 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
                     if (FuncLiteralDeclaration *fld = s->isFuncLiteralDeclaration())
                     {
                         fld->tok = TOKdelegate;
+                        if (fld->storage_class & STCstatic)
+                            ::error(loc, "compile-time delegate literal cannot access outer %s '%s'", kind(), toChars());
 
                         /* This is necessary to avoid breaking tests for 8751 & 8793.
                          * See: compilable/testInference.d

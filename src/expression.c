@@ -202,7 +202,7 @@ Lno:
     return NULL;                // don't have 'this' available
 }
 
-bool isNeedThisScope(Scope *sc, Declaration *d)
+bool isNeedThisScope(Loc loc, Scope *sc, Declaration *d)
 {
     if (sc->intypeof == 1)
         return false;
@@ -228,7 +228,14 @@ bool isNeedThisScope(Scope *sc, Declaration *d)
         if (FuncDeclaration *f = s->isFuncDeclaration())
         {
             if (f->isFuncLiteralDeclaration() && f->isNested())
+            {
+                if (f->storage_class & STCstatic)
+                {
+                    ::error(loc, "compile-time delegate literal cannot access outer %s '%s'", d->kind(), d->toChars());
+                    return false;   // report more better error
+                }
                 continue;
+            }
             if (f->isMember2())
                 break;
         }
@@ -241,7 +248,7 @@ Expression *checkRightThis(Scope *sc, Expression *e)
     if (e->op == TOKvar && e->type->ty != Terror)
     {
         VarExp *ve = (VarExp *)e;
-        if (isNeedThisScope(sc, ve->var))
+        if (isNeedThisScope(e->loc, sc, ve->var))
         {
             //printf("checkRightThis sc->intypeof = %d, ad = %p, func = %p, fdthis = %p\n",
             //        sc->intypeof, sc->getStructClassScope(), func, fdthis);
@@ -4567,6 +4574,15 @@ Lagain:
                             error("outer class %s 'this' needed to 'new' nested class %s", cdn->toChars(), cd->toChars());
                             goto Lerr;
                         }
+                        else if (FuncLiteralDeclaration *fld = sp->isFuncLiteralDeclaration())
+                        {
+                            fld->tok = TOKdelegate;
+                            if (fld->storage_class & STCstatic)
+                            {
+                                ::error(loc, "compile-time delegate literal cannot access outer nested %s '%s'", cd->kind(), cd->toChars());
+                                goto Lerr;
+                            }
+                        }
                         ClassDeclaration *cdp = sp->isClassDeclaration();
                         if (!cdp)
                             continue;
@@ -4601,7 +4617,7 @@ Lagain:
                     if (fdn == sp)
                         break;
                     FuncDeclaration *fsp = sp ? sp->isFuncDeclaration() : NULL;
-                    if (!sp || (fsp && fsp->isStatic()))
+                    if (!sp)
                     {
                         error("outer function context of %s is needed to 'new' nested class %s", fdn->toPrettyChars(), cd->toPrettyChars());
                         goto Lerr;
@@ -4609,6 +4625,16 @@ Lagain:
                     else if (FuncLiteralDeclaration *fld = sp->isFuncLiteralDeclaration())
                     {
                         fld->tok = TOKdelegate;
+                        if (fld->storage_class & STCstatic)
+                        {
+                            ::error(loc, "compile-time delegate literal cannot access outer nested %s '%s'", cd->kind(), cd->toChars());
+                            goto Lerr;
+                        }
+                    }
+                    else if (fsp && fsp->isStatic())
+                    {
+                        error("outer function context of %s is needed to 'new' nested class %s", fdn->toPrettyChars(), cd->toPrettyChars());
+                        goto Lerr;
                     }
                 }
             }
@@ -5315,9 +5341,13 @@ Expression *FuncExp::semantic(Scope *sc)
 
     Expression *e = this;
 
-    sc = sc->push();            // just create new scope
-    sc->flags &= ~SCOPEctfe;    // temporary stop CTFE
-    sc->protection = Prot(PROTpublic);    // Bugzilla 12506
+    if (sc->intypeof != 1 && sc->flags & SCOPEctfe)
+        fd->storage_class |= STCstatic; // support 'static nested' function literal
+
+    sc = sc->push();                    // just create new scope
+    sc->stc &= ~STCstatic;
+    sc->flags &= ~SCOPEctfe;            // temporary stop CTFE
+    sc->protection = Prot(PROTpublic);  // Bugzilla 12506
 
     genIdent(sc);
 
@@ -8561,7 +8591,7 @@ Lagain:
                     e1 = new DotVarExp(loc, (new ThisExp(loc))->semantic(sc), f);
                     goto Lagain;
                 }
-                else if (isNeedThisScope(sc, f))
+                else if (isNeedThisScope(loc, sc, f))
                 {
                     error("need 'this' for '%s' of type '%s'", f->toChars(), f->type->toChars());
                     return new ErrorExp();
@@ -8676,7 +8706,7 @@ Lagain:
                 e1 = new DotVarExp(loc, (new ThisExp(loc))->semantic(sc), ve->var);
                 goto Lagain;
             }
-            else if (isNeedThisScope(sc, f))
+            else if (isNeedThisScope(loc, sc, f))
             {
                 error("need 'this' for '%s' of type '%s'", f->toChars(), f->type->toChars());
                 return new ErrorExp();
