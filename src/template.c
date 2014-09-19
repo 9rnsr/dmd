@@ -6568,9 +6568,9 @@ bool TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
         {
         Lexpr:
             //printf("+[%d] ea = %s %s\n", j, Token::toChars(ea->op), ea->toChars());
-            if (!(flags & 1)) sc = sc->startCTFE();
+            //if (!(flags & 1)) sc = sc->startCTFE();
             ea = ea->semantic(sc);
-            if (!(flags & 1)) sc = sc->endCTFE();
+            //if (!(flags & 1)) sc = sc->endCTFE();
             if (flags & 1) // only used by __traits, must not interpret the args
             {
                 VarDeclaration *v;
