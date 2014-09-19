@@ -223,7 +223,7 @@ bool isNeedThisScope(Loc loc, Scope *sc, Declaration *d)
             else if (ad2->isNested())
                 continue;
             else
-                return true;
+                break;
         }
         if (FuncDeclaration *f = s->isFuncDeclaration())
         {
@@ -232,7 +232,7 @@ bool isNeedThisScope(Loc loc, Scope *sc, Declaration *d)
                 if (f->storage_class & STCstatic)
                 {
                     ::error(loc, "compile-time delegate literal cannot access outer %s '%s'", d->kind(), d->toChars());
-                    return false;   // report more better error
+                    return true;
                 }
                 continue;
             }
@@ -240,6 +240,7 @@ bool isNeedThisScope(Loc loc, Scope *sc, Declaration *d)
                 break;
         }
     }
+    ::error(loc, "need 'this' for '%s' of type '%s'", d->toChars(), d->type->toChars());
     return true;
 }
 
@@ -252,7 +253,6 @@ Expression *checkRightThis(Scope *sc, Expression *e)
         {
             //printf("checkRightThis sc->intypeof = %d, ad = %p, func = %p, fdthis = %p\n",
             //        sc->intypeof, sc->getStructClassScope(), func, fdthis);
-            e->error("need 'this' for '%s' of type '%s'", ve->var->toChars(), ve->var->type->toChars());
             e = new ErrorExp();
         }
     }
@@ -5341,7 +5341,7 @@ Expression *FuncExp::semantic(Scope *sc)
 
     Expression *e = this;
 
-    if (sc->intypeof != 1 && sc->flags & SCOPEctfe)
+    if (sc->intypeof != 1 && (sc->flags & SCOPEctfe))
         fd->storage_class |= STCstatic; // support 'static nested' function literal
 
     sc = sc->push();                    // just create new scope
@@ -8591,11 +8591,8 @@ Lagain:
                     e1 = new DotVarExp(loc, (new ThisExp(loc))->semantic(sc), f);
                     goto Lagain;
                 }
-                else if (isNeedThisScope(loc, sc, f))
-                {
-                    error("need 'this' for '%s' of type '%s'", f->toChars(), f->type->toChars());
+                if (isNeedThisScope(loc, sc, f))
                     return new ErrorExp();
-                }
             }
             e1 = new VarExp(e1->loc, f, 0);
             goto Lagain;
@@ -8706,11 +8703,8 @@ Lagain:
                 e1 = new DotVarExp(loc, (new ThisExp(loc))->semantic(sc), ve->var);
                 goto Lagain;
             }
-            else if (isNeedThisScope(loc, sc, f))
-            {
-                error("need 'this' for '%s' of type '%s'", f->toChars(), f->type->toChars());
+            if (isNeedThisScope(loc, sc, f))
                 return new ErrorExp();
-            }
         }
 
         checkDeprecated(sc, f);
