@@ -5318,14 +5318,6 @@ Expression *FuncExp::semantic(Scope *sc)
 
     if (!type || type == Type::tvoid)
     {
-        /* fd->treq might be incomplete type,
-         * so should not semantic it.
-         * void foo(T)(T delegate(int) dg){}
-         * foo(a=>a); // in IFTI, treq == T delegate(int)
-         */
-        //if (fd->treq)
-        //    fd->treq = fd->treq->semantic(loc, sc);
-
         genIdent(sc);
 
         // Set target of return type inference
@@ -5360,18 +5352,12 @@ Expression *FuncExp::semantic(Scope *sc)
             goto Ldone;
         }
 
-        unsigned olderrors = global.errors;
+        //unsigned olderrors = global.errors;
         fd->semantic(sc);
-        if (olderrors == global.errors)
+        fd->semantic2(sc);
+        fd->semantic3(sc);
+        if (fd->errors || fd->semantic3Errors)
         {
-            fd->semantic2(sc);
-            if (olderrors == global.errors)
-                fd->semantic3(sc);
-        }
-        if (olderrors != global.errors)
-        {
-            if (fd->type && fd->type->ty == Tfunction && !fd->type->nextOf())
-                ((TypeFunction *)fd->type)->next = Type::terror;
             e = new ErrorExp();
             goto Ldone;
         }
@@ -5389,7 +5375,6 @@ Expression *FuncExp::semantic(Scope *sc)
         {
             type = new TypePointer(fd->type);
             type = type->semantic(loc, sc);
-            //type = fd->type->pointerTo();
 
             /* A lambda expression deduced to function pointer might become
              * to a delegate literal implicitly.
