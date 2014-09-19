@@ -5341,7 +5341,7 @@ Expression *FuncExp::semantic(Scope *sc)
 
     Expression *e = this;
 
-    if (sc->intypeof != 1 && (sc->flags & SCOPEctfe))
+    if (sc->intypeof != 1 && sc->parent && !sc->parent->isFuncDeclaration())
         fd->storage_class |= STCstatic; // support 'static nested' function literal
 
     if (tok == TOKfunction)
