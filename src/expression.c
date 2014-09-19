@@ -3133,7 +3133,7 @@ Lagain:
     if (FuncLiteralDeclaration *fld = s->isFuncLiteralDeclaration())
     {
         //printf("'%s' is a function literal\n", fld->toChars());
-        e = new FuncExp(loc, fld);
+        e = new FuncExp(loc, fld->tok, fld);
         return e->semantic(sc);
     }
     if (FuncDeclaration *f = s->isFuncDeclaration())
@@ -5218,12 +5218,12 @@ void TupleExp::checkEscape()
 
 /******************************** FuncExp *********************************/
 
-FuncExp::FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td)
+FuncExp::FuncExp(Loc loc, TOK tok, FuncLiteralDeclaration *fd, TemplateDeclaration *td)
         : Expression(loc, TOKfunction, sizeof(FuncExp))
 {
     this->fd = fd;
     this->td = td;
-    tok = fd->tok;  // save original kind of function/delegate/(infer)
+    this->tok = tok;  // save original kind of function/delegate/(infer)
     assert(fd->fbody);
 }
 
@@ -5301,7 +5301,7 @@ Expression *FuncExp::syntaxCopy()
         td2 = NULL;
         fd2 = fd;
     }
-    return new FuncExp(loc, fd2, td2);
+    return new FuncExp(loc, tok, fd2, td2);
 }
 
 Expression *FuncExp::semantic(Scope *sc)
@@ -5377,8 +5377,8 @@ Expression *FuncExp::semantic(Scope *sc)
         }
 
         // Type is a "delegate to" or "pointer to" the function literal
-        if ((fd->isNested() && fd->tok == TOKdelegate) ||
-            (tok == TOKreserved && fd->treq && fd->treq->ty == Tdelegate))
+        if (tok == TOKdelegate || fd->tok == TOKdelegate ||
+            tok == TOKreserved && fd->treq && fd->treq->ty == Tdelegate)
         {
             type = new TypeDelegate(fd->type);
             type = type->semantic(loc, sc);

@@ -650,7 +650,7 @@ public:
     TemplateDeclaration *td;
     TOK tok;
 
-    FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td = NULL);
+    FuncExp(Loc loc, TOK tok, FuncLiteralDeclaration *fd, TemplateDeclaration *td = NULL);
     bool rvalue();
     void genIdent(Scope *sc);
     Expression *syntaxCopy();

@@ -4306,11 +4306,11 @@ FuncDeclaration *FuncAliasDeclaration::toAliasFunc()
 /****************************** FuncLiteralDeclaration ************************/
 
 FuncLiteralDeclaration::FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type,
-        TOK tok, ForeachStatement *fes, Identifier *id)
+        ForeachStatement *fes, Identifier *id)
     : FuncDeclaration(loc, endloc, NULL, STCundefined, type)
 {
     this->ident = id ? id : Id::empty;
-    this->tok = tok;
+    this->tok = TOKreserved;
     this->fes = fes;
     this->treq = NULL;
     //printf("FuncLiteralDeclaration() id = '%s', type = '%s'\n", this->ident->toChars(), type->toChars());
@@ -4321,7 +4321,7 @@ Dsymbol *FuncLiteralDeclaration::syntaxCopy(Dsymbol *s)
     //printf("FuncLiteralDeclaration::syntaxCopy('%s')\n", toChars());
     assert(!s);
     FuncLiteralDeclaration *f = new FuncLiteralDeclaration(loc, endloc,
-        type->syntaxCopy(), tok, fes, ident);
+        type->syntaxCopy(), fes, ident);
     f->treq = treq;     // don't need to copy
     return FuncDeclaration::syntaxCopy(f);
 }

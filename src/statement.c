@@ -2294,9 +2294,9 @@ Statement *ForeachStatement::semantic(Scope *sc)
             tfld = new TypeFunction(args, Type::tint32, 0, LINKd);
             cases = new Statements();
             gotos = new ScopeStatements();
-            FuncLiteralDeclaration *fld = new FuncLiteralDeclaration(loc, Loc(), tfld, TOKdelegate, this);
+            FuncLiteralDeclaration *fld = new FuncLiteralDeclaration(loc, Loc(), tfld, this);
             fld->fbody = body;
-            Expression *flde = new FuncExp(loc, fld);
+            Expression *flde = new FuncExp(loc, TOKdelegate, fld);
             flde = flde->semantic(sc);
             fld->tookAddressOf = 0;
 

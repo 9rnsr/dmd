@@ -727,10 +727,10 @@ public:
 class FuncLiteralDeclaration : public FuncDeclaration
 {
 public:
-    TOK tok;                       // TOKfunction or TOKdelegate
+    TOK tok;                            // TOKfunction or TOKdelegate
     Type *treq;                         // target of return type inference
 
-    FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type, TOK tok,
+    FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type,
         ForeachStatement *fes, Identifier *id = NULL);
     Dsymbol *syntaxCopy(Dsymbol *);
     bool isNested();

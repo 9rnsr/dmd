@@ -6168,7 +6168,8 @@ Expression *Parser::parsePrimaryExp()
             id = token.ident;
             nextToken();
             if (token.value == TOKnot && (save = peekNext()) != TOKis && save != TOKin)
-            {   // identifier!(template-argument-list)
+            {
+                // identifier!(template-argument-list)
                 TemplateInstance *tempinst;
 
                 tempinst = new TemplateInstance(loc, id);
@@ -6679,7 +6680,7 @@ Expression *Parser::parsePrimaryExp()
             if (!parameters)
                 parameters = new Parameters();
             TypeFunction *tf = new TypeFunction(parameters, tret, varargs, linkage, stc);
-            FuncLiteralDeclaration *fd = new FuncLiteralDeclaration(loc, Loc(), tf, save, NULL);
+            FuncLiteralDeclaration *fd = new FuncLiteralDeclaration(loc, Loc(), tf, NULL);
 
             if (token.value == TOKgoesto)
             {
@@ -6703,7 +6704,7 @@ Expression *Parser::parsePrimaryExp()
                 td = new TemplateDeclaration(fd->loc, fd->ident, tpl, NULL, decldefs, false, true);
             }
 
-            e = new FuncExp(loc, fd, td);
+            e = new FuncExp(loc, save, fd, td);
             break;
         }
 

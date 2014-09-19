@@ -44,7 +44,7 @@ Expression *toDelegate(Expression *e, Scope *sc)
     if (t->hasWild())
         tf->mod = MODwild;
     FuncLiteralDeclaration *fld =
-        new FuncLiteralDeclaration(loc, loc, tf, TOKdelegate, NULL);
+        new FuncLiteralDeclaration(loc, loc, tf, NULL);
 
     sc = sc->push();
     sc->parent = fld;           // set current function to be the delegate
@@ -59,7 +59,7 @@ Expression *toDelegate(Expression *e, Scope *sc)
         s = new ReturnStatement(loc, e);
     fld->fbody = s;
 
-    e = new FuncExp(loc, fld);
+    e = new FuncExp(loc, TOKdelegate, fld);
     e = e->semantic(sc);
     return e;
 }
