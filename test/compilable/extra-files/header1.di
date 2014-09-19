@@ -291,7 +291,7 @@ template V10(T)
 int foo11(int function() fn);
 int bar11(T)()
 {
-	return foo11(function int()
+	return foo11(int()
 	{
 		return 0;
 	}

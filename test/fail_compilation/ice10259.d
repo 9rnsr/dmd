@@ -2,7 +2,7 @@
 TEST_OUTPUT:
 ---
 fail_compilation/ice10259.d(13): Error: circular reference to 'ice10259.D.d'
-fail_compilation/ice10259.d(13):        called from here: (*function () => x)()
+fail_compilation/ice10259.d(13):        called from here: (*() => x)()
 fail_compilation/ice10259.d(15): Error: variable ice10259.x : Unable to initialize enum with class or pointer to struct. Use static const variable instead.
 ---
 */

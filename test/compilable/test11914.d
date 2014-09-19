@@ -1,4 +1,4 @@
-// std.array
+/+// std.array
 @property bool empty(T)(in T[] a) { return !a.length; }
 @property ref T front(T)(T[] a) { return a[0]; }
 void popFront(T)(ref T[] a) { a = a[1 .. $]; }
@@ -116,3 +116,4 @@ void main()
 {
     foreach (i, j, k; cartesianProduct([1], [1], [1])) {}
 }
++/
