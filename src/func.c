@@ -1263,12 +1263,6 @@ void FuncDeclaration::semantic3(Scope *sc)
         sc2->fieldinit = NULL;
         sc2->fieldinit_dim = 0;
 
-        if (sc->flags & SCOPEctfe)
-        {
-            // member, static nested function literal, or in typeof
-            assert(!isNested() || isStatic() || sc->intypeof);
-        }
-
         // Declare 'this'
         AggregateDeclaration *ad = isThis();
         vthis = declareThis(sc2, ad);
