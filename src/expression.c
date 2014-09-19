@@ -5344,6 +5344,9 @@ Expression *FuncExp::semantic(Scope *sc)
     if (sc->intypeof != 1 && (sc->flags & SCOPEctfe))
         fd->storage_class |= STCstatic; // support 'static nested' function literal
 
+    if (tok == TOKfunction)
+        fd->tok = tok;
+
     sc = sc->push();                    // just create new scope
     sc->stc &= ~STCstatic;
     sc->flags &= ~SCOPEctfe;            // temporary stop CTFE
