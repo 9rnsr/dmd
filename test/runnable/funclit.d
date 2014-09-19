@@ -1106,6 +1106,34 @@ void test12508()
 }
 
 /***************************************************/
+// 13494
+
+int g13494 = 10;
+int delegate(int) dg13494 = (n) { ++g13494; return g13494 * n; };
+
+struct S13494
+{
+    int delegate(int) dg = (n) { ++g13494; return g13494 * n; };
+}
+
+void test13494()
+{
+    assert(dg13494.ptr is null);
+    assert(dg13494.funcptr !is null);
+    assert(dg13494(2) == 11 * 2);
+    assert(g13494 == 11);
+
+    S13494 s;
+    assert(s.dg(3) == 12 * 3);
+    assert(g13494 == 12);
+
+    static int x = 20;
+    static int delegate(int) dg = (n) { ++x; return x * n; };
+    assert(dg(3) == 21 * 3);
+    assert(x == 21);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -1159,6 +1187,7 @@ int main()
     test11661();
     test11774();
     test12508();
+    test13494();
 
     printf("Success\n");
     return 0;
