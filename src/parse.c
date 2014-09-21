@@ -3354,14 +3354,10 @@ Dsymbols *Parser::parseDeclarations(bool autodecl, PrefixAttributes *pAttrs, con
                         error("user defined attributes not allowed for %s declarations", Token::toChars(tok));
 
                     t = parseType();
-                    Dsymbol *s = new AliasDeclaration(loc, ident, t);
-                    ((Declaration *)s)->storage_class = storage_class;
-                    if (link != linkage)
-                    {
-                        Dsymbols *a2 = new Dsymbols();
-                        a2->push(s);
-                        s = new LinkDeclaration(link, a2);
-                    }
+                    Declaration *v = new AliasDeclaration(loc, ident, t);
+                    v->storage_class = storage_class;
+
+                    Dsymbol *s = v;
                     if (tpl)
                     {
                         Dsymbols *a2 = new Dsymbols();
@@ -3369,6 +3365,12 @@ Dsymbols *Parser::parseDeclarations(bool autodecl, PrefixAttributes *pAttrs, con
                         TemplateDeclaration *tempdecl =
                             new TemplateDeclaration(loc, ident, tpl, NULL, a2);
                         s = tempdecl;
+                    }
+                    if (link != linkage)
+                    {
+                        Dsymbols *a2 = new Dsymbols();
+                        a2->push(s);
+                        s = new LinkDeclaration(link, a2);
                     }
                     a->push(s);
                     switch (token.value)
@@ -3550,25 +3552,25 @@ L2:
                 v = new AliasDeclaration(loc, ident, t);
             }
             v->storage_class = storage_class;
-            if (link == linkage)
-                a->push(v);
-            else
+            Dsymbol *s = v;
+
+            if (link != linkage)
             {
                 Dsymbols *ax = new Dsymbols();
                 ax->push(v);
-                Dsymbol *s = new LinkDeclaration(link, ax);
-                a->push(s);
+                s = new LinkDeclaration(link, ax);
             }
+            a->push(s);
             switch (token.value)
             {
                 case TOKsemicolon:
                     nextToken();
-                    addComment(v, comment);
+                    addComment(s, comment);
                     break;
 
                 case TOKcomma:
                     nextToken();
-                    addComment(v, comment);
+                    addComment(s, comment);
                     continue;
 
                 default:
@@ -3656,11 +3658,9 @@ L2:
 
             FuncDeclaration *f =
                 new FuncDeclaration(loc, Loc(), ident, storage_class | (disable ? STCdisable : 0), t);
-            addComment(f, comment);
             if (tpl)
                 constraint = parseConstraint();
             Dsymbol *s = parseContracts(f);
-            addComment(s, NULL);
 
             /* A template parameter list means it's a function template
              */
@@ -3695,8 +3695,8 @@ L2:
                 ax->push(s);
                 s = new UserAttributeDeclaration(udas, ax);
             }
-            addComment(s, comment);
             a->push(s);
+            addComment(s, comment);
         }
         else if (ident)
         {
@@ -3719,7 +3719,6 @@ L2:
                     new TemplateDeclaration(loc, ident, tpl, NULL, a2, 0);
                 s = tempdecl;
             }
-
             if (link != linkage)
             {
                 Dsymbols *ax = new Dsymbols();
@@ -3737,12 +3736,12 @@ L2:
             {
                 case TOKsemicolon:
                     nextToken();
-                    addComment(v, comment);
+                    addComment(s, comment);
                     break;
 
                 case TOKcomma:
                     nextToken();
-                    addComment(v, comment);
+                    addComment(s, comment);
                     continue;
 
                 default:
@@ -3793,28 +3792,30 @@ Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, const utf8_t 
                 new TemplateDeclaration(loc, ident, tpl, NULL, a2, 0);
             s = tempdecl;
         }
-
         a->push(s);
-        if (token.value == TOKsemicolon)
+        switch (token.value)
         {
-            nextToken();
-            addComment(v, comment);
-        }
-        else if (token.value == TOKcomma)
-        {
-            nextToken();
-            if (token.value == TOKidentifier &&
-                skipParensIf(peek(&token), &tk) &&
-                tk->value == TOKassign)
-            {
-                addComment(v, comment);
+            case TOKsemicolon:
+                nextToken();
+                addComment(s, comment);
+                break;
+
+            case TOKcomma:
+                nextToken();
+                if (!(token.value == TOKidentifier &&
+                      skipParensIf(peek(&token), &tk) &&
+                      tk->value == TOKassign))
+                {
+                    error("Identifier expected following comma");
+                    break;
+                }
+                addComment(s, comment);
                 continue;
-            }
-            else
-                error("Identifier expected following comma");
+
+            default:
+                error("semicolon expected following auto declaration, not '%s'", token.toChars());
+                break;
         }
-        else
-            error("semicolon expected following auto declaration, not '%s'", token.toChars());
         break;
     }
     return a;
