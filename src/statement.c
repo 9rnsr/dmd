@@ -3100,6 +3100,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
     // preserve enum type for final switches
     if (condition->type->ty == Tenum)
         te = (TypeEnum *)condition->type;
+    Type *tx = condition->type;
     if (condition->type->isString())
     {
         // If it's not an array, cast it to one
@@ -3127,6 +3128,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
     body = body->semantic(sc);
     sc->noctor--;
 
+    //printf("body = %s\n", body->toChars());
     // Resolve any goto case's with exp
     for (size_t i = 0; i < gotoCases.dim; i++)
     {
@@ -3161,9 +3163,11 @@ Statement *SwitchStatement::semantic(Scope *sc)
 
     bool needswitcherror = false;
     if (isFinal)
-    {   Type *t = condition->type;
+    {
+        Type *t = condition->type;
         while (t && t->ty == Ttypedef)
-        {   // Don't use toBasetype() because that will skip past enums
+        {
+            // Don't use toBasetype() because that will skip past enums
             t = ((TypeTypedef *)t)->sym->basetype;
         }
         Dsymbol *ds;
@@ -3194,13 +3198,62 @@ Statement *SwitchStatement::semantic(Scope *sc)
                 ;
             }
         }
+        else if (t->isintegral())
+        {
+            IntRange ir = getIntRange(condition);
+            uinteger_t num = ir.imax.value - ir.imin.value + 1;
+            //printf("imin = %lld, imax = %lld, num = %lld\n", ir.imin.value, ir.imax.value, num);
+            if (cases->dim < num)
+            {
+                OutBuffer buf;
+                if (!tx->isunsigned() &&
+                    (tx->ty == Tint8  && ir.imin.value == -128 ||
+                     tx->ty == Tint16 && ir.imin.value == -32768 ||
+                     tx->ty == Tint32 && ir.imin.value == -2147483647L - 1 ||
+                     tx->ty == Tint64 && ir.imin.value == (-9223372036854775807LL-1LL)))
+                {
+                    buf.writestring(tx->mutableOf()->toChars());
+                    buf.writestring(".min");
+                }
+                else if (tx->ty == Tbool)
+                    buf.writestring(ir.imin.value ? "true" : "false");
+                else
+                    buf.printf("%lld", ir.imin.value);
+                buf.writestring(", ");
+
+                if (tx->ty == Tint8  && ir.imax.value == 0x7F ||
+                    tx->ty == Tuns8  && ir.imax.value == 0xFF ||
+                    tx->ty == Tint16 && ir.imax.value == 0x7FFFUL ||
+                    tx->ty == Tuns16 && ir.imax.value == 0xFFFFUL ||
+                    tx->ty == Tint32 && ir.imax.value == 0x7FFFFFFFUL ||
+                    tx->ty == Tuns32 && ir.imax.value == 0xFFFFFFFFUL ||
+                    tx->ty == Tint64 && ir.imax.value == 0x7FFFFFFFFFFFFFFFLL ||
+                    tx->ty == Tuns64 && ir.imax.value == 0xFFFFFFFFFFFFFFFFULL ||
+                    tx->ty == Tchar  && ir.imax.value == 0xFF ||
+                    tx->ty == Twchar && ir.imax.value == 0xFFFFUL ||
+                    tx->ty == Tdchar && ir.imax.value == 0x10FFFFUL)
+                {
+                    buf.writestring(tx->mutableOf()->toChars());
+                    buf.writestring(".max");
+                }
+                else if (tx->ty == Tbool)
+                    buf.writestring(ir.imax.value ? "true" : "false");
+                else
+                    buf.printf("%lld", ir.imax.value);
+
+                error("incomplete cases for the value range [%s]", buf.peekString());
+                needswitcherror = true;
+            }
+        }
         else
+        {
             needswitcherror = true;
+        }
     }
 
     if (!sc->sw->sdefault && (!isFinal || needswitcherror || global.params.useAssert))
-    {   hasNoDefault = 1;
-
+    {
+        hasNoDefault = 1;
         if (!isFinal && !body->isErrorStatement())
            deprecation("switch statement without a default is deprecated; use 'final switch' or add 'default: assert(0);' or add 'default: break;'");
 
@@ -3212,7 +3265,8 @@ Statement *SwitchStatement::semantic(Scope *sc)
         if (global.params.useSwitchError)
             s = new SwitchErrorStatement(loc);
         else
-        {   Expression *e = new HaltExp(loc);
+        {
+            Expression *e = new HaltExp(loc);
             s = new ExpStatement(loc, e);
         }
 
