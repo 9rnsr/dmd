@@ -3102,6 +3102,15 @@ void main()
     //int (*fp[3])[];
     //a
     //pragma(msg, typeof(fp));
+
+    // works in 2.030
+    int (*fp1)(int);            // int function(int)
+    int (*(*fp2)(int))(int);    // int function(int) function(int)
+    int (*(*fp3))(int);         // int function(int)*
+    int (**fp3a)(int);          // int function(int)*
+    pragma(msg, typeof(fp1).stringof);
+    pragma(msg, typeof(fp2).stringof);
+    pragma(msg, typeof(fp3).stringof);
 }
 
 /+
@@ -3128,11 +3137,11 @@ FuncDeclaratorSuffix:       // rename from DeclaratorSuffix
     //[ ]
     //[ AssignExpression ]
     //[ Type ]
-    //Parameters MemberFunctionAttributesopt
-    //TemplateParameters Parameters MemberFunctionAttributesopt Constraintopt
+    //Parameters MemberFunctionAttributes.opt
+    //TemplateParameters Parameters MemberFunctionAttributes.opt Constraint.opt
 ->
-    Parameters MemberFunctionAttributesopt
-    TemplateParameters Parameters MemberFunctionAttributesopt Constraintopt
+    Parameters MemberFunctionAttributes.opt
+    TemplateParameters Parameters MemberFunctionAttributes.opt Constraint.opt
 
 ================================================================================
 
@@ -3160,12 +3169,13 @@ Declarator:
     BasicType2.opt Identifier
 
 AltDeclarator:
-    BasicType2.opt ( Declarator ) AltDeclaratorSuffix.opt      // C-style   Q. Declarator->AltDeclarator?
+    BasicType2.opt ( AltDeclarator ) AltDeclaratorSuffix.opt      // C-style
 
 AltDeclaratorSuffix:
     [ ]
     [ AssignExpression ]
     [ Type ]
+    Parameters MemberFunctionAttributes.opt
 
 ================================================================================
 
