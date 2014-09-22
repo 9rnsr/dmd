@@ -4597,11 +4597,18 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
         case TOKimaginary32: case TOKimaginary64: case TOKimaginary80:
         case TOKcomplex32: case TOKcomplex64: case TOKcomplex80:
         case TOKvoid:
+        {
             // bug 7773: int.max is always a part of expression
             if (peekNext() == TOKdot)
                 goto Lexp;
+            Token *t = &token;
             if (peekNext() == TOKlparen)
-                goto Lexp;
+            {
+                //printf("====\n");
+                if (!isDeclaration(&token, 2, TOKreserved, NULL))
+                    goto Lexp;
+            }
+        }
         case TOKtypedef:
         case TOKalias:
         case TOKconst:
@@ -5771,7 +5778,8 @@ Lfalse:
 }
 
 int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
-{   // This code parallels parseDeclarator()
+{
+    // This code parallels parseDeclarator()
     Token *t = *pt;
     int parens;
 
@@ -5837,14 +5845,19 @@ int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
                  * Should we just disallow C-style function pointer declarations?
                  */
                 if (t->value == TOKidentifier)
-                {   Token *t2 = peek(t);
+                {
+                    Token *t2 = peek(t);
                     if (t2->value == TOKrparen)
                         return false;
                 }
 
 
+                //printf("t = %s\n", t->toChars());
                 if (!isDeclarator(&t, haveId, NULL, TOKrparen))
+                {
+//printf("-> false\n");
                     return false;
+                }
                 t = peek(t);
                 parens = true;
                 break;
@@ -5856,7 +5869,8 @@ int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
                     return false;
                 skipAttributes(t, &t);
                 continue;
-            default: break;
+            default:
+                break;
         }
         break;
     }
@@ -5944,8 +5958,10 @@ int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
             case TOKout:
             case TOKbody:
                 // The !parens is to disallow unnecessary parentheses
-                if (!parens && (endtok == TOKreserved || endtok == t->value))
-                {   *pt = t;
+//printf(". t = %s, endtok = %s, parens = %d\n", t->toChars(), Token::toChars(endtok), parens);
+                if (/*!parens && */(endtok == TOKreserved || endtok == t->value))
+                {
+                    *pt = t;
                     return true;
                 }
                 return false;
