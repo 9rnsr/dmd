@@ -3144,6 +3144,8 @@ FuncDeclaratorSuffix:       // rename from DeclaratorSuffix
     TemplateParameters Parameters MemberFunctionAttributes.opt Constraint.opt
 
 ================================================================================
+// (Var)Declaration(s) ->    Declarator (->    DeclaratorSuffixes)
+//                     -> AltDeclarator  -> AltDeclaratorSuffixes
 
 VarDeclarations:
     StorageClasses.opt BasicType Declarators ;      // Ever not contain function declaration syntax
@@ -3180,8 +3182,8 @@ AltDeclaratorSuffix:
 ================================================================================
 
 AliasDeclaration:
-    alias StorageClassesopt BasicType Declarators
-    alias StorageClassesopt BasicType FuncDeclarator        // allow alias void F();    F == void()
+    alias StorageClasses.opt BasicType Declarators
+    alias StorageClasses.opt BasicType FuncDeclarator        // allow alias void F();    F == void()
     alias AliasDeclarationX ;
 
 AliasDeclarationX:
