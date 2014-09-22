@@ -3076,11 +3076,119 @@ Type *Parser::parseBasicType2(Type *t)
     return NULL;
 }
 
+#if 0
+/+
+// http://forum.dlang.org/post/jixmobswobxqzrgughan@forum.dlang.org
+string results[](T) = ["I have no idea what I'm doing"];
+pragma(msg, typeof(results!int));
+// +/
+
+void main()
+{
+/+
+    int a[][2];
+    //pragma(msg, typeof(a));
+
+    int f1[](int a);   //int(int)[] a;
+
+    int f2[1](int a);   //int(int)[1] a;
+
+    int f3[int](int a);   //int(int)[int] a;
+
+    //int foo(int a)[];
++/
+
+    //int(*fp)[];
+    //int (*fp[3])[];
+    //a
+    //pragma(msg, typeof(fp));
+}
+
+/+
+Decl:
+    //StorageClasses.opt BasicType Declarator FunctionBody
+    FuncDeclaration
+    VarDeclarations
+    AutoDeclaration
+
+================================================================================
+// (Func)Declaration -> Declarator -> DeclaratorSuffix(es)
+
+FuncDeclaration:
+    StorageClasses.opt BasicType FuncDeclarator FunctionBody
+
+FuncDeclarator:
+    BasicType2.opt Identifier FuncDeclaratorSuffix
+
+//DeclaratorSuffixes:
+//    DeclaratorSuffix
+//    DeclaratorSuffix DeclaratorSuffixes
+
+FuncDeclaratorSuffix:       // rename from DeclaratorSuffix
+    //[ ]
+    //[ AssignExpression ]
+    //[ Type ]
+    //Parameters MemberFunctionAttributesopt
+    //TemplateParameters Parameters MemberFunctionAttributesopt Constraintopt
+->
+    Parameters MemberFunctionAttributesopt
+    TemplateParameters Parameters MemberFunctionAttributesopt Constraintopt
+
+================================================================================
+
+VarDeclarations:
+    StorageClasses.opt BasicType Declarators ;      // Ever not contain function declaration syntax
+
+Declarators:
+    DeclaratorInitializer
+    DeclaratorInitializer , DeclaratorIdentifierList
+
+DeclaratorInitializer:
+    //Declarator
+    //Declarator TemplateParameters.opt = Initializer
+->
+    Declarator
+    Declarator TemplateParameters.opt = Initializer
+    AltDeclarator
+    AltDeclarator = Initializer     // Do not allow optional template parameters
+
+Declarator:
+    //BasicType2.opt ( Declarator ) DeclaratorSuffixes.opt      // C-style
+    //BasicType2.opt Identifier DeclaratorSuffixes.opt
+->
+    //BasicType2.opt Identifier DeclaratorSuffixes.opt    // Declarator = Initializer //-> void func() = init
+    BasicType2.opt Identifier
+
+AltDeclarator:
+    BasicType2.opt ( Declarator ) AltDeclaratorSuffix.opt      // C-style   Q. Declarator->AltDeclarator?
+
+AltDeclaratorSuffix:
+    [ ]
+    [ AssignExpression ]
+    [ Type ]
+
+================================================================================
+
+AliasDeclaration:
+    alias StorageClassesopt BasicType Declarators
+    alias StorageClassesopt BasicType FuncDeclarator        // allow alias void F();    F == void()
+    alias AliasDeclarationX ;
+
+AliasDeclarationX:
+    AliasDeclarationY
+    AliasDeclarationX , AliasDeclarationY
+
+AliasDeclarationY:
+    Identifier TemplateParameters.opt = StorageClasses.opt Type
+
++/
+#endif
 Type *Parser::parseDeclarator(Type *t, Identifier **pident,
         TemplateParameters **tpl, StorageClass storage_class, int* pdisable, Expressions **pudas)
 {
     //printf("parseDeclarator(tpl = %p)\n", tpl);
     t = parseBasicType2(t);
+    //printf("t = %s\n", t->toChars());
 
     Type *ts;
     switch (token.value)
@@ -3121,8 +3229,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident,
              */
             if (isParameters(&peekt))
             {
-                error("function declaration without return type. "
-                "(Note that constructors are always named 'this')");
+                error("function declaration without return type. (Note that constructors are always named 'this')");
             }
             else
                 error("unexpected ( in declarator");
@@ -3133,6 +3240,8 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident,
             ts = t;
             break;
     }
+
+    bool warnCstyle = false;
 
     // parse DeclaratorSuffixes
     while (1)
@@ -3146,17 +3255,19 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident,
              *   int[] ident
              */
             case TOKlbracket:
-            {   // This is the old C-style post [] syntax.
+            {
+                // This is the old C-style post [] syntax.
                 TypeNext *ta;
                 nextToken();
                 if (token.value == TOKrbracket)
-                {   // It's a dynamic array
+                {
+                    // It's a dynamic array
                     ta = new TypeDArray(t);             // []
                     nextToken();
                 }
                 else if (isDeclaration(&token, 0, TOKrbracket, NULL))
-                {   // It's an associative array
-
+                {
+                    // It's an associative array
                     //printf("it's an associative array\n");
                     Type *index = parseType();          // [ type ]
                     check(TOKrbracket);
@@ -3220,6 +3331,8 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident,
                 if (pdisable)
                     *pdisable = stc & STCdisable ? 1 : 0;
 
+                Type *ts0 = ts;
+
                 /* Insert tf into
                  *   ts -> ... -> t
                  * so that
@@ -3229,11 +3342,34 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident,
                 for (pt = &ts; *pt != t; pt = &((TypeNext*)*pt)->next)
                     ;
                 *pt = tf;
+
+                if (ts0 != t)
+                {
+                    const char *s;
+                    if (ts->ty == Tarray)
+                        s = "an array";
+                    else if (ts->ty == Tsarray)
+                        s = "a static array";
+                    else
+                    {
+                        assert(ts->ty == Taarray);
+                        s = "an associative array";
+                    }
+                    error("cannot declare %s of function type '%s'", s, ts->toChars());
+                    warnCstyle = true;
+                }
+
                 break;
             }
-            default: break;
+            default:
+                break;
         }
         break;
+    }
+    if (!warnCstyle && pident && *pident && ts != t && ts->ty != Tfunction)
+    {
+        printf("t = %s, ts = %s\n", t->toChars(), ts->toChars());
+        error("C-style array syntax is deprecated. Use '%s %s'", ts->toChars(), (*pident)->toChars());
     }
 
     return ts;
