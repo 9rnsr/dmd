@@ -7045,6 +7045,25 @@ void test11317()
 }
 
 /***************************************************/
+// 11888
+
+void test11888()
+{
+    static long val;
+
+    static ubyte* foo(size_t* len)
+    {
+        *len = val.sizeof;
+        return cast(ubyte*)&val;
+    }
+
+    size_t size;
+    ubyte[] t = foo(&size)[0..size];
+    assert(t.ptr is cast(void*)&val);
+    assert(t.length == 8);
+}
+
+/***************************************************/
 // 12153
 
 void test12153()
@@ -7480,6 +7499,7 @@ int main()
     test11075();
     test11181();
     test11317();
+    test11888();
     test12153();
     test12937();
     test13154();
