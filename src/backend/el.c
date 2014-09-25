@@ -616,15 +616,33 @@ elem *exp2_copytotemp(elem *e)
  * with (tmp = e) and tmp is returned.
  */
 
-elem * el_same(elem **pe)
-{   elem *e = *pe;
-
+elem *el_same(elem **pe)
+{
+    elem *e = *pe;
     if (e && el_sideeffect(e))
     {
         *pe = exp2_copytotemp(e);       /* convert to ((tmp=e),tmp)     */
         e = (*pe)->E2;                  /* point at tmp                 */
     }
     return el_copytree(e);
+}
+
+/*************************
+ * Different from el_same, return the (tmp = e) and replace *pe with the tmp.
+ * If there's no side effect, returns NULL.
+ */
+
+elem *el_same2(elem **pe)
+{
+    elem *e = *pe;
+    if (e && el_sideeffect(e))
+    {
+        e = exp2_copytotemp(e);         /* convert to ((tmp=e),tmp)     */
+        *pe = el_copytree(e->E2);       /* point at tmp                 */
+    }
+    else
+        e = NULL;
+    return e;
 }
 
 /**************************
