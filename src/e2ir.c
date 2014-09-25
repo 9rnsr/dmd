@@ -4398,17 +4398,12 @@ elem *toElem(Expression *e, IRState *irs)
                 elem *elwr = toElem(se->lwr, irs);
                 elem *eupr = toElem(se->upr, irs);
 
-                elem *einit;
-
                 // If e has any side-effects, extract it and append to einit
-                einit = e;
-                e = el_same(&einit);
+                elem *einit = el_evalonce(&e);
                 // Initialize lengthVar
                 einit = el_combine(einit, resolveLengthVar(se->lengthVar, &e, t1));
                 // Extract side-effects of elwr and append it to einit
-                elem *elwr2 = elwr;
-                elwr = el_same(&elwr2);
-                einit = el_combine(einit, elwr2);
+                einit = el_combine(einit, el_evalonce(&elwr));
 
                 elem *esize = el_long(TYsize_t, t1->nextOf()->size());
 
@@ -4416,9 +4411,7 @@ elem *toElem(Expression *e, IRState *irs)
                 if (irs->arrayBoundsCheck())
                 {
                     // Extract side-effects of eupr and append it to einit
-                    elem *eupr2 = eupr;
-                    eupr = el_same(&eupr2);
-                    einit = el_combine(einit, eupr2);
+                    einit = el_combine(einit, el_evalonce(&eupr));
 
                     elem *c1;
 
