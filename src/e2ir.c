@@ -2555,6 +2555,8 @@ elem *toElem(Expression *e, IRState *irs)
                         }
                         elem *ep = el_params(eto, efrom, esize, NULL);
                         e = el_bin(OPcall, totym(ae->type), el_var(rtlsym[RTLSYM_ARRAYCOPY]), ep);
+//printf("\tL%d\n", __LINE__);
+//elem_print(e);
                     }
                 }
                 el_setLoc(e, ae->loc);
@@ -4498,15 +4500,19 @@ elem *toElem(Expression *e, IRState *irs)
                 // Initialize lengthVar
                 einit = el_combine(einit, resolveLengthVar(se->lengthVar, &e, t1));
                 // Extract side-effects of elwr and append it to einit
-                einit = el_combine(einit, el_evalonce(&elwr));
+                elem *elwr_init = el_evalonce(&elwr);
+                //einit = el_combine(einit, elwr_init);
 
                 elem *esize = el_long(TYsize_t, t1->nextOf()->size());
+
+                elem *eupr_init = NULL;
 
                 elem *echeck = NULL;
                 if (irs->arrayBoundsCheck())
                 {
                     // Extract side-effects of eupr and append it to einit
-                    einit = el_combine(einit, el_evalonce(&eupr));
+                    eupr_init = el_evalonce(&eupr);
+                    //einit = el_combine(einit, eupr_init);
 
                     elem *c1;
 
@@ -4516,7 +4522,9 @@ elem *toElem(Expression *e, IRState *irs)
                     if (t1->ty == Tpointer)
                     {
                         // Just do (lwr <= upr) check
-                        c1 = el_bin(OPle, TYint, el_copytree(elwr), el_copytree(eupr));
+                        c1 = el_bin(OPle, TYint, el_combine(elwr_init, el_copytree(elwr)), el_combine(eupr_init, el_copytree(eupr)));
+                        elwr_init = NULL;
+                        eupr_init = NULL;
                     }
                     else
                     {
@@ -4546,8 +4554,10 @@ elem *toElem(Expression *e, IRState *irs)
 #else
                         // check (upr <= array.length && lwr <= upr)
                         c1 = el_bin(OPandand, TYint,
-                                el_bin(OPle, TYint, el_copytree(eupr), elength),
-                                el_bin(OPle, TYint, el_copytree(elwr), el_copytree(eupr)));
+                                el_bin(OPle, TYint, el_combine(eupr_init, el_copytree(eupr)), elength),
+                                el_bin(OPle, TYint, el_combine(elwr_init, el_copytree(elwr)), el_copytree(eupr)));
+                        eupr_init = NULL;
+                        elwr_init = NULL;
 #endif
                     }
 
@@ -4561,7 +4571,9 @@ elem *toElem(Expression *e, IRState *irs)
                 // length is (upr - lwr)
                 // pointer is (ptr + lwr*size)
                 // Combine as (length pair ptr)
-                elem *elen = el_bin(OPmin, TYsize_t, eupr, elwr);
+                elem *elen = el_bin(OPmin, TYsize_t, el_combine(eupr_init, eupr), el_combine(elwr_init, elwr));
+                eupr_init = NULL;
+                elwr_init = NULL;
                 elem *eofs = el_bin(OPmul, TYsize_t, el_copytree(elwr), esize);
                 elem *eptr = el_bin(OPadd, TYnptr, array_toPtr(se->e1->type, e), eofs);
 
