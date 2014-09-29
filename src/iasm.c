@@ -4618,7 +4618,18 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
 
     assert(sc->func);
     if (sc->func->setUnsafe())
-        s->error("inline assembler not allowed in @safe function %s", sc->func->toChars());
+    {
+        // Instead should use '@trusted' to mark this inline assembler statament as @safe.
+        s->error("inline assembler not allowed in @safe function %s", sc->func->toPrettyChars());
+    }
+    if (sc->func->setImpure())
+    {
+        // Explicit 'pure' attribute on the function will assume this inline assembler statement as pure.
+    }
+    if (sc->func->setGC())
+    {
+        // Explicit '@nogc' attribute on the function will assume this inline assembler statement as @nogc.
+    }
 
     OP *o;
     OPND *o1 = NULL,*o2 = NULL, *o3 = NULL, *o4 = NULL;

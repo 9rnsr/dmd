@@ -537,6 +537,22 @@ static assert(is(typeof(&f12970k) == void function() @system));
 static assert(is(typeof(&f12970l) == void function() @system));
 
 /***************************************************/
+// 12979
+
+void f12979a()()
+{
+    asm { nop; }
+}
+
+void f12979b()() pure nothrow @trusted @nogc
+{
+    asm { nop; }
+}
+
+static assert(is(typeof(&f12979a!()) == void function()));
+static assert(is(typeof(&f12979b!()) == void function() @trusted pure nothrow @nogc));
+
+/***************************************************/
 // 13217
 
 void writeln13217(string) {}

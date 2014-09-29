@@ -1774,12 +1774,6 @@ void FuncDeclaration::semantic3(Scope *sc)
                 }
                 assert(!returnLabel);
             }
-            else if (!hasReturnExp && f->next->ty != Tvoid)
-                error("has no return statement, but is expected to return a value of type %s", f->next->toChars());
-            else if (hasReturnExp & 8)               // if inline asm
-            {
-                flags &= ~FUNCFLAGnothrowInprocess;
-            }
             else
             {
                 // Check for errors related to 'nothrow'.
@@ -1793,7 +1787,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     f->isnothrow = !(blockexit & BEthrow);
                 }
 
-                if ((blockexit & BEfallthru) && f->next->ty != Tvoid)
+                if (!(hasReturnExp & 8) && (blockexit & BEfallthru) && f->next->ty != Tvoid)
                 {
                     Expression *e;
                     error("no return exp; or assert(0); at end of function");
