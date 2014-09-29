@@ -1112,11 +1112,11 @@ int el_sideeffect(elem *e)
         op = e->Eoper;
         assert(op < OPMAX);
         elem_debug(e);
-        return  typemask(e) & mTYvolatile ||
+        return  (typemask(e) & mTYvolatile) ||
                 OTsideff(op) ||
                 (OTunary(op) && el_sideeffect(e->E1)) ||
                 (OTbinary(op) && (el_sideeffect(e->E1) ||
-                                      el_sideeffect(e->E2)));
+                                  el_sideeffect(e->E2)));
 }
 
 /******************************
