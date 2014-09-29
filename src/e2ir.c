@@ -4401,7 +4401,7 @@ elem *toElem(Expression *e, IRState *irs)
             elem *e = toElem(se->e1, irs);
             if (se->lwr)
             {
-#if 0
+#if 1
                 elem *einit = resolveLengthVar(se->lengthVar, &e, t1);
 
                 unsigned sz = t1->nextOf()->size();
@@ -4474,15 +4474,22 @@ elem *toElem(Expression *e, IRState *irs)
                     }
                 }
 
-                elem *eptr = array_toPtr(se->e1->type, e);
-
-                elem *elength = el_bin(OPmin, TYsize_t, eupr, elwr2);
-                eptr = el_bin(OPadd, TYnptr, eptr, el_bin(OPmul, TYsize_t, el_copytree(elwr2), el_long(TYsize_t, sz)));
-
                 if (tb->ty == Tarray)
+                {
+                    elem *ex = e;
+                    e = el_same(&ex);
+
+                    elem *elength = el_bin(OPmin, TYsize_t, el_combine(ex, eupr), elwr2);
+
+                    elem *eptr = array_toPtr(se->e1->type, e);
+                    eptr = el_bin(OPadd, TYnptr, eptr, el_bin(OPmul, TYsize_t, el_copytree(elwr2), el_long(TYsize_t, sz)));
+
                     e = el_pair(TYdarray, elength, eptr);
+                }
                 else
                 {
+                    elem *eptr = array_toPtr(se->e1->type, e);
+
                     assert(tb->ty == Tsarray);
                     e = el_una(OPind, totym(se->type), eptr);
                     if (tybasic(e->Ety) == TYstruct)
@@ -4490,6 +4497,7 @@ elem *toElem(Expression *e, IRState *irs)
                 }
                 e = el_combine(elwr, e);
                 e = el_combine(einit, e);
+                //elem_print(e);
 
 #else
                 elem *elwr = toElem(se->lwr, irs);
