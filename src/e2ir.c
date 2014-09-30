@@ -1080,6 +1080,7 @@ elem *toElem(Expression *e, IRState *irs)
             elem *e = el_ptr(s);
             if (fe->fd->isNested())
             {
+                printf("FuncExp::toElem() fd = %s, loopClosedVars = %d\n", fe->fd->toChars(), fe->fd->loopClosedVars.dim);
                 elem *ethis = getEthis(fe->loc, irs, fe->fd);
                 e = el_pair(TYdelegate, ethis, e);
             }
@@ -3264,7 +3265,7 @@ elem *toElem(Expression *e, IRState *irs)
         void visit(DelegateExp *de)
         {
             int directcall = 0;
-            //printf("DelegateExp::toElem() '%s'\n", de->toChars());
+            //printf("DelegateExp::toElem() '%s' func = %s, closureVars = %d\n", de->toChars(), de->func->toChars(), de->func->closureVars.dim);
 
             if (de->func->semanticRun == PASSsemantic3done)
             {

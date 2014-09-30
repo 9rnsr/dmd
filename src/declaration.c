@@ -1852,11 +1852,27 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
             {
                 if (i == nestedrefs.dim)
                 {
+//printf("VarDeclaration::checkNestedReference() %s, fdthis = %s\n", toChars(), fdthis->toChars());
                     nestedrefs.push(fdthis);
                     break;
                 }
                 if (nestedrefs[i] == fdthis)
                     break;
+            }
+
+            if ((storage_class & (STCtemp | STCforeach | STCref)) == (STCtemp | STCforeach))
+            {
+                for (size_t i = 0; 1; i++)
+                {
+                    if (i == fdthis->loopClosedVars.dim)
+                    {
+    printf("loopClosedVars.push() %s, fdthis = %s\n", toChars(), fdthis->toChars());
+                        fdthis->loopClosedVars.push(this);
+                        break;
+                    }
+                    if (fdthis->loopClosedVars[i] == this)
+                        break;
+                }
             }
 
             if (fdthis->ident != Id::ensure)

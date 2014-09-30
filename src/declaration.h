@@ -624,6 +624,8 @@ public:
     FuncDeclarations siblingCallers;    // Sibling nested functions which
                                         // called this one
 
+    VarDeclarations loopClosedVars;     // ()
+
     unsigned flags;
 
     FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type);

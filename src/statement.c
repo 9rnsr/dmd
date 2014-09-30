@@ -2033,6 +2033,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
             if (LabelStatement *ls = checkLabeledLoop(sc, this))
                 ls->gotoTarget = s;
             s = s->semantic(sc);
+
+            //printf("key->nestedrefs = %d, value->nestedrefs = %d\n", key->nestedrefs.dim, value->nestedrefs.dim);
             break;
         }
 
@@ -2645,9 +2647,11 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
         arg->type = arg->type->addStorageClass(arg->storageClass);
     }
     if (arg->type->ty == Terror ||
-       lwr->op == TOKerror ||
-       upr->op == TOKerror)
-       return new ErrorStatement();
+        lwr->op == TOKerror ||
+        upr->op == TOKerror)
+    {
+        return new ErrorStatement();
+    }
 
     /* Convert to a for loop:
      *  foreach (key; lwr .. upr) =>
@@ -2716,10 +2720,13 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
 
     Expression *increment = NULL;
     if (op == TOKforeach)
+    {
         // key += 1
         //increment = new AddAssignExp(loc, new VarExp(loc, key), new IntegerExp(1));
         increment = new PreExp(TOKpreplusplus, loc, new VarExp(loc, key));
+    }
 
+    VarDeclaration *key2 = key;
     if ((arg->storageClass & STCref) && arg->type->equals(key->type))
     {
         key->range = NULL;
@@ -2738,6 +2745,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
              */
             v->range = new IntRange(key->range->imin, key->range->imax - SignExtendedNumber(1));
         }
+        key2 = v;
     }
     if (arg->storageClass & STCref)
     {
@@ -2749,10 +2757,42 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
         }
     }
 
-    ForStatement *s = new ForStatement(loc, forinit, cond, increment, body);
+    Statement *s = new ForStatement(loc, forinit, cond, increment, body);
     if (LabelStatement *ls = checkLabeledLoop(sc, this))
         ls->gotoTarget = s;
-    return s->semantic(sc);
+    s = s->semantic(sc);
+
+    printf("key2 = %s, ->nestedrefs = %d\n", key2->toChars(), key2->nestedrefs.dim);
+    printf("%s->closureVars = %d\n", sc->func->toChars(), sc->func->closureVars.dim);
+    if (arg->storageClass & STCref)
+    {
+        assert(key == key2);
+        for (size_t i = 0; i < key->nestedrefs.dim; i++)
+        {
+            FuncDeclaration *f = key->nestedrefs[i];
+            //printf("\t%s, tookAddressOf = %d\n", f->toChars(), f->tookAddressOf);
+            if (f->tookAddressOf)
+            {
+                error("cannot escape foreach ref variable %s", arg->ident->toChars());
+                //break;
+                return new ErrorStatement();
+            }
+        }
+    }
+    else
+    {
+        // key2 is the copied variable
+        for (size_t i = 0; i < key->nestedrefs.dim; i++)
+        {
+            FuncDeclaration *f = key->nestedrefs[i];
+            //printf("\t%s, tookAddressOf = %d\n", f->toChars(), f->tookAddressOf);
+            if (f->tookAddressOf)       // f would escape out of the loop
+            {
+                // mark f as a "loop closure"?
+            }
+        }
+    }
+    return s;
 }
 
 bool ForeachRangeStatement::hasBreak()

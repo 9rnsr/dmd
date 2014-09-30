@@ -2230,7 +2230,14 @@ void FuncDeclaration::semantic3(Scope *sc)
     if (needsClosure())
     {
         if (setGC())
+        {
             error("@nogc function allocates a closure with the GC");
+            for (size_t i = 0; i < closureVars.dim; i++)
+            {
+                VarDeclaration *v = closureVars[i];
+                errorSupplemental(v->loc, "%s %s", v->kind(), v->toChars());
+            }
+        }
         else
             printGCUsage(loc, "using closure causes GC allocation");
     }
