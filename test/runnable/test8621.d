@@ -39,10 +39,50 @@ void test2()
     }
 }
 
+void test3()
+{
+    int delegate()[] a;
+    foreach (i; 1 .. 10)
+    {
+        int j = 9; // should be loop closure
+        a ~= { /*printf("(i, j) = (%d, %d)\n", i, j); */return i * 10 + j; };
+    }
+
+    int ij = 11;
+    foreach (f; a)
+    {
+        assert(f() == ij++);
+    }
+
+    //int g;  // closure var
+    //void foo() { g = 1; }
+    //auto dg = &foo;     // escape
+}
+
+void test4()
+{
+    void delegate()[] a;
+    foreach (i; 1 .. 10)
+    {
+        int j = i * 10 + 9; // should be loop closure?
+        a ~= { printf("j = %d\n", j); };
+    }
+    foreach (f; a)
+    {
+        f();
+    }
+
+    //int g;  // closure var
+    //void foo() { g = 1; }
+    //auto dg = &foo;     // escape
+}
+
 int main()
 {
     test1();
     test2();
+    //test3();  // doesn't work
+    //test4();  // doesn't work
 
     return 0;
 }
