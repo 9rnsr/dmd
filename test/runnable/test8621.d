@@ -138,6 +138,34 @@ void test6()
     }
 }
 
+void test7()
+{
+    int delegate()[] a;
+
+    for (size_t i = 1; i < 10; i++)
+    {
+        int foo() { return i; }
+
+        foreach (j; 1 .. 10)
+        {
+            //int j = i * 10 + 9; // should be loop closure?
+            a ~= { printf("foo = %d, j = %d\n", foo(), j); return foo() * 10 + j; };
+            // make a frame on heap:
+            // [ ethis, j ]     -> NG
+            //
+            // [ xxx, j ]  [ ethis_up, i ]  -> OK?
+            //    +------------^
+        }
+    }
+
+    int ij = 11;
+    foreach (f; a)
+    {
+        assert(f() == ij);
+        ij += 10;
+    }
+}
+
 int main()
 {
     test1();
@@ -147,6 +175,7 @@ int main()
     test4x();
     test5();
     test6();
+    //test7();  // doesn't work
 
     return 0;
 }
