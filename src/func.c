@@ -3996,21 +3996,28 @@ const char *FuncDeclaration::kind()
 
 void FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
 {
-    //printf("FuncDeclaration::checkNestedReference() %s\n", toPrettyChars());
+    printf("FuncDeclaration::checkNestedReference() %s\n", toPrettyChars());
     if (parent && parent != sc->parent && this->isNested() &&
         this->ident != Id::require && this->ident != Id::ensure)
     {
         // The function that this function is in
-        FuncDeclaration *fdv2 = toParent2()->isFuncDeclaration();
+        FuncDeclaration *fdv = toParent2()->isFuncDeclaration();
 
         // The current function
         FuncDeclaration *fdthis = sc->parent->isFuncDeclaration();
 
-        //printf("this = %s in [%s]\n", this->toChars(), this->loc.toChars());
-        //printf("fdv2 = %s in [%s]\n", fdv2->toChars(), fdv2->loc.toChars());
-        //printf("fdthis = %s in [%s]\n", fdthis->toChars(), fdthis->loc.toChars());
+        printf("this = %s in [%s]\n", this->toChars(), this->loc.toChars());
+        printf("fdv  = %s in [%s]\n", fdv ->toChars(), fdv ->loc.toChars());
+        printf("fdthis = %s in [%s]\n", fdthis->toChars(), fdthis->loc.toChars());
 
-        if (fdv2 && fdthis && fdv2 != fdthis)
+        if (fdthis)
+        {
+            //printf("  this->parent = %s, fdthis->parent = %s\n", this->parent->toChars(), fdthis->parent->toChars());
+            // sc->scopesym is not saved anywhere
+            // loop nesting should be detected anyway.
+        }
+
+        if (fdv && fdthis && fdv != fdthis)
         {
             // Add this function to the list of those which called us
             if (fdthis != this)
@@ -4028,11 +4035,7 @@ void FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
                         siblingCallers.push(fdthis);
                 }
             }
-        }
 
-        FuncDeclaration *fdv = toParent2()->isFuncDeclaration();
-        if (fdv && fdthis && fdv != fdthis)
-        {
             int lv = fdthis->getLevel(loc, sc, fdv);
             if (lv == -1)
                 return; // downlevel call
