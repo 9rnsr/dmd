@@ -109,13 +109,15 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
          * nested inside, so this hack is so they'll pass
          */
         fd->ident == Id::require || fd->ident == Id::ensure)
-    {   /* Going down one nesting level, i.e. we're calling
+    {
+        /* Going down one nesting level, i.e. we're calling
          * a nested function from its enclosing function.
          */
         if (irs->sclosure)
             ethis = el_var(irs->sclosure);
         else if (irs->sthis)
-        {   // We have a 'this' pointer for the current function
+        {
+            // We have a 'this' pointer for the current function
             ethis = el_var(irs->sthis);
 
             /* If no variables in the current function's frame are
@@ -124,7 +126,8 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
              * frames.
              */
             if (thisfd->hasNestedFrameRefs())
-            {   /* Local variables are referenced, can't skip.
+            {
+                /* Local variables are referenced, can't skip.
                  * Address of 'this' gives the 'this' for the nested
                  * function
                  */
@@ -132,12 +135,14 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
             }
         }
         else
-        {   /* No 'this' pointer for current function,
+        {
+            /* No 'this' pointer for current function,
              * use NULL if no references to the current function's frame
              */
             ethis = el_long(TYnptr, 0);
             if (thisfd->hasNestedFrameRefs())
-            {   /* OPframeptr is an operator that gets the frame pointer
+            {
+                /* OPframeptr is an operator that gets the frame pointer
                  * for the current function, i.e. for the x86 it gets
                  * the value of EBP
                  */
@@ -158,7 +163,8 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
             ethis = el_var(irs->sthis);
             Dsymbol *s = thisfd;
             while (fd != s)
-            {   /* Go up a nesting level, i.e. we need to find the 'this'
+            {
+                /* Go up a nesting level, i.e. we need to find the 'this'
                  * of an enclosing function.
                  * Our 'enclosing function' may also be an inner class.
                  */
@@ -166,7 +172,8 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
                 //printf("\ts = '%s'\n", s->toChars());
                 thisfd = s->isFuncDeclaration();
                 if (thisfd)
-                {   /* Enclosing function is a function.
+                {
+                    /* Enclosing function is a function.
                      */
                     if (fdparent == s->toParent2())
                         break;
@@ -180,12 +187,14 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
                     {
                     }
                     else
-                    {   // Error should have been caught by front end
+                    {
+                        // Error should have been caught by front end
                         assert(0);
                     }
                 }
                 else
-                {   /* Enclosed by an aggregate. That means the current
+                {
+                    /* Enclosed by an aggregate. That means the current
                      * function must be a member function of that aggregate.
                      */
                     ClassDeclaration *cd;
@@ -260,7 +269,8 @@ elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad)
     //printf("setEthis(ad = %s, cdp = %s, thisfd = %s)\n", ad->toChars(), cdp->toChars(), thisfd->toChars());
 
     if (cdp == thisfd)
-    {   /* Class we're new'ing is a local class in this function:
+    {
+        /* Class we're new'ing is a local class in this function:
          *      void thisfd() { class ad { } }
          */
         if (irs->sclosure)
@@ -290,7 +300,8 @@ elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad)
            )
           )
         )
-    {   /* Class we're new'ing is at the same level as thisfd
+    {
+        /* Class we're new'ing is at the same level as thisfd
          */
         assert(offset == 0);    // BUG: should handle this case
         ethis = el_var(irs->sthis);
@@ -602,11 +613,13 @@ elem *resolveLengthVar(VarDeclaration *lengthVar, elem **pe, Type *t1)
     elem *einit = NULL;
 
     if (lengthVar && !(lengthVar->storage_class & STCconst))
-    {   elem *elength;
+    {
+        elem *elength;
         Symbol *slength;
 
         if (t1->ty == Tsarray)
-        {   TypeSArray *tsa = (TypeSArray *)t1;
+        {
+            TypeSArray *tsa = (TypeSArray *)t1;
             dinteger_t length = tsa->dim->toInteger();
 
             elength = el_long(TYsize_t, length);
@@ -660,7 +673,8 @@ void buildClosure(FuncDeclaration *fd, IRState *irs)
          * The way to do it is to make the closure variables the fields
          * of a class object:
          *    class Closure
-         *    {   vtbl[]
+         *    {
+         *        vtbl[]
          *        monitor
          *        ptr to destructor
          *        sthis
