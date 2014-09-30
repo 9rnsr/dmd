@@ -943,7 +943,7 @@ elem *toElem(Expression *e, IRState *irs)
                         printf("[%s] SymbolExp::toElem('%s') %p, %s, fdthis = %s, ->loopClosedVars = %d\n",
                             se->loc.toChars(), se->toChars(), se, se->type->toChars(),
                             fdthis->toChars(), fdthis->loopClosedVars.dim);
-                        size_t sz = Target::ptrsize;
+                        size_t sz = 0;//Target::ptrsize;
                         for (size_t i = 0; i < fdthis->loopClosedVars.dim; i++)
                         {
                             printf("\tthis = %p, fdthis->loopClosedVars[%d] = %p\n", se->var, i, fdthis->loopClosedVars[i]);
@@ -1141,11 +1141,13 @@ elem *toElem(Expression *e, IRState *irs)
                     elem *e = el_bin(OPcall, TYnptr, el_var(rtlsym[RTLSYM_ALLOCMEMORY]), el_long(TYsize_t, sz));
                     symbol *s = symbol_genauto(TYnptr);
                     e = el_bin(OPeq, TYnptr, el_var(s), e);
+                    //elem *ex = el_same(&e);
 
                     //elem_print(e);
 
-                    elem *ea = el_bin(OPeq, TYnptr, el_una(OPind, TYnptr, el_var(s)), eptr);
-                    ea = el_combine(ea, el_bin(OPaddass, TYnptr, el_var(s), el_long(TYsize_t, Target::ptrsize)));
+                    //elem *ea = el_bin(OPeq, TYnptr, el_una(OPind, TYnptr, el_var(s)), eptr);
+                    //ea = el_combine(ea, el_bin(OPaddass, TYnptr, el_var(s), el_long(TYsize_t, Target::ptrsize)));
+                    elem *ea = NULL;
 
                     for (size_t i = 0; i < f->loopClosedVars.dim; i++)
                     {
@@ -1156,8 +1158,8 @@ elem *toElem(Expression *e, IRState *irs)
                         elem *eb = toElem(ve, irs);
                         eb = el_bin(OPeq, tym, el_una(OPind, tym, el_var(s)), eb);
 
-                        if (i != f->loopClosedVars.dim - 1)
-                            eb = el_combine(ea, el_bin(OPaddass, TYnptr, el_var(s), el_long(TYsize_t, v->type->size())));
+                        //if (i != f->loopClosedVars.dim - 1)
+                        //    eb = el_combine(ea, el_bin(OPaddass, TYnptr, el_var(s), el_long(TYsize_t, v->type->size())));
 
                         ea = el_combine(ea, eb);
                     }
@@ -1179,6 +1181,7 @@ elem *toElem(Expression *e, IRState *irs)
 
                     ethis = el_combine(ethis, e);
                     ethis = el_combine(ethis, ea);
+                    ethis = el_combine(ethis, el_var(s));
 
                     printf("L%d\n", __LINE__);
                     elem_print(ethis);
