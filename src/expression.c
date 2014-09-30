@@ -1993,23 +1993,163 @@ Expression *Expression::combine(Expression *e1, Expression *e2)
  * is returned via *pe0.
  * Otherwise 'e' is directly returned and *pe0 is set to NULL.
  */
+
+void Expression::extractLast(Expressions *exps, Expression **pe0)
+{
+    if (!exps)
+        return;
+    for (size_t i = 0; i < exps->dim; i++)
+    {
+        (*exps)[i] = Expression::extractLast((*exps)[i], pe0);
+    }
+}
+
 Expression *Expression::extractLast(Expression *e, Expression **pe0)
 {
+    class CommaVisitor : public Visitor
+    {
+    public:
+        Expression *e0;
+        Expression *result;     // the result that comma part are stripped
+
+        CommaVisitor(Expression *e0) : e0(e0), result(NULL) {}
+
+        void visit(Expression *e)
+        {
+            result = e;
+        }
+
+        void visit(NewExp *e)
+        {
+            //printf("NewExp::apply(): %s\n", toChars());
+
+            e->thisexp = Expression::extractLast(e->thisexp, &e0);
+            Expression::extractLast(e->newargs, &e0);
+            Expression::extractLast(e->arguments, &e0);
+            result = e;
+        }
+
+        void visit(NewAnonClassExp *e)
+        {
+            assert(0);
+        }
+
+        void visit(UnaExp *e)
+        {
+            e->e1 = Expression::extractLast(e->e1, &e0);
+            result = e;
+        }
+
+        void visit(BinExp *e)
+        {
+            e->e1 = Expression::extractLast(e->e1, &e0);
+            e->e2 = Expression::extractLast(e->e2, &e0);
+            result = e;
+        }
+
+        void visit(AssertExp *e)
+        {
+            //printf("CallExp::apply(apply_fp_t fp, void *param): %s\n", toChars());
+            e->e1 = Expression::extractLast(e->e1, &e0);
+            e->msg = Expression::extractLast(e->msg, &e0);
+            result = e;
+        }
+
+        void visit(CallExp *e)
+        {
+            //printf("CallExp::apply(apply_fp_t fp, void *param): %s\n", toChars());
+            e->e1 = Expression::extractLast(e->e1, &e0);
+            Expression::extractLast(e->arguments, &e0);
+            result = e;
+        }
+
+        void visit(ArrayExp *e)
+        {
+            //printf("ArrayExp::apply(apply_fp_t fp, void *param): %s\n", toChars());
+            e->e1 = Expression::extractLast(e->e1, &e0);
+            Expression::extractLast(e->arguments, &e0);
+            result = e;
+        }
+
+        void visit(SliceExp *e)
+        {
+            e->e1 = Expression::extractLast(e->e1, &e0);
+            e->lwr = Expression::extractLast(e->lwr, &e0);
+            e->upr = Expression::extractLast(e->upr, &e0);
+            result = e;
+        }
+
+        void visit(ArrayLiteralExp *e)
+        {
+            Expression::extractLast(e->elements, &e0);
+            result = e;
+        }
+
+        void visit(AssocArrayLiteralExp *e)
+        {
+            Expression::extractLast(e->keys, &e0);
+            Expression::extractLast(e->values, &e0);
+            result = e;
+        }
+
+        void visit(StructLiteralExp *e)
+        {
+            if (!(e->stageflags & stageApply))
+            {
+                int old = e->stageflags;
+                e->stageflags |= stageApply;
+                Expression::extractLast(e->elements, &e0);
+                e->stageflags = old;
+            }
+            result = e;
+        }
+
+        void visit(TupleExp *e)
+        {
+            e0 = Expression::combine(e0, e->e0);
+            Expression::extractLast(e->exps, &e0);
+            result = e;
+        }
+
+        void visit(CondExp *e)
+        {
+            e->econd = Expression::extractLast(e->econd, &e0);
+            e->e1 = Expression::extractLast(e->e1, &e0);
+            e->e2 = Expression::extractLast(e->e2, &e0);
+            result = e;
+        }
+
+        void visit(CommaExp *e)
+        {
+            e0 = Expression::combine(e0, e->e1);
+            result = Expression::extractLast(e->e2, &e0);
+        }
+    };
+
+    assert(pe0);
+
+    if (!e)
+        return e;
+
     if (e->op != TOKcomma)
     {
-        *pe0 = NULL;
-        return e;
+        //*pe0 = NULL;
+        CommaVisitor v(*pe0);
+        e->accept(&v);
+        *pe0 = v.e0;
+        assert(v.result);
+        return v.result;
     }
 
     CommaExp *ce = (CommaExp *)e;
     if (ce->e2->op != TOKcomma)
     {
-        *pe0 = ce->e1;
+        *pe0 = Expression::combine(*pe0, ce->e1);
         return ce->e2;
     }
     else
     {
-        *pe0 = e;
+        *pe0 = Expression::combine(*pe0, e);
 
         Expression **pce = &ce->e2;
         while (((CommaExp *)(*pce))->e2->op == TOKcomma)
@@ -2022,6 +2162,13 @@ Expression *Expression::extractLast(Expression *e, Expression **pe0)
 
         return ce->e2;
     }
+}
+
+Expression *Expression::extractLast(Expression *e)
+{
+    Expression *e0 = NULL;
+    e = Expression::extractLast(e, &e0);
+    return Expression::combine(e0, e);
 }
 
 dinteger_t Expression::toInteger()
@@ -8752,8 +8899,6 @@ Lagain:
     return this;
 }
 
-
-
 int CallExp::isLvalue()
 {
     Type *tb = e1->type->toBasetype();
@@ -10678,7 +10823,7 @@ Expression *AssignExp::semantic(Scope *sc)
     {
         /* Rewrite to get rid of the comma from rvalue
          */
-        Expression *e0;
+        Expression *e0 = NULL;
         e2 = Expression::extractLast(e2, &e0);
         Expression *e = Expression::combine(e0, this);
         return e->semantic(sc);
@@ -13652,7 +13797,7 @@ Expression *PrettyFuncInitExp::resolveLoc(Loc loc, Scope *sc)
 
 Expression *extractOpDollarSideEffect(Scope *sc, UnaExp *ue)
 {
-    Expression *e0;
+    Expression *e0 = NULL;
     Expression *e1 = Expression::extractLast(ue->e1, &e0);
     // Bugzilla 12585: Extract the side effect part if ue->e1 is comma.
 

@@ -162,19 +162,10 @@ elem *callfunc(Loc loc,
     op = (ec->Eoper == OPvar) ? intrinsic_op(ec->EV.sp.Vsym->Sident) : -1;
     if (arguments)
     {
-        for (size_t i = 0; i < arguments->dim; i++)
-        {
-        Lagain:
-            Expression *arg = (*arguments)[i];
-            assert(arg->op != TOKtuple);
-            if (arg->op == TOKcomma)
-            {
-                CommaExp *ce = (CommaExp *)arg;
-                eside = el_combine(eside, toElem(ce->e1, irs));
-                (*arguments)[i] = ce->e2;
-                goto Lagain;
-            }
-        }
+        Expression *e0 = NULL;
+        Expression::extractLast(arguments, &e0);
+        if (e0)
+            eside = el_combine(eside, toElem(e0, irs));
 
         // j=1 if _arguments[] is first argument
         int j = (tf->linkage == LINKd && tf->varargs == 1);

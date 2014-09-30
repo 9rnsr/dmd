@@ -157,7 +157,9 @@ public:
     // this new expression does not necessarily need to have valid D source code representation,
     // for example, it may include declaration expressions
     static Expression *combine(Expression *e1, Expression *e2);
+    static void extractLast(Expressions *exps, Expression **pe0);
     static Expression *extractLast(Expression *e, Expression **pe0);
+    static Expression *extractLast(Expression *e);
     static Expressions *arraySyntaxCopy(Expressions *exps);
 
     virtual dinteger_t toInteger();
