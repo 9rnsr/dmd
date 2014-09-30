@@ -696,6 +696,11 @@ void buildClosure(FuncDeclaration *fd, IRState *irs)
             //printf("closure var %s\n", v->toChars());
             assert(v->isVarDeclaration());
 
+            if ((v->storage_class & (STCtemp | STCforeach | STCref)) == (STCtemp | STCforeach))
+            {
+                printf("skip closureVars[%d] %s\n", i, v->toChars());
+            }
+
             if (v->needsAutoDtor())
             {
                 /* Because the value needs to survive the end of the scope!

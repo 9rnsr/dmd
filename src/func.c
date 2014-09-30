@@ -4145,17 +4145,26 @@ bool FuncDeclaration::needsClosure()
      */
 
     //printf("FuncDeclaration::needsClosure() %s\n", toChars());
+    size_t looopVars = 0;
 
     if (requiresClosure)
         goto Lyes;
 
     for (size_t i = 0; i < closureVars.dim; i++)
-    {   VarDeclaration *v = closureVars[i];
+    {
+        VarDeclaration *v = closureVars[i];
         assert(v->isVarDeclaration());
         //printf("\tv = %s\n", v->toChars());
 
+        if ((v->storage_class & (STCtemp | STCforeach | STCref)) == (STCtemp | STCforeach))
+        {
+            ++looopVars;
+            continue;
+        }
+
         for (size_t j = 0; j < v->nestedrefs.dim; j++)
-        {   FuncDeclaration *f = v->nestedrefs[j];
+        {
+            FuncDeclaration *f = v->nestedrefs[j];
             assert(f != this);
 
             //printf("\t\tf = %s, isVirtual=%d, isThis=%p, tookAddressOf=%d\n", f->toChars(), f->isVirtual(), f->isThis(), f->tookAddressOf);
@@ -4191,7 +4200,7 @@ bool FuncDeclaration::needsClosure()
 
     /* Look for case (5)
      */
-    if (closureVars.dim)
+    if (closureVars.dim && closureVars.dim > looopVars)
     {
         assert(type->ty == Tfunction);
         Type *tret = ((TypeFunction *)type)->next;
@@ -4199,13 +4208,15 @@ bool FuncDeclaration::needsClosure()
         tret = tret->toBasetype();
         //printf("\t\treturning %s\n", tret->toChars());
         if (tret->ty == Tclass || tret->ty == Tstruct)
-        {   Dsymbol *st = tret->toDsymbol(NULL);
+        {
+            Dsymbol *st = tret->toDsymbol(NULL);
             //printf("\t\treturning class/struct %s\n", tret->toChars());
             for (Dsymbol *s = st->parent; s; s = s->parent)
             {
                 //printf("\t\t\tparent = %s %s\n", s->kind(), s->toChars());
                 if (s == this)
-                {   //printf("\t\treturning local %s\n", st->toChars());
+                {
+                    //printf("\t\treturning local %s\n", st->toChars());
                     goto Lyes;
                 }
             }
@@ -4215,7 +4226,7 @@ bool FuncDeclaration::needsClosure()
     return false;
 
 Lyes:
-    //printf("\tneeds closure\n");
+    //printf("\tneeds closure, %d, %d\n", closureVars.dim, loopClosedVars.dim);
     return true;
 }
 

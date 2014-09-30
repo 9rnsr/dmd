@@ -896,7 +896,7 @@ elem *toElem(Expression *e, IRState *irs)
             int offset = (se->op == TOKsymoff) ? ((SymOffExp*)se)->offset : 0;
             VarDeclaration *v = se->var->isVarDeclaration();
 
-            //printf("SymbolExp::toElem('%s') %p, %s\n", toChars(), se, se->type->toChars());
+            //printf("SymbolExp::toElem('%s') %p, %s\n", se->toChars(), se, se->type->toChars());
             //printf("\tparent = '%s'\n", se->var->parent ? se->var->parent->toChars() : "null");
             if (se->op == TOKvar && se->var->needThis())
             {
@@ -927,11 +927,49 @@ elem *toElem(Expression *e, IRState *irs)
 
             if (s->Sclass == SCauto || s->Sclass == SCparameter || s->Sclass == SCshadowreg)
             {
-                if (fd && fd != irs->getFunc())
+                FuncDeclaration *fdthis = irs->getFunc();
+                if (fd && fd != fdthis)
                 {
                     // 'var' is a variable in an enclosing function.
                     elem *ethis = getEthis(se->loc, irs, fd);
-                    ethis = el_una(OPaddr, TYnptr, ethis);
+                    //ethis = el_una(OPaddr, TYnptr, ethis);
+                    if (ethis->Eoper == OPind)
+                        ethis = ethis->E1;
+                    else
+                        ethis = el_una(OPaddr, TYnptr, ethis);
+
+                    if ((se->var->storage_class & (STCtemp | STCforeach | STCref)) == (STCtemp | STCforeach))
+                    {
+                        printf("[%s] SymbolExp::toElem('%s') %p, %s, fdthis = %s, ->loopClosedVars = %d\n",
+                            se->loc.toChars(), se->toChars(), se, se->type->toChars(),
+                            fdthis->toChars(), fdthis->loopClosedVars.dim);
+                        size_t sz = Target::ptrsize;
+                        for (size_t i = 0; i < fdthis->loopClosedVars.dim; i++)
+                        {
+                            printf("\tthis = %p, fdthis->loopClosedVars[%d] = %p\n", se->var, i, fdthis->loopClosedVars[i]);
+                            if (se->var != fdthis->loopClosedVars[i])
+                            {
+                                sz += se->var->type->size();    // todo: adjust alignment
+                                continue;
+                            }
+                            //break;  // TEST
+
+                            // *(ethis + sz)
+                            e = el_bin(OPadd, TYnptr, ethis, el_long(TYnptr, sz));
+                            //if (se->op == TOKvar)
+                            e = el_una(OPind, TYnptr, e);
+                            //ethis = el_una(OPind, TYnptr, ethis);
+                            //goto L1;
+                            //break;
+                            el_setLoc(e, se->loc);
+                            result = e;
+
+                            printf("L%d\n", __LINE__);
+                            elem_print(e);
+                            return;
+                        }
+                        printf("L%d\n", __LINE__);
+                    }
 
                     int soffset;
                     if (v && v->offset)
@@ -1060,8 +1098,13 @@ elem *toElem(Expression *e, IRState *irs)
                     e->ET = Type_toCtype(se->type);
                 }
             }
-            el_setLoc(e,se->loc);
+            el_setLoc(e, se->loc);
             result = e;
+            if ((se->var->storage_class & (STCtemp | STCforeach | STCref)) == (STCtemp | STCforeach))
+            {
+                printf("L%d\n", __LINE__);
+                elem_print(e);
+            }
         }
 
         /**************************************
@@ -1070,18 +1113,82 @@ elem *toElem(Expression *e, IRState *irs)
         void visit(FuncExp *fe)
         {
             //printf("FuncExp::toElem() %s\n", fe->toChars());
-            if (fe->fd->tok == TOKreserved && fe->type->ty == Tpointer)
+            FuncLiteralDeclaration *f = fe->fd;
+            if (f->tok == TOKreserved && fe->type->ty == Tpointer)
             {
                 // change to non-nested
-                fe->fd->tok = TOKfunction;
-                fe->fd->vthis = NULL;
+                f->tok = TOKfunction;
+                f->vthis = NULL;
             }
-            Symbol *s = toSymbol(fe->fd);
+            Symbol *s = toSymbol(f);
             elem *e = el_ptr(s);
-            if (fe->fd->isNested())
+            if (f->isNested())
             {
-                printf("FuncExp::toElem() fd = %s, loopClosedVars = %d\n", fe->fd->toChars(), fe->fd->loopClosedVars.dim);
-                elem *ethis = getEthis(fe->loc, irs, fe->fd);
+                elem *ethis = getEthis(fe->loc, irs, f);
+
+                printf("FuncExp::toElem() fd = %s, loopClosedVars = %d\n", f->toChars(), f->loopClosedVars.dim);
+                if (f->loopClosedVars.dim)
+                {
+                    size_t sz = Target::ptrsize;
+                    for (size_t i = 0; i < f->loopClosedVars.dim; i++)
+                    {
+                        sz += f->loopClosedVars[i]->type->size(); // todo: adjust alignment
+                    }
+                    printf("sz = %d\n", sz);
+
+                    elem *eptr = el_same(&ethis);
+
+                    elem *e = el_bin(OPcall, TYnptr, el_var(rtlsym[RTLSYM_ALLOCMEMORY]), el_long(TYsize_t, sz));
+                    symbol *s = symbol_genauto(TYnptr);
+                    e = el_bin(OPeq, TYnptr, el_var(s), e);
+
+                    //elem_print(e);
+
+                    elem *ea = el_bin(OPeq, TYnptr, el_una(OPind, TYnptr, el_var(s)), eptr);
+                    ea = el_combine(ea, el_bin(OPaddass, TYnptr, el_var(s), el_long(TYsize_t, Target::ptrsize)));
+
+                    for (size_t i = 0; i < f->loopClosedVars.dim; i++)
+                    {
+                        VarDeclaration *v = f->loopClosedVars[i];
+                        VarExp *ve = VarExp::create(fe->loc, v, 0);
+                        tym_t tym = totym(v->type);
+
+                        elem *eb = toElem(ve, irs);
+                        eb = el_bin(OPeq, tym, el_una(OPind, tym, el_var(s)), eb);
+
+                        if (i != f->loopClosedVars.dim - 1)
+                            eb = el_combine(ea, el_bin(OPaddass, TYnptr, el_var(s), el_long(TYsize_t, v->type->size())));
+
+                        ea = el_combine(ea, eb);
+                    }
+
+                    //elem_print(ea);
+
+                    // all variable accesses in f
+                    //  *(ethis + v->offset)
+                    // will be rewritten to:
+                    //  *((*ethis) + v->offset)
+                    // and loop-closed variables will be copied in the.
+                    //  p = new malloc(store_size);
+                    //  *p = ethis;
+                    //  ethis = p;
+                    //  p += (void*).sizeof;
+                    //  *p = loopClosedVars[0]; p += loopClosedVars[0].sizeof;
+                    //  *p = loopClosedVars[1]; p += loopClosedVars[1].sizeof;
+                    //  ...
+
+                    ethis = el_combine(ethis, e);
+                    ethis = el_combine(ethis, ea);
+
+                    printf("L%d\n", __LINE__);
+                    elem_print(ethis);
+                }
+                else
+                {
+                    printf("L%d\n", __LINE__);
+                    elem_print(ethis);
+                }
+
                 e = el_pair(TYdelegate, ethis, e);
             }
 

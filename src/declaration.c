@@ -1860,21 +1860,6 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
                     break;
             }
 
-            if ((storage_class & (STCtemp | STCforeach | STCref)) == (STCtemp | STCforeach))
-            {
-                for (size_t i = 0; 1; i++)
-                {
-                    if (i == fdthis->loopClosedVars.dim)
-                    {
-    printf("loopClosedVars.push() %s, fdthis = %s\n", toChars(), fdthis->toChars());
-                        fdthis->loopClosedVars.push(this);
-                        break;
-                    }
-                    if (fdthis->loopClosedVars[i] == this)
-                        break;
-                }
-            }
-
             if (fdthis->ident != Id::ensure)
             {
                 /* __ensure is always called directly,
@@ -1907,6 +1892,21 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
                         {
                             fld->setImpure();   // Bugzilla 9415
                         }
+                    }
+                }
+
+                if ((storage_class & (STCtemp | STCforeach | STCref)) == (STCtemp | STCforeach))
+                {
+                    for (size_t i = 0; 1; i++)
+                    {
+                        if (i == fdthis->loopClosedVars.dim)
+                        {
+        printf("loopClosedVars.push() %s, fdthis = %s\n", toChars(), fdthis->toChars());
+                            fdthis->loopClosedVars.push(this);
+                            break;
+                        }
+                        if (fdthis->loopClosedVars[i] == this)
+                            break;
                     }
                 }
 
