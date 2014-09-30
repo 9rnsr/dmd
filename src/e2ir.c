@@ -313,6 +313,12 @@ if (I32) assert(tysize[TYnptr] == 4);
     {
         assert(!ethis);
         ethis = getEthis(loc, irs, fd);
+
+        FuncDeclaration *thisfd = irs->getFunc();
+        if (thisfd->loopClosedVars.dim)
+        {
+            ethis = el_una(OPind, TYnptr, ethis);
+        }
     }
 
     ep = el_param(ep, ethis);
@@ -972,6 +978,7 @@ elem *toElem(Expression *e, IRState *irs)
                     }
                     if (fdthis->loopClosedVars.dim)
                     {
+                        printf("L%d\n", __LINE__);
                         ethis = el_una(OPind, TYnptr, ethis);
                     }
 
@@ -1011,6 +1018,7 @@ elem *toElem(Expression *e, IRState *irs)
                     goto L1;
                 }
             }
+            if (se->var->isFuncDeclaration()) printf("L%d, var = %s %s\n", __LINE__, se->var->kind(), se->var->toChars());
 
             /* If var is a member of a closure
              */
@@ -1104,7 +1112,12 @@ elem *toElem(Expression *e, IRState *irs)
             }
             el_setLoc(e, se->loc);
             result = e;
-            if ((se->var->storage_class & (/*STCtemp | */STCforeach | STCref)) == (/*STCtemp | */STCforeach))
+            //if ((se->var->storage_class & (/*STCtemp | */STCforeach | STCref)) == (/*STCtemp | */STCforeach))
+            //{
+            //    printf("L%d\n", __LINE__);
+            //    elem_print(e);
+            //}
+            if (se->var->isFuncDeclaration())
             {
                 printf("L%d\n", __LINE__);
                 elem_print(e);
@@ -3573,6 +3586,8 @@ elem *toElem(Expression *e, IRState *irs)
         #endif
 
                 ec = toElem(ce->e1, irs);
+                //printf("L%d\n", __LINE__);
+                //elem_print(ec);
             }
             else
             {

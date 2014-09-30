@@ -229,11 +229,13 @@ int IRState::arrayBoundsCheck()
     int result = global.params.useArrayBounds;
 
     if (result == 1)
-    {   // For safe functions only
+    {
+        // For safe functions only
         result = 0;
         FuncDeclaration *fd = getFunc();
         if (fd)
-        {   Type *t = fd->type;
+        {
+            Type *t = fd->type;
             if (t->ty == Tfunction && ((TypeFunction *)t)->trust == TRUSTsafe)
                 result = 1;
         }

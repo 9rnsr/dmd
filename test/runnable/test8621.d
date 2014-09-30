@@ -117,6 +117,27 @@ void test5()
     }
 }
 
+void test6()
+{
+    int n = 12;
+    int foo() { return n; }
+
+    int delegate()[] a;
+    for (size_t i = 1; i < 10; i++)
+    {
+        int j = i * 10 + 9; // should be loop closure
+        a ~= { printf("j = %d, foo = %d\n", j, foo()); return j + foo(); };
+        // loop closed var access + nested function call
+    }
+
+    int j = 19;
+    foreach (f; a)
+    {
+        assert(f() == j + 12);
+        j += 10;
+    }
+}
+
 int main()
 {
     test1();
@@ -125,6 +146,7 @@ int main()
     test4();
     test4x();
     test5();
+    test6();
 
     return 0;
 }
