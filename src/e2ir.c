@@ -303,7 +303,7 @@ elem *callfunc(Loc loc,
             assert((int)vindex >= 0);
 
             // Build *(ev + vindex * 4)
-if (I32) assert(tysize[TYnptr] == 4);
+            assert(!I32 || tysize[TYnptr] == 4);
             ec = el_bin(OPadd,TYnptr,ev,el_long(TYsize_t, vindex * tysize[TYnptr]));
             ec = el_una(OPind,TYnptr,ec);
             ec = el_una(OPind,tybasic(sfunc->Stype->Tty),ec);
