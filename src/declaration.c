@@ -969,6 +969,11 @@ void VarDeclaration::semantic(Scope *sc)
         }
     }
 
+    if (sc->noctor) // inside loop (todo: not precise)
+    {
+        storage_class |= STCforeach;
+    }
+
     Dsymbol *parent = toParent();
 
     Type *tb = type->toBasetype();
@@ -1895,7 +1900,7 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
                     }
                 }
 
-                if ((storage_class & (STCtemp | STCforeach | STCref)) == (STCtemp | STCforeach))
+                if ((storage_class & (/*STCtemp | */STCforeach | STCref)) == (/*STCtemp | */STCforeach))
                 {
                     for (size_t i = 0; 1; i++)
                     {

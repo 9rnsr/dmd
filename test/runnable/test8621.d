@@ -48,33 +48,46 @@ void test3()
         a ~= { /*printf("(i, j) = (%d, %d)\n", i, j); */return i * 10 + j; };
     }
 
-    int ij = 11;
+    int ij = 19;
     foreach (f; a)
     {
-        assert(f() == ij++);
+        assert(f() == ij);
+        ij += 10;
     }
-
-    //int g;  // closure var
-    //void foo() { g = 1; }
-    //auto dg = &foo;     // escape
 }
 
 void test4()
 {
-    void delegate()[] a;
+    int delegate()[] a;
     foreach (i; 1 .. 10)
     {
         int j = i * 10 + 9; // should be loop closure?
-        a ~= { printf("j = %d\n", j); };
-    }
-    foreach (f; a)
-    {
-        f();
+        a ~= { /*printf("j = %d\n", j); */return j; };
     }
 
-    //int g;  // closure var
-    //void foo() { g = 1; }
-    //auto dg = &foo;     // escape
+    int j = 19;
+    foreach (f; a)
+    {
+        assert(f() == j);
+        j += 10;
+    }
+}
+
+void test4x()
+{
+    int delegate()[] a;
+    for (size_t i = 1; i < 10; i++)
+    {
+        int j = i * 10 + 9; // should be loop closure?
+        a ~= { /*printf("j = %d\n", j); */return j; };
+    }
+
+    int j = 19;
+    foreach (f; a)
+    {
+        assert(f() == j);
+        j += 10;
+    }
 }
 
 void test5()
@@ -108,8 +121,9 @@ int main()
 {
     test1();
     test2();
-    //test3();  // doesn't work
-    //test4();  // doesn't work
+    test3();
+    test4();
+    test4x();
     test5();
 
     return 0;

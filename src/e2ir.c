@@ -938,7 +938,7 @@ elem *toElem(Expression *e, IRState *irs)
                     else
                         ethis = el_una(OPaddr, TYnptr, ethis);
 
-                    if ((se->var->storage_class & (STCtemp | STCforeach | STCref)) == (STCtemp | STCforeach))
+                    if ((se->var->storage_class & (/*STCtemp | */STCforeach | STCref)) == (/*STCtemp | */STCforeach))
                     {
                         printf("[%s] SymbolExp::toElem('%s') %p, %s, fdthis = %s, ->loopClosedVars = %d\n",
                             se->loc.toChars(), se->toChars(), se, se->type->toChars(),
@@ -1104,7 +1104,7 @@ elem *toElem(Expression *e, IRState *irs)
             }
             el_setLoc(e, se->loc);
             result = e;
-            if ((se->var->storage_class & (STCtemp | STCforeach | STCref)) == (STCtemp | STCforeach))
+            if ((se->var->storage_class & (/*STCtemp | */STCforeach | STCref)) == (/*STCtemp | */STCforeach))
             {
                 printf("L%d\n", __LINE__);
                 elem_print(e);

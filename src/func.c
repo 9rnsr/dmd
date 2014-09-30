@@ -4156,7 +4156,7 @@ bool FuncDeclaration::needsClosure()
         assert(v->isVarDeclaration());
         //printf("\tv = %s\n", v->toChars());
 
-        if ((v->storage_class & (STCtemp | STCforeach | STCref)) == (STCtemp | STCforeach))
+        if ((v->storage_class & (/*STCtemp | */STCforeach | STCref)) == (/*STCtemp | */STCforeach))
         {
             ++looopVars;
             continue;
