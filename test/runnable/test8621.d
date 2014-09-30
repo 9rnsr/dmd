@@ -77,12 +77,40 @@ void test4()
     //auto dg = &foo;     // escape
 }
 
+void test5()
+{
+    int x = 3;  // x will be a closure variable
+
+    int delegate()[] a;
+    foreach (i; 1 .. 10)    // i will be a loop-closed variable
+    {
+        a ~= { /*printf("%d\n", i * x); */return i * x; };
+    }
+
+    int ix = 3;
+    foreach (f; a)
+    {
+        assert(f() == ix);
+        ix += 3;
+    }
+
+    x = 6;
+
+    ix = 6;
+    foreach (f; a)
+    {
+        assert(f() == ix);
+        ix += 6;
+    }
+}
+
 int main()
 {
     test1();
     test2();
     //test3();  // doesn't work
     //test4();  // doesn't work
+    test5();
 
     return 0;
 }

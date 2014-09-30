@@ -970,6 +970,10 @@ elem *toElem(Expression *e, IRState *irs)
                         }
                         printf("L%d\n", __LINE__);
                     }
+                    if (fdthis->loopClosedVars.dim)
+                    {
+                        ethis = el_una(OPind, TYnptr, ethis);
+                    }
 
                     int soffset;
                     if (v && v->offset)
