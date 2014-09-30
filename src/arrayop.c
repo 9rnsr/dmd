@@ -304,7 +304,7 @@ void buildArrayIdent(Expression *e, OutBuffer *buf, Expressions *arguments)
 
         void visit(AssignExp *e)
         {
-            /* Evaluate assign expressions right to left
+            /* Arguments are inserted in the head, so see e2 first, then see e1.
              */
             e->e2->accept(this);
             e->e1->accept(this);
@@ -313,7 +313,7 @@ void buildArrayIdent(Expression *e, OutBuffer *buf, Expressions *arguments)
 
         void visit(BinAssignExp *e)
         {
-            /* Evaluate assign expressions right to left
+            /* Arguments are inserted in the head, so see e2 first, then see e1.
              */
             e->e2->accept(this);
             e->e1->accept(this);
@@ -348,8 +348,6 @@ void buildArrayIdent(Expression *e, OutBuffer *buf, Expressions *arguments)
 
         void visit(BinExp *e)
         {
-            /* Evaluate assign expressions left to right
-             */
             const char *s = NULL;
             switch(e->op)
             {
@@ -366,8 +364,10 @@ void buildArrayIdent(Expression *e, OutBuffer *buf, Expressions *arguments)
             }
             if (s)
             {
-                e->e1->accept(this);
+                /* Arguments are inserted in the head, so see e2 first, then see e1.
+                 */
                 e->e2->accept(this);
+                e->e1->accept(this);
                 buf->writestring(s);
             }
             else
@@ -442,16 +442,17 @@ Expression *buildArrayLoop(Expression *e, Parameters *fparams)
 
         void visit(AssignExp *e)
         {
-            /* Evaluate assign expressions right to left
+            /* Parameters are inserted in the head, so see e2 first, then see e1.
              */
             Expression *ex2 = buildArrayLoop(e->e2);
+            Expression *ex1 = buildArrayLoop(e->e1);
+
             /* Need the cast because:
              *   b = c + p[i];
              * where b is a byte fails because (c + p[i]) is an int
              * which cannot be implicitly cast to byte.
              */
             ex2 = new CastExp(Loc(), ex2, e->e1->type->nextOf());
-            Expression *ex1 = buildArrayLoop(e->e1);
             Parameter *param = (*fparams)[0];
             param->storageClass = 0;
             result = new AssignExp(Loc(), ex1, ex2);
@@ -459,7 +460,7 @@ Expression *buildArrayLoop(Expression *e, Parameters *fparams)
 
         void visit(BinAssignExp *e)
         {
-            /* Evaluate assign expressions right to left
+            /* Parameters are inserted in the head, so see e2 first, then see e1.
              */
             Expression *ex2 = buildArrayLoop(e->e2);
             Expression *ex1 = buildArrayLoop(e->e1);
@@ -497,11 +498,11 @@ Expression *buildArrayLoop(Expression *e, Parameters *fparams)
         {
             if (isBinArrayOp(e->op))
             {
-                /* Evaluate assign expressions left to right
+                /* Parameters are inserted in the head, so see e2 first, then see e1.
                  */
                 BinExp *be = (BinExp *)e->copy();
-                be->e1 = buildArrayLoop(be->e1);
                 be->e2 = buildArrayLoop(be->e2);
+                be->e1 = buildArrayLoop(be->e1);
                 be->type = NULL;
                 result = be;
                 return;
