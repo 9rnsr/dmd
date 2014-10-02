@@ -6432,6 +6432,12 @@ Expression *BinExp::checkComplexOpAssign(Scope *sc)
             return new ErrorExp();
         }
     }
+
+    Expression *e2x = e2->implicitCastTo(sc, type);
+    if (e2x->op == TOKerror)
+        return e2x;
+    e2 = e2x;
+
     return this;
 }
 
@@ -6475,6 +6481,7 @@ Expression *BinAssignExp::semantic(Scope *sc)
     if (e)
         return e;
 
+    //printf("L%d e1 = %s %s, e2 = %s %s\n", __LINE__, e1->type->toChars(), e1->toChars(), e2->type->toChars(), e2->toChars());
     e = e1->checkReadModifyWrite(op, e2);
     if (e)
         return e;
@@ -6505,25 +6512,31 @@ Expression *BinAssignExp::semantic(Scope *sc)
     e1 = e1->modifiableLvalue(sc, e1);
     type = e1->type;
     checkScalar();
+    //printf("L%d e1 = %s %s, e2 = %s %s\n", __LINE__, e1->type->toChars(), e1->toChars(), e2->type->toChars(), e2->toChars());
 
     int arith = (op == TOKaddass || op == TOKminass || op == TOKmulass ||
                  op == TOKdivass || op == TOKmodass || op == TOKpowass);
     int bitwise = (op == TOKandass || op == TOKorass || op == TOKxorass);
     int shift = (op == TOKshlass || op == TOKshrass || op == TOKushrass);
 
-    if (bitwise && type->toBasetype()->ty == Tbool)
-         e2 = e2->implicitCastTo(sc, type);
-    else
+    if (!bitwise)
         checkNoBool();
+    //printf("L%d e1 = %s %s, e2 = %s %s\n", __LINE__, e1->type->toChars(), e1->toChars(), e2->type->toChars(), e2->toChars());
 
     if ((op == TOKaddass || op == TOKminass) &&
         e1->type->toBasetype()->ty == Tpointer &&
         e2->type->toBasetype()->isintegral())
+    {
         return scaleFactor(this, sc);
+    }
+
+    //if (e2->implicitConvTo(type))
+    //    e2 = e2->implicitCastTo(sc, type);
 
     if (Expression *ex = typeCombine(this, sc))
         return ex;
 
+    //printf("L%d e1 = %s %s, e2 = %s %s\n", __LINE__, e1->type->toChars(), e1->toChars(), e2->type->toChars(), e2->toChars());
     if (arith)
     {
         e1 = e1->checkArithmetic();
@@ -6538,6 +6551,7 @@ Expression *BinAssignExp::semantic(Scope *sc)
     {
         e2 = e2->castTo(sc, Type::tshiftcnt);
     }
+    //printf("L%d e1 = %s %s, e2 = %s %s\n", __LINE__, e1->type->toChars(), e1->toChars(), e2->type->toChars(), e2->toChars());
 
     // vectors
     if (shift && (e1->type->toBasetype()->ty == Tvector ||
