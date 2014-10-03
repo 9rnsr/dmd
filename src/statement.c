@@ -1443,6 +1443,7 @@ ForStatement::ForStatement(Loc loc, Statement *init, Expression *condition, Expr
     this->increment = increment;
     this->body = body;
     this->relatedLabeled = NULL;
+    this->sloop = NULL;
 }
 
 Statement *ForStatement::syntaxCopy()
@@ -1457,6 +1458,7 @@ Statement *ForStatement::syntaxCopy()
 Statement *ForStatement::semantic(Scope *sc)
 {
     //printf("ForStatement::semantic %s\n", toChars());
+    this->sloop = sc->sloop;
 
     if (init)
     {
@@ -1478,7 +1480,10 @@ Statement *ForStatement::semantic(Scope *sc)
         ainit->push(this);
         Statement *s = new CompoundStatement(loc, ainit);
         s = new ScopeStatement(loc, s);
+        sc = sc->push();
+        sc->sloop = this;
         s = s->semantic(sc);
+        sc = sc->pop();
         if (!s->isErrorStatement())
         {
             if (LabelStatement *ls = checkLabeledLoop(sc, this))
@@ -1492,6 +1497,7 @@ Statement *ForStatement::semantic(Scope *sc)
     ScopeDsymbol *sym = new ScopeDsymbol();
     sym->parent = sc->scopesym;
     sc = sc->push(sym);
+    printf("[%s] ForStatement(%p) sc->sloop = %p\n", loc.toChars(), this, sc->sloop);
 
     sc->noctor++;
     if (condition)

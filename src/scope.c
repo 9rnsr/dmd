@@ -80,6 +80,7 @@ Scope::Scope()
     this->noctor = 0;
     this->intypeof = 0;
     this->lastVar = NULL;
+    this->sloop = NULL;
     this->callSuper = 0;
     this->fieldinit = NULL;
     this->fieldinit_dim = 0;

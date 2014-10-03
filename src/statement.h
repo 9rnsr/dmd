@@ -297,6 +297,8 @@ public:
     // treat that label as referring to this loop.
     Statement *relatedLabeled;
 
+    Statement *sloop;
+
     ForStatement(Loc loc, Statement *init, Expression *condition, Expression *increment, Statement *body);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);

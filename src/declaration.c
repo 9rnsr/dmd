@@ -862,6 +862,9 @@ void VarDeclaration::semantic(Scope *sc)
     //if (strcmp(toChars(), "mul") == 0) halt();
 #endif
 
+    if (sc->sloop)
+        printf("%s sloop = %p @ [%s]\n", toChars(), sc->sloop, sc->sloop->loc.toChars());
+
 //    if (sem > SemanticStart)
 //      return;
 //    sem = SemanticIn;

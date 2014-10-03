@@ -89,6 +89,7 @@ struct Scope
     int noctor;                 // set if constructor calls aren't allowed
     int intypeof;               // in typeof(exp)
     VarDeclaration *lastVar;    // Previous symbol used to prevent goto-skips-init
+    Statement *sloop;           // enclosing loop (for, while, or do-while) statement
 
     /* If  minst && !tinst, it's in definitely non-speculative scope (eg. module member scope).
      * If !minst && !tinst, it's in definitely speculative scope (eg. template constraint).
