@@ -197,8 +197,8 @@ void verror(Loc loc, const char *format, va_list ap,
     }
     else
     {
-        //fprintf(stderr, "(gag:%d) ", global.gag);
-        //verrorPrint(loc, COLOR_RED, header, format, ap, p1, p2);
+        fprintf(stderr, "(gag:%d) ", global.gag);
+        verrorPrint(loc, COLOR_RED, header, format, ap, p1, p2);
         global.gaggedErrors++;
     }
     global.errors++;

@@ -3239,32 +3239,39 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
 
     if (m.last > MATCHnomatch && m.lastf)
     {
+    printf("\tL%d\n", __LINE__);
         if (m.count == 1)   // exactly one match
         {
             if (!(flags & 1))
                 m.lastf->functionSemantic();
+    printf("\tL%d\n", __LINE__);
             return m.lastf;
         }
         if ((flags & 2) && !tthis && m.lastf->needThis())
         {
+    printf("\tL%d\n", __LINE__);
             return m.lastf;
         }
     }
+    printf("\tL%d\n", __LINE__);
 
     /* Failed to find a best match.
      * Do nothing or print error.
      */
     if (m.last <= MATCHnomatch)
     {
+    printf("\tL%d\n", __LINE__);
         // error was caused on matched function
         if (m.count == 1)
             return m.lastf;
 
+    printf("\tL%d\n", __LINE__);
         // if do not print error messages
         if (flags & 1)
             return NULL;    // no match
     }
 
+    printf("\tL%d\n", __LINE__);
     FuncDeclaration *fd = s->isFuncDeclaration();
     TemplateDeclaration *td = s->isTemplateDeclaration();
     if (td && td->funcroot)
@@ -3284,6 +3291,7 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
 
     if (!m.lastf && !(flags & 1))   // no match
     {
+    printf("\tL%d\n", __LINE__);
         if (td && !fd)  // all of overloads are templates
         {
             ::error(loc, "%s %s.%s cannot deduce function from argument types !(%s)%s, candidates are:",
@@ -3339,6 +3347,7 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
     }
     else if (m.nextf)
     {
+    printf("\tL%d\n", __LINE__);
         TypeFunction *tf1 = (TypeFunction *)m.lastf->type;
         TypeFunction *tf2 = (TypeFunction *)m.nextf->type;
         const char *lastprms = parametersTypeToChars(tf1->parameters, tf1->varargs);
@@ -3350,6 +3359,7 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
                 m.lastf->loc.toChars(), m.lastf->toPrettyChars(), lastprms,
                 m.nextf->loc.toChars(), m.nextf->toPrettyChars(), nextprms);
     }
+    printf("\tL%d\n", __LINE__);
     return NULL;
 }
 

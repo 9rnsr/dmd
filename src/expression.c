@@ -8559,9 +8559,12 @@ Lagain:
         {
             s = ((TemplateExp *)e1)->td;
         L2:
+        printf("+[%s] s = %p\n", loc.toChars(), s->toChars());
             f = resolveFuncCall(loc, sc, s, tiargs, NULL, arguments, 2);
+        printf("-[%s] f = %p\n", loc.toChars(), f);
             if (!f || f->errors)
                 return new ErrorExp();
+        printf("-[%s] f = %p\n", loc.toChars(), f->toChars());
             if (f->needThis())
             {
                 if (hasThis(sc))

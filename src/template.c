@@ -2293,11 +2293,15 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             int x = td->deduceFunctionTemplateMatch(ti, sc, fd, tthis, fargs);
             MATCH mta = (MATCH)(x >> 4);
             MATCH mfa = (MATCH)(x & 0xF);
-            //printf("match:t/f = %d/%d\n", mta, mfa);
+            printf("match:t/f = %d/%d\n", mta, mfa);
+            printf("\t\tL%d (m->lastf = %p)\n", __LINE__, m->lastf);
             if (!fd)
-                goto Lerror;
+            //    goto Lerror;
+                continue;
+            printf("\t\tL%d\n", __LINE__);
             if (mfa == MATCHnomatch)
                 continue;
+            printf("\t\tL%d\n", __LINE__);
 
             Type *tthis_fd = fd->needThis() ? tthis : NULL;
 
@@ -2320,12 +2324,15 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
                 }
             }
 
+            printf("\t\tL%d, mta = %d, ta_last = %d\n", __LINE__, mta, ta_last);
             if (mta < ta_last) goto Ltd_best;
             if (mta > ta_last) goto Ltd;
 
+            printf("\t\tL%d\n", __LINE__);
             if (mfa < m->last) goto Ltd_best;
             if (mfa > m->last) goto Ltd;
 
+            printf("\t\tL%d\n", __LINE__);
             if (td_best)
             {
                 // Disambiguate by picking the most specialized TemplateDeclaration
@@ -2335,6 +2342,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
                 if (c1 > c2) goto Ltd;
                 if (c1 < c2) goto Ltd_best;
             }
+            printf("\t\tL%d\n", __LINE__);
             assert(fd && m->lastf);
             {
                 // Disambiguate by tf->callMatch
@@ -2348,6 +2356,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
                 if (c1 > c2) goto Ltd;
                 if (c1 < c2) goto Ltd_best;
             }
+            printf("\t\tL%d\n", __LINE__);
             {
                 // Disambiguate by picking the most specialized FunctionDeclaration
                 MATCH c1 = fd->leastAsSpecialized(m->lastf);
@@ -2357,6 +2366,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
                 if (c1 < c2) goto Ltd_best;
             }
 
+            printf("\t\tL%d\n", __LINE__);
             m->nextf = fd;
             m->count++;
             continue;
@@ -2378,6 +2388,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             ov_index = ovi;
             m->nextf = NULL;
             m->count = 1;
+            printf("\t\tL%d, mfa = %d\n", __LINE__, mfa);
             continue;
         }
         return 0;
@@ -2422,7 +2433,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         return;
     }
 
-    //printf("td_best = %p, m->lastf = %p\n", p.td_best, m->lastf);
+    printf("td_best = %p, m->lastf = %p\n", p.td_best, m->lastf);
     if (p.td_best && p.ti_best)
     {
         // Matches to template function
@@ -2451,11 +2462,13 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             assert(m->lastf);
         }
 
+        printf("\tm->lastf->type = %s\n", m->lastf->type->toChars());
         p.tthis_best = m->lastf->needThis() && !m->lastf->isCtorDeclaration() ? tthis : NULL;
 
         TypeFunction *tf = (TypeFunction *)m->lastf->type;
         if (tf->ty == Terror)
             goto Lerror;
+        printf("\tL%d\n", __LINE__);
         assert(tf->ty == Tfunction);
         if (!tf->callMatch(p.tthis_best, fargs))
         {
@@ -2465,6 +2478,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             return;
         }
 
+        printf("\tL%d\n", __LINE__);
         if (FuncLiteralDeclaration *fld = m->lastf->isFuncLiteralDeclaration())
         {
             if ((sc->flags & SCOPEconstraint) || sc->intypeof)
@@ -2480,6 +2494,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             }
         }
 
+        printf("\tL%d\n", __LINE__);
         /* As Bugzilla 3682 shows, a template instance can be matched while instantiating
          * that same template. Thus, the function type can be incomplete. Complete it.
          *
@@ -2490,14 +2505,17 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         {
             m->lastf->type = tf->semantic(loc, sc);
         }
+        printf("\tL%d lastf - %s %s, m->last = %d\n", __LINE__, m->lastf->type->toChars(), m->lastf->toChars(), m->last);
     }
     else if (m->lastf)
     {
         // Matches to non template function
+    printf("\tL%d\n", __LINE__);
     }
     else
     {
         m->last = MATCHnomatch;
+    printf("\tL%d\n", __LINE__);
     }
 }
 
@@ -2513,16 +2531,17 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(
     printf("doHeaderInstantiation this = %s\n", toChars());
 #endif
 
+    assert(fd->type->ty == Tfunction);
+    TypeFunction *tf = (TypeFunction *)fd->type->syntaxCopy();
+
+    tf->fargs = fargs;
+
     // function body and contracts are not need
     if (fd->isCtorDeclaration())
-        fd = new CtorDeclaration(fd->loc, fd->endloc, fd->storage_class, fd->type->syntaxCopy());
+        fd = new CtorDeclaration(fd->loc, fd->endloc, fd->storage_class, tf);
     else
-        fd = new FuncDeclaration(fd->loc, fd->endloc, fd->ident, fd->storage_class, fd->type->syntaxCopy());
+        fd = new FuncDeclaration(fd->loc, fd->endloc, fd->ident, fd->storage_class, tf);
     fd->parent = ti;
-
-    assert(fd->type->ty == Tfunction);
-    TypeFunction *tf = (TypeFunction *)fd->type;
-    tf->fargs = fargs;
 
     if (tthis)
     {
@@ -2574,12 +2593,17 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(
     }
     else
         tf->next = NULL;
+
+    unsigned oldErrors = global.startGagging();
     fd->type = tf;
     fd->type = fd->type->addSTC(scx->stc);
     fd->type = fd->type->semantic(fd->loc, scx);
+    printf("\t[%s] fd->type = %s, mod = %x, ", loc.toChars(), fd->type->toChars(), fd->type->mod);
+    printf("fd->needThis() = %d\n", fd->needThis());
+    if (global.endGagging(oldErrors))
+        fd->type = Type::terror;
+    printf("global.gaggedErrors = %d, global.errors = %d\n", global.gaggedErrors, global.errors);
     fd->originalType = fd->type;    // for mangling
-    //printf("\t[%s] fd->type = %s, mod = %x, ", loc.toChars(), fd->type->toChars(), fd->type->mod);
-    //printf("fd->needThis() = %d\n", fd->needThis());
 
     scx = scx->pop();
 
