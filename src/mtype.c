@@ -5820,14 +5820,14 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
             //printf("match %d\n", m);
         }
 
+        Type *targb = targ->toBasetype();
+        Type *tprmb = tprm->toBasetype();
+        //printf("%s\n", targb->toChars());
+        //printf("%s\n", tprmb->toChars());
+
         // Non-lvalues do not match ref or out parameters
         if (p->storageClass & STCref)
         {
-            Type *targb = targ->toBasetype();
-            Type *tprmb = tprm->toBasetype();
-            //printf("%s\n", targb->toChars());
-            //printf("%s\n", tprmb->toChars());
-
             if (m && !arg->isLvalue())
             {
                 if (arg->op == TOKstring && tprmb->ty == Tsarray)
@@ -5875,7 +5875,21 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
                 goto Nomatch;
         }
         else if (p->storageClass & STCout)
-        {   if (m && !arg->isLvalue())
+        {
+            if (m && !arg->isLvalue())
+                goto Nomatch;
+
+            /* find most derived alias this type being matched.
+             */
+            while (1)
+            {
+                Type *tat = targb->aliasthisOf();
+                if (!tat || !tat->implicitConvTo(tprm))
+                    break;
+                targb = tat;
+            }
+
+            if (!targb->constConv(tprmb))
                 goto Nomatch;
         }
         }

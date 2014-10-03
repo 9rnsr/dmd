@@ -1009,6 +1009,22 @@ void test11785()
 }
 
 /***************************************************/
+// 11915
+
+void f11915(int) { }
+void f11915(ref int) { assert(0); }
+
+void g11915(int) { }
+void g11915(out int) { assert(0); }
+
+void test11915()
+{
+    const int n = 1;
+    f11915(n); // ok, selects `void f(int)`
+    g11915(n); // ok <- Error: constant 1 is not an lvalue
+}
+
+/***************************************************/
 
 int main()
 {
@@ -1039,6 +1055,7 @@ int main()
     test10658a();
     test10658b();
     test11785();
+    test11915();
 
     printf("Success\n");
     return 0;
