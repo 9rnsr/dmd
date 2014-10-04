@@ -6768,6 +6768,33 @@ Expression *AssertExp::semantic(Scope *sc)
     if (Expression *ex = unaSemantic(sc))
         return ex;
     e1 = resolveProperties(sc, e1);
+
+    if (e1->type->ty == Ttuple && ((TupleExp *)e1)->exps)
+    {
+        Expressions *exps = ((TupleExp *)e1)->exps;
+        size_t dim = exps->dim + (msg ? 1 : 0);
+        if (dim == 0)
+        {
+            error("assert must have a condition");
+            return new ErrorExp();
+        }
+        else if (dim == 1)
+        {
+            e1 = msg ? msg : (*exps)[0];
+            msg = NULL;
+        }
+        else if (dim == 2)
+        {
+            e1 = (*exps)[0];
+            msg = exps->dim == 2 ? (*exps)[1] : NULL;
+        }
+        else
+        {
+            error("assert can take 1 or 2 arguments, not %llu", dim);
+            return new ErrorExp();
+        }
+    }
+
     // BUG: see if we can do compile time elimination of the Assert
     e1 = e1->optimize(WANTvalue);
     e1 = e1->checkToBoolean(sc);
