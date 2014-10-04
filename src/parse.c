@@ -1485,7 +1485,11 @@ Dsymbol *Parser::parseCtor(PrefixAttributes *pAttrs)
 
         PostBlitDeclaration *f = new PostBlitDeclaration(loc, Loc(), stc, Id::_postblit);
         if (pAttrs)
+        {
+            if (pAttrs->storageClass & STC_TYPECTOR)
+                ::deprecation(loc, "prefix type qualifier on function is deprecated");
             pAttrs->storageClass = STCundefined;
+        }
         Dsymbol *s = parseContracts(f);
         if (udas)
         {
@@ -1531,7 +1535,11 @@ Dsymbol *Parser::parseCtor(PrefixAttributes *pAttrs)
 
     CtorDeclaration *f = new CtorDeclaration(loc, Loc(), stc, tf);
     if (pAttrs)
+    {
+        if (pAttrs->storageClass & STC_TYPECTOR)
+            ::deprecation(loc, "prefix type qualifier on function is deprecated");
         pAttrs->storageClass = STCundefined;
+    }
     Dsymbol *s = parseContracts(f);
     if (udas)
     {
@@ -1579,7 +1587,11 @@ Dsymbol *Parser::parseDtor(PrefixAttributes *pAttrs)
 
     DtorDeclaration *f = new DtorDeclaration(loc, Loc(), stc, Id::dtor);
     if (pAttrs)
+    {
+        if (pAttrs->storageClass & STC_TYPECTOR)
+            ::deprecation(loc, "prefix type qualifier on function is deprecated");
         pAttrs->storageClass = STCundefined;
+    }
     Dsymbol *s = parseContracts(f);
     if (udas)
     {

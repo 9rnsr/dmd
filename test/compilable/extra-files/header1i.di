@@ -434,7 +434,7 @@ struct T12
 	this()(int args) immutable
 	{
 	}
-	immutable this(A...)(A args)
+	this(A...)(A args) immutable
 	{
 	}
 }
