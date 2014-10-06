@@ -63,11 +63,44 @@ elem *incUsageElem(IRState *irs, Loc loc)
 {
     unsigned linnum = loc.linnum;
 
-    if (!irs->blx->module->cov || !linnum ||
+    if (/*!irs->blx->module->cov || */!linnum ||
         loc.filename != irs->blx->module->srcfile->toChars())
-        return NULL;
+    {
+        printf("[%s] cov = %d, linnum = %d, loc.filename = %p, srcfile = %p\n",
+                loc.toChars(),
+                irs->blx->module->cov, linnum,
+                loc.filename, irs->blx->module->srcfile->toChars());
 
-    //printf("cov = %p, covb = %p, linnum = %u\n", irs->blx->module->cov, irs->blx->module->covb, p, linnum);
+        //printf("[%s] (%s %p, %s %p) ", loc.toChars(), loc.filename, loc.filename, irs->blx->module->srcfile->toChars(), irs->blx->module->srcfile->toChars());
+        //printf("module = %s, cov = %p, covb = %p, linnum = %u\n", irs->blx->module->toChars(), irs->blx->module->cov, irs->blx->module->covb, linnum);
+        return NULL;
+    }
+
+    if (!irs->blx->module->cov)
+    {
+#if 0
+        Module *m = irs->blx->module;
+
+        /* Create coverage identifier:
+         *  private uint[numlines] __coverage;
+         */
+        m->cov = symbol_calloc("__coverage");
+        m->cov->Stype = type_fake(TYint);
+        m->cov->Stype->Tmangle = mTYman_c;
+        m->cov->Stype->Tcount++;
+        m->cov->Sclass = SCcomdat;//SCstatic;
+        m->cov->Sfl = FLdata;
+    #if 1
+        dtnzeros(&m->cov->Sdt, 4 * m->numlines);
+        outdata(m->cov);
+        slist_add(m->cov);
+    #endif
+
+        m->covb = (unsigned *)calloc((m->numlines + 32) / 32, sizeof(*m->covb));
+#endif
+        return NULL;
+    }
+    //printf("module = %s, cov = %p, covb = %p, linnum = %u\n", irs->blx->module->toChars(), irs->blx->module->cov, irs->blx->module->covb, linnum);
 
     linnum--;           // from 1-based to 0-based
 

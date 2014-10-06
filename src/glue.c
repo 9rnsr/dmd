@@ -297,7 +297,7 @@ void Module::genobjfile(bool multiobj)
 {
     //EEcontext *ee = env->getEEcontext();
 
-    //printf("Module::genobjfile(multiobj = %d) %s\n", multiobj, toChars());
+    printf("Module::genobjfile(multiobj = %d) %s\n", multiobj, toChars());
 
     if (ident == Id::entrypoint)
     {
@@ -785,6 +785,18 @@ void FuncDeclaration::toObjFile(bool multiobj)
     {
         obj_append(this);
         return;
+    }
+    if (TemplateInstance *ti = isInstantiated())
+    {
+        if (Module *m = getModule())
+        {
+            if (!m->isRoot() && global.params.cov && !m->cov)
+            {
+                printf("non root template function '%s'\n", toChars());
+        obj_append(this);
+        return;
+            }
+        }
     }
 
     if (semanticRun == PASSsemanticdone)
