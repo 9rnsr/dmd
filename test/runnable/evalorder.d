@@ -60,25 +60,40 @@ void testArrayOps()
 
         writeln("// Binary array ops");
         string checkBin = `assertOrder("abc");`;
-        foreach (string op1; op1s)
+
+        writeln("// Binary array ops");
+        foreach (string op1; ["="])
         {
             foreach (string op2; ["+", "-", "*", "/", "%", "^", "&", "|"])
             {
                 writeln("a()[] ", op1, " y()   ", op2, " z();");    writeln(`assertOrder("ayz");`, "\n");
-                writeln("a()[] ", op1, " b()[] ", op2, " z();");    writeln(`assertOrder("abz");`, "\n");
-                writeln("a()[] ", op1, " y()   ", op2, " c()[];");  writeln(`assertOrder("ayc");`, "\n");
-                writeln("a()[] ", op1, " b()[] ", op2, " c()[];");  writeln(`assertOrder("abc");`, "\n");
+            }
+        }
+        foreach (string op1; op1s[1..$])
+        {
+            foreach (string op2; ["+", "-", "*", "/", "%", "^", "&", "|"])
+            {
+                writeln("a()[] ", op1, " y()   ", op2, " z();");    writeln(`assertOrder("yza");`, "\n");
+                writeln("a()[] ", op1, " b()[] ", op2, " z();");    writeln(`assertOrder("bza");`, "\n");
+                writeln("a()[] ", op1, " y()   ", op2, " c()[];");  writeln(`assertOrder("yca");`, "\n");
+                writeln("a()[] ", op1, " b()[] ", op2, " c()[];");  writeln(`assertOrder("bca");`, "\n");
             }
         }
 
         writeln("// Unary array ops");
-        string checkUna = `assertOrder("ac");`;
-        foreach (string op1; op1s)
+        foreach (string op1; ["="])
         {
             foreach (string op2; ["-", "~"])
             {
                 writeln("a()[] ", op1, " ", op2, "z();");   writeln(`assertOrder("az");`, "\n");
-                writeln("a()[] ", op1, " ", op2, "c()[];"); writeln(`assertOrder("ac");`, "\n");
+            }
+        }
+        foreach (string op1; op1s[1..$])
+        {
+            foreach (string op2; ["-", "~"])
+            {
+                writeln("a()[] ", op1, " ", op2, "z();");   writeln(`assertOrder("za");`, "\n");
+                writeln("a()[] ", op1, " ", op2, "c()[];"); writeln(`assertOrder("ca");`, "\n");
             }
         }
 

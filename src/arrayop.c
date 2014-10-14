@@ -50,7 +50,7 @@ FuncDeclaration *buildArrayOp(Identifier *ident, BinExp *exp, Scope *sc, Loc loc
      *  return p;
      */
 
-    Parameter *p = (*fparams)[0];
+    Parameter *p = (*fparams)[fparams->dim - 1];
     // foreach (i; 0 .. p.length)
     Statement *s1 = new ForeachRangeStatement(Loc(), TOKforeach,
         new Parameter(0, NULL, Id::p, NULL),
@@ -276,7 +276,7 @@ void buildArrayIdent(Expression *e, OutBuffer *buf, Expressions *arguments)
         void visit(Expression *e)
         {
             buf->writestring("Exp");
-            arguments->shift(e);
+            arguments->push(e);
         }
 
         void visit(CastExp *e)
@@ -293,18 +293,18 @@ void buildArrayIdent(Expression *e, OutBuffer *buf, Expressions *arguments)
         void visit(ArrayLiteralExp *e)
         {
             buf->writestring("Slice");
-            arguments->shift(e);
+            arguments->push(e);
         }
 
         void visit(SliceExp *e)
         {
             buf->writestring("Slice");
-            arguments->shift(e);
+            arguments->push(e);
         }
 
         void visit(AssignExp *e)
         {
-            /* Arguments are inserted in the head, so see e2 first, then see e1.
+            /* Evaluate assign expressions right to left
              */
             e->e2->accept(this);
             e->e1->accept(this);
@@ -313,12 +313,12 @@ void buildArrayIdent(Expression *e, OutBuffer *buf, Expressions *arguments)
 
         void visit(BinAssignExp *e)
         {
-            /* Arguments are inserted in the head, so see e2 first, then see e1.
+            /* Evaluate assign expressions right to left
              */
             e->e2->accept(this);
             e->e1->accept(this);
             const char *s;
-            switch(e->op)
+            switch (e->op)
             {
             case TOKaddass: s = "Addass"; break;
             case TOKminass: s = "Subass"; break;
@@ -349,7 +349,7 @@ void buildArrayIdent(Expression *e, OutBuffer *buf, Expressions *arguments)
         void visit(BinExp *e)
         {
             const char *s = NULL;
-            switch(e->op)
+            switch (e->op)
             {
             case TOKadd: s = "Add"; break;
             case TOKmin: s = "Sub"; break;
@@ -364,10 +364,8 @@ void buildArrayIdent(Expression *e, OutBuffer *buf, Expressions *arguments)
             }
             if (s)
             {
-                /* Arguments are inserted in the head, so see e2 first, then see e1.
-                 */
-                e->e2->accept(this);
                 e->e1->accept(this);
+                e->e2->accept(this);
                 buf->writestring(s);
             }
             else
@@ -401,7 +399,7 @@ Expression *buildArrayLoop(Expression *e, Parameters *fparams)
         {
             Identifier *id = Identifier::generateId("c", fparams->dim);
             Parameter *param = new Parameter(0, e->type, id, NULL);
-            fparams->shift(param);
+            fparams->push(param);
             result = new IdentifierExp(Loc(), id);
         }
 
@@ -420,7 +418,7 @@ Expression *buildArrayLoop(Expression *e, Parameters *fparams)
         {
             Identifier *id = Identifier::generateId("p", fparams->dim);
             Parameter *param = new Parameter(STCconst, e->type, id, NULL);
-            fparams->shift(param);
+            fparams->push(param);
             Expression *ie = new IdentifierExp(Loc(), id);
             Expressions *arguments = new Expressions();
             Expression *index = new IdentifierExp(Loc(), Id::p);
@@ -432,7 +430,7 @@ Expression *buildArrayLoop(Expression *e, Parameters *fparams)
         {
             Identifier *id = Identifier::generateId("p", fparams->dim);
             Parameter *param = new Parameter(STCconst, e->type, id, NULL);
-            fparams->shift(param);
+            fparams->push(param);
             Expression *ie = new IdentifierExp(Loc(), id);
             Expressions *arguments = new Expressions();
             Expression *index = new IdentifierExp(Loc(), Id::p);
@@ -442,7 +440,7 @@ Expression *buildArrayLoop(Expression *e, Parameters *fparams)
 
         void visit(AssignExp *e)
         {
-            /* Parameters are inserted in the head, so see e2 first, then see e1.
+            /* Evaluate assign expressions right to left
              */
             Expression *ex2 = buildArrayLoop(e->e2);
             Expression *ex1 = buildArrayLoop(e->e1);
@@ -453,18 +451,18 @@ Expression *buildArrayLoop(Expression *e, Parameters *fparams)
              * which cannot be implicitly cast to byte.
              */
             ex2 = new CastExp(Loc(), ex2, e->e1->type->nextOf());
-            Parameter *param = (*fparams)[0];
+            Parameter *param = (*fparams)[fparams->dim - 1];
             param->storageClass = 0;
             result = new AssignExp(Loc(), ex1, ex2);
         }
 
         void visit(BinAssignExp *e)
         {
-            /* Parameters are inserted in the head, so see e2 first, then see e1.
+            /* Evaluate assign expressions right to left
              */
             Expression *ex2 = buildArrayLoop(e->e2);
             Expression *ex1 = buildArrayLoop(e->e1);
-            Parameter *param = (*fparams)[0];
+            Parameter *param = (*fparams)[fparams->dim - 1];
             param->storageClass = 0;
             switch(e->op)
             {
@@ -498,11 +496,9 @@ Expression *buildArrayLoop(Expression *e, Parameters *fparams)
         {
             if (isBinArrayOp(e->op))
             {
-                /* Parameters are inserted in the head, so see e2 first, then see e1.
-                 */
                 BinExp *be = (BinExp *)e->copy();
-                be->e2 = buildArrayLoop(be->e2);
                 be->e1 = buildArrayLoop(be->e1);
+                be->e2 = buildArrayLoop(be->e2);
                 be->type = NULL;
                 result = be;
                 return;
