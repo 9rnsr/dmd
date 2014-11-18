@@ -2607,9 +2607,6 @@ public:
             if (exceptionOrCantInterpret(ex))
                 return;
 
-            // A tuple of assignments can contain void (Bug 5676).
-            if (goal == ctfeNeedNothing)
-                continue;
             if (ex->op == TOKvoidexp)
             {
                 e->error("ICE: void element %s in tuple", exp->toChars());
