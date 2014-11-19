@@ -34,6 +34,7 @@
 #include "ctfe.h"
 
 bool walkPostorder(Expression *e, StoppableVisitor *v);
+Expression *interpret(Statement *s, InterState *istate);
 
 #define LOG     0
 #define LOGASSIGN 0
@@ -979,7 +980,7 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
             e = CTFEExp::cantexp;
             break;
         }
-        e = fd->fbody->interpret(&istatex);
+        e = interpret(fd->fbody, &istatex);
         if (CTFEExp::isCantExp(e))
         {
 #if LOG
@@ -1154,10 +1155,7 @@ public:
         size_t dim = s->statements ? s->statements->dim : 0;
         for (size_t i = 0; i < dim; i++)
         {
-            Statement *sx = (*s->statements)[i];
-            if (!sx)
-                continue;
-            result = sx->interpret(istate);
+            result = interpret((*s->statements)[i], istate);
             if (result)
                 break;
         }
@@ -1183,11 +1181,7 @@ public:
         size_t dim = s->statements ? s->statements->dim : 0;
         for (size_t i = 0; i < dim; i++)
         {
-            Statement *sx = (*s->statements)[i];
-            if (!sx)
-                continue;
-
-            Expression *e = sx->interpret(istate);
+            Expression *e = interpret((*s->statements)[i], istate);
             if (!e) // suceeds to interpret, or gotoTarget was not fonnd (if istate->start != NULL)
                 continue;
             if (exceptionOrCantInterpret(e))
@@ -1229,11 +1223,9 @@ public:
             istate->start = NULL;
         if (istate->start)
         {
-            Expression *e = NULL;
-            if (s->ifbody)
-                e = s->ifbody->interpret(istate);
-            if (!e && istate->start && s->elsebody)
-                e = s->elsebody->interpret(istate);
+            Expression *e = interpret(s->ifbody, istate);
+            if (!e && istate->start)
+                e = interpret(s->elsebody, istate);
             result = e;
             return;
         }
@@ -1243,9 +1235,9 @@ public:
             return;
 
         if (isTrueBool(e))
-            result = s->ifbody ? s->ifbody->interpret(istate) : NULL;
+            result = interpret(s->ifbody, istate);
         else if (e->isBool(false))
-            result = s->elsebody ? s->elsebody->interpret(istate) : NULL;
+            result = interpret(s->elsebody, istate);
         else
         {
             // no error, or assert(0)?
@@ -1260,7 +1252,7 @@ public:
     #endif
         if (istate->start == s)
             istate->start = NULL;
-        result = s->statement ? s->statement->interpret(istate) : NULL;
+        result = interpret(s->statement, istate);
     }
 
     /**
@@ -1455,7 +1447,7 @@ public:
 
         while (1)
         {
-            Expression *e = s->body ? s->body->interpret(istate) : NULL;
+            Expression *e = interpret(s->body, istate);
             if (!e && istate->start)    // goto target was not found
                 return;
             assert(!istate->start);
@@ -1515,7 +1507,7 @@ public:
 
         if (s->init)
         {
-            Expression *e = s->init->interpret(istate);
+            Expression *e = interpret(s->init, istate);
             if (exceptionOrCantInterpret(e))
                 return;
             assert(!e); // never return or jump out from s->init
@@ -1532,7 +1524,7 @@ public:
                 assert(isTrueBool(e));
             }
 
-            Expression *e = s->body ? s->body->interpret(istate) : NULL;
+            Expression *e = interpret(s->body, istate);
             if (!e && istate->start)    // goto target was not found
                 return;
             assert(!istate->start);
@@ -1593,7 +1585,7 @@ public:
 
         if (istate->start)
         {
-            Expression *e = s->body ? s->body->interpret(istate) : NULL;
+            Expression *e = interpret(s->body, istate);
             if (istate->start)
                 return;
             if (exceptionOrCantInterpret(e))
@@ -1642,7 +1634,7 @@ public:
         /* Jump to scase
          */
         istate->start = scase;
-        Expression *e = s->body ? s->body->interpret(istate) : NULL;
+        Expression *e = interpret(s->body, istate);
         assert(!istate->start); // jump must succeed
         if (e && e->op == TOKbreak)
         {
@@ -1665,7 +1657,7 @@ public:
         if (istate->start == s)
             istate->start = NULL;
 
-        result = s->statement ? s->statement->interpret(istate) : NULL;
+        result = interpret(s->statement, istate);
     }
 
     void visit(DefaultStatement *s)
@@ -1676,7 +1668,7 @@ public:
         if (istate->start == s)
             istate->start = NULL;
 
-        result = s->statement ? s->statement->interpret(istate) : NULL;
+        result = interpret(s->statement, istate);
     }
 
     void visit(GotoStatement *s)
@@ -1726,7 +1718,7 @@ public:
         if (istate->start == s)
             istate->start = NULL;
 
-        result = s->statement ? s->statement->interpret(istate) : NULL;
+        result = interpret(s->statement, istate);
     }
 
     void visit(TryCatchStatement *s)
@@ -1738,16 +1730,13 @@ public:
             istate->start = NULL;
         if (istate->start)
         {
-            Expression *e = NULL;
-            if (s->body)
-                e = s->body->interpret(istate);
+            Expression *e = interpret(s->body, istate);
             for (size_t i = 0; i < s->catches->dim; i++)
             {
                 if (e || !istate->start)    // goto target was found
                     break;
                 Catch *ca = (*s->catches)[i];
-                if (ca->handler)
-                    e = ca->handler->interpret(istate);
+                e = interpret(ca->handler, istate);
             }
             result = e;
             return;
@@ -1776,7 +1765,7 @@ public:
 #endif
         }
 
-        Expression *e = s->body ? s->body->interpret(istate) : NULL;
+        Expression *e = interpret(s->body, istate);
 
         // An exception was thrown
         if (e && e->op == TOKthrownexception)
@@ -1798,7 +1787,7 @@ public:
                     ctfeStack.push(ca->var);
                     setValue(ca->var, ex->thrown);
                 }
-                e = ca->handler ? ca->handler->interpret(istate) : NULL;
+                e = interpret(ca->handler, istate);
                 break;
             }
         }
@@ -6318,9 +6307,11 @@ Expression *interpret(Expression *e, InterState *istate, CtfeGoal goal)
  *      TOKcantexp      cannot interpret statement at compile time
  *      !NULL   expression from return statement, or thrown exception
  */
-
 Expression *interpret(Statement *s, InterState *istate)
 {
+    if (!s)
+        return NULL;
+
     Interpreter v(istate, ctfeNeedNothing);
     s->accept(&v);
     return v.result;
