@@ -1965,29 +1965,30 @@ public:
         printf("type = %s\n", e->type->toChars());
         e->print();
     #endif
-        e->error("Cannot interpret %s at compile time", e->toChars());
+        global.gag = 0;
+        e->error("CTFE internal error: cannot interpret %s at compile time", e->toChars());
         result = CTFEExp::cantexp;
     }
 
     void visit(ThisExp *e)
     {
         Expression *localThis = ctfeStack.getThis();
-        if (localThis && localThis->op == TOKstructliteral)
-        {
-            result = localThis;
-            return;
-        }
         if (localThis)
         {
-            result = interpret(localThis, istate, goal);
+            if (localThis->op == TOKstructliteral)
+                result = localThis;
+            else
+                result = interpret(localThis, istate, goal);
             return;
         }
+        // checkRightThis in front-end should make here unreachable.
         e->error("value of 'this' is not known at compile time");
         result = CTFEExp::cantexp;
     }
 
     void visit(NullExp *e)
     {
+        //assert(goal == ctfeNeedRvalue);
         result = e;
     }
 
