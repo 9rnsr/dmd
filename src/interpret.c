@@ -2956,7 +2956,7 @@ public:
             }
             if (exceptionOrCantInterpret(result))
             {
-                result = CTFEExp::cantexp;
+                result = CTFEExp::cantexp;      // Q. why not bubbling up TOKthrownexception?
                 return;
             }
             result = new AddrExp(e->loc, copyLiteral(result));
@@ -5215,11 +5215,12 @@ public:
     #if LOG
         printf("%s DelegatePtrExp::interpret() %s\n", e->loc.toChars(), e->toChars());
     #endif
-        Expression *e1 = e->e1->interpret(istate);
-        assert(e1);
-        if (exceptionOrCantInterpret(e1))
+        Expression *ex1 = e->e1->interpret(istate);
+        assert(ex1);
+        if (exceptionOrCantInterpret(ex1))
             return;
 
+        // Not yet, but it could be supported in the future.
         e->error("%s cannot be evaluated at compile time", e->toChars());
         result = CTFEExp::cantexp;
     }
@@ -5229,11 +5230,12 @@ public:
     #if LOG
         printf("%s DelegateFuncptrExp::interpret() %s\n", e->loc.toChars(), e->toChars());
     #endif
-        Expression *e1 = e->e1->interpret(istate);
-        assert(e1);
-        if (exceptionOrCantInterpret(e1))
+        Expression *ex1 = e->e1->interpret(istate);
+        assert(ex1);
+        if (exceptionOrCantInterpret(ex1))
             return;
 
+        // Not yet, but it could be supported in the future.
         e->error("%s cannot be evaluated at compile time", e->toChars());
         result = CTFEExp::cantexp;
     }
@@ -5246,29 +5248,29 @@ public:
         if (e->e1->type->toBasetype()->ty == Tpointer)
         {
             // Indexing a pointer. Note that there is no $ in this case.
-            Expression *e1 = e->e1->interpret(istate);
-            if (exceptionOrCantInterpret(e1))
+            Expression *ex1 = e->e1->interpret(istate);
+            if (exceptionOrCantInterpret(ex1))
                 return;
 
-            Expression *e2 = e->e2->interpret(istate);
-            if (exceptionOrCantInterpret(e2))
+            Expression *ex2 = e->e2->interpret(istate);
+            if (exceptionOrCantInterpret(ex2))
                 return;
 
-            sinteger_t indx = e2->toInteger();
+            sinteger_t indx = ex2->toInteger();
 
             dinteger_t ofs;
-            Expression *agg = getAggregateFromPointer(e1, &ofs);
+            Expression *eaggr = getAggregateFromPointer(ex1, &ofs);
 
-            if (agg->op == TOKnull)
+            if (eaggr->op == TOKnull)
             {
                 e->error("cannot index null pointer %s", e->e1->toChars());
                 result = CTFEExp::cantexp;
                 return;
             }
-            if (agg->op == TOKarrayliteral || agg->op == TOKstring)
+            if (eaggr->op == TOKarrayliteral || eaggr->op == TOKstring)
             {
-                dinteger_t len = ArrayLength(Type::tsize_t, agg)->toInteger();
-                //Type *pointee = ((TypePointer *)agg->type)->next;
+                dinteger_t len = ArrayLength(Type::tsize_t, eaggr)->toInteger();
+                //Type *pointee = ((TypePointer *)eaggr->type)->next;
                 if ((sinteger_t)(indx + ofs) < 0 || (indx+ofs) > len)
                 {
                     e->error("pointer index [%lld] exceeds allocated memory block [0..%lld]",
@@ -5280,20 +5282,20 @@ public:
                 {
                     // if we need a reference, IndexExp shouldn't be interpreting
                     // the expression to a value, it should stay as a reference
-                    result = new IndexExp(e->loc, agg,
-                        ofs ? new IntegerExp(e->loc, indx + ofs, e2->type) : e2);
+                    result = new IndexExp(e->loc, eaggr,
+                        ofs ? new IntegerExp(e->loc, indx + ofs, ex2->type) : ex2);
                     result->type = e->type;
                     return;
                 }
-                result = ctfeIndex(e->loc, e->type, agg, indx+ofs);
+                result = ctfeIndex(e->loc, e->type, eaggr, indx+ofs);
                 return;
             }
             else
             {
                 // Pointer to a non-array variable
-                if (agg->op == TOKsymoff)
+                if (eaggr->op == TOKsymoff)
                 {
-                    e->error("mutable variable %s cannot be read at compile time, even through a pointer", ((SymOffExp *)agg)->var->toChars());
+                    e->error("mutable variable %s cannot be read at compile time, even through a pointer", ((SymOffExp *)eaggr)->var->toChars());
                     result = CTFEExp::cantexp;
                     return;
                 }
@@ -5306,10 +5308,10 @@ public:
                 }
                 if (goal == ctfeNeedLvalueRef)
                 {
-                    result = paintTypeOntoLiteral(e->type, agg);
+                    result = paintTypeOntoLiteral(e->type, eaggr);
                     return;
                 }
-                result = agg->interpret(istate);
+                result = eaggr->interpret(istate);
                 return;
             }
         }
