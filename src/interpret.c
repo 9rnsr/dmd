@@ -1375,6 +1375,26 @@ public:
         result = e;
     }
 
+    static Statement *findGotoTarget(InterState *istate, Identifier *ident)
+    {
+        Statement *target = NULL;
+        if (ident)
+        {
+            LabelDsymbol *label = istate->fd->searchLabel(ident);
+            assert(label && label->statement);
+            LabelStatement *ls = label->statement;
+            if (ls->gotoTarget)
+                target = ls->gotoTarget;
+            else
+            {
+                target = ls->statement;
+                if (target->isScopeStatement())     // redundant?
+                    target = target->isScopeStatement()->statement;
+            }
+        }
+        return target;
+    }
+
     void visit(BreakStatement *s)
     {
     #if LOG
@@ -1383,30 +1403,8 @@ public:
         if (skipForJump(s))
             return;
 
-        if (s->ident)
-        {
-            LabelDsymbol *label = istate->fd->searchLabel(s->ident);
-            assert(label && label->statement);
-            LabelStatement *ls = label->statement;
-            Statement *target;
-            if (ls->gotoTarget)
-                target = ls->gotoTarget;
-            else
-            {
-                target = ls->statement;
-                if (target->isScopeStatement())
-                    target = target->isScopeStatement()->statement;
-            }
-            istate->gotoTarget = target;
-            result = CTFEExp::breakexp;
-            return;
-        }
-        else
-        {
-            istate->gotoTarget = NULL;
-            result = CTFEExp::breakexp;
-            return;
-        }
+        istate->gotoTarget = findGotoTarget(istate, s->ident);
+        result = CTFEExp::breakexp;
     }
 
     void visit(ContinueStatement *s)
@@ -1417,29 +1415,8 @@ public:
         if (skipForJump(s))
             return;
 
-        if (s->ident)
-        {
-            LabelDsymbol *label = istate->fd->searchLabel(s->ident);
-            assert(label && label->statement);
-            LabelStatement *ls = label->statement;
-            Statement *target;
-            if (ls->gotoTarget)
-                target = ls->gotoTarget;
-            else
-            {
-                target = ls->statement;
-                if (target->isScopeStatement())
-                    target = target->isScopeStatement()->statement;
-            }
-            istate->gotoTarget = target;
-            result = CTFEExp::continueexp;
-            return;
-        }
-        else
-        {
-            result = CTFEExp::continueexp;
-            return;
-        }
+        istate->gotoTarget = findGotoTarget(istate, s->ident);
+        result = CTFEExp::continueexp;
     }
 
     void visit(WhileStatement *s)
