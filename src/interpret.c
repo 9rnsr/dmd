@@ -4604,7 +4604,7 @@ public:
      *  relational sub-expressions can be negated, eg
      *  (!(q1 < p1) && p2 <= q2) is valid.
      */
-    void interpretFourPointerRelation(BinExp *e)
+    static Expression *interpretFourPointerRelation(BinExp *e, InterState *istate)
     {
         assert(e->op == TOKandand || e->op == TOKoror);
 
@@ -4621,20 +4621,17 @@ public:
         int dir1 = isPointerCmpExp(e->e1, &p1, &p2);
         int dir2 = isPointerCmpExp(e->e2, &p3, &p4);
         if (dir1 == 0 || dir2 == 0)
-        {
-            result = NULL;
-            return;
-        }
+            return NULL;
 
         //printf("FourPointerRelation %s\n", toChars());
 
         // Evaluate the first two pointers
         p1 = p1->interpret(istate);
-        if (exceptionOrCantInterpret(p1))
-            return;
+        if (::exceptionOrCantInterpret(p1))
+            return p1;
         p2 = p2->interpret(istate);
-        if (exceptionOrCantInterpret(p2))
-            return;
+        if (::exceptionOrCantInterpret(p2))
+            return p2;
 
         dinteger_t ofs1, ofs2;
         Expression *agg1 = getAggregateFromPointer(p1, &ofs1);
@@ -4648,7 +4645,7 @@ public:
             // or an IsInside comparison returning false.
             p3 = p3->interpret(istate);
             if (CTFEExp::isCantExp(p3))
-                return;
+                return p3;
 
             // Note that it is NOT legal for it to throw an exception!
             Expression *except = NULL;
@@ -4658,10 +4655,7 @@ public:
             {
                 p4 = p4->interpret(istate);
                 if (CTFEExp::isCantExp(p4))
-                {
-                    result = p4;
-                    return;
-                }
+                    return p4;
                 if (::exceptionOrCantInterpret(p4))
                     except = p4;
             }
@@ -4671,8 +4665,7 @@ public:
                      "indeterminate at compile time "
                      "because exception %s was thrown while evaluating %s",
                      e->e1->toChars(), except->toChars(), e->e2->toChars());
-                result = CTFEExp::cantexp;
-                return;
+                return CTFEExp::cantexp;
             }
 
             dinteger_t ofs3,ofs4;
@@ -4686,8 +4679,7 @@ public:
                 (dir1 != dir2 && pointToSameMemoryBlock(agg1, agg3) && pointToSameMemoryBlock(agg2, agg4)))
             {
                 // it's a legal two-sided comparison
-                result = new IntegerExp(e->loc, (e->op == TOKandand) ?  0 : 1, e->type);
-                return;
+                return new IntegerExp(e->loc, (e->op == TOKandand) ?  0 : 1, e->type);
             }
 
             // It's an invalid four-pointer comparison. Either the second
@@ -4697,8 +4689,7 @@ public:
             e->error("Comparison %s of pointers to unrelated memory blocks is "
                 "indeterminate at compile time, even when combined with %s.",
                 e->e1->toChars(), e->e2->toChars());
-            result = CTFEExp::cantexp;
-            return;
+            return CTFEExp::cantexp;
         }
 
         // The first pointer expression didn't need special treatment, so we
@@ -4722,11 +4713,10 @@ public:
         assert(cmp >= 0);
         if ((e->op == TOKandand && cmp == 1) || (e->op == TOKoror && cmp == 0))
         {
-            result = e->e2->interpret(istate);
-            return;
+            return e->e2->interpret(istate);
         }
 
-        result = new IntegerExp(e->loc, (e->op == TOKandand) ? 0 : 1, e->type);
+        return new IntegerExp(e->loc, (e->op == TOKandand) ? 0 : 1, e->type);
     }
 
     void visit(AndAndExp *e)
@@ -4736,7 +4726,7 @@ public:
     #endif
 
         // Check for an insidePointer expression, evaluate it if so
-        interpretFourPointerRelation(e);
+        result = interpretFourPointerRelation(e, istate);
         if (result)
             return;
 
@@ -4787,7 +4777,7 @@ public:
     #endif
 
         // Check for an insidePointer expression, evaluate it if so
-        interpretFourPointerRelation(e);
+        result = interpretFourPointerRelation(e, istate);
         if (result)
             return;
 
