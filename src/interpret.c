@@ -838,7 +838,6 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
     if (fd->isNested() && fd->toParent2()->isFuncDeclaration() && !thisarg && istate)
         thisarg = ctfeStack.getThis();
 
-    size_t dim = 0;
     if (fd->needThis() && !thisarg)
     {
         // error, no this. Prevent segfault.
@@ -851,127 +850,113 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
         if (CTFEExp::isCantExp(thisarg->interpret(istate)))
             return CTFEExp::cantexp;
     }
-    static int evaluatingArgs = 0;
 
     // Place to hold all the arguments to the function while
     // we are evaluating them.
     Expressions eargs;
+    size_t dim = arguments ? arguments->dim : 0;
+    assert((fd->parameters ? fd->parameters->dim : 0) == dim);
 
-    if (arguments)
+    /* Evaluate all the arguments to the function,
+     * store the results in eargs[]
+     */
+    eargs.setDim(dim);
+    for (size_t i = 0; i < dim; i++)
     {
-        dim = arguments->dim;
-        assert(!dim || (fd->parameters && (fd->parameters->dim == dim)));
+        Expression *earg = (*arguments)[i];
+        Parameter *fparam = Parameter::getNth(tf->parameters, i);
 
-        /* Evaluate all the arguments to the function,
-         * store the results in eargs[]
-         */
-        eargs.setDim(dim);
-        for (size_t i = 0; i < dim; i++)
+        if (fparam->storageClass & (STCout | STCref))
         {
-            Expression *earg = (*arguments)[i];
-            Parameter *arg = Parameter::getNth(tf->parameters, i);
-
-            if (arg->storageClass & (STCout | STCref))
+            if (!istate && (fparam->storageClass & STCout))
             {
-                if (!istate && (arg->storageClass & STCout))
-                {
-                    // initializing an out parameter involves writing to it.
-                    earg->error("global %s cannot be passed as an 'out' parameter at compile time", earg->toChars());
-                    return CTFEExp::cantexp;
-                }
-                // Convert all reference arguments into lvalue references
-                ++evaluatingArgs;
-                earg = earg->interpret(istate, ctfeNeedLvalueRef);
-                --evaluatingArgs;
-                if (CTFEExp::isCantExp(earg))
-                    return earg;
-            }
-            else if (arg->storageClass & STClazy)
-            {
-            }
-            else
-            {
-                /* Value parameters
-                 */
-                Type *ta = arg->type->toBasetype();
-                if (ta->ty == Tsarray && earg->op == TOKaddress)
-                {
-                    /* Static arrays are passed by a simple pointer.
-                     * Skip past this to get at the actual arg.
-                     */
-                    earg = ((AddrExp *)earg)->e1;
-                }
-                ++evaluatingArgs;
-                earg = earg->interpret(istate);
-                --evaluatingArgs;
-                if (CTFEExp::isCantExp(earg))
-                    return earg;
-                /* Struct literals are passed by value, but we don't need to
-                 * copy them if they are passed as const
-                 */
-                if (earg->op == TOKstructliteral && !(arg->storageClass & (STCconst | STCimmutable)))
-                    earg = copyLiteral(earg);
-            }
-            if (earg->op == TOKthrownexception)
-            {
-                if (istate)
-                    return earg;
-                ((ThrownExceptionExp *)earg)->generateUncaughtError();
+                // initializing an out parameter involves writing to it.
+                earg->error("global %s cannot be passed as an 'out' parameter at compile time", earg->toChars());
                 return CTFEExp::cantexp;
             }
-            eargs[i] = earg;
+            // Convert all reference arguments into lvalue references
+            earg = earg->interpret(istate, ctfeNeedLvalueRef);
+            if (CTFEExp::isCantExp(earg))
+                return earg;
         }
+        else if (fparam->storageClass & STClazy)
+        {
+        }
+        else
+        {
+            /* Value parameters
+             */
+            Type *ta = fparam->type->toBasetype();
+            if (ta->ty == Tsarray && earg->op == TOKaddress)
+            {
+                /* Static arrays are passed by a simple pointer.
+                 * Skip past this to get at the actual arg.
+                 */
+                earg = ((AddrExp *)earg)->e1;
+            }
+            earg = earg->interpret(istate);
+            if (CTFEExp::isCantExp(earg))
+                return earg;
+            /* Struct literals are passed by value, but we don't need to
+             * copy them if they are passed as const
+             */
+            if (earg->op == TOKstructliteral && !(fparam->storageClass & (STCconst | STCimmutable)))
+                earg = copyLiteral(earg);
+        }
+        if (earg->op == TOKthrownexception)
+        {
+            if (istate)
+                return earg;
+            ((ThrownExceptionExp *)earg)->generateUncaughtError();
+            return CTFEExp::cantexp;
+        }
+        eargs[i] = earg;
     }
 
     // Now that we've evaluated all the arguments, we can start the frame
     // (this is the moment when the 'call' actually takes place).
-
     InterState istatex;
     istatex.caller = istate;
     istatex.fd = fd;
     ctfeStack.startFrame(thisarg);
 
-    if (arguments)
+    for (size_t i = 0; i < dim; i++)
     {
-
-        for (size_t i = 0; i < dim; i++)
-        {
-            Expression *earg = eargs[i];
-            Parameter *arg = Parameter::getNth(tf->parameters, i);
-            VarDeclaration *v = (*fd->parameters)[i];
+        Expression *earg = eargs[i];
+        Parameter *fparam = Parameter::getNth(tf->parameters, i);
+        VarDeclaration *v = (*fd->parameters)[i];
 #if LOG
-            printf("arg[%d] = %s\n", i, earg->toChars());
+        printf("arg[%d] = %s\n", i, earg->toChars());
 #endif
-            if (arg->storageClass & (STCout | STCref) && earg->op == TOKvar)
+        if ((fparam->storageClass & (STCout | STCref)) && earg->op == TOKvar)
+        {
+            VarExp *ve = (VarExp *)earg;
+            VarDeclaration *v2 = ve->var->isVarDeclaration();
+            if (!v2)
             {
-                VarExp *ve = (VarExp *)earg;
-                VarDeclaration *v2 = ve->var->isVarDeclaration();
-                if (!v2)
-                {
-                    fd->error("cannot interpret %s as a ref parameter", ve->toChars());
-                    return CTFEExp::cantexp;
-                }
-                /* The push() isn't a variable we'll use, it's just a place
-                 * to save the old value of v.
-                 * Note that v might be v2! So we need to save v2's index
-                 * before pushing.
-                 */
-                int oldadr = v2->ctfeAdrOnStack;
-                ctfeStack.push(v);
-                v->ctfeAdrOnStack = oldadr;
-                assert(hasValue(v2));
+                fd->error("cannot interpret %s as a ref parameter", ve->toChars());
+                return CTFEExp::cantexp;
             }
-            else
-            {
-                // Value parameters and non-trivial references
-                ctfeStack.push(v);
-                setValueWithoutChecking(v, earg);
-            }
-#if LOG || LOGASSIGN
-            printf("interpreted arg[%d] = %s\n", i, earg->toChars());
-            showCtfeExpr(earg);
-#endif
+            /* The push() isn't a variable we'll use, it's just a place
+             * to save the old value of v.
+             * Note that v might be v2! So we need to save v2's index
+             * before pushing.
+             */
+            int oldadr = v2->ctfeAdrOnStack;
+            ctfeStack.push(v);
+            v->ctfeAdrOnStack = oldadr;
+            assert(hasValue(v2));
         }
+        else
+        {
+            // Value parameters and non-trivial references
+            ctfeStack.push(v);
+            setValueWithoutChecking(v, earg);
+        }
+#if LOG || LOGASSIGN
+        printf("interpreted arg[%d] = %s\n", i, earg->toChars());
+        showCtfeExpr(earg);
+#endif
     }
 
     if (fd->vresult)
@@ -1149,18 +1134,16 @@ public:
         if (istate->start == s)
             istate->start = NULL;
         Expression *e = NULL;
-        if (s->statements)
+
+        size_t dim = s->statements ? s->statements->dim : 0;
+        for (size_t i = 0; i < dim; i++)
         {
-            for (size_t i = 0; i < s->statements->dim; i++)
-            {
-                Statement *sx = (*s->statements)[i];
-                if (sx)
-                {
-                    e = sx->interpret(istate);
-                    if (e)
-                        break;
-                }
-            }
+            Statement *sx = (*s->statements)[i];
+            if (!sx)
+                continue;
+            e = sx->interpret(istate);
+            if (e)
+                break;
         }
     #if LOG
         printf("%s -CompoundStatement::interpret() %p\n", s->loc.toChars(), e);
@@ -1176,35 +1159,33 @@ public:
         if (istate->start == s)
             istate->start = NULL;
         Expression *e = NULL;
-        if (s->statements)
+        size_t dim = s->statements ? s->statements->dim : 0;
+        for (size_t i = 0; i < dim; i++)
         {
-            for (size_t i = 0; i < s->statements->dim; i++)
-            {
-                Statement *sx = (*s->statements)[i];
+            Statement *sx = (*s->statements)[i];
 
-                e = sx->interpret(istate);
-                if (CTFEExp::isCantExp(e))
-                    break;
-                if (e && e->op == TOKcontinue)
+            e = sx->interpret(istate);
+            if (CTFEExp::isCantExp(e))
+                break;
+            if (e && e->op == TOKcontinue)
+            {
+                if (istate->gotoTarget && istate->gotoTarget != s)
+                    break; // continue at higher level
+                istate->gotoTarget = NULL;
+                e = NULL;
+                continue;
+            }
+            if (e && e->op == TOKbreak)
+            {
+                if (!istate->gotoTarget || istate->gotoTarget == s)
                 {
-                    if (istate->gotoTarget && istate->gotoTarget != s)
-                        break; // continue at higher level
                     istate->gotoTarget = NULL;
                     e = NULL;
-                    continue;
-                }
-                if (e && e->op == TOKbreak)
-                {
-                    if (!istate->gotoTarget || istate->gotoTarget == s)
-                    {
-                        istate->gotoTarget = NULL;
-                        e = NULL;
-                    } // else break at a higher level
-                    break;
-                }
-                if (e)
-                    break;
+                } // else break at a higher level
+                break;
             }
+            if (e)
+                break;
         }
         result = e;
     }
@@ -1214,7 +1195,6 @@ public:
     #if LOG
         printf("%s IfStatement::interpret(%s)\n", s->loc.toChars(), s->condition->toChars());
     #endif
-
         if (istate->start == s)
             istate->start = NULL;
         if (istate->start)
@@ -1232,17 +1212,16 @@ public:
 
         Expression *e = s->condition->interpret(istate);
         assert(e);
-        //if (CTFEExp::isCantExp(e)) printf("cannot interpret\n");
-        if (!CTFEExp::isCantExp(e) && (e && e->op != TOKthrownexception))
+        if (exceptionOrCantInterpret(e))
+            return;
+
+        if (isTrueBool(e))
+            e = s->ifbody ? s->ifbody->interpret(istate) : NULL;
+        else if (e->isBool(false))
+            e = s->elsebody ? s->elsebody->interpret(istate) : NULL;
+        else
         {
-            if (isTrueBool(e))
-                e = s->ifbody ? s->ifbody->interpret(istate) : NULL;
-            else if (e->isBool(false))
-                e = s->elsebody ? s->elsebody->interpret(istate) : NULL;
-            else
-            {
-                e = CTFEExp::cantexp;
-            }
+            e = CTFEExp::cantexp;
         }
         result = e;
     }
@@ -1349,51 +1328,40 @@ public:
             result = CTFEExp::voidexp;
             return;
         }
-        assert(istate && istate->fd && istate->fd->type);
+
+        assert(istate && istate->fd && istate->fd->type && istate->fd->type->ty == Tfunction);
+        TypeFunction *tf = (TypeFunction *)istate->fd->type;
+        //assert(tf->next);   // must be guaranteed before CTFE starting
 
         /* If the function returns a ref AND it's been called from an assignment,
          * we need to return an lvalue. Otherwise, just do an (rvalue) interpret.
          */
-        if (istate->fd->type && istate->fd->type->ty == Tfunction)
+        if (tf->isref && istate->caller && istate->caller->awaitingLvalueReturn)    // WANT: simplify and remove istate::awaitingLvalueReturn flag
         {
-            TypeFunction *tf = (TypeFunction *)istate->fd->type;
-            if (tf->isref && istate->caller && istate->caller->awaitingLvalueReturn)
-            {
-                // We need to return an lvalue
-                Expression *e = s->exp->interpret(istate, ctfeNeedLvalueRef);
-                if (CTFEExp::isCantExp(e))
-                    s->error("ref return %s is not yet supported in CTFE", s->exp->toChars());
-                result = e;
-                return;
-            }
-            if (tf->next && (tf->next->ty == Tdelegate) && istate->fd->closureVars.dim > 0)
-            {
-                // To support this, we need to copy all the closure vars
-                // into the delegate literal.
-                s->error("closures are not yet supported in CTFE");
-                result = CTFEExp::cantexp;
-                return;
-            }
+            // We need to return an lvalue
+            Expression *e = s->exp->interpret(istate, ctfeNeedLvalueRef);
+            if (CTFEExp::isCantExp(e))
+                s->error("ref return %s is not yet supported in CTFE", s->exp->toChars());
+            result = e;
+            return;
+        }
+        if (tf->next && tf->next->ty == Tdelegate && istate->fd->closureVars.dim > 0)
+        {
+            // To support this, we need to copy all the closure vars
+            // into the delegate literal.
+            s->error("closures are not yet supported in CTFE");
+            result = CTFEExp::cantexp;
+            return;
         }
 
         // We need to treat pointers specially, because TOKsymoff can be used to
         // return a value OR a pointer
-        Expression *e;
-        if (isPointer(s->exp->type))
-        {
-            e = s->exp->interpret(istate, ctfeNeedLvalue);
-            if (exceptionOrCantInterpret(e))
-                return;
-        }
-        else
-        {
-            e = s->exp->interpret(istate);
-            if (exceptionOrCantInterpret(e))
-                return;
-        }
+        CtfeGoal retGoal = isPointer(s->exp->type) ? ctfeNeedLvalue : ctfeNeedRvalue;
+        Expression *e = s->exp->interpret(istate, retGoal);
+        if (exceptionOrCantInterpret(e))
+            return;
 
         // Disallow returning pointers to stack-allocated variables (bug 7876)
-
         if (!stopPointersEscaping(s->loc, e))
         {
             result = CTFEExp::cantexp;
@@ -1704,8 +1672,8 @@ public:
     #endif
         if (istate->start == s)
             istate->start = NULL;
-        if (s->statement)
-            result = s->statement->interpret(istate);
+
+        result = s->statement ? s->statement->interpret(istate) : NULL;
     }
 
     void visit(DefaultStatement *s)
@@ -1715,8 +1683,8 @@ public:
     #endif
         if (istate->start == s)
             istate->start = NULL;
-        if (s->statement)
-            result = s->statement->interpret(istate);
+
+        result = s->statement ? s->statement->interpret(istate) : NULL;
     }
 
     void visit(GotoStatement *s)
@@ -1777,6 +1745,7 @@ public:
     #endif
         if (istate->start == s)
             istate->start = NULL;
+
         result = s->statement ? s->statement->interpret(istate) : NULL;
     }
 
