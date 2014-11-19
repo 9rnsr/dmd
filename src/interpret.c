@@ -315,6 +315,7 @@ struct CompiledCtfeFunction
                     return;
                 }
 
+                global.gag = 0;
                 ::error(e->loc, "CTFE internal error: ErrorExp in %s\n", ccf->func ? ccf->func->loc.toChars() : ccf->callingloc.toChars());
                 assert(0);
             }
@@ -1098,7 +1099,7 @@ public:
         //if (skipForJump(s))
         //    return;
 
-        s->error("Statement %s cannot be interpreted at compile time", s->toChars());
+        s->error("CTFE internal error: statement %s cannot be interpreted at compile time", s->toChars());
         result = CTFEExp::cantexp;
     }
 
@@ -2335,7 +2336,8 @@ public:
                     if (v->init->isVoidInitializer())
                     {
                         // var should have been initialized when it was created
-                        error(loc, "CTFE internal error - trying to access uninitialized var");
+                        global.gag = 0;
+                        error(loc, "CTFE internal error: trying to access uninitialized var");
                         assert(0);
                         e = CTFEExp::cantexp;
                     }
@@ -3844,7 +3846,7 @@ public:
                 // In-place modification
                 if (newval->op != TOKstructliteral)
                 {
-                    e->error("CTFE internal error assigning struct");
+                    e->error("CTFE internal error: assigning struct");
                     result = CTFEExp::cantexp;
                     return;
                 }
@@ -5225,21 +5227,23 @@ public:
     #if LOG
         printf("%s ArrayLengthExp::interpret() %s\n", e->loc.toChars(), e->toChars());
     #endif
-        Expression *e1 = e->e1->interpret(istate);
-        assert(e1);
-        if (exceptionOrCantInterpret(e1))
+        Expression *ex1 = e->e1->interpret(istate);
+        assert(ex1);
+        if (exceptionOrCantInterpret(ex1))
             return;
 
-        if (e1->op == TOKstring || e1->op == TOKarrayliteral || e1->op == TOKslice ||
-            e1->op == TOKassocarrayliteral || e1->op == TOKnull)
+        if (!(ex1->op == TOKstring ||
+              ex1->op == TOKarrayliteral ||
+              ex1->op == TOKslice ||
+              ex1->op == TOKassocarrayliteral ||
+              ex1->op == TOKnull))
         {
-            result = new IntegerExp(e->loc, resolveArrayLength(e1), e->type);
-        }
-        else
-        {
-            e->error("%s cannot be evaluated at compile time", e->toChars());
+            e->error("CTFE internal error: %s cannot be evaluated at compile time", e->toChars());
             result = CTFEExp::cantexp;
+            return;
         }
+        result = new IntegerExp(e->loc, resolveArrayLength(ex1), e->type);
+        return;
     }
 
     void visit(DelegatePtrExp *e)
@@ -5988,7 +5992,7 @@ public:
                 }
                 if (result->op != TOKclassreference)
                 {
-                    e->error("CTFE internal error determining classinfo");
+                    e->error("CTFE internal error: determining classinfo");
                     result = CTFEExp::cantexp;
                     return;
                 }
