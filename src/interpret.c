@@ -1068,6 +1068,15 @@ public:
         result = NULL;
     }
 
+    bool skipForJump(Statement *s)
+    {
+        if (istate->start == s)
+            istate->start = NULL;
+        if (istate->start)
+            return true;
+        return false;
+    }
+
     // helper method
     bool exceptionOrCantInterpret(Expression *e)
     {
@@ -1086,12 +1095,8 @@ public:
     #if LOG
         printf("%s Statement::interpret()\n", s->loc.toChars());
     #endif
-        if (istate->start)
-        {
-            if (istate->start != s)
-                return;
-            istate->start = NULL;
-        }
+        //if (skipForJump(s))
+        //    return;
 
         s->error("Statement %s cannot be interpreted at compile time", s->toChars());
         result = CTFEExp::cantexp;
@@ -1102,12 +1107,8 @@ public:
     #if LOG
         printf("%s ExpStatement::interpret(%s)\n", s->loc.toChars(), s->exp ? s->exp->toChars() : "");
     #endif
-        if (istate->start)
-        {
-            if (istate->start != s)
-                return;
-            istate->start = NULL;
-        }
+        if (skipForJump(s))
+            return;
 
         if (s->exp)
         {
@@ -1316,12 +1317,8 @@ public:
     #if LOG
         printf("%s ReturnStatement::interpret(%s)\n", s->loc.toChars(), s->exp ? s->exp->toChars() : "");
     #endif
-        if (istate->start)
-        {
-            if (istate->start != s)
-                return;
-            istate->start = NULL;
-        }
+        if (skipForJump(s))
+            return;
 
         if (!s->exp)
         {
@@ -1382,12 +1379,8 @@ public:
     #if LOG
         printf("%s BreakStatement::interpret()\n", s->loc.toChars());
     #endif
-        if (istate->start)
-        {
-            if (istate->start != s)
-                return;
-            istate->start = NULL;
-        }
+        if (skipForJump(s))
+            return;
 
         if (s->ident)
         {
@@ -1420,12 +1413,8 @@ public:
     #if LOG
         printf("%s ContinueStatement::interpret()\n", s->loc.toChars());
     #endif
-        if (istate->start)
-        {
-            if (istate->start != s)
-                return;
-            istate->start = NULL;
-        }
+        if (skipForJump(s))
+            return;
 
         if (s->ident)
         {
@@ -1692,12 +1681,8 @@ public:
     #if LOG
         printf("%s GotoStatement::interpret()\n", s->loc.toChars());
     #endif
-        if (istate->start)
-        {
-            if (istate->start != s)
-                return;
-            istate->start = NULL;
-        }
+        if (skipForJump(s))
+            return;
 
         assert(s->label && s->label->statement);
         istate->gotoTarget = s->label->statement;
@@ -1709,12 +1694,8 @@ public:
     #if LOG
         printf("%s GotoCaseStatement::interpret()\n", s->loc.toChars());
     #endif
-        if (istate->start)
-        {
-            if (istate->start != s)
-                return;
-            istate->start = NULL;
-        }
+        if (skipForJump(s))
+            return;
 
         assert(s->cs);
         istate->gotoTarget = s->cs;
@@ -1726,12 +1707,8 @@ public:
     #if LOG
         printf("%s GotoDefaultStatement::interpret()\n", s->loc.toChars());
     #endif
-        if (istate->start)
-        {
-            if (istate->start != s)
-                return;
-            istate->start = NULL;
-        }
+        if (skipForJump(s))
+            return;
 
         assert(s->sw && s->sw->sdefault);
         istate->gotoTarget = s->sw->sdefault;
@@ -1900,12 +1877,8 @@ public:
     #if LOG
         printf("%s ThrowStatement::interpret()\n", s->loc.toChars());
     #endif
-        if (istate->start)
-        {
-            if (istate->start != s)
-                return;
-            istate->start = NULL;
-        }
+        if (skipForJump(s))
+            return;
 
         Expression *e = s->exp->interpret(istate);
         if (exceptionOrCantInterpret(e))
@@ -1978,12 +1951,8 @@ public:
     #if LOG
         printf("%s AsmStatement::interpret()\n", s->loc.toChars());
     #endif
-        if (istate->start)
-        {
-            if (istate->start != s)
-                return;
-            istate->start = NULL;
-        }
+        if (skipForJump(s))
+            return;
 
         s->error("asm statements cannot be interpreted at compile time");
         result = CTFEExp::cantexp;
@@ -1994,12 +1963,8 @@ public:
     #if LOG
         printf("ImportStatement::interpret()\n");
     #endif
-        if (istate->start)
-        {
-            if (istate->start != s)
-                return;
-            istate->start = NULL;
-        }
+        if (skipForJump(s))
+            return;
     }
 
     /******************************** Expression ***************************/
