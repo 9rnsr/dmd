@@ -114,7 +114,8 @@ Expression *ctfeInterpretForPragmaMsg(Expression *e);
 /* Interpreter: what form of return value expression is required?
  */
 enum CtfeGoal
-{   ctfeNeedRvalue,   // Must return an Rvalue
+{
+    ctfeNeedRvalue,   // Must return an Rvalue
     ctfeNeedLvalue,   // Must return an Lvalue
     ctfeNeedAnyValue, // Can return either an Rvalue or an Lvalue
     ctfeNeedLvalueRef,// Must return a reference to an Lvalue (for ref types)

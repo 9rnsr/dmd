@@ -444,7 +444,7 @@ uinteger_t resolveArrayLength(Expression *e)
     if (e->op == TOKassocarrayliteral)
     {
         AssocArrayLiteralExp *ale = (AssocArrayLiteralExp *)e;
-        return ale->keys->dim;
+        return ale->keys ? ale->keys->dim : 0;
     }
     assert(0);
     return 0;

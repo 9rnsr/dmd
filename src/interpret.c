@@ -1297,14 +1297,15 @@ public:
         }
         if (e->op == TOKarrayliteral)
         {
-            return stopPointersEscapingFromArray(loc, ((ArrayLiteralExp *)e)->elements);
+            ArrayLiteralExp *ale = (ArrayLiteralExp *)e;
+            return stopPointersEscapingFromArray(loc, ale->elements);
         }
         if (e->op == TOKassocarrayliteral)
         {
-            AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)e;
-            if (!stopPointersEscapingFromArray(loc, aae->keys))
+            AssocArrayLiteralExp *aale = (AssocArrayLiteralExp *)e;
+            if (!stopPointersEscapingFromArray(loc, aale->keys))
                 return false;
-            return stopPointersEscapingFromArray(loc, aae->values);
+            return stopPointersEscapingFromArray(loc, aale->values);
         }
         return true;
     }
@@ -6554,9 +6555,7 @@ public:
     void visit(ThrownExceptionExp *e)
     {
         assert(0); // This should never be interpreted
-        result = e;
     }
-
 };
 
 Expression *interpret(Expression *e, InterState *istate, CtfeGoal goal)
