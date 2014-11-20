@@ -1320,10 +1320,10 @@ public:
         }
         if (e->op == TOKassocarrayliteral)
         {
-            AssocArrayLiteralExp *aale = (AssocArrayLiteralExp *)e;
-            if (!stopPointersEscapingFromArray(loc, aale->keys))
+            AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)e;
+            if (!stopPointersEscapingFromArray(loc, aae->keys))
                 return false;
-            return stopPointersEscapingFromArray(loc, aale->values);
+            return stopPointersEscapingFromArray(loc, aae->values);
         }
         return true;
     }
@@ -6474,9 +6474,9 @@ Expression *interpret_length(InterState *istate, Expression *earg)
     dinteger_t len = 0;
     if (earg->op == TOKassocarrayliteral)
         len = ((AssocArrayLiteralExp *)earg)->keys->dim;
-    else assert(earg->op == TOKnull);
-    Expression *e = new IntegerExp(earg->loc, len, Type::tsize_t);
-    return e;
+    else
+        assert(earg->op == TOKnull);
+    return new IntegerExp(earg->loc, len, Type::tsize_t);
 }
 
 Expression *interpret_keys(InterState *istate, Expression *earg, Type *returnType)
@@ -6874,21 +6874,21 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     }
     if (!pthis)
     {
-        Expression *firstarg =  nargs > 0 ? (Expression *)(arguments->data[0]) : NULL;
+        Expression *firstarg =  nargs > 0 ? (*arguments)[0] : NULL;
         if (firstarg && firstarg->type->toBasetype()->ty == Taarray)
         {
             TypeAArray *firstAAtype = (TypeAArray *)firstarg->type;
-            if (fd->ident == Id::aaLen && nargs == 1)
+            if (nargs == 1 && fd->ident == Id::aaLen)
                 return interpret_length(istate, firstarg);
-            else if (nargs == 3 && !strcmp(fd->ident->string, "_aaApply"))
+            if (nargs == 3 && !strcmp(fd->ident->string, "_aaApply"))
                 return interpret_aaApply(istate, firstarg, (Expression *)(arguments->data[2]));
-            else if (nargs == 3 && !strcmp(fd->ident->string, "_aaApply2"))
+            if (nargs == 3 && !strcmp(fd->ident->string, "_aaApply2"))
                 return interpret_aaApply(istate, firstarg, (Expression *)(arguments->data[2]));
-            else if (nargs == 1 && !strcmp(fd->ident->string, "keys") && !strcmp(fd->toParent2()->ident->string, "object"))
+            if (nargs == 1 && !strcmp(fd->ident->string, "keys") && !strcmp(fd->toParent2()->ident->string, "object"))
                 return interpret_keys(istate, firstarg, firstAAtype->index->arrayOf());
-            else if (nargs == 1 && !strcmp(fd->ident->string, "values") && !strcmp(fd->toParent2()->ident->string, "object"))
+            if (nargs == 1 && !strcmp(fd->ident->string, "values") && !strcmp(fd->toParent2()->ident->string, "object"))
                 return interpret_values(istate, firstarg, firstAAtype->nextOf()->arrayOf());
-            else if (nargs == 1 && !strcmp(fd->ident->string, "rehash") && !strcmp(fd->toParent2()->ident->string, "object"))
+            if (nargs == 1 && !strcmp(fd->ident->string, "rehash") && !strcmp(fd->toParent2()->ident->string, "object"))
                 return interpret(firstarg, istate, ctfeNeedLvalue);
         }
     }
