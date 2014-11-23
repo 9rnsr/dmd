@@ -2038,6 +2038,8 @@ bool isCtfeValueValid(Expression *newval)
     }
     if (newval->op == TOKclassreference || (newval->op == TOKnull && newval->type->ty == Tclass))
         return true;
+    if (newval->op == TOKthis)
+        return true;
     if (newval->op == TOKvar)
     {
         VarExp *ve = (VarExp *)newval;

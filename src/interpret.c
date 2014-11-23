@@ -938,6 +938,13 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
     istatex.caller = istate;
     istatex.fd = fd;
     ctfeStack.startFrame(thisarg);
+    if (fd->vthis)
+    {
+        ctfeStack.push(fd->vthis);
+        Expression *thisexp = new ThisExp(fd->loc);
+        thisexp->type = fd->vthis->type;
+        setValue(fd->vthis, thisexp);
+    }
 
     for (size_t i = 0; i < dim; i++)
     {
@@ -1048,6 +1055,10 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
             }
         }
     }
+    if (tf->isref && e->op == TOKthis)
+    {
+        e = thisarg;
+    }
 
     // Leave the function
     --CtfeStatus::callDepth;
@@ -1071,7 +1082,7 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
         return CTFEExp::cantexp;
     }
 
-//printf("L%d [%s] returned e = %s\n", __LINE__, fd->loc.toChars(), e->toChars());
+printf("L%d [%s] returned e = %s\n", __LINE__, fd->loc.toChars(), e->toChars());
     return e;
 }
 
@@ -2005,6 +2016,12 @@ public:
 
     void visit(ThisExp *e)
     {
+        if (goal == ctfeNeedLvalue)
+        {
+            result = e;
+            return;
+        }
+
         Expression *localThis = ctfeStack.getThis();
         if (localThis && localThis->op == TOKstructliteral)
         {
@@ -2240,7 +2257,6 @@ public:
         result->type = e->type;
     }
 
-
     // -------------------------------------------------------------
     //         Remove out, ref, and this
     // -------------------------------------------------------------
@@ -2250,6 +2266,7 @@ public:
     {
         for (;;)
         {
+#if 0
             if (e->op == TOKthis)
             {
                 Expression *thisval = ctfeStack.getThis();
@@ -2258,6 +2275,7 @@ public:
                 e = thisval;
                 continue;
             }
+#endif
             if (e->op == TOKvar)
             {
                 VarExp *ve = (VarExp *)e;
@@ -2479,7 +2497,7 @@ public:
             {
                 Expression *eval = getValue(v);
 //printf("L%d [%s] e = %s, eval = %s\n", __LINE__, e->loc.toChars(), e->toChars(), eval->toChars());
-                if (eval->op == TOKvar)
+                if (eval->op == TOKvar || eval->op == TOKthis)
                 {
                     // A ref of a reference,  is the original reference
                     result = eval;

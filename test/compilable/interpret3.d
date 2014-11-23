@@ -6234,7 +6234,6 @@ static assert(bug8865());
 
 /******************************************************/
 
-
 struct Test75
 {
     this(int) pure {}
@@ -7019,3 +7018,43 @@ bool test13669()
     return true;
 }
 static assert(test13669());
+
+// =============================================
+
+struct S12382
+{
+    size_t opDollar() { return 0; }
+    size_t opIndex(size_t) { return 0; }
+}
+
+S12382 func12382() { return S12382(); }
+
+static assert(S12382.init[$] == 0);
+static assert(func12382()[$] == 0);
+
+enum e12382a = S12382.init[$];
+enum e12382b = func12382()[$];
+static v12382a = S12382.init[$];
+static v12382b = func12382()[$];
+
+// ----
+
+// Reduced test case for Phobos breaking (runnable/test12.d)
+struct Sxxx1
+{
+    this(int n)
+    out
+    {
+        // moved out of the body as a workaround for Issue 12661
+        //dbgVerifySorted();
+    }
+    body
+    {
+        //this._input = input;
+    }
+}
+auto fooxxx1()
+{
+    return Sxxx1(1);
+}
+static assert({ auto s = fooxxx1(); return 1; }());
