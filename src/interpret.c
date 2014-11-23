@@ -2869,7 +2869,7 @@ public:
     void visit(StructLiteralExp *e)
     {
     #if LOG
-        printf("%s StructLiteralExp::interpret() %s\n", e->loc.toChars(), e->toChars());
+        printf("%s StructLiteralExp::interpret() %s (ownedByCtfe = %d)\n", e->loc.toChars(), e->toChars(), e->ownedByCtfe);
     #endif
         if (e->ownedByCtfe)
         {
@@ -3601,6 +3601,9 @@ public:
                 result = CTFEExp::cantexp;
                 return;
             }
+            newval = interpret(newval, istate); // copy and set ownedByCtfe flag
+            if (exceptionOrCant(newval))
+                return;
 //printf("-L%d [%s] e1 = %s, neaval = %s\n", __LINE__, e->loc.toChars(), e1->toChars(), newval->toChars());
         }
 
@@ -3754,6 +3757,7 @@ public:
 
         e1 = resolveReferences(e1);
 //printf("L%d [%s] e1 = %s\n", __LINE__, e->loc.toChars(), e1->toChars());
+//if (e1->op == TOKdotvar) printf("L%d [%s] e1: dve->e1 = %p %s\n", __LINE__, e->loc.toChars(), ((DotVarExp *)e1)->e1, ((DotVarExp *)e1)->e1->toChars());
 
         // Unless we have a simple var assignment, we're
         // only modifying part of the variable. So we need to make sure
@@ -3761,6 +3765,7 @@ public:
         if (e1->op != TOKvar && ultimateVar && !getValue(ultimateVar))
             setValue(ultimateVar, copyLiteral(ultimateVar->type->defaultInitLiteral(e->loc)).copy());
 
+//if (e1->op == TOKdotvar) printf("L%d [%s] e1: dve->e1 = %p %s\n", __LINE__, e->loc.toChars(), ((DotVarExp *)e1)->e1, ((DotVarExp *)e1)->e1->toChars());
         // ---------------------------------------
         //      Deal with reference assignment
         // (We already have 'newval' for arraylength operations)
@@ -3805,6 +3810,7 @@ public:
         }
 
 //printf("L%d [%s] e1 = %s\n", __LINE__, e->loc.toChars(), e1->toChars());
+//if (e1->op == TOKdotvar) printf("L%d [%s] e1: dve->e1 = %p %s\n", __LINE__, e->loc.toChars(), ((DotVarExp *)e1)->e1, ((DotVarExp *)e1)->e1->toChars());
         // ---------------------------------------
         //      Deal with AA index assignment
         // ---------------------------------------
@@ -3916,6 +3922,7 @@ public:
         }
 
 //printf("L%d [%s] e1 = %s\n", __LINE__, e->loc.toChars(), e1->toChars());
+//if (e1->op == TOKdotvar) printf("L%d [%s] e1: dve->e1 = %p %s\n", __LINE__, e->loc.toChars(), ((DotVarExp *)e1)->e1, ((DotVarExp *)e1)->e1->toChars());
         // ---------------------------------------
         //      Deal with dotvar expressions
         // ---------------------------------------
@@ -3933,7 +3940,7 @@ public:
             if (!isCtfePointer)
             {
                 e1 = interpret(e1, istate, /*isPointer(e->type) ? ctfeNeedLvalueRef : */ctfeNeedLvalue);
-//printf("L%d [%s] e1 = %s, neaval = %s\n", __LINE__, e->loc.toChars(), e1->toChars(), newval->toChars());
+//printf("L%d [%s] e1 = %s, neaval = %s (dve->e1 = %p)\n", __LINE__, e->loc.toChars(), e1->toChars(), newval->toChars(), dve->e1);
                 //if (!isPointer(e->type))
                 //    e1 = resolveLvalueRefToLvalue(e1);
                 if (exceptionOrCant(e1))
@@ -3949,6 +3956,7 @@ public:
     #endif
 
 //printf("L%d [%s] e1 = %s, newval = %s\n", __LINE__, e->loc.toChars(), e1->toChars(), newval->toChars());
+//if (e1->op == TOKdotvar) printf("L%d [%s] e1: dve->e1 = %p %s\n", __LINE__, e->loc.toChars(), ((DotVarExp *)e1)->e1, ((DotVarExp *)e1)->e1->toChars());
         /* Assignment to variable of the form:
          *  v = newval
          */
@@ -4058,8 +4066,7 @@ public:
         }
         else if (e1->op == TOKdotvar)
         {
-//printf("L%d [%s] e1 = %s, newval = %s\n", __LINE__, e->loc.toChars(), e1->toChars(), newval->toChars());
-//printf("e1 = %s\n", e1->toChars());
+//printf("L%d [%s] e1 = %p %s, newval = %s\n", __LINE__, e->loc.toChars(), e1, e1->toChars(), newval->toChars());
             /* Assignment to member variable of the form:
              *  e.v = newval
              */
@@ -4070,7 +4077,7 @@ public:
                 if (exceptionOrCant(exx))
                     return;
             }
-//printf("exx = %s\n", exx->toChars());
+//printf("exx = %p %s\n", exx, exx->toChars());
             if (exx->op != TOKstructliteral && exx->op != TOKclassreference)
             {
                 e->error("CTFE internal error: Dotvar assignment");
@@ -4097,6 +4104,7 @@ public:
                 return;
             }
             assert(fieldi >= 0 && fieldi < se->elements->dim);
+//printf("member = %s, fieldi = %d\n", member->toChars(), fieldi);
             // If it's a union, set all other members of this union to void
             if (exx->op == TOKstructliteral)
             {
@@ -4117,6 +4125,7 @@ public:
                 assignInPlace((*se->elements)[fieldi], newval);
             else
                 (*se->elements)[fieldi] = newval;
+//printf("se = %s (e->e1 = %s => %s, e1 = %s => %s)\n", se->toChars(), e->e1->toChars(), e->e1->interpret(istate)->toChars(), e1->toChars(), e1->interpret(istate)->toChars());
             return;
         }
         else if (e1->op == TOKindex)
@@ -5648,6 +5657,7 @@ public:
                 result = CTFEExp::cantexp;
                 return;
             }
+//printf("<<<result = %p %s>>>", result, result->toChars());
         }
         else
         {
@@ -5671,7 +5681,7 @@ public:
             return;
         }
         result = paintTypeOntoLiteral(e->type, result);
-//printf("L%d [%s] result = %s\n", __LINE__, e->loc.toChars(), result->toChars());
+//printf("L%d [%s] result = %p %s\n", __LINE__, e->loc.toChars(), result, result->toChars());
     }
 
     void visit(SliceExp *e)
@@ -6357,7 +6367,7 @@ public:
 //printf("L%d ex = %d %d %d %d %d\n", __LINE__, ex == CTFEExp::cantexp, ex == CTFEExp::voidexp, ex == CTFEExp::breakexp, ex == CTFEExp::continueexp, ex == CTFEExp::gotoexp);
 //printf("%s %d\n", ex->type->toChars(), ex->op == TOKint64);
 
-//printf("L%d [%s] ex = %s\n", __LINE__, e->loc.toChars(), ex->toChars());
+//printf("L%d [%s] ex = %p %s\n", __LINE__, e->loc.toChars(), ex, ex->toChars());
         if (ex->op == TOKaddress)
             ex = ((AddrExp *)ex)->e1;
 
@@ -6416,12 +6426,16 @@ public:
         {
             // If it is an lvalue literal, return it...
             if (result->op == TOKstructliteral)
+            {
+//printf("\t--> L%d\n", __LINE__);
                 return;
+            }
             if ((e->type->ty == Tsarray/* || goal == ctfeNeedLvalue*/) && (
                 result->op == TOKarrayliteral ||
                 result->op == TOKassocarrayliteral || result->op == TOKstring ||
                 result->op == TOKclassreference || result->op == TOKslice))
             {
+//printf("\t--> L%d\n", __LINE__);
                 return;
             }
             /* Element is an allocated pointer, which was created in
@@ -6430,17 +6444,28 @@ public:
             if (/*goal == ctfeNeedLvalue && */result->op == TOKindex &&
                 result->type->equals(e->type) && isPointer(e->type))
             {
+//printf("\t--> L%d\n", __LINE__);
                 return;
             }
             // ...Otherwise, just return the (simplified) dotvar expression
-            result = new DotVarExp(e->loc, ex, v);
-            result->type = e->type;
+            if (ex == e->e1)
+            {
+                result = e; // optimize: reuse this CTFE reference
+                return;
+            }
+            else
+            {
+                result = new DotVarExp(e->loc, ex, v);
+                result->type = e->type;
+            }
+//printf("\t--> L%d ex = %p %s, result = %s\n", __LINE__, ex, ex->toChars(), result->toChars());
             return;
         }
         // If it is an rvalue literal, return it...
         if (result->op == TOKstructliteral || result->op == TOKarrayliteral ||
             result->op == TOKassocarrayliteral || result->op == TOKstring)
         {
+//printf("\t--> L%d\n", __LINE__);
             return;
         }
         if (result->op == TOKvoid)
@@ -6460,6 +6485,7 @@ public:
         if (isPointer(e->type))
         {
             result = paintTypeOntoLiteral(e->type, result);
+//printf("\t--> L%d\n", __LINE__);
             return;
         }
         if (result->op == TOKvar)

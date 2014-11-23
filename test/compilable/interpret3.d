@@ -7037,7 +7037,7 @@ enum e12382b = func12382()[$];
 static v12382a = S12382.init[$];
 static v12382b = func12382()[$];
 
-// ----
+// =============================================
 
 // Reduced test case for Phobos breaking (runnable/test12.d)
 struct Sxxx1
@@ -7058,3 +7058,40 @@ auto fooxxx1()
     return Sxxx1(1);
 }
 static assert({ auto s = fooxxx1(); return 1; }());
+
+// =============================================
+
+bool test6178d()
+{
+    // AA value setting through implicit ctor call + alias this
+
+    int ctor;
+    struct S
+    {
+        this(int n) { ++ctor; value = n; }
+
+        int value;
+        alias value this;
+    }
+
+    S[int] aa;
+    assert(ctor == 0);
+    assert(aa.length == 0);
+
+    aa[1] = 0;      // implicit ctor call + blit assign
+    assert(aa[1].value == 0 && ctor == 1);
+    assert(aa.length == 1);
+
+    aa[1] = 1;      // set through alias this
+    assert(aa[1].value == 1);
+    assert(ctor == 1);
+    assert(aa.length == 1);
+
+    return true;
+}
+
+void test6178()
+{
+    static assert(test6178d());
+    //test6178d();
+}
