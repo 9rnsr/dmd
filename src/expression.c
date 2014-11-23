@@ -13878,7 +13878,9 @@ Expression *extractOpDollarSideEffect(Scope *sc, UnaExp *ue)
         v->storage_class |= STCtemp | STCctfe
                          | (e1->isLvalue() ? STCforeach | STCref : STCrvalue);
         Expression *de = new DeclarationExp(ue->loc, v);
+//printf("+++>>> _dop = %p stc = %llx\n", v, v->storage_class);
         de = de->semantic(sc);
+//printf("--->>> _dop = %p stc = %llx\n", v, v->storage_class);
         e0 = Expression::combine(e0, de);
         e1 = new VarExp(ue->loc, v);
         e1 = e1->semantic(sc);

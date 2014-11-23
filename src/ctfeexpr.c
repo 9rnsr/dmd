@@ -793,9 +793,11 @@ UnionExp pointerArithmetic(Loc loc, TOK op, Type *type,
         goto Lcant;
     }
 
-    new(&ue) IndexExp(loc, agg1, new IntegerExp(loc, index, Type::tsize_t));
-    IndexExp *ie = (IndexExp *)ue.exp();
-    ie->type = type;
+    // Create a CTFE pointer &agg1[index]
+    Expression *ie = new IndexExp(loc, agg1, new IntegerExp(loc, index, Type::tsize_t));
+    ie->type = pointee;
+    new(&ue) AddrExp(loc, ie);
+    ue.exp()->type = type;
     return ue;
 }
 
