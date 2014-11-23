@@ -6788,6 +6788,7 @@ Expression *interpret_dup(InterState *istate, Expression *earg)
         if (Expression *e = evaluatePostblit(istate, (*aae->values)[i]))
             return e;
     }
+    aae->type = earg->type->mutableOf(); // repaint type from const(int[int]) to const(int)[int]
     //printf("result is %s\n", aae->toChars());
     return aae;
 }
