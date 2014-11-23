@@ -940,8 +940,11 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
     ctfeStack.startFrame(thisarg);
     if (fd->vthis)
     {
+        // thisexp may be NULL
+//printf("L%d [%s] thisarg = %s\n", __LINE__, fd->loc.toChars(), thisarg ? thisarg->toChars() : NULL);
         ctfeStack.push(fd->vthis);
-        Expression *thisexp = new ThisExp(fd->loc);
+        ThisExp *thisexp = new ThisExp(fd->loc);
+        thisexp->var = fd->vthis;
         thisexp->type = fd->vthis->type;
         setValue(fd->vthis, thisexp);
     }
@@ -1082,7 +1085,7 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
         return CTFEExp::cantexp;
     }
 
-printf("L%d [%s] returned e = %s\n", __LINE__, fd->loc.toChars(), e->toChars());
+//printf("L%d [%s] returned e = %s\n", __LINE__, fd->loc.toChars(), e->toChars());
     return e;
 }
 
@@ -2016,23 +2019,30 @@ public:
 
     void visit(ThisExp *e)
     {
-        if (goal == ctfeNeedLvalue)
+    #if LOG
+        printf("%s ThisExp::interpret() %s, goal = %d\n", e->loc.toChars(), e->toChars(), goal);
+    #endif
+        //assert(e->var);
+        if (goal == ctfeNeedLvalue/* && e->var && !(e->var->storage_class & STCref)*/)
         {
             result = e;
             return;
         }
 
+//printf("\tL%d type = %s, var = %p\n", __LINE__, e->type->toChars(), e->var);
         Expression *localThis = ctfeStack.getThis();
         if (localThis && localThis->op == TOKstructliteral)
         {
             result = localThis;
             return;
         }
+//printf("\tL%d\n", __LINE__);
         if (localThis)
         {
             result = interpret(localThis, istate, goal);
             return;
         }
+//printf("\tL%d\n", __LINE__);
         e->error("value of 'this' is not known at compile time");
         result = CTFEExp::cantexp;
     }
@@ -2217,6 +2227,8 @@ public:
         result = interpret(e->e1, istate, /*needRef ? ctfeNeedLvalueRef : */ctfeNeedLvalue);
         if (!needRef)
             result = resolveLvalueRefToLvalue(result);
+        if (result->op == TOKthis)  // &this
+            result = interpret(result, istate);
         if (exceptionOrCant(result))
             return;
         // Return a simplified address expression
@@ -5235,9 +5247,14 @@ public:
                 return;
             // Evaluate 'this'
             Expression *oldpthis = pthis;
+            if (pthis->op == TOKthis)
+            {
+                pthis = interpret(pthis, istate);
+            }
+            else
             if (pthis->op != TOKvar)
             {
-                pthis = interpret(pthis, istate, ctfeNeedLvalue);
+                pthis = interpret(pthis, istate/*, ctfeNeedLvalue*/);
                 pthis = resolveLvalueRefToLvalue(pthis);
             }
             if (exceptionOrCant(pthis))
