@@ -3746,7 +3746,7 @@ public:
         // -------------------------------------------------
         // Make sure we're not trying to modify a global or static variable
         // We do this by locating the ultimate parent variable which gets modified.
-        VarDeclaration * ultimateVar = findParentVar(e1);
+        VarDeclaration *ultimateVar = findParentVar(e1);
         if (ultimateVar && ultimateVar->isDataseg() && !ultimateVar->isCTFE())
         {
             // Can't modify global or static data
@@ -4157,7 +4157,7 @@ public:
             return;
         }
         //else if (e1->op == TOKarrayliteral/* && e1->type->toBasetype()->ty == Tsarray*/)
-        else if (e1->op == TOKarrayliteral || e1->op == TOKstring)      // TODO: can merge to above
+        else if (e1->op == TOKarrayliteral || e1->op == TOKstring || e1->op == TOKnull && e1->type->toBasetype()->ty == Tarray)      // TODO: can merge to above
         {
 //printf("L%d [%s] e1 = %s, newval = %s (blockAssign = %d)\n", __LINE__, e->loc.toChars(), e1->toChars(), newval->toChars(), isBlockAssignment);
             Type *tn = newval->type->toBasetype();

@@ -7095,3 +7095,38 @@ void test6178()
     static assert(test6178d());
     //test6178d();
 }
+
+// =============================================
+
+struct Appender(A)
+{
+    alias T = typeof(A.init[0]);
+    alias U = typeof(cast()T.init);
+    struct Data
+    {
+        U[] arr;
+    }
+
+    Data* _data;
+
+    void put(Range)(Range items)
+    {
+        if (!_data)
+            _data = new Data;
+
+        immutable len = _data.arr.length;
+        immutable newlen = len + items.length;
+
+        auto bigDataFun() @trusted nothrow { return _data.arr.ptr[0 .. newlen];}
+        auto bigData = bigDataFun();
+
+        bigData[len .. newlen] = items[];   // problem if len == 0 && newlen == 0
+    }
+}
+static assert(
+{
+    auto w = Appender!(char[])();
+    w.put("");
+
+    return 1;
+}());
