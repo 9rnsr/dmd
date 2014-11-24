@@ -330,6 +330,7 @@ struct CompiledCtfeFunction
                     return;
                 }
 
+                global.gag = 0;
                 ::error(e->loc, "CTFE internal error: ErrorExp in %s\n", ccf->func ? ccf->func->loc.toChars() : ccf->callingloc.toChars());
                 assert(0);
             }
@@ -1109,7 +1110,7 @@ public:
             istate->start = NULL;
         }
 
-        s->error("Statement %s cannot be interpreted at compile time", s->toChars());
+        s->error("statement %s cannot be interpreted at compile time", s->toChars());
         result = CTFEExp::cantexp;
     }
 
@@ -1969,7 +1970,7 @@ public:
         printf("type = %s\n", e->type->toChars());
         e->print();
     #endif
-        e->error("Cannot interpret %s at compile time", e->toChars());
+        e->error("cannot interpret %s at compile time", e->toChars());
         result = CTFEExp::cantexp;
     }
 
@@ -2053,7 +2054,7 @@ public:
         if (e->type->ty != Tpointer)
         {
             // Probably impossible
-            e->error("Cannot interpret %s at compile time", e->toChars());
+            e->error("cannot interpret %s at compile time", e->toChars());
             result = CTFEExp::cantexp;
             return;
         }
@@ -2144,7 +2145,7 @@ public:
             return;
         }
 
-        e->error("Cannot convert &%s to %s at compile time", e->var->type->toChars(), e->type->toChars());
+        e->error("cannot convert &%s to %s at compile time", e->var->type->toChars(), e->type->toChars());
         result = CTFEExp::cantexp;
     }
 
@@ -2326,7 +2327,8 @@ public:
                     if (v->init->isVoidInitializer())
                     {
                         // var should have been initialized when it was created
-                        error(loc, "CTFE internal error - trying to access uninitialized var");
+                        global.gag = 0;
+                        error(loc, "CTFE internal error: trying to access uninitialized var");
                         assert(0);
                         e = CTFEExp::cantexp;
                     }
@@ -2490,7 +2492,7 @@ public:
                             }
                             else
                             {
-                                e->error("Declaration %s is not yet implemented in CTFE", e->toChars());
+                                e->error("declaration %s is not yet implemented in CTFE", e->toChars());
                                 result = CTFEExp::cantexp;
                             }
                         }
@@ -2515,7 +2517,7 @@ public:
                 }
                 else
                 {
-                    e->error("Declaration %s is not yet implemented in CTFE", e->toChars());
+                    e->error("declaration %s is not yet implemented in CTFE", e->toChars());
                     result = CTFEExp::cantexp;
                 }
             }
@@ -2538,7 +2540,7 @@ public:
                 result = NULL;   // Just ignore static variables which aren't read or written yet
             else
             {
-                e->error("Variable %s cannot be modified at compile time", v->toChars());
+                e->error("variable %s cannot be modified at compile time", v->toChars());
                 result = CTFEExp::cantexp;
             }
         }
@@ -2561,7 +2563,7 @@ public:
             }
 
             // These can be made to work, too lazy now
-            e->error("Declaration %s is not yet implemented in CTFE", e->toChars());
+            e->error("declaration %s is not yet implemented in CTFE", e->toChars());
             result = CTFEExp::cantexp;
         }
         else
@@ -3061,7 +3063,7 @@ public:
             result->type = e->type;
             return;
         }
-        e->error("Cannot interpret %s at compile time", e->toChars());
+        e->error("cannot interpret %s at compile time", e->toChars());
         result = CTFEExp::cantexp;
     }
 
@@ -3508,7 +3510,7 @@ public:
                 }
                 if (CTFEExp::isCantExp(newval))
                 {
-                    e->error("Cannot interpret %s at compile time", e->toChars());
+                    e->error("cannot interpret %s at compile time", e->toChars());
                     result = CTFEExp::cantexp;
                     return;
                 }
@@ -3802,7 +3804,7 @@ public:
                 // In-place modification
                 if (newval->op != TOKstructliteral)
                 {
-                    e->error("CTFE internal error assigning struct");
+                    e->error("CTFE internal error: assigning struct");
                     result = CTFEExp::cantexp;
                     return;
                 }
@@ -4146,7 +4148,7 @@ public:
             newval = resolveSlice(newval);
             if (CTFEExp::isCantExp(newval))
             {
-                originalExp->error("Compiler error: CTFE index assign %s", originalExp->toChars());
+                originalExp->error("Internal Compiler Error: CTFE index assign %s", originalExp->toChars());
                 assert(0);
             }
         }
@@ -4187,7 +4189,7 @@ public:
         }
         else
         {
-            originalExp->error("Index assignment %s is not yet supported in CTFE ", originalExp->toChars());
+            originalExp->error("index assignment %s is not yet supported in CTFE ", originalExp->toChars());
             return false;
         }
         return true;
@@ -4249,7 +4251,7 @@ public:
                     sexp->e1->toChars());
             }
             else
-                originalExp->error("CTFE ICE: cannot resolve array length");
+                originalExp->error("CTFE internal error: cannot resolve array length");
             return CTFEExp::cantexp;
         }
         uinteger_t dollar = resolveArrayLength(oldval);
@@ -4283,7 +4285,7 @@ public:
 
         if (!assignmentToSlicedPointer && (((int)lowerbound < 0) || (upperbound > dim)))
         {
-            originalExp->error("Array bounds [0..%d] exceeded in slice [%d..%d]",
+            originalExp->error("array bounds [0..%d] exceeded in slice [%d..%d]",
                 dim, lowerbound, upperbound);
             return CTFEExp::cantexp;
         }
@@ -4379,7 +4381,7 @@ public:
             newval = resolveSlice(newval);
             if (CTFEExp::isCantExp(newval))
             {
-                originalExp->error("Compiler error: CTFE slice %s", orignewval->toChars());
+                originalExp->error("Internal Compiler Error: CTFE slice %s", orignewval->toChars());
                 assert(0);
             }
         }
@@ -4398,7 +4400,7 @@ public:
             srclen = ((StringExp *)newval)->len;
         if (!isBlockAssignment && srclen != (upperbound - lowerbound))
         {
-            originalExp->error("Array length mismatch assigning [0..%d] to [%d..%d]", srclen, lowerbound, upperbound);
+            originalExp->error("array length mismatch assigning [0..%d] to [%d..%d]", srclen, lowerbound, upperbound);
             return CTFEExp::cantexp;
         }
 
@@ -4512,7 +4514,7 @@ public:
         }
         else
         {
-            originalExp->error("Slice operation %s = %s cannot be evaluated at compile time", sexp->toChars(), newval->toChars());
+            originalExp->error("slice operation %s = %s cannot be evaluated at compile time", sexp->toChars(), newval->toChars());
             return CTFEExp::cantexp;
         }
     }
@@ -4684,7 +4686,7 @@ public:
             }
             if (except)
             {
-                e->error("Comparison %s of pointers to unrelated memory blocks remains "
+                e->error("comparison %s of pointers to unrelated memory blocks remains "
                      "indeterminate at compile time "
                      "because exception %s was thrown while evaluating %s",
                      e->e1->toChars(), except->toChars(), e->e2->toChars());
@@ -4709,7 +4711,7 @@ public:
             // comparison is in the same direction as the first, or else
             // more than two memory blocks are involved (either two independent
             // invalid comparisons are present, or else agg3 == agg4).
-            e->error("Comparison %s of pointers to unrelated memory blocks is "
+            e->error("comparison %s of pointers to unrelated memory blocks is "
                 "indeterminate at compile time, even when combined with %s.",
                 e->e1->toChars(), e->e2->toChars());
             result = CTFEExp::cantexp;
@@ -5548,7 +5550,7 @@ public:
         if (e1->op != TOKarrayliteral && e1->op != TOKstring &&
             e1->op != TOKnull && e1->op != TOKslice)
         {
-            e->error("Cannot determine length of %s at compile time", e1->toChars());
+            e->error("cannot determine length of %s at compile time", e1->toChars());
             result = CTFEExp::cantexp;
             return;
         }
@@ -5641,7 +5643,7 @@ public:
         }
         if (e2->op != TOKassocarrayliteral)
         {
-            e->error(" %s cannot be interpreted at compile time", e->toChars());
+            e->error("%s cannot be interpreted at compile time", e->toChars());
             result = CTFEExp::cantexp;
             return;
         }
@@ -5968,13 +5970,13 @@ public:
                 return;
             if (result->op == TOKnull)
             {
-                e->error("Null pointer dereference evaluating typeid. '%s' is null", ((PtrExp *)e->e1)->e1->toChars());
+                e->error("null pointer dereference evaluating typeid. '%s' is null", ((PtrExp *)e->e1)->e1->toChars());
                 result = CTFEExp::cantexp;
                 return;
             }
             if (result->op != TOKclassreference)
             {
-                e->error("CTFE internal error determining classinfo");
+                e->error("CTFE internal error: determining classinfo");
                 result = CTFEExp::cantexp;
                 return;
             }
@@ -6203,7 +6205,7 @@ public:
             const char *s = ve->var->toChars();
             if (v->overlapped)
             {
-                e->error("Reinterpretation through overlapped field %s is not allowed in CTFE", s);
+                e->error("reinterpretation through overlapped field %s is not allowed in CTFE", s);
                 result = CTFEExp::cantexp;
                 return;
             }
