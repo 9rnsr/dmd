@@ -1862,7 +1862,7 @@ UnionExp Cat(Type *type, Expression *e1, Expression *e2)
         if (es1->elements)
             es1->elements->insert(es1->elements->dim, es2->elements);
         else
-            es1->elements = es2->elements->copy();
+            es1->elements = es2->elements ? es2->elements->copy() : NULL;
         e = es1;
 
         if (type->toBasetype()->ty == Tsarray)
@@ -1894,7 +1894,7 @@ UnionExp Cat(Type *type, Expression *e1, Expression *e2)
 
         if (type->toBasetype()->ty == Tsarray)
         {
-            e->type = t1->nextOf()->sarrayOf(es->elements->dim);
+            e->type = t1->nextOf()->sarrayOf(es->elements ? es->elements->dim : 0);
         }
         else
             e->type = type;

@@ -2726,7 +2726,7 @@ public:
     void visit(ArrayLiteralExp *e)
     {
     #if LOG
-        printf("%s ArrayLiteralExp::interpret() %s\n", e->loc.toChars(), e->toChars());
+        printf("%s ArrayLiteralExp::interpret() %s type = %s\n", e->loc.toChars(), e->toChars(), e->type->toChars());
     #endif
         if (e->ownedByCtfe) // We've already interpreted all the elements
         {
@@ -2756,7 +2756,7 @@ public:
             /* If any changes, do Copy On Write
              */
 //printf("L%d [%s] ex = %p %s, exp = %p %s\n", __LINE__, e->loc.toChars(), ex, ex->toChars(), exp, exp->toChars());
-            if (goal == ctfeNeedRvalue)
+            if (exp->isLvalue() && (tn->ty != Tclass && tn->ty != Tarray && tn->ty != Tpointer))
                 ex = copyLiteral(ex).copy();
             if (ex != exp)
             {
@@ -2777,7 +2777,7 @@ public:
         }
         // If all the elements had been already interpreted, and
         // if they're immutable, we don't need to dup it
-        if (goal == ctfeNeedLvalue && !expsx && (tn->mod & (MODconst | MODimmutable)))
+        if (!expsx && (tn->mod & (MODconst | MODimmutable)))
         {
             assert(!e->ownedByCtfe);
             result = e;
