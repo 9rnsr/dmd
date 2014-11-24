@@ -2323,9 +2323,7 @@ public:
     static Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal)
     {
         Expression *e = CTFEExp::cantexp;
-        VarDeclaration *v = d->isVarDeclaration();
-        SymbolDeclaration *s = d->isSymbolDeclaration();
-        if (v)
+        if (VarDeclaration *v = d->isVarDeclaration())
         {
             /* Magic variable __ctfe always returns true when interpreting
              */
@@ -2465,7 +2463,7 @@ public:
             if (!e)
                 e = CTFEExp::cantexp;
         }
-        else if (s)
+        else if (SymbolDeclaration *s = d->isSymbolDeclaration())
         {
             // Struct static initializers, for example
             e = s->dsym->type->defaultInitLiteral(loc);
@@ -2527,6 +2525,11 @@ public:
             }
 
             // returns VarExp as the CTFEable lvalue
+            result = e;
+            return;
+        }
+        if (e->var->isFuncDeclaration())
+        {
             result = e;
             return;
         }
@@ -5126,54 +5129,11 @@ public:
 
         Expression * pthis = NULL;
         FuncDeclaration *fd = NULL;
-        Expression *ecall = e->e1;
-        if (ecall->op == TOKcall)
-        {
-            ecall = interpret(e->e1, istate);
-            if (exceptionOrCant(ecall))
-                return;
-        }
-        if (ecall->op == TOKstar)
-        {
-            // Calling a function pointer
-            Expression * pe = ((PtrExp *)ecall)->e1;
-            if (pe->op == TOKvar)
-            {
-                VarDeclaration *vd = ((VarExp *)((PtrExp *)ecall)->e1)->var->isVarDeclaration();
-                if (vd && hasValue(vd) && getValue(vd)->op == TOKsymoff)
-                    fd = ((SymOffExp *)getValue(vd))->var->isFuncDeclaration();
-                else
-                {
-                    ecall = getVarExp(e->loc, istate, vd, goal);
-                    if (exceptionOrCant(ecall))
-                        return;
 
-                    if (ecall->op == TOKsymoff)
-                        fd = ((SymOffExp *)ecall)->var->isFuncDeclaration();
-                }
-            }
-            else if (pe->op == TOKsymoff)
-                fd = ((SymOffExp *)pe)->var->isFuncDeclaration();
-            else
-                ecall = interpret(((PtrExp *)ecall)->e1, istate);
-
-        }
+        Expression *ecall = interpret(e->e1, istate);
         if (exceptionOrCant(ecall))
             return;
-
-        if (ecall->op == TOKindex)
-        {
-            ecall = interpret(e->e1, istate);
-            if (exceptionOrCant(ecall))
-                return;
-        }
-
-        if (ecall->op == TOKdotvar && !((DotVarExp *)ecall)->var->isFuncDeclaration())
-        {
-            ecall = interpret(e->e1, istate);
-            if (exceptionOrCant(ecall))
-                return;
-        }
+//printf("L%d [%s] CallExp ecall = %s %s\n", __LINE__, e->loc.toChars(), Token::toChars(ecall->op), ecall->toChars());
 
         if (ecall->op == TOKdotvar)
         {
@@ -5209,11 +5169,12 @@ public:
         }
         else if (ecall->op == TOKvar)
         {
-            VarDeclaration *vd = ((VarExp *)ecall)->var->isVarDeclaration();
+            Declaration *d = ((VarExp *)ecall)->var;
+            VarDeclaration *vd = d->isVarDeclaration();
             if (vd && hasValue(vd))
                 ecall = getValue(vd);
             else // Calling a function
-                fd = ((VarExp *)e->e1)->var->isFuncDeclaration();
+                fd = d->isFuncDeclaration();
         }
         if (ecall->op == TOKdelegate)
         {
@@ -6179,6 +6140,7 @@ public:
 
         // Check for int<->float and long<->double casts.
         if (e->e1->op == TOKsymoff && ((SymOffExp *)e->e1)->offset == 0 &&
+            ((SymOffExp *)e->e1)->var->isVarDeclaration() &&
             isFloatIntPaint(e->type, ((SymOffExp *)e->e1)->var->type))
         {
             // *(cast(int*)&v, where v is a float variable
@@ -6257,16 +6219,33 @@ public:
         if (exceptionOrCant(result))
             return;
 
+//printf("L%d result = %s %s\n", __LINE__, Token::toChars(result->op), result->toChars());
+        if (result->op == TOKfunction)
+        {
+            // Return FuncExp
+            return;
+        }
+        if (result->op == TOKsymoff)
+        {
+            SymOffExp *soe = (SymOffExp *)result;
+            if (soe->offset == 0 && soe->var->isFuncDeclaration())
+            {
+                result = new VarExp(e->loc, soe->var);
+                result->type = soe->var->type;
+                return;
+            }
+            e->error("cannot dereference pointer to static variable %s at compile time", ((SymOffExp *)result)->var->toChars());
+            result = CTFEExp::cantexp;
+            return;
+        }
+
         if (!(result->op == TOKvar ||
               result->op == TOKdotvar ||
               result->op == TOKindex ||
               result->op == TOKslice ||
               result->op == TOKaddress))
         {
-            if (result->op == TOKsymoff)
-                e->error("cannot dereference pointer to static variable %s at compile time", ((SymOffExp *)result)->var->toChars());
-            else
-                e->error("dereference of invalid pointer '%s'", result->toChars());
+            e->error("dereference of invalid pointer '%s'", result->toChars());
             result = CTFEExp::cantexp;
             return;
         }
@@ -6378,6 +6357,19 @@ public:
 //printf("%s %d\n", ethis->type->toChars(), ethis->op == TOKint64);
 
 //printf("L%d [%s] ethis = %p %s\n", __LINE__, e->loc.toChars(), ethis, ethis->toChars());
+
+        if (FuncDeclaration *f = e->var->isFuncDeclaration())
+        {
+            if (ethis == e->e1)
+                result = e; // optimize: reuse this CTFE reference
+            else
+            {
+                result = new DotVarExp(e->loc, ethis, f);
+                result->type = e->type;
+            }
+            return;
+        }
+
         //if (ethis->op == TOKaddress)        // is this necessary? Should it be translated to (*ptr).var in front-end?
         //    ethis = ((AddrExp *)ethis)->e1;
 
