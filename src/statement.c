@@ -835,6 +835,21 @@ Statement *ExpStatement::semantic(Scope *sc)
         exp = checkGC(sc, exp);
         if (exp->op == TOKerror)
             return new ErrorStatement();
+
+        // Bugzilla 5676: normalize ExpStatement with TupleExp.
+        Expression *e0;
+        exp = Expression::extractLast(exp, &e0);
+        if (exp->op == TOKtuple)
+        {
+            TupleExp *te = (TupleExp *)exp;
+            Expression *e = te->e0;
+            for (size_t i = 0; i < te->exps->dim; i++)
+            {
+                e = Expression::combine(e, (*te->exps)[i]);
+            }
+            exp = e;
+        }
+        exp = Expression::combine(e0, exp);
     }
     return this;
 }
