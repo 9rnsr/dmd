@@ -806,7 +806,6 @@ Expression *ctfeInterpretForPragmaMsg(Expression *e)
     return e;
 }
 
-
 /*************************************
  * Attempt to interpret a function given the arguments.
  * Input:
@@ -2812,6 +2811,7 @@ public:
                 if (i == e->sd->fields.dim - 1 && e->sd->isNested())
                 {
                     // Context field has not been filled
+                    // TODO: Capture the nested function context if possible
                     ex = new NullExp(e->loc);
                     ex->type = e->sd->fields[i]->type;
                 }
@@ -4129,9 +4129,9 @@ public:
         }
         if (aggregate->op == TOKslice)
         {
-            SliceExp *sexp = (SliceExp *)aggregate;
-            aggregate = sexp->e1;
-            Expression *lwr = interpret(sexp->lwr, istate);
+            SliceExp *se = (SliceExp *)aggregate;
+            aggregate = se->e1;
+            Expression *lwr = interpret(se->lwr, istate);
             indexToModify += lwr->toInteger();
         }
         if (aggregate->op == TOKarrayliteral)
@@ -4210,7 +4210,7 @@ public:
      */
 
     Expression *interpretAssignToSlice(Loc loc,
-        SliceExp *sexp, Expression *newval, bool wantRef, bool isBlockAssignment,
+        SliceExp *se, Expression *newval, bool wantRef, bool isBlockAssignment,
         BinExp *originalExp)
     {
         Expression *e2 = originalExp->e2;
@@ -4220,7 +4220,7 @@ public:
         //   aggregate[low..upp] = newval
         // ------------------------------
         // Set the $ variable
-        Expression *oldval = sexp->e1;
+        Expression *oldval = se->e1;
         bool assignmentToSlicedPointer = false;
         if (isPointer(oldval->type))
         {
@@ -4242,40 +4242,40 @@ public:
         {
             if (oldval->op == TOKsymoff)
             {
-                originalExp->error("pointer %s cannot be sliced at compile time (it points to a static variable)", sexp->e1->toChars());
+                originalExp->error("pointer %s cannot be sliced at compile time (it points to a static variable)", se->e1->toChars());
                 return CTFEExp::cantexp;
             }
             if (assignmentToSlicedPointer)
             {
                 originalExp->error("pointer %s cannot be sliced at compile time (it does not point to an array)",
-                    sexp->e1->toChars());
+                    se->e1->toChars());
             }
             else
                 originalExp->error("CTFE internal error: cannot resolve array length");
             return CTFEExp::cantexp;
         }
         uinteger_t dollar = resolveArrayLength(oldval);
-        if (sexp->lengthVar)
+        if (se->lengthVar)
         {
             Expression *arraylen = new IntegerExp(loc, dollar, Type::tsize_t);
-            ctfeStack.push(sexp->lengthVar);
-            setValue(sexp->lengthVar, arraylen);
+            ctfeStack.push(se->lengthVar);
+            setValue(se->lengthVar, arraylen);
         }
 
         Expression *upper = NULL;
         Expression *lower = NULL;
-        if (sexp->upr)
-            upper = interpret(sexp->upr, istate);
+        if (se->upr)
+            upper = interpret(se->upr, istate);
         if (exceptionOrCantInterpret(upper))
         {
-            if (sexp->lengthVar)
-                ctfeStack.pop(sexp->lengthVar); // $ is defined only in [L..U]
+            if (se->lengthVar)
+                ctfeStack.pop(se->lengthVar); // $ is defined only in [L..U]
             return upper;
         }
-        if (sexp->lwr)
-            lower = interpret(sexp->lwr, istate);
-        if (sexp->lengthVar)
-            ctfeStack.pop(sexp->lengthVar); // $ is defined only in [L..U]
+        if (se->lwr)
+            lower = interpret(se->lwr, istate);
+        if (se->lengthVar)
+            ctfeStack.pop(se->lengthVar); // $ is defined only in [L..U]
         if (exceptionOrCantInterpret(lower))
             return lower;
 
@@ -4292,7 +4292,7 @@ public:
         if (upperbound == lowerbound)
             return newval;
 
-        Expression *aggregate = resolveReferences(sexp->e1);
+        Expression *aggregate = resolveReferences(se->e1);
         sinteger_t firstIndex = lowerbound;
 
         ArrayLiteralExp *existingAE = NULL;
@@ -4333,27 +4333,27 @@ public:
         if (aggregate->op == TOKslice)
         {
             // Slice of a slice --> change the bounds
-            SliceExp *sexpold = (SliceExp *)aggregate;
-            sinteger_t hi = upperbound + sexpold->lwr->toInteger();
-            firstIndex = lowerbound + sexpold->lwr->toInteger();
-            if (hi > sexpold->upr->toInteger())
+            SliceExp *oldse = (SliceExp *)aggregate;
+            sinteger_t hi = upperbound + oldse->lwr->toInteger();
+            firstIndex = lowerbound + oldse->lwr->toInteger();
+            if (hi > oldse->upr->toInteger())
             {
                 originalExp->error("slice [%d..%d] exceeds array bounds [0..%lld]",
                     lowerbound, upperbound,
-                    sexpold->upr->toInteger() - sexpold->lwr->toInteger());
+                    oldse->upr->toInteger() - oldse->lwr->toInteger());
                 return CTFEExp::cantexp;
             }
-            aggregate = sexpold->e1;
+            aggregate = oldse->e1;
         }
         if (isPointer(aggregate->type))
         {
             // Slicing a pointer --> change the bounds
-            aggregate = interpret(sexp->e1, istate, ctfeNeedLvalue);
+            aggregate = interpret(se->e1, istate, ctfeNeedLvalue);
             dinteger_t ofs;
             aggregate = getAggregateFromPointer(aggregate, &ofs);
             if (aggregate->op == TOKnull)
             {
-                originalExp->error("cannot slice null pointer %s", sexp->e1->toChars());
+                originalExp->error("cannot slice null pointer %s", se->e1->toChars());
                 return CTFEExp::cantexp;
             }
             sinteger_t hi = upperbound + ofs;
@@ -4371,7 +4371,7 @@ public:
             existingSE = (StringExp *)aggregate;
         if (existingSE && !existingSE->ownedByCtfe)
         {
-            originalExp->error("cannot modify read-only string literal %s", sexp->e1->toChars());
+            originalExp->error("cannot modify read-only string literal %s", se->e1->toChars());
             return CTFEExp::cantexp;
         }
 
@@ -4514,7 +4514,7 @@ public:
         }
         else
         {
-            originalExp->error("slice operation %s = %s cannot be evaluated at compile time", sexp->toChars(), newval->toChars());
+            originalExp->error("slice operation %s = %s cannot be evaluated at compile time", se->toChars(), newval->toChars());
             return CTFEExp::cantexp;
         }
     }
@@ -5537,8 +5537,10 @@ public:
 
         /* Set the $ variable
          */
-        if (e1->op != TOKarrayliteral && e1->op != TOKstring &&
-            e1->op != TOKnull && e1->op != TOKslice)
+        if (e1->op != TOKarrayliteral &&
+            e1->op != TOKstring &&
+            e1->op != TOKnull &&
+            e1->op != TOKslice)
         {
             e->error("cannot determine length of %s at compile time", e1->toChars());
             result = CTFEExp::cantexp;
@@ -5804,8 +5806,7 @@ public:
             if (e1->op == TOKvar || e1->op == TOKsymoff)
             {
                 // type painting operation
-                Type *origType = (e1->op == TOKvar) ? ((VarExp *)e1)->var->type :
-                        ((SymOffExp *)e1)->var->type;
+                Type *origType = ((SymbolExp *)e1)->var->type;
                 if (castBackFromVoid && !isSafePointerCast(origType, pointee))
                 {
                     e->error("using void* to reinterpret cast from %s* to %s* is not supported in CTFE",

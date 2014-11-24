@@ -139,11 +139,13 @@ enum TOK
         TOKtypedef, TOKalias, TOKoverride, TOKdelegate, TOKfunction,
         TOKmixin,
 
+// 169
         TOKalign, TOKextern, TOKprivate, TOKprotected, TOKpublic, TOKexport,
         TOKstatic, TOKfinal, TOKconst, TOKabstract, TOKvolatile,
         TOKdebug, TOKdeprecated, TOKin, TOKout, TOKinout, TOKlazy,
         TOKauto, TOKpackage, TOKmanifest, TOKimmutable,
 
+// 190
         // Statements
         TOKif, TOKelse, TOKwhile, TOKfor, TOKdo, TOKswitch,
         TOKcase, TOKdefault, TOKbreak, TOKcontinue, TOKwith,
@@ -152,17 +154,21 @@ enum TOK
         TOKscope,
         TOKon_scope_exit, TOKon_scope_failure, TOKon_scope_success,
 
+// 214
         // Contracts
         TOKbody, TOKinvariant,
 
+// 216
         // Testing
         TOKunittest,
 
+// 217
         // Added after 1.0
         TOKargTypes,
         TOKref,
         TOKmacro,
 
+// 220
         TOKparameters,
         TOKtraits,
         TOKoverloadset,
@@ -182,6 +188,7 @@ enum TOK
         TOKvector,
         TOKpound,
 
+// 238
         TOKinterval,
         TOKvoidexp,
         TOKcantexp,
