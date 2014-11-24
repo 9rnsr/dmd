@@ -2810,6 +2810,8 @@ public:
         {
             Expression *ekey = (*e->keys)[i];
             Expression *evalue = (*e->values)[i];
+            assert(ekey->op != TOKtuple);
+            assert(evalue->op != TOKtuple);
 
             Expression *ex = interpret(ekey, istate);
             if (exceptionOrCant(ex))
@@ -2837,16 +2839,16 @@ public:
                 (*valuesx)[i] = ex;
             }
         }
-        if (keysx != e->keys)
-            expandTuples(keysx);
-        if (valuesx != e->values)
-            expandTuples(valuesx);
-        if (keysx->dim != valuesx->dim)
-        {
-            e->error("Internal Compiler Error: invalid AA");
-            result = CTFEExp::cantexp;
-            return;
-        }
+        //if (keysx != e->keys)
+        //    expandTuples(keysx);
+        //if (valuesx != e->values)
+        //    expandTuples(valuesx);
+        //if (keysx->dim != valuesx->dim)
+        //{
+        //    e->error("Internal Compiler Error: invalid AA");
+        //    result = CTFEExp::cantexp;
+        //    return;
+        //}
 
         /* Remove duplicate keys
          */
