@@ -1019,9 +1019,11 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
             istatex.gotoTarget = NULL;
         }
         else
+        {
+            assert(!(e && e->op == TOKcontinue) && !(e && e->op == TOKbreak));
             break;
+        }
     }
-    assert(!(e && e->op == TOKcontinue) && !(e && e->op == TOKbreak));
 
     /* Bugzilla 7887: If the returned reference is a ref parameter of fd,
      * peel off the local indirection.
@@ -1051,19 +1053,14 @@ Expression *interpret(FuncDeclaration *fd, InterState *istate, Expressions *argu
 
     // If fell off the end of a void function, return void
     if (!e && tf->next->ty == Tvoid)
-        return CTFEExp::voidexp;
+        e = CTFEExp::voidexp;
+    assert(e != NULL);
 
-    // If result is void, return void
-    if (e->op == TOKvoidexp)
-        return e;
-
-    // If it generated an exception, return it
-    if (exceptionOrCantInterpret(e))
+    // If it generated an uncaught exception, report error.
+    if (!istate && e->op == TOKthrownexception)
     {
-        if (istate || CTFEExp::isCantExp(e))
-            return e;
         ((ThrownExceptionExp *)e)->generateUncaughtError();
-        return CTFEExp::cantexp;
+        e = CTFEExp::cantexp;
     }
 
     return e;
@@ -1105,6 +1102,26 @@ public:
     }
 
     /******************************** Statement ***************************/
+    /* Visiting statements will set 'result' to:
+     *  NULL
+     *      If istate->start == NULL, the statement interpretation was
+     *      succeeded.
+     *      If istate->start != NULL, the istate->gotoTarget was not found
+     *      in the statement.
+     *  CTFEExp::cantexp
+     *      interpreeation fails with some reasons. It must be
+     *      bubbled up to the loop in FuncDeclaration::interpret().
+     *  TOKthrownexception  statement throws exception.
+     *      If no CatchStatement exists at higher levels, it must be
+     *      bubbled up to the loop in FuncDeclaration::interpret().
+     *  CTFEExp::breakexp || CTFEExp::continueexp || CTFEExp::gotoexp
+     *      statement jumps to the specific target. Normally it will be bubbled up
+     *      to the loop in FuncDeclaration::interpret() to start 'jump mode', but
+     *      some loop statements may interrput the bubbling.
+     *  others (including CTFEExp::voidexp)
+     *      The expression is returned by ReturnStatement. It must be
+     *      bubbled up to the loop in FuncDeclaration::interpret().
+     */
 
     void visit(Statement *s)
     {
@@ -1127,8 +1144,16 @@ public:
             return;
 
         Expression *e = interpret(s->exp, istate, ctfeNeedNothing);
+        // if no error, ctfeNeedNothing returns NULL.
+        // no jumping out (e is not TOKgoto || TOKbreak || TOKcontinue)
+        //if (!(!e || exceptionOrCantInterpret(e)))
+        //    printf("e = %s\n", e->toChars());
+        //assert(!e || exceptionOrCantInterpret(e));
+        // --> ctfeNeedNothing does not guarantee that returns NULL, so e may be a valid CTFE instance.
         if (exceptionOrCant(e))
             return;
+
+        assert(result == NULL);
     }
 
     void visit(CompoundStatement *s)
@@ -1138,19 +1163,24 @@ public:
     #endif
         if (istate->start == s)
             istate->start = NULL;
-        Expression *e = NULL;
+
         size_t dim = s->statements ? s->statements->dim : 0;
         for (size_t i = 0; i < dim; i++)
         {
             Statement *sx = (*s->statements)[i];
-            e = interpret(sx, istate);
-            if (e)
+            result = interpret(sx, istate);
+            if (result)
                 break;
         }
+        // Statement::interpret may return:
+        //  NULL        suceeded to run
+        //  exceptionOrCantInterpret(e)
+        //  TOKgoto || TOKbreak || TOKcontinue
+        //  != NULL     ReturnStatement
+
     #if LOG
-        printf("%s -CompoundStatement::interpret() %p\n", s->loc.toChars(), e);
+        printf("%s -CompoundStatement::interpret() %p\n", s->loc.toChars(), result);
     #endif
-        result = e;
     }
 
     void visit(UnrolledLoopStatement *s)
@@ -1160,36 +1190,45 @@ public:
     #endif
         if (istate->start == s)
             istate->start = NULL;
-        Expression *e = NULL;
+
         size_t dim = s->statements ? s->statements->dim : 0;
         for (size_t i = 0; i < dim; i++)
         {
             Statement *sx = (*s->statements)[i];
+            if (!sx)
+                continue;
 
-            e = interpret(sx, istate);
-            if (CTFEExp::isCantExp(e))
-                break;
-            if (e && e->op == TOKcontinue)
+            Expression *e = interpret(sx, istate);
+            if (!e) // suceeds to interpret, or gotoTarget was not fonnd (if istate->start != NULL)
+                continue;
+            if (exceptionOrCant(e))
+                return;
+            if (e->op == TOKbreak)
             {
                 if (istate->gotoTarget && istate->gotoTarget != s)
-                    break; // continue at higher level
+                {
+                    result = e;     // break at a higher level
+                    return;
+                }
                 istate->gotoTarget = NULL;
-                e = NULL;
+                result = NULL;
+                return;
+            }
+            if (e->op == TOKcontinue)
+            {
+                if (istate->gotoTarget && istate->gotoTarget != s)
+                {
+                    result = e;     // continue at a higher level
+                    return;
+                }
+                istate->gotoTarget = NULL;
                 continue;
             }
-            if (e && e->op == TOKbreak)
-            {
-                if (!istate->gotoTarget || istate->gotoTarget == s)
-                {
-                    istate->gotoTarget = NULL;
-                    e = NULL;
-                } // else break at a higher level
-                break;
-            }
-            if (e)
-                break;
+
+            // result comes from ReturnStatement
+            result = e;
+            break;
         }
-        result = e;
     }
 
     void visit(IfStatement *s)
@@ -1203,9 +1242,7 @@ public:
         {
             Expression *e = NULL;
             e = interpret(s->ifbody, istate);
-            if (exceptionOrCant(e))
-                return;
-            if (istate->start)
+            if (!e && istate->start)
                 e = interpret(s->elsebody, istate);
             result = e;
             return;
@@ -1213,18 +1250,18 @@ public:
 
         Expression *e = interpret(s->condition, istate);
         assert(e);
-        if (exceptionOrCantInterpret(e))
+        if (exceptionOrCant(e))
             return;
 
         if (isTrueBool(e))
-            e = interpret(s->ifbody, istate);
+            result = interpret(s->ifbody, istate);
         else if (e->isBool(false))
-            e = interpret(s->elsebody, istate);
+            result = interpret(s->elsebody, istate);
         else
         {
-            e = CTFEExp::cantexp;
+            // no error, or assert(0)?
+            result = CTFEExp::cantexp;
         }
-        result = e;
     }
 
     void visit(ScopeStatement *s)
@@ -1381,14 +1418,7 @@ public:
             LabelDsymbol *label = istate->fd->searchLabel(ident);
             assert(label && label->statement);
             LabelStatement *ls = label->statement;
-            if (ls->gotoTarget)
-                target = ls->gotoTarget;
-            else
-            {
-                target = ls->statement;
-                if (target->isScopeStatement())
-                    target = target->isScopeStatement()->statement;
-            }
+            target = ls->gotoTarget ? ls->gotoTarget : ls->statement;
         }
         return target;
     }
@@ -1432,51 +1462,57 @@ public:
     #endif
         if (istate->start == s)
             istate->start = NULL;
-        Expression *e;
 
         while (1)
         {
-            bool wasGoto = !!istate->start;
-            e = interpret(s->body, istate);
-            if (CTFEExp::isCantExp(e))
-                break;
-            if (wasGoto && istate->start)
+            Expression *e = interpret(s->body, istate);
+            if (!e && istate->start)    // goto target was not found
+                return;
+            assert(!istate->start);
+
+            if (exceptionOrCant(e))
                 return;
             if (e && e->op == TOKbreak)
             {
-                if (!istate->gotoTarget || istate->gotoTarget == s)
+                if (istate->gotoTarget && istate->gotoTarget != s)
                 {
-                    istate->gotoTarget = NULL;
-                    e = NULL;
-                } // else break at a higher level
+                    result = e;     // break at a higher level
+                    return;
+                }
+                istate->gotoTarget = NULL;
                 break;
             }
-            if (e && e->op != TOKcontinue)
-                break;
-            if (istate->gotoTarget && istate->gotoTarget != s)
-                break; // continue at a higher level
+            if (e && e->op == TOKcontinue)
+            {
+                if (istate->gotoTarget && istate->gotoTarget != s)
+                {
+                    result = e;     // continue at a higher level
+                    return;
+                }
+                istate->gotoTarget = NULL;
+                e = NULL;
+            }
+            if (e)
+            {
+                result = e; // bubbled up from ReturnStatement
+                return;
+            }
 
-            istate->gotoTarget = NULL;
+            /* Evaluate the loop condition.
+             */
             e = interpret(s->condition, istate);
             if (exceptionOrCant(e))
                 return;
             if (!e->isConst())
             {
-                e = CTFEExp::cantexp;
+                result = CTFEExp::cantexp;
+                return;
+            }
+            if (e->isBool(false))
                 break;
-            }
-            if (isTrueBool(e))
-            {
-            }
-            else if (e->isBool(false))
-            {
-                e = NULL;
-                break;
-            }
-            else
-                assert(0);
+            assert(isTrueBool(e));
         }
-        result = e;
+        assert(result == NULL);
     }
 
     void visit(ForStatement *s)
@@ -1486,56 +1522,63 @@ public:
     #endif
         if (istate->start == s)
             istate->start = NULL;
-        Expression *e;
 
-        e = interpret(s->init, istate);
+        Expression *e = interpret(s->init, istate);
         if (exceptionOrCant(e))
             return;
-        assert(!e);
+        assert(!e); // never return or jump out from s->init
 
         while (1)
         {
             if (s->condition && !istate->start)
             {
-                e = interpret(s->condition, istate);
+                Expression *e = interpret(s->condition, istate);
                 if (exceptionOrCant(e))
                     return;
                 if (e->isBool(false))
-                {
-                    e = NULL;
                     break;
-                }
                 assert(isTrueBool(e));
             }
 
-            bool wasGoto = !!istate->start;
-            e = interpret(s->body, istate);
-            if (CTFEExp::isCantExp(e))
-                break;
-            if (wasGoto && istate->start)
+            Expression *e = interpret(s->body, istate);
+            if (!e && istate->start)    // goto target was not found
                 return;
+            assert(!istate->start);
 
+            if (exceptionOrCant(e))
+                return;
             if (e && e->op == TOKbreak)
             {
-                if (!istate->gotoTarget || istate->gotoTarget == s)
+                if (istate->gotoTarget && istate->gotoTarget != s)
                 {
-                    istate->gotoTarget = NULL;
-                    e = NULL;
-                } // else break at a higher level
+                    result = e;     // break at a higher level
+                    return;
+                }
+                istate->gotoTarget = NULL;
                 break;
             }
-            if (e && e->op != TOKcontinue)
-                break;
-
-            if (istate->gotoTarget && istate->gotoTarget != s)
-                break; // continue at a higher level
-            istate->gotoTarget = NULL;
+            if (e && e->op == TOKcontinue)
+            {
+                if (istate->gotoTarget && istate->gotoTarget != s)
+                {
+                    result = e;     // continue at a higher level
+                    return;
+                }
+                istate->gotoTarget = NULL;
+                e = NULL;
+            }
+            if (e)
+            {
+                result = e; // bubbled up from ReturnStatement
+                return;
+            }
 
             e = interpret(s->increment, istate);
-            if (CTFEExp::isCantExp(e))
-                break;
+            // <-- can be ctfeNeedNothing?
+            if (exceptionOrCant(e))
+                return;
         }
-        result = e;
+        assert(result == NULL);
     }
 
     void visit(ForeachStatement *s)
@@ -1555,51 +1598,44 @@ public:
     #endif
         if (istate->start == s)
             istate->start = NULL;
-        Expression *e = NULL;
 
         if (istate->start)
         {
-            e = interpret(s->body, istate);
+            Expression *e = interpret(s->body, istate);
             if (istate->start)
                 return;
-            if (CTFEExp::isCantExp(e))
-            {
-                result = e;
+            if (exceptionOrCant(e))
                 return;
-            }
             if (e && e->op == TOKbreak)
             {
-                if (!istate->gotoTarget || istate->gotoTarget == s)
+                if (istate->gotoTarget && istate->gotoTarget != s)
                 {
-                    istate->gotoTarget = NULL;
+                    result = e;     // break at a higher level
                     return;
                 }
-                // else break at a higher level
+                istate->gotoTarget = NULL;
+                e = NULL;
             }
             result = e;
             return;
         }
-
 
         Expression *econdition = interpret(s->condition, istate);
         if (exceptionOrCant(econdition))
             return;
 
         Statement *scase = NULL;
-        if (s->cases)
+        size_t dim = s->cases ? s->cases->dim : 0;
+        for (size_t i = 0; i < dim; i++)
         {
-            for (size_t i = 0; i < s->cases->dim; i++)
+            CaseStatement *cs = (*s->cases)[i];
+            Expression *ecase = interpret(cs->exp, istate);
+            if (exceptionOrCant(ecase))
+                return;
+            if (ctfeEqual(cs->exp->loc, TOKequal, econdition, ecase))
             {
-                CaseStatement *cs = (*s->cases)[i];
-                Expression * caseExp = interpret(cs->exp, istate);
-                if (exceptionOrCant(caseExp))
-                    return;
-                int eq = ctfeEqual(caseExp->loc, TOKequal, econdition, caseExp);
-                if (eq)
-                {
-                    scase = cs;
-                    break;
-                }
+                scase = cs;
+                break;
             }
         }
         if (!scase)
@@ -1610,17 +1646,21 @@ public:
         }
 
         assert(scase);
+
+        /* Jump to scase
+         */
         istate->start = scase;
-        e = interpret(s->body, istate);
-        assert(!istate->start);
+        Expression *e = interpret(s->body, istate);
+        assert(!istate->start); // jump must succeed
         if (e && e->op == TOKbreak)
         {
-            if (!istate->gotoTarget || istate->gotoTarget == s)
+            if (istate->gotoTarget && istate->gotoTarget != s)
             {
-                istate->gotoTarget = NULL;
-                e = NULL;
+                result = e;     // break at a higher level
+                return;
             }
-            // else break at a higher level
+            istate->gotoTarget = NULL;
+            e = NULL;
         }
         result = e;
     }
@@ -1708,37 +1748,56 @@ public:
         {
             Expression *e = NULL;
             e = interpret(s->body, istate);
-            for (size_t i = 0; !e && istate->start && i < s->catches->dim; i++)
+            for (size_t i = 0; i < s->catches->dim; i++)
             {
+                if (e || !istate->start)    // goto target was found
+                    break;
                 Catch *ca = (*s->catches)[i];
                 e = interpret(ca->handler, istate);
             }
             result = e;
             return;
+#if 0
+            // problematic snippet
+            bool f()
+            {
+                goto L;
+                try
+                {
+                L:
+                    throw new Exception("");
+                }
+                catch (Exception e)
+                {
+                    return true;
+                }
+                return false;
+            }
+            static assert(f()); // Uncaught CTFE exception -> incorrect
+
+            void main()
+            {
+                f();    // cannot goto into try block - e2ir error
+            }
+#endif
         }
 
         Expression *e = interpret(s->body, istate);
-        if (CTFEExp::isCantExp(e))
-        {
-            result = e;
-            return;
-        }
-        if (!exceptionOrCant(e))
-        {
-            result = e;
-            return;
-        }
-        // An exception was thrown
-        ThrownExceptionExp *ex = (ThrownExceptionExp *)e;
-        Type *extype = ex->thrown->originalClass()->type;
-        // Search for an appropriate catch clause.
-        for (size_t i = 0; i < s->catches->dim; i++)
-        {
-            Catch *ca = (*s->catches)[i];
-            Type *catype = ca->type;
 
-            if (catype->equals(extype) || catype->isBaseOf(extype, NULL))
+        // An exception was thrown
+        if (e && e->op == TOKthrownexception)
+        {
+            ThrownExceptionExp *ex = (ThrownExceptionExp *)e;
+            Type *extype = ex->thrown->originalClass()->type;
+
+            // Search for an appropriate catch clause.
+            for (size_t i = 0; i < s->catches->dim; i++)
             {
+                Catch *ca = (*s->catches)[i];
+                Type *catype = ca->type;
+                if (!catype->equals(extype) && !catype->isBaseOf(extype, NULL))
+                    continue;
+
                 // Execute the handler
                 if (ca->var)
                 {
@@ -1746,20 +1805,7 @@ public:
                     setValue(ca->var, ex->thrown);
                 }
                 e = interpret(ca->handler, istate);
-                if (e && e->op == TOKgoto)
-                {
-                    InterState istatex = *istate;
-                    istatex.start = istate->gotoTarget; // set starting statement
-                    istatex.gotoTarget = NULL;
-                    Expression *eh = interpret(ca->handler, &istatex);
-                    if (!istatex.start)
-                    {
-                        istate->gotoTarget = NULL;
-                        e = eh;
-                    }
-                }
-                result = e;
-                return;
+                break;
             }
         }
         result = e;
@@ -1777,7 +1823,7 @@ public:
     #endif
         // Little sanity check to make sure it's really a Throwable
         ClassReferenceExp *boss = oldest->thrown;
-        assert((*boss->value->elements)[4]->type->ty == Tclass);
+        assert((*boss->value->elements)[4]->type->ty == Tclass);    // Throwable.next
         ClassReferenceExp *collateral = newest->thrown;
         if ( isAnErrorException(collateral->originalClass()) &&
             !isAnErrorException(boss->originalClass()))
@@ -1812,27 +1858,27 @@ public:
             return;
         }
 
-        Expression *e = interpret(s->body, istate);
-        if (CTFEExp::isCantExp(e))
+        Expression *ex = interpret(s->body, istate);
+        if (CTFEExp::isCantExp(ex))
         {
-            result = e;
+            result = ex;
             return;
         }
-        Expression *second = interpret(s->finalbody, istate);
-        if (CTFEExp::isCantExp(second))
+        Expression *ey = interpret(s->finalbody, istate);
+        if (CTFEExp::isCantExp(ey))
         {
-            result = second;
+            result = ey;
             return;
         }
-        if (exceptionOrCantInterpret(second))
+        if (ey && ey->op == TOKthrownexception)
         {
             // Check for collided exceptions
-            if (exceptionOrCantInterpret(e))
-                e = chainExceptions((ThrownExceptionExp *)e, (ThrownExceptionExp *)second);
+            if (ex && ex->op == TOKthrownexception)
+                ex = chainExceptions((ThrownExceptionExp *)ex, (ThrownExceptionExp *)ey);
             else
-                e = second;
+                ex = ey;
         }
-        result = e;
+        result = ex;
     }
 
     void visit(ThrowStatement *s)
@@ -1861,47 +1907,36 @@ public:
     #if LOG
         printf("%s WithStatement::interpret()\n", s->loc.toChars());
     #endif
+        if (istate->start == s)
+            istate->start = NULL;
+        if (istate->start)
+        {
+            result = s->body ? interpret(s->body, istate) : NULL;
+            return;
+        }
 
         // If it is with(Enum) {...}, just execute the body.
         if (s->exp->op == TOKimport || s->exp->op == TOKtype)
         {
             result = interpret(s->body, istate);
-            return;
         }
-
-        if (istate->start)
+        else
         {
-            if (istate->start != s)
+            Expression *e = interpret(s->exp, istate);
+            if (exceptionOrCant(e))
                 return;
-            istate->start = NULL;
-        }
 
-        Expression *e = interpret(s->exp, istate);
-        if (exceptionOrCant(e))
-            return;
-
-        if (s->wthis->type->ty == Tpointer && s->exp->type->ty != Tpointer)
-        {
-            e = new AddrExp(s->loc, e);
-            e->type = s->wthis->type;
-        }
-        ctfeStack.push(s->wthis);
-        setValue(s->wthis, e);
-        e = interpret(s->body, istate);
-        if (e && e->op == TOKgoto)
-        {
-            InterState istatex = *istate;
-            istatex.start = istate->gotoTarget; // set starting statement
-            istatex.gotoTarget = NULL;
-            Expression *ex = interpret(s->body, &istatex);
-            if (!istatex.start)
+            if (s->wthis->type->ty == Tpointer && s->exp->type->ty != Tpointer)
             {
-                istate->gotoTarget = NULL;
-                e = ex;
+                e = new AddrExp(s->loc, e);
+                e->type = s->wthis->type;
             }
+            ctfeStack.push(s->wthis);
+            setValue(s->wthis, e);
+            e = interpret(s->body, istate);
+            ctfeStack.pop(s->wthis);
+            result = e;
         }
-        ctfeStack.pop(s->wthis);
-        result = e;
     }
 
     void visit(AsmStatement *s)
@@ -6252,7 +6287,24 @@ Expression *interpret(Expression *e, InterState *istate, CtfeGoal goal)
         return NULL;
     Interpreter v(istate, goal);
     e->accept(&v);
-    return v.result;
+    Expression *ex = v.result;
+
+    assert(goal == ctfeNeedNothing || ex != NULL);
+#if 0
+    if (goal == ctfeNeedLvalue/* || goal == ctfeNeedLvalueRef*/)
+    {
+        if (!ex ||
+            exceptionOrCantInterpret(ex) ||
+            ex->op == TOKgoto || ex->op == TOKbreak || ex->op == TOKcontinue)
+        {
+        }
+        else
+        {
+            //ex->type->equivalent(e->type) || void[] or void* ?
+        }
+    }
+#endif
+    return ex;
 }
 
 /***********************************
