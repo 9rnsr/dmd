@@ -2731,6 +2731,10 @@ public:
             result = e;
             return;
         }
+
+        // If the element type is [wd]?char, or integers, we may alternatively use StringExp
+        // to decrese the memory use for CTFE?
+
         Expressions *expsx = NULL;
         size_t dim = e->elements ? e->elements->dim : 0;
         for (size_t i = 0; i < dim; i++)
@@ -2762,7 +2766,7 @@ public:
         }
         if (dim && expsx)
         {
-            expandTuples(expsx);
+            expandTuples(expsx);        // tuples should be expanded in front-end layer?
             if (expsx->dim != dim)
             {
                 e->error("Internal Compiler Error: Invalid array literal");
@@ -3475,13 +3479,6 @@ public:
         //    wantLvalueRef = true;
         //}
 #endif
-        // If it is a construction of a ref variable, it is a ref assignment
-        // (in fact, it is an lvalue reference assignment).
-        if (e->op == TOKconstruct && e->e1->op == TOKvar &&
-            ((VarExp *)e->e1)->var->storage_class & STCref)
-        {
-            isRefAssign = true;
-        }
 
         if (fp)
         {
@@ -3494,66 +3491,103 @@ public:
         if (exceptionOrCant(e1))
             return;
 
+        /* Evaluate e1
+         * Some special assignment forms will be handled later.
+         */
 //printf("+L%d [%s] e1 = %s\n", __LINE__, e->loc.toChars(), e1->toChars());
-        if (isRefAssign)
-            ;
+        if (e->op == TOKconstruct && e->e1->op == TOKvar &&
+            ((VarExp *)e->e1)->var->storage_class & STCref)
+        {
+            // If it is a construction of a ref variable, it is a ref assignment
+            // (in fact, it is an lvalue reference assignment).
+            isRefAssign = true;
+        }
+    #if 1   // maybe unnecessary?
         else if (e->op == TOKconstruct || e->op == TOKblit)     // keep TOKvar in e1 ?
+        {
             ;
+        }
+    #endif
         else if (e1->op == TOKarraylength)
+        {
             ;
+        }
         else if (e1->op == TOKindex && ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
+        {
             assert(((IndexExp *)e1)->modifiable);
+        }
+        else if (e1->op == TOKslice/*isBlockAssignment || isElementWiseAssignment*/)
+        {
+            e1 = interpret(e1, istate, ctfeNeedRvalue);
+            if (exceptionOrCant(e1))
+                return;
+            // Validate CTFE-able slices
+            //printf("L%d [%s] e = %s, e1 = %s\n", __LINE__, e->loc.toChars(), e->toChars(), e1->toChars());
+            assert(e1->op == TOKnull || e1->op == TOKarrayliteral || e1->op == TOKstring || e1->op == TOKslice);
+            assert(e1->type->toBasetype()->ty == Tarray);
+        }
         else
         {
 //printf("+L%d [%s] e1 = %s\n", __LINE__, e->loc.toChars(), e1->toChars());
+            // evaluate e1 as a CTFEable lvalue (CTFEable reference).
             e1 = interpret(e1, istate, ctfeNeedLvalue);
             if (exceptionOrCant(e1))
                 return;
+
+        #if 1   // Validate CTFE-able lvalues (CTFEable reference)
+            if (e1->op == TOKvar)
+            {
+            #if 0
+                Expression *eval = getValue(((VarExp *)e1)->var);
+                assert(eval != NULL);
+                assert(eval->op == TOKint64 || eval->op == TOKfloat64 || eval->op == TOKcomplex64 ||
+                        ...);
+            #endif
+            }
+            else if (e1->op == TOKdotvar)
+            {
+                DotVarExp *dve = (DotVarExp *)e1;
+                //printf("L%d [%s] e = %s, dve->e1 = %s\n", __LINE__, e->loc.toChars(), e->toChars(), dve->e1->toChars());
+                assert(dve->e1->op == TOKstructliteral || dve->e1->op == TOKclassreference);
+                if (dve->e1->op == TOKstructliteral)
+                    assert(((StructLiteralExp *)dve->e1)->ownedByCtfe);
+                if (dve->e1->op == TOKclassreference)
+                    assert(((ClassReferenceExp *)dve->e1)->value->ownedByCtfe);
+            }
+            else if (e1->op == TOKindex)
+            {
+                Expression *eagg = ((IndexExp *)e1)->e1;
+                //printf("L%d [%s] e = %s, eagg = %s\n", __LINE__, e->loc.toChars(), e->toChars(), eagg->toChars());
+                assert(eagg->op == TOKarrayliteral || eagg->op == TOKstring || eagg->op == TOKassocarrayliteral);
+            }
+            else if (e1->op == TOKarrayliteral)
+            {
+                assert(e1->type->toBasetype()->ty == Tsarray);
+                assert(((ArrayLiteralExp *)e1)->ownedByCtfe);
+            }
+            else if (e1->op == TOKstring)
+            {
+                assert(e1->type->toBasetype()->ty == Tsarray);
+                assert(((StringExp *)e1)->ownedByCtfe);
+            }
+            else if (e1->op == TOKstructliteral)
+            {
+                assert(((StructLiteralExp *)e1)->ownedByCtfe);
+            }
+            else
+            {
+                //printf("L%d [%s] e = %s, e1 = %s\n", __LINE__, e->loc.toChars(), e->toChars(), e1->toChars());
+                assert(0);
+            }
+        #endif
         }
 //printf("-L%d [%s] e1 = %s\n", __LINE__, e->loc.toChars(), e1->toChars());
 
-        // First, deal with  this = e; and call() = e;
+        // First, deal with  this = e;
         if (e1->op == TOKthis)
         {
             e1 = ctfeStack.getThis();
         }
-#if 0   // ref return should be handled in FuncDeclaration::interpret()
-        if (e1->op == TOKcall)
-        {
-            bool oldWaiting = istate->awaitingLvalueReturn;
-            istate->awaitingLvalueReturn = true;
-            e1 = interpret(e1, istate);
-            istate->awaitingLvalueReturn = oldWaiting;
-            if (exceptionOrCant(e1))
-                return;
-            if (e1->op == TOKarrayliteral || e1->op == TOKstring)
-            {
-                // f() = e2, when f returns an array, is always a slice assignment.
-                // Convert into arr[0..arr.length] = e2
-                e1 = new SliceExp(e->loc, e1,
-                    new IntegerExp(e->loc, 0, Type::tsize_t),
-                    ArrayLength(Type::tsize_t, e1).copy());
-                e1->type = e->type;
-            }
-        }
-#endif
-#if 0   // handled by returning Lvalue from interpret(e1, istate, ctfeNeedsLvalue)
-        if (e1->op == TOKstar)
-        {
-            e1 = interpret(e1, istate, ctfeNeedLvalue);
-            e1 = resolveLvalueRefToLvalue(e1);
-            if (exceptionOrCant(e1))
-                return;
-            if (!(e1->op == TOKvar || e1->op == TOKdotvar || e1->op == TOKindex ||
-                  e1->op == TOKslice || e1->op == TOKstructliteral))
-            {
-                e->error("cannot dereference invalid pointer %s",
-                    e->e1->toChars());
-                result = CTFEExp::cantexp;
-                return;
-            }
-        }
-#endif
 
 #if 0   // temporary
         if (e1->op == TOKarraylength ||
@@ -3573,29 +3607,10 @@ public:
         }
 #endif
 
-        Expression *newval = NULL;
-        newval = interpret(e->e2, istate, isRefAssign ? ctfeNeedLvalue : ctfeNeedRvalue);
+        Expression *newval = interpret(e->e2, istate, isRefAssign ? ctfeNeedLvalue : ctfeNeedRvalue);
 //printf("L%d [%s] e1 = %s, newval = %s\n", __LINE__, e->loc.toChars(), e1->toChars(), newval->toChars());
         if (exceptionOrCant(newval))
             return;
-#if 0
-        if (!wantRef)
-        {
-            // We need to treat pointers specially, because TOKsymoff can be used to
-            // return a value OR a pointer
-            assert(e1);
-            assert(e1->type);
-            if (isPointer(e1->type) && (e->e2->op == TOKsymoff || e->e2->op == TOKaddress || e->e2->op == TOKvar))
-            {
-                newval = interpret(e->e2, istate, ctfeNeedLvalue);
-                newval = resolveLvalueRefToLvalue(newval);
-            }
-            else
-                newval = interpret(e->e2, istate);
-            if (exceptionOrCant(newval))
-                return;
-        }
-#endif
         /* Look for special case of struct being initialized with 0.
         */
         if (e->type->toBasetype()->ty == Tstruct && newval->op == TOKint64)
@@ -3626,7 +3641,7 @@ public:
         if (fp || e1->op == TOKarraylength)
         {
             // If it isn't a simple assignment, we need the existing value
-            Expression * oldval = interpret(e1, istate);
+            Expression *oldval = interpret(e1, istate);
             if (exceptionOrCant(oldval))
                 return;
             while (oldval->op == TOKvar)
@@ -3676,14 +3691,12 @@ public:
                 {
                     newval = (*fp)(e->type, oldval, newval).copy();
                 }
-                if (CTFEExp::isCantExp(newval))
+                if (exceptionOrCant(newval))
                 {
-                    e->error("cannot interpret %s at compile time", e->toChars());
-                    result = CTFEExp::cantexp;
+                    if (CTFEExp::isCantExp(newval))
+                        e->error("cannot interpret %s at compile time", e->toChars());
                     return;
                 }
-                if (exceptionOrCant(newval))
-                    return;
                 // Determine the return value
                 result = ctfeCast(e->loc, e->type, e->type, post ? oldval : newval);
                 if (exceptionOrCant(result))
@@ -3774,25 +3787,27 @@ public:
             setValue(ultimateVar, copyLiteral(ultimateVar->type->defaultInitLiteral(e->loc)).copy());
 
 //if (e1->op == TOKdotvar) printf("L%d [%s] e1: dve->e1 = %p %s\n", __LINE__, e->loc.toChars(), ((DotVarExp *)e1)->e1, ((DotVarExp *)e1)->e1->toChars());
+#if 0   // Now 'reference types' handling is not special, so this branch would be unnecessary.
         // ---------------------------------------
         //      Deal with reference assignment
         // (We already have 'newval' for arraylength operations)
         // ---------------------------------------
         if (isRefAssign &&/*TODO: wantRef &&*/ !fp && e->e1->op != TOKarraylength)
         {
-            CtfeGoal e2goal;
-            if (isRefAssign/*wantLvalueRef*/)
-                e2goal = ctfeNeedLvalue/*Ref*/; // for internal ref variable initializing
-            else if (e->e2->type->ty == Tarray || e->e2->type->ty == Tclass)
-                e2goal = ctfeNeedRvalue;    // for assignment of reference types
-            else
-                e2goal = ctfeNeedLvalue;    // other types
-            newval = interpret(e->e2, istate, e2goal);
-            if (!isRefAssign/* && e2goal == ctfeNeedLvalue*/)
-                newval = resolveLvalueRefToLvalue(newval);
+        #if 0   // already done in above
+            //CtfeGoal e2goal;
+            //if (isRefAssign/*wantLvalueRef*/)
+            //    e2goal = ctfeNeedLvalue/*Ref*/; // for internal ref variable initializing
+            //else if (e->e2->type->ty == Tarray || e->e2->type->ty == Tclass)
+            //    e2goal = ctfeNeedRvalue;    // for assignment of reference types
+            //else
+            //    e2goal = ctfeNeedLvalue;    // other types
+            newval = interpret(e->e2, istate, ctfeNeedLvalue);
+            //if (!isRefAssign/* && e2goal == ctfeNeedLvalue*/)
+            //    newval = resolveLvalueRefToLvalue(newval);
             if (exceptionOrCant(newval))
                 return;
-
+        #endif
             // If it is an assignment from a array function parameter passed by
             // reference, resolve the reference. (This should NOT happen for
             // non-reference types).
@@ -3816,6 +3831,7 @@ public:
             else
                 result = newval;
         }
+#endif
 
 //printf("L%d [%s] e1 = %s\n", __LINE__, e->loc.toChars(), e1->toChars());
 //if (e1->op == TOKdotvar) printf("L%d [%s] e1: dve->e1 = %p %s\n", __LINE__, e->loc.toChars(), ((DotVarExp *)e1)->e1, ((DotVarExp *)e1)->e1->toChars());
@@ -3931,6 +3947,7 @@ public:
 
 //printf("L%d [%s] e1 = %s\n", __LINE__, e->loc.toChars(), e1->toChars());
 //if (e1->op == TOKdotvar) printf("L%d [%s] e1: dve->e1 = %p %s\n", __LINE__, e->loc.toChars(), ((DotVarExp *)e1)->e1, ((DotVarExp *)e1)->e1->toChars());
+#if 0   // maybe already handled
         // ---------------------------------------
         //      Deal with dotvar expressions
         // ---------------------------------------
@@ -3955,6 +3972,7 @@ public:
                     return;
             }
         }
+#endif
     #if LOGASSIGN
         if (isRefAssign/*wantRef*/)
             printf("REF ASSIGN: %s=%s\n", e1->toChars(), newval->toChars());
