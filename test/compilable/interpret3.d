@@ -662,7 +662,7 @@ static assert(bug1330StringIndex() == "moo"); // check we haven't clobbered any 
 
 int[] bug1330ArrayIndex()
 {
-    int[] blah = [1,2,3];
+    int[] blah = [1, 2, 3];
     int[] s = blah;
     s = blah[0 .. 2];
     int z = blah[0] = 6;

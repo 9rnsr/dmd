@@ -1341,6 +1341,8 @@ public:
     // Check all members of an array for escaping local variables. Return false if error
     static bool stopPointersEscapingFromArray(Loc loc, Expressions *elems)
     {
+        if (!elems)
+            return true;
         for (size_t i = 0; i < elems->dim; i++)
         {
             Expression *m = (*elems)[i];
@@ -2698,8 +2700,8 @@ public:
             {
                 if (!expsx)
                 {
-                    expsx = new Expressions();
                     ++CtfeStatus::numArrayAllocs;
+                    expsx = new Expressions();
                     expsx->setDim(e->exps->dim);
                     for (size_t j = 0; j < i; j++)
                     {
@@ -2735,56 +2737,60 @@ public:
         // If the element type is [wd]?char, or integers, we may alternatively use StringExp
         // to decrese the memory use for CTFE?
 
+        Type *tn = ((TypeNext *)e->type)->toBasetype()->nextOf()->toBasetype();
+
         Expressions *expsx = NULL;
         size_t dim = e->elements ? e->elements->dim : 0;
         for (size_t i = 0; i < dim; i++)
         {
             Expression *exp = (*e->elements)[i];
+            assert(exp->op != TOKtuple);    // tuple must not appear in the elements
 
-            if (exp->op == TOKindex)  // segfault bug 6250
-                assert(((IndexExp *)exp)->e1 != e);
+            // segfault bug 6250
+            assert(exp->op != TOKindex || ((IndexExp *)exp)->e1 != e);
+
             Expression *ex = interpret(exp, istate);
             if (exceptionOrCant(ex))
                 return;
 
             /* If any changes, do Copy On Write
              */
+//printf("L%d [%s] ex = %p %s, exp = %p %s\n", __LINE__, e->loc.toChars(), ex, ex->toChars(), exp, exp->toChars());
+            if (goal == ctfeNeedRvalue)
+                ex = copyLiteral(ex).copy();
             if (ex != exp)
             {
                 if (!expsx)
                 {
-                    expsx = new Expressions();
                     ++CtfeStatus::numArrayAllocs;
+                    expsx = new Expressions();
                     expsx->setDim(dim);
-                    for (size_t j = 0; j < dim; j++)
+                    for (size_t j = 0; j < i; j++)
                     {
-                        (*expsx)[j] = (*e->elements)[j];
+                        (*expsx)[j] = copyLiteral((*e->elements)[j]).copy();
                     }
                 }
                 (*expsx)[i] = ex;
             }
+            else if (expsx)
+                (*expsx)[i] = copyLiteral(ex).copy();
         }
-        if (dim && expsx)
+        // If all the elements had been already interpreted, and
+        // if they're immutable, we don't need to dup it
+        if (goal == ctfeNeedLvalue && !expsx && (tn->mod & (MODconst | MODimmutable)))
         {
-            expandTuples(expsx);        // tuples should be expanded in front-end layer?
-            if (expsx->dim != dim)
-            {
-                e->error("Internal Compiler Error: Invalid array literal");
-                result = CTFEExp::cantexp;
-                return;
-            }
-            ArrayLiteralExp *ae = new ArrayLiteralExp(e->loc, expsx);
-            ae->type = e->type;
-            result = copyLiteral(ae).copy();
-            return;
-        }
-        if (((TypeNext *)e->type)->next->mod & (MODconst | MODimmutable))
-        {
-            // If it's immutable, we don't need to dup it
+            assert(!e->ownedByCtfe);
             result = e;
             return;
         }
-        result = copyLiteral(e).copy();
+
+        if (!expsx && dim)
+            expsx = e->elements->copy();
+        ArrayLiteralExp *ae = new ArrayLiteralExp(e->loc, expsx);
+        ae->type = e->type;
+        ae->ownedByCtfe = true;     // bugfix
+        result = ae;
+        //printf("L%d [%s] ae = %s\n", __LINE__, e->loc.toChars(), ae->toChars());
     }
 
     void visit(AssocArrayLiteralExp *e)
@@ -2936,8 +2942,8 @@ public:
             {
                 if (!expsx)
                 {
-                    expsx = new Expressions();
                     ++CtfeStatus::numArrayAllocs;
+                    expsx = new Expressions();
                     expsx->setDim(e->sd->fields.dim);
                     for (size_t j = 0; j < e->elements->dim; j++)
                     {
@@ -2983,6 +2989,7 @@ public:
             if (exceptionOrCantInterpret(elem))
                 return elem;
 
+            ++CtfeStatus::numArrayAllocs;
             Expressions *elements = new Expressions();
             elements->setDim(len);
             for (size_t i = 0; i < len; i++)

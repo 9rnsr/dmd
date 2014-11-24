@@ -270,7 +270,7 @@ UnionExp copyLiteral(Expression *e)
          */
         StructLiteralExp *se = (StructLiteralExp *)e;
         Expressions *oldelems = se->elements;
-        Expressions * newelems = new Expressions();
+        Expressions *newelems = new Expressions();
         newelems->setDim(oldelems->dim);
         for (size_t i = 0; i < newelems->dim; i++)
         {
@@ -1673,7 +1673,10 @@ UnionExp ctfeCat(Type *type, Expression *e1, Expression *e2)
         ArrayLiteralExp *es2 = (ArrayLiteralExp *)e2;
 
         es1 = new ArrayLiteralExp(es1->loc, copyLiteralArray(es1->elements));
-        es1->elements->insert(es1->elements->dim, copyLiteralArray(es2->elements));
+        if (es1->elements)
+            es1->elements->insert(es1->elements->dim, copyLiteralArray(es2->elements));
+        else
+            es1->elements = copyLiteralArray(es2->elements);
         e = es1;
         e->type = type;
     }
