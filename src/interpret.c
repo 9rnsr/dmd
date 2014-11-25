@@ -6671,6 +6671,8 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
 // or is an array literal or struct literal of void elements.
 bool isEntirelyVoid(Expressions *elems)
 {
+    if (!elems)
+        return true;
     for (size_t i = 0; i < elems->dim; i++)
     {
         Expression *m = (*elems)[i];
@@ -6692,6 +6694,8 @@ bool isEntirelyVoid(Expressions *elems)
 // Scrub all members of an array. Return false if error
 bool scrubArray(Loc loc, Expressions *elems, bool structlit)
 {
+    if (!elems)
+        return true;
     for (size_t i = 0; i < elems->dim; i++)
     {
         Expression *m = (*elems)[i];

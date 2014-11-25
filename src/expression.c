@@ -1130,6 +1130,7 @@ bool arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
     Type *t0 = NULL;
     Expression *e0;
     size_t j0;
+  if (exps)
     for (size_t i = 0; i < exps->dim; i++)
     {
         Expression *e = (*exps)[i];
@@ -1183,6 +1184,7 @@ bool arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
         t0 = Type::tvoid;               // [] is typed as void[]
     else if (t0->ty != Terror)
     {
+      if (exps)
         for (size_t i = 0; i < exps->dim; i++)
         {
             Expression *e = (*exps)[i];
@@ -4025,7 +4027,7 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
 
     /* Disallow array literals of type void being used.
      */
-    if (elements->dim > 0 && t0->ty == Tvoid)
+    if (elements && elements->dim > 0 && t0->ty == Tvoid)
     {
         error("%s of type %s has no value", toChars(), type->toChars());
         return new ErrorExp();

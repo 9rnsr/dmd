@@ -670,7 +670,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                 }
 
                 Type *telement = tb->nextOf();
-                if (!e->elements->dim)
+                if (!e->elements || !e->elements->dim)
                 {
                     if (typen->ty != Tvoid)
                         result = typen->implicitConvTo(telement);
@@ -1916,7 +1916,8 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                     }
 
                     ae = (ArrayLiteralExp *)e->copy();
-                    ae->elements = e->elements->copy();
+                    ae->elements = e->elements ? e->elements->copy() : NULL;
+                  if (e->elements)
                     for (size_t i = 0; i < e->elements->dim; i++)
                     {
                         Expression *ex = (*e->elements)[i];
@@ -2214,7 +2215,7 @@ Expression *inferType(Expression *e, Type *t, int flag)
         void visit(ArrayLiteralExp *ale)
         {
             Type *tb = t->toBasetype();
-            if (tb->ty == Tarray || tb->ty == Tsarray)
+            if (ale->elements && ale->elements->dim && (tb->ty == Tarray || tb->ty == Tsarray))
             {
                 Type *tn = tb->nextOf();
                 for (size_t i = 0; i < ale->elements->dim; i++)
