@@ -108,6 +108,75 @@ public:
     void saveGlobalConstant(VarDeclaration *v, Expression *e);
 };
 
+struct CtfeResult
+{
+    bool isAddress;
+    TOK op;
+    Type *type;
+
+    Expression *e;
+    union Num
+    {
+        dinteger_t  i;
+        real_t      r;
+      //complex_t   c;
+        struct Complex
+        {
+            longdouble re;
+            longdouble im;
+        };
+        Complex     c;
+
+        struct Slice
+        {
+            dinteger_t lwr;
+            dinteger_t upr;
+        };
+        Slice       s;
+    };
+    Num num;
+    Declaration *d;
+
+    // CTFE value
+
+    // TOKint64 || TOKchar  num.i
+    // TOKfloat64           num.r
+    // TOKcomplex80         num.c
+    // TOKnull              (nothing)
+
+    // TOKstring
+    // TOKarrayliteral
+    // TOKassocarrayliteral
+    // TOKstructliteral
+    // TOKclassreference    e (e && op == e->op)
+
+    // TOKvector
+    // TOKfunction
+    //                      e (e && op == e->op)
+
+    // TOKslice             e[num.s.lwr .. num.s.upr]
+
+    // TOKdelegate          e.d (d == FuncDeclaration)
+
+    // isAddress == true    (may be shrinked by type->ty == Tpointer?)
+    //  op <== CTFE reference
+    //      &this
+    //      &e      (e->op == TOKstructliteral (or classreference?))
+    //      &d      (d->isVarDeclaration())
+    //      &e.d    (d->isVarDeclaration())
+    //      &(e + i)
+
+    // TOKvar       d           // d->isFuncDeclaration() != NULL
+    // TOKdottype   e.type.d    // d->isFuncDeclaration() != NULL, type->ty == Tclass
+
+    // CTFE reference ----
+
+    // TOKthis      (d == vthis?)
+    // TOKvar       d->isVarDeclaration() != NULL
+    // TOKindex     e[num.i]
+    // TOKdotvar    e.fields[num.i]     // or e.d  (num.i can be set to the index of fields?)
+};
+
 struct InterState
 {
     InterState *caller;         // calling function's InterState
