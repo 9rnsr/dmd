@@ -102,10 +102,10 @@ int ClassReferenceExp::findFieldIndexByName(VarDeclaration *v)
 
 /************** VoidInitExp ********************************************/
 
-VoidInitExp::VoidInitExp(Type *type)
+VoidInitExp::VoidInitExp()
     : Expression(Loc(), TOKvoid, sizeof(VoidInitExp))
 {
-    this->type = type;
+    this->type = Type::tvoid;//type;
 }
 
 char *VoidInitExp::toChars()
@@ -280,7 +280,7 @@ UnionExp copyLiteral(Expression *e)
             VarDeclaration *v = sd->fields[i];
             // If it is a void assignment, use the default initializer
             if (!m)
-                m = voidInitLiteral(v->type, v).copy();
+                m = voidInitLiteral(v->loc, v->type);
             if ((v->type->ty != m->type->ty) && v->type->ty == Tsarray)
             {
                 // Block assignment from inside struct literals
@@ -2249,13 +2249,17 @@ void showCtfeExpr(Expression *e, int level)
 
 /*************************** Void initialization ***************************/
 
-UnionExp voidInitLiteral(Type *t, VarDeclaration *var)
+Expression *voidInitLiteral(Loc loc, Type *t)
 {
+    static VoidInitExp *evoid = NULL;
+    if (!evoid)
+        evoid = new VoidInitExp();
+
     UnionExp ue;
     if (t->ty == Tsarray)
     {
         TypeSArray *tsa = (TypeSArray *)t;
-        Expression *elem = voidInitLiteral(tsa->next, var).copy();
+        Expression *elem = voidInitLiteral(loc, tsa->next);
 
         // For aggregate value types (structs, static arrays) we must
         // create an a separate copy for each element.
@@ -2270,10 +2274,10 @@ UnionExp voidInitLiteral(Type *t, VarDeclaration *var)
                 elem  = copyLiteral(elem).copy();
             (*elements)[i] = elem;
         }
-        new(&ue) ArrayLiteralExp(var->loc, elements);
-        ArrayLiteralExp *ae = (ArrayLiteralExp *)ue.exp();
-        ae->type = tsa;
-        ae->ownedByCtfe = true;
+        ArrayLiteralExp *ale = new ArrayLiteralExp(loc, elements);
+        ale->type = tsa;
+        ale->ownedByCtfe = true;
+        return ale;
     }
     else if (t->ty == Tstruct)
     {
@@ -2282,14 +2286,13 @@ UnionExp voidInitLiteral(Type *t, VarDeclaration *var)
         exps->setDim(ts->sym->fields.dim);
         for (size_t i = 0; i < ts->sym->fields.dim; i++)
         {
-            (*exps)[i] = voidInitLiteral(ts->sym->fields[i]->type, ts->sym->fields[i]).copy();
+            (*exps)[i] = voidInitLiteral(loc, ts->sym->fields[i]->type);
         }
-        new(&ue) StructLiteralExp(var->loc, ts->sym, exps);
-        StructLiteralExp *se = (StructLiteralExp *)ue.exp();
-        se->type = ts;
-        se->ownedByCtfe = true;
+        StructLiteralExp *sle = new StructLiteralExp(loc, ts->sym, exps);
+        sle->type = ts;
+        sle->ownedByCtfe = true;
+        return sle;
     }
     else
-        new(&ue) VoidInitExp(t);
-    return ue;
+        return evoid;
 }

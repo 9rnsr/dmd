@@ -69,13 +69,13 @@ int findFieldIndexByName(StructDeclaration *sd, VarDeclaration *v);
 class VoidInitExp : public Expression
 {
 public:
-    VoidInitExp(Type *type);
+    VoidInitExp();
     char *toChars();
     void accept(Visitor *v) { v->visit(this); }
 };
 
 // Create an appropriate void initializer
-UnionExp voidInitLiteral(Type *t, VarDeclaration *var);
+Expression *voidInitLiteral(Loc loc, Type *t);
 
 /** Fake class which holds the thrown exception.
     Used for implementing exception handling.
