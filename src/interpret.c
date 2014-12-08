@@ -2867,6 +2867,7 @@ public:
                 exp = (*e->elements)[i];
                 if (!exp)
                 {
+                  //ex = CTFEExp::voidInitExp;  // wrong for issue 13827 case
                     ex = voidInitLiteral(v->type, v).copy();
                 }
                 else
@@ -6031,25 +6032,13 @@ public:
             result = CTFEExp::cantexp;
             return;
         }
-        if (goal == ctfeNeedLvalue)
-        {
-            // just return the (simplified) dotvar expression as a CTFE reference
-            if (e->e1 == ex)
-                result = e;
-            else
-            {
-                result = new DotVarExp(e->loc, ex, v);
-                result->type = e->type;
-            }
-            return;
-        }
 
         if (ex->op == TOKnull)
         {
             if (ex->type->toBasetype()->ty == Tclass)
                 e->error("class '%s' is null and cannot be dereferenced", e->e1->toChars());
             else
-                e->error("dereference of null pointer '%s'", e->e1->toChars());
+                e->error("CTFE internal error: null this '%s'", e->e1->toChars());
             result = CTFEExp::cantexp;
             return;
         }
@@ -6080,43 +6069,29 @@ public:
             result = CTFEExp::cantexp;
             return;
         }
+
+        //VarDeclaration *v = se->sd->fields[i];
+        if (goal == ctfeNeedLvalue)
+        {
+            Expression *ev = (*se->elements)[i];
+            if (!ev || ev->op == TOKvoid)
+                (*se->elements)[i] = voidInitLiteral(e->type, v).copy();
+            // just return the (simplified) dotvar expression as a CTFE reference
+            if (e->e1 == ex)
+                result = e;
+            else
+            {
+                result = new DotVarExp(e->loc, ex, v);
+                result->type = e->type;
+            }
+            return;
+        }
+
         result = (*se->elements)[i];
         if (!result)
         {
             e->error("Internal Compiler Error: null field %s", v->toChars());
             result = CTFEExp::cantexp;
-            return;
-        }
-
-        if (goal == ctfeNeedLvalue)
-        {
-            // If it is an lvalue literal, return it...
-            if (result->op == TOKstructliteral)
-                return;
-            if ((e->type->ty == Tsarray || goal == ctfeNeedLvalue) && (
-                result->op == TOKarrayliteral || result->op == TOKvector ||
-                result->op == TOKassocarrayliteral || result->op == TOKstring ||
-                result->op == TOKclassreference || result->op == TOKslice))
-            {
-                return;
-            }
-            /* Element is an allocated pointer, which was created in
-             * CastExp.
-             */
-            if (goal == ctfeNeedLvalue && result->op == TOKindex &&
-                result->type->equals(e->type) && isPointer(e->type))
-            {
-                return;
-            }
-            // ...Otherwise, just return the (simplified) dotvar expression
-            result = new DotVarExp(e->loc, ex, v);
-            result->type = e->type;
-            return;
-        }
-        // If it is an rvalue literal, return it...
-        if (result->op == TOKstructliteral || result->op == TOKarrayliteral ||
-            result->op == TOKassocarrayliteral || result->op == TOKstring)
-        {
             return;
         }
         if (result->op == TOKvoid)
@@ -6133,21 +6108,15 @@ public:
             result = CTFEExp::cantexp;
             return;
         }
-        if (isPointer(e->type))
-        {
-            result = paintTypeOntoLiteral(e->type, result);
-            return;
-        }
-        if (result->op == TOKvar)
-        {
-            // Don't typepaint twice, since that might cause an erroneous copy
-            result = getVarExp(e->loc, istate, ((VarExp *)result)->var, goal);
-            if (!CTFEExp::isCantExp(result) && result->op != TOKthrownexception)
-                result = paintTypeOntoLiteral(e->type, result);
-            return;
-        }
-        result = interpret(result, istate, goal);
 
+        if (v->type->ty != result->type->ty && v->type->ty == Tsarray)
+        {
+            // Block assignment from inside struct literals
+            TypeSArray *tsa = (TypeSArray *)v->type;
+            size_t len = (size_t)tsa->dim->toInteger();
+            result = createBlockDuplicatedArrayLiteral(ex->loc, v->type, ex, len);
+            (*se->elements)[i] = result;
+        }
     #if LOG
         if (CTFEExp::isCantExp(result))
             printf("DotVarExp::interpret() %s = CTFEExp::cantexp\n", e->toChars());
