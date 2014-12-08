@@ -102,11 +102,10 @@ int ClassReferenceExp::findFieldIndexByName(VarDeclaration *v)
 
 /************** VoidInitExp ********************************************/
 
-VoidInitExp::VoidInitExp(VarDeclaration *var, Type *type)
-    : Expression(var->loc, TOKvoid, sizeof(VoidInitExp))
+VoidInitExp::VoidInitExp(Type *type)
+    : Expression(Loc(), TOKvoid, sizeof(VoidInitExp))
 {
-    this->var = var;
-    this->type = var->type;
+    this->type = type;
 }
 
 char *VoidInitExp::toChars()
@@ -2291,6 +2290,6 @@ UnionExp voidInitLiteral(Type *t, VarDeclaration *var)
         se->ownedByCtfe = true;
     }
     else
-        new(&ue) VoidInitExp(var, t);
+        new(&ue) VoidInitExp(t);
     return ue;
 }

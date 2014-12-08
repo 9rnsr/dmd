@@ -64,15 +64,12 @@ void setValue(VarDeclaration *vd, Expression *newval);
 /// Same as getFieldIndex, but checks for a direct match with the VarDeclaration
 int findFieldIndexByName(StructDeclaration *sd, VarDeclaration *v);
 
-
 /** An uninitialized value
  */
 class VoidInitExp : public Expression
 {
 public:
-    VarDeclaration *var;
-
-    VoidInitExp(VarDeclaration *var, Type *type);
+    VoidInitExp(Type *type);
     char *toChars();
     void accept(Visitor *v) { v->visit(this); }
 };

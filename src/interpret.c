@@ -2420,7 +2420,7 @@ public:
                 {
                     VoidInitExp *ve = (VoidInitExp *)e;
                     error(loc, "cannot read uninitialized variable %s in ctfe", v->toPrettyChars());
-                    errorSupplemental(ve->var->loc, "%s was uninitialized and used before set", ve->var->toChars());
+                    errorSupplemental(v->loc, "%s was uninitialized and used before set", v->toChars());
                     return CTFEExp::cantexp;
                 }
 
@@ -6122,7 +6122,7 @@ public:
         if (result->op == TOKvoid)
         {
             VoidInitExp *ve = (VoidInitExp *)result;
-            const char *s = ve->var->toChars();
+            const char *s = v->toChars();
             if (v->overlapped)
             {
                 e->error("reinterpretation through overlapped field %s is not allowed in CTFE", s);
@@ -6264,7 +6264,7 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
     }
     if (e->op == TOKvoid)
     {
-        error(loc, "uninitialized variable '%s' cannot be returned from CTFE", ((VoidInitExp *)e)->var->toChars());
+        error(loc, "uninitialized data cannot be returned from CTFE");
         e = new ErrorExp();
     }
     if (e->op == TOKslice)
