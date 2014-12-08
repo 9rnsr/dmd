@@ -5347,6 +5347,7 @@ public:
                 return;
             uinteger_t ilwr = lwr->toInteger();
             uinteger_t iupr = upr->toInteger();
+
             dinteger_t ofs;
             Expression *agg = getAggregateFromPointer(e1, &ofs);
             ilwr += ofs;
@@ -5395,23 +5396,13 @@ public:
             result->type = e->type;
             return;
         }
-        Expression *e1;
-        if (goal == ctfeNeedRvalue && e->e1->op == TOKstring)
-            e1 = e->e1; // Will get duplicated anyway
-        else
-            e1 = interpret(e->e1, istate);
+
+        Expression *e1 = interpret(e->e1, istate);
         if (exceptionOrCant(e1))
             return;
-        if (e1->op == TOKvar)
-            e1 = interpret(e1, istate);
 
         if (!e->lwr)
         {
-            if (goal == ctfeNeedLvalue)
-            {
-                result = e1;
-                return;
-            }
             result = paintTypeOntoLiteral(e->type, e1);
             return;
         }
@@ -5428,33 +5419,37 @@ public:
             return;
         }
         uinteger_t dollar = resolveArrayLength(e1);
+
+        /* Evaluate lower and upper bounds of slice
+         */
         if (e->lengthVar)
         {
             IntegerExp *dollarExp = new IntegerExp(e->loc, dollar, Type::tsize_t);
             ctfeStack.push(e->lengthVar);
             setValue(e->lengthVar, dollarExp);
         }
-
-        /* Evaluate lower and upper bounds of slice
-         */
         Expression *lwr = interpret(e->lwr, istate);
         if (exceptionOrCant(lwr))
         {
             if (e->lengthVar)
-                ctfeStack.pop(e->lengthVar);; // $ is defined only inside [L..U]
+                ctfeStack.pop(e->lengthVar);
             return;
         }
         Expression *upr = interpret(e->upr, istate);
-        if (e->lengthVar)
-            ctfeStack.pop(e->lengthVar); // $ is defined only inside [L..U]
         if (exceptionOrCant(upr))
+        {
+            if (e->lengthVar)
+                ctfeStack.pop(e->lengthVar);
             return;
+        }
+        if (e->lengthVar)
+            ctfeStack.pop(e->lengthVar);    // $ is defined only inside [L..U]
 
         uinteger_t ilwr = lwr->toInteger();
         uinteger_t iupr = upr->toInteger();
         if (e1->op == TOKnull)
         {
-            if (ilwr== 0 && iupr == 0)
+            if (ilwr == 0 && iupr == 0)
             {
                 result = e1;
                 return;
@@ -5527,14 +5522,15 @@ public:
         if (!result)
         {
             result = new NullExp(e->loc, e->type);
-            return;
         }
-
-        // Create a CTFE pointer &aa[index]
-        result = new IndexExp(e->loc, e2, e1);
-        result->type = e->type->nextOf();
-        result = new AddrExp(e->loc, result);
-        result->type = e->type;
+        else
+        {
+            // Create a CTFE pointer &aa[index]
+            result = new IndexExp(e->loc, e2, e1);
+            result->type = e->type->nextOf();
+            result = new AddrExp(e->loc, result);
+            result->type = e->type;
+        }
     }
 
     void visit(CatExp *e)

@@ -438,7 +438,13 @@ Expression *resolveSlice(Expression *e)
         SliceExp *se = (SliceExp *)e;
         if (se->e1->op == TOKnull)
             return se->e1;
-        return Slice(e->type, se->e1, se->lwr, se->upr).copy();
+        Expression *ex = Slice(e->type, se->e1, se->lwr, se->upr).copy();
+        if (ex->op == TOKerror)
+            return CTFEExp::cantexp;
+        if (CTFEExp::isCantExp(ex))
+        {
+        }
+        return ex;
     }
     return e;
 }
