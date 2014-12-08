@@ -3412,25 +3412,55 @@ public:
         else if (e->op == TOKconstruct || e->op == TOKblit)  // keep TOKvar in e1 ?
         {
 //printf("\tL%d [%s] e = %s\n", __LINE__, e->loc.toChars(), e->toChars());
-            if (e1->op == TOKslice/* && isBlockAssignment*/)
+            if (e1->op == TOKslice || e1->op == TOKindex)
             {
-                // se->e1 would be an unitialized variable.
-                //  TOKconstruct -> int[1][1] a = 1;
-                //  TOKblit      -> int[1][1] a;
-                SliceExp *se = (SliceExp *)e1;
-                if (se->e1->op == TOKvar)
+                Expression *e1x = e1;
+                while (e1x->op == TOKslice ||
+                       e1x->op == TOKindex ||
+                       e1x->op == TOKdotvar && ((DotVarExp *)e1x)->e1->op != TOKthis)
                 {
-                    //printf("+L%d [%s] se->e1 = %s\n", __LINE__, e->loc.toChars(), se->e1->toChars());
-                    assert(se->e1->op == TOKvar);
-                    VarDeclaration *v = ((VarExp *)se->e1)->var->isVarDeclaration();
+                    e1x = ((UnaExp *)e1x)->e1;
+                }
+
+                if (e1x->op == TOKvar)
+                {
+                    //printf("+L%d [%s] e1x = %s\n", __LINE__, e->loc.toChars(), e1x->toChars());
+                    VarDeclaration *v = ((VarExp *)e1x)->var->isVarDeclaration();
                     assert(v);
                     setValue(v, copyLiteral(v->type->defaultInitLiteral(e->loc)).copy());
                 }
-                //else if (se->e1->op == TOKdotvar)
-                //{
-                //    Expression *exx = interpret(((DotVarExp *)se->e1)->e1, istate);
-                //    printf("+L%d [%s] se->e1 = %s, exx = %s\n", __LINE__, e->loc.toChars(), se->e1->toChars(), exx->toChars());
-                //}
+                else if (e1x->op == TOKdotvar)
+                {
+                    //printf("+L%d [%s] e1x = %s\n", __LINE__, e->loc.toChars(), e1x->toChars());
+                    DotVarExp *dve = (DotVarExp *)e1x;
+                    VarDeclaration *v = dve->var->isVarDeclaration();
+                    assert(v);
+                    //setValue(v, copyLiteral(v->type->defaultInitLiteral(e->loc)).copy());
+
+                    assert(dve->e1->op == TOKthis);
+                    Expression *exx = ctfeStack.getThis();
+                    StructLiteralExp *sle = exx->op == TOKstructliteral
+                        ? (StructLiteralExp *)exx
+                        : ((ClassReferenceExp *)exx)->value;
+                    int fieldi = exx->op == TOKstructliteral
+                        ? findFieldIndexByName(sle->sd, v)
+                        : ((ClassReferenceExp *)exx)->findFieldIndexByName(v);
+
+                    (*sle->elements)[fieldi] = copyLiteral(v->type->defaultInitLiteral(e->loc)).copy();
+
+                    // If it's a union, set all other overlapped fields of this union to void
+                    int unionStart = sle->sd->firstFieldInUnion(fieldi);
+                    int unionSize = sle->sd->numFieldsInUnion(fieldi);
+                    for (int i = unionStart; i < unionStart + unionSize; ++i)
+                    {
+                        if (i == fieldi)
+                            continue;
+                        Expression **exp = &(*sle->elements)[i];
+                        if ((*exp)->op != TOKvoid)
+                            *exp = voidInitLiteral((*exp)->type, v).copy();
+                    }
+                    //printf("-L%d [%s] sle = %s\n", __LINE__, e->loc.toChars(), sle->toChars());
+                }
             }
             else if (e1->op == TOKvar)
             {
