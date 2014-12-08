@@ -5254,18 +5254,19 @@ public:
                 result = CTFEExp::cantexp;
                 return;
             }
-            indx += ilo;
             e1 = ((SliceExp *)e1)->e1;
-            e2 = new IntegerExp(e2->loc, indx, e2->type);
+            e2 = new IntegerExp(e2->loc, indx + ilo, e2->type);
         }
-        if (goal == ctfeNeedLvalue &&
-            e->type->ty != Taarray &&
-            e->type->ty != Tarray  && e->type->ty != Tsarray &&
-            e->type->ty != Tstruct && e->type->ty != Tclass)
+        if (goal == ctfeNeedLvalue)
         {
             // Pointer or reference of a scalar type
-            result = new IndexExp(e->loc, e1, e2);
-            result->type = e->type;
+            if (e1 == e->e1 && e2 == e->e2)
+                result = e;
+            else
+            {
+                result = new IndexExp(e->loc, e1, e2);
+                result->type = e->type;
+            }
             return;
         }
         if (e1->op == TOKassocarrayliteral)
@@ -5293,27 +5294,6 @@ public:
         if (exceptionOrCant(result))
             return;
 
-        if (goal == ctfeNeedLvalue)
-        {
-            if (e1 == e->e1 && e2 == e->e2)
-                result = e;     // optimize
-            else
-            {
-                result = new IndexExp(e->loc, e1, e2);
-                result->type = e->type;
-            }
-            return;
-        }
-
-        if (goal == ctfeNeedRvalue && (result->op == TOKslice || e->op == TOKdotvar))
-            result = interpret(result, istate);
-        if (goal == ctfeNeedRvalue && result->op == TOKvoid)
-        {
-            e->error("%s is used before initialized", e->toChars());
-            errorSupplemental(result->loc, "originally uninitialized here");
-            result = CTFEExp::cantexp;
-            return;
-        }
         result = paintTypeOntoLiteral(e->type, result);
     }
 
