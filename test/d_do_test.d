@@ -163,7 +163,7 @@ void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     if(envData.required_args.length)
         testArgs.requiredArgs ~= " " ~ envData.required_args;
     replaceResultsDir(testArgs.requiredArgs, envData);
-
+/+
     if (! findTestParameter(file, "PERMUTE_ARGS", testArgs.permuteArgs))
     {
         if (testArgs.mode != TestMode.FAIL_COMPILE)
@@ -185,7 +185,7 @@ void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
 
     // clean up extra spaces
     testArgs.permuteArgs = strip(replace(testArgs.permuteArgs, "  ", " "));
-
++/
     findTestParameter(file, "EXECUTE_ARGS", testArgs.executeArgs);
     replaceResultsDir(testArgs.executeArgs, envData);
 
