@@ -3701,7 +3701,7 @@ public:
         {
             // Note that slice assignments don't support things like ++, so
             // we don't need to remember 'returnValue'.
-            result = interpretAssignToSlice(e->loc, e1, newval, isBlockAssignment, e);
+            result = interpretAssignToSlice(e->loc, istate, e1, newval, isBlockAssignment, e);
             return;
         }
 
@@ -4116,7 +4116,7 @@ public:
      * it returns aggregate[low..upp], except that as an optimisation,
      * if goal == ctfeNeedNothing, it will return NULL
      */
-    Expression *interpretAssignToSlice(Loc loc,
+    static Expression *interpretAssignToSlice(Loc loc, InterState *istate,
         Expression *e1, Expression *newval, bool isBlockAssignment,
         BinExp *originalExp)
     {
@@ -4293,8 +4293,8 @@ public:
                     default:    assert(0);                                                  break;
                 }
             }
-            if (goal == ctfeNeedNothing)
-                return NULL; // avoid creating an unused literal
+            //if (goal == ctfeNeedNothing)
+            //    return NULL; // avoid creating an unused literal
             SliceExp *retslice = new SliceExp(loc, existingSE,
                 new IntegerExp(loc, firstIndex, Type::tsize_t),
                 new IntegerExp(loc, firstIndex + upperbound-lowerbound, Type::tsize_t));
@@ -4367,8 +4367,8 @@ public:
                 if (exceptionOrCantInterpret(x))
                     return x;
             }
-            if (goal == ctfeNeedNothing)
-                return NULL; // avoid creating an unused literal
+            //if (goal == ctfeNeedNothing)
+            //    return NULL; // avoid creating an unused literal
             SliceExp *retslice = new SliceExp(loc, existingAE,
                 new IntegerExp(loc, firstIndex, Type::tsize_t),
                 new IntegerExp(loc, firstIndex + upperbound-lowerbound, Type::tsize_t));
