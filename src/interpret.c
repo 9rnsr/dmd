@@ -3871,10 +3871,7 @@ public:
         }
         if (e1->op == TOKindex)
         {
-            Type *tn = newval->type->toBasetype();
-            bool isReferenceElement = (tn->ty == Tarray || isAssocArray(tn) ||tn->ty == Tclass);
-
-            if (!interpretAssignToIndex(e->loc, (IndexExp *)e1, newval, isReferenceElement, e))
+            if (!interpretAssignToIndex(e->loc, istate, (IndexExp *)e1, newval, e))
             {
                 result = CTFEExp::cantexp;
             }
@@ -3886,150 +3883,39 @@ public:
     }
 
     /*************
-     *  Deal with assignments of the form
-     *  aggregate[ie] = newval
-     *  where aggregate and newval have already been interpreted
+     * Deal with assignment to array element of the form:
+     *  aggregate[i] = newval
+     * aggregate is not AA (AAs were dealt with already).
      *
-     *  Return true if OK, false if error occured
+     * Return true if OK, false if error occured
      */
-    bool interpretAssignToIndex(Loc loc,
-        IndexExp *ie, Expression *newval, bool wantRef,
+    static bool interpretAssignToIndex(Loc loc, InterState *istate,
+        IndexExp *ie, Expression *newval,
         BinExp *originalExp)
     {
-        /* Assignment to array element of the form:
-         *   aggregate[i] = newval
-         *   aggregate is not AA (AAs were dealt with already).
-         */
         assert(ie->e1->type->toBasetype()->ty != Taarray);
-        uinteger_t destarraylen = 0;
 
-        Expression *aggregate = ie->e1;
-
-        dinteger_t indexToModify;// = index->toInteger();
-        if (ie->e1->type->toBasetype()->ty == Tpointer)
-        {
-            // Set the index to modify, and check that it is in range
-
-            aggregate = interpret(aggregate, istate);
-            if (exceptionOrCantInterpret(aggregate))
-                return false;
-            if (aggregate->op == TOKnull)
-            {
-                originalExp->error("cannot index through null pointer %s", ie->e1->toChars());
-                return false;
-            }
-            if (aggregate->op == TOKint64)
-            {
-                originalExp->error("cannot index through invalid pointer %s of value %s",
-                    ie->e1->toChars(), aggregate->toChars());
-                return false;
-            }
-            dinteger_t ofs;
-            aggregate = getAggregateFromPointer(aggregate, &ofs);
-
-#if 1
-            Expression *index = interpret(ie->e2, istate);
-            if (exceptionOrCantInterpret(index))
-                return false;
-            assert(index->op != TOKslice);  // only happens with AA assignment
-#endif
-
-            indexToModify = ofs + index->toInteger();
-
-            if (aggregate->op != TOKslice &&
-                aggregate->op != TOKstring &&
-                aggregate->op != TOKarrayliteral &&
-                aggregate->op != TOKassocarrayliteral)
-            {
-                if (aggregate->op == TOKsymoff)
-                {
-                    originalExp->error("mutable variable %s cannot be modified at compile time, even through a pointer",
-                        ((SymOffExp *)aggregate)->var->toChars());
-                    return false;
-                }
-                if (indexToModify != 0)
-                {
-                    originalExp->error("pointer index [%lld] lies outside memory block [0..1]",
-                        indexToModify);
-                    return false;
-                }
-                // It is equivalent to *aggregate = newval.
-                // Aggregate could be varexp, a dotvar, ...
-                // TODO: we could support this
-                originalExp->error("indexed assignment of non-array pointers is not yet supported at compile time; use *%s = %s instead",
-                    ie->e1->toChars(), originalExp->e2->toChars());
-                return false;
-            }
-            destarraylen = resolveArrayLength(aggregate);
-        }
-        else
-        {
-            // Set the $ variable, and find the array literal to modify
-            Expression *oldval = interpret(ie->e1, istate);
-            if (oldval->op == TOKnull)
-            {
-                originalExp->error("cannot index null array %s", ie->e1->toChars());
-                return false;
-            }
-            if (oldval->op != TOKarrayliteral &&
-                oldval->op != TOKvector &&
-                oldval->op != TOKstring &&
-                oldval->op != TOKslice)
-            {
-                originalExp->error("cannot determine length of %s at compile time",
-                    ie->e1->toChars());
-                return false;
-            }
-            destarraylen = resolveArrayLength(oldval);
-            if (ie->lengthVar)
-            {
-                IntegerExp *dollarExp = new IntegerExp(loc, destarraylen, Type::tsize_t);
-                ctfeStack.push(ie->lengthVar);
-                setValue(ie->lengthVar, dollarExp);
-            }
-#if 1
-            Expression *index = interpret(ie->e2, istate);
-            if (ie->lengthVar)
-                ctfeStack.pop(ie->lengthVar); // $ is defined only inside []
-            if (exceptionOrCantInterpret(index))
-                return false;
-            assert (index->op != TOKslice);  // only happens with AA assignment
-
-            indexToModify = index->toInteger();
-#endif
-        }
-        if (indexToModify >= destarraylen)
-        {
-            originalExp->error("array index %lld is out of bounds [0..%lld]", indexToModify,
-                destarraylen);
+        Expression *aggregate;
+        uinteger_t indexToModify;
+        if (!resolveIndexing(ie, istate, &aggregate, &indexToModify, true))
             return false;
-        }
 
-        if (aggregate->op == TOKslice)
+        Type *tn = newval->type->toBasetype();
+        bool wantRef = (tn->ty == Tarray || isAssocArray(tn) || tn->ty == Tclass);
+        if (!wantRef)
         {
-            SliceExp *sexp = (SliceExp *)aggregate;
-            aggregate = sexp->e1;
-            Expression *lwr = interpret(sexp->lwr, istate);
-            indexToModify += lwr->toInteger();
+            newval = resolveSlice(newval);
+            if (CTFEExp::isCantExp(newval))
+            {
+                originalExp->error("CTFE internal error: index assignment %s",
+                    originalExp->toChars());
+                assert(0);
+            }
         }
 
-        if (aggregate->op == TOKvector)
-            aggregate = ((VectorExp *)aggregate)->e1;
         if (aggregate->op == TOKarrayliteral)
         {
             ArrayLiteralExp *existingAE = (ArrayLiteralExp *)aggregate;
-
-            if (!wantRef)
-            {
-                newval = resolveSlice(newval);
-                if (CTFEExp::isCantExp(newval))
-                {
-                    originalExp->error("CTFE internal error: index assignment %s",
-                        originalExp->toChars());
-                    assert(0);
-                }
-            }
-
             if (newval->op == TOKstructliteral)
                 assignInPlace((*existingAE->elements)[(size_t)indexToModify], newval);
             else
@@ -4039,33 +3925,19 @@ public:
         if (aggregate->op == TOKstring)
         {
             StringExp *existingSE = (StringExp *)aggregate;
-
-            if (!wantRef)
-            {
-                newval = resolveSlice(newval);
-                if (CTFEExp::isCantExp(newval))
-                {
-                    originalExp->error("CTFE internal error: index assignment %s",
-                        originalExp->toChars());
-                    assert(0);
-                }
-            }
-
-            utf8_t *s = (utf8_t *)existingSE->string;
             if (!existingSE->ownedByCtfe)
             {
                 originalExp->error("cannot modify read-only string literal %s", ie->e1->toChars());
                 return false;
             }
+            void *s = existingSE->string;
             dinteger_t value = newval->toInteger();
             switch (existingSE->sz)
             {
-                case 1: s[(size_t)indexToModify] = (utf8_t)value; break;
-                case 2: ((unsigned short *)s)[(size_t)indexToModify] = (unsigned short)value; break;
-                case 4: ((unsigned *)s)[(size_t)indexToModify] = (unsigned)value; break;
-                default:
-                    assert(0);
-                    break;
+                case 1:     (( utf8_t *)s)[(size_t)indexToModify] = ( utf8_t)value; break;
+                case 2:     ((utf16_t *)s)[(size_t)indexToModify] = (utf16_t)value; break;
+                case 4:     ((utf32_t *)s)[(size_t)indexToModify] = (utf32_t)value; break;
+                default:    assert(0);                                              break;
             }
             return true;
         }
@@ -5050,20 +4922,20 @@ public:
         result = CTFEExp::cantexp;
     }
 
-    void visit(IndexExp *e)
+    static bool resolveIndexing(IndexExp *e, InterState *istate, Expression **pagg, uinteger_t *pidx, bool modify)
     {
-    #if LOG
-        printf("%s IndexExp::interpret() %s, goal = %d\n", e->loc.toChars(), e->toChars(), goal);
-    #endif
+        assert(e->e1->type->toBasetype()->ty != Taarray);
+
         if (e->e1->type->toBasetype()->ty == Tpointer)
         {
             // Indexing a pointer. Note that there is no $ in this case.
             Expression *e1 = interpret(e->e1, istate);
-            if (exceptionOrCant(e1))
-                return;
+            if (exceptionOrCantInterpret(e1))
+                return false;
+
             Expression *e2 = interpret(e->e2, istate);
-            if (exceptionOrCant(e2))
-                return;
+            if (exceptionOrCantInterpret(e2))
+                return false;
             sinteger_t indx = e2->toInteger();
 
             dinteger_t ofs;
@@ -5071,49 +4943,145 @@ public:
 
             if (agg->op == TOKnull)
             {
-                e->error("cannot index null pointer %s", e->e1->toChars());
+                e->error("cannot index through null pointer %s", e->e1->toChars());
+                return false;
+            }
+            if (agg->op == TOKint64)
+            {
+                e->error("cannot index through invalid pointer %s of value %s",
+                    e->e1->toChars(), e1->toChars());
+                return false;
+            }
+            // Pointer to a non-array variable
+            if (agg->op == TOKsymoff)
+            {
+                e->error("mutable variable %s cannot be %s at compile time, even through a pointer",
+                    (modify ? "modified" : "read"), ((SymOffExp *)agg)->var->toChars());
+                return false;
+            }
+
+            if (agg->op == TOKarrayliteral || agg->op == TOKstring)
+            {
+                dinteger_t len = resolveArrayLength(agg);
+                if (ofs + indx >= len)
+                {
+                    e->error("pointer index [%lld] exceeds allocated memory block [0..%lld]",
+                        ofs + indx, len);
+                    return false;
+                }
+            }
+            else
+            {
+                if (ofs + indx != 0)
+                {
+                    e->error("pointer index [%lld] lies outside memory block [0..1]",
+                        ofs + indx);
+                    return false;
+                }
+            }
+            *pagg = agg;
+            *pidx = ofs + indx;
+            return true;
+        }
+
+        Expression *e1 = interpret(e->e1, istate);
+        if (exceptionOrCantInterpret(e1))
+            return false;
+        if (e1->op == TOKnull)
+        {
+            e->error("cannot index null array %s", e->e1->toChars());
+            return false;
+        }
+
+        // Set the $ variable, and find the array literal to modify
+        if (e1->op != TOKarrayliteral &&
+            e1->op != TOKvector &&
+            e1->op != TOKstring &&
+            e1->op != TOKslice)
+        {
+            e->error("cannot determine length of %s at compile time",
+                e->e1->toChars());
+            return false;
+        }
+
+        dinteger_t len = resolveArrayLength(e1);
+        if (e->lengthVar)
+        {
+            Expression *dollarExp = new IntegerExp(e->loc, len, Type::tsize_t);
+            ctfeStack.push(e->lengthVar);
+            setValue(e->lengthVar, dollarExp);
+        }
+        Expression *e2 = interpret(e->e2, istate);
+        if (e->lengthVar)
+            ctfeStack.pop(e->lengthVar); // $ is defined only inside []
+        if (exceptionOrCantInterpret(e2))
+            return false;
+        if (e2->op != TOKint64)
+        {
+            e->error("CTFE internal error: non-integral index [%s]", e->e2->toChars());
+            return false;
+        }
+
+        if (e1->op == TOKslice)
+        {
+            // Simplify index of slice: agg[lwr..upr][indx] --> agg[indx']
+            uinteger_t index = e2->toInteger();
+            uinteger_t ilwr = ((SliceExp *)e1)->lwr->toInteger();
+            uinteger_t iupr = ((SliceExp *)e1)->upr->toInteger();
+
+            if (index > iupr - ilwr)
+            {
+                e->error("index %llu exceeds array length %llu", index, iupr - ilwr);
+                return false;
+            }
+            *pagg = ((SliceExp *)e1)->e1;
+            *pidx = index + ilwr;
+        }
+        else
+        {
+            *pagg = e1;
+            *pidx = e2->toInteger();
+            if (len <= *pidx)
+            {
+                e->error("array index %lld is out of bounds [0..%lld]",
+                    *pidx, len);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    void visit(IndexExp *e)
+    {
+    #if LOG
+        printf("%s IndexExp::interpret() %s, goal = %d\n", e->loc.toChars(), e->toChars(), goal);
+    #endif
+        if (e->e1->type->toBasetype()->ty == Tpointer)
+        {
+            Expression *agg;
+            uinteger_t indexToAccess;
+            if (!resolveIndexing(e, istate, &agg, &indexToAccess, false))
+            {
                 result = CTFEExp::cantexp;
                 return;
             }
             if (agg->op == TOKarrayliteral || agg->op == TOKstring)
             {
-                dinteger_t len = ArrayLength(Type::tsize_t, agg).exp()->toInteger();
-                //Type *pointee = ((TypePointer *)agg->type)->next;
-                if ((sinteger_t)(indx + ofs) < 0 || (indx+ofs) > len)
-                {
-                    e->error("pointer index [%lld] exceeds allocated memory block [0..%lld]",
-                        indx+ofs, len);
-                    result = CTFEExp::cantexp;
-                    return;
-                }
                 if (goal == ctfeNeedLvalue)
                 {
                     // if we need a reference, IndexExp shouldn't be interpreting
                     // the expression to a value, it should stay as a reference
                     result = new IndexExp(e->loc, agg,
-                        ofs ? new IntegerExp(e->loc, indx + ofs, e2->type) : e2);
+                        new IntegerExp(e->e2->loc, indexToAccess, e->e2->type));
                     result->type = e->type;
                     return;
                 }
-                result = ctfeIndex(e->loc, e->type, agg, indx+ofs);
+                result = ctfeIndex(e->loc, e->type, agg, indexToAccess);
                 return;
             }
             else
             {
-                // Pointer to a non-array variable
-                if (agg->op == TOKsymoff)
-                {
-                    e->error("mutable variable %s cannot be read at compile time, even through a pointer", ((SymOffExp *)agg)->var->toChars());
-                    result = CTFEExp::cantexp;
-                    return;
-                }
-                if ((indx + ofs) != 0)
-                {
-                    e->error("pointer index [%lld] lies outside memory block [0..1]",
-                        indx+ofs);
-                    result = CTFEExp::cantexp;
-                    return;
-                }
+                assert(indexToAccess == 0);
                 result = interpret(agg, istate, goal);
                 if (exceptionOrCant(result))
                     return;
@@ -5122,68 +5090,40 @@ public:
             }
         }
 
-        Expression *e1 = interpret(e->e1, istate);
-        if (exceptionOrCant(e1))
-            return;
-        if (e1->op == TOKnull)
+        if (e->e1->type->toBasetype()->ty == Taarray)
         {
-            if (goal == ctfeNeedLvalue && e1->type->ty == Taarray && e->modifiable)
-            {
-                result = paintTypeOntoLiteral(e->type, e1);
+            Expression *e1 = interpret(e->e1, istate);
+            if (exceptionOrCant(e1))
                 return;
-            }
-            e->error("cannot index null array %s", e->e1->toChars());
-            result = CTFEExp::cantexp;
-            return;
-        }
-
-        /* Set the $ variable.
-         *  Note that foreach uses indexing but doesn't need $
-         */
-        if (e->lengthVar &&
-            (e1->op == TOKstring || e1->op == TOKarrayliteral || e1->op == TOKslice))
-        {
-            uinteger_t dollar = resolveArrayLength(e1);
-            Expression *dollarExp = new IntegerExp(e->loc, dollar, Type::tsize_t);
-            ctfeStack.push(e->lengthVar);
-            setValue(e->lengthVar, dollarExp);
-        }
-
-        Expression *e2 = interpret(e->e2, istate);
-        if (e->lengthVar)
-            ctfeStack.pop(e->lengthVar); // $ is defined only inside []
-        if (exceptionOrCant(e2))
-            return;
-        if (e1->op == TOKslice && e2->op == TOKint64)
-        {
-            // Simplify index of slice:  agg[lwr..upr][indx] --> agg[indx']
-            uinteger_t indx = e2->toInteger();
-            uinteger_t ilo = ((SliceExp *)e1)->lwr->toInteger();
-            uinteger_t iup = ((SliceExp *)e1)->upr->toInteger();
-
-            if (indx > iup - ilo)
+            if (e1->op == TOKnull)
             {
-                e->error("index %llu exceeds array length %llu", indx, iup - ilo);
+                if (goal == ctfeNeedLvalue && e1->type->ty == Taarray && e->modifiable)
+                {
+                    assert(0);  // does not reach here?
+                    return;
+                }
+                e->error("cannot index null array %s", e->e1->toChars());
                 result = CTFEExp::cantexp;
                 return;
             }
-            e1 = ((SliceExp *)e1)->e1;
-            e2 = new IntegerExp(e2->loc, indx + ilo, e2->type);
-        }
-        if (goal == ctfeNeedLvalue)
-        {
-            // Pointer or reference of a scalar type
-            if (e1 == e->e1 && e2 == e->e2)
-                result = e;
-            else
+            Expression *e2 = interpret(e->e2, istate);
+            if (exceptionOrCant(e2))
+                return;
+
+            if (goal == ctfeNeedLvalue)
             {
-                result = new IndexExp(e->loc, e1, e2);
-                result->type = e->type;
+                // Pointer or reference of a scalar type
+                if (e1 == e->e1 && e2 == e->e2)
+                    result = e;
+                else
+                {
+                    result = new IndexExp(e->loc, e1, e2);
+                    result->type = e->type;
+                }
+                return;
             }
-            return;
-        }
-        if (e1->op == TOKassocarrayliteral)
-        {
+
+            assert(e1->op == TOKassocarrayliteral);
             e2 = resolveSlice(e2);
             result = findKeyInAA(e->loc, (AssocArrayLiteralExp *)e1, e2);
             if (!result)
@@ -5191,22 +5131,31 @@ public:
                 e->error("key %s not found in associative array %s",
                     e2->toChars(), e->e1->toChars());
                 result = CTFEExp::cantexp;
-                return;
             }
+            return;
         }
-        else
+
+        Expression *agg;
+        uinteger_t indexToAccess;
+        if (!resolveIndexing(e, istate, &agg, &indexToAccess, false))
         {
-            if (e2->op != TOKint64)
-            {
-                e1->error("CTFE internal error: non-integral index [%s]", e->e2->toChars());
-                result = CTFEExp::cantexp;
-                return;
-            }
-            result = ctfeIndex(e->loc, e->type, e1, e2->toInteger());
+            result = CTFEExp::cantexp;
+            return;
         }
+
+        if (goal == ctfeNeedLvalue)
+        {
+            Expression *e2 = new IntegerExp(e->e2->loc, indexToAccess, Type::tsize_t);
+            result = new IndexExp(e->loc, agg, e2);
+            result->type = e->type;
+            return;
+        }
+
+        if (agg->op != TOKarrayliteral && agg->op != TOKstring)
+            printf("[%s] index agg = %s\n", e->loc.toChars(), agg->toChars());
+        result = ctfeIndex(e->loc, e->type, agg, indexToAccess);
         if (exceptionOrCant(result))
             return;
-
         result = paintTypeOntoLiteral(e->type, result);
     }
 
