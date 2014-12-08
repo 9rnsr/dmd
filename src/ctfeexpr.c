@@ -433,11 +433,14 @@ UnionExp paintTypeOntoLiteralCopy(Type *type, Expression *lit)
 
 Expression *resolveSlice(Expression *e)
 {
-    assert(e->op == TOKslice);
-    SliceExp *se = (SliceExp *)e;
-    if (se->e1->op == TOKnull)
-        return se->e1;
-    return Slice(e->type, se->e1, se->lwr, se->upr).copy();
+    if (e->op == TOKslice)
+    {
+        SliceExp *se = (SliceExp *)e;
+        if (se->e1->op == TOKnull)
+            return se->e1;
+        return Slice(e->type, se->e1, se->lwr, se->upr).copy();
+    }
+    return e;
 }
 
 /* Determine the array length, without interpreting it.
