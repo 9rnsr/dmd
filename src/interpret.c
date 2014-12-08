@@ -5812,13 +5812,13 @@ public:
             ((SymOffExp *)e->e1)->var->isVarDeclaration() &&
             isFloatIntPaint(e->type, ((SymOffExp *)e->e1)->var->type))
         {
-            // *(cast(int*)&v, where v is a float variable
+            // *(cast(int*)&v), where v is a float variable
             result = paintFloatInt(getVarExp(e->loc, istate, ((SymOffExp *)e->e1)->var, ctfeNeedRvalue), e->type);
             return;
         }
         if (e->e1->op == TOKcast && ((CastExp *)e->e1)->e1->op == TOKaddress)
         {
-            // *(cast(int *))&x   where x is a float expression
+            // *(cast(int*)&x), where x is a float expression
             Expression *x = ((AddrExp *)(((CastExp *)e->e1)->e1))->e1;
             if (isFloatIntPaint(e->type, x->type))
             {
@@ -5890,112 +5890,28 @@ public:
         {
             SymOffExp *soe = (SymOffExp *)result;
             if (soe->offset == 0 && soe->var->isFuncDeclaration())
-            {
-                //result = new VarExp(e->loc, soe->var);
-                //result->type = soe->var->type;
                 return;
-            }
-            e->error("cannot dereference pointer to static variable %s at compile time", ((SymOffExp *)result)->var->toChars());
+            e->error("cannot dereference pointer to static variable %s at compile time", soe->var->toChars());
             result = CTFEExp::cantexp;
             return;
         }
 
-        if (!(result->op == TOKvar ||
-              result->op == TOKdotvar ||
-              result->op == TOKindex ||
-              result->op == TOKslice ||
-              result->op == TOKaddress))
+        if (result->op != TOKaddress)
         {
-            e->error("dereference of invalid pointer '%s'", result->toChars());
+            if (result->op == TOKnull)
+                e->error("dereference of null pointer '%s'", e->e1->toChars());
+            else
+                e->error("dereference of invalid pointer '%s'", result->toChars());
             result = CTFEExp::cantexp;
             return;
         }
-        if (goal != ctfeNeedLvalue)
-        {
-            if (result->op == TOKindex && result->type->ty == Tpointer)
-            {
-                IndexExp *ie = (IndexExp *)result;
-                // Is this a real index to an array of pointers, or just a CTFE pointer?
-                // If the index has the same levels of indirection, it's an index
-                int srcLevels = 0;
-                int destLevels = 0;
-                for (Type *xx = ie->e1->type; xx->ty == Tpointer; xx = xx->nextOf())
-                    ++srcLevels;
-                for (Type *xx = result->type->nextOf(); xx->ty == Tpointer; xx = xx->nextOf())
-                    ++destLevels;
-                bool isGenuineIndex = (srcLevels == destLevels);
 
-                if ((ie->e1->op == TOKarrayliteral || ie->e1->op == TOKstring) &&
-                     ie->e2->op == TOKint64)
-                {
-                    Expression *dollar = ArrayLength(Type::tsize_t, ie->e1).copy();
-                    dinteger_t len = dollar->toInteger();
-                    dinteger_t indx = ie->e2->toInteger();
-                    assert(indx >=0 && indx <= len); // invalid pointer
-                    if (indx == len)
-                    {
-                        e->error("dereference of pointer %s one past end of memory block limits [0..%lld]",
-                            e->toChars(), len);
-                        result = CTFEExp::cantexp;
-                        return;
-                    }
-                    result = ctfeIndex(e->loc, e->type, ie->e1, indx);
-                    if (isGenuineIndex)
-                    {
-                        if (result->op == TOKindex)
-                            result = interpret(result, istate, goal);
-                        else if (result->op == TOKaddress)
-                            result = paintTypeOntoLiteral(e->type, ((AddrExp *)result)->e1);
-                    }
-                    return;
-                }
-                if (ie->e1->op == TOKassocarrayliteral)
-                {
-                    result = findKeyInAA(e->loc, (AssocArrayLiteralExp *)ie->e1, ie->e2);
-                    assert(!CTFEExp::isCantExp(result));
-                    result = paintTypeOntoLiteral(e->type, result);
-                    if (isGenuineIndex)
-                    {
-                        if (result->op == TOKindex)
-                            result = interpret(result, istate, goal);
-                        else if (result->op == TOKaddress)
-                            result = paintTypeOntoLiteral(e->type, ((AddrExp *)result)->e1);
-                    }
-                    return;
-                }
-            }
-            if (result->op == TOKstructliteral)
-                return;
+        // *(&x) ==> x
+        result = ((AddrExp *)result)->e1;
 
-            if (result->op == TOKaddress)
-            {
-                // We're changing *&e to e.
-                result = ((AddrExp *)result)->e1;
-            }
-            result = interpret(result, istate, goal);
-            if (exceptionOrCant(result))
-                return;
-        }
-        else if (result->op == TOKaddress)
-        {
-            result = ((AddrExp *)result)->e1;  // *(&x) ==> x
-
-            // Bugzilla 13630, convert *(&[1,2,3]) to [1,2,3][0]
-            if (result->op == TOKarrayliteral &&
-                result->type->toBasetype()->nextOf()->toBasetype()->equivalent(e->type))
-            {
-                IntegerExp *ofs = new IntegerExp(result->loc, 0, Type::tsize_t);
-                result = new IndexExp(e->loc, result, ofs);
-                result->type = e->type;
-            }
-        }
-        else if (result->op == TOKnull)
-        {
-            e->error("dereference of null pointer '%s'", e->e1->toChars());
-            result = CTFEExp::cantexp;
+        result = interpret(result, istate, goal);
+        if (exceptionOrCant(result))
             return;
-        }
-        result = paintTypeOntoLiteral(e->type, result);
 
     #if LOG
         if (CTFEExp::isCantExp(result))
