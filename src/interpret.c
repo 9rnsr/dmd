@@ -4998,14 +4998,14 @@ public:
         printf("%s CommaExp::interpret() %s\n", e->loc.toChars(), e->toChars());
     #endif
 
-        CommaExp * firstComma = e;
+        CommaExp *firstComma = e;
         while (firstComma->e1->op == TOKcomma)
             firstComma = (CommaExp *)firstComma->e1;
 
         // If it creates a variable, and there's no context for
         // the variable to be created in, we need to create one now.
         InterState istateComma;
-        if (!istate &&  firstComma->e1->op == TOKdeclaration)
+        if (!istate && firstComma->e1->op == TOKdeclaration)
         {
             ctfeStack.startFrame(NULL);
             istate = &istateComma;
@@ -5034,28 +5034,23 @@ public:
                 // through a reference parameter instead).
                 newval = interpret(newval, istate);
                 if (exceptionOrCant(newval))
-                {
-                    if (istate == &istateComma)
-                        ctfeStack.endFrame();
-                    return;
-                }
+                    goto Lfin;
                 if (newval->op != TOKvoidexp)
                 {
                     // v isn't necessarily null.
                     setValueWithoutChecking(v, copyLiteral(newval).copy());
                 }
             }
-            if (goal == ctfeNeedLvalue)
-                result = e->e2;
-            else
-                result = interpret(e->e2, istate, goal);
+            result = interpret(e->e2, istate, goal);
         }
         else
         {
             result = interpret(e->e1, istate, ctfeNeedNothing);
-            if (!exceptionOrCantInterpret(result))
-                result = interpret(e->e2, istate, goal);
+            if (exceptionOrCant(result))
+                goto Lfin;
+            result = interpret(e->e2, istate, goal);
         }
+    Lfin:
         // If we created a temporary stack frame, end it now.
         if (istate == &istateComma)
             ctfeStack.endFrame();
@@ -5099,16 +5094,16 @@ public:
         assert(e1);
         if (exceptionOrCant(e1))
             return;
-        if (e1->op == TOKstring || e1->op == TOKarrayliteral || e1->op == TOKslice ||
-            e1->op == TOKassocarrayliteral || e1->op == TOKnull)
-        {
-            result = new IntegerExp(e->loc, resolveArrayLength(e1), e->type);
-        }
-        else
+        if (e1->op != TOKstring &&
+            e1->op != TOKarrayliteral &&
+            e1->op != TOKslice &&
+            e1->op != TOKnull)
         {
             e->error("%s cannot be evaluated at compile time", e->toChars());
             result = CTFEExp::cantexp;
+            return;
         }
+        result = new IntegerExp(e->loc, resolveArrayLength(e1), e->type);
     }
 
     void visit(DelegatePtrExp *e)
