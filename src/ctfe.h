@@ -64,18 +64,8 @@ void setValue(VarDeclaration *vd, Expression *newval);
 /// Same as getFieldIndex, but checks for a direct match with the VarDeclaration
 int findFieldIndexByName(StructDeclaration *sd, VarDeclaration *v);
 
-/** An uninitialized value
- */
-class VoidInitExp : public Expression
-{
-public:
-    VoidInitExp();
-    char *toChars();
-    void accept(Visitor *v) { v->visit(this); }
-};
-
 // Create an appropriate void initializer
-Expression *voidInitLiteral(Loc loc, Type *t);
+UnionExp voidInitLiteral(Type *t, VarDeclaration *var);
 
 /** Fake class which holds the thrown exception.
     Used for implementing exception handling.
@@ -101,11 +91,12 @@ public:
     CTFEExp(TOK tok);
 
     // Handy instances to share
-    static CTFEExp* cantexp;
-    static CTFEExp* voidexp;
-    static CTFEExp* breakexp;
-    static CTFEExp* continueexp;
-    static CTFEExp* gotoexp;
+    static CTFEExp *cantexp;
+    static CTFEExp *voidexp;
+    static CTFEExp *breakexp;
+    static CTFEExp *continueexp;
+    static CTFEExp *gotoexp;
+    static CTFEExp *voidInitExp;
 
     static bool isCantExp(Expression *e) { return e && e->op == TOKcantexp; }
 };

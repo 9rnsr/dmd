@@ -100,19 +100,6 @@ int ClassReferenceExp::findFieldIndexByName(VarDeclaration *v)
     return -1;
 }
 
-/************** VoidInitExp ********************************************/
-
-VoidInitExp::VoidInitExp()
-    : Expression(Loc(), TOKvoid, sizeof(VoidInitExp))
-{
-    this->type = Type::tvoid;//type;
-}
-
-char *VoidInitExp::toChars()
-{
-    return (char *)"void";
-}
-
 // Return index of the field, or -1 if not found
 // Same as getFieldIndex, but checks for a direct match with the VarDeclaration
 int findFieldIndexByName(StructDeclaration *sd, VarDeclaration *v)
@@ -166,11 +153,22 @@ CTFEExp *CTFEExp::voidexp;
 CTFEExp *CTFEExp::breakexp;
 CTFEExp *CTFEExp::continueexp;
 CTFEExp *CTFEExp::gotoexp;
+CTFEExp *CTFEExp::voidInitExp;
 
 CTFEExp::CTFEExp(TOK tok)
     : Expression(Loc(), tok, sizeof(CTFEExp))
 {
     type = Type::tvoid;
+}
+
+Expression *UnionExp::copy()
+{
+    Expression *e = exp();
+    //if (e->size > sizeof(u)) printf("%s\n", Token::toChars(e->op));
+    assert(e->size <= sizeof(u));
+    if (e->op == TOKvoid)
+        return CTFEExp::voidInitExp;
+    return e->copy();
 }
 
 /************** Aggregate literals (AA/string/array/struct) ******************/
@@ -280,7 +278,7 @@ UnionExp copyLiteral(Expression *e)
             VarDeclaration *v = sd->fields[i];
             // If it is a void assignment, use the default initializer
             if (!m)
-                m = voidInitLiteral(v->loc, v->type);
+                m = voidInitLiteral(v->type, v).copy();
             if ((v->type->ty != m->type->ty) && v->type->ty == Tsarray)
             {
                 // Block assignment from inside struct literals
@@ -2249,17 +2247,13 @@ void showCtfeExpr(Expression *e, int level)
 
 /*************************** Void initialization ***************************/
 
-Expression *voidInitLiteral(Loc loc, Type *t)
+UnionExp voidInitLiteral(Type *t, VarDeclaration *var)
 {
-    static VoidInitExp *evoid = NULL;
-    if (!evoid)
-        evoid = new VoidInitExp();
-
     UnionExp ue;
     if (t->ty == Tsarray)
     {
         TypeSArray *tsa = (TypeSArray *)t;
-        Expression *elem = voidInitLiteral(loc, tsa->next);
+        Expression *elem = voidInitLiteral(tsa->next, var).copy();
 
         // For aggregate value types (structs, static arrays) we must
         // create an a separate copy for each element.
@@ -2274,10 +2268,10 @@ Expression *voidInitLiteral(Loc loc, Type *t)
                 elem  = copyLiteral(elem).copy();
             (*elements)[i] = elem;
         }
-        ArrayLiteralExp *ale = new ArrayLiteralExp(loc, elements);
-        ale->type = tsa;
-        ale->ownedByCtfe = true;
-        return ale;
+        new(&ue) ArrayLiteralExp(var->loc, elements);
+        ArrayLiteralExp *ae = (ArrayLiteralExp *)ue.exp();
+        ae->type = tsa;
+        ae->ownedByCtfe = true;
     }
     else if (t->ty == Tstruct)
     {
@@ -2286,13 +2280,14 @@ Expression *voidInitLiteral(Loc loc, Type *t)
         exps->setDim(ts->sym->fields.dim);
         for (size_t i = 0; i < ts->sym->fields.dim; i++)
         {
-            (*exps)[i] = voidInitLiteral(loc, ts->sym->fields[i]->type);
+            (*exps)[i] = voidInitLiteral(ts->sym->fields[i]->type, ts->sym->fields[i]).copy();
         }
-        StructLiteralExp *sle = new StructLiteralExp(loc, ts->sym, exps);
-        sle->type = ts;
-        sle->ownedByCtfe = true;
-        return sle;
+        new(&ue) StructLiteralExp(var->loc, ts->sym, exps);
+        StructLiteralExp *se = (StructLiteralExp *)ue.exp();
+        se->type = ts;
+        se->ownedByCtfe = true;
     }
     else
-        return evoid;
+        new(&ue) CTFEExp(TOKvoid);
+    return ue;
 }

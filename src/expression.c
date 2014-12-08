@@ -2008,6 +2008,7 @@ void Expression::init()
     CTFEExp::breakexp = new CTFEExp(TOKbreak);
     CTFEExp::continueexp = new CTFEExp(TOKcontinue);
     CTFEExp::gotoexp = new CTFEExp(TOKgoto);
+    CTFEExp::voidInitExp = new CTFEExp(TOKvoid);
 }
 
 Expression *Expression::syntaxCopy()

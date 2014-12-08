@@ -2533,7 +2533,7 @@ public:
                             }
                             else if (v2->init->isVoidInitializer())
                             {
-                                setValue(v2, voidInitLiteral(v2->loc, v2->type));
+                                setValue(v2, voidInitLiteral(v2->type, v2).copy());
                             }
                             else
                             {
@@ -2555,7 +2555,7 @@ public:
                     result = interpret(ie->exp, istate, goal);
                 else if (v->init->isVoidInitializer())
                 {
-                    result = voidInitLiteral(v->loc, v->type);
+                    result = voidInitLiteral(v->type, v).copy();
                     // There is no AssignExp for void initializers,
                     // so set it here.
                     setValue(v, result);
@@ -3046,7 +3046,7 @@ public:
                     if (v->init)
                     {
                         if (v->init->isVoidInitializer())
-                            m = voidInitLiteral(v->loc, v->type);
+                            m = voidInitLiteral(v->type, v).copy();
                         else
                             m = v->getConstInitializer(true);
                     }
@@ -3871,7 +3871,7 @@ public:
                         continue;
                     Expression **exp = &(*sle->elements)[i];
                     if ((*exp)->op != TOKvoid)
-                        *exp = voidInitLiteral(member->loc, (*exp)->type);
+                        *exp = voidInitLiteral((*exp)->type, member).copy();
                 }
             }
 
@@ -6196,13 +6196,6 @@ public:
     {
         //printf("ClassReferenceExp::interpret() %s\n", e->value->toChars());
         result = e;
-    }
-
-    void visit(VoidInitExp *e)
-    {
-        e->error("CTFE internal error: trying to read uninitialized variable");
-        assert(0);
-        result = CTFEExp::cantexp;
     }
 
     void visit(ThrownExceptionExp *e)
