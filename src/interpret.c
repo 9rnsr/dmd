@@ -3405,9 +3405,11 @@ public:
             }
         }
 
-        Expression *newval = NULL;
-
-        if (e->op == TOKconstruct || e->op == TOKblit)  // keep TOKvar in e1 ?
+        if (e1->op == TOKindex && ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
+        {
+            assert(((IndexExp *)e1)->modifiable);
+        }
+        else if (e->op == TOKconstruct || e->op == TOKblit)  // keep TOKvar in e1 ?
         {
 //printf("\tL%d [%s] e = %s\n", __LINE__, e->loc.toChars(), e->toChars());
             Expression *e1x = e1;
@@ -3495,31 +3497,154 @@ public:
                 if (exceptionOrCant(e1))
                     return;
             }
+        }
+        else if (e1->op == TOKarraylength)
+        {
+            ;
+        }
+        else
+        {
+            e1 = interpret(e1, istate, ctfeNeedLvalue);
+            if (exceptionOrCant(e1))
+                return;
+        }
 
-            newval = interpret(e->e2, istate);
+        Expression *newval = interpret(e->e2, istate, ctfeNeedRvalue);
+        if (exceptionOrCant(newval))
+            return;
+        if (e->type->toBasetype()->ty == Tstruct && newval->op == TOKint64)
+        {
+            /* Look for special case of struct being initialized with 0.
+             */
+            assert(e->op == TOKconstruct || e->op == TOKblit);
+            newval = e->type->defaultInitLiteral(e->loc);
+            if (newval->op != TOKstructliteral)
+            {
+                e->error("nested structs with constructors are not yet supported in CTFE (Bug 6419)");
+                result = CTFEExp::cantexp;
+                return;
+            }
+            newval = interpret(newval, istate); // copy and set ownedByCtfe flag
             if (exceptionOrCant(newval))
                 return;
-            if (e->type->toBasetype()->ty == Tstruct && newval->op == TOKint64)
+        }
+
+        // ----------------------------------------------------
+        //  Deal with read-modify-write assignments.
+        //  Set 'newval' to the final assignment value
+        //  Also determine the return value (except for slice
+        //  assignments, which are more complicated)
+        // ----------------------------------------------------
+
+        if (fp || e1->op == TOKarraylength)
+        {
+            // If it isn't a simple assignment, we need the existing value
+            Expression * oldval = interpret(e1, istate);
+            if (exceptionOrCant(oldval))
+                return;
+
+            if (fp)
             {
-                /* Look for special case of struct being initialized with 0.
-                 */
-                assert(e->op == TOKconstruct || e->op == TOKblit);
-                newval = e->type->defaultInitLiteral(e->loc);
-                if (newval->op != TOKstructliteral)
+                // ~= can create new values (see bug 6052)
+                if (e->op == TOKcatass)
                 {
-                    e->error("nested structs with constructors are not yet supported in CTFE (Bug 6419)");
+                    // We need to dup it. We can skip this if it's a dynamic array,
+                    // because it gets copied later anyway
+                    if (newval->type->ty != Tarray)
+                        newval = copyLiteral(newval).copy();
+                    newval = resolveSlice(newval);
+                    // It becomes a reference assignment
+                    //wantRef = true;       // TODO
+                }
+                oldval = resolveSlice(oldval);
+                if (e->e1->type->ty == Tpointer && e->e2->type->isintegral() &&
+                    (e->op == TOKaddass || e->op == TOKminass ||
+                     e->op == TOKplusplus || e->op == TOKminusminus))
+                {
+                    oldval = interpret(e->e1, istate);
+                    if (exceptionOrCant(oldval))
+                        return;
+                    newval = interpret(e->e2, istate);
+                    if (exceptionOrCant(newval))
+                        return;
+                    newval = pointerArithmetic(e->loc, e->op, e->type, oldval, newval).copy();
+                }
+                else if (e->e1->type->ty == Tpointer)
+                {
+                    e->error("pointer expression %s cannot be interpreted at compile time", e->toChars());
                     result = CTFEExp::cantexp;
                     return;
                 }
-                newval = interpret(newval, istate); // copy and set ownedByCtfe flag
+                else
+                {
+                    newval = (*fp)(e->type, oldval, newval).copy();
+                }
+                if (CTFEExp::isCantExp(newval))
+                {
+                    e->error("cannot interpret %s at compile time", e->toChars());
+                    result = CTFEExp::cantexp;
+                    return;
+                }
                 if (exceptionOrCant(newval))
+                    return;
+                // Determine the return value
+                result = ctfeCast(e->loc, e->type, e->type, post ? oldval : newval);
+                if (exceptionOrCant(result))
+                    return;
+            }
+            else
+                result = newval;
+            if (e1->op == TOKarraylength)
+            {
+                size_t oldlen = (size_t)oldval->toInteger();
+                size_t newlen = (size_t)newval->toInteger();
+                if (oldlen == newlen) // no change required -- we're done!
+                    return;
+
+                // Now change the assignment from arr.length = n into arr = newval
+                e1 = ((ArrayLengthExp *)e1)->e1;
+                Type *t = e1->type->toBasetype();
+                if (t->ty != Tarray)
+                {
+                    e->error("%s is not yet supported at compile time", e->toChars());
+                    result = CTFEExp::cantexp;
+                    return;
+                }
+
+                if (oldlen != 0)    // Get the old array literal.
+                    oldval = interpret(e1, istate);
+                newval = changeArrayLiteralLength(e->loc, (TypeArray *)t, oldval,
+                    oldlen,  newlen).copy();
+
+                // We have changed it into a reference assignment
+                // Note that returnValue is still the new length.
+                e1 = interpret(e1, istate, ctfeNeedLvalue);
+                if (exceptionOrCant(e1))
                     return;
             }
         }
-        else if (e1->op == TOKindex && ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
+        else if (!isBlockAssignment)
         {
-            assert(((IndexExp *)e1)->modifiable);
+            newval = ctfeCast(e->loc, e->type, e->type, newval);
+            if (exceptionOrCant(newval))
+                return;
+            result = newval;
+        }
+        if (exceptionOrCant(newval))
+            return;
 
+        // ---------------------------------------
+        //      Deal with AA index assignment
+        // ---------------------------------------
+        /* This needs special treatment if the AA doesn't exist yet.
+         * There are two special cases:
+         * (1) If the AA is itself an index of another AA, we may need to create
+         *     multiple nested AA literals before we can insert the new value.
+         * (2) If the ultimate AA is null, no insertion happens at all. Instead,
+         *     we create nested AA literals, and change it into a assignment.
+         */
+        if (e1->op == TOKindex && ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
+        {
             IndexExp *ie = (IndexExp *)e1;
             int depth = 0; // how many nested AA indices are there?
             while (ie->e1->op == TOKindex && ((IndexExp *)ie->e1)->e1->type->toBasetype()->ty == Taarray)
@@ -3573,272 +3698,38 @@ public:
                     existingAA = newAA;
                     --depth;
                 }
-
-                Expression *oldval = interpret(e->e1, istate);
-                if (exceptionOrCant(oldval))
-                    return;
-
-                newval = interpret(e->e2, istate);
-                if (exceptionOrCant(newval))
-                    return;
-
-                if (fp)
-                {
-                    // ~= can create new values (see bug 6052)
-                    if (e->op == TOKcatass)
-                    {
-                        // We need to dup it. We can skip this if it's a dynamic array,
-                        // because it gets copied later anyway
-                        if (newval->type->ty != Tarray)
-                            newval = copyLiteral(newval).copy();
-                        newval = resolveSlice(newval);
-                        // It becomes a reference assignment
-                        //wantRef = true;       // TODO
-                    }
-                    oldval = resolveSlice(oldval);
-                    if (e->e1->type->ty == Tpointer)
-                    {
-                        if (e->e2->type->isintegral() &&
-                            (e->op == TOKaddass ||
-                             e->op == TOKminass ||
-                             e->op == TOKplusplus ||
-                             e->op == TOKminusminus))
-                        {
-                            newval = pointerArithmetic(e->loc, e->op, e->type, oldval, newval).copy();
-                        }
-                        else
-                        {
-                            e->error("pointer expression %s cannot be interpreted at compile time", e->toChars());
-                            result = CTFEExp::cantexp;
-                            return;
-                        }
-                    }
-                    else
-                    {
-                        newval = (*fp)(e->type, oldval, newval).copy();
-                    }
-                    if (exceptionOrCant(newval))
-                    {
-                        if (CTFEExp::isCantExp(newval))
-                            e->error("cannot interpret %s at compile time", e->toChars());
-                        return;
-                    }
-                    //// Determine the return value
-                    ///*result = */ctfeCast(e->loc, e->type, e->type, post ? oldval : newval);
-                    //if (exceptionOrCant(result))
-                    //    return;
-                }
-                //else
-                //    result = newval;
-
                 result = assignAssocArrayElement(e->loc, existingAA, index, newval);
                 return;
             }
-
-            newval = interpret(e->e2, istate);
-            if (exceptionOrCant(newval))
-                return;
-
-            /* The AA is currently null. 'aggregate' is actually a reference to
-             * whatever contains it. It could be anything: var, dotvarexp, ...
-             * We rewrite the assignment from:
-             *  aggregate[i][j][k] = newval;
-             * into:
-             *  aggregate = [i:[j: newval]];
-             */
-            while (ie->e1->op == TOKindex && ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
-            {
-                Expression *index = interpret(((IndexExp *)e1)->e2, istate);
-                if (exceptionOrCant(index))
-                    return;
-                index = resolveSlice(index);    // only happens with AA assignment
-                Expressions *valuesx = new Expressions();
-                Expressions *keysx = new Expressions();
-                valuesx->push(newval);
-                keysx->push(index);
-                AssocArrayLiteralExp *newaae = new AssocArrayLiteralExp(e->loc, keysx, valuesx);
-                newaae->ownedByCtfe = true;
-                newaae->type = ((IndexExp *)e1)->e1->type;
-                newval = newaae;
-                e1 = ((IndexExp *)e1)->e1;
-            }
-
-            // We must return to the original aggregate, in case it was a reference
-            e1 = interpret(ie->e1, istate, ctfeNeedLvalue);
-            if (exceptionOrCant(e1))
-                return;
-        }
-        else if (e1->op == TOKarraylength)
-        {
-            // If it isn't a simple assignment, we need the existing value
-            Expression *oldval = interpret(e1, istate);
-            if (exceptionOrCant(oldval))
-                return;
-
-            if (fp)
-            {
-                //oldval = resolveSlice(oldval);
-                //if (e->e1->type->ty == Tpointer && e->e2->type->isintegral() &&
-                //    (e->op == TOKaddass || e->op == TOKminass ||
-                //     e->op == TOKplusplus || e->op == TOKminusminus))
-                //{
-                //    oldval = interpret(e->e1, istate);
-                //    if (exceptionOrCant(oldval))
-                //        return;
-                //    newval = interpret(e->e2, istate);
-                //    if (exceptionOrCant(newval))
-                //        return;
-                //    newval = pointerArithmetic(e->loc, e->op, e->type, oldval, newval).copy();
-                //}
-                //else if (e->e1->type->ty == Tpointer)
-                //{
-                //    e->error("pointer expression %s cannot be interpreted at compile time", e->toChars());
-                //    result = CTFEExp::cantexp;
-                //    return;
-                //}
-                //else
-                //{
-                    newval = (*fp)(e->type, oldval, newval).copy();
-                //}
-                if (exceptionOrCant(newval))
-                {
-                    if (CTFEExp::isCantExp(newval))
-                        e->error("cannot interpret %s at compile time", e->toChars());
-                    return;
-                }
-                // Determine the return value
-                result = ctfeCast(e->loc, e->type, e->type, post ? oldval : newval);
-                if (exceptionOrCant(result))
-                    return;
-            }
             else
-                result = newval;
-
-            size_t oldlen = (size_t)oldval->toInteger();
-            size_t newlen = (size_t)newval->toInteger();
-            if (oldlen == newlen) // no change required -- we're done!
-                return;
-
-            // Now change the assignment from arr.length = n into arr = newval
-            e1 = ((ArrayLengthExp *)e1)->e1;
-            Type *t = e1->type->toBasetype();
-            if (t->ty != Tarray)
             {
-                e->error("%s is not yet supported at compile time", e->toChars());
-                result = CTFEExp::cantexp;
-                return;
-            }
-
-            if (oldlen != 0)    // Get the old array literal.
-                oldval = interpret(e1, istate);
-            newval = changeArrayLiteralLength(e->loc, (TypeArray *)t, oldval,
-                oldlen,  newlen).copy();
-
-            // We have changed it into a reference assignment
-            // Note that returnValue is still the new length.
-            e1 = interpret(e1, istate, ctfeNeedLvalue);
-            if (exceptionOrCant(e1))
-                return;
-        }
-        else
-        {
-            e1 = interpret(e1, istate, ctfeNeedLvalue);
-            if (exceptionOrCant(e1))
-                return;
-
-            newval = interpret(e->e2, istate);
-            if (exceptionOrCant(newval))
-                return;
-
-            // ----------------------------------------------------
-            //  Deal with read-modify-write assignments.
-            //  Set 'newval' to the final assignment value
-            //  Also determine the return value (except for slice
-            //  assignments, which are more complicated)
-            // ----------------------------------------------------
-            if (fp)
-            {
-                // If it isn't a simple assignment, we need the existing value
-                Expression *oldval = interpret(e1, istate);
-                if (exceptionOrCant(oldval))
-                    return;
-                oldval = resolveSlice(oldval);
-
-                // ~= can create new values (see bug 6052)
-                if (e->op == TOKcatass)
+                /* The AA is currently null. 'aggregate' is actually a reference to
+                 * whatever contains it. It could be anything: var, dotvarexp, ...
+                 * We rewrite the assignment from: aggregate[i][j] = newval;
+                 *                           into: aggregate = [i:[j: newval]];
+                 */
+                while (e1->op == TOKindex && ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
                 {
-                    // We need to dup it. We can skip this if it's a dynamic array,
-                    // because it gets copied later anyway
-                    if (newval->type->ty != Tarray)
-                        newval = copyLiteral(newval).copy();
-                    newval = resolveSlice(newval);
-                    // It becomes a reference assignment
-                    //wantRef = true;       // TODO
-                }
-                if (e->e1->type->ty == Tpointer)
-                {
-                    if (e->e2->type->isintegral() &&
-                        (e->op == TOKaddass ||
-                         e->op == TOKminass ||
-                         e->op == TOKplusplus ||
-                         e->op == TOKminusminus))
-                    {
-                        oldval = interpret(e->e1, istate);
-                        if (exceptionOrCant(oldval))
-                            return;
-                        newval = interpret(e->e2, istate);
-                        if (exceptionOrCant(newval))
-                            return;
-                        newval = pointerArithmetic(e->loc, e->op, e->type, oldval, newval).copy();
-                    }
-                    else
-                    {
-                        e->error("pointer expression %s cannot be interpreted at compile time", e->toChars());
-                        result = CTFEExp::cantexp;
+                    Expression *index = interpret(((IndexExp *)e1)->e2, istate);
+                    if (exceptionOrCant(index))
                         return;
-                    }
+                    index = resolveSlice(index);    // only happens with AA assignment
+                    Expressions *valuesx = new Expressions();
+                    Expressions *keysx = new Expressions();
+                    valuesx->push(newval);
+                    keysx->push(index);
+                    AssocArrayLiteralExp *newaae = new AssocArrayLiteralExp(e->loc, keysx, valuesx);
+                    newaae->ownedByCtfe = true;
+                    newaae->type = ((IndexExp *)e1)->e1->type;
+                    newval = newaae;
+                    e1 = ((IndexExp *)e1)->e1;
                 }
-                else
-                {
-                    newval = (*fp)(e->type, oldval, newval).copy();
-                }
-                if (exceptionOrCant(newval))
-                {
-                    if (CTFEExp::isCantExp(newval))
-                        e->error("cannot interpret %s at compile time", e->toChars());
-                    return;
-                }
-                // Determine the return value
-                result = ctfeCast(e->loc, e->type, e->type, post ? oldval : newval);
-                if (exceptionOrCant(result))
+
+                // We must return to the original aggregate, in case it was a reference
+                e1 = interpret(ie->e1, istate, ctfeNeedLvalue);
+                if (exceptionOrCant(e1))
                     return;
             }
-            else
-                result = newval;
-        }
-
-        if (!fp && e->e1->op != TOKarrayliteral && !isBlockAssignment)
-        {
-            newval = ctfeCast(e->loc, e->type, e->type, newval);
-            if (exceptionOrCant(newval))
-                return;
-            result = newval;
-        }
-        if (exceptionOrCant(newval))
-            return;
-
-        // ---------------------------------------
-        //      Deal with AA index assignment
-        // ---------------------------------------
-        /* This needs special treatment if the AA doesn't exist yet.
-         * There are two special cases:
-         * (1) If the AA is itself an index of another AA, we may need to create
-         *     multiple nested AA literals before we can insert the new value.
-         * (2) If the ultimate AA is null, no insertion happens at all. Instead,
-         *     we create nested AA literals, and change it into a assignment.
-         */
-        if (e1->op == TOKindex && ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
-        {
         }
 
     #if LOGASSIGN
