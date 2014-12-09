@@ -2503,56 +2503,65 @@ public:
     #if LOG
         printf("%s DeclarationExp::interpret() %s\n", e->loc.toChars(), e->toChars());
     #endif
-        VarDeclaration *v = e->declaration->isVarDeclaration();
-        if (v)
+        Dsymbol *s = e->declaration;
+        if (VarDeclaration *v = s->isVarDeclaration())
         {
-            if (v->toAlias()->isTupleDeclaration())
+            if (TupleDeclaration *td = v->toAlias()->isTupleDeclaration())
             {
                 result = NULL;
 
                 // Reserve stack space for all tuple members
-                TupleDeclaration *td = v->toAlias()->isTupleDeclaration();
                 if (!td->objects)
                     return;
-                for (size_t i= 0; i < td->objects->dim; ++i)
+                for (size_t i = 0; i < td->objects->dim; ++i)
                 {
                     RootObject * o = (*td->objects)[i];
                     Expression *ex = isExpression(o);
                     DsymbolExp *s = (ex && ex->op == TOKdsymbol) ? (DsymbolExp *)ex : NULL;
                     VarDeclaration *v2 = s ? s->s->isVarDeclaration() : NULL;
                     assert(v2);
-                    if (!v2->isDataseg() || v2->isCTFE())
+                    if (v2->isDataseg() && !v2->isCTFE())
+                        continue;
+
+                    ctfeStack.push(v2);
+                    if (v2->init)
                     {
-                        ctfeStack.push(v2);
-                        if (v2->init)
+                        Expression *ex;
+                        if (ExpInitializer *ie = v2->init->isExpInitializer())
                         {
-                            ExpInitializer *ie = v2->init->isExpInitializer();
-                            if (ie)
-                            {
-                                setValue(v2, interpret(ie->exp, istate, goal));
-                            }
-                            else if (v2->init->isVoidInitializer())
-                            {
-                                setValue(v2, voidInitLiteral(v2->type, v2).copy());
-                            }
-                            else
-                            {
-                                e->error("declaration %s is not yet implemented in CTFE", e->toChars());
-                                result = CTFEExp::cantexp;
-                            }
+                            ex = interpret(ie->exp, istate, goal);
+                            if (exceptionOrCant(ex))
+                                return;
                         }
+                        else if (v2->init->isVoidInitializer())
+                        {
+                            ex = voidInitLiteral(v2->type, v2).copy();
+                        }
+                        else
+                        {
+                            e->error("declaration %s is not yet implemented in CTFE", e->toChars());
+                            result = CTFEExp::cantexp;
+                            return;
+                        }
+                        setValue(v2, ex);
                     }
                 }
                 return;
             }
+            if (v->isStatic())
+            {
+                // Just ignore static variables which aren't read or written yet
+                result = NULL;
+                return;
+            }
             if (!(v->isDataseg() || v->storage_class & STCmanifest) || v->isCTFE())
                 ctfeStack.push(v);
-            Dsymbol *s = v->toAlias();
-            if (s == v && !v->isStatic() && v->init)
+            if (v->init)
             {
-                ExpInitializer *ie = v->init->isExpInitializer();
-                if (ie)
+                if (ExpInitializer *ie = v->init->isExpInitializer())
+                {
                     result = interpret(ie->exp, istate, goal);
+                }
                 else if (v->init->isVoidInitializer())
                 {
                     result = voidInitLiteral(v->type, v).copy();
@@ -2566,32 +2575,21 @@ public:
                     result = CTFEExp::cantexp;
                 }
             }
-            else if (s == v && !v->init && v->type->size() == 0)
+            else if (v->type->size() == 0)
             {
                 // Zero-length arrays don't need an initializer
                 result = v->type->defaultInitLiteral(e->loc);
             }
-            else if (s == v && (v->isConst() || v->isImmutable()) && v->init)
-            {
-                result = v->init->toExpression();
-                if (!result)
-                    result = CTFEExp::cantexp;
-                else if (!result->type)
-                    result->type = v->type;
-            }
-            else if (s->isTupleDeclaration() && !v->init)
-                result = NULL;
-            else if (v->isStatic())
-                result = NULL;   // Just ignore static variables which aren't read or written yet
             else
             {
                 e->error("variable %s cannot be modified at compile time", v->toChars());
                 result = CTFEExp::cantexp;
             }
+            return;
         }
-        else if (e->declaration->isAttribDeclaration() ||
-                 e->declaration->isTemplateMixin() ||
-                 e->declaration->isTupleDeclaration())
+        if (s->isAttribDeclaration() ||
+            s->isTemplateMixin() ||
+            s->isTupleDeclaration())
         {
             // Check for static struct declarations, which aren't executable
             AttribDeclaration *ad = e->declaration->isAttribDeclaration();
@@ -2610,12 +2608,11 @@ public:
             // These can be made to work, too lazy now
             e->error("declaration %s is not yet implemented in CTFE", e->toChars());
             result = CTFEExp::cantexp;
+            return;
         }
-        else
-        {
-            // Others should not contain executable code, so are trivial to evaluate
-            result = NULL;
-        }
+
+        // Others should not contain executable code, so are trivial to evaluate
+        result = NULL;
     #if LOG
         printf("-DeclarationExp::interpret(%s): %p\n", e->toChars(), result);
     #endif
@@ -2626,14 +2623,11 @@ public:
     #if LOG
         printf("%s TupleExp::interpret() %s\n", e->loc.toChars(), e->toChars());
     #endif
-        Expressions *expsx = NULL;
 
-        if (CTFEExp::isCantExp(interpret(e->e0, istate)))
-        {
-            result = CTFEExp::cantexp;
+        if (exceptionOrCant(interpret(e->e0, istate, ctfeNeedNothing)))
             return;
-        }
 
+        Expressions *expsx = NULL;
         for (size_t i = 0; i < e->exps->dim; i++)
         {
             Expression *exp = (*e->exps)[i];
@@ -2949,9 +2943,11 @@ public:
         }
         assert(argnum == arguments->dim - 1);
         if (elemType->ty == Tchar || elemType->ty == Twchar || elemType->ty == Tdchar)
+        {
             return createBlockDuplicatedStringLiteral(loc, newtype,
                 (unsigned)(elemType->defaultInitLiteral(loc)->toInteger()),
                 len, (unsigned char)elemType->size());
+        }
         return createBlockDuplicatedArrayLiteral(loc, newtype,
             elemType->defaultInitLiteral(loc), len);
     }
