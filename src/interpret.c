@@ -3412,72 +3412,87 @@ public:
         else if (e->op == TOKconstruct || e->op == TOKblit)  // keep TOKvar in e1 ?
         {
 //printf("\tL%d [%s] e = %s\n", __LINE__, e->loc.toChars(), e->toChars());
-            if (e1->op == TOKslice || e1->op == TOKindex)
+            Expression *e1x = e1;
+            while (e1x->op == TOKslice ||
+                   e1x->op == TOKindex ||
+                   e1x->op == TOKdotvar && ((DotVarExp *)e1x)->e1->op != TOKthis)
             {
-                Expression *e1x = e1;
-                while (e1x->op == TOKslice ||
-                       e1x->op == TOKindex ||
-                       e1x->op == TOKdotvar && ((DotVarExp *)e1x)->e1->op != TOKthis)
-                {
-                    e1x = ((UnaExp *)e1x)->e1;
-                }
-
-                if (e1x->op == TOKvar)
-                {
-                    //printf("+L%d [%s] e1x = %s\n", __LINE__, e->loc.toChars(), e1x->toChars());
-                    VarDeclaration *v = ((VarExp *)e1x)->var->isVarDeclaration();
-                    assert(v);
-                    setValue(v, copyLiteral(v->type->defaultInitLiteral(e->loc)).copy());
-                }
-                else if (e1x->op == TOKdotvar)
-                {
-                    //printf("+L%d [%s] e1x = %s\n", __LINE__, e->loc.toChars(), e1x->toChars());
-                    DotVarExp *dve = (DotVarExp *)e1x;
-                    VarDeclaration *v = dve->var->isVarDeclaration();
-                    assert(v);
-                    //setValue(v, copyLiteral(v->type->defaultInitLiteral(e->loc)).copy());
-
-                    assert(dve->e1->op == TOKthis);
-                    Expression *exx = ctfeStack.getThis();
-                    StructLiteralExp *sle = exx->op == TOKstructliteral
-                        ? (StructLiteralExp *)exx
-                        : ((ClassReferenceExp *)exx)->value;
-                    int fieldi = exx->op == TOKstructliteral
-                        ? findFieldIndexByName(sle->sd, v)
-                        : ((ClassReferenceExp *)exx)->findFieldIndexByName(v);
-
-                    (*sle->elements)[fieldi] = copyLiteral(v->type->defaultInitLiteral(e->loc)).copy();
-
-                    // If it's a union, set all other overlapped fields of this union to void
-                    int unionStart = sle->sd->firstFieldInUnion(fieldi);
-                    int unionSize = sle->sd->numFieldsInUnion(fieldi);
-                    for (int i = unionStart; i < unionStart + unionSize; ++i)
-                    {
-                        if (i == fieldi)
-                            continue;
-                        Expression **exp = &(*sle->elements)[i];
-                        if ((*exp)->op != TOKvoid)
-                            *exp = voidInitLiteral((*exp)->type, v).copy();
-                    }
-                    //printf("-L%d [%s] sle = %s\n", __LINE__, e->loc.toChars(), sle->toChars());
-                }
+                e1x = ((UnaExp *)e1x)->e1;
             }
-            else if (e1->op == TOKvar)
+            if (e1x->op == TOKvar)
             {
-                // optimize: avoid init value setting
-                VarDeclaration *v = ((VarExp *)e1)->var->isVarDeclaration();
+                //printf("+L%d [%s] e1x = %s\n", __LINE__, e->loc.toChars(), e1x->toChars());
+                VarDeclaration *v = ((VarExp *)e1x)->var->isVarDeclaration();
                 assert(v);
                 if (v->storage_class & STCout)
                 {
-                    e1 = interpret(e1, istate, ctfeNeedLvalue);
-                    if (exceptionOrCant(e1))
+                    //e1 = interpret(e1, istate, ctfeNeedLvalue);
+                    //if (exceptionOrCant(e1))
+                    //    return;
+                }
+                else if (e1x == e1) // optimize: avoid init value setting
+                {
+                    //Expression *ex = interpret(v->type->defaultInitLiteral(e->loc), istate);
+                    //if (exceptionOrCant(ex))
+                    //    return;
+                    //setValueWithoutChecking(v, ex);
+                }
+                else
+                {
+                    Expression *ex = interpret(v->type->defaultInitLiteral(e->loc), istate);
+                    if (exceptionOrCant(ex))
                         return;
+                    setValue(v, ex);
                 }
             }
-            else
+            else if (e1x->op == TOKdotvar)
             {
-                // evaluate to lvalue e.g.
-                //  this() { this.feild[0] = 1; }
+                //printf("+L%d [%s] e1x = %s\n", __LINE__, e->loc.toChars(), e1x->toChars());
+                DotVarExp *dve = (DotVarExp *)e1x;
+                VarDeclaration *v = dve->var->isVarDeclaration();
+                assert(v);
+
+                assert(dve->e1->op == TOKthis);
+                Expression *exx = ctfeStack.getThis();
+                StructLiteralExp *sle = exx->op == TOKstructliteral
+                    ? (StructLiteralExp *)exx
+                    : ((ClassReferenceExp *)exx)->value;
+                int fieldi = exx->op == TOKstructliteral
+                    ? findFieldIndexByName(sle->sd, v)
+                    : ((ClassReferenceExp *)exx)->findFieldIndexByName(v);
+
+                Expression *ex = interpret(v->type->defaultInitLiteral(e->loc), istate);
+                if (exceptionOrCant(ex))
+                    return;
+                //printf("sle->elements->dim = %d, fieldi = %d, fields.dim = %d\n", sle->elements->dim, fieldi, sle->sd->fields.dim);
+                (*sle->elements)[fieldi] = ex;
+
+                size_t fieldsSoFar = 0;
+                if (exx->op == TOKclassreference)
+                {
+                    ClassDeclaration *cd = ((ClassReferenceExp *)exx)->originalClass();
+                    for (ClassDeclaration *c = cd->baseClass; c; c = c->baseClass)
+                        fieldsSoFar += c->fields.dim;
+                }
+                assert(fieldsSoFar <= fieldi);
+
+                // If it's a union, set all other overlapped fields of this union to void
+                int unionStart = sle->sd->firstFieldInUnion(fieldi - fieldsSoFar);
+                int unionSize = sle->sd->numFieldsInUnion(fieldi - fieldsSoFar);
+                //printf("fieldsSoFar = %d, unionStart = %d, unionSize = %d\n", fieldsSoFar, unionStart, unionSize);
+                for (int i = unionStart; i < unionStart + unionSize; ++i)
+                {
+                    if (fieldsSoFar + i == fieldi)
+                        continue;
+                    Expression **exp = &(*sle->elements)[fieldsSoFar + i];
+                    if ((*exp)->op != TOKvoid)
+                        *exp = voidInitLiteral((*exp)->type, v).copy();
+                }
+                //printf("-L%d [%s] sle = %s\n", __LINE__, e->loc.toChars(), sle->toChars());
+            }
+            if (e1->op != TOKvar || (((VarExp *)e1)->var->storage_class & STCout))
+            {
+                // Evaluate e1 as an lvalue e.g.
                 e1 = interpret(e1, istate, ctfeNeedLvalue);
                 if (exceptionOrCant(e1))
                     return;
