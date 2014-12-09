@@ -3013,12 +3013,9 @@ public:
                 se->ownedByCtfe = true;
                 result = interpret(se, istate);
             }
-            if (exceptionOrCantInterpret(result))
-            {
-                result = CTFEExp::cantexp;
+            if (exceptionOrCant(result))
                 return;
-            }
-            result = new AddrExp(e->loc, copyLiteral(result).copy());
+            result = new AddrExp(e->loc, result);
             result->type = e->type;
             return;
         }
@@ -3069,10 +3066,10 @@ public:
                 if (!e->member->fbody)
                 {
                     Expression *ctorfail = evaluateIfBuiltin(istate, e->loc, e->member, e->arguments, eref);
-                    if (ctorfail && exceptionOrCant(ctorfail))
-                        return;
                     if (ctorfail)
                     {
+                        if (exceptionOrCant(ctorfail))
+                            return;
                         result = eref;
                         return;
                     }
@@ -3128,11 +3125,11 @@ public:
         UnionExp ue;
         switch (e->op)
         {
-            case TOKneg:    ue = Neg(e->type, e1); break;
-            case TOKtilde:  ue = Com(e->type, e1); break;
-            case TOKnot:    ue = Not(e->type, e1); break;
+            case TOKneg:    ue = Neg(e->type, e1);  break;
+            case TOKtilde:  ue = Com(e->type, e1);  break;
+            case TOKnot:    ue = Not(e->type, e1);  break;
             case TOKtobool: ue = Bool(e->type, e1); break;
-            case TOKvector: result = e; return; // do nothing
+            case TOKvector: result = e;             return; // do nothing
             default:        assert(0);
         }
         result = ue.copy();
@@ -3200,6 +3197,7 @@ public:
             result = CTFEExp::cantexp;
             return;
         }
+
         Expression *e1 = interpret(e->e1, istate);
         if (exceptionOrCant(e1))
             return;
@@ -4388,7 +4386,10 @@ public:
 
         // Save the pointer expressions and the comparison directions,
         // so we can use them later.
-        Expression *p1 = NULL, *p2 = NULL, *p3 = NULL, *p4 = NULL;
+        Expression *p1 = NULL;
+        Expression *p2 = NULL;
+        Expression *p3 = NULL;
+        Expression *p4 = NULL;
         int dir1 = isPointerCmpExp(e->e1, &p1, &p2);
         int dir2 = isPointerCmpExp(e->e2, &p3, &p4);
         if (dir1 == 0 || dir2 == 0)
@@ -4411,8 +4412,8 @@ public:
         Expression *agg2 = getAggregateFromPointer(p2, &ofs2);
 
         if (!pointToSameMemoryBlock(agg1, agg2) &&
-             agg1->op != TOKnull &&
-             agg2->op != TOKnull)
+            agg1->op != TOKnull &&
+            agg2->op != TOKnull)
         {
             // Here it is either CANT_INTERPRET,
             // or an IsInside comparison returning false.
@@ -4443,7 +4444,7 @@ public:
                 result = CTFEExp::cantexp;
                 return;
             }
-            dinteger_t ofs3,ofs4;
+            dinteger_t ofs3, ofs4;
             Expression *agg3 = getAggregateFromPointer(p3, &ofs3);
             Expression *agg4 = getAggregateFromPointer(p4, &ofs4);
             // The valid cases are:
@@ -4486,7 +4487,8 @@ public:
         int cmp = comparePointers(e->loc, cmpop, e->e1->type, agg1, ofs1, agg2, ofs2);
         // We already know this is a valid comparison.
         assert(cmp >= 0);
-        if ((e->op == TOKandand && cmp == 1) || (e->op == TOKoror && cmp == 0))
+        if (e->op == TOKandand && cmp == 1 ||
+            e->op == TOKoror   && cmp == 0)
         {
             result = interpret(e->e2, istate);
             return;
@@ -4634,7 +4636,7 @@ public:
         // We probably didn't enter the recursion in this function.
         // Go deeper to find the real beginning.
         InterState * cur = istate;
-        while (lastRecurse->caller && cur->fd ==  lastRecurse->caller->fd)
+        while (lastRecurse->caller && cur->fd == lastRecurse->caller->fd)
         {
             cur = cur->caller;
             lastRecurse = lastRecurse->caller;
