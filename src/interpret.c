@@ -2978,7 +2978,6 @@ public:
             result = recursivelyCreateArrayLiteral(e->loc, e->newtype, istate, e->arguments, 0);
             return;
         }
-
         if (e->newtype->toBasetype()->ty == Tstruct)
         {
             if (e->member)
@@ -3088,24 +3087,23 @@ public:
         {
             Expression *newval;
             if (e->arguments && e->arguments->dim)
-                newval = interpret((*e->arguments)[0], istate);
+                newval = (*e->arguments)[0];
             else
                 newval = e->newtype->defaultInitLiteral(e->loc);
+            newval = interpret(newval, istate);
             if (exceptionOrCant(newval))
                 return;
 
-            /* Create &[newval][0]
-             */
+            // Create a CTFE pointer &[newval][0]
             Expressions *elements = new Expressions();
             elements->setDim(1);
-            (*elements)[0] = copyLiteral(newval).copy();
+            (*elements)[0] = newval;
             ArrayLiteralExp *ae = new ArrayLiteralExp(e->loc, elements);
             ae->type = e->newtype->arrayOf();
             ae->ownedByCtfe = true;
 
             result = new IndexExp(e->loc, ae, new IntegerExp(Loc(), 0, Type::tsize_t));
             result->type = e->newtype;
-
             result = new AddrExp(e->loc, result);
             result->type = e->type;
             return;
