@@ -2152,11 +2152,8 @@ public:
             return;
         }
         Expression *val = getVarExp(e->loc, istate, e->var, goal);
-        if (CTFEExp::isCantExp(val))
-        {
-            result = val;
+        if (exceptionOrCant(val))
             return;
-        }
         if (val->type->ty == Tarray || val->type->ty == Tsarray)
         {
             // Check for unsupported type painting operations
@@ -2263,34 +2260,31 @@ public:
 
         // If it is &nestedfunc, just return it
         // TODO: We should save the context pointer
-        if (e->e1->op == TOKvar && ((VarExp *)e->e1)->var->isFuncDeclaration())
+        if (e->e1->op == TOKvar && ((VarExp *)e->e1)->var == e->func)
         {
             result = e;
             return;
         }
 
-        // If it has already been CTFE'd, just return it
-        if (e->e1->op == TOKstructliteral || e->e1->op == TOKclassreference)
-        {
-            result = e;
-            return;
-        }
-
-        // Else change it into &structliteral.func or &classref.func
         result = interpret(e->e1, istate);
         if (exceptionOrCant(result))
             return;
-
-        result = new DelegateExp(e->loc, result, e->func);
-        result->type = e->type;
+        if (result == e->e1)
+        {
+            // If it has already been CTFE'd, just return it
+            result = e;
+        }
+        else
+        {
+            result = new DelegateExp(e->loc, result, e->func);
+            result->type = e->type;
+        }
     }
 
     static Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal)
     {
         Expression *e = CTFEExp::cantexp;
-        VarDeclaration *v = d->isVarDeclaration();
-        SymbolDeclaration *s = d->isSymbolDeclaration();
-        if (v)
+        if (VarDeclaration *v = d->isVarDeclaration())
         {
             /* Magic variable __ctfe always returns true when interpreting
              */
@@ -2392,30 +2386,6 @@ public:
                     error(loc, "variable %s cannot be read at compile time", v->toChars());
                     return CTFEExp::cantexp;
                 }
-                if (exceptionOrCantInterpret(e))
-                    return e;
-                if (goal == ctfeNeedLvalue && v->isRef() && e->op == TOKindex)
-                {
-                    // If it is a foreach ref, resolve the index into a constant
-                    IndexExp *ie = (IndexExp *)e;
-                    Expression *w = interpret(ie->e2, istate);
-                    if (w != ie->e2)
-                    {
-                        e = new IndexExp(ie->loc, ie->e1, w);
-                        e->type = ie->type;
-                    }
-                    return e;
-                }
-                if (goal == ctfeNeedLvalue ||
-                    e->op == TOKstring ||
-                    e->op == TOKstructliteral ||
-                    e->op == TOKarrayliteral ||
-                    e->op == TOKassocarrayliteral ||
-                    e->op == TOKslice ||
-                    e->type->toBasetype()->ty == Tpointer)
-                {
-                    return e; // it's already an Lvalue
-                }
                 if (e->op == TOKvoid)
                 {
                     VoidInitExp *ve = (VoidInitExp *)e;
@@ -2423,13 +2393,13 @@ public:
                     errorSupplemental(v->loc, "%s was uninitialized and used before set", v->toChars());
                     return CTFEExp::cantexp;
                 }
-
-                e = interpret(e, istate, goal);
+                if (goal != ctfeNeedLvalue && (v->isRef() || v->isOut()))
+                    e = interpret(e, istate, goal);
             }
             if (!e)
                 e = CTFEExp::cantexp;
         }
-        else if (s)
+        else if (SymbolDeclaration *s = d->isSymbolDeclaration())
         {
             // Struct static initializers, for example
             e = s->dsym->type->defaultInitLiteral(loc);
@@ -2456,10 +2426,11 @@ public:
             result = e;
             return;
         }
-
+#if 1
         if (goal == ctfeNeedLvalue)
         {
             VarDeclaration *v = e->var->isVarDeclaration();
+        #if 1   // required by test8608()
             if (v && !v->isDataseg() && !v->isCTFE() && !istate)
             {
                 e->error("variable %s cannot be read at compile time", v->toChars());
@@ -2475,6 +2446,7 @@ public:
                 result = CTFEExp::cantexp;
                 return;
             }
+        #endif
 //printf("\tev = %s, stc = x%llx, hasValue = %d\n", e->toChars(), v->storage_class & (STCout | STCref), hasValue(v));
             if (v && (v->storage_class & (STCout | STCref)) && hasValue(v))
             {
@@ -2492,10 +2464,12 @@ public:
             result = e;
             return;
         }
+#endif
         result = getVarExp(e->loc, istate, e->var, goal);
+        if (exceptionOrCant(result))
+            return;
         // A VarExp may include an implicit cast. It must be done explicitly.
-        if (!CTFEExp::isCantExp(result) && result->op != TOKthrownexception)
-            result = paintTypeOntoLiteral(e->type, result);
+        result = paintTypeOntoLiteral(e->type, result);
     }
 
     void visit(DeclarationExp *e)
