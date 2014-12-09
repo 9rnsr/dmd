@@ -1697,16 +1697,13 @@ bool BaseClass::fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newin
     for (size_t j = base->vtblOffset(); j < base->vtbl.dim; j++)
     {
         FuncDeclaration *ifd = base->vtbl[j]->isFuncDeclaration();
-        FuncDeclaration *fd;
-        TypeFunction *tf;
-
         //printf("        vtbl[%d] is '%s'\n", j, ifd ? ifd->toChars() : "null");
-
         assert(ifd);
+        assert(ifd->type->ty == Tfunction);
+        TypeFunction *tf = (TypeFunction *)ifd->type;
+
         // Find corresponding function in this class
-        tf = (ifd->type->ty == Tfunction) ? (TypeFunction *)(ifd->type) : NULL;
-        assert(tf);  // should always be non-null
-        fd = cd->findFunc(ifd->ident, tf);
+        FuncDeclaration *fd = cd->findFunc(ifd->ident, tf);
         if (fd && !fd->isAbstract())
         {
             //printf("            found\n");
@@ -1718,7 +1715,9 @@ bool BaseClass::fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newin
             if (newinstance &&
                 fd->toParent() != cd &&
                 ifd->toParent() == base)
+            {
                 cd->error("interface function '%s' is not implemented", ifd->toFullSignature());
+            }
 
             if (fd->toParent() == cd)
                 result = true;

@@ -748,7 +748,7 @@ void FuncDeclaration::semantic(Scope *sc)
         int vi = cd->baseClass ? findVtblIndex((Dsymbols*)&cd->baseClass->vtbl, (int)cd->baseClass->vtbl.dim)
                                : -1;
 
-        printf("[%s] %s cd = %s, vi = %d\n", loc.toChars(), toChars(), cd->toChars(), vi);
+        //printf("[%s] %s cd = %s, vi = %d\n", loc.toChars(), toChars(), cd->toChars(), vi);
         bool doesoverride = false;
         switch (vi)
         {
@@ -784,7 +784,7 @@ void FuncDeclaration::semantic(Scope *sc)
                 }
                 else
                 {
-                    printf("\tintroducing function\n");
+                    //printf("\tintroducing function\n");
                     introducing = 1;
                     if (cd->cpp && Target::reverseCppOverloads)
                     {
@@ -814,7 +814,7 @@ void FuncDeclaration::semantic(Scope *sc)
                         cd->vtbl.push(this);
                         vtblIndex = vi;
                     }
-                    printf("\t-> vtblIndex = %d\n", vtblIndex);
+                    //printf("\t-> vtblIndex = %d\n", vtblIndex);
                 }
                 break;
 
@@ -853,8 +853,10 @@ void FuncDeclaration::semantic(Scope *sc)
 
                 doesoverride = true;
                 if (!isOverride())
+                {
                     ::deprecation(loc, "implicitly overriding base class method %s with %s deprecated; add 'override' attribute",
                         fdv->toPrettyChars(), toPrettyChars());
+                }
 
                 if (fdc->toParent() == parent)
                 {
@@ -903,31 +905,33 @@ void FuncDeclaration::semantic(Scope *sc)
             }
         }
 
+        // functions in non-direct base interfaces are not in the vtbl of cd->baseClass...
+
         /* Go through all the interface bases.
          * If this function is covariant with any members of those interface
          * functions, set the tintro.
          */
-        ClassDeclaration *cdb = cd;
-      Lagain_base:
-        for (size_t i = 0; i < cdb->interfaces_dim; i++)
+        //for (ClassDeclaration *cd2 = cd; cd2; cd2 = cd2->baseClass)
+        ClassDeclaration *cd2 = cd;
+        for (size_t i = 0; i < cd2->interfaces_dim; i++)
         {
-            BaseClass *b = cdb->interfaces[i];
+            BaseClass *b = cd2->interfaces[i];
             vi = findVtblIndex((Dsymbols *)&b->base->vtbl, (int)b->base->vtbl.dim);
-            printf("%s b = %s, vi = %d\n", toChars(), b->type->toChars(), vi);
+            //printf("%s b = %s, vi = %d\n", toChars(), b->type->toChars(), vi);
             switch (vi)
             {
                 case -1:
                     break;
 
                 case -2:
-                    cdb->sizeok = SIZEOKfwd;     // can't finish due to forward reference
+                    cd2->sizeok = SIZEOKfwd;     // can't finish due to forward reference
                     Module::dprogress = dprogress_save;
                     return;
 
                 default:
                 {
                     FuncDeclaration *fdv = (FuncDeclaration *)b->base->vtbl[vi];
-                    printf("vi = %d, fdv = %s at [%s]\n", vi, fdv->toChars(), fdv->loc.toChars());
+                    //printf("vi = %d, fdv = %s at [%s]\n", vi, fdv->toChars(), fdv->loc.toChars());
                     Type *ti = NULL;
 
                     doesoverride = true;
@@ -958,7 +962,7 @@ void FuncDeclaration::semantic(Scope *sc)
                         {
                             // any error in isBaseOf() is a forward reference error, so we bail out
                             global.errors = errors;
-                            cdb->sizeok = SIZEOKfwd;    // can't finish due to forward reference
+                            cd2->sizeok = SIZEOKfwd;    // can't finish due to forward reference
                             Module::dprogress = dprogress_save;
                             return;
                         }
@@ -983,11 +987,6 @@ void FuncDeclaration::semantic(Scope *sc)
                     goto L2;
                 }
             }
-        }
-        if (cdb->baseClass)
-        {
-            cdb = cdb->baseClass;
-            goto Lagain_base;
         }
 
         if (!doesoverride && isOverride() && type->nextOf())

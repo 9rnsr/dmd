@@ -430,14 +430,15 @@ void ClassDeclaration::toObjFile(bool multiobj)
 
     offset += vtblInterfaces->dim * (4 * Target::ptrsize);
     for (size_t i = 0; i < vtblInterfaces->dim; i++)
-    {   BaseClass *b = (*vtblInterfaces)[i];
+    {
+        BaseClass *b = (*vtblInterfaces)[i];
         ClassDeclaration *id = b->base;
 
         /* The layout is:
          *  struct Interface
          *  {
          *      ClassInfo *interface;
-         *      void *[] vtbl;
+         *      void*[] vtbl;
          *      size_t offset;
          *  }
          */
@@ -460,7 +461,8 @@ void ClassDeclaration::toObjFile(bool multiobj)
     // This must be mirrored with ClassDeclaration::baseVtblOffset()
     //printf("putting out %d interface vtbl[]s for '%s'\n", vtblInterfaces->dim, toChars());
     for (size_t i = 0; i < vtblInterfaces->dim; i++)
-    {   BaseClass *b = (*vtblInterfaces)[i];
+    {
+        BaseClass *b = (*vtblInterfaces)[i];
         ClassDeclaration *id = b->base;
 
         //printf("    interface[%d] is '%s'\n", i, id->toChars());
@@ -505,7 +507,8 @@ void ClassDeclaration::toObjFile(bool multiobj)
     for (cd = this->baseClass; cd; cd = cd->baseClass)
     {
         for (size_t k = 0; k < cd->vtblInterfaces->dim; k++)
-        {   BaseClass *bs = (*cd->vtblInterfaces)[k];
+        {
+            BaseClass *bs = (*cd->vtblInterfaces)[k];
 
             if (bs->fillVtbl(this, &bvtbl, 0))
             {
