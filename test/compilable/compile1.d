@@ -585,6 +585,18 @@ struct Bro11554(N...) {}
 static assert(!is(E11554 unused : Bro11554!M, M...));
 
 /***************************************************/
+// 11582
+
+class C11582(E...) : E[0] {}
+alias CX11582 = C11582!(Object);
+
+class D11582(E...) : E[0..$] {}
+alias DX11582 = D11582!(Object);
+
+class X11582(E...) : int[], void delegate(E), E[0]* {}
+static assert(!__traits(compiles, X11582!(Object)));
+
+/***************************************************/
 // 12302
 
 template isCallable12302(T...)
