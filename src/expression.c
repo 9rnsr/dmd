@@ -4634,6 +4634,29 @@ Expression *NewExp::semantic(Scope *sc)
     ClassDeclaration *cdthis = NULL;
     size_t nargs;
     Expression *newprefix = NULL;
+    Objects *tiargs = NULL;
+
+    if (newtype->ty == Tinstance)
+    {
+        TypeInstance *tti = (TypeInstance *)newtype;
+        TypeIdentifier *tid = new TypeIdentifier(tti->loc, tti->tempinst->name);
+        tid->idents = tti->idents;
+
+        Expression *e;
+        Type *t;
+        Dsymbol *s;
+        tid->resolve(loc, sc, &e, &t, &s);
+        //printf("e = %p, s = %p, t = %p\n", e, s, t);
+        if (t)
+        {
+            AggregateDeclaration *ad = isAggregate(t);
+            if (ad && ad->ctor)
+            {
+                newtype = t;
+                tiargs = tti->tempinst->tiargs;
+            }
+        }
+    }
 
 Lagain:
     if (thisexp)
@@ -4798,7 +4821,7 @@ Lagain:
 
         if (cd->ctor)
         {
-            FuncDeclaration *f = resolveFuncCall(loc, sc, cd->ctor, NULL, tb, arguments, 0);
+            FuncDeclaration *f = resolveFuncCall(loc, sc, cd->ctor, tiargs, tb, arguments, 0);
             if (!f || f->errors)
                 goto Lerr;
             checkDeprecated(sc, f);
@@ -4897,7 +4920,7 @@ Lagain:
 
         if (sd->ctor && nargs)
         {
-            FuncDeclaration *f = resolveFuncCall(loc, sc, sd->ctor, NULL, tb, arguments, 0);
+            FuncDeclaration *f = resolveFuncCall(loc, sc, sd->ctor, tiargs, tb, arguments, 0);
             if (!f || f->errors)
                 goto Lerr;
             checkDeprecated(sc, f);
