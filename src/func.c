@@ -3188,10 +3188,10 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
             errorSupplemental(loc, "instantiated from here: %s.%s!(%s)%s",
                     td->parent->toPrettyChars(), td->ident->toChars(),
                     tiargsBuf.peekString(), fargsBuf.peekString());
-printf("+++>>> L%d\n", __LINE__);
-            if (sc->tinst)
+//printf("+++>>> L%d\n", __LINE__);
+            if (sc->tinst && !sc->tinst->errors)
                 sc->tinst->printInstantiationTrace();
-printf("--->>> L%d\n", __LINE__);
+//printf("--->>> L%d\n", __LINE__);
           }
         #else
             ::error(loc, "%s %s.%s cannot deduce function from argument types !(%s)%s",
