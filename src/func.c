@@ -3146,7 +3146,7 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
             return m.lastf;
 
         // if do not print error messages
-        if (flags & 1)
+        if (m.count != -1 && flags & 1)
             return NULL;    // no match
     }
 
@@ -3166,6 +3166,51 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
         tthis->modToBuffer(&fargsBuf);
 
     const int numOverloadsDisplay = 5; // sensible number to display
+
+    if (m.count == -1)
+    {
+        static FuncDeclaration *errorFunc = NULL;
+        if (errorFunc == NULL)
+        {
+            errorFunc = new FuncDeclaration(Loc(), Loc(), Id::empty, STCundefined, NULL);
+            errorFunc->type = Type::terror;
+            errorFunc->errors = true;
+        }
+
+        if (flags & 4)
+            return errorFunc;
+
+        if (td && !fd)  // all of overloads are templates
+        {
+        #if 1
+          if (!td->literal)
+          {
+            errorSupplemental(loc, "instantiated from here: %s.%s!(%s)%s",
+                    td->parent->toPrettyChars(), td->ident->toChars(),
+                    tiargsBuf.peekString(), fargsBuf.peekString());
+printf("+++>>> L%d\n", __LINE__);
+            if (sc->tinst)
+                sc->tinst->printInstantiationTrace();
+printf("--->>> L%d\n", __LINE__);
+          }
+        #else
+            ::error(loc, "%s %s.%s cannot deduce function from argument types !(%s)%s",
+                    td->kind(), td->parent->toPrettyChars(), td->ident->toChars(),
+                    tiargsBuf.peekString(), fargsBuf.peekString());
+        #endif
+        }
+        else
+        {
+            assert(fd);
+            TypeFunction *tf = (TypeFunction *)fd->type;
+            fd->error(loc, "%s%s is not callable using argument types %s",
+                parametersTypeToChars(tf->parameters, tf->varargs),
+                tf->modToChars(), fargsBuf.peekString());
+        }
+    #if 1
+        return errorFunc;
+    #endif
+    }
 
     if (!m.lastf && !(flags & 1))   // no match
     {

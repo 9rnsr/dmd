@@ -1,7 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail236.d(12): Error: undefined identifier x
+fail_compilation/fail236.d(13): Error: undefined identifier x
+fail_compilation/fail236.d(21):        instantiated from here: fail236.Templ2!()(int)
 ---
 */
 

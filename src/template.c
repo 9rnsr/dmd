@@ -963,7 +963,10 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
 
         // TODO: dedtypes => ti->tiargs ?
         if (!evaluateConstraint(ti, sc, paramscope, dedtypes, fd))
+        {
+            //printf("L%d [%s] %s\n", __LINE__, loc.toChars(), toChars());
             goto Lnomatch;
+        }
     }
 
 #if LOGM
@@ -1876,6 +1879,7 @@ Lmatch:
         sc2->minst = sc->minst;
 
         fd = doHeaderInstantiation(ti, sc2, fd, tthis, fargs);
+        //printf("doHeaderInstantiation, fd = %p\n", fd);
 
         sc2 = sc2->pop();
         sc2 = sc2->pop();
@@ -1887,7 +1891,13 @@ Lmatch:
     if (constraint)
     {
         if (!evaluateConstraint(ti, sc, paramscope, dedargs, fd))
-            goto Lnomatch;
+        {
+            //printf("L%d [%s] %s\n", __LINE__, loc.toChars(), toChars());
+            //goto Lnomatch;
+
+            paramscope->pop();
+            return MATCHnomatch;
+        }
     }
 
 #if 0
@@ -1903,6 +1913,7 @@ Lmatch:
     return (MATCH)(match | (matchTiargs<<4));
 
 Lnomatch:
+    fd = NULL;
     paramscope->pop();
     //printf("\tnomatch\n");
     return MATCHnomatch;
@@ -2218,14 +2229,17 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             Objects dedtypes;
             dedtypes.setDim(td->parameters->dim);
             assert(td->semanticRun != PASSinit);
+printf(">>> L%d\n", __LINE__);
             MATCH mta = td->matchWithInstance(sc, ti, &dedtypes, fargs, 0);
             //printf("matchWithInstance = %d\n", mta);
             if (mta <= MATCHnomatch || mta < ta_last)      // no match or less match
                 return 0;
+printf(">>> L%d\n", __LINE__);
 
             ti->semantic(sc, fargs);
             if (!ti->inst)                  // if template failed to expand
                 return 0;
+printf(">>> L%d\n", __LINE__);
 
             Dsymbol *s = ti->inst->toAlias();
             FuncDeclaration *fd;
@@ -2261,22 +2275,35 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
                 pr.dedargs = &dedtypesX;
                 tdx->previous = &pr;                 // add this to threaded list
 
-                fd = resolveFuncCall(loc, sc, s, NULL, tthis, fargs, 1);
+printf(">>> L%d\n", __LINE__);
+                fd = resolveFuncCall(loc, sc, s, NULL, tthis, fargs, 1 | 4);
 
                 tdx->previous = pr.prev;             // unlink from threaded list
             }
             else if (s->isFuncDeclaration())
             {
-                fd = resolveFuncCall(loc, sc, s, NULL, tthis, fargs, 1);
+printf(">>> L%d\n", __LINE__);
+                fd = resolveFuncCall(loc, sc, s, NULL, tthis, fargs, 1 | 4);
             }
             else
                 goto Lerror;
+printf(">>> L%d\n", __LINE__);
 
             if (!fd)
                 return 0;
+            if (fd->errors)
+            {
+printf(">>> L%d\n", __LINE__);
+                m->lastf = NULL;
+                m->last = MATCHnomatch;
+                m->count = -1;
+                return 1;
+            }
+printf(">>> L%d\n", __LINE__);
 
             if (fd->type->ty != Tfunction)
                 goto Lerror;
+printf(">>> L%d\n", __LINE__);
 
             Type *tthis_fd = fd->needThis() && !fd->isCtorDeclaration() ? tthis : NULL;
 
@@ -2442,9 +2469,16 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
 
     unsigned errors = global.errors;
     overloadApply(dstart, &p, &ParamDeduce::fp);
-    if (global.errors != errors)
+    if (0 && global.errors != errors)
     {
     Lerror:
+        //printf("L%d [%s] dstart = %s, Lerror, m->lastf = %p\n", __LINE__, loc.toChars(), dstart->toChars(), m->lastf);
+      #if 1
+        m->count = -1;
+        m->lastf = NULL;
+        m->last = MATCHnomatch;
+        return;
+      #else
         static FuncDeclaration *errorFunc = NULL;
         if (errorFunc == NULL)
         {
@@ -2456,6 +2490,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         m->lastf = errorFunc;
         m->last = MATCHnomatch;
         return;
+      #endif
     }
 
     //printf("td_best = %p, m->lastf = %p\n", p.td_best, m->lastf);
@@ -2619,14 +2654,16 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(
 
     if (global.endGagging(olderrors))
     {
-        if (fd->type->ty != Tfunction)
-            return NULL;
+        //if (fd->type->ty != Tfunction)
+        //    return NULL;
     }
-    assert(fd->type->ty == Tfunction);
+    if (fd->type->ty == Tfunction)
+    {
 
     fd->originalType = fd->type;    // for mangling
     //printf("\t[%s] fd->type = %s, mod = %x, ", loc.toChars(), fd->type->toChars(), fd->type->mod);
     //printf("fd->needThis() = %d\n", fd->needThis());
+    }
 
     return fd;
 }
