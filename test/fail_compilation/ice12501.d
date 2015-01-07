@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+test_output:
 ---
 fail_compilation/ice12501.d(29): Error: foo (int value) is not callable using argument types (int, int)
 fail_compilation/ice12501.d(29): Error: foo (int value) is not callable using argument types (int, int)

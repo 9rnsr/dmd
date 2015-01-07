@@ -2238,7 +2238,15 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
 
             ti->semantic(sc, fargs);
             if (!ti->inst)                  // if template failed to expand
+            {
                 return 0;
+            #if 0
+                m->count = 0;
+                m->lastf = NULL;
+                m->last = MATCHnomatch;
+                return 1;
+            #endif
+            }
 //printf(">>> L%d\n", __LINE__);
 
             Dsymbol *s = ti->inst->toAlias();
@@ -2528,7 +2536,25 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
 
         m->lastf = ti->toAlias()->isFuncDeclaration();
         if (ti->errors || !m->lastf)
-            goto Lerror;
+        {
+            //goto Lerror;
+            static FuncDeclaration *errorFunc = NULL;
+            if (errorFunc == NULL)
+            {
+                errorFunc = new FuncDeclaration(Loc(), Loc(), Id::empty, STCundefined, NULL);
+                errorFunc->type = Type::terror;
+                errorFunc->errors = true;
+            }
+            m->count = 1;
+            m->lastf = errorFunc;
+            m->last = MATCHnomatch;
+            return;
+
+            //m->count = 0;
+            //m->lastf = NULL;
+            //m->last = MATCHnomatch;
+            //return;
+        }
 
         // look forward instantiated overload function
         // Dsymbol::oneMembers is alredy called in TemplateInstance::semantic.

@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+test_output:
 ---
 fail_compilation/ice12554.d(18): Error: pure function 'ice12554.main.__lambda1' cannot call impure function 'ice12554.array!(MapResult!((y) => x)).array'
 fail_compilation/ice12554.d(37):        instantiated from here: MapResult!((x) => foo.map!(MapResultS, (y) => x).array)

@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+test_output:
 ---
 fail_compilation/test8556.d(33): Error: circular initialization of isSliceable
 fail_compilation/test8556.d(34): Error: circular initialization of isSliceable

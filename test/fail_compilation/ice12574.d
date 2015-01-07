@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+test_output:
 ---
 fail_compilation/ice12574.d(40): Error: tuple index 2 exceeds length 2
 fail_compilation/ice12574.d(53): Error: template instance ice12574.reduce!("a", "a").reduce!(Tuple!(int, int, int)) error instantiating

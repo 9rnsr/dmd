@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+test_output:
 ---
 fail_compilation/fail12378.d(18): Error: undefined identifier ANYTHING
 fail_compilation/fail12378.d(18): Error: undefined identifier GOES
@@ -21,7 +21,7 @@ void testS()
 }
 
 /*
-TEST_OUTPUT:
+test_output:
 ---
 fail_compilation/fail12378.d(40): Error: undefined identifier ANYTHING
 fail_compilation/fail12378.d(40): Error: undefined identifier GOES
@@ -43,7 +43,7 @@ void testC()
 }
 
 /*
-TEST_OUTPUT:
+test_output:
 ---
 fail_compilation/fail12378.d(62): Error: undefined identifier ANYTHING
 fail_compilation/fail12378.d(62): Error: undefined identifier GOES
