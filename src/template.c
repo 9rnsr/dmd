@@ -1116,22 +1116,27 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
         TemplateInstance *ti, Scope *sc,
         FuncDeclaration *&fd, Type *tthis, Expressions *fargs)
 {
+    Loc loc = ti->loc;
+    Objects *tiargs = ti->tiargs;
+
+    Objects *dedargs = new Objects();
+    dedargs->setDim(parameters->dim);
+    dedargs->zero();
+
+    Objects* dedtypes = &ti->tdtypes;   // for T:T*, the dedargs is the T*, dedtypes is the T
+    dedtypes->setDim(parameters->dim);
+    dedtypes->zero();
+
     size_t nfparams;
     size_t nfargs;
-    size_t ntargs;              // array size of tiargs
+    size_t ntargs = tiargs ? tiargs->dim : 0;
     size_t fptupindex = IDX_NOTFOUND;
-    size_t tuple_dim = 0;
     MATCH match = MATCHexact;
     MATCH matchTiargs = MATCHexact;
     Parameters *fparameters;            // function parameter list
     int fvarargs;                       // function varargs
     unsigned wildmatch = 0;
     size_t inferStart = 0;
-
-    Loc loc = ti->loc;
-    Objects *tiargs = ti->tiargs;
-    Objects *dedargs = new Objects();
-    Objects* dedtypes = &ti->tdtypes;   // for T:T*, the dedargs is the T*, dedtypes is the T
 
 #if 0
     printf("\nTemplateDeclaration::deduceFunctionTemplateMatch() %s\n", toChars());
@@ -1148,12 +1153,6 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
 
     assert(scope);
 
-    dedargs->setDim(parameters->dim);
-    dedargs->zero();
-
-    dedtypes->setDim(parameters->dim);
-    dedtypes->zero();
-
     if (errors || fd->errors)
         return MATCHnomatch;
 
@@ -1167,28 +1166,14 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
     paramscope->stc = 0;
 
     TemplateTupleParameter *tp = isVariadic();
+    size_t tuple_dim = 0;
     bool tp_is_declared = false;
 
-#if 0
-    for (size_t i = 0; i < dedargs->dim; i++)
-    {
-        printf("\tdedarg[%d] = ", i);
-        RootObject *oarg = (*dedargs)[i];
-        if (oarg) printf("%s", oarg->toChars());
-        printf("\n");
-    }
-#endif
-
-
-    ntargs = 0;
     if (tiargs)
     {
         // Set initial template arguments
-        ntargs = tiargs->dim;
-        size_t n = parameters->dim;
-        if (tp)
-            n--;
-        if (ntargs > n)
+        size_t n = parameters->dim - (tp ? 1 : 0);
+        if (n < ntargs)
         {
             if (!tp)
                 goto Lnomatch;
