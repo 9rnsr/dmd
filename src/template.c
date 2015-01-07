@@ -2229,17 +2229,17 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             Objects dedtypes;
             dedtypes.setDim(td->parameters->dim);
             assert(td->semanticRun != PASSinit);
-printf(">>> L%d\n", __LINE__);
+//printf(">>> L%d\n", __LINE__);
             MATCH mta = td->matchWithInstance(sc, ti, &dedtypes, fargs, 0);
             //printf("matchWithInstance = %d\n", mta);
             if (mta <= MATCHnomatch || mta < ta_last)      // no match or less match
                 return 0;
-printf(">>> L%d\n", __LINE__);
+//printf(">>> L%d\n", __LINE__);
 
             ti->semantic(sc, fargs);
             if (!ti->inst)                  // if template failed to expand
                 return 0;
-printf(">>> L%d\n", __LINE__);
+//printf(">>> L%d\n", __LINE__);
 
             Dsymbol *s = ti->inst->toAlias();
             FuncDeclaration *fd;
@@ -2275,35 +2275,36 @@ printf(">>> L%d\n", __LINE__);
                 pr.dedargs = &dedtypesX;
                 tdx->previous = &pr;                 // add this to threaded list
 
-printf(">>> L%d\n", __LINE__);
+//printf(">>> L%d\n", __LINE__);
                 fd = resolveFuncCall(loc, sc, s, NULL, tthis, fargs, 1 | 4);
 
                 tdx->previous = pr.prev;             // unlink from threaded list
             }
             else if (s->isFuncDeclaration())
             {
-printf(">>> L%d\n", __LINE__);
+//printf(">>> L%d\n", __LINE__);
                 fd = resolveFuncCall(loc, sc, s, NULL, tthis, fargs, 1 | 4);
             }
             else
                 goto Lerror;
-printf(">>> L%d\n", __LINE__);
+//printf(">>> L%d\n", __LINE__);
 
             if (!fd)
                 return 0;
             if (fd->errors)
             {
-printf(">>> L%d\n", __LINE__);
+                //goto Lerror2;
+//printf(">>> L%d\n", __LINE__);
                 m->lastf = NULL;
                 m->last = MATCHnomatch;
                 m->count = -1;
                 return 1;
             }
-printf(">>> L%d\n", __LINE__);
+//printf(">>> L%d\n", __LINE__);
 
             if (fd->type->ty != Tfunction)
                 goto Lerror;
-printf(">>> L%d\n", __LINE__);
+//printf(">>> L%d\n", __LINE__);
 
             Type *tthis_fd = fd->needThis() && !fd->isCtorDeclaration() ? tthis : NULL;
 
@@ -2355,7 +2356,17 @@ printf(">>> L%d\n", __LINE__);
             ti->parent = td->parent;    // Maybe calculating valid 'enclosing' is unnecessary.
 
             FuncDeclaration *fd = f;
+            unsigned errors = global.errors;
             int x = td->deduceFunctionTemplateMatch(ti, sc, fd, tthis, fargs);
+            if (global.errors != errors)
+            {
+            Lerror2:
+                m->lastf = NULL;
+                m->count = -1;
+                m->last = MATCHnomatch;
+                return 1;
+            }
+
             MATCH mta = (MATCH)(x >> 4);
             MATCH mfa = (MATCH)(x & 0xF);
             //printf("match:t/f = %d/%d\n", mta, mfa);
@@ -2491,6 +2502,12 @@ printf(">>> L%d\n", __LINE__);
         m->last = MATCHnomatch;
         return;
       #endif
+    }
+    if (m->count == -1)
+    {
+        m->lastf = NULL;
+        m->last = MATCHnomatch;
+        return;
     }
 
     //printf("td_best = %p, m->lastf = %p\n", p.td_best, m->lastf);
