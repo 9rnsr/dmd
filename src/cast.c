@@ -1918,15 +1918,13 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 {
                     // Don't do anything for casting void[n] to others
                 }
+                else if (tb->ty == Tsarray &&
+                    e->elements->dim != ((TypeSArray *)tb)->dim->toInteger())
+                {
+                    // Don't do anything for [a1, ..., an] to T[m] if n != m
+                }
                 else
                 {
-                    if (tb->ty == Tsarray)
-                    {
-                        TypeSArray *tsa = (TypeSArray *)tb;
-                        if (e->elements->dim != tsa->dim->toInteger())
-                            goto L1;
-                    }
-
                     ae = (ArrayLiteralExp *)e->copy();
                     ae->elements = e->elements->copy();
                     for (size_t i = 0; i < e->elements->dim; i++)
@@ -1956,25 +1954,24 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 TypeVector *tv = (TypeVector *)tb;
                 TypeSArray *tbase = (TypeSArray *)tv->basetype;
                 assert(tbase->ty == Tsarray);
-                if (e->elements->dim != tbase->dim->toInteger())
-                    goto L1;
-
-                ae = (ArrayLiteralExp *)e->copy();
-                ae->type = tbase;   // Bugzilla 12642
-                ae->elements = e->elements->copy();
-                Type *telement = tv->elementType();
-                for (size_t i = 0; i < e->elements->dim; i++)
+                if (e->elements->dim == tbase->dim->toInteger())
                 {
-                    Expression *ex = (*e->elements)[i];
-                    ex = ex->castTo(sc, telement);
-                    (*ae->elements)[i] = ex;
+                    ae = (ArrayLiteralExp *)e->copy();
+                    ae->type = tbase;   // Bugzilla 12642
+                    ae->elements = e->elements->copy();
+                    Type *telement = tv->elementType();
+                    for (size_t i = 0; i < e->elements->dim; i++)
+                    {
+                        Expression *ex = (*e->elements)[i];
+                        ex = ex->castTo(sc, telement);
+                        (*ae->elements)[i] = ex;
+                    }
+                    Expression *ev = new VectorExp(e->loc, ae, tb);
+                    ev = ev->semantic(sc);
+                    result = ev;
+                    return;
                 }
-                Expression *ev = new VectorExp(e->loc, ae, tb);
-                ev = ev->semantic(sc);
-                result = ev;
-                return;
             }
-        L1:
             visit((Expression *)ae);
         }
 
