@@ -541,6 +541,9 @@ void AggregateDeclaration::makeNested()
             if (TemplateInstance *ti = ad->parent->isTemplateInstance())
             {
                 enclosing = ti->enclosing;
+
+                if (enclosing)
+                    ad->makeNested();
             }
         }
 
