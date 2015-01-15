@@ -1091,11 +1091,35 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             // We might know $ now
             setLengthVarIfKnown(e->lengthVar, ex);
             e->e2 = e->e2->optimize(WANTvalue);
-            if (keepLvalue)
-                return;
-            ret = Index(e->type, ex, e->e2).copy();
-            if (CTFEExp::isCantExp(ret))
+            if (!keepLvalue)
+            {
+                ret = Index(e->type, ex, e->e2).copy();
+                if (!CTFEExp::isCantExp(ret))
+                    return;
                 ret = e;
+            }
+
+            Type *t1b = e->e1->type->toBasetype();
+            if (t1b->ty == Tsarray || t1b->ty == Tarray)
+            {
+                UnionExp uelength = ArrayLength(e->type, e->e1);
+                if (uelength.exp()->op != TOKint64)
+                    return;
+                dinteger_t length = uelength.exp()->toInteger();
+                IntRange irange = getIntRange(e->e2);
+                if (SignExtendedNumber(length) <= irange.imin)
+                {
+                    e->error("index value range %s cannot cover the array bounds 0..%llu",
+                        irange.toChars(e->e2->type), length);
+                    ret = new ErrorExp();
+                    return;
+                }
+                if (length)
+                {
+                    IntRange bounds(SignExtendedNumber(0), SignExtendedNumber(length - 1));
+                    e->indexIsInBounds = bounds.contains(irange);
+                }
+            }
         }
 
         void visit(SliceExp *e)
