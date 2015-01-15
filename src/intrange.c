@@ -13,6 +13,7 @@
 #include "mars.h"
 #include "mtype.h"
 #include "expression.h"
+#include "id.h"
 
 #ifndef PERFORM_UNITTEST
 #define PERFORM_UNITTEST 0
@@ -455,6 +456,35 @@ void IntRange::splitBySign(IntRange& negRange, bool& hasNegRange,
     }
 }
 
+const char* IntRange::toChars(Type *t)
+{
+    OutBuffer buf;
+
+    t = t->toBasetype();
+
+    buf.printf("[");
+
+    if (t->isscalar() && !t->isunsigned() &&
+        imin.negative && imin.value == t->getProperty(Loc(), Id::min, 0)->toInteger())
+    {
+        buf.printf("%s.min", t->toChars());
+    }
+    else
+        buf.printf("%s%llu", imin.negative ? "-" : "", (unsigned long long)imin.value);
+
+    buf.printf(", ");
+
+    if (t->isscalar() &&
+        !imax.negative && imax.value == t->getProperty(Loc(), Id::max, 0)->toInteger())
+    {
+        buf.printf("%s.max", t->toChars());
+    }
+    else
+        buf.printf("%s%llu", imax.negative ? "-" : "", (unsigned long long)imax.value);
+
+    buf.printf("]");
+    return buf.extractString();
+}
 
 #if !PERFORM_UNITTEST
 const IntRange& IntRange::dump(const char* funcName, Expression *e) const

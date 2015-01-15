@@ -10620,11 +10620,18 @@ Expression *IndexExp::semantic(Scope *sc)
         if (el->op == TOKint64)
         {
             e2 = e2->optimize(WANTvalue);
+            IntRange irange = getIntRange(e2);
             dinteger_t length = el->toInteger();
+            if (SignExtendedNumber(length) <= irange.imin)
+            {
+                error("index value range %s cannot cover the array bounds 0..%llu",
+                    irange.toChars(e2->type), length);
+                return new ErrorExp();
+            }
             if (length)
             {
                 IntRange bounds(SignExtendedNumber(0), SignExtendedNumber(length - 1));
-                indexIsInBounds = bounds.contains(getIntRange(e2));
+                indexIsInBounds = bounds.contains(irange);
             }
         }
     }

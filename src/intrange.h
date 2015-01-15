@@ -148,6 +148,8 @@ struct IntRange
     /// Split the range into two nonnegative- and negative-only subintervals.
     void splitBySign(IntRange& negRange, bool& hasNegRange,
                      IntRange& nonNegRange, bool& hasNonNegRange) const;
+
+    const char* toChars(Type *t);
 };
 
 #endif
