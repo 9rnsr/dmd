@@ -1107,6 +1107,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                     return;
                 dinteger_t length = uelength.exp()->toInteger();
                 IntRange irange = getIntRange(e->e2);
+                printf("IndexExp::optimize %s, irange = %s\n", e->toChars(), irange.toChars(e->e2->type));
                 if (SignExtendedNumber(length) <= irange.imin)
                 {
                     e->error("index value range %s cannot cover the array bounds 0..%llu",

@@ -3304,6 +3304,7 @@ IntRange getIntRange(Expression *e)
 
         void visit(AddExp *e)
         {
+            printf("getIntRange AddExp('%s')\n", e->toChars());
             IntRange ir1 = getIntRange(e->e1);
             IntRange ir2 = getIntRange(e->e2);
             range = IntRange(ir1.imin + ir2.imin, ir1.imax + ir2.imax).cast(e->type);
@@ -3528,13 +3529,23 @@ IntRange getIntRange(Expression *e)
 
         void visit(VarExp *e)
         {
-            Expression *ie;
             VarDeclaration* vd = e->var->isVarDeclaration();
             if (vd && vd->range)
                 range = vd->range->cast(e->type);
-            else if (vd && vd->init && !vd->type->isMutable() &&
-                (ie = vd->getConstInitializer()) != NULL)
-                ie->accept(this);
+            else if (vd && vd->init && !vd->type->isMutable() && vd->init
+                     vd->toParaent2()->isFuncDeclaration())
+            {
+                ExpInitializer *ez = vd->init->isExpInitializer();
+                if (ez)
+                {
+                    Expression *ex = ez->exp;
+                    if (ex->op == TOKconstruct|| ex->op == TOKblit)
+                        ex = ((AssignExp *)ex)->e2;
+                    printf("ex = %s\n", ex->toChars());
+                    ex->accept(this);
+                    return;
+                }
+            }
             else
                 visit((Expression *)e);
         }
