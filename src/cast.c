@@ -80,23 +80,21 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
                 return;
             }
 
-            if (t->ty != Terror && e->type->ty != Terror)
+            assert(e->op != TOKerror);
+            if (!t->deco)
             {
-                if (!t->deco)
-                {
-                    /* Can happen with:
-                     *    enum E { One }
-                     *    class A
-                     *    { static void fork(EDG dg) { dg(E.One); }
-                     *      alias void delegate(E) EDG;
-                     *    }
-                     * Should eventually make it work.
-                     */
-                    e->error("forward reference to type %s", t->toChars());
-                }
-                else if (Type *tx = reliesOnTident(t))
-                    e->error("forward reference to type %s", tx->toChars());
-
+                /* Can happen with:
+                 *    enum E { One }
+                 *    class A
+                 *    { static void fork(EDG dg) { dg(E.One); }
+                 *      alias void delegate(E) EDG;
+                 *    }
+                 * Should eventually make it work.
+                 */
+                e->error("forward reference to type %s", t->toChars());
+            }
+            else
+            {
                 //printf("type %p ty %d deco %p\n", type, type->ty, type->deco);
                 //type = type->semantic(loc, sc);
                 //printf("type %s t %s\n", type->deco, t->deco);
@@ -104,6 +102,11 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
                     e->toChars(), e->type->toChars(), t->toChars());
             }
             result = new ErrorExp();
+        }
+
+        void visit(ErrorExp *e)
+        {
+            result = e;
         }
 
         void visit(StringExp *e)
@@ -115,11 +118,6 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
                 // Retain polysemous nature if it started out that way
                 ((StringExp *)result)->committed = e->committed;
             }
-        }
-
-        void visit(ErrorExp *e)
-        {
-            result = e;
         }
 
         void visit(FuncExp *e)
@@ -164,6 +162,9 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
         }
     };
 
+    if (t->ty == Terror)
+        return new ErrorExp();
+
     ImplicitCastTo v(sc, t);
     e->accept(&v);
     return v.result;
@@ -195,8 +196,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
                 e->toChars(), e->type->toChars(), t->toChars());
         #endif
             //static int nest; if (++nest == 10) halt();
-            if (t == Type::terror)
-                return;
             if (!e->type)
             {
                 e->error("%s is not an expression", e->toChars());
@@ -234,6 +233,11 @@ MATCH implicitConvTo(Expression *e, Type *t)
                     return;
                 }
             }
+        }
+
+        void visit(ErrorExp *e)
+        {
+            // no match
         }
 
         /******
@@ -499,11 +503,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
             //printf("MATCHconvert\n");
             result = MATCHconvert;
-        }
-
-        void visit(ErrorExp *e)
-        {
-            // no match
         }
 
         void visit(NullExp *e)
@@ -1311,6 +1310,9 @@ MATCH implicitConvTo(Expression *e, Type *t)
         }
     };
 
+    if (t->ty == Terror)
+        return MATCHnomatch;
+
     ImplicitConvTo v(t);
     e->accept(&v);
     return v.result;
@@ -2068,8 +2070,6 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
             printf("DelegateExp::castTo(this=%s, type=%s, t=%s)\n",
                 e->toChars(), e->type->toChars(), t->toChars());
         #endif
-            static const char msg[] = "cannot form delegate due to covariant return type";
-
             Type *tb = t->toBasetype();
             Type *typeb = e->type->toBasetype();
             if (!tb->equals(typeb) || e->hasOverloads)
@@ -2085,14 +2085,14 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                         {
                             int offset;
                             if (f->tintro && f->tintro->nextOf()->isBaseOf(f->type->nextOf(), &offset) && offset)
-                                e->error("%s", msg);
+                                goto Lerr;
                             f->tookAddressOf++;
                             result = new DelegateExp(e->loc, e->e1, f);
                             result->type = t;
                             return;
                         }
                         if (e->func->tintro)
-                            e->error("%s", msg);
+                            goto Lerr;
                     }
                 }
                 visit((Expression *)e);
@@ -2102,10 +2102,15 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 int offset;
                 e->func->tookAddressOf++;
                 if (e->func->tintro && e->func->tintro->nextOf()->isBaseOf(e->func->type->nextOf(), &offset) && offset)
-                    e->error("%s", msg);
+                    goto Lerr;
                 result = e->copy();
                 result->type = t;
             }
+            return;
+
+        Lerr:
+            e->error("cannot form delegate due to covariant return type");
+            result = new ErrorExp();
         }
 
         void visit(FuncExp *e)
@@ -2222,6 +2227,9 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
             result = new ErrorExp();
         }
     };
+
+    if (t->ty == Terror)
+        return new ErrorExp();
 
     CastTo v(sc, t);
     e->accept(&v);
