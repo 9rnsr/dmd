@@ -4945,9 +4945,11 @@ Lagain:
                 error("negative array index %s", arg->toChars());
                 goto Lerr;
             }
-            (*arguments)[i] =  arg;
+            (*arguments)[i] = arg;
             tb = ((TypeDArray *)tb)->next->toBasetype();
         }
+        if (arrayObjectIsError((Objects *)arguments))
+            goto Lerr;
     }
     else if (tb->isscalar())
     {
