@@ -10843,6 +10843,19 @@ Expression *AssignExp::semantic(Scope *sc)
         return e->semantic(sc);
     }
 
+    if (op == TOKconstruct && e1->op == TOKvar &&
+        ((VarExp *)e1)->var->storage_class & (STCout | STCref))
+    {
+        // If this is an initialization of a reference,
+        // do nothing
+        e1 = e1->semantic(sc);
+        e2 = e2->semantic(sc);
+        e2 = resolveProperties(sc, e2);
+        e2 = e2->implicitCastTo(sc, e1->type);
+        type = e1->type;
+        return this;
+    }
+
     /* Look for operator overloading of a[i]=value.
      * Do it before semantic() otherwise the a[i] will have been
      * converted to a.opIndex() already.
@@ -11162,13 +11175,7 @@ Expression *AssignExp::semantic(Scope *sc)
     /* If it is an assignment from a 'foreign' type,
      * check for operator overloading.
      */
-    if (op == TOKconstruct && e1->op == TOKvar &&
-        ((VarExp *)e1)->var->storage_class & (STCout | STCref))
-    {
-        // If this is an initialization of a reference,
-        // do nothing
-    }
-    else if (t1->ty == Tstruct)
+    if (t1->ty == Tstruct)
     {
         Expression *e1x = e1;
         Expression *e2x = e2;
