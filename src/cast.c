@@ -2918,16 +2918,16 @@ Lcc:
         }
         goto Lincompatible;
     }
-    else if ((e1->op == TOKstring || e1->op == TOKnull) && e1->implicitConvTo(t2))
+    else if ((e1->op == TOKstring || e1->op == TOKnull) && e1->implicitConvTo(t2) > MATCHnomatch)
     {
         goto Lt2;
     }
-    else if ((e2->op == TOKstring || e2->op == TOKnull) && e2->implicitConvTo(t1))
+    else if ((e2->op == TOKstring || e2->op == TOKnull) && e2->implicitConvTo(t1) > MATCHnomatch)
     {
         goto Lt1;
     }
     else if (t1->ty == Tsarray && t2->ty == Tsarray &&
-             e2->implicitConvTo(t1->nextOf()->arrayOf()))
+             e2->implicitConvTo(t1->nextOf()->arrayOf()) > MATCHnomatch)
     {
      Lx1:
         t = t1->nextOf()->arrayOf();    // T[]
@@ -2935,7 +2935,7 @@ Lcc:
         e2 = e2->castTo(sc, t);
     }
     else if (t1->ty == Tsarray && t2->ty == Tsarray &&
-             e1->implicitConvTo(t2->nextOf()->arrayOf()))
+             e1->implicitConvTo(t2->nextOf()->arrayOf()) > MATCHnomatch)
     {
      Lx2:
         t = t2->nextOf()->arrayOf();
@@ -2949,7 +2949,7 @@ Lcc:
         goto Lincompatible;
     }
     else if (t1->ty == Tvector && t2->ty != Tvector &&
-             e2->implicitConvTo(t1))
+             e2->implicitConvTo(t1) > MATCHnomatch)
     {
         e2 = e2->castTo(sc, t1);
         t2 = t1;
@@ -2957,7 +2957,7 @@ Lcc:
         goto Lagain;
     }
     else if (t2->ty == Tvector && t1->ty != Tvector &&
-             e1->implicitConvTo(t2))
+             e1->implicitConvTo(t2) > MATCHnomatch)
     {
         e1 = e1->castTo(sc, t2);
         t1 = t2;
@@ -3006,7 +3006,7 @@ Lcc:
     }
     else if (t1->ty == Tarray && isBinArrayOp(e->op) && isArrayOpOperand(e1))
     {
-        if (e2->implicitConvTo(t1->nextOf()))
+        if (e2->implicitConvTo(t1->nextOf()) > MATCHnomatch)
         {
             // T[] op T
             // T[] op cast(T)U
@@ -3041,7 +3041,7 @@ Lcc:
     }
     else if (t2->ty == Tarray && isBinArrayOp(e->op) && isArrayOpOperand(e2))
     {
-        if (e1->implicitConvTo(t2->nextOf()))
+        if (e1->implicitConvTo(t2->nextOf()) > MATCHnomatch)
         {
             // T op T[]
             // cast(T)U op T[]

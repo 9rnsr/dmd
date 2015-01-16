@@ -20,4 +20,13 @@ void main()
 
     void bug(string y) {}
     bug("sdgdf"[14..16]);
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/diag10910.d(31): Error: string index 17 is out of bounds [0 .. 6]
+---
+*/
+    Object o;
+    o = "abcdef"[17];
 }

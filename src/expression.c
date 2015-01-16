@@ -1517,7 +1517,7 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                         for (size_t u = 0; u < elements->dim; u++)
                         {
                             Expression *a = (*arguments)[i + u];
-                            if (tret && a->implicitConvTo(tret))
+                            if (tret && a->implicitConvTo(tret) > MATCHnomatch)
                             {
                                 a = a->implicitCastTo(sc, tret);
                                 a = a->optimize(WANTvalue);
@@ -3598,7 +3598,7 @@ int NullExp::isBool(int result)
 
 StringExp *NullExp::toStringExp()
 {
-    if (implicitConvTo(Type::tstring))
+    if (implicitConvTo(Type::tstring) > MATCHnomatch)
     {
         StringExp *se = new StringExp(loc, (char*)mem.calloc(1, 1), 0);
         se->type = Type::tstring;
@@ -6607,7 +6607,7 @@ Expression *BinAssignExp::semantic(Scope *sc)
     if (e1->op == TOKslice || e1->type->ty == Tarray || e1->type->ty == Tsarray)
     {
         // T[] op= ...
-        if (e2->implicitConvTo(e1->type->nextOf()))
+        if (e2->implicitConvTo(e1->type->nextOf()) > MATCHnomatch)
         {
             // T[] op= T
             e2 = e2->castTo(sc, e1->type->nextOf());
@@ -11264,7 +11264,7 @@ Expression *AssignExp::semantic(Scope *sc)
                     }
                 }
             }
-            else if (!e2x->implicitConvTo(t1))
+            else if (e2x->implicitConvTo(t1) == MATCHnomatch)
             {
                 if (sd->ctor)
                 {
@@ -11377,7 +11377,7 @@ Expression *AssignExp::semantic(Scope *sc)
                     {
                         ey = ev;
                     }
-                    else if (!ev->implicitConvTo(ie->type) && sd->ctor)
+                    else if (ev->implicitConvTo(ie->type) == MATCHnomatch && sd->ctor)
                     {
                         // Look for implicit constructor call
                         // Rewrite as S().ctor(e2)
@@ -11420,7 +11420,10 @@ Expression *AssignExp::semantic(Scope *sc)
     else if (t1->ty == Tclass)
     {
         // Disallow assignment operator overloads for same type
-        if (op == TOKassign && !e2->implicitConvTo(e1->type))
+        MATCH match = e2->implicitConvTo(e1->type);
+        if (match == MATCHerror)
+            return new ErrorExp();
+        if (op == TOKassign && match > MATCHnomatch)
         {
             Expression *e = op_overload(sc);
             if (e)
