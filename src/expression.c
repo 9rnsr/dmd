@@ -11436,7 +11436,10 @@ Expression *AssignExp::semantic(Scope *sc)
         Expression *e2x = e2;
         Type *t2 = e2x->type->toBasetype();
 
-        if (e2x->implicitConvTo(e1x->type))
+        MATCH match = e2x->implicitConvTo(e1x->type);
+        if (match == MATCHerror)
+            return new ErrorExp();
+        if (match > MATCHnomatch)
         {
             if (op != TOKblit &&
                 (e2x->op == TOKslice && ((UnaExp *)e2x)->e1->isLvalue() ||

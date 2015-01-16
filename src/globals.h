@@ -275,7 +275,8 @@ enum DYNCAST
 
 enum MATCH
 {
-    MATCHnomatch,       // no match
+    MATCHerror = -1,    // error happened while matching
+    MATCHnomatch = 0,   // no match
     MATCHconvert,       // match with conversions
     MATCHconst,         // match with conversion to const
     MATCHexact          // exact match

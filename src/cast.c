@@ -56,7 +56,7 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
             //printf("Expression::implicitCastTo(%s of type %s) => %s\n", e->toChars(), e->type->toChars(), t->toChars());
 
             MATCH match = e->implicitConvTo(t);
-            if (match)
+            if (match > MATCHnomatch)
             {
                 if (match == MATCHconst &&
                     (e->type->constConv(t) ||
@@ -70,6 +70,11 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
                     return;
                 }
                 result = e->castTo(sc, t);
+                return;
+            }
+            if (match == MATCHerror)
+            {
+                result = new ErrorExp();
                 return;
             }
 
@@ -199,7 +204,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
             if (!e->type)
             {
                 e->error("%s is not an expression", e->toChars());
-                e->type = Type::terror;
+                e = new ErrorExp();
             }
             Expression *ex = e->optimize(WANTvalue);
             if (ex->type->equals(t))
@@ -237,7 +242,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
         void visit(ErrorExp *e)
         {
-            // no match
+            result = MATCHerror;
         }
 
         /******
@@ -1311,7 +1316,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
     };
 
     if (t->ty == Terror)
-        return MATCHnomatch;
+        return MATCHerror;
 
     ImplicitConvTo v(t);
     e->accept(&v);
