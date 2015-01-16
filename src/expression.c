@@ -11454,7 +11454,10 @@ Expression *AssignExp::semantic(Scope *sc)
         }
         else
         {
-            if (e2x->implicitConvTo(t1->nextOf()->arrayOf()) > MATCHnomatch)
+            match = e2x->implicitConvTo(t1->nextOf()->arrayOf());
+            if (match == MATCHerror)
+                return new ErrorExp();
+            if (match > MATCHnomatch)
             {
                 uinteger_t dim1 = ((TypeSArray *)t1)->dim->toInteger();
                 uinteger_t dim2 = dim1;
