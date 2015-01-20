@@ -168,10 +168,10 @@ public:
         return ::castTo(this, sc, t);
     }
     virtual Expression *resolveLoc(Loc loc, Scope *sc);
-    void checkScalar();
-    void checkNoBool();
-    Expression *checkIntegral();
-    Expression *checkArithmetic();
+    bool checkScalar();
+    bool checkNoBool();
+    bool checkIntegral();
+    bool checkArithmetic();
     Expression *checkReadModifyWrite(TOK rmwOp, Expression *exp = NULL);
     void checkDeprecated(Scope *sc, Dsymbol *s);
     void checkPurity(Scope *sc, FuncDeclaration *f);

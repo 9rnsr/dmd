@@ -2318,41 +2318,47 @@ Expression *Expression::checkReadModifyWrite(TOK rmwOp, Expression *ex)
     // return new ErrorExp();
 }
 
-void Expression::checkScalar()
+bool Expression::checkScalar()
 {
-    if (!type->isscalar() && type->toBasetype() != Type::terror)
+    if (!type->isscalar() && type->toBasetype()->ty != Terror)
+    {
         error("'%s' is not a scalar, it is a %s", toChars(), type->toChars());
-    rvalue();
+        return false;
+    }
+    return rvalue();
 }
 
-void Expression::checkNoBool()
+bool Expression::checkNoBool()
 {
+    assert(type->ty != Terror);
     if (type->toBasetype()->ty == Tbool)
+    {
         error("operation not allowed on bool '%s'", toChars());
+        return false;
+    }
+    return true;
 }
 
-Expression *Expression::checkIntegral()
+bool Expression::checkIntegral()
 {
+    assert(type->ty != Terror);
     if (!type->isintegral())
-    {   if (type->toBasetype() != Type::terror)
-            error("'%s' is not of integral type, it is a %s", toChars(), type->toChars());
-        return new ErrorExp();
+    {
+        error("'%s' is not of integral type, it is a %s", toChars(), type->toChars());
+        return false;
     }
-    if (!rvalue())
-        return new ErrorExp();
-    return this;
+    return rvalue();
 }
 
-Expression *Expression::checkArithmetic()
+bool Expression::checkArithmetic()
 {
+    assert(type->ty != Terror);
     if (!type->isintegral() && !type->isfloating())
-    {   if (type->toBasetype() != Type::terror)
-            error("'%s' is not of arithmetic type, it is a %s", toChars(), type->toChars());
-        return new ErrorExp();
+    {
+        error("'%s' is not of arithmetic type, it is a %s", toChars(), type->toChars());
+        return false;
     }
-    if (!rvalue())
-        return new ErrorExp();
-    return this;
+    return rvalue();
 }
 
 void Expression::checkDeprecated(Scope *sc, Dsymbol *s)
@@ -6619,21 +6625,20 @@ Expression *BinExp::incompatibleTypes()
 
 Expression *BinAssignExp::semantic(Scope *sc)
 {
+    //printf("BinAssignExp::semantic() %s\n", toChars());
     if (type)
         return this;
 
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = op_overload(sc))
         return e;
 
-    e = e1->checkReadModifyWrite(op, e2);
-    if (e)
+    if (Expression *e = e1->checkReadModifyWrite(op, e2))
         return e;
 
     if (e1->op == TOKarraylength)
     {
         // arr.length op= e2;
-        e = ArrayLengthExp::rewriteOpAssign(this);
+        Expression *e = ArrayLengthExp::rewriteOpAssign(this);
         e = e->semantic(sc);
         return e;
     }
@@ -6655,7 +6660,8 @@ Expression *BinAssignExp::semantic(Scope *sc)
     e1 = e1->optimize(WANTvalue);
     e1 = e1->modifiableLvalue(sc, e1);
     type = e1->type;
-    checkScalar();
+    if (!checkScalar())
+        return new ErrorExp();
 
     int arith = (op == TOKaddass || op == TOKminass || op == TOKmulass ||
                  op == TOKdivass || op == TOKmodass || op == TOKpowass);
@@ -6665,7 +6671,17 @@ Expression *BinAssignExp::semantic(Scope *sc)
     if (bitwise && type->toBasetype()->ty == Tbool)
          e2 = e2->implicitCastTo(sc, type);
     else
-        checkNoBool();
+    {
+    //printf("L%d e1 - %s\n", __LINE__, e1->toChars());
+        if (e1->op == TOKerror)
+            return e1;
+        if (e2->op == TOKerror)
+            return e1;
+
+    //printf("L%d\n", __LINE__);
+        if (!checkNoBool())
+            return new ErrorExp();
+    }
 
     if ((op == TOKaddass || op == TOKminass) &&
         e1->type->toBasetype()->ty == Tpointer &&
@@ -6675,15 +6691,19 @@ Expression *BinAssignExp::semantic(Scope *sc)
     if (Expression *ex = typeCombine(this, sc))
         return ex;
 
+    //if (e1->op == TOKerror)
+    //    return e1;
+    //if (e2->op == TOKerror)
+    //    return e2;
     if (arith)
     {
-        e1 = e1->checkArithmetic();
-        e2 = e2->checkArithmetic();
+        if ((e1->checkArithmetic() & e2->checkArithmetic()) == 0)
+            return new ErrorExp();
     }
     if (bitwise || shift)
     {
-        e1 = e1->checkIntegral();
-        e2 = e2->checkIntegral();
+        if ((e1->checkIntegral() & e2->checkIntegral()) == 0)
+            return new ErrorExp();
     }
     if (shift)
     {
@@ -6710,7 +6730,7 @@ Expression *BinAssignExp::semantic(Scope *sc)
     if (e1->op == TOKerror || e2->op == TOKerror)
         return new ErrorExp();
 
-    e = checkComplexOpAssign(sc);
+    Expression *e = checkComplexOpAssign(sc);
     if (e->op == TOKerror)
         return e;
 
@@ -9225,7 +9245,8 @@ Expression *PtrExp::toLvalue(Scope *sc, Expression *e)
 int PtrExp::checkModifiable(Scope *sc, int flag)
 {
     if (e1->op == TOKsymoff)
-    {   SymOffExp *se = (SymOffExp *)e1;
+    {
+        SymOffExp *se = (SymOffExp *)e1;
         return se->var->checkModify(loc, sc, type, NULL, flag);
     }
     else if (e1->op == TOKaddress)
@@ -9257,11 +9278,11 @@ Expression *NegExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = op_overload(sc))
         return e;
 
     type = e1->type;
+
     Type *tb = type->toBasetype();
     if (tb->ty == Tarray || tb->ty == Tsarray)
     {
@@ -9273,10 +9294,12 @@ Expression *NegExp::semantic(Scope *sc)
         return this;
     }
 
-    e1->checkNoBool();
-    e1 = e1->checkArithmetic();
-    if (e1->op == TOKerror)
-        return e1;
+    //if (e1->op == TOKerror)
+    //    return e1;
+    if (!e1->checkNoBool())
+        return new ErrorExp();
+    if (!e1->checkArithmetic())
+        return new ErrorExp();
 
     return this;
 }
@@ -9295,12 +9318,16 @@ Expression *UAddExp::semantic(Scope *sc)
 #endif
     assert(!type);
 
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = op_overload(sc))
         return e;
 
-    e1->checkNoBool();
-    e1->checkArithmetic();
+    //if (e1->op == TOKerror)
+    //    return e1;
+    if (!e1->checkNoBool())
+        return new ErrorExp();
+    if (!e1->checkArithmetic())
+        return new ErrorExp();
+
     return e1;
 }
 
@@ -9332,10 +9359,12 @@ Expression *ComExp::semantic(Scope *sc)
         return this;
     }
 
-    e1->checkNoBool();
-    e1 = e1->checkIntegral();
     if (e1->op == TOKerror)
         return e1;
+    if (!e1->checkNoBool())
+        return new ErrorExp();
+    if (!e1->checkIntegral())
+        return new ErrorExp();
 
     return this;
 }
@@ -10742,19 +10771,17 @@ Expression *PostExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    if (Expression *ex = binSemantic(sc))
-        return ex;
+    if (Expression *e = binSemantic(sc))
+        return e;
     Expression *e1x = resolveProperties(sc, e1);
     if (e1x->op == TOKerror)
         return e1x;
     e1 = e1x;
 
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = op_overload(sc))
         return e;
 
-    e = e1->checkReadModifyWrite(op);
-    if (e)
+    if (Expression *e = e1->checkReadModifyWrite(op))
         return e;
 
     if (e1->op == TOKslice)
@@ -10767,6 +10794,8 @@ Expression *PostExp::semantic(Scope *sc)
     e1 = e1->optimize(WANTvalue);
     if (e1->op != TOKarraylength)
         e1 = e1->modifiableLvalue(sc, e1);
+    if (e1->op == TOKerror)
+        return e1;
 
     Type *t1 = e1->type->toBasetype();
     if (t1->ty == Tclass || t1->ty == Tstruct || e1->op == TOKarraylength)
@@ -10806,15 +10835,18 @@ Expression *PostExp::semantic(Scope *sc)
         // Combine de,ea,eb,ec
         if (de)
             ea = new CommaExp(loc, de, ea);
-        e = new CommaExp(loc, ea, eb);
+        Expression *e = new CommaExp(loc, ea, eb);
         e = new CommaExp(loc, e, ec);
         e = e->semantic(sc);
         return e;
     }
 
-    e = this;
-    e1->checkScalar();
-    e1->checkNoBool();
+    if (!e1->checkScalar())
+        return new ErrorExp();
+    if (!e1->checkNoBool())
+        return new ErrorExp();
+
+    Expression *e = this;
     if (e1->type->ty == Tpointer)
         e = scaleFactor(this, sc);
     else
@@ -12058,25 +12090,25 @@ Expression *AddExp::semantic(Scope *sc)
 
     if (Expression *ex = binSemanticProp(sc))
         return ex;
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = op_overload(sc))
         return e;
 
     Type *tb1 = e1->type->toBasetype();
     Type *tb2 = e2->type->toBasetype();
 
+    bool errors = false;
     if (tb1->ty == Tdelegate ||
         tb1->ty == Tpointer && tb1->nextOf()->ty == Tfunction)
     {
-        e = e1->checkArithmetic();
+        errors |= !e1->checkArithmetic();
     }
     if (tb2->ty == Tdelegate ||
         tb2->ty == Tpointer && tb2->nextOf()->ty == Tfunction)
     {
-        e = e2->checkArithmetic();
+        errors |= !e2->checkArithmetic();
     }
-    if (e)
-        return e;
+    if (errors)
+        return new ErrorExp();
 
     if (tb1->ty == Tpointer && e2->type->isintegral() ||
         tb2->ty == Tpointer && e1->type->isintegral())
@@ -12152,28 +12184,29 @@ Expression *MinExp::semantic(Scope *sc)
 
     if (Expression *ex = binSemanticProp(sc))
         return ex;
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = op_overload(sc))
         return e;
 
     Type *t1 = e1->type->toBasetype();
     Type *t2 = e2->type->toBasetype();
 
+    bool errors = false;
     if (t1->ty == Tdelegate ||
         t1->ty == Tpointer && t1->nextOf()->ty == Tfunction)
     {
-        e = e1->checkArithmetic();
+        errors |= !e1->checkArithmetic();
     }
     if (t2->ty == Tdelegate ||
         t2->ty == Tpointer && t2->nextOf()->ty == Tfunction)
     {
-        e = e2->checkArithmetic();
+        errors |= !e2->checkArithmetic();
     }
-    if (e)
-        return e;
+    if (errors)
+        return new ErrorExp;
 
     if (t1->ty == Tpointer)
     {
+        Expression *e;
         if (t2->ty == Tpointer)
         {
             // Need to divide the result by the stride
@@ -12197,7 +12230,9 @@ Expression *MinExp::semantic(Scope *sc)
             }
         }
         else if (t2->isintegral())
+        {
             e = scaleFactor(this, sc);
+        }
         else
         {
             error("can't subtract %s from pointer", t2->toChars());
@@ -12414,15 +12449,13 @@ Expression *MulExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    if (Expression *ex = binSemanticProp(sc))
-        return ex;
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = binSemanticProp(sc))
+        return e;
+    if (Expression *e = op_overload(sc))
         return e;
 
-    if (Expression *ex = typeCombine(this, sc))
-        return ex;
-
+    if (Expression *e = typeCombine(this, sc))
+        return e;
     Type *tb = type->toBasetype();
     if (tb->ty == Tarray || tb->ty == Tsarray)
     {
@@ -12433,13 +12466,18 @@ Expression *MulExp::semantic(Scope *sc)
         }
         return this;
     }
+    if (tb->ty == Tvector && ((TypeVector *)tb)->elementType()->size(loc) != 2)
+    {
+        // Only short[8] and ushort[8] work with multiply
+        return incompatibleTypes();
+    }
 
-    e1 = e1->checkArithmetic();
-    e2 = e2->checkArithmetic();
-    if (e1->op == TOKerror)
-        return e1;
-    if (e2->op == TOKerror)
-        return e2;
+    //if (e1->op == TOKerror)
+    //    return e1;
+    //if (e2->op == TOKerror)
+    //    return e2;
+    if ((e1->checkArithmetic() & e2->checkArithmetic()) == 0)
+        return new ErrorExp();
 
     if (type->isfloating())
     {
@@ -12470,7 +12508,7 @@ Expression *MulExp::semantic(Scope *sc)
                 // iy * iv = -yv
                 e1->type = type;
                 e2->type = type;
-                e = new NegExp(loc, this);
+                Expression *e = new NegExp(loc, this);
                 e = e->semantic(sc);
                 return e;
             }
@@ -12481,11 +12519,6 @@ Expression *MulExp::semantic(Scope *sc)
         {
             type = t1;  // t1 is complex
         }
-    }
-    else if (tb->ty == Tvector && ((TypeVector *)tb)->elementType()->size(loc) != 2)
-    {
-        // Only short[8] and ushort[8] work with multiply
-        return incompatibleTypes();
     }
     return this;
 }
@@ -12502,15 +12535,13 @@ Expression *DivExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    if (Expression *ex = binSemanticProp(sc))
-        return ex;
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = binSemanticProp(sc))
+        return e;
+    if (Expression *e = op_overload(sc))
         return e;
 
-    if (Expression *ex = typeCombine(this, sc))
-        return ex;
-
+    if (Expression *e = typeCombine(this, sc))
+        return e;
     Type *tb = type->toBasetype();
     if (tb->ty == Tarray || tb->ty == Tsarray)
     {
@@ -12521,13 +12552,15 @@ Expression *DivExp::semantic(Scope *sc)
         }
         return this;
     }
+    if (tb->ty == Tvector)
+        return incompatibleTypes();
 
-    e1 = e1->checkArithmetic();
-    e2 = e2->checkArithmetic();
-    if (e1->op == TOKerror)
-        return e1;
-    if (e2->op == TOKerror)
-        return e2;
+    //if (e1->op == TOKerror)
+    //    return e1;
+    //if (e2->op == TOKerror)
+    //    return e2;
+    if ((e1->checkArithmetic() & e2->checkArithmetic()) == 0)
+        return new ErrorExp();
 
     if (type->isfloating())
     {
@@ -12541,7 +12574,7 @@ Expression *DivExp::semantic(Scope *sc)
             {
                 // x/iv = i(-x/v)
                 e2->type = t1;
-                e = new NegExp(loc, this);
+                Expression *e = new NegExp(loc, this);
                 e = e->semantic(sc);
                 return e;
             }
@@ -12570,10 +12603,6 @@ Expression *DivExp::semantic(Scope *sc)
             type = t1;  // t1 is complex
         }
     }
-    else if (tb->ty == Tvector)
-    {
-        return incompatibleTypes();
-    }
     return this;
 }
 
@@ -12589,15 +12618,13 @@ Expression *ModExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    if (Expression *ex = binSemanticProp(sc))
-        return ex;
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = binSemanticProp(sc))
+        return e;
+    if (Expression *e = op_overload(sc))
         return e;
 
-    if (Expression *ex = typeCombine(this, sc))
-        return ex;
-
+    if (Expression *e = typeCombine(this, sc))
+        return e;
     Type *tb = type->toBasetype();
     if (tb->ty == Tarray || tb->ty == Tsarray)
     {
@@ -12609,16 +12636,14 @@ Expression *ModExp::semantic(Scope *sc)
         return this;
     }
     if (tb->ty == Tvector)
-    {
         return incompatibleTypes();
-    }
 
-    e1 = e1->checkArithmetic();
-    e2 = e2->checkArithmetic();
-    if (e1->op == TOKerror)
-        return e1;
-    if (e2->op == TOKerror)
-        return e2;
+    //if (e1->op == TOKerror)
+    //    return e1;
+    //if (e2->op == TOKerror)
+    //    return e2;
+    if ((e1->checkArithmetic() & e2->checkArithmetic()) == 0)
+        return new ErrorExp();
 
     if (type->isfloating())
     {
@@ -12664,15 +12689,13 @@ Expression *PowExp::semantic(Scope *sc)
         return this;
 
     //printf("PowExp::semantic() %s\n", toChars());
-    if (Expression *ex = binSemanticProp(sc))
-        return ex;
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = binSemanticProp(sc))
+        return e;
+    if (Expression *e = op_overload(sc))
         return e;
 
-    if (Expression *ex = typeCombine(this, sc))
-        return ex;
-
+    if (Expression *e = typeCombine(this, sc))
+        return e;
     Type *tb = type->toBasetype();
     if (tb->ty == Tarray || tb->ty == Tsarray)
     {
@@ -12684,18 +12707,18 @@ Expression *PowExp::semantic(Scope *sc)
         return this;
     }
 
-    e1 = e1->checkArithmetic();
-    e2 = e2->checkArithmetic();
-    if (e1->op == TOKerror)
-        return e1;
-    if (e2->op == TOKerror)
-        return e2;
+    //if (e1->op == TOKerror)
+    //    return e1;
+    //if (e2->op == TOKerror)
+    //    return e2;
+    if ((e1->checkArithmetic() & e2->checkArithmetic()) == 0)
+        return new ErrorExp();
 
     // For built-in numeric types, there are several cases.
     // TODO: backend support, especially for  e1 ^^ 2.
 
     // First, attempt to fold the expression.
-    e = optimize(WANTvalue);
+    Expression *e = optimize(WANTvalue);
     if (e->op != TOKpow)
     {
         e = e->semantic(sc);
@@ -12776,8 +12799,14 @@ Expression *ShlExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    e1 = e1->checkIntegral();
-    e2 = e2->checkIntegral();
+    if (e1->op == TOKerror)
+        return e1;
+    if (e2->op == TOKerror)
+        return e2;
+
+    if ((e1->checkIntegral() & e2->checkIntegral()) == 0)
+        return new ErrorExp;
+
     if (e1->type->toBasetype()->ty == Tvector ||
         e2->type->toBasetype()->ty == Tvector)
     {
@@ -12808,8 +12837,14 @@ Expression *ShrExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    e1 = e1->checkIntegral();
-    e2 = e2->checkIntegral();
+    if (e1->op == TOKerror)
+        return e1;
+    if (e2->op == TOKerror)
+        return e2;
+
+    if ((e1->checkIntegral() & e2->checkIntegral()) == 0)
+        return new ErrorExp();
+
     if (e1->type->toBasetype()->ty == Tvector ||
         e2->type->toBasetype()->ty == Tvector)
     {
@@ -12840,8 +12875,14 @@ Expression *UshrExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    e1 = e1->checkIntegral();
-    e2 = e2->checkIntegral();
+    if (e1->op == TOKerror)
+        return e1;
+    if (e2->op == TOKerror)
+        return e2;
+
+    if ((e1->checkIntegral() & e2->checkIntegral()) == 0)
+        return new ErrorExp();
+
     if (e1->type->toBasetype()->ty == Tvector ||
         e2->type->toBasetype()->ty == Tvector)
     {
@@ -12894,12 +12935,13 @@ Expression *AndExp::semantic(Scope *sc)
         return this;
     }
 
-    e1 = e1->checkIntegral();
-    e2 = e2->checkIntegral();
     if (e1->op == TOKerror)
         return e1;
     if (e2->op == TOKerror)
         return e2;
+
+    if ((e1->checkIntegral() & e2->checkIntegral()) == 0)
+        return new ErrorExp();
 
     return this;
 }
@@ -12943,12 +12985,13 @@ Expression *OrExp::semantic(Scope *sc)
         return this;
     }
 
-    e1 = e1->checkIntegral();
-    e2 = e2->checkIntegral();
     if (e1->op == TOKerror)
         return e1;
     if (e2->op == TOKerror)
         return e2;
+
+    if ((e1->checkIntegral() & e2->checkIntegral()) == 0)
+        return new ErrorExp();
 
     return this;
 }
@@ -12992,12 +13035,13 @@ Expression *XorExp::semantic(Scope *sc)
         return this;
     }
 
-    e1 = e1->checkIntegral();
-    e2 = e2->checkIntegral();
     if (e1->op == TOKerror)
         return e1;
     if (e2->op == TOKerror)
         return e2;
+
+    if ((e1->checkIntegral() & e2->checkIntegral()) == 0)
+        return new ErrorExp();
 
     return this;
 }
