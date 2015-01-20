@@ -8211,10 +8211,11 @@ Lagain:
             e1 = new DsymbolExp(loc, se->sds);
             e1 = e1->semantic(sc);
         }
-        else if (e1->op == TOKsymoff && ((SymOffExp *)e1)->hasOverloads)
+        else if (e1->op == TOKsymoff/* && ((SymOffExp *)e1)->hasOverloads*/)
         {
+            printf("e1 = %s %s\n", e1->type->toChars(), e1->toChars());
             SymOffExp *se = (SymOffExp *)e1;
-            e1 = new VarExp(se->loc, se->var, 1);
+            e1 = new VarExp(se->loc, se->var, se->hasOverloads);
             e1 = e1->semantic(sc);
         }
         else if (e1->op == TOKdotexp)
