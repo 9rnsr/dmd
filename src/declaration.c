@@ -914,8 +914,45 @@ void VarDeclaration::semantic(Scope *sc)
          */
         TypeTuple *tt = (TypeTuple *)tb;
         size_t nelems = Parameter::dim(tt->arguments);
+        Expression *e0 = NULL;
         Expression *ie = (init && !init->isVoidInitializer()) ? init->toExpression() : NULL;
-        if (ie) ie = ie->semantic(sc);
+        if (ie)
+        {
+            ie = ie->semantic(sc);
+            ie = Expression::extractLast(ie, &e0);
+            //if (e0)
+            //    printf("e0 = %s, ie = %s\n", e0->toChars(), ie->toChars());
+#if 0
+//import std.stdio;
+
+alias Seq(T...) = T;
+
+int test()
+{
+    int line;
+
+    void fun(T...)(T args, Seq!() x = (line = __LINE__, Seq!().init))
+    {
+        //writeln("args: ", args, "\nline: ", line);
+    }
+
+    //fun(2, "123"); //assert(line == __LINE__);
+    int i = 0;
+    auto x = (i++, Seq!());
+    //writeln(i);
+    assert(i == 1);
+
+    return 1;
+}
+
+static assert(test());
+
+void main()
+{
+    test();
+}
+#endif
+        }
 
         if (nelems > 0 && ie)
         {
@@ -1064,6 +1101,7 @@ Lnomatch:
         TupleDeclaration *v2 = new TupleDeclaration(loc, ident, exps);
         v2->parent = this->parent;
         v2->isexp = true;
+        init = e0 ? new ExpInitializer(loc, e0) : NULL;
         aliassym = v2;
         sem = SemanticDone;
         return;

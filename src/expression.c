@@ -10391,6 +10391,7 @@ Expression *CommaExp::semantic(Scope *sc)
     e1 = e1->addDtorHook(sc);
 
     type = e2->type;
+    //printf("%s, e1 = %s, e2 = %s, type = %s\n", toChars(), e1->toChars(), e2->toChars(), type->toChars());
     return this;
 }
 

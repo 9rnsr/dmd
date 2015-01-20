@@ -4790,7 +4790,16 @@ elem *toElem(Expression *e, IRState *irs)
             {
                 s = s->toAlias();
                 if (s != vd)
-                    return Dsymbol_toElem(s);
+                {
+                    if (vd->init)
+                    {
+                        ExpInitializer *ie = vd->init->isExpInitializer();
+                        if (ie)
+                            e = toElem(ie->exp, irs);
+                    }
+                    e = el_combine(e, Dsymbol_toElem(s));
+                    return e;
+                }
                 if (vd->storage_class & STCmanifest)
                     return NULL;
                 else if (vd->isStatic() || vd->storage_class & (STCextern | STCtls | STCgshared))
@@ -4802,9 +4811,7 @@ elem *toElem(Expression *e, IRState *irs)
                     //printf("\tadding symbol '%s'\n", sp->Sident);
                     if (vd->init)
                     {
-                        ExpInitializer *ie;
-
-                        ie = vd->init->isExpInitializer();
+                        ExpInitializer *ie = vd->init->isExpInitializer();
                         if (ie)
                             e = toElem(ie->exp, irs);
                     }
@@ -4850,11 +4857,14 @@ elem *toElem(Expression *e, IRState *irs)
             else if (TupleDeclaration *td = s->isTupleDeclaration())
             {
                 for (size_t i = 0; i < td->objects->dim; i++)
-                {   RootObject *o = (*td->objects)[i];
+                {
+                    RootObject *o = (*td->objects)[i];
                     if (o->dyncast() == DYNCAST_EXPRESSION)
-                    {   Expression *eo = (Expression *)o;
+                    {
+                        Expression *eo = (Expression *)o;
                         if (eo->op == TOKdsymbol)
-                        {   DsymbolExp *se = (DsymbolExp *)eo;
+                        {
+                            DsymbolExp *se = (DsymbolExp *)eo;
                             e = el_combine(e, Dsymbol_toElem(se->s));
                         }
                     }

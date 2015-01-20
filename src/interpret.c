@@ -2402,6 +2402,14 @@ public:
             {
                 result = NULL;
 
+                if (v->init)
+                {
+                    Expression *e0 = v->init->isExpInitializer()->toExpression();
+                    e0 = interpret(e0, istate, ctfeNeedNothing);
+                    if (exceptionOrCant(e0))
+                        return;
+                }
+
                 // Reserve stack space for all tuple members
                 if (!td->objects)
                     return;
