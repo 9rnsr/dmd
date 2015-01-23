@@ -2,9 +2,8 @@
 
 static assert(__LINE__ == 3); // fails as __LINE__ is 2
 
-import std.stdio;
+import core.stdc.stdio;
 import std.math : signbit, sqrt;
-
 
 /************************************/
 
@@ -387,8 +386,8 @@ void test2()
 {
     float f = float.infinity;
     int i = cast(int) f;
-    writeln(i);
-    writeln(cast(int)float.max);
+    //writeln(i);
+    //writeln(cast(int)float.max);
     assert(i == cast(int)float.max);
     assert(i == 0x80000000);
 }
@@ -397,22 +396,25 @@ void test2()
 
 void test3()
 {
-     real n = -0.0;
-     const real m = -0.0;
+    real n = -0.0;
+    const real m = -0.0;
 
-     creal c = -0.0 + 3i;
-     creal d = n + 3i;
-     creal e = m + 3i;
+    creal c = -0.0 + 3i;
+    creal d = n + 3i;
+    creal e = m + 3i;
 
-     // should print "11111"
-     writeln(signbit(n), signbit(m),
-	signbit(c.re), signbit(d.re), signbit(e.re));
+    // should print "11111"
+    //writeln(signbit(n),
+    //        signbit(m),
+    //        signbit(c.re),
+    //        signbit(d.re),
+    //        signbit(e.re));
 
-     assert(signbit(n) == 1);
-     assert(signbit(m) == 1);
-     assert(signbit(c.re) == 1);
-     assert(signbit(d.re) == 1);
-     assert(signbit(e.re) == 1);
+    assert(signbit(n) == 1);
+    assert(signbit(m) == 1);
+    assert(signbit(c.re) == 1);
+    assert(signbit(d.re) == 1);
+    assert(signbit(e.re) == 1);
 }
 
 /************************************/
@@ -420,12 +422,12 @@ void test3()
 struct A4 { char [] a; }
 struct B4 { long x; }
 struct C4 { int a;
-    static C4 opCall(int b) { C4 q; q.a=b; return q; }
+    static C4 opCall(int b) { C4 q; q.a = b; return q; }
 }
-static assert(!is(typeof( (){ A4 s; B4 q = s; })));
-static assert(!is(typeof( (){ B4 x =1L; })));
-static assert(is(typeof( (){ C4 g = 7; })));
-static assert(is(typeof( (){ C4 g = 7; C4 h = g;})));
+static assert(!is(typeof((){ A4 s; B4 q = s; })));
+static assert(!is(typeof((){ B4 x =1L; })));
+static assert(is(typeof((){ C4 g = 7; })));
+static assert(is(typeof((){ C4 g = 7; C4 h = g; })));
 
 /************************************/
 
@@ -442,11 +444,12 @@ static assert(bug6 is bug6);
 
 /************************************/
 
-struct S7{
-   double z;
+struct S7
+{
+    double z;
 }
 
-int bug7(int x) {  return x; }
+int bug7(int x) { return x; }
 
 S7 s7;
 double e7 = 4;
@@ -461,7 +464,8 @@ static assert(is(typeof(bug7(cast(long)3.256679e4))));
 
 /************************************/
 
-class C8 {
+class C8
+{
     int x;
 }
 alias C8.x F8;
@@ -470,23 +474,27 @@ static assert(is(typeof(C8.x) == int));
 
 /************************************/
 
-int foo9() {
-   int u = cast(int)(0x1_0000_0000L);
-   while (u) {
-      if (u) {
-         assert(u!=0);
+int foo9()
+{
+    int u = cast(int)(0x1_0000_0000L);
+    while (u)
+    {
+        if (u)
+        {
+            assert(u != 0);
         }
-      assert(u!=0);
-   }
-   return 2;
+        assert(u != 0);
+    }
+    return 2;
 }
 
-static assert(foo9()==2);
+static assert(foo9() == 2);
 
 /************************************/
 // Bugzilla 6077
 
-void test6077() {
+void test6077()
+{
     static string scat(string s1, string s2)
     {
         return s1 ~ s2;

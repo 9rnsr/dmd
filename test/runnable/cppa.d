@@ -103,23 +103,23 @@ void test4()
 
 extern(C++)
 {
-  struct foo5 { int i; int j; void* p; }
+    struct foo5 { int i; int j; void* p; }
 
-  interface bar5{
-    foo5 getFoo(int i);
-  }
+    interface bar5
+    {
+        foo5 getFoo(int i);
+    }
 
-  bar5 newBar();
+    bar5 newBar();
 }
 
 void test5()
 {
-  bar5 b = newBar();
-  foo5 f = b.getFoo(4);
-  printf("f.p = %p, b = %p\n", f.p, cast(void*)b);
-  assert(f.p == cast(void*)b);
+    bar5 b = newBar();
+    foo5 f = b.getFoo(4);
+    printf("f.p = %p, b = %p\n", f.p, cast(void*)b);
+    assert(f.p == cast(void*)b);
 }
-
 
 /****************************************/
 
@@ -154,14 +154,14 @@ void test6()
     S6 f = foo6();
     printf("%d %d\n", foosize6(), S6.sizeof);
     assert(foosize6() == S6.sizeof);
-version (X86)
-{
+  version (X86)
+  {
     assert(f.i == 42);
     printf("f.d = %g\n", f.d);
     assert(f.d == 2.5);
     assert(foo6_2().i == 42);
     assert(foo6_3() == S6_3.A);
-}
+  }
 }
 
 /****************************************/
@@ -205,7 +205,6 @@ void test9()
 
 /****************************************/
 
-
 struct A11802;
 struct B11802;
 
@@ -237,7 +236,6 @@ void test11802()
         assert(x.x == 9);
     }
 }
-
 
 /****************************************/
 
@@ -449,14 +447,14 @@ version (linux)
 {
     extern(C++, __gnu_cxx)
     {
-	struct new_allocator(T)
-	{
-	    alias size_type = size_t;
-	    static if (is(T : char))
-		void deallocate(T*, size_type) { }
-	    else
-		void deallocate(T*, size_type);
-	}
+        struct new_allocator(T)
+        {
+            alias size_type = size_t;
+            static if (is(T : char))
+                void deallocate(T*, size_type) { }
+            else
+                void deallocate(T*, size_type);
+        }
     }
 }
 
@@ -464,40 +462,40 @@ extern (C++, std)
 {
     struct allocator(T)
     {
-	version (linux)
-	{
-	    alias size_type = size_t;
-	    void deallocate(T* p, size_type sz)
-	    {   (cast(__gnu_cxx.new_allocator!T*)&this).deallocate(p, sz); }
-	}
+        version (linux)
+        {
+            alias size_type = size_t;
+            void deallocate(T* p, size_type sz)
+            {   (cast(__gnu_cxx.new_allocator!T*)&this).deallocate(p, sz); }
+        }
     }
 
     version (linux)
     {
-	class vector(T, A = allocator!T)
-	{
-	    final void push_back(ref const T);
-	}
+        class vector(T, A = allocator!T)
+        {
+            final void push_back(ref const T);
+        }
 
-	struct char_traits(T)
-	{
-	}
+        struct char_traits(T)
+        {
+        }
 
-	struct basic_string(T, C = char_traits!T, A = allocator!T)
-	{
-	}
+        struct basic_string(T, C = char_traits!T, A = allocator!T)
+        {
+        }
 
-	struct basic_istream(T, C = char_traits!T)
-	{
-	}
+        struct basic_istream(T, C = char_traits!T)
+        {
+        }
 
-	struct basic_ostream(T, C = char_traits!T)
-	{
-	}
+        struct basic_ostream(T, C = char_traits!T)
+        {
+        }
 
-	struct basic_iostream(T, C = char_traits!T)
-	{
-	}
+        struct basic_iostream(T, C = char_traits!T)
+        {
+        }
     }
 }
 
@@ -512,7 +510,7 @@ extern (C++)
         void foo14d(std.basic_ostream!(char) *p);
         void foo14e(std.basic_iostream!(char) *p);
 
-	void foo14f(std.char_traits!char* x, std.basic_string!char* p, std.basic_string!char* q);
+        void foo14f(std.char_traits!char* x, std.basic_string!char* p, std.basic_string!char* q);
     }
 }
 
@@ -523,12 +521,12 @@ void test14()
         std.vector!int p;
         foo14(p);
 
-	foo14a(null);
-	foo14b(null);
-	foo14c(null);
-	foo14d(null);
-	foo14e(null);
-	foo14f(null, null, null);
+        foo14a(null);
+        foo14b(null);
+        foo14c(null);
+        foo14d(null);
+        foo14e(null);
+        foo14f(null, null, null);
     }
 }
 
@@ -536,13 +534,13 @@ version (linux)
 {
     void test14a(std.allocator!int * pa)
     {
-    pa.deallocate(null, 0);
+        pa.deallocate(null, 0);
     }
 
     void gun(std.vector!int pa)
     {
-    int x = 42;
-    pa.push_back(x);
+        int x = 42;
+        pa.push_back(x);
     }
 }
 
@@ -600,9 +598,9 @@ version (CRuntime_Microsoft)
 {
     struct __c_long_double
     {
-	this(double d) { ld = d; }
-	double ld;
-	alias ld this;
+        this(double d) { ld = d; }
+        double ld;
+        alias ld this;
     }
 
     alias __c_long_double myld;
@@ -702,7 +700,7 @@ void test13707()
 
 struct S13932(int x)
 {
-        int member;
+    int member;
 }
 
 extern(C++) void func13932(S13932!(-1) s);
