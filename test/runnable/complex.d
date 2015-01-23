@@ -1,7 +1,7 @@
 // PERMUTE_ARGS:
 
-import std.stdio;
-import std.math;
+//import std.stdio;
+import std.math : sqrt;
 import core.stdc.stdio;
 
 /***************************************/
@@ -42,20 +42,21 @@ void test2()
 cdouble[1] a3;
 cdouble[1] b3;
 
-cdouble[] concat3() {
-	return a3~b3;
+cdouble[] concat3()
+{
+    return a3~b3;
 }
 
 void test3()
 {
-	a3[]=0.5+1.0i;
-	b3[]=0.5+3.0i;
+    a3[] = 0.5+1.0i;
+    b3[] = 0.5+3.0i;
 
-	cdouble[] arr=concat3();
+    cdouble[] arr = concat3();
 
-	assert(arr.length==2);
-	assert(arr[0]==0.5+1.0i);
-	assert(arr[1]==0.5+3.0i);
+    assert(arr.length == 2);
+    assert(arr[0] == 0.5+1.0i);
+    assert(arr[1] == 0.5+3.0i);
 }
 
 /***************************************/
@@ -63,53 +64,54 @@ void test3()
 creal[1] a4;
 creal[1] b4;
 
-creal[] concat4() {
-	return a4~b4;
+creal[] concat4()
+{
+    return a4 ~ b4;
 }
 
 void test4()
 {
-	a4[]=0.5+1.0i;
-	b4[]=0.5+3.0i;
+    a4[] = 0.5+1.0i;
+    b4[] = 0.5+3.0i;
 
-	creal[] arr=concat4();
+    creal[] arr=concat4();
 
-	assert(arr.length==2);
-	assert(arr[0]==0.5+1.0i);
-	assert(arr[1]==0.5+3.0i);
+    assert(arr.length == 2);
+    assert(arr[0] == 0.5+1.0i);
+    assert(arr[1] == 0.5+3.0i);
 }
 
 /***************************************/
 
 void test5()
 {
-	ifloat i=1.0fi;
-//	i += 2.2;
-//	assert(i == 1i);
+    ifloat i = 1.0fi;
+//  i += 2.2;
+//  assert(i == 1i);
 }
 
 /***************************************/
 
 void test6()
 {
-	float i=1.0f;
-//	i /= 2.2fi;
-//	assert(i == 0);
+    float i = 1.0f;
+//  i /= 2.2fi;
+//  assert(i == 0);
 }
 
 /***************************************/
 
 void test7()
 {
-	creal x=1.0i+2.0;
-	creal[] arr;
+    creal x = 1.0i + 2.0;
+    creal[] arr;
 
-	arr = arr ~ x;
-	assert(arr.length==1);
-	assert(arr[0]==1.0i+2.0);
+    arr = arr ~ x;
+    assert(arr.length == 1);
+    assert(arr[0] == 1.0i + 2.0);
 
-	x=0.0i+5.0;
-	assert(arr[0]==1.0i+2.0);
+    x = 0.0i + 5.0;
+    assert(arr[0] == 1.0i + 2.0);
 }
 
 /****************************************/
@@ -117,20 +119,21 @@ void test7()
 creal[1] a8;
 creal[1] b8;
 
-creal[] concat8() {
+creal[] concat8()
+{
     return a8 ~ b8;
 }
 
 void test8()
 {
-    a8[]=0.5L+1.0Li;
-    b8[]=0.5L+3.0Li;
+    a8[] = 0.5L + 1.0Li;
+    b8[] = 0.5L + 3.0Li;
 
-    creal[] arr=concat8();
+    creal[] arr = concat8();
 
-    assert(arr.length==2);
-    assert(arr[0]==0.5L+1.0Li);
-    assert(arr[1]==0.5L+3.0Li);
+    assert(arr.length == 2);
+    assert(arr[0] == 0.5L + 1.0Li);
+    assert(arr[1] == 0.5L + 3.0Li);
 }
 
 /***************************************/
@@ -138,22 +141,22 @@ void test8()
 creal[1] a9;
 creal[1] b9;
 
-creal[] concat9() {
-    return a9~b9;
+creal[] concat9()
+{
+    return a9 ~ b9;
 }
 
 void test9()
 {
-    a9[]=0.5L+1.0Li;
-    b9[]=0.5L+3.0Li;
+    a9[] = 0.5L + 1.0Li;
+    b9[] = 0.5L + 3.0Li;
 
-    creal[] arr=concat9();
+    creal[] arr = concat9();
 
-    assert(arr.length==2);
-    assert(arr[0]==0.5L+1.0Li);
-    assert(arr[1]==0.5L+3.0Li);
+    assert(arr.length == 2);
+    assert(arr[0] == 0.5L+1.0Li);
+    assert(arr[1] == 0.5L+3.0Li);
 }
-
 
 /***************************************/
 
@@ -164,7 +167,6 @@ void test10()
 
     const ifloat b = 2.0i;
     static assert(b.im == 2.0); // FAIL
-
 }
 
 /***************************************/
@@ -172,52 +174,52 @@ void test10()
 void test11()
 {
     real r = real.nan;
-    assert( r!=0 );
-    if (r==0) assert(0);
+    assert(r != 0);
+    if (r == 0) assert(0);
 
     ireal ir = ireal.nan;
-    assert( ir!=0 );
-    assert( ir!=0i );
-    if (ir==0) assert(0);
-    if (ir==0i) assert(0);
+    assert(ir != 0);
+    assert(ir != 0i);
+    if (ir == 0) assert(0);
+    if (ir == 0i) assert(0);
 
     creal cr = creal.nan;
-    assert( cr!=0 );
-    assert( cr!=0i );
-    if (cr==0) assert(0);
-    if (cr==0i) assert(0);
+    assert(cr != 0);
+    assert(cr != 0i);
+    if (cr == 0) assert(0);
+    if (cr == 0i) assert(0);
 
     double d = double.nan;
-    assert( d!=0 );
-    if (d==0) assert(0);
+    assert(d != 0);
+    if (d == 0) assert(0);
 
     idouble id = idouble.nan;
-    assert( id!=0 );
-    assert( id!=0i );
-    if (id==0) assert(0);
-    if (id==0i) assert(0);
+    assert(id != 0);
+    assert(id != 0i);
+    if (id == 0) assert(0);
+    if (id == 0i) assert(0);
 
     cdouble cd = cdouble.nan;
-    assert( cd!=0 );
-    assert( cd!=0i );
-    if (cd==0) assert(0);
-    if (cd==0i) assert(0);
+    assert(cd != 0);
+    assert(cd != 0i);
+    if (cd == 0) assert(0);
+    if (cd == 0i) assert(0);
 
     float f = float.nan;
-    assert( f!=0 );
-    if (f==0) assert(0);
+    assert(f != 0);
+    if (f == 0) assert(0);
 
     ifloat ifx = ifloat.nan;
-    assert( ifx!=0 );
-    assert( ifx!=0i );
-    if (ifx==0) assert(0);
-    if (ifx==0i) assert(0);
+    assert(ifx != 0);
+    assert(ifx != 0i);
+    if (ifx == 0) assert(0);
+    if (ifx == 0i) assert(0);
 
     cfloat cf = cfloat.nan;
-    assert( cf!=0 );
-    assert( cf!=0i );
-    if (cf==0) assert(0);
-    if (cf==0i) assert(0);
+    assert(cf != 0);
+    assert(cf != 0i);
+    if (cf == 0) assert(0);
+    if (cf == 0i) assert(0);
 }
 
 /***************************************/
@@ -226,11 +228,11 @@ void test12()
 {
     real x = 3;
     creal a = (2 + 4i) % 3;
-    writeln(a);
+    //writeln(a);
     assert(a == 2 + 1i);
 
     creal b = (2 + 4i) % x;
-    writeln(b);
+    //writeln(b);
     assert(b == a);
 }
 
@@ -238,15 +240,15 @@ void test12()
 
 void test13()
 {
-        ireal a = 5i;
-        ireal b = a % 2;
-	writeln(b);
-	assert(b == 1i);
+    ireal a = 5i;
+    ireal b = a % 2;
+    //writeln(b);
+    assert(b == 1i);
 }
 
 /***************************************/
 
-cdouble inv( cdouble expr )
+cdouble inv(cdouble expr)
 {
     return (1.0 + 0.0i) / expr;
 }
@@ -355,14 +357,15 @@ void test7806()
 
 /***************************************/
 
-void test7976() {
+void test7976()
+{
     creal[] a = new creal[2];
     auto b = a[0] = a[1];
 }
 
 /***************************************/
 
-int main(char[][] args)
+int main()
 {
 
     test1();
@@ -391,4 +394,3 @@ int main(char[][] args)
     printf("Success!\n");
     return 0;
 }
-

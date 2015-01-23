@@ -1,19 +1,17 @@
 // EXTRA_SOURCES: imports/a21a.d
 // PERMUTE_ARGS:
 
-import std.stdio;
+import core.stdc.stdio;
 import imports.a21a;
-
 
 template BadMixin()
 {
     int badFunc()
     {
-	printf("badFunc\n");
-	return 2;
+        printf("badFunc\n");
+        return 2;
     }
 }
-
 
 int main()
 {
@@ -26,4 +24,3 @@ int main()
 
     return 0;
 }
-

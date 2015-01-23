@@ -52,7 +52,7 @@ else
 /*****************************************************/
 
 void test2()
-{   
+{
     uint v;
     int x;
 
@@ -69,7 +69,8 @@ void test2()
 /*****************************************************/
 
 void test3()
-{   uint v;
+{
+    uint v;
     int b;
 
     b = inp(b);
@@ -91,9 +92,9 @@ void test4()
 }
 
 /*****************************************************/
-	
+
 void test5()
-{   
+{
     size_t array[2];
 
     array[0] = 2;
@@ -115,15 +116,16 @@ void test5()
     printf("array = [0]:x%x, [1]:x%x\n", array[0], array[1]);
 } 
 
-
 /*****************************************************/
 
-class Node {
-  uint leaf = 0;
+class Node
+{
+    uint leaf = 0;
 
-  int m() {
+    int m()
+    {
         return leaf ? 0 : bsf(leaf);
-  }
+    }
 }
 
 void test6()
