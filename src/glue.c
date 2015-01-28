@@ -56,11 +56,7 @@ type *Type_toCtype(Type *t);
 void toObjFile(Dsymbol *ds, bool multiobj);
 void genModuleInfo(Module *m);
 void genObjFile(Module *m, bool multiobj);
-Symbol *toModuleAssert(Module *m);
-Symbol *toModuleUnittest(Module *m);
-Symbol *toModuleArray(Module *m);
 Symbol *toSymbolX(Dsymbol *ds, const char *prefix, int sclass, type *t, const char *suffix);
-void genhelpers(Module *m, bool iscomdat);
 
 elem *eictor;
 symbol *ictorlocalgot;
@@ -140,9 +136,6 @@ void obj_write_deferred(Library *library)
             md->doppelganger = 1;       // identify this module as doppelganger
             md->md = m->md;
             md->aimports.push(m);       // it only 'imports' m
-            md->massert = m->massert;
-            md->munittest = m->munittest;
-            md->marray = m->marray;
 
             genObjFile(md, false);
         }
@@ -475,89 +468,13 @@ void genObjFile(Module *m, bool multiobj)
         return;
     }
 
-    if (global.params.multiobj)
-    {
-        /* This is necessary because the main .obj for this module is written
-         * first, but determining whether marray or massert or munittest are needed is done
-         * possibly later in the doppelganger modules.
-         * Another way to fix it is do the main one last.
-         */
-        toModuleAssert(m);
-        toModuleUnittest(m);
-        toModuleArray(m);
-    }
-
     /* Always generate module info, because of templates and -cov.
      * But module info needs the runtime library, so disable it for betterC.
      */
     if (!global.params.betterC /*|| needModuleInfo()*/)
         genModuleInfo(m);
 
-    genhelpers(m, false);
-
     objmod->termfile();
-}
-
-void genhelpers(Module *m, bool iscomdat)
-{
-    if (global.params.betterC)
-        return;
-
-    // If module assert
-    for (int i = 0; i < 3; i++)
-    {
-        Symbol *ma;
-        unsigned rt;
-        unsigned bc;
-        switch (i)
-        {
-            case 0:     ma = m->marray;    rt = RTLSYM_DARRAY;     bc = BCexit; break;
-            case 1:     ma = m->massert;   rt = RTLSYM_DASSERT;    bc = BCexit; break;
-            case 2:     ma = m->munittest; rt = RTLSYM_DUNITTEST;  bc = BCret;  break;
-            default:    assert(0);
-        }
-
-        if (!ma)
-            continue;
-
-
-        localgot = NULL;
-
-        // Call dassert(filename, line)
-        // Get sole parameter, linnum
-        Symbol *sp = symbol_calloc("linnum");
-        sp->Stype = type_fake(TYint);
-        sp->Stype->Tcount++;
-        sp->Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
-
-        FuncParamRegs fpr(TYjfunc);
-        fpr.alloc(sp->Stype, sp->Stype->Tty, &sp->Spreg, &sp->Spreg2);
-
-        sp->Sflags &= ~SFLspill;
-        sp->Sfl = (sp->Sclass == SCshadowreg) ? FLpara : FLfast;
-        cstate.CSpsymtab = &ma->Sfunc->Flocsym;
-        symbol_add(sp);
-
-        elem *elinnum = el_var(sp);
-
-
-        elem *efilename = toEfilename(m);
-        if (config.exe == EX_WIN64)
-            efilename = addressElem(efilename, Type::tstring, true);
-
-        elem *e = el_var(rtlsym[rt]);
-        e = el_bin(OPcall, TYvoid, e, el_param(elinnum, efilename));
-
-        block *b = block_calloc();
-        b->BC = bc;
-        b->Belem = e;
-        ma->Sfunc->Fstartline.Sfilename = m->arg;
-        ma->Sfunc->Fstartblock = b;
-        ma->Sclass = iscomdat ? SCcomdat : SCglobal;
-        ma->Sfl = 0;
-        ma->Sflags |= rtlsym[rt]->Sflags & SFLexit;
-        writefunc(ma);
-    }
 }
 
 /**************************************

@@ -586,58 +586,6 @@ Symbol *toInitializer(EnumDeclaration *ed)
     return ed->sinit;
 }
 
-
-/******************************************
- */
-
-Symbol *toModuleAssert(Module *m)
-{
-    if (!m->massert)
-    {
-        type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
-        t->Tmangle = mTYman_d;
-
-        m->massert = toSymbolX(m, "__assert", SCextern, t, "FiZv");
-        m->massert->Sfl = FLextern;
-        m->massert->Sflags |= SFLnodebug | SFLexit;
-        slist_add(m->massert);
-    }
-    return m->massert;
-}
-
-Symbol *toModuleUnittest(Module *m)
-{
-    if (!m->munittest)
-    {
-        type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
-        t->Tmangle = mTYman_d;
-
-        m->munittest = toSymbolX(m, "__unittest_fail", SCextern, t, "FiZv");
-        m->munittest->Sfl = FLextern;
-        m->munittest->Sflags |= SFLnodebug;
-        slist_add(m->munittest);
-    }
-    return m->munittest;
-}
-
-/******************************************
- */
-
-Symbol *toModuleArray(Module *m)
-{
-    if (!m->marray)
-    {
-        type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
-        t->Tmangle = mTYman_d;
-
-        m->marray = toSymbolX(m, "__array", SCextern, t, "Z");
-        m->marray->Sfl = FLextern;
-        m->marray->Sflags |= SFLnodebug | SFLexit;
-        slist_add(m->marray);
-    }
-    return m->marray;
-}
-
 /********************************************
  * Determine the right symbol to look up
  * an associative array element.
