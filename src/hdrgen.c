@@ -1481,7 +1481,10 @@ public:
             }
             else if (Expression *e = isExpression(oarg))
             {
-                if (e->op == TOKint64 ||
+                if (e->op == TOKint64 &&
+                    (e->type->ty == Tbool ||
+                     e->type->ty == Tchar ||
+                     e->type->ty != Tenum && e->type->size() >= Type::tint32->size()) ||
                     e->op == TOKfloat64 ||
                     e->op == TOKnull ||
                     e->op == TOKstring ||
@@ -2071,9 +2074,37 @@ public:
                 case Tenum:
                 {
                     TypeEnum *te = (TypeEnum *)t;
-                    buf->printf("cast(%s)", te->sym->toChars());
-                    t = te->sym->memtype;
-                    goto L1;
+                    EnumDeclaration *ed = (EnumDeclaration *)te->sym;
+                    EnumMember *em = NULL;
+#if 1
+                    if (ed->members)    // is not opaque declaration
+                    {
+                        for (size_t i = 0; i < ed->members->dim; i++)
+                        {
+                            EnumMember *m = (*ed->members)[i]->isEnumMember();
+                            if (!e->equals(m->value))
+                                continue;
+
+                            if (em)
+                            {
+                                em = NULL;
+                                break;  // use cast(E)n style
+                            }
+                            em = m;
+                        }
+                    }
+#endif
+                    if (em)
+                    {
+                        buf->printf("%s.%s", ed->ident->toChars(), em->ident->toChars());
+                        break;
+                    }
+                    else
+                    {
+                        buf->printf("cast(%s)", ed->toChars());
+                        t = ed->memtype;
+                        goto L1;
+                    }
                 }
 
                 case Twchar:        // BUG: need to cast(wchar)
@@ -2435,6 +2466,15 @@ public:
 
     void visit(VarExp *e)
     {
+        if (e->var->storage_class & STCmanifest)
+        {
+            EnumDeclaration *ed = e->var->parent->isEnumDeclaration();
+            if (ed && !ed->isAnonymous())
+            {
+                buf->writestring(ed->toChars());
+                buf->writeByte('.');
+            }
+        }
         buf->writestring(e->var->toChars());
     }
 

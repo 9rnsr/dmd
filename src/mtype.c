@@ -7214,6 +7214,10 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident, int fl
         {
             return getProperty(e->loc, ident, flag);
         }
+        if (ident == Id::stringof)
+        {
+            return Type::dotExp(sc, e, ident, flag);
+        }
         return sym->getMemtype(Loc())->dotExp(sc, e, ident, flag);
     }
     EnumMember *m = s->isEnumMember();
