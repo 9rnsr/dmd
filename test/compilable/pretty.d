@@ -2,6 +2,15 @@
 // PERMUTE_ARGS:
 
 /***************************************************/
+// 1748 class template with stringof
+
+struct S1748(T) {}
+static assert(S1748!int.stringof == "S1748!int");
+
+class C1748(T) {}
+static assert(C1748!int.stringof == "C1748!int");
+
+/***************************************************/
 // 14067 - enum members with stringof
 
 enum E14067 { a }

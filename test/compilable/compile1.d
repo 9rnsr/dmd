@@ -1,16 +1,6 @@
 // PERMUTE_ARGS:
 
 /**************************************************
-    1748 class template with stringof
-**************************************************/
-
-struct S1748(T) {}
-static assert(S1748!int.stringof == "S1748!int");
-
-class C1748(T) {}
-static assert(C1748!int.stringof == "C1748!int");
-
-/**************************************************
     2438
 **************************************************/
 
@@ -56,6 +46,7 @@ static assert(!is(typeof(T5996!(int).bug5996())));
 /**************************************************
     8532    segfault(mtype.c) - type inference + pure
 **************************************************/
+
 auto segfault8532(Y, R ...)(R r, Y val) pure
 { return segfault8532(r, val); }
 
@@ -64,6 +55,7 @@ static assert(!is(typeof( segfault8532(1,2,3))));
 /**************************************************
     8982    ICE(ctfeexpr.c) __parameters with error in default value
 **************************************************/
+
 template ice8982(T)
 {
     void bug8982(ref const int v = 7){}
@@ -79,6 +71,7 @@ static assert(!is(ice8982!(int)));
 /**************************************************
     8801    ICE assigning to __ctfe
 **************************************************/
+
 static assert(!is(typeof( { bool __ctfe= true; })));
 static assert(!is(typeof( { __ctfe |= true; })));
 
