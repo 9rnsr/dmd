@@ -1,4 +1,5 @@
 // REQUIRED_ARGS: -o-
+// PERMUTE_ARGS:
 
 module pkg.test9554;
 alias mod = pkg.test9554;
