@@ -740,6 +740,13 @@ void StructDeclaration::semantic(Scope *sc)
             //printf("adding member '%s' to '%s'\n", s->toChars(), this->toChars());
             s->addMember(sc, this, 1);
         }
+
+        if (TemplateInstance *ti = isInstantiated())
+        {
+            printf("%s ti->enclosing = %p\n", toChars(), ti->enclosing);
+            if (ti->enclosing)
+                makeNested();
+        }
     }
 
     sizeok = SIZEOKnone;

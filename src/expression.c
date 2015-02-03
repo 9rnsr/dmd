@@ -5463,6 +5463,8 @@ Expression *FuncExp::syntaxCopy()
     return new FuncExp(loc, fd2, td2);
 }
 
+void checkNested(Scope *sc, FuncExp *fe);
+
 Expression *FuncExp::semantic(Scope *sc)
 {
 #if LOGSEMANTIC
@@ -5475,7 +5477,7 @@ Expression *FuncExp::semantic(Scope *sc)
     sc->flags &= ~SCOPEctfe;    // temporary stop CTFE
     sc->protection = Prot(PROTpublic);    // Bugzilla 12506
 
-    if (!type || type == Type::tvoid)
+    if (!type || type == Type::tvoid)   // needs to be fixed
     {
         /* fd->treq might be incomplete type,
          * so should not semantic it.
@@ -5516,6 +5518,7 @@ Expression *FuncExp::semantic(Scope *sc)
                 else
                     e = new ErrorExp();
             }
+            checkNested(sc, this);
             goto Ldone;
         }
 

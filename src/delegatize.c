@@ -184,3 +184,89 @@ bool lambdaCheckForNestedRef(Expression *e, Scope *sc)
     return v.result;
 }
 
+static Dsymbol *dummySym = NULL;
+
+void checkNested(Scope *sc, FuncExp *fe)
+{
+    class NestVisitor : public Visitor
+    {
+    public:
+        Scope *sc;
+        bool result;
+
+        void visit(Statement *s)
+        {
+        }
+        void visit(ReturnStatement *s)
+        {
+            if (s->exp)
+            {
+                s->exp->accept(this);
+            }
+        }
+        void visit(Expression *e)
+        {
+        }
+        void visit(IdentifierExp *e)
+        {
+            Dsymbol *s = sc->search(e->loc, e->ident, NULL);
+            if (!s || s == dummySym)
+                return;
+
+            printf("\tident = %s, sym = %s %s\n", e->toChars(), s->kind(), s->toChars());
+            if (VarDeclaration *v = s->isVarDeclaration())
+            {
+                printf("\tL%d\n", __LINE__);
+                if ((v->storage_class & STCmanifest) == 0 &&
+                    v->toParent2()->isFuncDeclaration() &&
+                    !v->isDataseg())
+                {
+                printf("\tL%d\n", __LINE__);
+                    result = true;
+                }
+            }
+        }
+        void visit(BinExp *e)
+        {
+            e->e1->accept(this);
+            e->e2->accept(this);
+        }
+    };
+    assert(fe->td);
+
+    FuncLiteralDeclaration *fld = fe->fd;
+    printf("fld->fbody = %s\n", fld->fbody->toChars());
+
+    NestVisitor v;
+    ScopeDsymbol *sds = new ScopeDsymbol();
+    sds->symtab = new DsymbolTable();
+    v.sc = sc->push(sds);
+
+    if (!dummySym)
+        dummySym = new Dsymbol(Identifier::generateId("s"));
+
+    TypeFunction *tf = (TypeFunction *)fld->type;
+    if (size_t nparams = Parameter::dim(tf->parameters))
+    {
+        //parameters = new VarDeclarations();
+        //parameters->reserve(nparams);
+        for (size_t i = 0; i < nparams; i++)
+        {
+            Parameter *fparam = Parameter::getNth(tf->parameters, i);
+            Identifier *id = fparam->ident;
+            if (id)
+                sds->symtab->insert(id, dummySym);
+        }
+    }
+    //fld->parameters
+    v.result = false;
+    fld->fbody->accept(&v);
+    v.sc->pop();
+
+    if (v.result)
+    {
+        printf("\tL%d\n", __LINE__);
+        fe->tok = TOKdelegate;
+        //fld->tok = TOKdelegate;
+    }
+}

@@ -6989,10 +6989,14 @@ bool TemplateInstance::hasNestedArgs(Objects *args, bool isstatic)
             }
             if (ea->op == TOKfunction)
             {
-                if (((FuncExp *)ea)->td)
-                    sa = ((FuncExp *)ea)->td;
+                FuncExp *fe = (FuncExp *)ea;
+                printf("fe = %s %s\n", Token::toChars(fe->fd->tok), fe->toChars());
+                if (fe->tok != TOKdelegate)
+                    continue;
+                if (fe->td)
+                    sa = fe->td;
                 else
-                    sa = ((FuncExp *)ea)->fd;
+                    sa = fe->fd;
                 goto Lsa;
             }
             // Emulate Expression::toMangleBuffer call that had exist in TemplateInstance::genIdent.
