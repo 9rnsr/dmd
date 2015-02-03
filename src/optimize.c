@@ -185,38 +185,34 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
         bool unaOptimize(UnaExp *e, int flags)
         {
             assert(e->e1);
-            e->e1 = e->e1->optimize(flags);
-            if (e->e1->op == TOKerror)
+            Expression *e1x = e->e1->optimize(flags);
+            if (e1x->op == TOKerror)
             {
-                ret = e->e1;
+                ret = e1x;
                 return false;
             }
-            else
-            {
-                return true;
-            }
+            e->e1 = e1x;
+            return true;
         }
-
         bool binOptimize(BinExp *e, int flags)
         {
             assert(e->e1);
             assert(e->e2);
-            e->e1 = e->e1->optimize(flags);
-            e->e2 = e->e2->optimize(flags);
-            if (e->e1->op == TOKerror)
+            Expression *e1x = e->e1->optimize(flags);
+            Expression *e2x = e->e2->optimize(flags);
+            if (e1x->op == TOKerror)
             {
-                ret = e->e1;
+                ret = e1x;
                 return false;
             }
-            else if (e->e2->op == TOKerror)
+            if (e2x->op == TOKerror)
             {
-                ret = e->e2;
+                ret = e2x;
                 return false;
             }
-            else
-            {
-                return true;
-            }
+            e->e1 = e1x;
+            e->e2 = e2x;
+            return true;
         }
 
         void visit(Expression *e)
