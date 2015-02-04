@@ -2339,7 +2339,10 @@ Expression *Expression::checkReadModifyWrite(TOK rmwOp, Expression *ex)
 
 bool Expression::checkScalar()
 {
-    if (!type->isscalar() && type->toBasetype()->ty != Terror)
+    if (op == TOKerror)
+        return false;
+    assert(type->ty != Terror);
+    if (!type->isscalar())
     {
         error("'%s' is not a scalar, it is a %s", toChars(), type->toChars());
         return false;
@@ -2349,6 +2352,8 @@ bool Expression::checkScalar()
 
 bool Expression::checkNoBool()
 {
+    if (op == TOKerror)
+        return false;
     assert(type->ty != Terror);
     if (type->toBasetype()->ty == Tbool)
     {
@@ -2360,6 +2365,8 @@ bool Expression::checkNoBool()
 
 bool Expression::checkIntegral()
 {
+    if (op == TOKerror)
+        return false;
     assert(type->ty != Terror);
     if (!type->isintegral())
     {
@@ -2371,6 +2378,8 @@ bool Expression::checkIntegral()
 
 bool Expression::checkArithmetic()
 {
+    if (op == TOKerror)
+        return false;
     assert(type->ty != Terror);
     if (!type->isintegral() && !type->isfloating())
     {
