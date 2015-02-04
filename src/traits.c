@@ -748,7 +748,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             ex = new DotIdExp(e->loc, ex, id);
         }
         else if (Type *t = isType(o))
-            ex = typeDotIdExp(e->loc, t, id);
+            ex = new DotIdExp(e->loc, new TypeExp(e->loc, t), id);
         else if (Expression *ex2 = isExpression(o))
             ex = new DotIdExp(e->loc, ex2, id);
         else

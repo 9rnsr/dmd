@@ -3140,7 +3140,7 @@ Expression *IdentifierExp::semantic(Scope *sc)
                 Type *t = withsym->withstate->wthis->type;
                 if (t->ty == Tpointer)
                     t = ((TypePointer *)t)->next;
-                e = typeDotIdExp(loc, t, ident);
+                e = new DotIdExp(loc, new TypeExp(loc, t), ident);
             }
         }
         else
@@ -4401,20 +4401,6 @@ int StructLiteralExp::getFieldIndex(Type *type, unsigned offset)
         }
     }
     return -1;
-}
-
-/************************ TypeDotIdExp ************************************/
-
-/* Things like:
- *      int.size
- *      foo.size
- *      (foo).size
- *      cast(foo).size
- */
-
-DotIdExp *typeDotIdExp(Loc loc, Type *type, Identifier *ident)
-{
-    return new DotIdExp(loc, new TypeExp(loc, type), ident);
 }
 
 /************************************************************/
@@ -11385,7 +11371,8 @@ Expression *AssignExp::semantic(Scope *sc)
                      * Rewrite as:
                      *  e1 = typeof(e1).opCall(arguments)
                      */
-                    e2x = typeDotIdExp(e2x->loc, e1x->type, Id::call);
+                    e2x = new TypeExp(e2x->loc, e1x->type);
+                    e2x = new DotIdExp(e2x->loc, e2x, Id::call);
                     e2x = new CallExp(loc, e2x, this->e2);
 
                     e2x = e2x->semantic(sc);

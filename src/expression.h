@@ -485,9 +485,6 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
-class DotIdExp;
-DotIdExp *typeDotIdExp(Loc loc, Type *type, Identifier *ident);
-
 class TypeExp : public Expression
 {
 public:

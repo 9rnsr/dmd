@@ -6509,10 +6509,12 @@ Expression *Parser::parsePrimaryExp()
             }
             check(TOKdot, t->toChars());
             if (token.value != TOKidentifier)
-            {   error("found '%s' when expecting identifier following '%s.'", token.toChars(), t->toChars());
+            {
+                error("found '%s' when expecting identifier following '%s.'", token.toChars(), t->toChars());
                 goto Lerr;
             }
-            e = typeDotIdExp(loc, t, token.ident);
+            e = new TypeExp(loc, t);
+            e = new DotIdExp(loc, e, token.ident);
             nextToken();
             break;
 
@@ -7080,7 +7082,8 @@ Expression *Parser::parseUnaryExp()
                     error("identifier expected following (type).");
                     return NULL;
                 }
-                e = typeDotIdExp(loc, t, token.ident);
+                e = new TypeExp(loc, t);
+                e = new DotIdExp(loc, e, token.ident);
                 nextToken();
                 e = parsePostExp(e);
                 break;
