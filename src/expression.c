@@ -6590,8 +6590,8 @@ Expression *BinExp::checkComplexOpAssign(Scope *sc)
 
 Expression *BinExp::incompatibleTypes()
 {
-    assert(e1->op != TOKerror);
-    assert(e2->op != TOKerror);
+    if (e1->op == TOKerror) return e1;
+    if (e2->op == TOKerror) return e2;
 
     // CondExp uses 'a ? b : c' but we're comparing 'b : c'
     TOK thisOp = (op == TOKquestion) ? TOKcolon : op;
