@@ -3257,8 +3257,6 @@ Expression *DsymbolExp::semantic(Scope *sc)
 #endif
 
 Lagain:
-    Expression *e;
-
     //printf("DsymbolExp:: %p '%s' is a symbol\n", this, toChars());
     //printf("s = '%s', s->kind = '%s'\n", s->toChars(), s->kind());
     if (!s->isFuncDeclaration())        // functions are checked after overloading
@@ -3317,7 +3315,7 @@ Lagain:
                 v->scope = NULL;
                 v->inuse--;
             }
-            e = v->init->toExpression(v->type);
+            Expression *e = v->init->toExpression(v->type);
             if (!e)
             {
                 error("cannot make expression out of initializer for %s", v->toChars());
@@ -3337,7 +3335,7 @@ Lagain:
             return e;
         }
 
-        e = new VarExp(loc, v);
+        Expression *e = new VarExp(loc, v);
         e->type = type;
         e = e->semantic(sc);
         return e;
@@ -3345,7 +3343,7 @@ Lagain:
     if (FuncLiteralDeclaration *fld = s->isFuncLiteralDeclaration())
     {
         //printf("'%s' is a function literal\n", fld->toChars());
-        e = new FuncExp(loc, fld);
+        Expression *e = new FuncExp(loc, fld);
         return e->semantic(sc);
     }
     if (FuncDeclaration *f = s->isFuncDeclaration())
@@ -3405,7 +3403,7 @@ Lagain:
 
     if (TupleDeclaration *tup = s->isTupleDeclaration())
     {
-        e = new TupleExp(loc, tup);
+        Expression *e = new TupleExp(loc, tup);
         e = e->semantic(sc);
         return e;
     }
@@ -3418,7 +3416,7 @@ Lagain:
         s = ti->toAlias();
         if (!s->isTemplateInstance())
             goto Lagain;
-        e = new ScopeExp(loc, ti);
+        Expression *e = new ScopeExp(loc, ti);
         e = e->semantic(sc);
         return e;
     }
@@ -3427,6 +3425,7 @@ Lagain:
         Dsymbol *p = td->toParent2();
         FuncDeclaration *fdthis = hasThis(sc);
         AggregateDeclaration *ad = p ? p->isAggregateDeclaration() : NULL;
+        Expression *e;
         if (fdthis && ad && isAggregate(fdthis->vthis->type) == ad &&
             (td->scope->stc & STCstatic) == 0)
         {
@@ -4331,46 +4330,45 @@ Expression *StructLiteralExp::getField(Type *type, unsigned offset)
 {
     //printf("StructLiteralExp::getField(this = %s, type = %s, offset = %u)\n",
     //  /*toChars()*/"", type->toChars(), offset);
-    Expression *e = NULL;
     int i = getFieldIndex(type, offset);
+    if (i == -1)
+        return NULL;
 
-    if (i != -1)
+    //printf("\ti = %d\n", i);
+    if (i == sd->fields.dim - 1 && sd->isNested())
+        return NULL;
+
+    assert(i < elements->dim);
+    Expression *e = (*elements)[i];
+    if (e)
     {
-        //printf("\ti = %d\n", i);
-        if (i == sd->fields.dim - 1 && sd->isNested())
-            return NULL;
+        //printf("e = %s, e->type = %s\n", e->toChars(), e->type->toChars());
 
-        assert(i < elements->dim);
-        e = (*elements)[i];
-        if (e)
+        /* If type is a static array, and e is an initializer for that array,
+         * then the field initializer should be an array literal of e.
+         */
+        if (e->type->castMod(0) != type->castMod(0) && type->ty == Tsarray)
         {
-            //printf("e = %s, e->type = %s\n", e->toChars(), e->type->toChars());
-
-            /* If type is a static array, and e is an initializer for that array,
-             * then the field initializer should be an array literal of e.
-             */
-            if (e->type->castMod(0) != type->castMod(0) && type->ty == Tsarray)
-            {
-                TypeSArray *tsa = (TypeSArray *)type;
-                size_t length = (size_t)tsa->dim->toInteger();
-                Expressions *z = new Expressions;
-                z->setDim(length);
-                for (size_t q = 0; q < length; ++q)
-                    (*z)[q] = e->copy();
-                e = new ArrayLiteralExp(loc, z);
-                e->type = type;
-            }
-            else
-            {
-                e = e->copy();
-                e->type = type;
-            }
-            if (sinit && e->op == TOKstructliteral &&
-                e->type->needsNested())
-            {
-                StructLiteralExp *se = (StructLiteralExp *)e;
-                se->sinit = toInitializer(se->sd);
-            }
+            TypeSArray *tsa = (TypeSArray *)type;
+            size_t length = (size_t)tsa->dim->toInteger();
+            Expressions *z = new Expressions;
+            z->setDim(length);
+            for (size_t q = 0; q < length; ++q)
+                (*z)[q] = e->copy();
+            e = new ArrayLiteralExp(loc, z);
+            e->type = type;
+        }
+        else
+        {
+            e = e->copy();
+            e->type = type;
+        }
+        if (sinit &&
+            e->op == TOKstructliteral &&
+            e->type->needsNested())
+        {
+            StructLiteralExp *se = (StructLiteralExp *)e;
+            se->sinit = toInitializer(se->sd);
         }
     }
     return e;
@@ -4380,7 +4378,6 @@ Expression *StructLiteralExp::getField(Type *type, unsigned offset)
  * Get index of field.
  * Returns -1 if not found.
  */
-
 int StructLiteralExp::getFieldIndex(Type *type, unsigned offset)
 {
     /* Find which field offset is by looking at the field offsets
@@ -4399,9 +4396,8 @@ int StructLiteralExp::getFieldIndex(Type *type, unsigned offset)
                 return (int)i;
             Expression *e = (*elements)[i];
             if (e)
-            {
                 return (int)i;
-            }
+
             break;
         }
     }
@@ -4663,25 +4659,25 @@ Lagain:
             sc = sc->pop();
 
             if (type->ty == Terror)
-                goto Lerr;
+                return new ErrorExp();
             if (!MODimplicitConv(thisexp->type->mod, newtype->mod))
             {
                 error("nested type %s should have the same or weaker constancy as enclosing type %s",
                     newtype->toChars(), thisexp->type->toChars());
-                goto Lerr;
+                return new ErrorExp();
             }
         }
         else
         {
             error("'this' for nested class must be a class type, not %s", thisexp->type->toChars());
-            goto Lerr;
+            return new ErrorExp();
         }
     }
     else
     {
         type = newtype->semantic(loc, sc);
         if (type->ty == Terror)
-            goto Lerr;
+            return new ErrorExp();
     }
     newtype = type;             // in case type gets cast to something else
     tb = type->toBasetype();
@@ -4690,12 +4686,12 @@ Lagain:
     if (arrayExpressionSemantic(newargs, sc) ||
         preFunctionParameters(loc, sc, newargs))
     {
-        goto Lerr;
+        return new ErrorExp();
     }
     if (arrayExpressionSemantic(arguments, sc) ||
         preFunctionParameters(loc, sc, arguments))
     {
-        goto Lerr;
+        return new ErrorExp();
     }
 
     nargs = arguments ? arguments->dim : 0;
@@ -4703,7 +4699,7 @@ Lagain:
     if (thisexp && tb->ty != Tclass)
     {
         error("e.new is only for allocating nested classes, not %s", tb->toChars());
-        goto Lerr;
+        return new ErrorExp();
     }
 
     if (tb->ty == Tclass)
@@ -4715,7 +4711,7 @@ Lagain:
         if (cd->isInterfaceDeclaration())
         {
             error("cannot create instance of interface %s", cd->toChars());
-            goto Lerr;
+            return new ErrorExp();
         }
         else if (cd->isAbstract())
         {
@@ -4726,13 +4722,13 @@ Lagain:
                 if (fd && fd->isAbstract())
                     errorSupplemental(loc, "function '%s' is not implemented", fd->toFullSignature());
             }
-            goto Lerr;
+            return new ErrorExp();
         }
 
         if (cd->noDefaultCtor && !nargs && !cd->defaultCtor)
         {
             error("default construction is disabled for type %s", cd->type->toChars());
-            goto Lerr;
+            return new ErrorExp();
         }
         checkDeprecated(sc, cd);
         if (cd->isNested())
@@ -4756,7 +4752,7 @@ Lagain:
                         if (!sp)
                         {
                             error("outer class %s 'this' needed to 'new' nested class %s", cdn->toChars(), cd->toChars());
-                            goto Lerr;
+                            return new ErrorExp();
                         }
                         ClassDeclaration *cdp = sp->isClassDeclaration();
                         if (!cdp)
@@ -4775,14 +4771,14 @@ Lagain:
                     if (cdthis != cdn && !cdn->isBaseOf(cdthis, NULL))
                     {
                         error("'this' for nested class must be of type %s, not %s", cdn->toChars(), thisexp->type->toChars());
-                        goto Lerr;
+                        return new ErrorExp();
                     }
                 }
             }
             else if (thisexp)
             {
                 error("e.new is only for allocating nested classes");
-                goto Lerr;
+                return new ErrorExp();
             }
             else if (fdn)
             {
@@ -4795,7 +4791,7 @@ Lagain:
                     if (!sp || (fsp && fsp->isStatic()))
                     {
                         error("outer function context of %s is needed to 'new' nested class %s", fdn->toPrettyChars(), cd->toPrettyChars());
-                        goto Lerr;
+                        return new ErrorExp();
                     }
                     else if (FuncLiteralDeclaration *fld = sp->isFuncLiteralDeclaration())
                     {
@@ -4809,14 +4805,14 @@ Lagain:
         else if (thisexp)
         {
             error("e.new is only for allocating nested classes");
-            goto Lerr;
+            return new ErrorExp();
         }
 
         if (cd->ctor)
         {
             FuncDeclaration *f = resolveFuncCall(loc, sc, cd->ctor, NULL, tb, arguments, 0);
             if (!f || f->errors)
-                goto Lerr;
+                return new ErrorExp();
             checkDeprecated(sc, f);
 
             bool err = false;
@@ -4825,13 +4821,13 @@ Lagain:
             err |= checkNogc(sc, f);
             err |= checkAccess(cd, loc, sc, f);
             if (err)
-                goto Lerr;
+                return new ErrorExp();
 
             TypeFunction *tf = (TypeFunction *)f->type;
             if (!arguments)
                 arguments = new Expressions();
             if (functionParameters(loc, sc, tf, type, arguments, f, &type, &argprefix))
-                goto Lerr;
+                return new ErrorExp();
 
             member = f->isCtorDeclaration();
             assert(member);
@@ -4841,7 +4837,7 @@ Lagain:
             if (nargs)
             {
                 error("no constructor for %s", cd->toChars());
-                goto Lerr;
+                return new ErrorExp();
             }
         }
 
@@ -4855,12 +4851,12 @@ Lagain:
 
             FuncDeclaration *f = resolveFuncCall(loc, sc, cd->aggNew, NULL, tb, newargs);
             if (!f || f->errors)
-                goto Lerr;
+                return new ErrorExp();
 
             TypeFunction *tf = (TypeFunction *)f->type;
             Type *rettype;
             if (functionParameters(loc, sc, tf, NULL, newargs, f, &rettype, &newprefix))
-                goto Lerr;
+                return new ErrorExp();
 
             allocator = f->isNewDeclaration();
             assert(allocator);
@@ -4870,7 +4866,7 @@ Lagain:
             if (newargs && newargs->dim)
             {
                 error("no allocator for %s", cd->toChars());
-                goto Lerr;
+                return new ErrorExp();
             }
         }
     }
@@ -4884,7 +4880,7 @@ Lagain:
         if (sd->noDefaultCtor && !nargs)
         {
             error("default construction is disabled for type %s", sd->type->toChars());
-            goto Lerr;
+            return new ErrorExp();
         }
 
         if (sd->aggNew)
@@ -4897,12 +4893,12 @@ Lagain:
 
             FuncDeclaration *f = resolveFuncCall(loc, sc, sd->aggNew, NULL, tb, newargs);
             if (!f || f->errors)
-                goto Lerr;
+                return new ErrorExp();
 
             TypeFunction *tf = (TypeFunction *)f->type;
             Type *rettype;
             if (functionParameters(loc, sc, tf, NULL, newargs, f, &rettype, &newprefix))
-                goto Lerr;
+                return new ErrorExp();
 
             allocator = f->isNewDeclaration();
             assert(allocator);
@@ -4912,7 +4908,7 @@ Lagain:
             if (newargs && newargs->dim)
             {
                 error("no allocator for %s", sd->toChars());
-                goto Lerr;
+                return new ErrorExp();
             }
         }
 
@@ -4920,7 +4916,7 @@ Lagain:
         {
             FuncDeclaration *f = resolveFuncCall(loc, sc, sd->ctor, NULL, tb, arguments, 0);
             if (!f || f->errors)
-                goto Lerr;
+                return new ErrorExp();
             checkDeprecated(sc, f);
 
             bool err = false;
@@ -4929,7 +4925,7 @@ Lagain:
             err |= checkNogc(sc, f);
             err |= checkAccess(sd, loc, sc, f);
             if (err)
-                goto Lerr;
+                return new ErrorExp();
 
             TypeFunction *tf = (TypeFunction *)f->type;
             if (!arguments)
@@ -4959,14 +4955,14 @@ Lagain:
         if (ad && ad->noDefaultCtor)
         {
             error("default construction is disabled for type %s", tb->nextOf()->toChars());
-            goto Lerr;
+            return new ErrorExp();
         }
         for (size_t i = 0; i < nargs; i++)
         {
             if (tb->ty != Tarray)
             {
                 error("too many arguments for array");
-                goto Lerr;
+                return new ErrorExp();
             }
 
             Expression *arg = (*arguments)[i];
@@ -4976,7 +4972,7 @@ Lagain:
             if (arg->op == TOKint64 && (sinteger_t)arg->toInteger() < 0)
             {
                 error("negative array index %s", arg->toChars());
-                goto Lerr;
+                return new ErrorExp();
             }
             (*arguments)[i] =  arg;
             tb = ((TypeDArray *)tb)->next->toBasetype();
@@ -4996,7 +4992,7 @@ Lagain:
         else
         {
             error("more than one argument for construction of %s", type->toChars());
-            goto Lerr;
+            return new ErrorExp();
         }
 
         type = type->pointerTo();
@@ -5004,7 +5000,7 @@ Lagain:
     else
     {
         error("new can only create structs, dynamic arrays or class objects, not %s's", type->toChars());
-        goto Lerr;
+        return new ErrorExp();
     }
 
     //printf("NewExp: '%s'\n", toChars());
@@ -5014,9 +5010,6 @@ Lagain:
     if (newprefix)
         return combine(newprefix, this);
     return this;
-
-Lerr:
-    return new ErrorExp();
 }
 
 /********************** NewAnonClassExp **************************************/
