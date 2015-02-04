@@ -986,44 +986,44 @@ bool arrayExpressionSemantic(Expressions *exps, Scope *sc)
 void expandTuples(Expressions *exps)
 {
     //printf("expandTuples()\n");
-    if (exps)
+    if (!exps)
+        return;
+
+    for (size_t i = 0; i < exps->dim; i++)
     {
-        for (size_t i = 0; i < exps->dim; i++)
+        Expression *e = (*exps)[i];
+        if (!e)
+            continue;
+        assert(e->op != TOKerror);
+
+        // Look for tuple with 0 members
+        if (e->op == TOKtype)
         {
-            Expression *arg = (*exps)[i];
-            if (!arg)
-                continue;
-
-            // Look for tuple with 0 members
-            if (arg->op == TOKtype)
+            Type *tb = e->type->toBasetype();
+            if (tb->ty == Ttuple)
             {
-                TypeExp *e = (TypeExp *)arg;
-                if (e->type->toBasetype()->ty == Ttuple)
+                TypeTuple *tt = (TypeTuple *)tb;
+                if (!tt->arguments || tt->arguments->dim == 0)
                 {
-                    TypeTuple *tt = (TypeTuple *)e->type->toBasetype();
-
-                    if (!tt->arguments || tt->arguments->dim == 0)
-                    {
-                        exps->remove(i);
-                        if (i == exps->dim)
-                            return;
-                        i--;
-                        continue;
-                    }
+                    exps->remove(i);
+                    if (i == exps->dim)
+                        return;
+                    i--;
+                    continue;
                 }
             }
+        }
 
-            // Inline expand all the tuples
-            while (arg->op == TOKtuple)
-            {
-                TupleExp *te = (TupleExp *)arg;
-                exps->remove(i);                // remove arg
-                exps->insert(i, te->exps);      // replace with tuple contents
-                if (i == exps->dim)
-                    return;             // empty tuple, no more arguments
-                (*exps)[i] = Expression::combine(te->e0, (*exps)[i]);
-                arg = (*exps)[i];
-            }
+        // Inline expand all the tuples
+        while (e->op == TOKtuple)
+        {
+            TupleExp *te = (TupleExp *)e;
+            exps->remove(i);                // remove e
+            exps->insert(i, te->exps);      // replace with tuple contents
+            if (i == exps->dim)
+                return;             // empty tuple, no more arguments
+            (*exps)[i] = Expression::combine(te->e0, (*exps)[i]);
+            e = (*exps)[i];
         }
     }
 }
@@ -1230,29 +1230,28 @@ TemplateDeclaration *getFuncTemplateDecl(Dsymbol *s)
 
 bool preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
 {
+    if (!exps)
+        return false;
+
     bool err = false;
-    if (exps)
+    expandTuples(exps);
+    for (size_t i = 0; i < exps->dim; i++)
     {
-        expandTuples(exps);
+        Expression *e = (*exps)[i];
 
-        for (size_t i = 0; i < exps->dim; i++)
+        e = resolveProperties(sc, e);
+        if (e->op == TOKtype)
         {
-            Expression *arg = (*exps)[i];
-
-            arg = resolveProperties(sc, arg);
-            if (arg->op == TOKtype)
-            {
-                arg->error("cannot pass type %s as a function argument", arg->toChars());
-                arg = new ErrorExp();
-                err = true;
-            }
-            else if (checkNonAssignmentArrayOp(arg))
-            {
-                arg = new ErrorExp();
-                err = true;
-            }
-            (*exps)[i] =  arg;
+            e->error("cannot pass type %s as a function argument", e->toChars());
+            e = new ErrorExp();
+            err = true;
         }
+        else if (checkNonAssignmentArrayOp(e))
+        {
+            e = new ErrorExp();
+            err = true;
+        }
+        (*exps)[i] =  e;
     }
     return err;
 }
