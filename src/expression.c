@@ -62,7 +62,6 @@ Expression *getTypeInfo(Type *t, Scope *sc);
  *      ad      struct or class we need the correct 'this' for
  *      var     the specific member of ad we're accessing
  */
-
 Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
         Expression *e1, Declaration *var, int flag = 0)
 {
@@ -157,7 +156,6 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
  * Determine if 'this' is available.
  * If it is, return the FuncDeclaration that has it.
  */
-
 FuncDeclaration *hasThis(Scope *sc)
 {
     //printf("hasThis()\n");
@@ -257,7 +255,6 @@ bool checkRightThis(Scope *sc, Expression *e)
 /***************************************
  * Pull out any properties.
  */
-
 Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
 {
     //printf("resolvePropertiesX, e1 = %s %s, e2 = %s\n", Token::toChars(e1->op), e1->toChars(), e2 ? e2->toChars() : NULL);
@@ -546,7 +543,6 @@ Expression *resolveProperties(Scope *sc, Expression *e)
 /******************************
  * Check the tail CallExp is really property function call.
  */
-
 bool checkPropertyCall(Expression *e, Expression *emsg)
 {
     while (e->op == TOKcomma)
@@ -586,7 +582,6 @@ bool checkPropertyCall(Expression *e, Expression *emsg)
 /******************************
  * If e1 is a property function (template), resolve it.
  */
-
 Expression *resolvePropertiesOnly(Scope *sc, Expression *e1)
 {
     //printf("e1 = %s %s\n", Token::toChars(e1->op), e1->toChars());
@@ -688,11 +683,9 @@ Expression *resolvePropertiesOnly(Scope *sc, Expression *e1)
     return e1;
 }
 
-
 /******************************
  * Find symbol in accordance with the UFCS name look up rule
  */
-
 Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
 {
     Loc loc = ue->loc;
@@ -755,7 +748,6 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
  * check e is exp.opDispatch!(tiargs) or not
  * It's used to switch to UFCS the semantic analysis path
  */
-
 bool isDotOpDispatch(Expression *e)
 {
     return e->op == TOKdotti &&
@@ -765,7 +757,6 @@ bool isDotOpDispatch(Expression *e)
 /******************************
  * Pull out callable entity with UFCS.
  */
-
 Expression *resolveUFCS(Scope *sc, CallExp *ce)
 {
     Loc loc = ce->loc;
@@ -874,7 +865,6 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
 /******************************
  * Pull out property with UFCS.
  */
-
 Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NULL)
 {
     Loc loc = e1->loc;
@@ -954,7 +944,6 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
 /******************************
  * Perform semantic() on an array of Expressions.
  */
-
 bool arrayExpressionSemantic(Expressions *exps, Scope *sc)
 {
     if (!exps)
@@ -982,7 +971,6 @@ bool arrayExpressionSemantic(Expressions *exps, Scope *sc)
  * Output:
  *      exps    rewritten in place
  */
-
 void expandTuples(Expressions *exps)
 {
     //printf("expandTuples()\n");
@@ -1031,7 +1019,6 @@ void expandTuples(Expressions *exps)
 /****************************************
  * Expand alias this tuples.
  */
-
 TupleDeclaration *isAliasThisTuple(Expression *e)
 {
     if (!e->type)
@@ -1109,7 +1096,6 @@ int expandAliasThisTuples(Expressions *exps, size_t starti)
  * Returns:
  *      true    a semantic error was detected
  */
-
 bool arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
 {
     /* Still have a problem with:
@@ -1203,7 +1189,6 @@ bool arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
 /****************************************
  * Get TemplateDeclaration enclosing FuncDeclaration.
  */
-
 TemplateDeclaration *getFuncTemplateDecl(Dsymbol *s)
 {
     FuncDeclaration *f = s->isFuncDeclaration();
@@ -1227,7 +1212,6 @@ TemplateDeclaration *getFuncTemplateDecl(Dsymbol *s)
  * Returns:
  *      true    a semantic error occurred
  */
-
 bool preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
 {
     if (!exps)
