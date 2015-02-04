@@ -5229,7 +5229,6 @@ Expression *VarExp::modifiableLvalue(Scope *sc, Expression *e)
     return Expression::modifiableLvalue(sc, e);
 }
 
-
 /******************************** OverExp **************************/
 
 OverExp::OverExp(Loc loc, OverloadSet *s)
@@ -5462,68 +5461,67 @@ Expression *FuncExp::semantic(Scope *sc)
     printf("FuncExp::semantic(%s)\n", toChars());
     if (fd->treq) printf("  treq = %s\n", fd->treq->toChars());
 #endif
+    if (type)
+        return this;
+
     Expression *e = this;
 
     sc = sc->push();            // just create new scope
     sc->flags &= ~SCOPEctfe;    // temporary stop CTFE
     sc->protection = Prot(PROTpublic);    // Bugzilla 12506
 
-    if (!type || type == Type::tvoid)
+    /* fd->treq might be incomplete type,
+     * so should not semantic it.
+     * void foo(T)(T delegate(int) dg){}
+     * foo(a=>a); // in IFTI, treq == T delegate(int)
+     */
+    //if (fd->treq)
+    //    fd->treq = fd->treq->semantic(loc, sc);
+
+    // Make identifier that's unique in defined scope.
+    genIdent(sc);
+
+    // Set target of return type inference
+    if (fd->treq && !fd->type->nextOf())
     {
-        /* fd->treq might be incomplete type,
-         * so should not semantic it.
-         * void foo(T)(T delegate(int) dg){}
-         * foo(a=>a); // in IFTI, treq == T delegate(int)
-         */
-        //if (fd->treq)
-        //    fd->treq = fd->treq->semantic(loc, sc);
-
-        genIdent(sc);
-
-        // Set target of return type inference
-        if (fd->treq && !fd->type->nextOf())
+        TypeFunction *tfv = NULL;
+        if (fd->treq->ty == Tdelegate ||
+            (fd->treq->ty == Tpointer && fd->treq->nextOf()->ty == Tfunction))
+            tfv = (TypeFunction *)fd->treq->nextOf();
+        if (tfv)
         {
-            TypeFunction *tfv = NULL;
-            if (fd->treq->ty == Tdelegate ||
-                (fd->treq->ty == Tpointer && fd->treq->nextOf()->ty == Tfunction))
-                tfv = (TypeFunction *)fd->treq->nextOf();
-            if (tfv)
-            {
-                TypeFunction *tfl = (TypeFunction *)fd->type;
-                tfl->next = tfv->nextOf();
-            }
+            TypeFunction *tfl = (TypeFunction *)fd->type;
+            tfl->next = tfv->nextOf();
         }
+    }
 
-        //printf("td = %p, treq = %p\n", td, fd->treq);
-        if (td)
+    //printf("td = %p, treq = %p\n", td, fd->treq);
+    if (td)
+    {
+        assert(td->parameters && td->parameters->dim);
+        td->semantic(sc);
+        if (td->errors)
         {
-            assert(td->parameters && td->parameters->dim);
-            td->semantic(sc);
-            type = Type::tvoid; // temporary type
-
-            if (fd->treq)       // defer type determination
-            {
-                FuncExp *fe;
-                if (matchType(fd->treq, sc, &fe) > MATCHnomatch)
-                    e = fe;
-                else
-                    e = new ErrorExp();
-            }
-            goto Ldone;
+            e = new ErrorExp();
         }
-
-        unsigned olderrors = global.errors;
+        else if (fd->treq)      // required type is already known
+        {
+            FuncExp *fe;
+            if (matchType(fd->treq, sc, &fe) > MATCHnomatch)
+                e = fe;
+            else
+                e = new ErrorExp();
+        }
+        else
+            type = Type::tvoid; // defer type determination
+    }
+    else
+    {
         fd->semantic(sc);
-        if (olderrors == global.errors)
+        fd->semantic2(sc);
+        fd->semantic3(sc);
+        if (fd->errors || fd->semantic3Errors)
         {
-            fd->semantic2(sc);
-            if (olderrors == global.errors)
-                fd->semantic3(sc);
-        }
-        if (olderrors != global.errors)
-        {
-            if (fd->type && fd->type->ty == Tfunction && !fd->type->nextOf())
-                ((TypeFunction *)fd->type)->next = Type::terror;
             e = new ErrorExp();
             goto Ldone;
         }
@@ -5541,7 +5539,6 @@ Expression *FuncExp::semantic(Scope *sc)
         {
             type = new TypePointer(fd->type);
             type = type->semantic(loc, sc);
-            //type = fd->type->pointerTo();
 
             /* A lambda expression deduced to function pointer might become
              * to a delegate literal implicitly.
