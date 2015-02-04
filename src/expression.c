@@ -6448,8 +6448,8 @@ Expression *BinExp::binSemantic(Scope *sc)
 
 Expression *BinExp::binSemanticProp(Scope *sc)
 {
-    if (Expression *ex = binSemantic(sc))
-        return ex;
+    if (Expression *e = binSemantic(sc))
+        return e;
     Expression *e1x = resolveProperties(sc, e1);
     Expression *e2x = resolveProperties(sc, e2);
     if (e1x->op == TOKerror)
@@ -6649,8 +6649,8 @@ Expression *BinAssignExp::semantic(Scope *sc)
             // T[] op= T
             e2 = e2->castTo(sc, e1->type->nextOf());
         }
-        else if (Expression *ex = typeCombine(this, sc))
-            return ex;
+        else if (Expression *e = typeCombine(this, sc))
+            return e;
         type = e1->type;
         return arrayOp(this, sc);
     }
@@ -6687,8 +6687,8 @@ Expression *BinAssignExp::semantic(Scope *sc)
         e2->type->toBasetype()->isintegral())
         return scaleFactor(this, sc);
 
-    if (Expression *ex = typeCombine(this, sc))
-        return ex;
+    if (Expression *e = typeCombine(this, sc))
+        return e;
 
     //if (e1->op == TOKerror)
     //    return e1;
@@ -6932,8 +6932,8 @@ Expression *AssertExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("AssertExp::semantic('%s')\n", toChars());
 #endif
-    if (Expression *ex = unaSemantic(sc))
-        return ex;
+    if (Expression *e = unaSemantic(sc))
+        return e;
     e1 = resolveProperties(sc, e1);
     // BUG: see if we can do compile time elimination of the Assert
     e1 = e1->optimize(WANTvalue);
@@ -7011,8 +7011,8 @@ Expression *DotIdExp::semantic(Scope *sc)
 Expression *DotIdExp::semanticX(Scope *sc)
 {
     //printf("DotIdExp::semanticX(this = %p, '%s')\n", this, toChars());
-    if (Expression *ex = unaSemantic(sc))
-        return ex;
+    if (Expression *e = unaSemantic(sc))
+        return e;
 
     if (ident == Id::mangleof)
     {
@@ -7366,8 +7366,8 @@ DotTemplateExp::DotTemplateExp(Loc loc, Expression *e, TemplateDeclaration *td)
 
 Expression *DotTemplateExp::semantic(Scope *sc)
 {
-    if (Expression *ex = unaSemantic(sc))
-        return ex;
+    if (Expression *e = unaSemantic(sc))
+        return e;
     return this;
 }
 
@@ -7984,8 +7984,8 @@ Expression *DotTypeExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("DotTypeExp::semantic('%s')\n", toChars());
 #endif
-    if (Expression *ex = unaSemantic(sc))
-        return ex;
+    if (Expression *e = unaSemantic(sc))
+        return e;
     return this;
 }
 
@@ -8106,8 +8106,8 @@ Expression *CallExp::semantic(Scope *sc)
             return e1;
     }
 
-    if (Expression *ex = resolveUFCS(sc, this))
-        return ex;
+    if (Expression *e = resolveUFCS(sc, this))
+        return e;
 
     /* This recognizes:
      *  foo!(tiargs)(funcargs)
@@ -9024,8 +9024,8 @@ Expression *AddrExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    if (Expression *ex = unaSemantic(sc))
-        return ex;
+    if (Expression *e = unaSemantic(sc))
+        return e;
     int wasCond = e1->op == TOKquestion;
     if (e1->op == TOKdotti)
     {
@@ -9398,8 +9398,8 @@ Expression *NotExp::semantic(Scope *sc)
         return this;
 
     // Note there is no operator overload
-    if (Expression *ex = unaSemantic(sc))
-        return ex;
+    if (Expression *e = unaSemantic(sc))
+        return e;
     e1 = resolveProperties(sc, e1);
     e1 = e1->checkToBoolean(sc);
     if (e1->type == Type::terror)
@@ -9427,8 +9427,8 @@ Expression *BoolExp::semantic(Scope *sc)
         return this;
 
     // Note there is no operator overload
-    if (Expression *ex = unaSemantic(sc))
-        return ex;
+    if (Expression *e = unaSemantic(sc))
+        return e;
     e1 = resolveProperties(sc, e1);
     e1 = e1->checkToBoolean(sc);
     if (e1->type == Type::terror)
@@ -9447,8 +9447,8 @@ DeleteExp::DeleteExp(Loc loc, Expression *e)
 
 Expression *DeleteExp::semantic(Scope *sc)
 {
-    if (Expression *ex = unaSemantic(sc))
-        return ex;
+    if (Expression *e = unaSemantic(sc))
+        return e;
     e1 = resolveProperties(sc, e1);
     e1 = e1->modifiableLvalue(sc, NULL);
     if (e1->op == TOKerror)
@@ -9585,8 +9585,8 @@ Expression *CastExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    if (Expression *ex = unaSemantic(sc))
-        return ex;
+    if (Expression *e = unaSemantic(sc))
+        return e;
     Expression *e1x = resolveProperties(sc, e1);
     if (e1x->op == TOKerror)
         return e1x;
@@ -9858,8 +9858,8 @@ Expression *SliceExp::semantic(Scope *sc)
         return this;
 
 Lagain:
-    if (Expression *ex = unaSemantic(sc))
-        return ex;
+    if (Expression *e = unaSemantic(sc))
+        return e;
     e1 = resolveProperties(sc, e1);
     if (e1->op == TOKtype && e1->type->ty != Ttuple)
     {
@@ -10166,8 +10166,8 @@ Expression *ArrayLengthExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    if (Expression *ex = unaSemantic(sc))
-        return ex;
+    if (Expression *e = unaSemantic(sc))
+        return e;
     e1 = resolveProperties(sc, e1);
 
     type = Type::tsize_t;
@@ -10371,8 +10371,8 @@ Expression *ArrayExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("ArrayExp::semantic('%s')\n", toChars());
 #endif
-    if (Expression *ex = unaSemantic(sc))
-        return ex;
+    if (Expression *e = unaSemantic(sc))
+        return e;
     Expression *e1x = resolveProperties(sc, e1);
     if (e1x->op == TOKerror)
         return e1x;
@@ -10471,8 +10471,8 @@ Expression *CommaExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    if (Expression *ex = binSemanticProp(sc))
-        return ex;
+    if (Expression *e = binSemanticProp(sc))
+        return e;
     e1 = e1->addDtorHook(sc);
 
     type = e2->type;
@@ -12037,8 +12037,8 @@ Expression *PowAssignExp::semantic(Scope *sc)
             // T[] ^^= T
             e2 = e2->castTo(sc, e1->type->nextOf());
         }
-        else if (Expression *ex = typeCombine(this, sc))
-            return ex;
+        else if (Expression *e = typeCombine(this, sc))
+            return e;
 
         // Check element types are arithmetic
         Type *tb1 = e1->type->nextOf()->toBasetype();
@@ -12108,8 +12108,8 @@ Expression *AddExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    if (Expression *ex = binSemanticProp(sc))
-        return ex;
+    if (Expression *e = binSemanticProp(sc))
+        return e;
     if (Expression *e = op_overload(sc))
         return e;
 
@@ -12141,8 +12141,8 @@ Expression *AddExp::semantic(Scope *sc)
         return incompatibleTypes();
     }
 
-    if (Expression *ex = typeCombine(this, sc))
-        return ex;
+    if (Expression *e = typeCombine(this, sc))
+        return e;
 
     Type *tb = type->toBasetype();
     if (tb->ty == Tarray || tb->ty == Tsarray)
@@ -12202,8 +12202,8 @@ Expression *MinExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    if (Expression *ex = binSemanticProp(sc))
-        return ex;
+    if (Expression *e = binSemanticProp(sc))
+        return e;
     if (Expression *e = op_overload(sc))
         return e;
 
@@ -12234,8 +12234,8 @@ Expression *MinExp::semantic(Scope *sc)
             d_int64 stride;
 
             // make sure pointer types are compatible
-            if (Expression *ex = typeCombine(this, sc))
-                return ex;
+            if (Expression *e = typeCombine(this, sc))
+                return e;
 
             type = Type::tptrdiff_t;
             stride = t2->nextOf()->size();
@@ -12267,8 +12267,8 @@ Expression *MinExp::semantic(Scope *sc)
         return new ErrorExp();
     }
 
-    if (Expression *ex = typeCombine(this, sc))
-        return ex;
+    if (Expression *e = typeCombine(this, sc))
+        return e;
 
     Type *tb = type->toBasetype();
     if (tb->ty == Tarray || tb->ty == Tsarray)
@@ -12327,10 +12327,9 @@ Expression *CatExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    if (Expression *ex = binSemanticProp(sc))
-        return ex;
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = binSemanticProp(sc))
+        return e;
+    if (Expression *e = op_overload(sc))
         return e;
 
     Type *tb1 = e1->type->toBasetype();
@@ -12413,8 +12412,8 @@ Expression *CatExp::semantic(Scope *sc)
             e2 = e2->castTo(sc, t2);
     }
 
-    if (Expression *ex = typeCombine(this, sc))
-        return ex;
+    if (Expression *e = typeCombine(this, sc))
+        return e;
     type = type->toHeadMutable();
 
     Type *tb = type->toBasetype();
@@ -12436,6 +12435,7 @@ Expression *CatExp::semantic(Scope *sc)
     type->print();
     print();
 #endif
+    Expression *e;
     Type *t1 = e1->type->toBasetype();
     Type *t2 = e2->type->toBasetype();
     if (e1->op == TOKstring && e2->op == TOKstring)
@@ -12725,11 +12725,10 @@ Expression *PowExp::semantic(Scope *sc)
     // TODO: backend support, especially for  e1 ^^ 2.
 
     // First, attempt to fold the expression.
-    Expression *e = optimize(WANTvalue);
-    if (e->op != TOKpow)
+    if (Expression *e = optimize(WANTvalue))
     {
-        e = e->semantic(sc);
-        return e;
+        if (e != this)
+            return e->semantic(sc);
     }
 
     // Determine if we're raising to an integer power.
@@ -12754,27 +12753,23 @@ Expression *PowExp::semantic(Scope *sc)
         Expression *me = new MulExp(loc, ve, ve);
         if (intpow == 3)
             me = new MulExp(loc, me, ve);
-        e = new CommaExp(loc, ae, me);
-        e = e->semantic(sc);
-        return e;
+        return Expression::combine(ae, me)->semantic(sc);
     }
 
-    if (Module *mmath = loadStdMath())
-    {
-        e = new ScopeExp(loc, mmath);
-    }
-    else
+    Module *mmath = loadStdMath();
+    if (!mmath)
     {
         //error("requires std.math for ^^ operators");
         //fatal();
 
         // Leave handling of PowExp to the backend, or throw
         // an error gracefully if no backend support exists.
-        if (Expression *ex = typeCombine(this, sc))
-            return ex;
+        if (Expression *e = typeCombine(this, sc))
+            return e;
         return this;
     }
 
+    Expression *e = new ScopeExp(loc, mmath);
     if (e2->op == TOKfloat64 && e2->toReal() == 0.5)
     {
         // Replace e1 ^^ 0.5 with .std.math.sqrt(x)
@@ -12895,10 +12890,9 @@ Expression *AndExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    if (Expression *ex = binSemanticProp(sc))
-        return ex;
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = binSemanticProp(sc))
+        return e;
+    if (Expression *e = op_overload(sc))
         return e;
 
     if (e1->type->toBasetype()->ty == Tbool &&
@@ -12908,8 +12902,8 @@ Expression *AndExp::semantic(Scope *sc)
         return this;
     }
 
-    if (Expression *ex = typeCombine(this, sc))
-        return ex;
+    if (Expression *e = typeCombine(this, sc))
+        return e;
 
     Type *tb = type->toBasetype();
     if (tb->ty == Tarray || tb->ty == Tsarray)
@@ -12940,10 +12934,9 @@ Expression *OrExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    if (Expression *ex = binSemanticProp(sc))
-        return ex;
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = binSemanticProp(sc))
+        return e;
+    if (Expression *e = op_overload(sc))
         return e;
 
     if (e1->type->toBasetype()->ty == Tbool &&
@@ -12953,8 +12946,8 @@ Expression *OrExp::semantic(Scope *sc)
         return this;
     }
 
-    if (Expression *ex = typeCombine(this, sc))
-        return ex;
+    if (Expression *e = typeCombine(this, sc))
+        return e;
 
     Type *tb = type->toBasetype();
     if (tb->ty == Tarray || tb->ty == Tsarray)
@@ -12985,10 +12978,9 @@ Expression *XorExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    if (Expression *ex = binSemanticProp(sc))
-        return ex;
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = binSemanticProp(sc))
+        return e;
+    if (Expression *e = op_overload(sc))
         return e;
 
     if (e1->type->toBasetype()->ty == Tbool &&
@@ -12998,8 +12990,8 @@ Expression *XorExp::semantic(Scope *sc)
         return this;
     }
 
-    if (Expression *ex = typeCombine(this, sc))
-        return ex;
+    if (Expression *e = typeCombine(this, sc))
+        return e;
 
     Type *tb = type->toBasetype();
     if (tb->ty == Tarray || tb->ty == Tsarray)
@@ -13143,10 +13135,9 @@ Expression *InExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    if (Expression *ex = binSemanticProp(sc))
-        return ex;
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = binSemanticProp(sc))
+        return e;
+    if (Expression *e = op_overload(sc))
         return e;
 
     Type *t2b = e2->type->toBasetype();
@@ -13191,8 +13182,8 @@ Expression *RemoveExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    if (Expression *ex = binSemantic(sc))
-        return ex;
+    if (Expression *e = binSemantic(sc))
+        return e;
 
     type = Type::tbool;
     return this;
@@ -13213,8 +13204,8 @@ Expression *CmpExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    if (Expression *ex = binSemanticProp(sc))
-        return ex;
+    if (Expression *e = binSemanticProp(sc))
+        return e;
     Type *t1 = e1->type->toBasetype();
     Type *t2 = e2->type->toBasetype();
     if (t1->ty == Tclass && e2->op == TOKnull ||
@@ -13224,8 +13215,7 @@ Expression *CmpExp::semantic(Scope *sc)
         return new ErrorExp();
     }
 
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = op_overload(sc))
     {
         if (!e->type->isscalar() && e->type->equals(e1->type))
         {
@@ -13240,8 +13230,8 @@ Expression *CmpExp::semantic(Scope *sc)
         return e;
     }
 
-    if (Expression *ex = typeCombine(this, sc))
-        return ex;
+    if (Expression *e = typeCombine(this, sc))
+        return e;
 
     type = Type::tbool;
 
@@ -13382,8 +13372,8 @@ Expression *EqualExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    if (Expression *ex = binSemanticProp(sc))
-        return ex;
+    if (Expression *e = binSemanticProp(sc))
+        return e;
     if (e1->op == TOKtype || e2->op == TOKtype)
         return incompatibleTypes();
 
@@ -13441,8 +13431,7 @@ Expression *EqualExp::semantic(Scope *sc)
         }
     }
 
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = op_overload(sc))
     {
         if (e->op == TOKcall && op == TOKnotequal)
         {
@@ -13457,14 +13446,19 @@ Expression *EqualExp::semantic(Scope *sc)
         StructDeclaration *sd = ((TypeStruct *)t1)->sym;
         if (sd == ((TypeStruct *)t2)->sym)
         {
+            Expression *e;
             if (needOpEquals(sd))
             {
+                // Rewrite to: (e1.tupleof == e2.tupleof)
+                //             (e1.tupleof != e2.tupleof)
                 this->e1 = new DotIdExp(loc, e1, Id::tupleof);
                 this->e2 = new DotIdExp(loc, e2, Id::tupleof);
                 e = this;
             }
             else
             {
+                // Rewrite to: (e1  is e2)
+                //             (e1 !is e2)
                 e = new IdentityExp(op == TOKequal ? TOKidentity : TOKnotidentity, loc, e1, e2);
             }
             e = e->semantic(sc);
@@ -13478,12 +13472,12 @@ Expression *EqualExp::semantic(Scope *sc)
         TupleExp *tup1 = (TupleExp *)e1;
         TupleExp *tup2 = (TupleExp *)e2;
         size_t dim = tup1->exps->dim;
-        e = NULL;
         if (dim != tup2->exps->dim)
         {
             error("mismatched tuple lengths, %d and %d", (int)dim, (int)tup2->exps->dim);
             return new ErrorExp();
         }
+        Expression *e = NULL;
         if (dim == 0)
         {
             // zero-length tuple comparison should always return true or false.
@@ -13509,8 +13503,8 @@ Expression *EqualExp::semantic(Scope *sc)
         return e->semantic(sc);
     }
 
-    if (Expression *ex = typeCombine(this, sc))
-        return ex;
+    if (Expression *e = typeCombine(this, sc))
+        return e;
 
     type = Type::tbool;
 
@@ -13545,12 +13539,11 @@ Expression *IdentityExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    if (Expression *ex = binSemanticProp(sc))
-        return ex;
+    if (Expression *e = binSemanticProp(sc))
+        return e;
+    if (Expression *e = typeCombine(this, sc))
+        return e;
     type = Type::tbool;
-
-    if (Expression *ex = typeCombine(this, sc))
-        return ex;
 
     if (e1->type != e2->type && e1->type->isfloating() && e2->type->isfloating())
     {
@@ -13626,8 +13619,8 @@ Expression *CondExp::semantic(Scope *sc)
         type = t1;
     else
     {
-        if (Expression *ex = typeCombine(this, sc))
-            return ex;
+        if (Expression *e = typeCombine(this, sc))
+            return e;
         switch (e1->type->toBasetype()->ty)
         {
             case Tcomplex32:
