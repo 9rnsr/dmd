@@ -1386,7 +1386,6 @@ Expression *callCpCtor(Scope *sc, Expression *e)
  * Returns:
  *      true    errors happened
  */
-
 bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
         Type *tthis, Expressions *arguments, FuncDeclaration *fd, Type **prettype, Expression **peprefix)
 {
@@ -1972,6 +1971,15 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
 
 /******************************** Expression **************************/
 
+void Expression::init()
+{
+    CTFEExp::cantexp = new CTFEExp(TOKcantexp);
+    CTFEExp::voidexp = new CTFEExp(TOKvoidexp);
+    CTFEExp::breakexp = new CTFEExp(TOKbreak);
+    CTFEExp::continueexp = new CTFEExp(TOKcontinue);
+    CTFEExp::gotoexp = new CTFEExp(TOKgoto);
+}
+
 Expression::Expression(Loc loc, TOK op, int size)
 {
     //printf("Expression::Expression(op = %d) this = %p\n", op, this);
@@ -1982,15 +1990,10 @@ Expression::Expression(Loc loc, TOK op, int size)
     type = NULL;
 }
 
-void Expression::init()
-{
-    CTFEExp::cantexp = new CTFEExp(TOKcantexp);
-    CTFEExp::voidexp = new CTFEExp(TOKvoidexp);
-    CTFEExp::breakexp = new CTFEExp(TOKbreak);
-    CTFEExp::continueexp = new CTFEExp(TOKcontinue);
-    CTFEExp::gotoexp = new CTFEExp(TOKgoto);
-}
-
+/*********************************
+ * Does a deep copy, and all 'type' fields in the
+ * returned expressions will be reset to NULL.
+ */
 Expression *Expression::syntaxCopy()
 {
     //printf("Expression::syntaxCopy()\n");
@@ -2001,20 +2004,18 @@ Expression *Expression::syntaxCopy()
 /*********************************
  * Does *not* do a deep copy.
  */
-
 Expression *Expression::copy()
 {
-    Expression *e;
+#ifdef DEBUG
     if (!size)
     {
-#ifdef DEBUG
         fprintf(stderr, "No expression copy for: %s\n", toChars());
         printf("op = %d\n", op);
         print();
-#endif
         assert(0);
     }
-    e = (Expression *)mem.malloc(size);
+#endif
+    Expression *e = (Expression *)mem.malloc(size);
     //printf("Expression::copy(op = %d) e = %p\n", op, e);
     return (Expression *)memcpy((void*)e, (void*)this, size);
 }
@@ -2022,8 +2023,14 @@ Expression *Expression::copy()
 /**************************
  * Semantically analyze Expression.
  * Determine types, fold constants, etc.
+ *
+ * semantic() should return a valid analyzed expression (must not contain any ErrorExp),
+ * or a single ErrorExp() instance when some sort of semantic error happens.
+ *
+ * Normally the type field of an expression which not yet analyzed, is NULL.
+ * After the semantic() done, type field will be set.
+ * If type is already set, repeated semantic() call should be no-op.
  */
-
 Expression *Expression::semantic(Scope *sc)
 {
 #if LOGSEMANTIC
@@ -2040,7 +2047,6 @@ Expression *Expression::semantic(Scope *sc)
  * Try to run semantic routines.
  * If they fail, return NULL.
  */
-
 Expression *Expression::trySemantic(Scope *sc)
 {
     //printf("+trySemantic(%s)\n", toChars());
@@ -2070,35 +2076,38 @@ char *Expression::toChars()
 
 void Expression::error(const char *format, ...)
 {
-    if (type != Type::terror)
-    {
-        va_list ap;
-        va_start(ap, format);
-        ::verror(loc, format, ap);
-        va_end( ap );
-    }
+    if (op == TOKerror)
+        return;
+    assert(type->ty != Terror);
+
+    va_list ap;
+    va_start(ap, format);
+    ::verror(loc, format, ap);
+    va_end( ap );
 }
 
 void Expression::warning(const char *format, ...)
 {
-    if (type != Type::terror)
-    {
-        va_list ap;
-        va_start(ap, format);
-        ::vwarning(loc, format, ap);
-        va_end( ap );
-    }
+    if (op == TOKerror)
+        return;
+    assert(type->ty != Terror);
+
+    va_list ap;
+    va_start(ap, format);
+    ::vwarning(loc, format, ap);
+    va_end( ap );
 }
 
 void Expression::deprecation(const char *format, ...)
 {
-    if (type != Type::terror)
-    {
-        va_list ap;
-        va_start(ap, format);
-        ::vdeprecation(loc, format, ap);
-        va_end( ap );
-    }
+    if (op == TOKerror)
+        return;
+    assert(type->ty != Terror);
+
+    va_list ap;
+    va_start(ap, format);
+    ::vdeprecation(loc, format, ap);
+    va_end( ap );
 }
 
 bool Expression::rvalue()
@@ -2118,7 +2127,7 @@ bool Expression::rvalue()
 }
 
 /**********************************
- * Combine e1 and e2 by CommaExp if both are not NULL.
+ * Combine e1 and e2 by using CommaExp if both are not NULL.
  */
 Expression *Expression::combine(Expression *e1, Expression *e2)
 {
@@ -2172,6 +2181,9 @@ Expression *Expression::extractLast(Expression *e, Expression **pe0)
     }
 }
 
+/**********************************
+ * Returns a 64-bit sign-unrelated integer value if possible.
+ */
 dinteger_t Expression::toInteger()
 {
     //printf("Expression %s\n", Token::toChars(op));
@@ -2179,49 +2191,62 @@ dinteger_t Expression::toInteger()
     return 0;
 }
 
+/**********************************
+ * Returns a 64-bit unsigned integer value if possible.
+ */
 uinteger_t Expression::toUInteger()
 {
     //printf("Expression %s\n", Token::toChars(op));
     return (uinteger_t)toInteger();
 }
 
+/**********************************
+ * Returns a floating point value with the 'real' precision, if possible.
+ */
 real_t Expression::toReal()
 {
     error("floating point constant expression expected instead of %s", toChars());
     return ldouble(0);
 }
 
+/**********************************
+ * Returns an imaginary floating point value with the 'ireal' precision, if possible.
+ */
 real_t Expression::toImaginary()
 {
     error("floating point constant expression expected instead of %s", toChars());
     return ldouble(0);
 }
 
+/**********************************
+ * Returns a complex floating point value with the 'creal' precision, if possible.
+ */
 complex_t Expression::toComplex()
 {
     error("floating point constant expression expected instead of %s", toChars());
     return (complex_t)0.0;
 }
 
+/**********************************
+ * Returns a StiringExp if it is implicitly convertible to some string types.
+ */
 StringExp *Expression::toStringExp()
 {
     return NULL;
 }
 
 /***************************************
- * Return !=0 if expression is an lvalue.
+ * Returns true if expression is an lvalue.
  */
-
 bool Expression::isLvalue()
 {
     return false;
 }
 
 /*******************************
- * Give error if we're not an lvalue.
  * If we can, convert expression to be an lvalue.
+ * Otherwise give error.
  */
-
 Expression *Expression::toLvalue(Scope *sc, Expression *e)
 {
     if (!e)
@@ -2246,12 +2271,13 @@ Expression *Expression::toLvalue(Scope *sc, Expression *e)
  *      1:      is modifiable in default == being related to type->isMutable()
  *      2:      is modifiable, because this is a part of initializing.
  */
-
 int Expression::checkModifiable(Scope *sc, int flag)
 {
     return type ? 1 : 0;    // default modifiable
 }
 
+/***************************************
+ */
 Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
 {
     //printf("Expression::modifiableLvalue() %s, type = %s\n", toChars(), type->toChars());
