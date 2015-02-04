@@ -197,7 +197,7 @@ public:
     }
 
     int isConst() { return ::isConst(this); }
-    virtual int isBool(int result);
+    virtual bool isBool(bool result);
     Expression *op_overload(Scope *sc)
     {
         return ::op_overload(this, sc);
@@ -219,7 +219,7 @@ public:
     real_t toReal();
     real_t toImaginary();
     complex_t toComplex();
-    int isBool(int result);
+    bool isBool(bool result);
     Expression *toLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
     dinteger_t getInteger() { return value; }
@@ -253,7 +253,7 @@ public:
     real_t toReal();
     real_t toImaginary();
     complex_t toComplex();
-    int isBool(int result);
+    bool isBool(bool result);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -270,7 +270,7 @@ public:
     real_t toReal();
     real_t toImaginary();
     complex_t toComplex();
-    int isBool(int result);
+    bool isBool(bool result);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -315,7 +315,7 @@ public:
 
     ThisExp(Loc loc);
     Expression *semantic(Scope *sc);
-    int isBool(int result);
+    bool isBool(bool result);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
 
@@ -339,7 +339,7 @@ public:
     NullExp(Loc loc, Type *t = NULL);
     bool equals(RootObject *o);
     Expression *semantic(Scope *sc);
-    int isBool(int result);
+    bool isBool(bool result);
     StringExp *toStringExp();
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -364,7 +364,7 @@ public:
     StringExp *toStringExp();
     StringExp *toUTF8(Scope *sc);
     int compare(RootObject *obj);
-    int isBool(int result);
+    bool isBool(bool result);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -409,7 +409,7 @@ public:
     Expression *syntaxCopy();
     bool equals(RootObject *o);
     Expression *semantic(Scope *sc);
-    int isBool(int result);
+    bool isBool(bool result);
     StringExp *toStringExp();
 
     void accept(Visitor *v) { v->visit(this); }
@@ -426,7 +426,7 @@ public:
     bool equals(RootObject *o);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
-    int isBool(int result);
+    bool isBool(bool result);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -583,7 +583,7 @@ public:
 
     SymOffExp(Loc loc, Declaration *var, dinteger_t offset, bool hasOverloads = false);
     Expression *semantic(Scope *sc);
-    int isBool(int result);
+    bool isBool(bool result);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1016,7 +1016,7 @@ public:
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
-    int isBool(int result);
+    bool isBool(bool result);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -1100,7 +1100,7 @@ public:
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
-    int isBool(int result);
+    bool isBool(bool result);
     Expression *addDtorHook(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };

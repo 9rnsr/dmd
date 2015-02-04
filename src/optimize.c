@@ -1099,8 +1099,8 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             {
                 if (e->e2->isConst())
                 {
-                    int n1 = e->e1->isBool(1);
-                    int n2 = e->e2->isBool(1);
+                    bool n1 = e->e1->isBool(true);
+                    bool n2 = e->e2->isBool(true);
                     ret = new IntegerExp(e->loc, n1 && n2, e->type);
                 }
                 else if (e->e1->isBool(true))
@@ -1142,8 +1142,8 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             {
                 if (e->e2->isConst())
                 {
-                    int n1 = e->e1->isBool(1);
-                    int n2 = e->e2->isBool(1);
+                    bool n1 = e->e1->isBool(true);
+                    bool n2 = e->e2->isBool(true);
                     ret = new IntegerExp(e->loc, n1 || n2, e->type);
                 }
                 else if (e->e1->isBool(false))
