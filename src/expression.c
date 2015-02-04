@@ -4498,7 +4498,7 @@ Expression *TypeExp::semantic(Scope *sc)
 bool TypeExp::checkValue()
 {
     error("type %s has no value", toChars());
-    return truer;
+    return true;
 }
 
 /************************************************************/
@@ -12772,8 +12772,11 @@ Expression *PowExp::semantic(Scope *sc)
         return e;
     }
 
-    Module *mmath = loadStdMath();
-    if (!mmath)
+    if (Module *mmath = loadStdMath())
+    {
+        e = new ScopeExp(loc, mmath);
+    }
+    else
     {
         //error("requires std.math for ^^ operators");
         //fatal();
@@ -12784,7 +12787,6 @@ Expression *PowExp::semantic(Scope *sc)
             return ex;
         return this;
     }
-    e = new ScopeExp(loc, mmath);
 
     if (e2->op == TOKfloat64 && e2->toReal() == 0.5)
     {
