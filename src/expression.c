@@ -13242,13 +13242,17 @@ Expression *InExp::semantic(Scope *sc)
 RemoveExp::RemoveExp(Loc loc, Expression *e1, Expression *e2)
         : BinExp(loc, TOKremove, sizeof(RemoveExp), e1, e2)
 {
-    type = Type::tbool;
 }
 
 Expression *RemoveExp::semantic(Scope *sc)
 {
+    if (type)
+        return this;
+
     if (Expression *ex = binSemantic(sc))
         return ex;
+
+    type = Type::tbool;
     return this;
 }
 
