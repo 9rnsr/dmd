@@ -1233,25 +1233,25 @@ bool preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
     if (!exps)
         return false;
 
-    bool err = false;
     expandTuples(exps);
+
+    bool err = false;
     for (size_t i = 0; i < exps->dim; i++)
     {
         Expression *e = (*exps)[i];
-
         e = resolveProperties(sc, e);
         if (e->op == TOKtype)
         {
             e->error("cannot pass type %s as a function argument", e->toChars());
-            e = new ErrorExp();
             err = true;
+            continue;
         }
-        else if (checkNonAssignmentArrayOp(e))
+        if (checkNonAssignmentArrayOp(e))
         {
-            e = new ErrorExp();
             err = true;
+            continue;
         }
-        (*exps)[i] =  e;
+        (*exps)[i] = e;
     }
     return err;
 }
