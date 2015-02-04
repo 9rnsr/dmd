@@ -174,8 +174,8 @@ public:
     bool checkArithmetic();
     Expression *checkReadModifyWrite(TOK rmwOp, Expression *exp = NULL);
     void checkDeprecated(Scope *sc, Dsymbol *s);
-    void checkPurity(Scope *sc, FuncDeclaration *f);
-    void checkPurity(Scope *sc, VarDeclaration *v);
+    bool checkPurity(Scope *sc, FuncDeclaration *f);
+    bool checkPurity(Scope *sc, VarDeclaration *v);
     void checkSafety(Scope *sc, FuncDeclaration *f);
     void checkNogc(Scope *sc, FuncDeclaration *f);
     bool checkPostblit(Scope *sc, Type *t);

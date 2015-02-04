@@ -469,8 +469,9 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
     if (e1->op == TOKvar)
     {
         VarExp *ve = (VarExp *)e1;
-        if (VarDeclaration *v = ve->var->isVarDeclaration())
-            ve->checkPurity(sc, v);
+        VarDeclaration *v = ve->var->isVarDeclaration();
+        if (v && ve->checkPurity(sc, v))
+            return new ErrorExp();
     }
     if (e2)
         return NULL;
@@ -1324,10 +1325,11 @@ bool Expression::checkPostblit(Scope *sc, Type *t)
                 sd->error(loc, "is not copyable because it is annotated with @disable");
                 return true;
             }
-            checkPurity(sc, sd->postblit);
+            bool err = false;
+            err |= checkPurity(sc, sd->postblit);
             checkSafety(sc, sd->postblit);
             checkNogc(sc, sd->postblit);
-            return false;   // todo
+            return err;
         }
     }
     return false;
@@ -2399,16 +2401,16 @@ void Expression::checkDeprecated(Scope *sc, Dsymbol *s)
  * Check the purity, i.e. if we're in a pure function
  * we can only call other pure functions.
  */
-void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
+bool Expression::checkPurity(Scope *sc, FuncDeclaration *f)
 {
     if (!sc->func)
-        return;
+        return false;
     if (sc->func == f)
-        return;
+        return false;
     if (sc->intypeof == 1)
-        return;
+        return false;
     if (sc->flags & (SCOPEctfe | SCOPEdebug))
-        return;
+        return false;
 
     /* Given:
      * void f() {
@@ -2458,7 +2460,7 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
         {
             outerfunc = outerfunc->toParent2()->isFuncDeclaration();
             if (outerfunc->type->ty == Terror)
-                return;
+                return true;
         }
         while (calledparent->toParent2() &&
                calledparent->isPureBypassingInference() == PUREimpure &&
@@ -2466,7 +2468,7 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
         {
             calledparent = calledparent->toParent2()->isFuncDeclaration();
             if (calledparent->type->ty == Terror)
-                return;
+                return true;
         }
     }
 
@@ -2479,41 +2481,43 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
         {
             error("pure function '%s' cannot call impure function '%s'",
                 ff->toPrettyChars(), f->toPrettyChars());
+            return true;
         }
     }
+    return false;
 }
 
 /*******************************************
  * Accessing variable v.
  * Check for purity and safety violations.
  */
-
-void Expression::checkPurity(Scope *sc, VarDeclaration *v)
+bool Expression::checkPurity(Scope *sc, VarDeclaration *v)
 {
     /* Look for purity and safety violations when accessing variable v
      * from current function.
      */
     if (!sc->func)
-        return;
+        return false;
     if (sc->intypeof == 1)
-        return; // allow violations inside typeof(expression)
+        return false;   // allow violations inside typeof(expression)
     if (sc->flags & (SCOPEctfe | SCOPEdebug))
-        return; // allow violations inside compile-time evaluated expressions and debug conditionals
+        return false;   // allow violations inside compile-time evaluated expressions and debug conditionals
     if (v->ident == Id::ctfe)
-        return; // magic variable never violates pure and safe
+        return false;   // magic variable never violates pure and safe
     if (v->isImmutable())
-        return; // always safe and pure to access immutables...
+        return false;   // always safe and pure to access immutables...
     if (v->isConst() && !v->isRef() && (v->isDataseg() || v->isParameter()) &&
         v->type->implicitConvTo(v->type->immutableOf()))
-        return; // or const global/parameter values which have no mutable indirections
+        return false;   // or const global/parameter values which have no mutable indirections
     if (v->storage_class & STCmanifest)
-        return; // ...or manifest constants
+        return false;   // ...or manifest constants
 
+    bool err = false;
     if (v->isDataseg())
     {
         // Bugzilla 7533: Accessing implicit generated __gate is pure.
         if (v->ident == Id::gate)
-            return;
+            return false;
 
         /* Accessing global mutable state.
          * Therefore, this function and all its immediately enclosing
@@ -2524,6 +2528,7 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v)
         {
             error("pure function '%s' cannot access mutable static data '%s'",
                 ff->toPrettyChars(), v->toChars());
+            err = true;
         }
     }
     else
@@ -2549,9 +2554,10 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v)
             {
                 error("impure function '%s' cannot access variable '%s' declared in enclosing pure function '%s'",
                     sc->func->toChars(), v->toChars(), fdp->toPrettyChars());
+                err = true;
             }
         }
-        for (Dsymbol *s = sc->func; s; s = s->toParent2())
+        for (Dsymbol *s = sc->func; !err && s; s = s->toParent2())
         {
             if (s == vparent)
                 break;
@@ -2571,6 +2577,7 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v)
                 {
                     error("pure immutable nested function '%s' cannot access mutable data '%s'",
                         ff->toPrettyChars(), v->toChars());
+                    err = true;
                     break;
                 }
                 continue;
@@ -2581,6 +2588,7 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v)
                 {
                     error("pure immutable member function '%s' cannot access mutable data '%s'",
                         ff->toPrettyChars(), v->toChars());
+                    err = true;
                     break;
                 }
                 continue;
@@ -2594,9 +2602,14 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v)
     if (v->storage_class & STCgshared)
     {
         if (sc->func->setUnsafe())
+        {
             error("safe function '%s' cannot access __gshared data '%s'",
                 sc->func->toChars(), v->toChars());
+            err = true;
+        }
     }
+
+    return err;
 }
 
 void Expression::checkSafety(Scope *sc, FuncDeclaration *f)
@@ -4858,20 +4871,23 @@ Lagain:
             if (!f || f->errors)
                 goto Lerr;
             checkDeprecated(sc, f);
-            checkPurity(sc, f);
+
+            bool err = false;
+            err |= checkPurity(sc, f);
             checkSafety(sc, f);
             checkNogc(sc, f);
-            member = f->isCtorDeclaration();
-            assert(member);
-
-            accessCheck(cd, loc, sc, member);
+            accessCheck(cd, loc, sc, f);
+            if (err)
+                goto Lerr;
 
             TypeFunction *tf = (TypeFunction *)f->type;
-
             if (!arguments)
                 arguments = new Expressions();
             if (functionParameters(loc, sc, tf, type, arguments, f, &type, &argprefix))
-                return new ErrorExp();
+                goto Lerr;
+
+            member = f->isCtorDeclaration();
+            assert(member);
         }
         else
         {
@@ -4893,13 +4909,14 @@ Lagain:
             FuncDeclaration *f = resolveFuncCall(loc, sc, cd->aggNew, NULL, tb, newargs);
             if (!f || f->errors)
                 goto Lerr;
-            allocator = f->isNewDeclaration();
-            assert(allocator);
 
             TypeFunction *tf = (TypeFunction *)f->type;
             Type *rettype;
             if (functionParameters(loc, sc, tf, NULL, newargs, f, &rettype, &newprefix))
-                return new ErrorExp();
+                goto Lerr;
+
+            allocator = f->isNewDeclaration();
+            assert(allocator);
         }
         else
         {
@@ -4934,13 +4951,14 @@ Lagain:
             FuncDeclaration *f = resolveFuncCall(loc, sc, sd->aggNew, NULL, tb, newargs);
             if (!f || f->errors)
                 goto Lerr;
-            allocator = f->isNewDeclaration();
-            assert(allocator);
 
             TypeFunction *tf = (TypeFunction *)f->type;
             Type *rettype;
             if (functionParameters(loc, sc, tf, NULL, newargs, f, &rettype, &newprefix))
-                return new ErrorExp();
+                goto Lerr;
+
+            allocator = f->isNewDeclaration();
+            assert(allocator);
         }
         else
         {
@@ -4957,20 +4975,23 @@ Lagain:
             if (!f || f->errors)
                 goto Lerr;
             checkDeprecated(sc, f);
-            checkPurity(sc, f);
+
+            bool err = false;
+            err |= checkPurity(sc, f);
             checkSafety(sc, f);
             checkNogc(sc, f);
-            member = f->isCtorDeclaration();
-            assert(member);
-
-            accessCheck(sd, loc, sc, member);
+            accessCheck(sd, loc, sc, f);
+            if (err)
+                goto Lerr;
 
             TypeFunction *tf = (TypeFunction *)f->type;
-
             if (!arguments)
                 arguments = new Expressions();
             if (functionParameters(loc, sc, tf, type, arguments, f, &type, &argprefix))
                 return new ErrorExp();
+
+            member = f->isCtorDeclaration();
+            assert(member);
         }
         else
         {
@@ -8288,8 +8309,9 @@ Lagain:
                 TypeDelegate *t = new TypeDelegate(tf);
                 ve->type = t->semantic(loc, sc);
             }
-            if (VarDeclaration *v = ve->var->isVarDeclaration())
-                ve->checkPurity(sc, v);
+            VarDeclaration *v = ve->var->isVarDeclaration();
+            if (v && ve->checkPurity(sc, v))
+                return new ErrorExp();
         }
 
         if (e1->op == TOKimport)
@@ -8530,10 +8552,15 @@ Lagain:
         }
 
         checkDeprecated(sc, f);
-        checkPurity(sc, f);
+
+        bool err = false;
+        err |= checkPurity(sc, f);
         checkSafety(sc, f);
         checkNogc(sc, f);
         accessCheck(loc, sc, ue->e1, f);
+        if (err)
+            return new ErrorExp();
+
         if (!f->needThis())
         {
             VarExp *ve = new VarExp(loc, f);
@@ -8615,11 +8642,17 @@ Lagain:
                 f = resolveFuncCall(loc, sc, cd->baseClass->ctor, NULL, tthis, arguments, 0);
                 if (!f || f->errors)
                     return new ErrorExp();
-                accessCheck(loc, sc, NULL, f);
+
                 checkDeprecated(sc, f);
-                checkPurity(sc, f);
+
+                bool err = false;
+                err |= checkPurity(sc, f);
                 checkSafety(sc, f);
                 checkNogc(sc, f);
+                accessCheck(loc, sc, NULL, f);
+                if (err)
+                    return new ErrorExp();
+
                 e1 = new DotVarExp(e1->loc, e1, f);
                 e1 = e1->semantic(sc);
                 t1 = e1->type;
@@ -8656,9 +8689,15 @@ Lagain:
             if (!f || f->errors)
                 return new ErrorExp();
             checkDeprecated(sc, f);
-            checkPurity(sc, f);
+
+            bool err = false;
+            err |= checkPurity(sc, f);
             checkSafety(sc, f);
             checkNogc(sc, f);
+            //accessCheck(loc, sc, NULL, f);    // necessary?
+            if (err)
+                return new ErrorExp();
+
             e1 = new DotVarExp(e1->loc, e1, f);
             e1 = e1->semantic(sc);
             t1 = e1->type;
@@ -8819,9 +8858,13 @@ Lagain:
         // Purity and safety check should run after testing arguments matching
         if (f)
         {
-            checkPurity(sc, f);
+            bool err = false;
+            err |= checkPurity(sc, f);
             checkSafety(sc, f);
             checkNogc(sc, f);
+            //accessCheck(loc, sc, NULL, f);    // necessary?
+            if (err)
+                return new ErrorExp();
             if (!f->checkNestedReference(sc, loc))
                 return new ErrorExp();
         }
@@ -8907,12 +8950,16 @@ Lagain:
         }
 
         checkDeprecated(sc, f);
-        checkPurity(sc, f);
+
+        bool err = false;
+        err |= checkPurity(sc, f);
         checkSafety(sc, f);
         checkNogc(sc, f);
+        accessCheck(loc, sc, NULL, f);
+        if (err)
+            return new ErrorExp();
         if (!f->checkNestedReference(sc, loc))
             return new ErrorExp();
-        accessCheck(loc, sc, NULL, f);
 
         ethis = NULL;
         tthis = NULL;
