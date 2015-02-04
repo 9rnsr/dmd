@@ -3846,17 +3846,17 @@ StringExp *StringExp::toStringExp()
  */
 StringExp *StringExp::toUTF8(Scope *sc)
 {
-    if (sz != 1)
-    {   // Convert to UTF-8 string
-        committed = 0;
-        Expression *e = castTo(sc, Type::tchar->arrayOf());
-        e = e->optimize(WANTvalue);
-        assert(e->op == TOKstring);
-        StringExp *se = (StringExp *)e;
-        assert(se->sz == 1);
-        return se;
-    }
-    return this;
+    if (sz == 1)
+        return this;
+
+    // Convert to UTF-8 string
+    committed = 0;
+    Expression *e = castTo(sc, Type::tchar->arrayOf());
+    e = e->optimize(WANTvalue);
+    assert(e->op == TOKstring);
+    StringExp *se = (StringExp *)e;
+    assert(se->sz == 1);
+    return se;
 }
 
 int StringExp::compare(RootObject *obj)
@@ -3920,7 +3920,6 @@ bool StringExp::isBool(bool result)
     return result ? true : false;
 }
 
-
 bool StringExp::isLvalue()
 {
     /* string literal is rvalue in default, but
@@ -3943,7 +3942,8 @@ Expression *StringExp::modifiableLvalue(Scope *sc, Expression *e)
 }
 
 unsigned StringExp::charAt(uinteger_t i)
-{   unsigned value;
+{
+    unsigned value;
 
     switch (sz)
     {
@@ -4037,10 +4037,6 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
     if (arrayExpressionToCommonType(sc, elements, &t0))
         return new ErrorExp();
 
-    type = t0->arrayOf();
-    //type = new TypeSArray(t0, new IntegerExp(elements->dim));
-    type = type->semantic(loc, sc);
-
     /* Disallow array literals of type void being used.
      */
     if (elements->dim > 0 && t0->ty == Tvoid)
@@ -4048,6 +4044,9 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
         error("%s of type %s has no value", toChars(), type->toChars());
         return new ErrorExp();
     }
+
+    type = t0->arrayOf();
+    type = type->semantic(loc, sc);
 
     semanticTypeInfo(sc, t0);
 
@@ -4184,7 +4183,6 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
 
     return this;
 }
-
 
 bool AssocArrayLiteralExp::isBool(bool result)
 {
@@ -4324,7 +4322,6 @@ Expression *StructLiteralExp::addDtorHook(Scope *sc)
  * Gets expression at offset of type.
  * Returns NULL if not found.
  */
-
 Expression *StructLiteralExp::getField(Type *type, unsigned offset)
 {
     //printf("StructLiteralExp::getField(this = %s, type = %s, offset = %u)\n",
@@ -4348,7 +4345,8 @@ Expression *StructLiteralExp::getField(Type *type, unsigned offset)
              * then the field initializer should be an array literal of e.
              */
             if (e->type->castMod(0) != type->castMod(0) && type->ty == Tsarray)
-            {   TypeSArray *tsa = (TypeSArray *)type;
+            {
+                TypeSArray *tsa = (TypeSArray *)type;
                 size_t length = (size_t)tsa->dim->toInteger();
                 Expressions *z = new Expressions;
                 z->setDim(length);
@@ -4382,25 +4380,24 @@ int StructLiteralExp::getFieldIndex(Type *type, unsigned offset)
 {
     /* Find which field offset is by looking at the field offsets
      */
-    if (elements->dim)
-    {
-        for (size_t i = 0; i < sd->fields.dim; i++)
-        {
-            VarDeclaration *v = sd->fields[i];
+    if (!elements->dim)
+        return -1;
 
-            if (offset == v->offset &&
-                type->size() == v->type->size())
+    for (size_t i = 0; i < sd->fields.dim; i++)
+    {
+        VarDeclaration *v = sd->fields[i];
+        if (offset == v->offset &&
+            type->size() == v->type->size())
+        {
+            /* context field might not be filled. */
+            if (i == sd->fields.dim - 1 && sd->isNested())
+                return (int)i;
+            Expression *e = (*elements)[i];
+            if (e)
             {
-                /* context field might not be filled. */
-                if (i == sd->fields.dim - 1 && sd->isNested())
-                    return (int)i;
-                Expression *e = (*elements)[i];
-                if (e)
-                {
-                    return (int)i;
-                }
-                break;
+                return (int)i;
             }
+            break;
         }
     }
     return -1;
@@ -4419,7 +4416,6 @@ DotIdExp *typeDotIdExp(Loc loc, Type *type, Identifier *ident)
 {
     return new DotIdExp(loc, new TypeExp(loc, type), ident);
 }
-
 
 /************************************************************/
 
