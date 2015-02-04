@@ -46,7 +46,7 @@ bool isArrayOpValid(Expression *e);
 Expression *createTypeInfoArray(Scope *sc, Expression *args[], size_t dim);
 Expression *expandVar(int result, VarDeclaration *v);
 TypeTuple *toArgTypes(Type *t);
-void checkAccess(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember);
+bool checkAccess(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember);
 bool checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad, size_t istart = 0);
 Symbol *toInitializer(AggregateDeclaration *ad);
 Expression *getTypeInfo(Type *t, Scope *sc);
@@ -3170,8 +3170,8 @@ Expression *IdentifierExp::semantic(Scope *sc)
             if (withsym)
             {
                 Declaration *d = s->isDeclaration();
-                if (d)
-                    checkAccess(loc, sc, NULL, d);
+                if (d && checkAccess(loc, sc, NULL, d))
+                    return new ErrorExp();
             }
 
             /* If f is really a function template,
@@ -4880,7 +4880,7 @@ Lagain:
             err |= checkPurity(sc, f);
             err |= checkSafety(sc, f);
             err |= checkNogc(sc, f);
-            checkAccess(cd, loc, sc, f);
+            err |= checkAccess(cd, loc, sc, f);
             if (err)
                 goto Lerr;
 
@@ -4984,7 +4984,7 @@ Lagain:
             err |= checkPurity(sc, f);
             err |= checkSafety(sc, f);
             err |= checkNogc(sc, f);
-            checkAccess(sd, loc, sc, f);
+            err |= checkAccess(sd, loc, sc, f);
             if (err)
                 goto Lerr;
 
@@ -5217,7 +5217,8 @@ Expression *VarExp::semantic(Scope *sc)
      * problems when instantiating imported templates passing private
      * variables as alias template parameters.
      */
-    //checkAccess(loc, sc, NULL, var);
+    //if (checkAccess(loc, sc, NULL, var))
+    //    return new ErrorExp();
 
     if (VarDeclaration *vd = var->isVarDeclaration())
     {
@@ -7239,19 +7240,20 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
              * aliases to private symbols are public.
              */
             if (Declaration *d = s->isDeclaration())
-                checkAccess(loc, sc, NULL, d);
+            {
+                if (checkAccess(loc, sc, NULL, d))
+                    return new ErrorExp();
+            }
 
             s = s->toAlias();
             checkDeprecated(sc, s);
 
-            EnumMember *em = s->isEnumMember();
-            if (em)
+            if (EnumMember *em = s->isEnumMember())
             {
                 return em->getVarExp(loc, sc);
             }
 
-            VarDeclaration *v = s->isVarDeclaration();
-            if (v)
+            if (VarDeclaration *v = s->isVarDeclaration())
             {
                 //printf("DotIdExp:: Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
                 if (v->inuse)
@@ -7271,7 +7273,8 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
                 {
                     e = new VarExp(loc, v);
                     if (eleft)
-                    {   e = new CommaExp(loc, eleft, e);
+                    {
+                        e = new CommaExp(loc, eleft, e);
                         e->type = v->type;
                     }
                 }
@@ -7279,8 +7282,7 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
                 return e->semantic(sc);
             }
 
-            FuncDeclaration *f = s->isFuncDeclaration();
-            if (f)
+            if (FuncDeclaration *f = s->isFuncDeclaration())
             {
                 //printf("it's a function\n");
                 if (!f->functionSemantic())
@@ -7312,23 +7314,22 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
                 }
                 return e;
             }
-            OverloadSet *o = s->isOverloadSet();
-            if (o)
-            {   //printf("'%s' is an overload set\n", o->toChars());
+            if (OverloadSet *o = s->isOverloadSet())
+            {
+                //printf("'%s' is an overload set\n", o->toChars());
                 return new OverExp(loc, o);
             }
 
-            Type *t = s->getType();
-            if (t)
+            if (Type *t = s->getType())
             {
                 return new TypeExp(loc, t);
             }
 
-            TupleDeclaration *tup = s->isTupleDeclaration();
-            if (tup)
+            if (TupleDeclaration *tup = s->isTupleDeclaration())
             {
                 if (eleft)
-                {   error("cannot have e.tuple");
+                {
+                    error("cannot have e.tuple");
                     return new ErrorExp();
                 }
                 e = new TupleExp(loc, tup);
@@ -7336,8 +7337,7 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
                 return e;
             }
 
-            ScopeDsymbol *sds = s->isScopeDsymbol();
-            if (sds)
+            if (ScopeDsymbol *sds = s->isScopeDsymbol())
             {
                 //printf("it's a ScopeDsymbol %s\n", ident->toChars());
                 e = new ScopeExp(loc, sds);
@@ -7347,11 +7347,10 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
                 return e;
             }
 
-            Import *imp = s->isImport();
-            if (imp)
+            if (Import *imp = s->isImport())
             {
-                ie = new ScopeExp(loc, imp->pkg);
-                return ie->semantic(sc);
+                e = new ScopeExp(loc, imp->pkg);
+                return e->semantic(sc);
             }
 
             // BUG: handle other cases like in IdentifierExp::semantic()
@@ -7571,7 +7570,8 @@ Expression *DotVarExp::semantic(Scope *sc)
             e = e->semantic(sc);
             return e;
         }
-        checkAccess(loc, sc, e1, var);
+        if (checkAccess(loc, sc, e1, var))
+            return new ErrorExp();
 
         VarDeclaration *v = var->isVarDeclaration();
         if (v && (v->isDataseg() || (v->storage_class & STCmanifest)))
@@ -7584,7 +7584,8 @@ Expression *DotVarExp::semantic(Scope *sc)
         if (v && v->isDataseg())     // fix bugzilla 8238
         {
             // (e1, v)
-            checkAccess(loc, sc, e1, v);
+            if (checkAccess(loc, sc, e1, v))
+                return new ErrorExp();
             Expression *e = new VarExp(loc, v);
             e = new CommaExp(loc, e1, e);
             e = e->semantic(sc);
@@ -8561,7 +8562,7 @@ Lagain:
         err |= checkPurity(sc, f);
         err |= checkSafety(sc, f);
         err |= checkNogc(sc, f);
-        checkAccess(loc, sc, ue->e1, f);
+        err |= checkAccess(loc, sc, ue->e1, f);
         if (err)
             return new ErrorExp();
 
@@ -8653,7 +8654,7 @@ Lagain:
                 err |= checkPurity(sc, f);
                 err |= checkSafety(sc, f);
                 err |= checkNogc(sc, f);
-                checkAccess(loc, sc, NULL, f);
+                err |= checkAccess(loc, sc, NULL, f);
                 if (err)
                     return new ErrorExp();
 
@@ -8698,7 +8699,7 @@ Lagain:
             err |= checkPurity(sc, f);
             err |= checkSafety(sc, f);
             err |= checkNogc(sc, f);
-            //checkAccess(loc, sc, NULL, f);    // necessary?
+            //err |= checkAccess(loc, sc, NULL, f);    // necessary?
             if (err)
                 return new ErrorExp();
 
@@ -8866,7 +8867,7 @@ Lagain:
             err |= checkPurity(sc, f);
             err |= checkSafety(sc, f);
             err |= checkNogc(sc, f);
-            //checkAccess(loc, sc, NULL, f);    // necessary?
+            //err |= checkAccess(loc, sc, NULL, f);    // necessary?
             if (err)
                 return new ErrorExp();
             if (!f->checkNestedReference(sc, loc))
@@ -8959,7 +8960,7 @@ Lagain:
         err |= checkPurity(sc, f);
         err |= checkSafety(sc, f);
         err |= checkNogc(sc, f);
-        checkAccess(loc, sc, NULL, f);
+        err |= checkAccess(loc, sc, NULL, f);
         if (err)
             return new ErrorExp();
         if (!f->checkNestedReference(sc, loc))

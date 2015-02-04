@@ -7507,7 +7507,8 @@ L1:
     }
     if (v && !v->isDataseg() && (v->storage_class & STCmanifest))
     {
-        checkAccess(e->loc, sc, NULL, v);
+        if (checkAccess(e->loc, sc, NULL, v))
+            return new ErrorExp();
         Expression *ve = new VarExp(e->loc, v);
         ve = ve->semantic(sc);
         return ve;
@@ -7610,7 +7611,8 @@ L1:
         }
         if (d->semanticRun == PASSinit && d->scope)
             d->semantic(d->scope);
-        checkAccess(e->loc, sc, e, d);
+        if (checkAccess(e->loc, sc, e, d))
+            return new ErrorExp();
         VarExp *ve = new VarExp(e->loc, d, 1);
         if (d->isVarDeclaration() && d->needThis())
             ve->type = d->type->addMod(e->type->mod);
@@ -7621,7 +7623,8 @@ L1:
     if (d->isDataseg() || unreal && d->isField())
     {
         // (e, d)
-        checkAccess(e->loc, sc, e, d);
+        if (checkAccess(e->loc, sc, e, d))
+            return new ErrorExp();
         Expression *ve = new VarExp(e->loc, d);
         e = unreal ? ve : new CommaExp(e->loc, e, ve);
         e = e->semantic(sc);
@@ -7635,7 +7638,8 @@ L1:
 
 #if 0
         // *(&e + offset)
-        checkAccess(e->loc, sc, e, d);
+        if (checkAccess(e->loc, sc, e, d))
+            return new ErrorExp();
         Expression *b = new AddrExp(e->loc, e);
         b->type = e->type->pointerTo();
         b = new AddExp(e->loc, b, new IntegerExp(e->loc, v->offset, Type::tint32));
@@ -8150,7 +8154,8 @@ L1:
     }
     if (v && !v->isDataseg() && (v->storage_class & STCmanifest))
     {
-        checkAccess(e->loc, sc, NULL, v);
+        if (checkAccess(e->loc, sc, NULL, v))
+            return new ErrorExp();
         Expression *ve = new VarExp(e->loc, v);
         ve = ve->semantic(sc);
         return ve;
@@ -8311,7 +8316,8 @@ L1:
         //printf("e = %s, d = %s\n", e->toChars(), d->toChars());
         if (d->semanticRun == PASSinit && d->scope)
             d->semantic(d->scope);
-        checkAccess(e->loc, sc, e, d);
+        if (checkAccess(e->loc, sc, e, d))
+            return new ErrorExp();
         VarExp *ve = new VarExp(e->loc, d, 1);
         if (d->isVarDeclaration() && d->needThis())
             ve->type = d->type->addMod(e->type->mod);
@@ -8322,7 +8328,8 @@ L1:
     if (d->isDataseg() || unreal && d->isField())
     {
         // (e, d)
-        checkAccess(e->loc, sc, e, d);
+        if (checkAccess(e->loc, sc, e, d))
+            return new ErrorExp();
         Expression *ve = new VarExp(e->loc, d);
         e = unreal ? ve : new CommaExp(e->loc, e, ve);
         e = e->semantic(sc);

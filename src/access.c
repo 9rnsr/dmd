@@ -162,7 +162,7 @@ static bool checkAccessX(
  * Do access check for member of this class, this class being the
  * type of the 'this' pointer used to access smember.
  */
-void checkAccess(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember)
+bool checkAccess(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember)
 {
     FuncDeclaration *f = sc->func;
     AggregateDeclaration *cdscope = sc->getStructClassScope();
@@ -180,7 +180,7 @@ void checkAccess(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember)
 #if LOG
         printf("not an aggregate member\n");
 #endif
-        return;                         // then it is accessible
+        return false;                   // then it is accessible
     }
 
     // BUG: should enable this check
@@ -226,7 +226,9 @@ void checkAccess(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember)
         ad->error(loc, "member %s is not accessible", smember->toChars());
         //printf("smember = %s %s, prot = %d, semanticRun = %d\n",
         //        smember->kind(), smember->toPrettyChars(), smember->prot(), smember->semanticRun);
+        return true;
     }
+    return false;
 }
 
 /****************************************
@@ -391,10 +393,10 @@ bool hasPrivateAccess(AggregateDeclaration *ad, Dsymbol *smember)
 /****************************************
  * Check access to d for expression e.d
  */
-void checkAccess(Loc loc, Scope *sc, Expression *e, Declaration *d)
+bool checkAccess(Loc loc, Scope *sc, Expression *e, Declaration *d)
 {
     if (sc->flags & SCOPEnoaccesscheck)
-        return;
+        return false;
 
 #if LOG
     if (e)
@@ -410,7 +412,7 @@ void checkAccess(Loc loc, Scope *sc, Expression *e, Declaration *d)
     if(d->isUnitTestDeclaration()) 
     {
         // Unittests are always accessible.
-        return;
+        return false;
     }
     if (!e)
     {
@@ -419,6 +421,7 @@ void checkAccess(Loc loc, Scope *sc, Expression *e, Declaration *d)
         {
             error(loc, "%s %s is not accessible from module %s",
                 d->kind(), d->toPrettyChars(), sc->module->toChars());
+            return true;
         }
     }
     else if (e->type->ty == Tclass)
@@ -431,12 +434,13 @@ void checkAccess(Loc loc, Scope *sc, Expression *e, Declaration *d)
             if (cd2)
                 cd = cd2;
         }
-        checkAccess(cd, loc, sc, d);
+        return checkAccess(cd, loc, sc, d);
     }
     else if (e->type->ty == Tstruct)
     {
         // Do access check
         StructDeclaration *cd = (StructDeclaration *)(((TypeStruct *)e->type)->sym);
-        checkAccess(cd, loc, sc, d);
+        return checkAccess(cd, loc, sc, d);
     }
+    return false;
 }
