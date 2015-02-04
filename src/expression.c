@@ -3658,6 +3658,7 @@ StringExp *NullExp::toStringExp()
         se->type = Type::tstring;
         return se;
     }
+    // should consider wstring and dstring?
     return NULL;
 }
 
