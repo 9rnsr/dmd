@@ -810,7 +810,7 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
                 key = key->semantic(sc);
                 key = resolveProperties(sc, key);
                 key = key->implicitCastTo(sc, taa->index);
-                if (!key->rvalue())
+                if (!key->checkValue())
                     return new ErrorExp();
 
                 e = new RemoveExp(loc, eleft, key);
@@ -1122,7 +1122,7 @@ bool arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
         }
         if (e->op == TOKtype)
         {
-            e->rvalue();
+            e->checkValue();
             t0 = Type::terror;
             continue;
         }
@@ -1781,7 +1781,8 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                     err = true;
                 }
             }
-            arg->rvalue();
+            if (!arg->checkValue())
+                arg = new ErrorExp();
             arg = arg->optimize(WANTvalue);
         }
         (*arguments)[i] =  arg;
@@ -2110,7 +2111,7 @@ void Expression::deprecation(const char *format, ...)
     va_end( ap );
 }
 
-bool Expression::rvalue()
+bool Expression::checkValue()
 {
     if (type && type->toBasetype()->ty == Tvoid)
     {
@@ -2119,8 +2120,8 @@ bool Expression::rvalue()
         print();
         halt();
 #endif
-        if (!global.gag)
-            type = Type::terror;
+        //if (!global.gag)
+        //    type = Type::terror;
         return false;
     }
     return true;
@@ -2343,7 +2344,7 @@ bool Expression::checkScalar()
         error("'%s' is not a scalar, it is a %s", toChars(), type->toChars());
         return false;
     }
-    return rvalue();
+    return checkValue();
 }
 
 bool Expression::checkNoBool()
@@ -2365,7 +2366,7 @@ bool Expression::checkIntegral()
         error("'%s' is not of integral type, it is a %s", toChars(), type->toChars());
         return false;
     }
-    return rvalue();
+    return checkValue();
 }
 
 bool Expression::checkArithmetic()
@@ -2376,7 +2377,7 @@ bool Expression::checkArithmetic()
         error("'%s' is not of arithmetic type, it is a %s", toChars(), type->toChars());
         return false;
     }
-    return rvalue();
+    return checkValue();
 }
 
 void Expression::checkDeprecated(Scope *sc, Dsymbol *s)
@@ -4485,7 +4486,7 @@ Expression *TypeExp::semantic(Scope *sc)
     return e;
 }
 
-bool TypeExp::rvalue()
+bool TypeExp::checkValue()
 {
     error("type %s has no value", toChars());
     return false;
@@ -4617,7 +4618,7 @@ TemplateExp::TemplateExp(Loc loc, TemplateDeclaration *td, FuncDeclaration *fd)
     this->fd = fd;
 }
 
-bool TemplateExp::rvalue()
+bool TemplateExp::checkValue()
 {
     error("template %s has no value", toChars());
     return false;
@@ -5404,7 +5405,7 @@ FuncExp::FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td)
     assert(fd->fbody);
 }
 
-bool FuncExp::rvalue()
+bool FuncExp::checkValue()
 {
     if (td)
     {
@@ -9247,7 +9248,7 @@ Expression *PtrExp::semantic(Scope *sc)
         case Terror:
             return new ErrorExp();
     }
-    if (!rvalue())
+    if (!checkValue())
         return new ErrorExp();
 
     return this;
@@ -11127,7 +11128,7 @@ Expression *AssignExp::semantic(Scope *sc)
 
         if (e2x->op == TOKerror)
             return e2x;
-        if (!e2x->rvalue())
+        if (!e2x->checkValue())
             return new ErrorExp();
         e2 = e2x;
     }
@@ -11382,7 +11383,7 @@ Expression *AssignExp::semantic(Scope *sc)
                     e2x = resolveProperties(sc, e2x);
                     if (e2x->op == TOKerror)
                         return e2x;
-                    if (!e2x->rvalue())
+                    if (!e2x->checkValue())
                         return new ErrorExp();
                 }
             }
@@ -11944,7 +11945,7 @@ Expression *CatAssignExp::semantic(Scope *sc)
         error("cannot append type %s to type %s", tb2->toChars(), tb1->toChars());
         return new ErrorExp();
     }
-    if (!e2->rvalue())
+    if (!e2->checkValue())
         return new ErrorExp();
 
     type = e1->type;
@@ -13339,7 +13340,9 @@ Expression *CmpExp::semantic(Scope *sc)
     }
     else
     {
-        if (!e1->rvalue() || !e2->rvalue())
+        bool r1 = e1->checkValue();
+        bool r2 = e2->checkValue();
+        if (!r1 || !r2)
             return new ErrorExp();
     }
 
