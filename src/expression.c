@@ -3726,26 +3726,19 @@ Expression *StringExp::semantic(Scope *sc)
 
     OutBuffer buffer;
     size_t newlen = 0;
-    const char *p;
-    size_t u;
-    unsigned c;
-
     switch (postfix)
     {
         case 'd':
-            for (u = 0; u < len;)
+            for (size_t u = 0; u < len;)
             {
-                p = utf_decodeChar((utf8_t *)string, len, &u, &c);
-                if (p)
+                unsigned c;
+                if (const char *p = utf_decodeChar((utf8_t *)string, len, &u, &c))
                 {
                     error("%s", p);
                     return new ErrorExp();
                 }
-                else
-                {
-                    buffer.write4(c);
-                    newlen++;
-                }
+                buffer.write4(c);
+                newlen++;
             }
             buffer.write4(0);
             string = buffer.extractData();
@@ -3756,21 +3749,18 @@ Expression *StringExp::semantic(Scope *sc)
             break;
 
         case 'w':
-            for (u = 0; u < len;)
+            for (size_t u = 0; u < len;)
             {
-                p = utf_decodeChar((utf8_t *)string, len, &u, &c);
-                if (p)
+                unsigned c;
+                if (const char *p = utf_decodeChar((utf8_t *)string, len, &u, &c))
                 {
                     error("%s", p);
                     return new ErrorExp();
                 }
-                else
-                {
-                    buffer.writeUTF16(c);
+                buffer.writeUTF16(c);
+                newlen++;
+                if (c >= 0x10000)
                     newlen++;
-                    if (c >= 0x10000)
-                        newlen++;
-                }
             }
             buffer.writeUTF16(0);
             string = buffer.extractData();
@@ -3787,9 +3777,7 @@ Expression *StringExp::semantic(Scope *sc)
             break;
     }
     type = type->semantic(loc, sc);
-    //type = type->immutableOf();
     //printf("type = %s\n", type->toChars());
-
     return this;
 }
 
