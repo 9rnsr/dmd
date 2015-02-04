@@ -2736,23 +2736,6 @@ Expression *Expression::addressOf()
     return e;
 }
 
-/******************************
- * If this is a reference, dereference it.
- */
-
-Expression *Expression::deref()
-{
-    //printf("Expression::deref()\n");
-    // type could be null if forward referencing an 'auto' variable
-    if (type && type->ty == Treference)
-    {
-        Expression *e = new PtrExp(loc, this);
-        e->type = ((TypeReference *)type)->next;
-        return e;
-    }
-    return this;
-}
-
 /********************************
  * Does this expression statically evaluate to a boolean true or false?
  */
@@ -3357,7 +3340,7 @@ Lagain:
         e = new VarExp(loc, v);
         e->type = type;
         e = e->semantic(sc);
-        return e->deref();
+        return e;
     }
     if (FuncLiteralDeclaration *fld = s->isFuncLiteralDeclaration())
     {
@@ -7278,7 +7261,6 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
                         e->type = v->type;
                     }
                 }
-                e = e->deref();
                 return e->semantic(sc);
             }
 
