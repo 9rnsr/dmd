@@ -5043,16 +5043,16 @@ Expression *NewAnonClassExp::semantic(Scope *sc)
     //printf("type: %s\n", type->toChars());
 #endif
 
-    Expression *d = new DeclarationExp(loc, cd);
+    Expression *de = new DeclarationExp(loc, cd);
     sc = sc->push();            // just create new scope
     sc->flags &= ~SCOPEctfe;    // temporary stop CTFE
-    d = d->semantic(sc);
+    de = de->semantic(sc);
     sc = sc->pop();
 
-    Expression *n = new NewExp(loc, thisexp, newargs, cd->type, arguments);
+    Expression *ne = new NewExp(loc, thisexp, newargs, cd->type, arguments);
 
-    Expression *c = new CommaExp(loc, d, n);
-    return c->semantic(sc);
+    Expression *ce = new CommaExp(loc, de, ne);
+    return ce->semantic(sc);
 }
 
 /********************** SymbolExp **************************************/
@@ -5081,9 +5081,9 @@ Expression *SymOffExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("SymOffExp::semantic('%s')\n", toChars());
 #endif
-    //var->semantic(sc);
-    if (!type)
-        type = var->type->pointerTo();
+    if (type)
+        return this;
+
     if (VarDeclaration *v = var->isVarDeclaration())
     {
         if (!v->checkNestedReference(sc, loc))
@@ -5094,6 +5094,7 @@ Expression *SymOffExp::semantic(Scope *sc)
         if (!f->checkNestedReference(sc, loc))
             return new ErrorExp();
     }
+    type = var->type->pointerTo();
     return this;
 }
 
