@@ -238,6 +238,8 @@ bool isNeedThisScope(Scope *sc, Declaration *d)
 
 bool checkRightThis(Scope *sc, Expression *e)
 {
+    if (e->op == TOKerror)
+        return true;
     if (e->op == TOKvar && e->type->ty != Terror)
     {
         VarExp *ve = (VarExp *)e;
@@ -2081,7 +2083,7 @@ void Expression::error(const char *format, ...)
 {
     if (op == TOKerror)
         return;
-    assert(type->ty != Terror);
+    assert(!type || type->ty != Terror);
 
     va_list ap;
     va_start(ap, format);
@@ -2093,7 +2095,7 @@ void Expression::warning(const char *format, ...)
 {
     if (op == TOKerror)
         return;
-    assert(type->ty != Terror);
+    assert(!type || type->ty != Terror);
 
     va_list ap;
     va_start(ap, format);
@@ -2105,7 +2107,7 @@ void Expression::deprecation(const char *format, ...)
 {
     if (op == TOKerror)
         return;
-    assert(type->ty != Terror);
+    assert(!type || type->ty != Terror);
 
     va_list ap;
     va_start(ap, format);
