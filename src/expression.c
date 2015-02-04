@@ -236,24 +236,6 @@ bool isNeedThisScope(Scope *sc, Declaration *d)
     return true;
 }
 
-bool checkRightThis(Scope *sc, Expression *e)
-{
-    if (e->op == TOKerror)
-        return true;
-    if (e->op == TOKvar && e->type->ty != Terror)
-    {
-        VarExp *ve = (VarExp *)e;
-        if (isNeedThisScope(sc, ve->var))
-        {
-            //printf("checkRightThis sc->intypeof = %d, ad = %p, func = %p, fdthis = %p\n",
-            //        sc->intypeof, sc->getStructClassScope(), func, fdthis);
-            e->error("need 'this' for '%s' of type '%s'", ve->var->toChars(), ve->var->type->toChars());
-            return true;
-        }
-    }
-    return false;
-}
-
 /***************************************
  * Pull out any properties.
  */
@@ -538,7 +520,7 @@ Expression *resolveProperties(Scope *sc, Expression *e)
     //printf("resolveProperties(%s)\n", e->toChars());
 
     e = resolvePropertiesX(sc, e);
-    if (checkRightThis(sc, e))
+    if (e->checkRightThis(sc))
         return new ErrorExp();
     return e;
 }
@@ -1307,36 +1289,6 @@ bool checkDefCtor(Loc loc, Type *t)
     return false;
 }
 
-/********************************************
- * Check that the postblit is callable if t is an array of structs.
- * Returns true if error happens.
- */
-bool Expression::checkPostblit(Scope *sc, Type *t)
-{
-    t = t->baseElemOf();
-    if (t->ty == Tstruct)
-    {
-        // Bugzilla 11395: Require TypeInfo generation for array concatenation
-        semanticTypeInfo(sc, t);
-
-        StructDeclaration *sd = ((TypeStruct *)t)->sym;
-        if (sd->postblit)
-        {
-            if (sd->postblit->storage_class & STCdisable)
-            {
-                sd->error(loc, "is not copyable because it is annotated with @disable");
-                return true;
-            }
-            bool err = false;
-            err |= checkPurity(sc, sd->postblit);
-            err |= checkSafety(sc, sd->postblit);
-            err |= checkNogc(sc, sd->postblit);
-            return err;
-        }
-    }
-    return false;
-}
-
 /*********************************************
  * If e is an instance of a struct, and that struct has a copy constructor,
  * rewrite e as:
@@ -1985,6 +1937,79 @@ void Expression::init()
     CTFEExp::gotoexp = new CTFEExp(TOKgoto);
 }
 
+/**********************************
+ * Combine e1 and e2 by using CommaExp if both are not NULL.
+ */
+Expression *Expression::combine(Expression *e1, Expression *e2)
+{
+    if (e1)
+    {
+        if (e2)
+        {
+            e1 = new CommaExp(e1->loc, e1, e2);
+            e1->type = e2->type;
+        }
+    }
+    else
+        e1 = e2;
+    return e1;
+}
+
+/**********************************
+ * If 'e' is a tree of commas, returns the leftmost expression
+ * by stripping off it from the tree. The remained part of the tree
+ * is returned via *pe0.
+ * Otherwise 'e' is directly returned and *pe0 is set to NULL.
+ */
+Expression *Expression::extractLast(Expression *e, Expression **pe0)
+{
+    if (e->op != TOKcomma)
+    {
+        *pe0 = NULL;
+        return e;
+    }
+
+    CommaExp *ce = (CommaExp *)e;
+    if (ce->e2->op != TOKcomma)
+    {
+        *pe0 = ce->e1;
+        return ce->e2;
+    }
+    else
+    {
+        *pe0 = e;
+
+        Expression **pce = &ce->e2;
+        while (((CommaExp *)(*pce))->e2->op == TOKcomma)
+        {
+            pce = &((CommaExp *)(*pce))->e2;
+        }
+        assert((*pce)->op == TOKcomma);
+        ce = (CommaExp *)(*pce);
+        *pce = ce->e1;
+
+        return ce->e2;
+    }
+}
+
+Expressions *Expression::arraySyntaxCopy(Expressions *exps)
+{
+    if (!exps)
+        return NULL;
+
+    Expressions *a = new Expressions();
+    a->setDim(exps->dim);
+    for (size_t i = 0; i < a->dim; i++)
+    {
+        Expression *e = (*exps)[i];
+        (*a)[i] = e ? e->syntaxCopy() : NULL;
+    }
+    return a;
+}
+
+/*********************************
+ * Constructor.
+ */
 Expression::Expression(Loc loc, TOK op, int size)
 {
     //printf("Expression::Expression(op = %d) this = %p\n", op, this);
@@ -1992,18 +2017,7 @@ Expression::Expression(Loc loc, TOK op, int size)
     this->op = op;
     this->size = (unsigned char)size;
     this->parens = 0;
-    type = NULL;
-}
-
-/*********************************
- * Does a deep copy, and all 'type' fields in the
- * returned expressions will be reset to NULL.
- */
-Expression *Expression::syntaxCopy()
-{
-    //printf("Expression::syntaxCopy()\n");
-    //print();
-    return copy();
+    this->type = NULL;
 }
 
 /*********************************
@@ -2023,6 +2037,17 @@ Expression *Expression::copy()
     Expression *e = (Expression *)mem.malloc(size);
     //printf("Expression::copy(op = %d) e = %p\n", op, e);
     return (Expression *)memcpy((void*)e, (void*)this, size);
+}
+
+/*********************************
+ * Does a deep copy, and all 'type' fields in the
+ * returned expressions will be reset to NULL.
+ */
+Expression *Expression::syntaxCopy()
+{
+    //printf("Expression::syntaxCopy()\n");
+    //print();
+    return copy();
 }
 
 /**************************
@@ -2113,77 +2138,6 @@ void Expression::deprecation(const char *format, ...)
     va_start(ap, format);
     ::vdeprecation(loc, format, ap);
     va_end( ap );
-}
-
-bool Expression::checkValue()
-{
-    if (type && type->toBasetype()->ty == Tvoid)
-    {
-        error("expression %s is void and has no value", toChars());
-#if 0
-        print();
-        halt();
-#endif
-        //if (!global.gag)
-        //    type = Type::terror;
-        return true;
-    }
-    return false;
-}
-
-/**********************************
- * Combine e1 and e2 by using CommaExp if both are not NULL.
- */
-Expression *Expression::combine(Expression *e1, Expression *e2)
-{
-    if (e1)
-    {
-        if (e2)
-        {
-            e1 = new CommaExp(e1->loc, e1, e2);
-            e1->type = e2->type;
-        }
-    }
-    else
-        e1 = e2;
-    return e1;
-}
-
-/**********************************
- * If 'e' is a tree of commas, returns the leftmost expression
- * by stripping off it from the tree. The remained part of the tree
- * is returned via *pe0.
- * Otherwise 'e' is directly returned and *pe0 is set to NULL.
- */
-Expression *Expression::extractLast(Expression *e, Expression **pe0)
-{
-    if (e->op != TOKcomma)
-    {
-        *pe0 = NULL;
-        return e;
-    }
-
-    CommaExp *ce = (CommaExp *)e;
-    if (ce->e2->op != TOKcomma)
-    {
-        *pe0 = ce->e1;
-        return ce->e2;
-    }
-    else
-    {
-        *pe0 = e;
-
-        Expression **pce = &ce->e2;
-        while (((CommaExp *)(*pce))->e2->op == TOKcomma)
-        {
-            pce = &((CommaExp *)(*pce))->e2;
-        }
-        assert((*pce)->op == TOKcomma);
-        ce = (CommaExp *)(*pce);
-        *pce = ce->e1;
-
-        return ce->e2;
-    }
 }
 
 /**********************************
@@ -2305,40 +2259,20 @@ Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
     return toLvalue(sc, e);
 }
 
-/*******************************
- * Check whether the expression allows RMW operations, error with rmw operator diagnostic if not.
- * ex is the RHS expression, or NULL if ++/-- is used (for diagnostics)
- */
-bool Expression::checkReadModifyWrite(TOK rmwOp, Expression *ex)
+bool Expression::checkValue()
 {
-    //printf("Expression::checkReadModifyWrite() %s %s", toChars(), ex ? ex->toChars() : "");
-    if (!type || !type->isShared())
-        return false;
-
-    // atomicOp uses opAssign (+=/-=) rather than opOp (++/--) for the CT string literal.
-    switch (rmwOp)
+    if (type && type->toBasetype()->ty == Tvoid)
     {
-        case TOKplusplus:
-        case TOKpreplusplus:
-            rmwOp = TOKaddass;
-            break;
-
-        case TOKminusminus:
-        case TOKpreminusminus:
-            rmwOp = TOKminass;
-            break;
-
-        default:
-            break;
+        error("expression %s is void and has no value", toChars());
+#if 0
+        print();
+        halt();
+#endif
+        //if (!global.gag)
+        //    type = Type::terror;
+        return true;
     }
-
-    deprecation("read-modify-write operations are not allowed for shared variables. "
-                "Use core.atomic.atomicOp!\"%s\"(%s, %s) instead.",
-                Token::tochars[rmwOp], toChars(), ex ? ex->toChars() : "1");
     return false;
-
-    // note: enable when deprecation becomes an error.
-    // return true;
 }
 
 bool Expression::checkScalar()
@@ -2666,6 +2600,90 @@ bool Expression::checkNogc(Scope *sc, FuncDeclaration *f)
     return false;
 }
 
+/********************************************
+ * Check that the postblit is callable if t is an array of structs.
+ * Returns true if error happens.
+ */
+bool Expression::checkPostblit(Scope *sc, Type *t)
+{
+    t = t->baseElemOf();
+    if (t->ty == Tstruct)
+    {
+        // Bugzilla 11395: Require TypeInfo generation for array concatenation
+        semanticTypeInfo(sc, t);
+
+        StructDeclaration *sd = ((TypeStruct *)t)->sym;
+        if (sd->postblit)
+        {
+            if (sd->postblit->storage_class & STCdisable)
+            {
+                sd->error(loc, "is not copyable because it is annotated with @disable");
+                return true;
+            }
+            bool err = false;
+            err |= checkPurity(sc, sd->postblit);
+            err |= checkSafety(sc, sd->postblit);
+            err |= checkNogc(sc, sd->postblit);
+            return err;
+        }
+    }
+    return false;
+}
+
+/*******************************
+ * Check whether the expression allows RMW operations, error with rmw operator diagnostic if not.
+ * ex is the RHS expression, or NULL if ++/-- is used (for diagnostics)
+ */
+bool Expression::checkReadModifyWrite(TOK rmwOp, Expression *ex)
+{
+    //printf("Expression::checkReadModifyWrite() %s %s", toChars(), ex ? ex->toChars() : "");
+    if (!type || !type->isShared())
+        return false;
+
+    // atomicOp uses opAssign (+=/-=) rather than opOp (++/--) for the CT string literal.
+    switch (rmwOp)
+    {
+        case TOKplusplus:
+        case TOKpreplusplus:
+            rmwOp = TOKaddass;
+            break;
+
+        case TOKminusminus:
+        case TOKpreminusminus:
+            rmwOp = TOKminass;
+            break;
+
+        default:
+            break;
+    }
+
+    deprecation("read-modify-write operations are not allowed for shared variables. "
+                "Use core.atomic.atomicOp!\"%s\"(%s, %s) instead.",
+                Token::tochars[rmwOp], toChars(), ex ? ex->toChars() : "1");
+    return false;
+
+    // note: enable when deprecation becomes an error.
+    // return true;
+}
+
+bool Expression::checkRightThis(Scope *sc)
+{
+    if (op == TOKerror)
+        return true;
+    if (op == TOKvar && type->ty != Terror)
+    {
+        VarExp *ve = (VarExp *)this;
+        if (isNeedThisScope(sc, ve->var))
+        {
+            //printf("checkRightThis sc->intypeof = %d, ad = %p, func = %p, fdthis = %p\n",
+            //        sc->intypeof, sc->getStructClassScope(), func, fdthis);
+            error("need 'this' for '%s' of type '%s'", ve->var->toChars(), ve->var->type->toChars());
+            return true;
+        }
+    }
+    return false;
+}
+
 /*****************************
  * Check that expression can be tested for true or false.
  */
@@ -2752,21 +2770,6 @@ bool Expression::isBool(bool result)
 Expression *Expression::resolveLoc(Loc loc, Scope *sc)
 {
     return this;
-}
-
-Expressions *Expression::arraySyntaxCopy(Expressions *exps)
-{
-    if (!exps)
-        return NULL;
-
-    Expressions *a = new Expressions();
-    a->setDim(exps->dim);
-    for (size_t i = 0; i < a->dim; i++)
-    {
-        Expression *e = (*exps)[i];
-        (*a)[i] = e ? e->syntaxCopy() : NULL;
-    }
-    return a;
 }
 
 /************************************************
@@ -8514,7 +8517,7 @@ Lagain:
         }
         else
         {
-            if (checkRightThis(sc, ue1old))
+            if (ue1old->checkRightThis(sc))
                 return new ErrorExp();
             if (e1->op == TOKdotvar)
             {
@@ -10114,18 +10117,6 @@ Lagain:
     return this;
 }
 
-int SliceExp::checkModifiable(Scope *sc, int flag)
-{
-    //printf("SliceExp::checkModifiable %s\n", toChars());
-    if (e1->type->ty == Tsarray ||
-        (e1->op == TOKindex && e1->type->ty != Tarray) ||
-        e1->op == TOKslice)
-    {
-        return e1->checkModifiable(sc, flag);
-    }
-    return 1;
-}
-
 bool SliceExp::isLvalue()
 {
     /* slice expression is rvalue in default, but
@@ -10139,6 +10130,18 @@ Expression *SliceExp::toLvalue(Scope *sc, Expression *e)
     //printf("SliceExp::toLvalue(%s) type = %s\n", toChars(), type ? type->toChars() : NULL);
     return (type && type->toBasetype()->ty == Tsarray)
             ? this : Expression::toLvalue(sc, e);
+}
+
+int SliceExp::checkModifiable(Scope *sc, int flag)
+{
+    //printf("SliceExp::checkModifiable %s\n", toChars());
+    if (e1->type->ty == Tsarray ||
+        (e1->op == TOKindex && e1->type->ty != Tarray) ||
+        e1->op == TOKslice)
+    {
+        return e1->checkModifiable(sc, flag);
+    }
+    return 1;
 }
 
 Expression *SliceExp::modifiableLvalue(Scope *sc, Expression *e)
@@ -11104,7 +11107,7 @@ Expression *AssignExp::semantic(Scope *sc)
          */
         if (Expression *e = resolvePropertiesX(sc, e1x, e2))
             return e;
-        if (checkRightThis(sc, e1x))
+        if (e1x->checkRightThis(sc))
             return new ErrorExp();
         e1 = e1x;
         assert(e1->type);

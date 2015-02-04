@@ -122,8 +122,15 @@ public:
     unsigned char size;         // # of bytes in Expression so we can copy() it
     unsigned char parens;       // if this is a parenthesized expression
 
-    Expression(Loc loc, TOK op, int size);
     static void init();
+    // creates a single expression which is effectively (e1, e2)
+    // this new expression does not necessarily need to have valid D source code representation,
+    // for example, it may include declaration expressions
+    static Expression *combine(Expression *e1, Expression *e2);
+    static Expression *extractLast(Expression *e, Expression **pe0);
+    static Expressions *arraySyntaxCopy(Expressions *exps);
+
+    Expression(Loc loc, TOK op, int size);
     Expression *copy();
     virtual Expression *syntaxCopy();
     virtual Expression *semantic(Scope *sc);
@@ -138,13 +145,6 @@ public:
     void warning(const char *format, ...);
     void deprecation(const char *format, ...);
 
-    // creates a single expression which is effectively (e1, e2)
-    // this new expression does not necessarily need to have valid D source code representation,
-    // for example, it may include declaration expressions
-    static Expression *combine(Expression *e1, Expression *e2);
-    static Expression *extractLast(Expression *e, Expression **pe0);
-    static Expressions *arraySyntaxCopy(Expressions *exps);
-
     virtual dinteger_t toInteger();
     virtual uinteger_t toUInteger();
     virtual real_t toReal();
@@ -153,6 +153,7 @@ public:
     virtual StringExp *toStringExp();
     virtual bool isLvalue();
     virtual Expression *toLvalue(Scope *sc, Expression *e);
+    virtual int checkModifiable(Scope *sc, int flag = 0);
     virtual Expression *modifiableLvalue(Scope *sc, Expression *e);
     Expression *implicitCastTo(Scope *sc, Type *t)
     {
@@ -172,14 +173,14 @@ public:
     bool checkNoBool();
     bool checkIntegral();
     bool checkArithmetic();
-    bool checkReadModifyWrite(TOK rmwOp, Expression *ex = NULL);
     void checkDeprecated(Scope *sc, Dsymbol *s);
     bool checkPurity(Scope *sc, FuncDeclaration *f);
     bool checkPurity(Scope *sc, VarDeclaration *v);
     bool checkSafety(Scope *sc, FuncDeclaration *f);
     bool checkNogc(Scope *sc, FuncDeclaration *f);
     bool checkPostblit(Scope *sc, Type *t);
-    virtual int checkModifiable(Scope *sc, int flag = 0);
+    bool checkRightThis(Scope *sc);
+    bool checkReadModifyWrite(TOK rmwOp, Expression *ex = NULL);
     virtual Expression *checkToBoolean(Scope *sc);
     virtual Expression *addDtorHook(Scope *sc);
     Expression *addressOf();
