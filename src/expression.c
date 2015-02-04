@@ -2772,7 +2772,6 @@ Expressions *Expression::arraySyntaxCopy(Expressions *exps)
  * Hence, if expression returns a temp that needs a destructor,
  * make sure and create a VarDeclaration for that temp.
  */
-
 Expression *Expression::addDtorHook(Scope *sc)
 {
     return this;
@@ -2965,7 +2964,6 @@ complex_t RealExp::toComplex()
  * Regard NaN's as equivalent.
  * Regard +0 and -0 as different.
  */
-
 int RealEquals(real_t x1, real_t x2)
 {
     return (Port::isNan(x1) && Port::isNan(x2)) ||
@@ -3496,21 +3494,22 @@ Expression *ThisExp::semantic(Scope *sc)
         }
     }
     if (!fd)
-        goto Lerr;
-
-    assert(fd->vthis);
-    var = fd->vthis;
-    assert(var->parent);
-    type = var->type;
-    if (!var->isVarDeclaration()->checkNestedReference(sc, loc))
+    {
+        error("'this' is only defined in non-static member functions, not %s", sc->parent->toChars());
         return new ErrorExp();
+    }
+
+    VarDeclaration *v = fd->vthis;
+    assert(v && v->parent);
+
+    if (!v->checkNestedReference(sc, loc))
+        return new ErrorExp();
+
+    var = v;
+    type = var->type;
     if (!sc->intypeof)
         sc->callSuper |= CSXthis;
     return this;
-
-Lerr:
-    error("'this' is only defined in non-static member functions, not %s", sc->parent->toChars());
-    return new ErrorExp();
 }
 
 bool ThisExp::isBool(bool result)
@@ -3551,8 +3550,6 @@ Expression *SuperExp::semantic(Scope *sc)
         return this;
 
     FuncDeclaration *fd = hasThis(sc);
-    ClassDeclaration *cd;
-    Dsymbol *s;
 
     /* Special case for typeof(this) and typeof(super) since both
      * should work even if they are not inside a non-static member function
@@ -3560,14 +3557,14 @@ Expression *SuperExp::semantic(Scope *sc)
     if (!fd && sc->intypeof == 1)
     {
         // Find enclosing class
-        for (s = sc->getStructClassScope(); 1; s = s->parent)
+        for (Dsymbol *s = sc->getStructClassScope(); 1; s = s->parent)
         {
             if (!s)
             {
                 error("%s is not in a class scope", toChars());
                 return new ErrorExp();
             }
-            cd = s->isClassDeclaration();
+            ClassDeclaration *cd = s->isClassDeclaration();
             if (cd)
             {
                 cd = cd->baseClass;
@@ -3582,42 +3579,34 @@ Expression *SuperExp::semantic(Scope *sc)
         }
     }
     if (!fd)
-        goto Lerr;
+    {
+Lerr:
+        error("'super' is only allowed in non-static class member functions");
+        return new ErrorExp();
+    }
 
-    var = fd->vthis;
-    assert(var && var->parent);
+    VarDeclaration *v = fd->vthis;
+    assert(v && v->parent);
 
-    s = fd->toParent();
-    while (s && s->isTemplateInstance())
-        s = s->toParent();
-    if (s->isTemplateDeclaration()) // allow inside template constraint
-        s = s->toParent();
+    Dsymbol *s = fd->toParent2();
     assert(s);
-    cd = s->isClassDeclaration();
+    ClassDeclaration *cd = s->isClassDeclaration();
 //printf("parent is %s %s\n", fd->toParent()->kind(), fd->toParent()->toChars());
     if (!cd)
         goto Lerr;
     if (!cd->baseClass)
     {
         error("no base class for %s", cd->toChars());
-        type = var->type;
+        return new ErrorExp();
     }
-    else
-    {
-        type = cd->baseClass->type;
-        type = type->castMod(var->type->mod);
-    }
-
-    if (!var->isVarDeclaration()->checkNestedReference(sc, loc))
+    if (!v->checkNestedReference(sc, loc))
         return new ErrorExp();
 
+    var = v;
+    type = cd->baseClass->type->castMod(v->type->mod);
     if (!sc->intypeof)
         sc->callSuper |= CSXsuper;
     return this;
-
-Lerr:
-    error("'super' is only allowed in non-static class member functions");
-    return new ErrorExp();
 }
 
 /******************************** NullExp **************************/
