@@ -5069,9 +5069,11 @@ SymOffExp::SymOffExp(Loc loc, Declaration *var, dinteger_t offset, bool hasOverl
     : SymbolExp(loc, TOKsymoff, sizeof(SymOffExp), var, hasOverloads)
 {
     this->offset = offset;
+#if 1   // todo
     VarDeclaration *v = var->isVarDeclaration();
     if (v && v->needThis())
         error("need 'this' for address of %s", v->toChars());
+#endif
 }
 
 Expression *SymOffExp::semantic(Scope *sc)
@@ -5273,7 +5275,8 @@ TupleExp::TupleExp(Loc loc, TupleDeclaration *tup)
 
     this->exps->reserve(tup->objects->dim);
     for (size_t i = 0; i < tup->objects->dim; i++)
-    {   RootObject *o = (*tup->objects)[i];
+    {
+        RootObject *o = (*tup->objects)[i];
         if (Dsymbol *s = getDsymbol(o))
         {
             /* If tuple element represents a symbol, translate to DsymbolExp
@@ -5374,16 +5377,6 @@ FuncExp::FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td)
     this->td = td;
     tok = fd->tok;  // save original kind of function/delegate/(infer)
     assert(fd->fbody);
-}
-
-bool FuncExp::checkValue()
-{
-    if (td)
-    {
-        error("template lambda has no value");
-        return true;
-    }
-    return false;
 }
 
 void FuncExp::genIdent(Scope *sc)
@@ -5781,6 +5774,16 @@ Expression *FuncExp::semantic(Scope *sc, Expressions *arguments)
 char *FuncExp::toChars()
 {
     return fd->toChars();
+}
+
+bool FuncExp::checkValue()
+{
+    if (td)
+    {
+        error("template lambda has no value");
+        return true;
+    }
+    return false;
 }
 
 /******************************** DeclarationExp **************************/

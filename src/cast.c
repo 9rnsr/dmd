@@ -3119,34 +3119,36 @@ Lt2:
 
 Expression *typeCombine(BinExp *be, Scope *sc)
 {
-    Type *t1 = be->e1->type->toBasetype();
-    Type *t2 = be->e2->type->toBasetype();
-
     if (be->op == TOKmin || be->op == TOKadd)
     {
-        // struct+struct, and class+class are errors
+        Type *t1 = be->e1->type->toBasetype();
+        Type *t2 = be->e2->type->toBasetype();
+
+        // struct +/- struct, class +/- class, and AA +/- AA are errors.
         if (t1->ty == Tstruct && t2->ty == Tstruct)
-            goto Lerror;
-        else if (t1->ty == Tclass && t2->ty == Tclass)
-            goto Lerror;
-        else if (t1->ty == Taarray && t2->ty == Taarray)
-            goto Lerror;
+            return be->incompatibleTypes();
+        if (t1->ty == Tclass && t2->ty == Tclass)
+            return be->incompatibleTypes();
+        if (t1->ty == Taarray && t2->ty == Taarray)
+            return be->incompatibleTypes();
     }
 
-    if (!typeMerge(sc, be, &be->type, &be->e1, &be->e2))
-        goto Lerror;
+    Type *type = be->type;
+    Expression *e1x = be->e1;
+    Expression *e2x = be->e2;
+    if (!typeMerge(sc, be, &type, &e1x, &e2x))
+        return be->incompatibleTypes();
     // If the types have no value, return an error
-    if (be->e1->op == TOKerror)
-        return be->e1;
-    if (be->e2->op == TOKerror)
-        return be->e2;
-    return NULL;
+    if (e1x->op == TOKerror)
+        return e1x;
+    if (e2x->op == TOKerror)
+        return e2x;
 
-Lerror:
-    Expression *ex = be->incompatibleTypes();
-    if (ex->op == TOKerror)
-        return ex;
-    return new ErrorExp();
+    assert(type->ty != Terror);
+    be->type = type;
+    be->e1 = e1x;
+    be->e2 = e2x;
+    return NULL;
 }
 
 /***********************************
