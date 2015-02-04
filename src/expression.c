@@ -246,10 +246,10 @@ bool checkRightThis(Scope *sc, Expression *e)
             //printf("checkRightThis sc->intypeof = %d, ad = %p, func = %p, fdthis = %p\n",
             //        sc->intypeof, sc->getStructClassScope(), func, fdthis);
             e->error("need 'this' for '%s' of type '%s'", ve->var->toChars(), ve->var->type->toChars());
-            return false;
+            return true;
         }
     }
-    return true;
+    return false;
 }
 
 /***************************************
@@ -535,7 +535,7 @@ Expression *resolveProperties(Scope *sc, Expression *e)
     //printf("resolveProperties(%s)\n", e->toChars());
 
     e = resolvePropertiesX(sc, e);
-    if (!checkRightThis(sc, e))
+    if (checkRightThis(sc, e))
         return new ErrorExp();
     return e;
 }
@@ -8545,7 +8545,7 @@ Lagain:
         }
         else
         {
-            if (!checkRightThis(sc, ue1old))
+            if (checkRightThis(sc, ue1old))
                 return new ErrorExp();
             if (e1->op == TOKdotvar)
             {
@@ -11115,7 +11115,7 @@ Expression *AssignExp::semantic(Scope *sc)
          */
         if (Expression *e = resolvePropertiesX(sc, e1x, e2))
             return e;
-        if (!checkRightThis(sc, e1x))
+        if (checkRightThis(sc, e1x))
             return new ErrorExp();
         e1 = e1x;
         assert(e1->type);
