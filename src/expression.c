@@ -2279,6 +2279,7 @@ bool Expression::checkScalar()
 {
     if (op == TOKerror)
         return true;
+    //if (type->ty == Terror) printf("[%s] %s\n", loc.toChars(), toChars());
     assert(type->ty != Terror);
     if (!type->isscalar())
     {
@@ -3334,6 +3335,8 @@ Lagain:
             e = e->semantic(sc);
             return e;
         }
+        if (v->type->ty == Terror)
+            return new ErrorExp();
 
         Expression *e = new VarExp(loc, v);
         e->type = type;
@@ -6658,6 +6661,9 @@ Expression *BinAssignExp::semantic(Scope *sc)
     e1 = e1->semantic(sc);
     e1 = e1->optimize(WANTvalue);
     e1 = e1->modifiableLvalue(sc, e1);
+    if (e1->op == TOKerror)
+        return e1;
+
     type = e1->type;
     if (checkScalar())
         return new ErrorExp();
@@ -6668,32 +6674,24 @@ Expression *BinAssignExp::semantic(Scope *sc)
     int shift = (op == TOKshlass || op == TOKshrass || op == TOKushrass);
 
     if (bitwise && type->toBasetype()->ty == Tbool)
-         e2 = e2->implicitCastTo(sc, type);
-    else
     {
-    //printf("L%d e1 - %s\n", __LINE__, e1->toChars());
-        if (e1->op == TOKerror)
-            return e1;
+        e2 = e2->implicitCastTo(sc, type);
         if (e2->op == TOKerror)
-            return e1;
-
-    //printf("L%d\n", __LINE__);
-        if (checkNoBool())
-            return new ErrorExp();
+            return e2;
     }
+    else if (checkNoBool())
+        return new ErrorExp();
 
     if ((op == TOKaddass || op == TOKminass) &&
         e1->type->toBasetype()->ty == Tpointer &&
         e2->type->toBasetype()->isintegral())
+    {
         return scaleFactor(this, sc);
+    }
 
     if (Expression *e = typeCombine(this, sc))
         return e;
 
-    //if (e1->op == TOKerror)
-    //    return e1;
-    //if (e2->op == TOKerror)
-    //    return e2;
     if (arith && checkArithmetic())
         return new ErrorExp();
     if ((bitwise || shift) && checkIntegral())
@@ -6701,6 +6699,8 @@ Expression *BinAssignExp::semantic(Scope *sc)
     if (shift)
     {
         e2 = e2->castTo(sc, Type::tshiftcnt);
+        if (e2->op == TOKerror)
+            return e2;
     }
 
     // vectors
@@ -6719,9 +6719,6 @@ Expression *BinAssignExp::semantic(Scope *sc)
 
     if (op == TOKmodass && isvector)
         return incompatibleTypes();
-
-    if (e1->op == TOKerror || e2->op == TOKerror)
-        return new ErrorExp();
 
     Expression *e = checkComplexOpAssign(sc);
     if (e->op == TOKerror)
