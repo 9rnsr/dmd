@@ -2667,7 +2667,6 @@ bool Expression::checkNogc(Scope *sc, FuncDeclaration *f)
 /*****************************
  * Check that expression can be tested for true or false.
  */
-
 Expression *Expression::checkToBoolean(Scope *sc)
 {
     // Default is 'yes' - do nothing
@@ -2724,12 +2723,13 @@ Lagain:
 /******************************
  * Take address of expression.
  */
-
 Expression *Expression::addressOf()
 {
     //printf("Expression::addressOf()\n");
+    if (op == TOKerror)
+        return this;
 #ifdef DEBUG
-    assert(op == TOKerror || isLvalue());
+    assert(type && isLvalue());
 #endif
     Expression *e = new AddrExp(loc, this);
     e->type = type->pointerTo();
@@ -13733,10 +13733,16 @@ bool CondExp::isLvalue()
 Expression *CondExp::toLvalue(Scope *sc, Expression *ex)
 {
     // convert (econd ? e1 : e2) to *(econd ? &e1 : &e2)
-    CondExp *e = (CondExp *)copy();
-    e->e1 = e1->toLvalue(sc, NULL)->addressOf();
-    e->e2 = e2->toLvalue(sc, NULL)->addressOf();
-    return new PtrExp(loc, e, type);
+    Expression *e1x = e1->toLvalue(sc, NULL)->addressOf();
+    Expression *e2x = e2->toLvalue(sc, NULL)->addressOf();
+    if (e1x->op == TOKerror)
+        return e1x;
+    if (e2x->op == TOKerror)
+        return e2x;
+    CondExp *ce = (CondExp *)copy();
+    ce->e1 = e1x;
+    ce->e2 = e2x;
+    return new PtrExp(loc, ce, type);
 }
 
 int CondExp::checkModifiable(Scope *sc, int flag)

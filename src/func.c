@@ -3912,14 +3912,14 @@ Expression *addInvariant(Scope *sc, AggregateDeclaration *ad, VarDeclaration *vt
     #endif
 
         // Call invariant virtually
-        Expression *v = new ThisExp(Loc());
-        v->type = vthis->type;
+        Expression *ve = new ThisExp(Loc());
+        ve->type = vthis->type;
         if (ad->isStructDeclaration())
-            v = v->addressOf();
+            ve = ve->addressOf();
         Expression *se = new StringExp(Loc(), (char *)"null this");
         se = se->semantic(sc);
         se->type = Type::tchar->arrayOf();
-        e = new AssertExp(Loc(), v, se);
+        e = new AssertExp(Loc(), ve, se);
     }
     return e;
 }
