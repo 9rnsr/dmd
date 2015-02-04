@@ -177,7 +177,7 @@ public:
     bool checkPurity(Scope *sc, FuncDeclaration *f);
     bool checkPurity(Scope *sc, VarDeclaration *v);
     bool checkSafety(Scope *sc, FuncDeclaration *f);
-    void checkNogc(Scope *sc, FuncDeclaration *f);
+    bool checkNogc(Scope *sc, FuncDeclaration *f);
     bool checkPostblit(Scope *sc, Type *t);
     virtual int checkModifiable(Scope *sc, int flag = 0);
     virtual Expression *checkToBoolean(Scope *sc);
