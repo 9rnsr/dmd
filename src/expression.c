@@ -573,10 +573,10 @@ bool checkPropertyCall(Expression *e, Expression *emsg)
         if (!tf->isproperty && global.params.enforcePropertySyntax)
         {
             ce->e1->error("not a property %s", emsg->toChars());
-            return false;
+            return true;
         }
     }
-    return true;
+    return false;
 }
 
 /******************************
@@ -911,7 +911,7 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
         if (ex && (e = e->trySemantic(sc)) == NULL)
         {
             // if fallback setter exists, gag errors
-            if (!checkPropertyCall(ex, e1))
+            if (checkPropertyCall(ex, e1))
                 return new ErrorExp();
             e = new AssignExp(loc, ex, e2);
             e = e->semantic(sc);
@@ -922,7 +922,7 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
             e = e->semantic(sc);
             if (e->op == TOKerror)
                 return e;
-            if (!checkPropertyCall(e, e1))
+            if (checkPropertyCall(e, e1))
                 return new ErrorExp();
         }
         return e;
@@ -935,7 +935,7 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
         e = e->semantic(sc);
         if (e->op == TOKerror)
             return e;
-        if (!checkPropertyCall(e, e1))
+        if (checkPropertyCall(e, e1))
             return new ErrorExp();
         return e;
     }
