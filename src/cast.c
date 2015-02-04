@@ -195,7 +195,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                 e->toChars(), e->type->toChars(), t->toChars());
         #endif
             //static int nest; if (++nest == 10) halt();
-            if (t == Type::terror)
+            if (t->ty == Terror)
                 return;
             if (!e->type)
             {

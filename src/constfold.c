@@ -1302,7 +1302,7 @@ L1:
     }
     else
     {
-        if (type != Type::terror)
+        if (type->ty != Terror)
             error(loc, "cannot cast %s to %s", e1->type->toChars(), type->toChars());
         new(&ue) ErrorExp();
     }

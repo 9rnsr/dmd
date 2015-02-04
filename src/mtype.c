@@ -2112,7 +2112,7 @@ Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
         Scope sc;
         e = e->semantic(&sc);
     }
-    else if (flag && this != Type::terror)
+    else if (flag && ty != Terror)
     {
         return NULL;
     }
@@ -2123,7 +2123,8 @@ Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
             s = toDsymbol(NULL);
         if (s)
             s = s->search_correct(ident);
-        if (this != Type::terror)
+        assert(ty != Terror);
+        //if (ty != Terror)
         {
             if (s)
                 error(loc, "no property '%s' for type '%s', did you mean '%s'?", ident->toChars(), toChars(), s->toChars());

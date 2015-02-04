@@ -6587,8 +6587,8 @@ Expression *BinExp::checkComplexOpAssign(Scope *sc)
 
 Expression *BinExp::incompatibleTypes()
 {
-    assert(e1->op != TOKerror && e1->type->toBasetype() != Type::terror);
-    assert(e2->op != TOKerror && e2->type->toBasetype() != Type::terror);
+    assert(e1->op != TOKerror);
+    assert(e2->op != TOKerror);
 
     // CondExp uses 'a ? b : c' but we're comparing 'b : c'
     TOK thisOp = (op == TOKquestion) ? TOKcolon : op;
@@ -9402,7 +9402,7 @@ Expression *NotExp::semantic(Scope *sc)
         return e;
     e1 = resolveProperties(sc, e1);
     e1 = e1->checkToBoolean(sc);
-    if (e1->type == Type::terror)
+    if (e1->op == TOKerror)
         return e1;
 
     // Bugzilla 13910: Today NotExp can take an array as its operand.
@@ -9431,7 +9431,7 @@ Expression *BoolExp::semantic(Scope *sc)
         return e;
     e1 = resolveProperties(sc, e1);
     e1 = e1->checkToBoolean(sc);
-    if (e1->type == Type::terror)
+    if (e1->op == TOKerror)
         return e1;
 
     type = Type::tbool;
@@ -9602,7 +9602,7 @@ Expression *CastExp::semantic(Scope *sc)
         }
         else
             to = to->semantic(loc, sc);
-        if (to == Type::terror)
+        if (to->ty == Terror)
             return new ErrorExp();
         if (to->ty == Ttuple)
         {
@@ -9965,7 +9965,7 @@ Lagain:
             return new ErrorExp();
         }
     }
-    else if (t1b == Type::terror)
+    else if (t1b->ty == Terror)
     {
         return new ErrorExp();
     }
@@ -10008,11 +10008,10 @@ Lagain:
     }
     if (sc != scx)
         sc = sc->pop();
-    if (lwr && lwr->type == Type::terror ||
-        upr && upr->type == Type::terror)
-    {
-        return new ErrorExp();
-    }
+    if (lwr && lwr->op == TOKerror)
+        return lwr;
+    if (upr && upr->op == TOKerror)
+        return upr;
 
     if (t1b->ty == Ttuple)
     {
@@ -10588,8 +10587,8 @@ Expression *IndexExp::semantic(Scope *sc)
     }
     if (sc != scx)
         sc = sc->pop();
-    if (e2->type == Type::terror)
-        return new ErrorExp();
+    if (e2->op == TOKerror)
+        return e2;
 
     switch (t1b->ty)
     {
@@ -10600,8 +10599,8 @@ Expression *IndexExp::semantic(Scope *sc)
                 return new ErrorExp();
             }
             e2 = e2->implicitCastTo(sc, Type::tsize_t);
-            if (e2->type == Type::terror)
-                return new ErrorExp();
+            if (e2->op == TOKerror)
+                return e2;
             e2 = e2->optimize(WANTvalue);
             if (e2->op == TOKint64 && e2->toInteger() == 0)
                 ;
@@ -10616,16 +10615,16 @@ Expression *IndexExp::semantic(Scope *sc)
 
         case Tarray:
             e2 = e2->implicitCastTo(sc, Type::tsize_t);
-            if (e2->type == Type::terror)
-                return new ErrorExp();
+            if (e2->op == TOKerror)
+                return e2;
             type = ((TypeNext *)t1b)->next;
             break;
 
         case Tsarray:
         {
             e2 = e2->implicitCastTo(sc, Type::tsize_t);
-            if (e2->type == Type::terror)
-                return new ErrorExp();
+            if (e2->op == TOKerror)
+                return e2;
             type = t1b->nextOf();
             break;
         }
@@ -10639,8 +10638,8 @@ Expression *IndexExp::semantic(Scope *sc)
             if (!arrayTypeCompatibleWithoutCasting(e2->loc, e2->type, taa->index))
             {
                 e2 = e2->implicitCastTo(sc, taa->index);        // type checking
-                if (e2->type == Type::terror)
-                    return new ErrorExp();
+                if (e2->op == TOKerror)
+                    return e2;
             }
             type = taa->next;
             break;
@@ -10649,8 +10648,8 @@ Expression *IndexExp::semantic(Scope *sc)
         case Ttuple:
         {
             e2 = e2->implicitCastTo(sc, Type::tsize_t);
-            if (e2->type == Type::terror)
-                return new ErrorExp();
+            if (e2->op == TOKerror)
+                return e2;
             e2 = e2->ctfeInterpret();
             uinteger_t index = e2->toUInteger();
 
@@ -13599,15 +13598,12 @@ Expression *CondExp::semantic(Scope *sc)
     sc->mergeFieldInit(loc, fi1);
 
     if (ec->op == TOKerror) return ec;
-    if (ec->type == Type::terror) return new ErrorExp();
     econd = ec;
 
     if (e1x->op == TOKerror) return e1x;
-    if (e1x->type == Type::terror) return new ErrorExp();
     e1 = e1x;
 
     if (e2x->op == TOKerror) return e2x;
-    if (e2x->type == Type::terror) return new ErrorExp();
     e2 = e2x;
 
     // If either operand is void, the result is void

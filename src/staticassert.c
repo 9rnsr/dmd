@@ -67,7 +67,7 @@ void StaticAssert::semantic2(Scope *sc)
 
     if (!e->type->checkBoolean())
     {
-        if (e->type->toBasetype() != Type::terror)
+        if (e->type->toBasetype()->ty != Terror)
             exp->error("expression %s of type %s does not have a boolean value", exp->toChars(), e->type->toChars());
         return;
     }

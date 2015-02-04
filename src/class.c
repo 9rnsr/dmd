@@ -382,7 +382,7 @@ void ClassDeclaration::semantic(Scope *sc)
             TypeClass *tc = (tb->ty == Tclass) ? (TypeClass *)tb : NULL;
             if (!tc)
             {
-                if (b->type != Type::terror)
+                if (b->type->ty != Terror)
                     error("base type must be class or interface, not %s", b->type->toChars());
                 baseclasses->remove(0);
                 goto L7;
@@ -441,7 +441,7 @@ void ClassDeclaration::semantic(Scope *sc)
             TypeClass *tc = (tb->ty == Tclass) ? (TypeClass *)tb : NULL;
             if (!tc || !tc->sym->isInterfaceDeclaration())
             {
-                if (b->type != Type::terror)
+                if (b->type->ty != Terror)
                     error("base type must be interface, not %s", b->type->toChars());
                 baseclasses->remove(i);
                 continue;
@@ -1330,7 +1330,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
             TypeClass *tc = (tb->ty == Tclass) ? (TypeClass *)tb : NULL;
             if (!tc || !tc->sym->isInterfaceDeclaration())
             {
-                if (b->type != Type::terror)
+                if (b->type->ty != Terror)
                     error("base type must be interface, not %s", b->type->toChars());
                 baseclasses->remove(i);
                 continue;

@@ -565,7 +565,7 @@ int Statement::blockExit(FuncDeclaration *func, bool mustNotThrow)
             for (size_t i = 0; i < s->catches->dim; i++)
             {
                 Catch *c = (*s->catches)[i];
-                if (c->type == Type::terror)
+                if (c->type->ty == Terror)
                     continue;
 
                 int cresult;
@@ -4551,7 +4551,7 @@ void Catch::semantic(Scope *sc)
     ClassDeclaration *cd = type->toBasetype()->isClassHandle();
     if (!cd || ((cd != ClassDeclaration::throwable) && !ClassDeclaration::throwable->isBaseOf(cd, NULL)))
     {
-        if (type != Type::terror)
+        if (type->ty != Terror)
         {
             error(loc, "can only catch class objects derived from Throwable, not '%s'", type->toChars());
             type = Type::terror;

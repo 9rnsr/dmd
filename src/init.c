@@ -546,7 +546,7 @@ Expression *ArrayInitializer::toExpression(Type *tx)
     Type *t = NULL;
     if (type)
     {
-        if (type == Type::terror)
+        if (type->ty == Terror)
             return new ErrorExp();
 
         t = type->toBasetype();

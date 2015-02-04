@@ -725,9 +725,6 @@ void FuncDeclaration::semantic(Scope *sc)
             //printf("\tnot virtual\n");
             goto Ldone;
         }
-        // Suppress further errors if the return type is an error
-        if (type->nextOf() == Type::terror)
-            goto Ldone;
 
         bool may_override = false;
         for (size_t i = 0; i < cd->baseclasses->dim; i++)
@@ -1343,19 +1340,16 @@ void FuncDeclaration::semantic3(Scope *sc)
                 // Declare save area for varargs registers
                 Type *t = new TypeIdentifier(loc, Id::va_argsave_t);
                 t = t->semantic(loc, sc);
-                if (t == Type::terror)
+                if (t->ty == Terror)
                 {
                     error("must import core.vararg to use variadic functions");
                     return;
                 }
-                else
-                {
-                    v_argsave = new VarDeclaration(loc, t, Id::va_argsave, NULL);
-                    v_argsave->storage_class |= STCtemp;
-                    v_argsave->semantic(sc2);
-                    sc2->insert(v_argsave);
-                    v_argsave->parent = this;
-                }
+                v_argsave = new VarDeclaration(loc, t, Id::va_argsave, NULL);
+                v_argsave->storage_class |= STCtemp;
+                v_argsave->semantic(sc2);
+                sc2->insert(v_argsave);
+                v_argsave->parent = this;
             }
 #endif
 

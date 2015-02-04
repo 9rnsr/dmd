@@ -94,7 +94,7 @@ void AliasThis::semantic(Scope *sc)
         if (ad->type->ty == Tstruct && ((TypeStruct *)ad->type)->sym != ad)
         {
             AggregateDeclaration *ad2 = ((TypeStruct *)ad->type)->sym;
-            assert(ad2->type == Type::terror);
+            assert(ad2->type->ty == Terror);
             ad->aliasthis = ad2->aliasthis;
             return;
         }
