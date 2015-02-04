@@ -172,7 +172,7 @@ public:
     bool checkNoBool();
     bool checkIntegral();
     bool checkArithmetic();
-    Expression *checkReadModifyWrite(TOK rmwOp, Expression *exp = NULL);
+    bool checkReadModifyWrite(TOK rmwOp, Expression *ex = NULL);
     void checkDeprecated(Scope *sc, Dsymbol *s);
     bool checkPurity(Scope *sc, FuncDeclaration *f);
     bool checkPurity(Scope *sc, VarDeclaration *v);

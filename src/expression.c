@@ -2307,13 +2307,13 @@ Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
 
 /*******************************
  * Check whether the expression allows RMW operations, error with rmw operator diagnostic if not.
- * exp is the RHS expression, or NULL if ++/-- is used (for diagnostics)
+ * ex is the RHS expression, or NULL if ++/-- is used (for diagnostics)
  */
-Expression *Expression::checkReadModifyWrite(TOK rmwOp, Expression *ex)
+bool Expression::checkReadModifyWrite(TOK rmwOp, Expression *ex)
 {
     //printf("Expression::checkReadModifyWrite() %s %s", toChars(), ex ? ex->toChars() : "");
     if (!type || !type->isShared())
-        return NULL;
+        return false;
 
     // atomicOp uses opAssign (+=/-=) rather than opOp (++/--) for the CT string literal.
     switch (rmwOp)
@@ -2335,10 +2335,10 @@ Expression *Expression::checkReadModifyWrite(TOK rmwOp, Expression *ex)
     deprecation("read-modify-write operations are not allowed for shared variables. "
                 "Use core.atomic.atomicOp!\"%s\"(%s, %s) instead.",
                 Token::tochars[rmwOp], toChars(), ex ? ex->toChars() : "1");
-    return NULL;
+    return false;
 
     // note: enable when deprecation becomes an error.
-    // return new ErrorExp();
+    // return true;
 }
 
 bool Expression::checkScalar()
@@ -6632,8 +6632,8 @@ Expression *BinAssignExp::semantic(Scope *sc)
     if (Expression *e = op_overload(sc))
         return e;
 
-    if (Expression *e = e1->checkReadModifyWrite(op, e2))
-        return e;
+    if (e1->checkReadModifyWrite(op, e2))
+        return new ErrorExp();
 
     if (e1->op == TOKarraylength)
     {
@@ -10798,8 +10798,8 @@ Expression *PostExp::semantic(Scope *sc)
     if (Expression *e = op_overload(sc))
         return e;
 
-    if (Expression *e = e1->checkReadModifyWrite(op))
-        return e;
+    if (e1->checkReadModifyWrite(op))
+        return new ErrorExp();
 
     if (e1->op == TOKslice)
     {
@@ -12023,13 +12023,11 @@ Expression *PowAssignExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    Expression *e = op_overload(sc);
-    if (e)
+    if (Expression *e = op_overload(sc))
         return e;
 
-    e = e1->checkReadModifyWrite(op, e2);
-    if (e)
-        return e;
+    if (e1->checkReadModifyWrite(op, e2))
+        return new ErrorExp();
 
     assert(e1->type && e2->type);
     if (e1->op == TOKslice || e1->type->ty == Tarray || e1->type->ty == Tsarray)
@@ -12065,7 +12063,7 @@ Expression *PowAssignExp::semantic(Scope *sc)
         (e2->type->isintegral() || e2->type->isfloating()))
     {
         Expression *e0 = NULL;
-        e = reorderSettingAAElem(sc);
+        Expression *e = reorderSettingAAElem(sc);
         e = extractLast(e, &e0);
         assert(e == this);
 
