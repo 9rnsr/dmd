@@ -3482,7 +3482,7 @@ Expression *ThisExp::semantic(Scope *sc)
             if (!s)
             {
                 error("%s is not in a class or struct scope", toChars());
-                goto Lerr;
+                return new ErrorExp();
             }
             ClassDeclaration *cd = s->isClassDeclaration();
             if (cd)
@@ -3568,7 +3568,7 @@ Expression *SuperExp::semantic(Scope *sc)
             if (!s)
             {
                 error("%s is not in a class scope", toChars());
-                goto Lerr;
+                return new ErrorExp();
             }
             cd = s->isClassDeclaration();
             if (cd)
@@ -3577,7 +3577,7 @@ Expression *SuperExp::semantic(Scope *sc)
                 if (!cd)
                 {
                     error("class %s has no 'super'", s->toChars());
-                    goto Lerr;
+                    return new ErrorExp();
                 }
                 type = cd->type;
                 return this;
