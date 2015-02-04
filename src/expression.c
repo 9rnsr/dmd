@@ -238,7 +238,7 @@ bool isNeedThisScope(Scope *sc, Declaration *d)
     return true;
 }
 
-Expression *checkRightThis(Scope *sc, Expression *e)
+bool checkRightThis(Scope *sc, Expression *e)
 {
     if (e->op == TOKvar && e->type->ty != Terror)
     {
@@ -248,12 +248,11 @@ Expression *checkRightThis(Scope *sc, Expression *e)
             //printf("checkRightThis sc->intypeof = %d, ad = %p, func = %p, fdthis = %p\n",
             //        sc->intypeof, sc->getStructClassScope(), func, fdthis);
             e->error("need 'this' for '%s' of type '%s'", ve->var->toChars(), ve->var->type->toChars());
-            e = new ErrorExp();
+            return false;
         }
     }
-    return e;
+    return true;
 }
-
 
 /***************************************
  * Pull out any properties.
@@ -539,7 +538,8 @@ Expression *resolveProperties(Scope *sc, Expression *e)
     //printf("resolveProperties(%s)\n", e->toChars());
 
     e = resolvePropertiesX(sc, e);
-    e = checkRightThis(sc, e);
+    if (!checkRightThis(sc, e))
+        return new ErrorExp();
     return e;
 }
 
@@ -547,7 +547,7 @@ Expression *resolveProperties(Scope *sc, Expression *e)
  * Check the tail CallExp is really property function call.
  */
 
-void checkPropertyCall(Expression *e, Expression *emsg)
+bool checkPropertyCall(Expression *e, Expression *emsg)
 {
     while (e->op == TOKcomma)
         e = ((CommaExp *)e)->e2;
@@ -575,8 +575,12 @@ void checkPropertyCall(Expression *e, Expression *emsg)
             assert(0);
 
         if (!tf->isproperty && global.params.enforcePropertySyntax)
+        {
             ce->e1->error("not a property %s", emsg->toChars());
+            return false;
+        }
     }
+    return true;
 }
 
 /******************************
@@ -776,6 +780,8 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
         Expression *ex = die->semanticX(sc);
         if (ex != die)
         {
+            if (ex->op == TOKerror)
+                return ex;
             ce->e1 = ex;
             return NULL;
         }
@@ -807,37 +813,34 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
                             MODtoChars(t->mod), eleft->toChars());
                     return new ErrorExp();
                 }
+                TypeAArray *taa = (TypeAArray *)t;
+
                 Expression *key = (*ce->arguments)[0];
                 key = key->semantic(sc);
                 key = resolveProperties(sc, key);
-
-                TypeAArray *taa = (TypeAArray *)t;
                 key = key->implicitCastTo(sc, taa->index);
-
                 if (!key->rvalue())
                     return new ErrorExp();
 
-                return new RemoveExp(loc, eleft, key);
+                e = new RemoveExp(loc, eleft, key);
+                return e->semantic(sc);
             }
         }
-        else
+        else if (Expression *ey = die->semanticY(sc, 1))
         {
-            if (Expression *ey = die->semanticY(sc, 1))
+            if (ey->op == TOKerror)
+                return ey;
+            ce->e1 = ey;
+            if (isDotOpDispatch(ey))
             {
-                if (ey->op == TOKerror)
-                    return ey;
-                ce->e1 = ey;
-                if (isDotOpDispatch(ey))
-                {
-                    unsigned errors = global.startGagging();
-                    e = ce->syntaxCopy()->semantic(sc);
-                    if (!global.endGagging(errors))
-                        return e;
-                    /* fall down to UFCS */
-                }
-                else
-                    return NULL;
+                unsigned errors = global.startGagging();
+                e = ce->syntaxCopy()->semantic(sc);
+                if (!global.endGagging(errors))
+                    return e;
+                /* fall down to UFCS */
             }
+            else
+                return NULL;
         }
         e = searchUFCS(sc, die, ident);
     }
@@ -846,6 +849,8 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
         DotTemplateInstanceExp *dti = (DotTemplateInstanceExp *)ce->e1;
         if (Expression *ey = dti->semanticY(sc, 1))
         {
+            if (ey->op == TOKerror)
+                return ey;
             ce->e1 = ey;
             return NULL;
         }
@@ -854,6 +859,8 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
     }
     else
         return NULL;
+    if (e->op == TOKerror)
+        return e;
 
     // Rewrite
     ce->e1 = e;
@@ -872,73 +879,75 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
 {
     Loc loc = e1->loc;
     Expression *eleft;
-    Expression *e;
+    Expression *ecall;
 
     if (e1->op == TOKdot)
     {
         DotIdExp *die = (DotIdExp *)e1;
         eleft = die->e1;
-        e = searchUFCS(sc, die, die->ident);
+        ecall = searchUFCS(sc, die, die->ident);
     }
     else if (e1->op == TOKdotti)
     {
         DotTemplateInstanceExp *dti;
         dti = (DotTemplateInstanceExp *)e1;
         eleft = dti->e1;
-        e = searchUFCS(sc, dti, dti->ti->name);
+        ecall = searchUFCS(sc, dti, dti->ti->name);
     }
     else
         return NULL;
+    if (eleft->op == TOKerror)
+        return eleft;
+    if (ecall->op == TOKerror)
+        return ecall;
 
     // Rewrite
     if (e2)
     {
         // run semantic without gagging
         e2 = e2->semantic(sc);
+        if (e2->op == TOKerror)
+            return e2;
 
         /* f(e1) = e2
          */
-        Expression *ex = e->copy();
-        Expressions *a1 = new Expressions();
-        a1->setDim(1);
-        (*a1)[0] = eleft;
-        ex = new CallExp(loc, ex, a1);
+        Expression *ex = ecall->copy();
+        ex = new CallExp(loc, ex, eleft);
         ex = ex->trySemantic(sc);
 
         /* f(e1, e2)
          */
-        Expressions *a2 = new Expressions();
-        a2->setDim(2);
-        (*a2)[0] = eleft;
-        (*a2)[1] = e2;
-        e = new CallExp(loc, e, a2);
-        if (ex)
-        {   // if fallback setter exists, gag errors
-            e = e->trySemantic(sc);
-            if (!e)
-            {   checkPropertyCall(ex, e1);
-                ex = new AssignExp(loc, ex, e2);
-                return ex->semantic(sc);
-            }
-        }
-        else
-        {   // strict setter prints errors if fails
+        Expression *e = new CallExp(loc, ecall, eleft, e2);
+        if (ex && (e = e->trySemantic(sc)) == NULL)
+        {
+            // if fallback setter exists, gag errors
+            if (!checkPropertyCall(ex, e1))
+                return new ErrorExp();
+            e = new AssignExp(loc, ex, e2);
             e = e->semantic(sc);
         }
-        checkPropertyCall(e, e1);
+        else
+        {
+            // strict setter prints errors if fails
+            e = e->semantic(sc);
+            if (e->op == TOKerror)
+                return e;
+            if (!checkPropertyCall(e, e1))
+                return new ErrorExp();
+        }
         return e;
     }
     else
     {
         /* f(e1)
          */
-        Expressions *arguments = new Expressions();
-        arguments->setDim(1);
-        (*arguments)[0] = eleft;
-        e = new CallExp(loc, e, arguments);
+        Expression *e = new CallExp(loc, ecall, eleft);
         e = e->semantic(sc);
-        checkPropertyCall(e, e1);
-        return e->semantic(sc);
+        if (e->op == TOKerror)
+            return e;
+        if (!checkPropertyCall(e, e1))
+            return new ErrorExp();
+        return e;
     }
 }
 
@@ -948,21 +957,20 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
 
 bool arrayExpressionSemantic(Expressions *exps, Scope *sc)
 {
+    if (!exps)
+        return false;
+
     bool err = false;
-    if (exps)
+    for (size_t i = 0; i < exps->dim; i++)
     {
-        for (size_t i = 0; i < exps->dim; i++)
-        {
-            Expression *e = (*exps)[i];
-            if (e)
-            {
-                e = e->semantic(sc);
-                if (e->op == TOKerror)
-                    err = true;
-                else
-                    (*exps)[i] = e;
-            }
-        }
+        Expression *e = (*exps)[i];
+        if (!e)
+            continue;
+        e = e->semantic(sc);
+        if (e->op == TOKerror)
+            err = true;
+        else
+            (*exps)[i] = e;
     }
     return err;
 }
@@ -2627,16 +2635,15 @@ Expression *Expression::checkToBoolean(Scope *sc)
 {
     // Default is 'yes' - do nothing
 
-#ifdef DEBUG
-    if (!type)
-        print();
-    assert(op != TOKerror);
-    assert(type && type->ty != Terror);
-#endif
-
     Expression *e = this;
-    Type *t = type;
-    Type *tb = type->toBasetype();
+    if (e->op == TOKerror)
+        return e;
+#ifdef DEBUG
+    if (!e->type) print();
+    assert(e->type && e->type->ty != Terror);
+#endif
+    Type *t = e->type;
+    Type *tb = e->type->toBasetype();
     Type *att = NULL;
 Lagain:
     // Structs can be converted to bool using opCast(bool)()
@@ -8518,7 +8525,8 @@ Lagain:
         }
         else
         {
-            checkRightThis(sc, ue1old);
+            if (!checkRightThis(sc, ue1old))
+                return new ErrorExp();
             if (e1->op == TOKdotvar)
             {
                 dve->var = f;
@@ -11090,11 +11098,8 @@ Expression *AssignExp::semantic(Scope *sc)
          */
         if (Expression *e = resolvePropertiesX(sc, e1x, e2))
             return e;
-
-        e1x = checkRightThis(sc, e1x);
-
-        if (e1x->op == TOKerror)
-            return e1x;
+        if (!checkRightThis(sc, e1x))
+            return new ErrorExp();
         e1 = e1x;
         assert(e1->type);
     }
