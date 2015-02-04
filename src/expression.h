@@ -176,7 +176,7 @@ public:
     void checkDeprecated(Scope *sc, Dsymbol *s);
     bool checkPurity(Scope *sc, FuncDeclaration *f);
     bool checkPurity(Scope *sc, VarDeclaration *v);
-    void checkSafety(Scope *sc, FuncDeclaration *f);
+    bool checkSafety(Scope *sc, FuncDeclaration *f);
     void checkNogc(Scope *sc, FuncDeclaration *f);
     bool checkPostblit(Scope *sc, Type *t);
     virtual int checkModifiable(Scope *sc, int flag = 0);

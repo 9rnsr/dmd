@@ -1327,7 +1327,7 @@ bool Expression::checkPostblit(Scope *sc, Type *t)
             }
             bool err = false;
             err |= checkPurity(sc, sd->postblit);
-            checkSafety(sc, sd->postblit);
+            err |= checkSafety(sc, sd->postblit);
             checkNogc(sc, sd->postblit);
             return err;
         }
@@ -2612,16 +2612,16 @@ bool Expression::checkPurity(Scope *sc, VarDeclaration *v)
     return err;
 }
 
-void Expression::checkSafety(Scope *sc, FuncDeclaration *f)
+bool Expression::checkSafety(Scope *sc, FuncDeclaration *f)
 {
     if (!sc->func)
-        return;
+        return false;
     if (sc->func == f)
-        return;
+        return false;
     if (sc->intypeof == 1)
-        return;
+        return false;
     if (sc->flags & SCOPEctfe)
-        return;
+        return false;
 
     if (!f->isSafe() && !f->isTrusted())
     {
@@ -2632,8 +2632,10 @@ void Expression::checkSafety(Scope *sc, FuncDeclaration *f)
 
             error("safe function '%s' cannot call system function '%s'",
                 sc->func->toPrettyChars(), f->toPrettyChars());
+            return true;
         }
     }
+    return false;
 }
 
 void Expression::checkNogc(Scope *sc, FuncDeclaration *f)
@@ -4874,7 +4876,7 @@ Lagain:
 
             bool err = false;
             err |= checkPurity(sc, f);
-            checkSafety(sc, f);
+            err |= checkSafety(sc, f);
             checkNogc(sc, f);
             accessCheck(cd, loc, sc, f);
             if (err)
@@ -4978,7 +4980,7 @@ Lagain:
 
             bool err = false;
             err |= checkPurity(sc, f);
-            checkSafety(sc, f);
+            err |= checkSafety(sc, f);
             checkNogc(sc, f);
             accessCheck(sd, loc, sc, f);
             if (err)
@@ -8555,7 +8557,7 @@ Lagain:
 
         bool err = false;
         err |= checkPurity(sc, f);
-        checkSafety(sc, f);
+        err |= checkSafety(sc, f);
         checkNogc(sc, f);
         accessCheck(loc, sc, ue->e1, f);
         if (err)
@@ -8647,7 +8649,7 @@ Lagain:
 
                 bool err = false;
                 err |= checkPurity(sc, f);
-                checkSafety(sc, f);
+                err |= checkSafety(sc, f);
                 checkNogc(sc, f);
                 accessCheck(loc, sc, NULL, f);
                 if (err)
@@ -8692,7 +8694,7 @@ Lagain:
 
             bool err = false;
             err |= checkPurity(sc, f);
-            checkSafety(sc, f);
+            err |= checkSafety(sc, f);
             checkNogc(sc, f);
             //accessCheck(loc, sc, NULL, f);    // necessary?
             if (err)
@@ -8860,7 +8862,7 @@ Lagain:
         {
             bool err = false;
             err |= checkPurity(sc, f);
-            checkSafety(sc, f);
+            err |= checkSafety(sc, f);
             checkNogc(sc, f);
             //accessCheck(loc, sc, NULL, f);    // necessary?
             if (err)
@@ -8953,7 +8955,7 @@ Lagain:
 
         bool err = false;
         err |= checkPurity(sc, f);
-        checkSafety(sc, f);
+        err |= checkSafety(sc, f);
         checkNogc(sc, f);
         accessCheck(loc, sc, NULL, f);
         if (err)
