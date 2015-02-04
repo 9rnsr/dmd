@@ -3786,7 +3786,6 @@ Expression *StringExp::semantic(Scope *sc)
  * Input:
  *      encSize     code unit size of the target encoding.
  */
-
 size_t StringExp::length(int encSize)
 {
     assert(encSize == 1 || encSize == 2 || encSize == 4);
@@ -3794,13 +3793,12 @@ size_t StringExp::length(int encSize)
         return len;
 
     size_t result = 0;
-    dchar_t c;
-
     switch (sz)
     {
         case 1:
             for (size_t u = 0; u < len;)
             {
+                dchar_t c;
                 if (const char *p = utf_decodeChar((utf8_t *)string, len, &u, &c))
                 {
                     error("%s", p);
@@ -3813,6 +3811,7 @@ size_t StringExp::length(int encSize)
         case 2:
             for (size_t u = 0; u < len;)
             {
+                dchar_t c;
                 if (const char *p = utf_decodeWchar((utf16_t *)string, len, &u, &c))
                 {
                     error("%s", p);
@@ -3825,7 +3824,7 @@ size_t StringExp::length(int encSize)
         case 4:
             for (size_t u = 0; u < len;)
             {
-                c = *((utf32_t *)((char *)string + u));
+                dchar_t c = *((utf32_t *)((char *)string + u));
                 u += 4;
                 result += utf_codeLength(encSize, c);
             }
@@ -3845,7 +3844,6 @@ StringExp *StringExp::toStringExp()
 /****************************************
  * Convert string to char[].
  */
-
 StringExp *StringExp::toUTF8(Scope *sc)
 {
     if (sz != 1)
