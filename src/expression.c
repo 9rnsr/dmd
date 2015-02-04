@@ -2630,7 +2630,8 @@ Expression *Expression::checkToBoolean(Scope *sc)
 #ifdef DEBUG
     if (!type)
         print();
-    assert(type);
+    assert(op != TOKerror);
+    assert(type && type->ty != Terror);
 #endif
 
     Expression *e = this;
@@ -2659,16 +2660,18 @@ Lagain:
             if (!att && tb->checkAliasThisRec())
                 att = tb;
             e = resolveAliasThis(sc, e);
+            if (e->op == TOKerror)
+                return e;
             t = e->type;
             tb = e->type->toBasetype();
             goto Lagain;
         }
     }
 
+    assert(tb->ty != Terror);
     if (!t->checkBoolean())
     {
-        if (tb != Type::terror)
-            error("expression %s of type %s does not have a boolean value", toChars(), t->toChars());
+        error("expression %s of type %s does not have a boolean value", toChars(), t->toChars());
         return new ErrorExp();
     }
     return e;
@@ -6621,6 +6624,20 @@ Expression *BinExp::incompatibleTypes()
     return this;
 }
 
+bool BinExp::checkIntegral()
+{
+    bool r1 = e1->checkIntegral();
+    bool r2 = e2->checkIntegral();
+    return (r1 && r2);
+}
+
+bool BinExp::checkArithmetic()
+{
+    bool r1 = e1->checkArithmetic();
+    bool r2 = e2->checkArithmetic();
+    return (r1 && r2);
+}
+
 /********************** BinAssignExp **************************************/
 
 Expression *BinAssignExp::semantic(Scope *sc)
@@ -6695,16 +6712,10 @@ Expression *BinAssignExp::semantic(Scope *sc)
     //    return e1;
     //if (e2->op == TOKerror)
     //    return e2;
-    if (arith)
-    {
-        if ((e1->checkArithmetic() & e2->checkArithmetic()) == 0)
-            return new ErrorExp();
-    }
-    if (bitwise || shift)
-    {
-        if ((e1->checkIntegral() & e2->checkIntegral()) == 0)
-            return new ErrorExp();
-    }
+    if (arith && !checkArithmetic())
+        return new ErrorExp();
+    if ((bitwise || shift) && !checkIntegral())
+        return new ErrorExp();
     if (shift)
     {
         e2 = e2->castTo(sc, Type::tshiftcnt);
@@ -12476,7 +12487,7 @@ Expression *MulExp::semantic(Scope *sc)
     //    return e1;
     //if (e2->op == TOKerror)
     //    return e2;
-    if ((e1->checkArithmetic() & e2->checkArithmetic()) == 0)
+    if (!checkArithmetic())
         return new ErrorExp();
 
     if (type->isfloating())
@@ -12559,7 +12570,7 @@ Expression *DivExp::semantic(Scope *sc)
     //    return e1;
     //if (e2->op == TOKerror)
     //    return e2;
-    if ((e1->checkArithmetic() & e2->checkArithmetic()) == 0)
+    if (!checkArithmetic())
         return new ErrorExp();
 
     if (type->isfloating())
@@ -12642,7 +12653,7 @@ Expression *ModExp::semantic(Scope *sc)
     //    return e1;
     //if (e2->op == TOKerror)
     //    return e2;
-    if ((e1->checkArithmetic() & e2->checkArithmetic()) == 0)
+    if (!checkArithmetic())
         return new ErrorExp();
 
     if (type->isfloating())
@@ -12711,7 +12722,7 @@ Expression *PowExp::semantic(Scope *sc)
     //    return e1;
     //if (e2->op == TOKerror)
     //    return e2;
-    if ((e1->checkArithmetic() & e2->checkArithmetic()) == 0)
+    if (!checkArithmetic())
         return new ErrorExp();
 
     // For built-in numeric types, there are several cases.
@@ -12804,7 +12815,7 @@ Expression *ShlExp::semantic(Scope *sc)
     if (e2->op == TOKerror)
         return e2;
 
-    if ((e1->checkIntegral() & e2->checkIntegral()) == 0)
+    if (!checkIntegral())
         return new ErrorExp;
 
     if (e1->type->toBasetype()->ty == Tvector ||
@@ -12842,7 +12853,7 @@ Expression *ShrExp::semantic(Scope *sc)
     if (e2->op == TOKerror)
         return e2;
 
-    if ((e1->checkIntegral() & e2->checkIntegral()) == 0)
+    if (!checkIntegral())
         return new ErrorExp();
 
     if (e1->type->toBasetype()->ty == Tvector ||
@@ -12880,7 +12891,7 @@ Expression *UshrExp::semantic(Scope *sc)
     if (e2->op == TOKerror)
         return e2;
 
-    if ((e1->checkIntegral() & e2->checkIntegral()) == 0)
+    if (!checkIntegral())
         return new ErrorExp();
 
     if (e1->type->toBasetype()->ty == Tvector ||
@@ -12940,7 +12951,7 @@ Expression *AndExp::semantic(Scope *sc)
     if (e2->op == TOKerror)
         return e2;
 
-    if ((e1->checkIntegral() & e2->checkIntegral()) == 0)
+    if (!checkIntegral())
         return new ErrorExp();
 
     return this;
@@ -12990,7 +13001,7 @@ Expression *OrExp::semantic(Scope *sc)
     if (e2->op == TOKerror)
         return e2;
 
-    if ((e1->checkIntegral() & e2->checkIntegral()) == 0)
+    if (!checkIntegral())
         return new ErrorExp();
 
     return this;
@@ -13040,7 +13051,7 @@ Expression *XorExp::semantic(Scope *sc)
     if (e2->op == TOKerror)
         return e2;
 
-    if ((e1->checkIntegral() & e2->checkIntegral()) == 0)
+    if (!checkIntegral())
         return new ErrorExp();
 
     return this;
