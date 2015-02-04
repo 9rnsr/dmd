@@ -2747,7 +2747,6 @@ bool Expression::isBool(bool result)
 /****************************************
  * Resolve __FILE__, __LINE__, __MODULE__, __FUNCTION__, __PRETTY_FUNCTION__ to loc.
  */
-
 Expression *Expression::resolveLoc(Loc loc, Scope *sc)
 {
     return this;
@@ -2755,16 +2754,15 @@ Expression *Expression::resolveLoc(Loc loc, Scope *sc)
 
 Expressions *Expression::arraySyntaxCopy(Expressions *exps)
 {
-    Expressions *a = NULL;
-    if (exps)
+    if (!exps)
+        return NULL;
+
+    Expressions *a = new Expressions();
+    a->setDim(exps->dim);
+    for (size_t i = 0; i < a->dim; i++)
     {
-        a = new Expressions();
-        a->setDim(exps->dim);
-        for (size_t i = 0; i < a->dim; i++)
-        {
-            Expression *e = (*exps)[i];
-            (*a)[i] = e ? e->syntaxCopy() : NULL;
-        }
+        Expression *e = (*exps)[i];
+        (*a)[i] = e ? e->syntaxCopy() : NULL;
     }
     return a;
 }
