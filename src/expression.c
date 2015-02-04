@@ -46,7 +46,7 @@ bool isArrayOpValid(Expression *e);
 Expression *createTypeInfoArray(Scope *sc, Expression *args[], size_t dim);
 Expression *expandVar(int result, VarDeclaration *v);
 TypeTuple *toArgTypes(Type *t);
-void accessCheck(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember);
+void checkAccess(AggregateDeclaration *ad, Loc loc, Scope *sc, Dsymbol *smember);
 bool checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad, size_t istart = 0);
 Symbol *toInitializer(AggregateDeclaration *ad);
 Expression *getTypeInfo(Type *t, Scope *sc);
@@ -3171,7 +3171,7 @@ Expression *IdentifierExp::semantic(Scope *sc)
             {
                 Declaration *d = s->isDeclaration();
                 if (d)
-                    accessCheck(loc, sc, NULL, d);
+                    checkAccess(loc, sc, NULL, d);
             }
 
             /* If f is really a function template,
@@ -4880,7 +4880,7 @@ Lagain:
             err |= checkPurity(sc, f);
             err |= checkSafety(sc, f);
             err |= checkNogc(sc, f);
-            accessCheck(cd, loc, sc, f);
+            checkAccess(cd, loc, sc, f);
             if (err)
                 goto Lerr;
 
@@ -4984,7 +4984,7 @@ Lagain:
             err |= checkPurity(sc, f);
             err |= checkSafety(sc, f);
             err |= checkNogc(sc, f);
-            accessCheck(sd, loc, sc, f);
+            checkAccess(sd, loc, sc, f);
             if (err)
                 goto Lerr;
 
@@ -5217,7 +5217,7 @@ Expression *VarExp::semantic(Scope *sc)
      * problems when instantiating imported templates passing private
      * variables as alias template parameters.
      */
-    //accessCheck(loc, sc, NULL, var);
+    //checkAccess(loc, sc, NULL, var);
 
     if (VarDeclaration *vd = var->isVarDeclaration())
     {
@@ -7239,7 +7239,7 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
              * aliases to private symbols are public.
              */
             if (Declaration *d = s->isDeclaration())
-                accessCheck(loc, sc, NULL, d);
+                checkAccess(loc, sc, NULL, d);
 
             s = s->toAlias();
             checkDeprecated(sc, s);
@@ -7571,7 +7571,7 @@ Expression *DotVarExp::semantic(Scope *sc)
             e = e->semantic(sc);
             return e;
         }
-        accessCheck(loc, sc, e1, var);
+        checkAccess(loc, sc, e1, var);
 
         VarDeclaration *v = var->isVarDeclaration();
         if (v && (v->isDataseg() || (v->storage_class & STCmanifest)))
@@ -7584,7 +7584,7 @@ Expression *DotVarExp::semantic(Scope *sc)
         if (v && v->isDataseg())     // fix bugzilla 8238
         {
             // (e1, v)
-            accessCheck(loc, sc, e1, v);
+            checkAccess(loc, sc, e1, v);
             Expression *e = new VarExp(loc, v);
             e = new CommaExp(loc, e1, e);
             e = e->semantic(sc);
@@ -8561,7 +8561,7 @@ Lagain:
         err |= checkPurity(sc, f);
         err |= checkSafety(sc, f);
         err |= checkNogc(sc, f);
-        accessCheck(loc, sc, ue->e1, f);
+        checkAccess(loc, sc, ue->e1, f);
         if (err)
             return new ErrorExp();
 
@@ -8653,7 +8653,7 @@ Lagain:
                 err |= checkPurity(sc, f);
                 err |= checkSafety(sc, f);
                 err |= checkNogc(sc, f);
-                accessCheck(loc, sc, NULL, f);
+                checkAccess(loc, sc, NULL, f);
                 if (err)
                     return new ErrorExp();
 
@@ -8698,7 +8698,7 @@ Lagain:
             err |= checkPurity(sc, f);
             err |= checkSafety(sc, f);
             err |= checkNogc(sc, f);
-            //accessCheck(loc, sc, NULL, f);    // necessary?
+            //checkAccess(loc, sc, NULL, f);    // necessary?
             if (err)
                 return new ErrorExp();
 
@@ -8866,7 +8866,7 @@ Lagain:
             err |= checkPurity(sc, f);
             err |= checkSafety(sc, f);
             err |= checkNogc(sc, f);
-            //accessCheck(loc, sc, NULL, f);    // necessary?
+            //checkAccess(loc, sc, NULL, f);    // necessary?
             if (err)
                 return new ErrorExp();
             if (!f->checkNestedReference(sc, loc))
@@ -8959,7 +8959,7 @@ Lagain:
         err |= checkPurity(sc, f);
         err |= checkSafety(sc, f);
         err |= checkNogc(sc, f);
-        accessCheck(loc, sc, NULL, f);
+        checkAccess(loc, sc, NULL, f);
         if (err)
             return new ErrorExp();
         if (!f->checkNestedReference(sc, loc))
