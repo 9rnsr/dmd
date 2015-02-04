@@ -11569,7 +11569,8 @@ Expression *AssignExp::semantic(Scope *sc)
         ale->e1 = ale1x;
 
         Type *tn = ale->e1->type->toBasetype()->nextOf();
-        checkDefCtor(ale->loc, tn);
+        if (checkDefCtor(ale->loc, tn))
+            return new ErrorExp();
         semanticTypeInfo(sc, tn);
     }
     else if (e1->op == TOKslice)
