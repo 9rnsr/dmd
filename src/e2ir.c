@@ -5162,13 +5162,10 @@ elem *toElem(Expression *e, IRState *irs)
                         offset = vend;
                     if (i == dim - 1)
                         vend = sle->sd->structsize;
-                    for (size_t j = i + 1; j < dim; j++)
+                    else if (!(*sle->elements)[i + 1] && vend < sle->sd->fields[i]->offset)
                     {
-                        if ((*sle->elements)[j])
-                            break;
-                        if (vend < sle->sd->fields[j]->offset)
-                            vend = sle->sd->fields[j]->offset;
-                        if (j == dim - 1)
+                        vend = sle->sd->fields[i + 1]->offset;
+                        if (i + 1 == dim - 1)
                             vend = sle->sd->structsize;
                     }
                     printf("\t> fillHoles [%d .. %d]\n", offset, vend);
