@@ -5144,33 +5144,60 @@ elem *toElem(Expression *e, IRState *irs)
         void visit(StructLiteralExp *sle)
         {
             //printf("[%s] StructLiteralExp::toElem() %s\n", sle->loc.toChars(), sle->toChars());
+            size_t dim = sle->elements ? sle->elements->dim : 0;
+            assert(dim >= sle->sd->fields.dim - (sle->sd->isNested() ? 1 : 0));
+            bool needThis = sle->sd->isNested() && dim != sle->sd->fields.dim;
 
+            // sle->elements can be ignored
             if (sle->sinit)
             {
                 elem *e = el_var(sle->sinit);
                 e->ET = Type_toCtype(sle->sd->type);
-                el_setLoc(e, sle->loc);
 
-                if (sle->sym)
+                Symbol *stmp = sle->sym;
+                if (!stmp && needThis)
+                    stmp = symbol_genauto(Type_toCtype(sle->sd->type));
+                if (stmp)
                 {
-                    elem *ev = el_var(sle->sym);
+                    elem *ev = el_var(stmp);
                     if (tybasic(ev->Ety) == TYnptr)
                         ev = el_una(OPind, e->Ety, ev);
                     ev->ET = e->ET;
-                    e = el_bin(OPstreq,e->Ety,ev,e);
+                    e = el_bin(OPstreq, e->Ety, ev, e);
                     e->ET = ev->ET;
 
-                    //ev = el_var(sym);
-                    //ev->ET = e->ET;
-                    //e = el_combine(e, ev);
-                    el_setLoc(e, sle->loc);
+                    if (needThis)
+                    {
+                        // Initialize the hidden 'this' pointer
+                        elem *e1;
+                        if (tybasic(stmp->Stype->Tty) == TYnptr)
+                        {
+                            e1 = el_var(stmp);
+                            e1->EV.sp.Voffset = sle->soffset;
+                        }
+                        else
+                        {
+                            e1 = el_ptr(stmp);
+                            if (sle->soffset)
+                                e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, sle->soffset));
+                        }
+                        e1 = setEthis(sle->loc, irs, e1, sle->sd);
+                        e = el_combine(e, e1);
+
+                        ev = el_var(stmp);
+                        ev->ET = Type_toCtype(sle->sd->type);
+                        e = el_combine(e, ev);
+                    }
                 }
+                el_setLoc(e, sle->loc);
                 result = e;
                 return;
             }
 
             // struct symbol to initialize with the literal
-            Symbol *stmp = sle->sym ? sle->sym : symbol_genauto(Type_toCtype(sle->sd->type));
+            Symbol *stmp = sle->sym;
+            if (!stmp)
+                stmp = symbol_genauto(Type_toCtype(sle->sd->type));
 
             elem *e = NULL;
 
@@ -5193,72 +5220,15 @@ elem *toElem(Expression *e, IRState *irs)
                 e = el_combine(e, fillHole(stmp, &offset, sle->sd->structsize, sle->sd->structsize));
             }
 
-            size_t dim = sle->elements ? sle->elements->dim : 0;
-            assert(dim <= sle->sd->fields.dim);
             // CTFE may fill the hidden pointer by NullExp.
+            for (size_t i = 0; i < dim; i++)
             {
-                for (size_t i = 0; i < dim; i++)
-                {
-                    Expression *el = (*sle->elements)[i];
-                    if (!el)
-                        continue;
+                Expression *el = (*sle->elements)[i];
+                if (!el)
+                    continue;
 
-                    VarDeclaration *v = sle->sd->fields[i];
-                    assert(!v->isThisDeclaration() || el->op == TOKnull);
-
-                    elem *e1;
-                    if (tybasic(stmp->Stype->Tty) == TYnptr)
-                    {
-                        e1 = el_var(stmp);
-                        e1->EV.sp.Voffset = sle->soffset;
-                    }
-                    else
-                    {
-                        e1 = el_ptr(stmp);
-                        if (sle->soffset)
-                            e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, sle->soffset));
-                    }
-                    e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, v->offset));
-
-                    elem *ep = toElem(el, irs);
-
-                    Type *t1b = v->type->toBasetype();
-                    Type *t2b = el->type->toBasetype();
-                    if (t1b->ty == Tsarray)
-                    {
-                        if (t2b->implicitConvTo(t1b))
-                        {
-                            elem *esize = el_long(TYsize_t, t1b->size());
-                            ep = array_toPtr(el->type, ep);
-                            e1 = el_bin(OPmemcpy, TYnptr, e1, el_param(ep, esize));
-                        }
-                        else
-                        {
-                            elem *edim = el_long(TYsize_t, t1b->size() / t2b->size());
-                            e1 = setArray(e1, edim, t2b, ep, irs, TOKconstruct);
-                        }
-                    }
-                    else
-                    {
-                        tym_t ty = totym(v->type);
-                        e1 = el_una(OPind, ty, e1);
-                        if (tybasic(ty) == TYstruct)
-                            e1->ET = Type_toCtype(v->type);
-                        e1 = el_bin(OPeq, ty, e1, ep);
-                        if (tybasic(ty) == TYstruct)
-                        {
-                            e1->Eoper = OPstreq;
-                            e1->ET = Type_toCtype(v->type);
-                        }
-                    }
-                    e = el_combine(e, e1);
-                }
-            }
-
-            if (sle->sd->isNested() && dim != sle->sd->fields.dim)
-            {
-                // Initialize the hidden 'this' pointer
-                assert(sle->sd->fields.dim);
+                VarDeclaration *v = sle->sd->fields[i];
+                assert(!v->isThisDeclaration() || el->op == TOKnull);
 
                 elem *e1;
                 if (tybasic(stmp->Stype->Tty) == TYnptr)
@@ -5272,11 +5242,59 @@ elem *toElem(Expression *e, IRState *irs)
                     if (sle->soffset)
                         e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, sle->soffset));
                 }
-                e1 = setEthis(sle->loc, irs, e1, sle->sd);
+                e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, v->offset));
 
+                elem *ep = toElem(el, irs);
+
+                Type *t1b = v->type->toBasetype();
+                Type *t2b = el->type->toBasetype();
+                if (t1b->ty == Tsarray)
+                {
+                    if (t2b->implicitConvTo(t1b))
+                    {
+                        elem *esize = el_long(TYsize_t, t1b->size());
+                        ep = array_toPtr(el->type, ep);
+                        e1 = el_bin(OPmemcpy, TYnptr, e1, el_param(ep, esize));
+                    }
+                    else
+                    {
+                        elem *edim = el_long(TYsize_t, t1b->size() / t2b->size());
+                        e1 = setArray(e1, edim, t2b, ep, irs, TOKconstruct);
+                    }
+                }
+                else
+                {
+                    tym_t ty = totym(v->type);
+                    e1 = el_una(OPind, ty, e1);
+                    if (tybasic(ty) == TYstruct)
+                        e1->ET = Type_toCtype(v->type);
+                    e1 = el_bin(OPeq, ty, e1, ep);
+                    if (tybasic(ty) == TYstruct)
+                    {
+                        e1->Eoper = OPstreq;
+                        e1->ET = Type_toCtype(v->type);
+                    }
+                }
                 e = el_combine(e, e1);
             }
-
+            if (needThis)
+            {
+                // Initialize the hidden 'this' pointer
+                elem *e1;
+                if (tybasic(stmp->Stype->Tty) == TYnptr)
+                {
+                    e1 = el_var(stmp);
+                    e1->EV.sp.Voffset = sle->soffset;
+                }
+                else
+                {
+                    e1 = el_ptr(stmp);
+                    if (sle->soffset)
+                        e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, sle->soffset));
+                }
+                e1 = setEthis(sle->loc, irs, e1, sle->sd);
+                e = el_combine(e, e1);
+            }
             elem *ev = el_var(stmp);
             ev->ET = Type_toCtype(sle->sd->type);
             e = el_combine(e, ev);
