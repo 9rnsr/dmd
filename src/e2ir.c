@@ -5145,6 +5145,10 @@ elem *toElem(Expression *e, IRState *irs)
         {
             //printf("[%s] StructLiteralExp::toElem() %s\n", sle->loc.toChars(), sle->toChars());
             size_t dim = sle->elements ? sle->elements->dim : 0;
+
+            if (!(dim >= sle->sd->fields.dim - (sle->sd->isNested() ? 1 : 0)))
+                printf("[%s] sle = %s\n", sle->loc.toChars(), sle->toChars());
+
             assert(dim >= sle->sd->fields.dim - (sle->sd->isNested() ? 1 : 0));
             bool needThis = sle->sd->isNested() && dim != sle->sd->fields.dim;
 

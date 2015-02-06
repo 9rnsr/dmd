@@ -5047,11 +5047,17 @@ Lagain:
         }
         else
         {
+            //printf("arguments = %p\n", arguments);
+            if (!arguments)
+                arguments = new Expressions();
+
             if (!sd->fit(loc, sc, arguments, tb))
                 return new ErrorExp();
 
             if (!sd->fill(loc, arguments, false))
                 return new ErrorExp();
+
+            //printf("NewExp arguments = %s\n", arguments->toChars());
         }
 
         type = type->pointerTo();
