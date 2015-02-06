@@ -4417,45 +4417,43 @@ Expression *StructLiteralExp::getField(Type *type, unsigned offset)
 {
     //printf("StructLiteralExp::getField(this = %s, type = %s, offset = %u)\n",
     //  /*toChars()*/"", type->toChars(), offset);
-    Expression *e = NULL;
     int i = getFieldIndex(type, offset);
+    if (i == -1)
+        return NULL;
 
-    if (i != -1)
+    //printf("\ti = %d\n", i);
+    if (i == sd->fields.dim - 1 && sd->isNested())
+        return NULL;    // todo
+
+    assert(i < elements->dim);
+    Expression *e = (*elements)[i];
+    if (e)
     {
-        //printf("\ti = %d\n", i);
-        if (i == sd->fields.dim - 1 && sd->isNested())
-            return NULL;
+        //printf("e = %s, e->type = %s\n", e->toChars(), e->type->toChars());
 
-        assert(i < elements->dim);
-        e = (*elements)[i];
-        if (e)
+        /* If type is a static array, and e is an initializer for that array,
+         * then the field initializer should be an array literal of e.
+         */
+        if (!e->type->equivalent(type) && type->ty == Tsarray)
         {
-            //printf("e = %s, e->type = %s\n", e->toChars(), e->type->toChars());
-
-            /* If type is a static array, and e is an initializer for that array,
-             * then the field initializer should be an array literal of e.
-             */
-            if (e->type->castMod(0) != type->castMod(0) && type->ty == Tsarray)
-            {   TypeSArray *tsa = (TypeSArray *)type;
-                size_t length = (size_t)tsa->dim->toInteger();
-                Expressions *z = new Expressions;
-                z->setDim(length);
-                for (size_t q = 0; q < length; ++q)
-                    (*z)[q] = e->copy();
-                e = new ArrayLiteralExp(loc, z);
-                e->type = type;
-            }
-            else
-            {
-                e = e->copy();
-                e->type = type;
-            }
-            if (sinit && e->op == TOKstructliteral &&
-                e->type->needsNested())
-            {
-                StructLiteralExp *se = (StructLiteralExp *)e;
-                se->sinit = toInitializer(se->sd);
-            }
+            TypeSArray *tsa = (TypeSArray *)type;
+            size_t length = (size_t)tsa->dim->toInteger();
+            Expressions *z = new Expressions();
+            z->setDim(length);
+            for (size_t q = 0; q < length; ++q)
+                (*z)[q] = e->copy();
+            e = new ArrayLiteralExp(loc, z);
+            e->type = type;
+        }
+        else
+        {
+            e = e->copy();
+            e->type = type;
+        }
+        if (sinit && e->op == TOKstructliteral)
+        {
+            StructLiteralExp *sle = (StructLiteralExp *)e;
+            sle->sinit = toInitializer(sle->sd);
         }
     }
     return e;
