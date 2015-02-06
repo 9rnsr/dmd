@@ -2177,6 +2177,7 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
                 return e;
             }
         }
+    #if 0
         else if (ident == Id::init)
         {
             Type *tb = toBasetype();
@@ -2188,6 +2189,7 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
             }
             goto Lreturn;
         }
+    #endif
     }
     if (ident == Id::stringof)
     {
