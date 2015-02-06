@@ -1278,6 +1278,8 @@ Lnomatch:
             checkFrameAccess(loc, sc, ((TypeStruct *)tv->toBasetype())->sym);
 
             Expression *e = tv->defaultInitLiteral(loc);
+//printf("[%s] %s, e = %s\n", loc.toChars(), toChars(), e->toChars());
+
             Expression *e1 = new VarExp(loc, this);
             e = new BlitExp(loc, e1, e);
             e = e->semantic(sc);

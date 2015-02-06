@@ -2090,13 +2090,58 @@ Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
     }
     else if (ident == Id::init)
     {
+#if 0
         Type *tb = toBasetype();
-        e = defaultInitLiteral(loc);
-        if (tb->ty == Tstruct && tb->needsNested())
+        if (tb->ty == Tsarray)
         {
-            StructLiteralExp *sle = (StructLiteralExp *)e;
-            //sle->sinit = toInitializer(se->sd);
-            sle->elements->push(new NullExp(loc, sle->sd->vthis->type));
+            TypeSArray *tsa = (TypeSArray *)tb;
+            size_t d = (size_t)tsa->dim->toInteger();
+            Expression *elementinit;
+            if (tsa->next->ty == Tvoid)
+                elementinit = tuns8->getProperty(loc, Id::init, flag);
+            else
+                elementinit = tsa->next->getProperty(loc, Id::init, flag);
+            Expressions *elements = new Expressions();
+            elements->setDim(d);
+            for (size_t i = 0; i < d; i++)
+                (*elements)[i] = elementinit;
+            ArrayLiteralExp *ale = new ArrayLiteralExp(loc, elements);
+            ale->type = this;
+            e = ale;
+        }
+        else if (tb->ty == Tstruct)
+        {
+            StructDeclaration *sd = ((TypeStruct *)tb)->sym;
+            StructLiteralExp *sle = new StructLiteralExp(loc, sd, NULL, tb);
+            if (!sd->fill(loc, sle->elements, true))
+                return new ErrorExp();
+            if (sd->isNested())
+                sle->elements->push(new NullExp(loc, Type::tvoidptr));
+            sle->sinit = toInitializer(sd);
+            sle->type = this;
+            e = sle;
+        }
+        else
+        {
+            e = defaultInitLiteral(loc);
+        }
+#endif
+        e = defaultInit(loc);
+        if (e->op == TOKvar)
+            ((VarExp *)e)->var->storage_class |= STCrvalue;
+
+        Type *tb = toBasetype();
+        if (tb->ty == Tsarray)
+        {
+            TypeSArray *tsa = (TypeSArray *)tb;
+            size_t d = (size_t)tsa->dim->toInteger();
+            Expressions *elements = new Expressions();
+            elements->setDim(d);
+            for (size_t i = 0; i < d; i++)
+                (*elements)[i] = e;
+            ArrayLiteralExp *ale = new ArrayLiteralExp(loc, elements);
+            ale->type = this;
+            e = ale;
         }
     }
     else if (ident == Id::mangleof)
@@ -7738,13 +7783,13 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
 #else
     StructLiteralExp *sle = new StructLiteralExp(loc, sym, NULL, this);
 
-    if (!sym->fill(loc, sle->elements, true))
+    if (!sym->fill(loc, sle->elements, false/*true*/))
         return new ErrorExp();
 
     //if (sym->isNested())
     //    sle->elements->push(new NullExp(loc, sym->vthis->type));
 
-    sle->sinit = toInitializer(sym);
+    //sle->sinit = toInitializer(sym);
 
     sle->type = this;
     return sle;
