@@ -7776,9 +7776,12 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
     // * otherwise the literals expressed as code get excessively large.
     // */
     //if (size(loc) > Target::ptrsize * 4 && !needsNested())
-        structinit->sinit = toInitializer(sym);
+    //    structinit->sinit = toInitializer(sym);
 
     structinit->type = this;
+
+printf("[%s] defaultInitLiteral() %s\n", loc.toChars(), structinit->toChars());
+
     return structinit;
 #else
     StructLiteralExp *sle = new StructLiteralExp(loc, sym, NULL, this);

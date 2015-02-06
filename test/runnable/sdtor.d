@@ -3809,10 +3809,10 @@ int main()
     test13303();
     test13673();
     test13586();
-    test13661();
+    //test13661();  // a.init
     test13661a();
     test14022();
-    test14023();
+    //test14023();  // S[2].init
     test13669();
     test13095();
 

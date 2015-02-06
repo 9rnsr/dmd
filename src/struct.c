@@ -1213,9 +1213,9 @@ bool StructDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
                 Type *telem = vx->type;
                 if (telem->ty == Tsarray)
                 {
-                    telem = telem->baseElemOf();
-                    if (telem->ty == Tvoid)
-                        telem = Type::tuns8->addMod(telem->mod);
+                    //telem = telem->baseElemOf();
+                    //if (telem->ty == Tvoid)
+                    //    telem = Type::tuns8->addMod(telem->mod);
                 }
                 if (telem->needsNested() && ctorinit)
                     e = telem->defaultInit(loc);
