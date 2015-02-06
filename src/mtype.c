@@ -7740,6 +7740,9 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
     if (!sym->fill(loc, sle->elements, true))
         return new ErrorExp();
 
+    if (sym->isNested())
+        sle->elements->push(new NullExp(loc, sym->vthis->type));
+
     sle->sinit = toInitializer(sym);
 
     sle->type = this;
