@@ -8428,13 +8428,13 @@ Lagain:
                 if (!sd->fill(loc, sle->elements, true))
                     return new ErrorExp();
 
-                /* Copy from the initializer symbol for larger symbols,
-                 * otherwise the literals expressed as code get excessively large.
-                 */
-                if (sd->size(loc) > Target::ptrsize * 4 && !t1->needsNested())
+                ///* Copy from the initializer symbol for larger symbols,
+                // * otherwise the literals expressed as code get excessively large.
+                // */
+                //if (sd->zeroInit)
                     sle->sinit = toInitializer(sd);
 
-                sle->type = type;
+                sle->stype = t1;
 
                 Expression *e = sle;
                 if (CtorDeclaration *cf = sd->ctor->isCtorDeclaration())
