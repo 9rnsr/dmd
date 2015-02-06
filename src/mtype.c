@@ -7694,6 +7694,7 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
     sym->size(loc);
     if (sym->sizeok != SIZEOKdone)
         return new ErrorExp();
+#if 0
     Expressions *structelems = new Expressions();
     structelems->setDim(sym->fields.dim - sym->isNested());
     unsigned offset = 0;
@@ -7723,16 +7724,27 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
             offset = vd->offset + (unsigned)vd->type->size();
         (*structelems)[j] = e;
     }
-    StructLiteralExp *structinit = new StructLiteralExp(loc, (StructDeclaration *)sym, structelems);
+    StructLiteralExp *structinit = new StructLiteralExp(loc, sym, structelems);
 
-    /* Copy from the initializer symbol for larger symbols,
-     * otherwise the literals expressed as code get excessively large.
-     */
-    if (size(loc) > Target::ptrsize * 4 && !needsNested())
+    ///* Copy from the initializer symbol for larger symbols,
+    // * otherwise the literals expressed as code get excessively large.
+    // */
+    //if (size(loc) > Target::ptrsize * 4 && !needsNested())
         structinit->sinit = toInitializer(sym);
 
     structinit->type = this;
     return structinit;
+#else
+    StructLiteralExp *sle = new StructLiteralExp(loc, sym, NULL, this);
+
+    if (!sym->fill(loc, sle->elements, true))
+        return new ErrorExp();
+
+    sle->sinit = toInitializer(sym);
+
+    sle->type = this;
+    return sle;
+#endif
 }
 
 
