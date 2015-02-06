@@ -5225,62 +5225,65 @@ elem *toElem(Expression *e, IRState *irs)
             }
 
             // CTFE may fill the hidden pointer by NullExp.
-            for (size_t i = 0; i < dim; i++)
             {
-                Expression *el = (*sle->elements)[i];
-                if (!el)
-                    continue;
-
-                VarDeclaration *v = sle->sd->fields[i];
-                assert(!v->isThisDeclaration() || el->op == TOKnull);
-
-                elem *e1;
-                if (tybasic(stmp->Stype->Tty) == TYnptr)
+                for (size_t i = 0; i < dim; i++)
                 {
-                    e1 = el_var(stmp);
-                    e1->EV.sp.Voffset = sle->soffset;
-                }
-                else
-                {
-                    e1 = el_ptr(stmp);
-                    if (sle->soffset)
-                        e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, sle->soffset));
-                }
-                e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, v->offset));
+                    Expression *el = (*sle->elements)[i];
+                    if (!el)
+                        continue;
 
-                elem *ep = toElem(el, irs);
+                    VarDeclaration *v = sle->sd->fields[i];
+                    assert(!v->isThisDeclaration() || el->op == TOKnull);
 
-                Type *t1b = v->type->toBasetype();
-                Type *t2b = el->type->toBasetype();
-                if (t1b->ty == Tsarray)
-                {
-                    if (t2b->implicitConvTo(t1b))
+                    elem *e1;
+                    if (tybasic(stmp->Stype->Tty) == TYnptr)
                     {
-                        elem *esize = el_long(TYsize_t, t1b->size());
-                        ep = array_toPtr(el->type, ep);
-                        e1 = el_bin(OPmemcpy, TYnptr, e1, el_param(ep, esize));
+                        e1 = el_var(stmp);
+                        e1->EV.sp.Voffset = sle->soffset;
                     }
                     else
                     {
-                        elem *edim = el_long(TYsize_t, t1b->size() / t2b->size());
-                        e1 = setArray(e1, edim, t2b, ep, irs, TOKconstruct);
+                        e1 = el_ptr(stmp);
+                        if (sle->soffset)
+                            e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, sle->soffset));
                     }
-                }
-                else
-                {
-                    tym_t ty = totym(v->type);
-                    e1 = el_una(OPind, ty, e1);
-                    if (tybasic(ty) == TYstruct)
-                        e1->ET = Type_toCtype(v->type);
-                    e1 = el_bin(OPeq, ty, e1, ep);
-                    if (tybasic(ty) == TYstruct)
+                    e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, v->offset));
+
+                    elem *ep = toElem(el, irs);
+
+                    Type *t1b = v->type->toBasetype();
+                    Type *t2b = el->type->toBasetype();
+                    if (t1b->ty == Tsarray)
                     {
-                        e1->Eoper = OPstreq;
-                        e1->ET = Type_toCtype(v->type);
+                        if (t2b->implicitConvTo(t1b))
+                        {
+                            elem *esize = el_long(TYsize_t, t1b->size());
+                            ep = array_toPtr(el->type, ep);
+                            e1 = el_bin(OPmemcpy, TYnptr, e1, el_param(ep, esize));
+                        }
+                        else
+                        {
+                            elem *edim = el_long(TYsize_t, t1b->size() / t2b->size());
+                            e1 = setArray(e1, edim, t2b, ep, irs, TOKconstruct);
+                        }
                     }
+                    else
+                    {
+                        tym_t ty = totym(v->type);
+                        e1 = el_una(OPind, ty, e1);
+                        if (tybasic(ty) == TYstruct)
+                            e1->ET = Type_toCtype(v->type);
+                        e1 = el_bin(OPeq, ty, e1, ep);
+                        if (tybasic(ty) == TYstruct)
+                        {
+                            e1->Eoper = OPstreq;
+                            e1->ET = Type_toCtype(v->type);
+                        }
+                    }
+                    e = el_combine(e, e1);
                 }
-                e = el_combine(e, e1);
             }
+
             if (needThis)
             {
                 // Initialize the hidden 'this' pointer

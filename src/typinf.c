@@ -448,7 +448,7 @@ public:
         dtabytes(pdt, 0, namelen + 1, name);
 
         // void[] init;
-printf("%s size = %d, zeroInit = %d\n", sd->toChars(), sd->structsize, sd->zeroInit);
+//printf("%s size = %d, zeroInit = %d\n", sd->toChars(), sd->structsize, sd->zeroInit);
         dtsize_t(pdt, sd->structsize);       // init.length
         if (sd->zeroInit)
             dtsize_t(pdt, 0);                // NULL for 0 initialization
