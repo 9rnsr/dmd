@@ -5125,34 +5125,23 @@ elem *toElem(Expression *e, IRState *irs)
 
             elem *e = NULL;
 
-            if (sle->fillHoles)
-            {
-                /* Initialize all alignment 'holes' to zero.
-                 * Do before initializing fields, as the hole filling process
-                 * can spill over into the fields.
-                 *
-                 * TODO: Currently any fields are conservatively filled to zero,
-                 * even if a field will be set immediately after.
-                 */
-                size_t offset = 0;
-                for (size_t i = 0; i < sle->sd->fields.dim; i++)
-                {
-                    VarDeclaration *v = sle->sd->fields[i];
-                    size_t vend = v->offset + v->type->size();
-                    e = el_combine(e, fillHole(stmp, &offset, vend, sle->sd->structsize));
-                }
-                e = el_combine(e, fillHole(stmp, &offset, sle->sd->structsize, sle->sd->structsize));
-            }
-
+            size_t offset = 0;
             size_t dim = sle->elements ? sle->elements->dim : 0;
             assert(dim <= sle->sd->fields.dim);     // CTFE may fill the hidden pointer by NullExp.
             for (size_t i = 0; i < dim; i++)
             {
-                Expression *el = (*sle->elements)[i];
-                if (!el)
-                    continue;
-
                 VarDeclaration *v = sle->sd->fields[i];
+                size_t vend = v->offset + v->type->size();
+                Expression *el = (*sle->elements)[i];
+
+                if (!el)
+                {
+                    if (sle->fillHoles)
+                    {
+                        e = el_combine(e, fillHole(stmp, &offset, vend, sle->sd->structsize));
+                    }
+                    continue;
+                }
                 assert(!v->isThisDeclaration() || el->op == TOKnull);
 
                 elem *e1;
@@ -5201,12 +5190,17 @@ elem *toElem(Expression *e, IRState *irs)
                     }
                 }
                 e = el_combine(e, e1);
+                offset = vend;
             }
+            if (sle->fillHoles)
+                e = el_combine(e, fillHole(stmp, &offset, sle->sd->structsize, sle->sd->structsize));
 
             if (sle->sd->isNested() && dim != sle->sd->fields.dim)
             {
                 // Initialize the hidden 'this' pointer
                 assert(sle->sd->fields.dim);
+                VarDeclaration *v = sle->sd->fields[sle->sd->fields.dim - 1];
+                size_t vend = v->offset + v->type->size();
 
                 elem *e1;
                 if (tybasic(stmp->Stype->Tty) == TYnptr)
@@ -5223,7 +5217,10 @@ elem *toElem(Expression *e, IRState *irs)
                 e1 = setEthis(sle->loc, irs, e1, sle->sd);
 
                 e = el_combine(e, e1);
+                offset = vend;
             }
+            if (sle->fillHoles)
+                e = el_combine(e, fillHole(stmp, &offset, sle->sd->structsize, sle->sd->structsize));
 
             elem *ev = el_var(stmp);
             ev->ET = Type_toCtype(sle->sd->type);
