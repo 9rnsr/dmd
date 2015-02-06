@@ -5193,6 +5193,18 @@ elem *toElem(Expression *e, IRState *irs)
                 e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, v->offset));
                 printf("\tL%d\n", __LINE__);
 
+                if (el->op == TOKstructliteral && v->type->toBasetype()->ty == Tstruct)
+                {
+                    // optimize
+                    StructLiteralExp *sle2 = (StructLiteralExp *)el;
+                    sle->sym = stmp;
+                    sle->soffset = sle->soffset + v->offset;
+                    elem *ep = toElem(el, irs);
+                    e = el_combine(e, ep);
+                    e = el_combine(e, e1);
+                    continue;
+                }
+
                 elem *ep = toElem(el, irs);
 
                 Type *t1b = v->type->toBasetype();
