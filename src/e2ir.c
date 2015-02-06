@@ -5083,6 +5083,7 @@ elem *toElem(Expression *e, IRState *irs)
                         ty = TYlong;
                         break;
                 }
+                printf("\t\t*poffset = %d\n", *poffset);
                 e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, *poffset));
                 e1 = el_una(OPind, ty, e1);
                 e1 = el_bin(OPeq, ty, e1, el_long(ty, 0));
@@ -5094,7 +5095,7 @@ elem *toElem(Expression *e, IRState *irs)
 
         void visit(StructLiteralExp *sle)
         {
-            //printf("StructLiteralExp::toElem() %s\n", sle->toChars());
+            printf("StructLiteralExp::toElem() %s\n", sle->toChars());
 
             if (sle->sinit)
             {
@@ -5125,23 +5126,59 @@ elem *toElem(Expression *e, IRState *irs)
 
             elem *e = NULL;
 
+#if 0
+            if (sle->fillHoles)
+            {
+                /* Initialize all alignment 'holes' to zero.
+                 * Do before initializing fields, as the hole filling process
+                 * can spill over into the fields.
+                 *
+                 * TODO: Currently any fields are conservatively filled to zero,
+                 * even if a field will be set immediately after.
+                 */
+                size_t offset = 0;
+                for (size_t i = 0; i < sle->sd->fields.dim; i++)
+                {
+                    VarDeclaration *v = sle->sd->fields[i];
+                    size_t vend = v->offset + v->type->size();
+                    e = el_combine(e, fillHole(stmp, &offset, vend, sle->sd->structsize));
+                }
+                e = el_combine(e, fillHole(stmp, &offset, sle->sd->structsize, sle->sd->structsize));
+            }
+#endif
             size_t offset = 0;
             size_t dim = sle->elements ? sle->elements->dim : 0;
             assert(dim <= sle->sd->fields.dim);     // CTFE may fill the hidden pointer by NullExp.
             for (size_t i = 0; i < dim; i++)
             {
+                printf("\tL%d i - %d\n", __LINE__, i);
                 VarDeclaration *v = sle->sd->fields[i];
-                size_t vend = v->offset + v->type->size();
                 Expression *el = (*sle->elements)[i];
 
-                if (!el)
+                if (sle->fillHoles)
                 {
-                    if (sle->fillHoles)
+                    size_t vend = v->offset + v->type->size();
+                    if (el)
+                        offset = vend;
+                    if (i == dim - 1)
+                        vend = sle->sd->structsize;
+                    for (size_t j = i + 1; j < dim; j++)
                     {
-                        e = el_combine(e, fillHole(stmp, &offset, vend, sle->sd->structsize));
+                        if ((*sle->elements)[j])
+                            break;
+                        if (vend < sle->sd->fields[j]->offset)
+                            vend = sle->sd->fields[j]->offset;
+                        if (j == dim - 1)
+                            vend = sle->sd->structsize;
                     }
-                    continue;
+                    printf("\t> fillHoles [%d .. %d]\n", offset, vend);
+                    assert(offset <= vend);
+                    e = el_combine(e, fillHole(stmp, &offset, vend, sle->sd->structsize));
+
+                    offset = vend;
                 }
+                if (!el)
+                    continue;
                 assert(!v->isThisDeclaration() || el->op == TOKnull);
 
                 elem *e1;
@@ -5157,6 +5194,7 @@ elem *toElem(Expression *e, IRState *irs)
                         e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, sle->soffset));
                 }
                 e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, v->offset));
+                printf("\tL%d\n", __LINE__);
 
                 elem *ep = toElem(el, irs);
 
@@ -5190,17 +5228,20 @@ elem *toElem(Expression *e, IRState *irs)
                     }
                 }
                 e = el_combine(e, e1);
-                offset = vend;
             }
-            if (sle->fillHoles)
-                e = el_combine(e, fillHole(stmp, &offset, sle->sd->structsize, sle->sd->structsize));
+            //if (sle->fillHoles)
+            //{
+            //printf("\t+L%d offset = %d, structsize = %d\n", __LINE__, offset, sle->sd->structsize);
+            //    e = el_combine(e, fillHole(stmp, &offset, sle->sd->structsize, sle->sd->structsize));
+            //printf("\t-L%d offset = %d, structsize = %d\n", __LINE__, offset, sle->sd->structsize);
+            //}
 
             if (sle->sd->isNested() && dim != sle->sd->fields.dim)
             {
                 // Initialize the hidden 'this' pointer
                 assert(sle->sd->fields.dim);
-                VarDeclaration *v = sle->sd->fields[sle->sd->fields.dim - 1];
-                size_t vend = v->offset + v->type->size();
+                //VarDeclaration *v = sle->sd->fields[sle->sd->fields.dim - 1];
+                //size_t vend = v->offset + v->type->size();
 
                 elem *e1;
                 if (tybasic(stmp->Stype->Tty) == TYnptr)
@@ -5217,10 +5258,11 @@ elem *toElem(Expression *e, IRState *irs)
                 e1 = setEthis(sle->loc, irs, e1, sle->sd);
 
                 e = el_combine(e, e1);
-                offset = vend;
+                //offset = vend;
             }
-            if (sle->fillHoles)
-                e = el_combine(e, fillHole(stmp, &offset, sle->sd->structsize, sle->sd->structsize));
+            //if (sle->fillHoles)
+            //    e = el_combine(e, fillHole(stmp, &offset, sle->sd->structsize, sle->sd->structsize));
+            printf("\tL%d === end\n", __LINE__);
 
             elem *ev = el_var(stmp);
             ev->ET = Type_toCtype(sle->sd->type);
