@@ -3426,11 +3426,11 @@ elem *toElem(Expression *e, IRState *irs)
 
                 fd = dve->var->isFuncDeclaration();
 
-                if (dve->e1->op == TOKstructliteral)
-                {
-                    StructLiteralExp *sle = (StructLiteralExp *)dve->e1;
-                    sle->sinit = NULL;          // don't modify initializer
-                }
+                //if (dve->e1->op == TOKstructliteral)
+                //{
+                //    StructLiteralExp *sle = (StructLiteralExp *)dve->e1;
+                //    sle->sinit = NULL;          // don't modify initializer
+                //}
 
                 ec = toElem(dve->e1, irs);
                 ectype = dve->e1->type->toBasetype();
@@ -5143,11 +5143,11 @@ elem *toElem(Expression *e, IRState *irs)
 
         void visit(StructLiteralExp *sle)
         {
-            //printf("[%s] StructLiteralExp::toElem() %s\n", sle->loc.toChars(), sle->toChars());
+            //printf("[%s] StructLiteralExp::toElem() %s, sinit = %p\n", sle->loc.toChars(), sle->toChars(), sle->sinit);
             size_t dim = sle->elements ? sle->elements->dim : 0;
 
-            if (!(dim >= sle->sd->fields.dim - (sle->sd->isNested() ? 1 : 0)))
-                printf("[%s] sle = %s\n", sle->loc.toChars(), sle->toChars());
+            //if (!(dim >= sle->sd->fields.dim - (sle->sd->isNested() ? 1 : 0)))
+            //    printf("[%s] sle = %s\n", sle->loc.toChars(), sle->toChars());
 
             assert(dim >= sle->sd->fields.dim - (sle->sd->isNested() ? 1 : 0));
             bool needThis = sle->sd->isNested() && dim != sle->sd->fields.dim;
