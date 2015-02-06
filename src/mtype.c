@@ -2094,8 +2094,9 @@ Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
         e = defaultInitLiteral(loc);
         if (tb->ty == Tstruct && tb->needsNested())
         {
-            StructLiteralExp *se = (StructLiteralExp *)e;
-            se->sinit = toInitializer(se->sd);
+            StructLiteralExp *sle = (StructLiteralExp *)e;
+            //sle->sinit = toInitializer(se->sd);
+            sle->elements->push(new NullExp(loc, sle->sd->vthis->type));
         }
     }
     else if (ident == Id::mangleof)
@@ -7740,8 +7741,8 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
     if (!sym->fill(loc, sle->elements, true))
         return new ErrorExp();
 
-    if (sym->isNested())
-        sle->elements->push(new NullExp(loc, sym->vthis->type));
+    //if (sym->isNested())
+    //    sle->elements->push(new NullExp(loc, sym->vthis->type));
 
     sle->sinit = toInitializer(sym);
 
