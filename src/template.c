@@ -5869,7 +5869,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
      * then run semantic on each argument (place results in tiargs[]),
      * last find most specialized template from overload list/set.
      */
-    if (!findTempDecl(sc, NULL) ||
+    if (findTempDecl(sc, NULL) ||
         !semanticTiargs(sc) ||
         !findBestMatch(sc, fargs))
     {
@@ -6319,7 +6319,7 @@ Lerror:
  * Find template declaration corresponding to template instance.
  *
  * Returns:
- *      false if finding fails.
+ *      true if finding fails.
  * Note:
  *      This function is reentrant against error occurrence. If returns false,
  *      any members of this object won't be modified, and repetition call will
@@ -6332,7 +6332,7 @@ bool TemplateInstance::findTempDecl(Scope *sc, WithScopeSymbol **pwithsym)
         *pwithsym = NULL;
 
     if (havetempdecl)
-        return true;
+        return false;
 
     //printf("TemplateInstance::findTempDecl() %s\n", toChars());
     if (!tempdecl)
@@ -6351,7 +6351,7 @@ bool TemplateInstance::findTempDecl(Scope *sc, WithScopeSymbol **pwithsym)
                 error("template '%s' is not defined, did you mean %s?", id->toChars(), s->toChars());
             else
                 error("template '%s' is not defined", id->toChars());
-            return false;
+            return true;
         }
 
 #if LOG
@@ -6385,7 +6385,7 @@ bool TemplateInstance::findTempDecl(Scope *sc, WithScopeSymbol **pwithsym)
 
         if (!updateTempDecl(sc, s))
         {
-            return false;
+            return true;
         }
     }
     assert(tempdecl);
@@ -6422,9 +6422,9 @@ bool TemplateInstance::findTempDecl(Scope *sc, WithScopeSymbol **pwithsym)
     for (size_t oi = 0; oi < overs_dim; oi++)
     {
         if (overloadApply(tovers ? tovers->a[oi] : tempdecl, (void *)this, &ParamFwdTi::fp))
-            return false;
+            return true;
     }
-    return true;
+    return false;
 }
 
 /**********************************************
@@ -7953,7 +7953,7 @@ bool TemplateMixin::findTempDecl(Scope *sc)
         if (!s)
         {
             error("is not defined");
-            return false;
+            return true;
         }
         s = s->toAlias();
         tempdecl = s->isTemplateDeclaration();
@@ -7981,7 +7981,7 @@ bool TemplateMixin::findTempDecl(Scope *sc)
         if (!tempdecl)
         {
             error("%s isn't a template", s->toChars());
-            return false;
+            return true;
         }
     }
     assert(tempdecl);
@@ -8014,9 +8014,9 @@ bool TemplateMixin::findTempDecl(Scope *sc)
     for (size_t oi = 0; oi < overs_dim; oi++)
     {
         if (overloadApply(tovers ? tovers->a[oi] : tempdecl, (void *)this, &ParamFwdResTm::fp))
-            return false;
+            return true;
     }
-    return true;
+    return false;
 }
 
 void TemplateMixin::semantic(Scope *sc)
@@ -8051,7 +8051,7 @@ void TemplateMixin::semantic(Scope *sc)
     /* Run semantic on each argument, place results in tiargs[],
      * then find best match template with tiargs
      */
-    if (!findTempDecl(sc) ||
+    if (findTempDecl(sc) ||
         !semanticTiargs(sc) ||
         !findBestMatch(sc, NULL))
     {

@@ -4605,7 +4605,7 @@ Lagain:
     if (ti)
     {
         WithScopeSymbol *withsym;
-        if (!ti->findTempDecl(sc, &withsym) ||
+        if (ti->findTempDecl(sc, &withsym) ||
             !ti->semanticTiargs(sc))
         {
             return new ErrorExp();
@@ -8224,7 +8224,7 @@ Expression *CallExp::semantic(Scope *sc)
              * If not, go with partial explicit specialization.
              */
             WithScopeSymbol *withsym;
-            if (!ti->findTempDecl(sc, &withsym) ||
+            if (ti->findTempDecl(sc, &withsym) ||
                 !ti->semanticTiargs(sc))
             {
                 return new ErrorExp();
