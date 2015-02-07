@@ -1566,11 +1566,10 @@ bool inferAggregate(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
  * if any of the parameter types are missing, attempt to infer
  * them from the aggregate type.
  */
-
 bool inferApplyArgTypes(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
 {
     if (!fes->parameters || !fes->parameters->dim)
-        return false;
+        return true;
 
     if (sapply)     // prefer opApply
     {
@@ -1602,7 +1601,7 @@ bool inferApplyArgTypes(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
         {
             sapply = inferApplyArgTypesX(ethis, fd, fes->parameters);
         }
-        return sapply != NULL;
+        return !sapply;
     }
 
     /* Return if no parameters need types.
@@ -1706,14 +1705,14 @@ bool inferApplyArgTypes(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
         case Tdelegate:
         {
             if (!inferApplyArgTypesY((TypeFunction *)tab->nextOf(), fes->parameters))
-                return false;
+                return true;
             break;
         }
 
         default:
             break;              // ignore error, caught later
     }
-    return true;
+    return false;
 }
 
 static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, Parameters *parameters)
