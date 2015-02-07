@@ -464,6 +464,7 @@ public:
     unsigned alignsize();
     Type *semantic(Loc loc, Scope *sc);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
+    Expression *getProperty(Loc loc, Identifier *ident, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     bool isString();
     bool isZeroInit(Loc loc);
@@ -750,37 +751,6 @@ enum AliasThisRec
     RECtracingDT = 0x8, // mark in progress of deduceType
 };
 
-class TypeStruct : public Type
-{
-public:
-    StructDeclaration *sym;
-    AliasThisRec att;
-
-    TypeStruct(StructDeclaration *sym);
-    const char *kind();
-    d_uns64 size(Loc loc);
-    unsigned alignsize();
-    Type *syntaxCopy();
-    Type *semantic(Loc loc, Scope *sc);
-    Dsymbol *toDsymbol(Scope *sc);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
-    structalign_t alignment();
-    Expression *defaultInit(Loc loc);
-    Expression *defaultInitLiteral(Loc loc);
-    bool isZeroInit(Loc loc);
-    bool isAssignable();
-    bool checkBoolean();
-    bool needsDestruction();
-    bool needsNested();
-    bool hasPointers();
-    MATCH implicitConvTo(Type *to);
-    MATCH constConv(Type *to);
-    unsigned char deduceWild(Type *t, bool isRef);
-    Type *toHeadMutable();
-
-    void accept(Visitor *v) { v->visit(this); }
-};
-
 class TypeEnum : public Type
 {
 public:
@@ -814,6 +784,38 @@ public:
     bool isZeroInit(Loc loc);
     bool hasPointers();
     Type *nextOf();
+
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class TypeStruct : public Type
+{
+public:
+    StructDeclaration *sym;
+    AliasThisRec att;
+
+    TypeStruct(StructDeclaration *sym);
+    const char *kind();
+    d_uns64 size(Loc loc);
+    unsigned alignsize();
+    Type *syntaxCopy();
+    Type *semantic(Loc loc, Scope *sc);
+    Dsymbol *toDsymbol(Scope *sc);
+    Expression *getProperty(Loc loc, Identifier *ident, int flag);
+    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
+    structalign_t alignment();
+    Expression *defaultInit(Loc loc);
+    Expression *defaultInitLiteral(Loc loc);
+    bool isZeroInit(Loc loc);
+    bool isAssignable();
+    bool checkBoolean();
+    bool needsDestruction();
+    bool needsNested();
+    bool hasPointers();
+    MATCH implicitConvTo(Type *to);
+    MATCH constConv(Type *to);
+    unsigned char deduceWild(Type *t, bool isRef);
+    Type *toHeadMutable();
 
     void accept(Visitor *v) { v->visit(this); }
 };

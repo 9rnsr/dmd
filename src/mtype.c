@@ -2085,11 +2085,11 @@ Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
     {
         Type *tb = toBasetype();
         e = defaultInitLiteral(loc);
-        if (tb->ty == Tstruct && tb->needsNested())
-        {
-            StructLiteralExp *se = (StructLiteralExp *)e;
-            se->sinit = toInitializer(se->sd);
-        }
+        //if (tb->ty == Tstruct && tb->needsNested())
+        //{
+        //    StructLiteralExp *se = (StructLiteralExp *)e;
+        //    se->sinit = toInitializer(se->sd);
+        //}
     }
     else if (ident == Id::mangleof)
     {
@@ -4044,6 +4044,31 @@ Lerror:
     return Type::terror;
 }
 
+Expression *TypeSArray::getProperty(Loc loc, Identifier *ident, int flag)
+{
+    Expression *e;
+    if (ident == Id::init)
+    {
+        Type *tn = next->ty == Tvoid ? tuns8 : next;
+        Expression *el = tn->getProperty(loc, Id::init, 0);
+        if (el->op == TOKerror)
+            return el;
+        size_t d = (size_t)dim->toInteger();
+        Expressions *elements = new Expressions();
+        elements->setDim(d);
+        for (size_t i = 0; i < d; i++)
+            (*elements)[i] = el;
+        ArrayLiteralExp *ale = new ArrayLiteralExp(loc, elements);
+        ale->type = this;
+        e = ale;
+    }
+    else
+    {
+        e = Type::getProperty(loc, ident, flag);
+    }
+    return e;
+}
+
 Expression *TypeSArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
 {
 #if LOGDOTEXP
@@ -4206,9 +4231,9 @@ Expression *TypeSArray::defaultInitLiteral(Loc loc)
     elements->setDim(d);
     for (size_t i = 0; i < d; i++)
         (*elements)[i] = elementinit;
-    ArrayLiteralExp *ae = new ArrayLiteralExp(Loc(), elements);
-    ae->type = this;
-    return ae;
+    ArrayLiteralExp *ale = new ArrayLiteralExp(loc, elements);
+    ale->type = this;
+    return ale;
 }
 
 Expression *TypeSArray::toExpression()
@@ -7197,6 +7222,8 @@ Expression *TypeEnum::getProperty(Loc loc, Identifier *ident, int flag)
     else if (ident == Id::init)
     {
         e = defaultInitLiteral(loc);
+
+        // maybe not a problem, because contextful types cannot be enum
     }
     else if (ident == Id::stringof)
     {
@@ -7377,6 +7404,31 @@ unsigned TypeStruct::alignsize()
 Dsymbol *TypeStruct::toDsymbol(Scope *sc)
 {
     return sym;
+}
+
+Expression *TypeStruct::getProperty(Loc loc, Identifier *ident, int flag)
+{
+    Expression *e;
+    if (ident == Id::init)
+    {
+        sym->size(loc);
+        if (sym->sizeok != SIZEOKdone)
+            return new ErrorExp();
+
+        StructLiteralExp *sle = new StructLiteralExp(loc, sym, NULL, this);
+
+        if (!sym->fill(loc, sle->elements, true))
+            return new ErrorExp();
+
+        sle->cheapInit = 2;
+        sle->sinit = toInitializer(sym);
+
+        sle->type = this;
+        e = sle;
+    }
+    else
+        e = Type::getProperty(loc, ident, flag);
+    return e;
 }
 
 Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
@@ -8589,18 +8641,33 @@ Type *TypeTuple::makeConst()
 #endif
 
 Expression *TypeTuple::getProperty(Loc loc, Identifier *ident, int flag)
-{   Expression *e;
-
+{
 #if LOGDOTEXP
     printf("TypeTuple::getProperty(type = '%s', ident = '%s')\n", toChars(), ident->toChars());
 #endif
+    Expression *e;
+
     if (ident == Id::length)
     {
         e = new IntegerExp(loc, arguments->dim, Type::tsize_t);
     }
     else if (ident == Id::init)
     {
-        e = defaultInitLiteral(loc);
+        //e = defaultInitLiteral(loc);
+
+        Expressions *exps = new Expressions();
+        exps->setDim(arguments->dim);
+        for (size_t i = 0; i < arguments->dim; i++)
+        {
+            Parameter *p = (*arguments)[i];
+            assert(p->type);
+            Expression *el = p->type->getProperty(loc, Id::init, 0);
+            if (el->op == TOKerror)
+                return e;
+            (*exps)[i] = el;
+        }
+        e = new TupleExp(loc, exps);
+        e->type = this;
     }
     else if (flag)
     {
