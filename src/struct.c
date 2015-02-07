@@ -1105,8 +1105,8 @@ bool StructDeclaration::fit(Loc loc, Scope *sc, Expressions *elements, Type *sty
  *      loc
  *      elements    explicit arguments which given to construct object.
  *      ctorinit    true if the elements will be used for default initialization.
- * Returns false if any errors occur.
- * Otherwise, returns true and the missing arguments will be pushed in elements[].
+ * Returns true if any errors occur.
+ * Otherwise, returns false and the missing arguments will be pushed in elements[].
  */
 bool StructDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
 {
@@ -1258,10 +1258,10 @@ bool StructDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
         {
             Expression *e = (*elements)[i];
             if (e && e->op == TOKerror)
-                return false;
+                return true;
         }
     }
-    return !errors;
+    return errors;
 }
 
 /***************************************

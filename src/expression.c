@@ -4376,7 +4376,7 @@ Expression *StructLiteralExp::semantic(Scope *sc)
 
     /* Fill out remainder of elements[] with default initializers for fields[]
      */
-    if (!sd->fill(loc, elements, false))
+    if (sd->fill(loc, elements, false))
     {
         /* An error in the initializer needs to be recorded as an error
          * in the enclosing function or template, since the initializer
@@ -5062,7 +5062,7 @@ Lagain:
             if (sd->fit(loc, sc, arguments, tb))
                 return new ErrorExp();
 
-            if (!sd->fill(loc, arguments, false))
+            if (sd->fill(loc, arguments, false))
                 return new ErrorExp();
         }
 
@@ -8429,7 +8429,7 @@ Lagain:
                     goto Lx;
 
                 StructLiteralExp *sle = new StructLiteralExp(loc, sd, NULL, e1->type);
-                if (!sd->fill(loc, sle->elements, true))
+                if (sd->fill(loc, sle->elements, true))
                     return new ErrorExp();
 
                 /* Copy from the initializer symbol for larger symbols,

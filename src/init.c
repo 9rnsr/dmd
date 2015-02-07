@@ -251,7 +251,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
             return new ErrorInitializer();
 
         StructLiteralExp *sle = new StructLiteralExp(loc, sd, elements, t);
-        if (!sd->fill(loc, elements, false))
+        if (sd->fill(loc, elements, false))
             return new ErrorInitializer();
         sle->type = t;
 
