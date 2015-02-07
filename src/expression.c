@@ -4194,14 +4194,17 @@ StructLiteralExp::StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *
         elements = new Expressions();
     this->elements = elements;
     this->stype = stype;
+
+    this->ownedByCtfe = false;
+    this->origin = this;
+    this->inlinecopy = NULL;
+    this->cheapInit = 0;
     this->sinit = NULL;
     this->sym = NULL;
     this->soffset = 0;
     this->fillHoles = 1;
-    this->ownedByCtfe = false;
-    this->origin = this;
+
     this->stageflags = 0;
-    this->inlinecopy = NULL;
     //printf("StructLiteralExp::StructLiteralExp(%s)\n", toChars());
 }
 
@@ -11224,6 +11227,7 @@ Expression *AssignExp::semantic(Scope *sc)
                      * variable with a bit copy of the default
                      * initializer
                      */
+                    // Note: By the change for Issue 13321, we would be able to use dve->e1 directly.
                     AssignExp *ae = this;
                     if (sd->zeroInit == 1)
                         ae->e2 = new IntegerExp(loc, 0, Type::tint32);

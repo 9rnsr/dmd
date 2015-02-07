@@ -453,20 +453,29 @@ public:
                                 // NULL entries for fields to skip
     Type *stype;                // final type of result (can be different from sd's type)
 
-    Symbol *sinit;              // if this is a defaultInitLiteral, this symbol contains the default initializer
-    Symbol *sym;                // back end symbol to initialize with literal
-    size_t soffset;             // offset from start of s
-    int fillHoles;              // fill alignment 'holes' with zero
+    // CTFE
     bool ownedByCtfe;           // true = created in CTFE
 
+    // CTFE and backend
     // pointer to the origin instance of the expression.
     // once a new expression is created, origin is set to 'this'.
     // anytime when an expression copy is created, 'origin' pointer is set to
     // 'origin' pointer value of the original expression.
     StructLiteralExp *origin;
 
+    // inline
     // those fields need to prevent a infinite recursion when one field of struct initialized with 'this' pointer.
     StructLiteralExp *inlinecopy;
+
+    // backend
+    int cheapInit;  // 0: elements + valid context (if necessary)
+                    // 1: T.init + valid context (if necessary)
+                    // 2: T.init
+
+    Symbol *sinit;              // if this is a defaultInitLiteral, this symbol contains the default initializer
+    Symbol *sym;                // back end symbol to initialize with literal
+    size_t soffset;             // offset from start of s
+    int fillHoles;              // fill alignment 'holes' with zero
 
     // anytime when recursive function is calling, 'stageflags' marks with bit flag of
     // current stage and unmarks before return from this function.
