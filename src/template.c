@@ -5871,7 +5871,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
      */
     if (findTempDecl(sc, NULL) ||
         semanticTiargs(sc) ||
-        !findBestMatch(sc, fargs))
+        findBestMatch(sc, fargs))
     {
 Lerror:
         if (gagged)
@@ -6821,10 +6821,10 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
         if (!tempdecl->matchWithInstance(sc, this, &tdtypes, fargs, 2))
         {
             error("incompatible arguments for template instantiation");
-            return false;
+            return true;
         }
         // TODO: Normalizing tiargs for bugzilla 7469 is necessary?
-        return true;
+        return false;
     }
 
 #if LOG
@@ -6928,7 +6928,7 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
                     p.td_best->kind(), p.td_best->parent->toPrettyChars(), p.td_best->ident->toChars(),
                     p.td_best->loc.toChars() , p.td_best->toChars(),
                     p.td_ambig->loc.toChars(), p.td_ambig->toChars());
-            return false;
+            return true;
         }
         if (p.td_best)
         {
@@ -6937,7 +6937,7 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
             else if (td_last != p.td_best)
             {
                 ScopeDsymbol::multiplyDefined(loc, td_last, p.td_best);
-                return false;
+                return true;
             }
         }
     }
@@ -6983,7 +6983,7 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
     {
         // instantiation was failed with error reporting
         assert(global.errors);
-        return false;
+        return true;
     }
     else
     {
@@ -7001,7 +7001,7 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
         else
             ::error(loc, "%s %s.%s does not match any template declaration",
                     tempdecl->kind(), tempdecl->parent->toPrettyChars(), tempdecl->ident->toChars());
-        return false;
+        return true;
     }
 
     /* The best match is td_last
@@ -7011,7 +7011,7 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
 #if LOG
     printf("\tIt's a match with template declaration '%s'\n", tempdecl->toChars());
 #endif
-    return (errs == global.errors);
+    return (errs != global.errors);
 }
 
 /*****************************************************
@@ -8051,7 +8051,7 @@ void TemplateMixin::semantic(Scope *sc)
      */
     if (findTempDecl(sc) ||
         semanticTiargs(sc) ||
-        !findBestMatch(sc, NULL))
+        findBestMatch(sc, NULL))
     {
         if (semanticRun == PASSinit)    // forward reference had occured
         {
