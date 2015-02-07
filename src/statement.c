@@ -1727,7 +1727,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
     if (func->fes)
         func = func->fes->func;
 
-    if (!inferAggregate(this, sc, sapply))
+    if (inferAggregate(this, sc, sapply))
     {
         const char *msg = "";
         if (aggr->type && isAggregate(aggr->type))

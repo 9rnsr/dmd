@@ -1480,13 +1480,13 @@ bool inferAggregate(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
         fes->aggr = resolveProperties(sc, fes->aggr);
         fes->aggr = fes->aggr->optimize(WANTvalue);
         if (!fes->aggr->type)
-            goto Lerr;
+            return true;
 
         tab = fes->aggr->type->toBasetype();
         if (att == tab)
         {
             fes->aggr = org_aggr;
-            goto Lerr;
+            return true;
         }
         switch (tab->ty)
         {
@@ -1540,7 +1540,7 @@ bool inferAggregate(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
                     fes->aggr = new DotIdExp(fes->aggr->loc, fes->aggr, ad->aliasthis->ident);
                     continue;
                 }
-                goto Lerr;
+                return true;
 
             case Tdelegate:
                 if (fes->aggr->op == TOKdelegate)
@@ -1554,13 +1554,10 @@ bool inferAggregate(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
                 break;
 
             default:
-                goto Lerr;
+                return true;
         }
         break;
     }
-    return true;
-
-Lerr:
     return false;
 }
 
