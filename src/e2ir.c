@@ -5096,57 +5096,9 @@ elem *toElem(Expression *e, IRState *irs)
         {
             //printf("[%s] StructLiteralExp::toElem() %s, cheapInit = %d\n", sle->loc.toChars(), sle->toChars(), sle->cheapInit);
             size_t dim = sle->elements ? sle->elements->dim : 0;
-
             //if (!(dim >= sle->sd->fields.dim - (sle->sd->isNested() ? 1 : 0)))
             //    printf("[%s] sle = %s\n", sle->loc.toChars(), sle->toChars());
-
             assert(dim >= sle->sd->fields.dim - (sle->sd->isNested() ? 1 : 0));
-            bool needThis = sle->sd->isNested() && dim != sle->sd->fields.dim;
-
-            // sle->elements can be ignored
-            if (sle->cheapInit != 0)
-            {
-                Symbol *sinit = toInitializer(sle->sd);
-                elem *e = el_var(sinit);
-                e->ET = Type_toCtype(sle->sd->type);
-
-                Symbol *stmp = sle->sym;
-                if (!stmp)
-                    stmp = symbol_genauto(Type_toCtype(sle->sd->type));
-
-                elem *ev = el_var(stmp);
-                if (tybasic(ev->Ety) == TYnptr)
-                    ev = el_una(OPind, e->Ety, ev);
-                ev->ET = e->ET;
-                e = el_bin(OPstreq, e->Ety, ev, e);
-                e->ET = ev->ET;
-
-                if (sle->cheapInit == 1 && sle->sd->isNested())
-                {
-                    // Initialize the hidden 'this' pointer
-                    elem *e1;
-                    if (tybasic(stmp->Stype->Tty) == TYnptr)
-                    {
-                        e1 = el_var(stmp);
-                        e1->EV.sp.Voffset = sle->soffset;
-                    }
-                    else
-                    {
-                        e1 = el_ptr(stmp);
-                        if (sle->soffset)
-                            e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, sle->soffset));
-                    }
-                    e1 = setEthis(sle->loc, irs, e1, sle->sd);
-                    e = el_combine(e, e1);
-
-                    ev = el_var(stmp);
-                    ev->ET = Type_toCtype(sle->sd->type);
-                    e = el_combine(e, ev);
-                }
-                el_setLoc(e, sle->loc);
-                result = e;
-                return;
-            }
 
             // struct symbol to initialize with the literal
             Symbol *stmp = sle->sym;
@@ -5155,27 +5107,41 @@ elem *toElem(Expression *e, IRState *irs)
 
             elem *e = NULL;
 
-            if (sle->fillHoles)
+            // elements can be ignored
+            if (sle->cheapInit & 1)
             {
-                /* Initialize all alignment 'holes' to zero.
-                 * Do before initializing fields, as the hole filling process
-                 * can spill over into the fields.
-                 *
-                 * TODO: Currently any fields are conservatively filled to zero,
-                 * even if a field will be set immediately after.
-                 */
-                size_t offset = 0;
-                for (size_t i = 0; i < sle->sd->fields.dim; i++)
-                {
-                    VarDeclaration *v = sle->sd->fields[i];
-                    size_t vend = v->offset + v->type->size();
-                    e = el_combine(e, fillHole(stmp, &offset, vend, sle->sd->structsize));
-                }
-                e = el_combine(e, fillHole(stmp, &offset, sle->sd->structsize, sle->sd->structsize));
-            }
+                Symbol *sinit = toInitializer(sle->sd);
+                e = el_var(sinit);
+                e->ET = Type_toCtype(sle->sd->type);
 
-            // CTFE may fill the hidden pointer by NullExp.
+                elem *ev = el_var(stmp);
+                if (tybasic(ev->Ety) == TYnptr)
+                    ev = el_una(OPind, e->Ety, ev);
+                ev->ET = e->ET;
+                e = el_bin(OPstreq, e->Ety, ev, e);
+                e->ET = ev->ET;
+            }
+            else
             {
+                if (sle->fillHoles)
+                {
+                    /* Initialize all alignment 'holes' to zero.
+                     * Do before initializing fields, as the hole filling process
+                     * can spill over into the fields.
+                     *
+                     * TODO: Currently any fields are conservatively filled to zero,
+                     * even if a field will be set immediately after.
+                     */
+                    size_t offset = 0;
+                    for (size_t i = 0; i < sle->sd->fields.dim; i++)
+                    {
+                        VarDeclaration *v = sle->sd->fields[i];
+                        size_t vend = v->offset + v->type->size();
+                        e = el_combine(e, fillHole(stmp, &offset, vend, sle->sd->structsize));
+                    }
+                    e = el_combine(e, fillHole(stmp, &offset, sle->sd->structsize, sle->sd->structsize));
+                }
+
                 for (size_t i = 0; i < dim; i++)
                 {
                     Expression *el = (*sle->elements)[i];
@@ -5234,7 +5200,9 @@ elem *toElem(Expression *e, IRState *irs)
                 }
             }
 
-            if (needThis)
+            // CTFE may fill the hidden pointer by NullExp.
+            bool needThis = sle->sd->isNested() && dim != sle->sd->fields.dim;
+            if (needThis && (sle->cheapInit & 2) == 0)
             {
                 // Initialize the hidden 'this' pointer
                 elem *e1;

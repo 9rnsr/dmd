@@ -8333,7 +8333,7 @@ Lagain:
                     goto Lx;
 
                 StructLiteralExp *sle = new StructLiteralExp(loc, sd, NULL, e1->type);
-                sle->cheapInit = 1;
+                sle->cheapInit = 0 | xxx;
                 if (!sd->fill(loc, sle->elements, true))
                     return new ErrorExp();
 

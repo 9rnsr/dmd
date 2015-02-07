@@ -468,9 +468,8 @@ public:
     StructLiteralExp *inlinecopy;
 
     // backend
-    int cheapInit;  // 0: elements + valid context (if necessary)
-                    // 1: T.init + valid context (if necessary)
-                    // 2: T.init
+    int cheapInit;  // 0x1: Use T.init for elements
+                    // 0x2: Don't have to supply valid context
 
     Symbol *sinit;              // if this is a defaultInitLiteral, this symbol contains the default initializer
     Symbol *sym;                // back end symbol to initialize with literal
