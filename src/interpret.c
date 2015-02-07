@@ -3794,7 +3794,7 @@ public:
 
             Expression *aggregate;
             uinteger_t indexToModify;
-            if (!resolveIndexing(ie, istate, &aggregate, &indexToModify, true))
+            if (resolveIndexing(ie, istate, &aggregate, &indexToModify, true))
             {
                 return CTFEExp::cantexp;
             }
@@ -4994,11 +4994,11 @@ public:
             // Indexing a pointer. Note that there is no $ in this case.
             Expression *e1 = interpret(e->e1, istate);
             if (exceptionOrCantInterpret(e1))
-                return false;
+                return true;
 
             Expression *e2 = interpret(e->e2, istate);
             if (exceptionOrCantInterpret(e2))
-                return false;
+                return true;
             sinteger_t indx = e2->toInteger();
 
             dinteger_t ofs;
@@ -5007,20 +5007,20 @@ public:
             if (agg->op == TOKnull)
             {
                 e->error("cannot index through null pointer %s", e->e1->toChars());
-                return false;
+                return true;
             }
             if (agg->op == TOKint64)
             {
                 e->error("cannot index through invalid pointer %s of value %s",
                     e->e1->toChars(), e1->toChars());
-                return false;
+                return true;
             }
             // Pointer to a non-array variable
             if (agg->op == TOKsymoff)
             {
                 e->error("mutable variable %s cannot be %s at compile time, even through a pointer",
                     (char *)(modify ? "modified" : "read"), ((SymOffExp *)agg)->var->toChars());
-                return false;
+                return true;
             }
 
             if (agg->op == TOKarrayliteral || agg->op == TOKstring)
@@ -5030,7 +5030,7 @@ public:
                 {
                     e->error("pointer index [%lld] exceeds allocated memory block [0..%lld]",
                         ofs + indx, len);
-                    return false;
+                    return true;
                 }
             }
             else
@@ -5039,21 +5039,21 @@ public:
                 {
                     e->error("pointer index [%lld] lies outside memory block [0..1]",
                         ofs + indx);
-                    return false;
+                    return true;
                 }
             }
             *pagg = agg;
             *pidx = ofs + indx;
-            return true;
+            return false;
         }
 
         Expression *e1 = interpret(e->e1, istate);
         if (exceptionOrCantInterpret(e1))
-            return false;
+            return true;
         if (e1->op == TOKnull)
         {
             e->error("cannot index null array %s", e->e1->toChars());
-            return false;
+            return true;
         }
         if (e1->op == TOKvector)
             e1 = ((VectorExp *)e1)->e1;
@@ -5065,7 +5065,7 @@ public:
         {
             e->error("cannot determine length of %s at compile time",
                 e->e1->toChars());
-            return false;
+            return true;
         }
 
         dinteger_t len = resolveArrayLength(e1);
@@ -5079,11 +5079,11 @@ public:
         if (e->lengthVar)
             ctfeStack.pop(e->lengthVar); // $ is defined only inside []
         if (exceptionOrCantInterpret(e2))
-            return false;
+            return true;
         if (e2->op != TOKint64)
         {
             e->error("CTFE internal error: non-integral index [%s]", e->e2->toChars());
-            return false;
+            return true;
         }
 
         if (e1->op == TOKslice)
@@ -5096,7 +5096,7 @@ public:
             if (index > iupr - ilwr)
             {
                 e->error("index %llu exceeds array length %llu", index, iupr - ilwr);
-                return false;
+                return true;
             }
             *pagg = ((SliceExp *)e1)->e1;
             *pidx = index + ilwr;
@@ -5109,10 +5109,10 @@ public:
             {
                 e->error("array index %lld is out of bounds [0..%lld]",
                     *pidx, len);
-                return false;
+                return true;
             }
         }
-        return true;
+        return false;
     }
 
     void visit(IndexExp *e)
@@ -5124,7 +5124,7 @@ public:
         {
             Expression *agg;
             uinteger_t indexToAccess;
-            if (!resolveIndexing(e, istate, &agg, &indexToAccess, false))
+            if (resolveIndexing(e, istate, &agg, &indexToAccess, false))
             {
                 result = CTFEExp::cantexp;
                 return;
@@ -5201,7 +5201,7 @@ public:
 
         Expression *agg;
         uinteger_t indexToAccess;
-        if (!resolveIndexing(e, istate, &agg, &indexToAccess, false))
+        if (resolveIndexing(e, istate, &agg, &indexToAccess, false))
         {
             result = CTFEExp::cantexp;
             return;
