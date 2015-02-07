@@ -464,6 +464,7 @@ public:
     unsigned alignsize();
     Type *semantic(Loc loc, Scope *sc);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
+    Expression *getProperty(Loc loc, Identifier *ident, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     bool isString();
     bool isZeroInit(Loc loc);
