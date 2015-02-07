@@ -1194,7 +1194,7 @@ bool StructDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
             Expression *e;
             if (vx->inuse)
             {
-                error(loc, "circular reference to '%s'", vd->toPrettyChars());
+                ::error(loc, "circular reference to '%s'", vd->toPrettyChars());
                 return false;
             }
             if (vx->init)

@@ -4940,7 +4940,6 @@ Lagain:
         }
         else
         {
-            //printf("arguments = %p\n", arguments);
             if (!arguments)
                 arguments = new Expressions();
 

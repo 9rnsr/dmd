@@ -2083,13 +2083,7 @@ Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
     }
     else if (ident == Id::init)
     {
-        Type *tb = toBasetype();
         e = defaultInitLiteral(loc);
-        //if (tb->ty == Tstruct && tb->needsNested())
-        //{
-        //    StructLiteralExp *se = (StructLiteralExp *)e;
-        //    se->sinit = toInitializer(se->sd);
-        //}
     }
     else if (ident == Id::mangleof)
     {
@@ -4047,6 +4041,7 @@ Lerror:
 Expression *TypeSArray::getProperty(Loc loc, Identifier *ident, int flag)
 {
     Expression *e;
+
     if (ident == Id::init)
     {
         Type *tn = next->ty == Tvoid ? tuns8 : next;
@@ -7221,9 +7216,8 @@ Expression *TypeEnum::getProperty(Loc loc, Identifier *ident, int flag)
     }
     else if (ident == Id::init)
     {
+        // not a problem, because contextful types cannot be enum
         e = defaultInitLiteral(loc);
-
-        // maybe not a problem, because contextful types cannot be enum
     }
     else if (ident == Id::stringof)
     {
@@ -7409,6 +7403,7 @@ Dsymbol *TypeStruct::toDsymbol(Scope *sc)
 Expression *TypeStruct::getProperty(Loc loc, Identifier *ident, int flag)
 {
     Expression *e;
+
     if (ident == Id::init)
     {
         sym->size(loc);
@@ -8653,8 +8648,6 @@ Expression *TypeTuple::getProperty(Loc loc, Identifier *ident, int flag)
     }
     else if (ident == Id::init)
     {
-        //e = defaultInitLiteral(loc);
-
         Expressions *exps = new Expressions();
         exps->setDim(arguments->dim);
         for (size_t i = 0; i < arguments->dim; i++)
