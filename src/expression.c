@@ -4368,7 +4368,7 @@ Expression *StructLiteralExp::semantic(Scope *sc)
 
     /* Fit elements[] to the corresponding type of field[].
      */
-    if (!sd->fit(loc, sc, elements, stype))
+    if (sd->fit(loc, sc, elements, stype))
         return new ErrorExp();
 
     if (checkFrameAccess(loc, sc, sd, elements->dim))
@@ -5059,7 +5059,7 @@ Lagain:
         }
         else
         {
-            if (!sd->fit(loc, sc, arguments, tb))
+            if (sd->fit(loc, sc, arguments, tb))
                 return new ErrorExp();
 
             if (!sd->fill(loc, arguments, false))

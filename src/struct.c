@@ -1016,13 +1016,13 @@ void StructDeclaration::finalizeSize(Scope *sc)
  *      sc
  *      elements    The explicit arguments that given to construct object.
  *      stype       The constructed object type.
- * Returns false if any errors occur.
- * Otherwise, returns true and elements[] are rewritten for the output.
+ * Returns true if any errors occur.
+ * Otherwise, returns false and elements[] are rewritten for the output.
  */
 bool StructDeclaration::fit(Loc loc, Scope *sc, Expressions *elements, Type *stype)
 {
     if (!elements)
-        return true;
+        return false;
 
     size_t nfields = fields.dim - isNested();
     size_t offset = 0;
@@ -1041,13 +1041,13 @@ bool StructDeclaration::fit(Loc loc, Scope *sc, Expressions *elements, Type *sty
                 continue;
             }
             ::error(loc, "more initializers than fields (%d) of %s", nfields, toChars());
-            return false;
+            return true;
         }
         VarDeclaration *v = fields[i];
         if (v->offset < offset)
         {
             ::error(loc, "overlapping initialization for %s", v->toChars());
-            return false;
+            return true;
         }
         offset = (unsigned)(v->offset + v->type->size());
 
@@ -1092,11 +1092,11 @@ bool StructDeclaration::fit(Loc loc, Scope *sc, Expressions *elements, Type *sty
         e = e->implicitCastTo(sc, t);
     L1:
         if (e->op == TOKerror)
-            return false;
+            return true;
 
         (*elements)[i] = e->isLvalue() ? callCpCtor(sc, e) : valueNoDtor(e);
     }
-    return true;
+    return false;
 }
 
 /***************************************
