@@ -2147,39 +2147,25 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
 #if LOGDOTEXP
     printf("Type::dotExp(e = '%s', ident = '%s')\n", e->toChars(), ident->toChars());
 #endif
-    Expression *ex = e;
-    while (ex->op == TOKcomma)
-        ex = ((CommaExp *)ex)->e2;
-    if (ex->op == TOKdotvar)
+    if (ident == Id::offsetof)
     {
-        DotVarExp *dv = (DotVarExp *)ex;
-        v = dv->var->isVarDeclaration();
-    }
-    else if (ex->op == TOKvar)
-    {
-        VarExp *ve = (VarExp *)ex;
-        v = ve->var->isVarDeclaration();
-    }
-    if (v)
-    {
-        if (ident == Id::offsetof)
+        Expression *ex = e;
+        while (ex->op == TOKcomma)
+            ex = ((CommaExp *)ex)->e2;
+        if (ex->op == TOKdotvar)
         {
-            if (v->isField())
-            {
-                e = new IntegerExp(e->loc, v->offset, Type::tsize_t);
-                return e;
-            }
+            DotVarExp *dv = (DotVarExp *)ex;
+            v = dv->var->isVarDeclaration();
         }
-        else if (ident == Id::init)
+        else if (ex->op == TOKvar)
         {
-            Type *tb = toBasetype();
-            e = defaultInitLiteral(e->loc);
-            if (tb->ty == Tstruct && tb->needsNested())
-            {
-                StructLiteralExp *se = (StructLiteralExp *)e;
-                se->sinit = toInitializer(se->sd);
-            }
-            goto Lreturn;
+            VarExp *ve = (VarExp *)ex;
+            v = ve->var->isVarDeclaration();
+        }
+        if (v && v->isField())
+        {
+            e = new IntegerExp(e->loc, v->offset, Type::tsize_t);
+            return e;
         }
     }
     if (ident == Id::stringof)
@@ -3639,7 +3625,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         if (ident == Id::sort || ident == Id::reverse)
         {
             error(e->loc, "can only %s a mutable array", ident->toChars());
-            goto Lerror;
+            return new ErrorExp();
         }
     }
 
@@ -3749,11 +3735,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
     if (!flag || e)
         e = e->semantic(sc);
     return e;
-
-Lerror:
-    return new ErrorExp();
 }
-
 
 /***************************** TypeSArray *****************************/
 
@@ -4747,7 +4729,9 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
         e->type = ((TypeFunction *)fd_aaLen->type)->next;
     }
     else
+    {
         e = Type::dotExp(sc, e, ident, flag);
+    }
     return e;
 }
 
@@ -6281,8 +6265,6 @@ bool TypeDelegate::hasPointers()
 {
     return true;
 }
-
-
 
 /***************************** TypeQualified *****************************/
 
