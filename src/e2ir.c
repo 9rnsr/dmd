@@ -5106,45 +5106,42 @@ elem *toElem(Expression *e, IRState *irs)
             // sle->elements can be ignored
             if (sle->cheapInit != 0)
             {
-                bool nest = (sle->cheapInit == 1 && sle->sd->isNested());
                 Symbol *sinit = toInitializer(sle->sd);
                 elem *e = el_var(sinit);
                 e->ET = Type_toCtype(sle->sd->type);
 
                 Symbol *stmp = sle->sym;
-                if (!stmp && nest)
+                if (!stmp)
                     stmp = symbol_genauto(Type_toCtype(sle->sd->type));
-                if (stmp)
+
+                elem *ev = el_var(stmp);
+                if (tybasic(ev->Ety) == TYnptr)
+                    ev = el_una(OPind, e->Ety, ev);
+                ev->ET = e->ET;
+                e = el_bin(OPstreq, e->Ety, ev, e);
+                e->ET = ev->ET;
+
+                if (sle->cheapInit == 1 && sle->sd->isNested())
                 {
-                    elem *ev = el_var(stmp);
-                    if (tybasic(ev->Ety) == TYnptr)
-                        ev = el_una(OPind, e->Ety, ev);
-                    ev->ET = e->ET;
-                    e = el_bin(OPstreq, e->Ety, ev, e);
-                    e->ET = ev->ET;
-
-                    if (nest)
+                    // Initialize the hidden 'this' pointer
+                    elem *e1;
+                    if (tybasic(stmp->Stype->Tty) == TYnptr)
                     {
-                        // Initialize the hidden 'this' pointer
-                        elem *e1;
-                        if (tybasic(stmp->Stype->Tty) == TYnptr)
-                        {
-                            e1 = el_var(stmp);
-                            e1->EV.sp.Voffset = sle->soffset;
-                        }
-                        else
-                        {
-                            e1 = el_ptr(stmp);
-                            if (sle->soffset)
-                                e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, sle->soffset));
-                        }
-                        e1 = setEthis(sle->loc, irs, e1, sle->sd);
-                        e = el_combine(e, e1);
-
-                        ev = el_var(stmp);
-                        ev->ET = Type_toCtype(sle->sd->type);
-                        e = el_combine(e, ev);
+                        e1 = el_var(stmp);
+                        e1->EV.sp.Voffset = sle->soffset;
                     }
+                    else
+                    {
+                        e1 = el_ptr(stmp);
+                        if (sle->soffset)
+                            e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, sle->soffset));
+                    }
+                    e1 = setEthis(sle->loc, irs, e1, sle->sd);
+                    e = el_combine(e, e1);
+
+                    ev = el_var(stmp);
+                    ev->ET = Type_toCtype(sle->sd->type);
+                    e = el_combine(e, ev);
                 }
                 el_setLoc(e, sle->loc);
                 result = e;
