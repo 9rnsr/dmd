@@ -3384,11 +3384,11 @@ elem *toElem(Expression *e, IRState *irs)
                     }
                     break;
                 }
-                if (dve->e1->op == TOKstructliteral)
-                {
-                    StructLiteralExp *sle = (StructLiteralExp *)dve->e1;
-                    sle->sinit = NULL;          // don't modify initializer
-                }
+                //if (dve->e1->op == TOKstructliteral)
+                //{
+                //    StructLiteralExp *sle = (StructLiteralExp *)dve->e1;
+                //    sle->sinit = NULL;          // don't modify initializer
+                //}
 
                 ec = toElem(dve->e1, irs);
                 ectype = dve->e1->type->toBasetype();
@@ -5094,34 +5094,67 @@ elem *toElem(Expression *e, IRState *irs)
 
         void visit(StructLiteralExp *sle)
         {
-            //printf("StructLiteralExp::toElem() %s\n", sle->toChars());
+            //printf("[%s] StructLiteralExp::toElem() %s, cheapInit = %d\n", sle->loc.toChars(), sle->toChars(), sle->cheapInit);
+            size_t dim = sle->elements ? sle->elements->dim : 0;
 
-            if (sle->sinit)
+            //if (!(dim >= sle->sd->fields.dim - (sle->sd->isNested() ? 1 : 0)))
+            //    printf("[%s] sle = %s\n", sle->loc.toChars(), sle->toChars());
+
+            assert(dim >= sle->sd->fields.dim - (sle->sd->isNested() ? 1 : 0));
+            bool needThis = sle->sd->isNested() && dim != sle->sd->fields.dim;
+
+            // sle->elements can be ignored
+            if (sle->cheapInit != 0)
             {
-                elem *e = el_var(sle->sinit);
+                bool nest = (sle->cheapInit == 1 && sle->sd->isNested());
+                Symbol *sinit = toInitializer(sle->sd);
+                elem *e = el_var(sinit);
                 e->ET = Type_toCtype(sle->sd->type);
-                el_setLoc(e, sle->loc);
 
-                if (sle->sym)
+                Symbol *stmp = sle->sym;
+                if (!stmp && nest)
+                    stmp = symbol_genauto(Type_toCtype(sle->sd->type));
+                if (stmp)
                 {
-                    elem *ev = el_var(sle->sym);
+                    elem *ev = el_var(stmp);
                     if (tybasic(ev->Ety) == TYnptr)
                         ev = el_una(OPind, e->Ety, ev);
                     ev->ET = e->ET;
-                    e = el_bin(OPstreq,e->Ety,ev,e);
+                    e = el_bin(OPstreq, e->Ety, ev, e);
                     e->ET = ev->ET;
 
-                    //ev = el_var(sym);
-                    //ev->ET = e->ET;
-                    //e = el_combine(e, ev);
-                    el_setLoc(e, sle->loc);
+                    if (nest)
+                    {
+                        // Initialize the hidden 'this' pointer
+                        elem *e1;
+                        if (tybasic(stmp->Stype->Tty) == TYnptr)
+                        {
+                            e1 = el_var(stmp);
+                            e1->EV.sp.Voffset = sle->soffset;
+                        }
+                        else
+                        {
+                            e1 = el_ptr(stmp);
+                            if (sle->soffset)
+                                e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, sle->soffset));
+                        }
+                        e1 = setEthis(sle->loc, irs, e1, sle->sd);
+                        e = el_combine(e, e1);
+
+                        ev = el_var(stmp);
+                        ev->ET = Type_toCtype(sle->sd->type);
+                        e = el_combine(e, ev);
+                    }
                 }
+                el_setLoc(e, sle->loc);
                 result = e;
                 return;
             }
 
             // struct symbol to initialize with the literal
-            Symbol *stmp = sle->sym ? sle->sym : symbol_genauto(Type_toCtype(sle->sd->type));
+            Symbol *stmp = sle->sym;
+            if (!stmp)
+                stmp = symbol_genauto(Type_toCtype(sle->sd->type));
 
             elem *e = NULL;
 
@@ -5144,8 +5177,6 @@ elem *toElem(Expression *e, IRState *irs)
                 e = el_combine(e, fillHole(stmp, &offset, sle->sd->structsize, sle->sd->structsize));
             }
 
-            size_t dim = sle->elements ? sle->elements->dim : 0;
-            assert(dim <= sle->sd->fields.dim);
             // CTFE may fill the hidden pointer by NullExp.
             {
                 for (size_t i = 0; i < dim; i++)
@@ -5206,11 +5237,9 @@ elem *toElem(Expression *e, IRState *irs)
                 }
             }
 
-            if (sle->sd->isNested() && dim != sle->sd->fields.dim)
+            if (needThis)
             {
                 // Initialize the hidden 'this' pointer
-                assert(sle->sd->fields.dim);
-
                 elem *e1;
                 if (tybasic(stmp->Stype->Tty) == TYnptr)
                 {
@@ -5224,10 +5253,8 @@ elem *toElem(Expression *e, IRState *irs)
                         e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, sle->soffset));
                 }
                 e1 = setEthis(sle->loc, irs, e1, sle->sd);
-
                 e = el_combine(e, e1);
             }
-
             elem *ev = el_var(stmp);
             ev->ET = Type_toCtype(sle->sd->type);
             e = el_combine(e, ev);
