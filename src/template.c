@@ -5870,7 +5870,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
      * last find most specialized template from overload list/set.
      */
     if (findTempDecl(sc, NULL) ||
-        !semanticTiargs(sc) ||
+        semanticTiargs(sc) ||
         !findBestMatch(sc, fargs))
     {
 Lerror:
@@ -6539,7 +6539,7 @@ bool TemplateInstance::updateTempDecl(Scope *sc, Dsymbol *s)
  * Input:
  *      sc
  * Returns:
- *      false if one or more arguments have errors.
+ *      true if one or more arguments have errors.
  * Note:
  *      This function is reentrant against error occurrence. If returns false,
  *      all elements of tiargs won't be modified.
@@ -6549,13 +6549,11 @@ bool TemplateInstance::semanticTiargs(Scope *sc)
 {
     //printf("+TemplateInstance::semanticTiargs() %s\n", toChars());
     if (semantictiargsdone)
-        return true;
+        return false;
     if (semanticTiargs(loc, sc, tiargs, 0))
-    {
-        // cache the result iff semantic analysis succeeded entirely
-        semantictiargsdone = 1;
         return true;
-    }
+    // cache the result iff semantic analysis succeeded entirely
+    semantictiargsdone = 1;
     return false;
 }
 
@@ -6568,7 +6566,7 @@ bool TemplateInstance::semanticTiargs(Scope *sc)
  *      flags   1: replace const variables with their initializers
  *              2: don't devolve Parameter to Type
  * Returns:
- *      false if one or more arguments have errors.
+ *      true if one or more arguments have errors.
  */
 
 bool TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int flags)
@@ -6576,7 +6574,7 @@ bool TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
     // Run semantic on each argument, place results in tiargs[]
     //printf("+TemplateInstance::semanticTiargs()\n");
     if (!tiargs)
-        return true;
+        return false;
     bool err = false;
     for (size_t j = 0; j < tiargs->dim; j++)
     {
@@ -6808,7 +6806,7 @@ bool TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
         printf("\ttiargs[%d] = ta %p, ea %p, sa %p, va %p\n", j, ta, ea, sa, va);
     }
 #endif
-    return !err;
+    return err;
 }
 
 bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
@@ -8052,7 +8050,7 @@ void TemplateMixin::semantic(Scope *sc)
      * then find best match template with tiargs
      */
     if (findTempDecl(sc) ||
-        !semanticTiargs(sc) ||
+        semanticTiargs(sc) ||
         !findBestMatch(sc, NULL))
     {
         if (semanticRun == PASSinit)    // forward reference had occured

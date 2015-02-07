@@ -333,7 +333,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
         DotTemplateInstanceExp* dti = (DotTemplateInstanceExp *)e1;
         if (!dti->findTempDecl(sc))
             goto Leprop;
-        if (!dti->ti->semanticTiargs(sc))
+        if (dti->ti->semanticTiargs(sc))
             goto Leprop;
         tiargs = dti->ti->tiargs;
         tthis  = dti->e1->type;
@@ -363,7 +363,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
         if (ti && !ti->semanticRun && ti->tempdecl)
         {
             //assert(ti->needsTypeInference(sc));
-            if (!ti->semanticTiargs(sc))
+            if (ti->semanticTiargs(sc))
                 goto Leprop;
             tiargs = ti->tiargs;
             tthis  = NULL;
@@ -4606,7 +4606,7 @@ Lagain:
     {
         WithScopeSymbol *withsym;
         if (ti->findTempDecl(sc, &withsym) ||
-            !ti->semanticTiargs(sc))
+            ti->semanticTiargs(sc))
         {
             return new ErrorExp();
         }
@@ -7928,7 +7928,7 @@ L1:
         e1 = dte->e1;   // pull semantic() result
 
         ti->tempdecl = dte->td;
-        if (!ti->semanticTiargs(sc))
+        if (ti->semanticTiargs(sc))
             return new ErrorExp();
         if (ti->needsTypeInference(sc))
             return this;
@@ -7976,7 +7976,7 @@ L1:
         if (de->e2->op == TOKoverloadset)
         {
             if (!findTempDecl(sc) ||
-                !ti->semanticTiargs(sc))
+                ti->semanticTiargs(sc))
             {
                 return new ErrorExp();
             }
@@ -8225,7 +8225,7 @@ Expression *CallExp::semantic(Scope *sc)
              */
             WithScopeSymbol *withsym;
             if (ti->findTempDecl(sc, &withsym) ||
-                !ti->semanticTiargs(sc))
+                ti->semanticTiargs(sc))
             {
                 return new ErrorExp();
             }
@@ -8271,7 +8271,7 @@ Ldotti:
              * If not, go with partial explicit specialization.
              */
             if (!se->findTempDecl(sc) ||
-                !ti->semanticTiargs(sc))
+                ti->semanticTiargs(sc))
             {
                 return new ErrorExp();
             }
