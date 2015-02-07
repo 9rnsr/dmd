@@ -1192,6 +1192,11 @@ bool StructDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
         if (elements && vx)
         {
             Expression *e;
+            if (vx->inuse)
+            {
+                error(loc, "circular reference to '%s'", vd->toPrettyChars());
+                return false;
+            }
             if (vx->init)
             {
                 assert(!vx->init->isVoidInitializer());

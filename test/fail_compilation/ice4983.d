@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+test_output:
 ---
 fail_compilation/ice4983.d(14): Error: circular reference to 'ice4983.Foo.dg'
 ---
@@ -11,5 +11,6 @@ struct Foo
     {
     }
 
-    void delegate() dg = &Foo.init.bar;
+    //void delegate() dg = &Foo.init.bar;
 }
+static assert(0);
