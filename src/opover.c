@@ -29,7 +29,7 @@
 #include "tokens.h"
 
 static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, Parameters *parameters);
-static int inferApplyArgTypesY(TypeFunction *tf, Parameters *parameters, int flags = 0);
+static bool inferApplyArgTypesY(TypeFunction *tf, Parameters *parameters, int flags = 0);
 Expression *compare_overload(BinExp *e, Scope *sc, Identifier *id);
 
 /******************************** Expression **************************/
@@ -1704,7 +1704,7 @@ bool inferApplyArgTypes(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply)
 
         case Tdelegate:
         {
-            if (!inferApplyArgTypesY((TypeFunction *)tab->nextOf(), fes->parameters))
+            if (inferApplyArgTypesY((TypeFunction *)tab->nextOf(), fes->parameters))
                 return true;
             break;
         }
@@ -1741,7 +1741,7 @@ static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, 
             else if (p->mod != tf->mod)
                 m = MATCHconst;
         }
-        if (!inferApplyArgTypesY(tf, p->parameters, 1))
+        if (inferApplyArgTypesY(tf, p->parameters, 1))
             m = MATCHnomatch;
 
         if (m > p->match)
@@ -1766,7 +1766,8 @@ static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, 
     {
         inferApplyArgTypesY((TypeFunction *)p.fd_best->type, parameters);
         if (p.fd_ambig)
-        {   ::error(ethis->loc, "%s.%s matches more than one declaration:\n%s:     %s\nand:\n%s:     %s",
+        {
+            ::error(ethis->loc, "%s.%s matches more than one declaration:\n%s:     %s\nand:\n%s:     %s",
                     ethis->toChars(), fstart->ident->toChars(),
                     p.fd_best ->loc.toChars(), p.fd_best ->type->toChars(),
                     p.fd_ambig->loc.toChars(), p.fd_ambig->type->toChars());
@@ -1779,12 +1780,13 @@ static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, 
 /******************************
  * Infer parameters from type of function.
  * Returns:
- *      1 match for this function
- *      0 no match for this function
+ *      false:  match for this function
+ *      true:   no match for this function
  */
 
-static int inferApplyArgTypesY(TypeFunction *tf, Parameters *parameters, int flags)
-{   size_t nparams;
+static bool inferApplyArgTypesY(TypeFunction *tf, Parameters *parameters, int flags)
+{
+    size_t nparams;
     Parameter *p;
 
     if (Parameter::dim(tf->parameters) != 1)
@@ -1819,9 +1821,9 @@ static int inferApplyArgTypesY(TypeFunction *tf, Parameters *parameters, int fla
             p->type = p->type->addStorageClass(p->storageClass);
         }
     }
-    return 1;
+    return false;
 
 Lnomatch:
-    return 0;
+    return true;    // no match error
 }
 

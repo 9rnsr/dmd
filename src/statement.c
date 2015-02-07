@@ -1742,7 +1742,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
     /* Check for inference errors
      */
-    if (!inferApplyArgTypes(this, sc, sapply))
+    if (inferApplyArgTypes(this, sc, sapply))
     {
         /**
             Try and extract the parameter count of the opApply callback function, e.g.:
