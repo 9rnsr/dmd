@@ -331,7 +331,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
     else if (e1->op == TOKdotti)
     {
         DotTemplateInstanceExp* dti = (DotTemplateInstanceExp *)e1;
-        if (!dti->findTempDecl(sc))
+        if (dti->findTempDecl(sc))
             goto Leprop;
         if (dti->ti->semanticTiargs(sc))
             goto Leprop;
@@ -7790,7 +7790,7 @@ bool DotTemplateInstanceExp::findTempDecl(Scope *sc)
     printf("DotTemplateInstanceExp::findTempDecl('%s')\n", toChars());
 #endif
     if (ti->tempdecl)
-        return true;
+        return false;
 
     Expression *e = new DotIdExp(loc, e1, ti->name);
     e = e->semantic(sc);
@@ -7805,9 +7805,9 @@ bool DotTemplateInstanceExp::findTempDecl(Scope *sc)
         case TOKimport:         s = ((ScopeExp *)e)->sds;       break;
         case TOKdotvar:         s = ((DotVarExp *)e)->var;      break;
         case TOKvar:            s = ((VarExp *)e)->var;         break;
-        default:                return false;
+        default:                return true;
     }
-    return ti->updateTempDecl(sc, s) == false;
+    return ti->updateTempDecl(sc, s);
 }
 
 Expression *DotTemplateInstanceExp::semantic(Scope *sc)
@@ -7879,7 +7879,7 @@ L1:
         else if (OverDeclaration *od = dve->var->isOverDeclaration())
         {
             e1 = dve->e1;   // pull semantic() result
-            if (!findTempDecl(sc))
+            if (findTempDecl(sc))
                 goto Lerr;
             if (ti->needsTypeInference(sc))
                 return this;
@@ -7975,7 +7975,7 @@ L1:
 
         if (de->e2->op == TOKoverloadset)
         {
-            if (!findTempDecl(sc) ||
+            if (findTempDecl(sc) ||
                 ti->semanticTiargs(sc))
             {
                 return new ErrorExp();
@@ -8270,7 +8270,7 @@ Ldotti:
             /* Attempt to instantiate ti. If that works, go with it.
              * If not, go with partial explicit specialization.
              */
-            if (!se->findTempDecl(sc) ||
+            if (se->findTempDecl(sc) ||
                 ti->semanticTiargs(sc))
             {
                 return new ErrorExp();
