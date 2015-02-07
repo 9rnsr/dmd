@@ -727,7 +727,7 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
         DotTemplateInstanceExp *dti = (DotTemplateInstanceExp *)ue;
         TemplateInstance *ti = new TemplateInstance(loc, s->ident);
         ti->tiargs = dti->ti->tiargs;   // for better diagnostic message
-        if (!ti->updateTempDecl(sc, s))
+        if (ti->updateTempDecl(sc, s))
             return new ErrorExp();
         return new ScopeExp(loc, ti);
     }
@@ -7807,7 +7807,7 @@ bool DotTemplateInstanceExp::findTempDecl(Scope *sc)
         case TOKvar:            s = ((VarExp *)e)->var;         break;
         default:                return false;
     }
-    return ti->updateTempDecl(sc, s);
+    return ti->updateTempDecl(sc, s) == false;
 }
 
 Expression *DotTemplateInstanceExp::semantic(Scope *sc)

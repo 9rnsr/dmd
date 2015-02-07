@@ -6383,7 +6383,7 @@ bool TemplateInstance::findTempDecl(Scope *sc, WithScopeSymbol **pwithsym)
             }
         }
 
-        if (!updateTempDecl(sc, s))
+        if (updateTempDecl(sc, s))
         {
             return true;
         }
@@ -6436,7 +6436,7 @@ bool TemplateInstance::findTempDecl(Scope *sc, WithScopeSymbol **pwithsym)
  *          FuncDeclaration with findTemplateDeclRoot() != NULL
  *          OverloadSet which contains candidates
  * Returns:
- *      true if updating succeeds.
+ *      true if updating fails.
  */
 
 bool TemplateInstance::updateTempDecl(Scope *sc, Dsymbol *s)
@@ -6464,7 +6464,7 @@ bool TemplateInstance::updateTempDecl(Scope *sc, Dsymbol *s)
                     if (s)
                     {
                         tempdecl = os;
-                        return true;
+                        return false;
                     }
                     s = s2;
                 }
@@ -6472,7 +6472,7 @@ bool TemplateInstance::updateTempDecl(Scope *sc, Dsymbol *s)
             if (!s)
             {
                 error("template '%s' is not defined", id->toChars());
-                return false;
+                return true;
             }
         }
 
@@ -6480,7 +6480,7 @@ bool TemplateInstance::updateTempDecl(Scope *sc, Dsymbol *s)
         if (od)
         {
             tempdecl = od;  // TODO: more strict check
-            return true;
+            return false;
         }
 
         /* It should be a TemplateDeclaration, not some other symbol
@@ -6492,14 +6492,14 @@ bool TemplateInstance::updateTempDecl(Scope *sc, Dsymbol *s)
         if (!tempdecl)
         {
             if (!s->parent && global.errors)
-                return false;
+                return true;
             if (!s->parent && s->getType())
             {
                 Dsymbol *s2 = s->getType()->toDsymbol(sc);
                 if (!s2)
                 {
                     error("%s is not a template declaration, it is a %s", id->toChars(), s->kind());
-                    return false;
+                    return true;
                 }
                 s = s2;
             }
@@ -6527,11 +6527,11 @@ bool TemplateInstance::updateTempDecl(Scope *sc, Dsymbol *s)
             else
             {
                 error("%s is not a template declaration, it is a %s", id->toChars(), s->kind());
-                return false;
+                return true;
             }
         }
     }
-    return (tempdecl != NULL);
+    return (tempdecl == NULL);
 }
 
 /**********************************
