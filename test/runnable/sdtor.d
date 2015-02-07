@@ -3472,19 +3472,25 @@ bool test13661()
     {
         S[2] a;
 
-        a[0].x = 'a';
-        a[1].x = 'b';
-        a = a.init;
-        assert(op == "ab");
-        assert(a[0].x == 'x' && a[1].x == 'x');
+        //a[0].x = 'a';
+        //a[1].x = 'b';
+        //a = a.init;
+            // This assignment will stomp a[n].tupleof[$-1].
+            // It will make the postblit and destructor unworkable in runtime.
+            // For the CTFE behavior test, we cannot move out S to module level declaration.
+            // Therefore I just mask the assignment.
+        //assert(op == "ab");
+        //assert(a[0].x == 'x' && a[1].x == 'x');
+        //op = null;
 
         a[0].x = 'c';
         a[1].x = 'd';
         a = [S(), S()];   // equivalent a = a.init
-        assert(op == "abcd");
+        assert(op == "cd");
         assert(a[0].x == 'x' && a[1].x == 'x');
+        op = null;
     }
-    assert(op == "abcdxx");
+    assert(op == "xx");
 
     return true;
 }
@@ -3614,8 +3620,9 @@ bool test14023()
     void test(ref S[2] sa)
     {
         S[2][] a;
-        //a.length = 1; // will cause runtine AccessViolation
-        a ~= (S[2]).init;
+        //a.length = 1;     // Will cause runtine AccessViolation, so the inserted
+        //a ~= (S[2]).init; // static array elements have no valid enclosing context.
+        a ~= [S(), S()];
         assert(op == "");
         a[0] = sa;      // index <-- resolveSlice(newva)
         assert(op == "BxCx");
@@ -3809,10 +3816,10 @@ int main()
     test13303();
     test13673();
     test13586();
-    //test13661();  // a.init
+    test13661();
     test13661a();
     test14022();
-    //test14023();  // S[2].init
+    test14023();
     test13669();
     test13095();
 
