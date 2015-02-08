@@ -53,3 +53,21 @@ void f5() @system {}    // conflict
 
 auto f6() { return 10; }    // int()
 auto f6() { return ""; }    // string(), conflict
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail2789.d(70): Error: function fail2789.mul14147 (const(int[]) left, const(int[]) right) conflicts with at fail_compilation/fail2789.d(66)
+---
+*/
+struct S14147(alias func)
+{
+}
+pure auto mul14147(const int[] left, const int[] right)
+{
+    S14147!(a => a) s;
+}
+pure auto mul14147(const int[] left, const int[] right)
+{
+    S14147!(a => a) s;
+}
