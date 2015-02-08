@@ -901,3 +901,32 @@ void mangleToBuffer(Expression *e, OutBuffer *buf)
     Mangler v(buf);
     e->accept(&v);
 }
+
+/******************************************************************************
+ * Mangle function signatures ('this' qualifier, linkage, and parameter types)
+ * to check conflicts in function overloads.
+ * It's different from fd->type->deco. For example, fd->type->deco would be NULL
+ * if fd is an auto function.
+ */
+void mangleToFuncSignature(OutBuffer *buf, FuncDeclaration *fd)
+{
+    assert(fd->type->ty == Tfunction);
+    TypeFunction *tf = (TypeFunction *)fd->type;
+
+    Mangler v(buf);
+
+    //if (fd->needThis() || fd->isNested())
+    //    buf->writeByte(Type::needThisPrefix());
+    MODtoDecoBuffer(buf, tf->mod);
+    switch (tf->linkage)
+    {
+        case LINKd:         buf->writeByte('F');    break;
+        case LINKc:         buf->writeByte('U');    break;
+        case LINKwindows:   buf->writeByte('W');    break;
+        case LINKpascal:    buf->writeByte('V');    break;
+        case LINKcpp:       buf->writeByte('R');    break;
+        default:            assert(0);
+    }
+    v.paramsToDecoBuffer(tf->parameters);
+    buf->writeByte('Z' - tf->varargs);
+}

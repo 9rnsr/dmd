@@ -31,6 +31,7 @@
 #include "rmem.h"
 #include "visitor.h"
 
+void mangleToFuncSignature(OutBuffer *buf, FuncDeclaration *fd);
 Expression *addInvariant(Scope *sc, AggregateDeclaration *ad, VarDeclaration *vthis, bool direct);
 
 void genCmain(Scope *sc);
@@ -1222,6 +1223,64 @@ Ldone:
 
 void FuncDeclaration::semantic2(Scope *sc)
 {
+    //printf("FuncDeclaration::semantic2 [%s] fd0 = %s %s\n", this->loc.toChars(), this->toChars(), this->type->toChars());
+
+    struct ConflictDg
+    {
+    public:
+        FuncDeclaration *f1;
+        OutBuffer buf1;
+        OutBuffer buf2;
+
+        ConflictDg(FuncDeclaration *f1)
+        {
+            this->f1 = f1;
+            mangleToFuncSignature(&buf1, f1);
+        }
+
+        static int fp(void *param, Dsymbol *s)
+        {
+            FuncDeclaration *f2 = s->isFuncDeclaration();
+            if (f2)
+                return ((ConflictDg *)param)->fp(f2);
+            else
+                return 0;
+        }
+
+        int fp(FuncDeclaration *f2)
+        {
+            if (f1 == f2 || f2->errors)
+                return 0;
+
+            // Don't have to check conflict between declaration and definition.
+            if ((f1->fbody != NULL) != (f2->fbody != NULL))
+                return 0;
+
+            buf2.reset();
+            mangleToFuncSignature(&buf2, f2);
+
+            const char *s1 = buf1.peekString();
+            const char *s2 = buf2.peekString();
+
+            //printf("+%s\n\ts1 = %s\n\ts2 = %s @ [%s]\n", toChars(), s1, s2, f2->loc.toChars());
+            if (strcmp(s1, s2) == 0)
+            {
+                TypeFunction *tf2 = (TypeFunction *)f2->type;
+                f2->error("%s conflicts with at %s",
+                        parametersTypeToChars(tf2->parameters, tf2->varargs), f1->loc.toChars());
+                f2->type = Type::terror;
+                f2->errors = true;
+            }
+            return 0;
+        }
+    };
+    if (overnext && !errors)
+    {
+        // Always starts the lookup from 'this', because a confliction with
+        // previous overload is already reported.
+        ConflictDg dg(this);
+        overloadApply(this, &dg, &ConflictDg::fp);
+    }
 }
 
 // Do the semantic analysis on the internals of the function.
