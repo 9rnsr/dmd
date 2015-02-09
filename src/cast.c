@@ -785,7 +785,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
         void visit(CallExp *e)
         {
-#define LOG 0
+#define LOG 1
         #if LOG
             printf("CallExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
                 e->toChars(), e->type->toChars(), t->toChars());
@@ -801,9 +801,11 @@ MATCH implicitConvTo(Expression *e, Type *t)
             if (e->f && e->f->isolateReturn())
             {
                 result = e->type->immutableOf()->implicitConvTo(t);
+printf("\tL%d result = %d\n", __LINE__, result);
                 if (result > MATCHconst)    // Match level is MATCHconst at best.
                     result = MATCHconst;
-                return;
+                if (result > MATCHnomatch)  // problem?
+                    return;
             }
 
             /* Conversion is 'const' conversion if:
@@ -820,11 +822,13 @@ MATCH implicitConvTo(Expression *e, Type *t)
             if (tf->purity == PUREimpure)
                 return;
 
+printf("\tL%d\n", __LINE__);
             /* See if fail only because of mod bits
              */
             if (!e->type->equivalent(t))
                 return;
 
+printf("\tL%d\n", __LINE__);
             /* Get mod bits of what we're converting to
              */
             Type *tb = t->toBasetype();
@@ -843,27 +847,29 @@ MATCH implicitConvTo(Expression *e, Type *t)
             if (mod & MODwild)
                 return;                 // not sure what to do with this
 
+printf("\tL%d\n", __LINE__);
             /* Apply mod bits to each function parameter,
              * and see if we can convert the function argument to the modded type
              */
 
             size_t nparams = Parameter::dim(tf->parameters);
             size_t j = (tf->linkage == LINKd && tf->varargs == 1); // if TypeInfoArray was prepended
-            for (size_t i = j; i <= e->arguments->dim; ++i)
+            if (e->e1->op == TOKdotvar)
             {
-                if (i == e->arguments->dim)
-                {
-                    if (e->e1->op == TOKdotvar)
-                    {
-                        /* Treat 'this' as just another function argument
-                         */
-                        DotVarExp *dve = (DotVarExp *)e->e1;
-                        Type *targ = dve->e1->type;
-                        if (targ->constConv(targ->castMod(mod)) <= MATCHnomatch)
-                            return;
-                    }
-                    continue;
-                }
+                /* Treat 'this' as just another function argument
+                 */
+                DotVarExp *dve = (DotVarExp *)e->e1;
+                Expression *earg = dve->e1;
+                Type *targ = earg->type->toBasetype();
+                //if (targ->constConv(targ->castMod(mod)) <= MATCHnomatch)
+                printf("earg = %s\n", earg->toChars());
+                if (implicitMod(earg, targ, mod) <= MATCHnomatch)
+                    return;
+                printf("ok\n");
+            }
+printf("\tL%d\n", __LINE__);
+            for (size_t i = j; i < e->arguments->dim; ++i)
+            {
                 Expression *earg = (*e->arguments)[i];
                 Type *targ = earg->type->toBasetype();
 #if LOG
@@ -892,6 +898,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                     return;
             }
 
+printf("\tL%d\n", __LINE__);
             /* Success
              */
             result = MATCHconst;

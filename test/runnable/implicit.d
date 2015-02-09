@@ -366,6 +366,47 @@ void test14141()
     static assert(!__traits(compiles, { Object o = s.getObj(); }));  // fails
 }
 
+/+
+// 14141
+
+class C
+{
+    Object obj;
+    class N
+    {
+        Object getObj() { return obj; }
+    }
+}
+
+struct S14141
+{
+    Object obj;
+
+    const(Object) getObj() const pure
+    {
+        return obj;
+    }
+}
+
+const(S14141) makeCS() pure { return S14141(new Object()); }
+
+void test14141()
+{
+    //const S14141 s;
+    //static assert(is(typeof(s.getObj()) == const Object));           // ok
+    //static assert(!__traits(compiles, { Object o = s.getObj(); }));  // fails
+
+    /+
+    const C c = new C();
+    //C.N n = c.new const(N)();
+    C.N n = new const C().new const N();
+    Object o = n.getObj();
+    +/
+
+    Object o = makeCS().getObj();
+}
+
++/
 /***********************************/
 
 void main()
