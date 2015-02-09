@@ -800,12 +800,14 @@ MATCH implicitConvTo(Expression *e, Type *t)
              */
             if (e->f && e->f->isolateReturn())
             {
+//printf("\tL%d\n", __LINE__);
                 result = e->type->immutableOf()->implicitConvTo(t);
                 if (result > MATCHconst)    // Match level is MATCHconst at best.
                     result = MATCHconst;
                 return;
             }
 
+//printf("\tL%d\n", __LINE__);
             /* Conversion is 'const' conversion if:
              * 1. function is pure (weakly pure is ok)
              * 2. implicit conversion only fails because of mod bits
@@ -822,9 +824,10 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
             /* See if fail only because of mod bits
              */
-            if (e->type->immutableOf()->implicitConvTo(t->immutableOf()) == MATCHnomatch)
+            if (!e->type->equivalent(t))
                 return;
 
+//printf("\tL%d\n", __LINE__);
             /* Get mod bits of what we're converting to
              */
             Type *tb = t->toBasetype();
@@ -834,6 +837,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
             else
             {
                 Type *ti = getIndirection(t);
+//printf("\tL%d ti = %s\n", __LINE__, ti ? ti->toChars() : NULL);
                 if (ti)
                     mod = ti->mod;
             }
@@ -843,6 +847,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
             if (mod & MODwild)
                 return;                 // not sure what to do with this
 
+//printf("\tL%d\n", __LINE__);
             /* Apply mod bits to each function parameter,
              * and see if we can convert the function argument to the modded type
              */
@@ -859,9 +864,8 @@ MATCH implicitConvTo(Expression *e, Type *t)
                          */
                         DotVarExp *dve = (DotVarExp *)e->e1;
                         Type *targ = dve->e1->type;
-                        if (targ->toBasetype()->ty == Tstruct)
-                            targ = targ->pointerTo();
-                        if (targ->implicitConvTo(targ->addMod(mod)) == MATCHnomatch)
+//printf("\tL%d ethis = %s %s\n", __LINE__, ethis->type->toChars(), ethis->toChars());
+                        if (targ->constConv(targ->castMod(mod)) <= MATCHnomatch)
                             return;
                     }
                     continue;
@@ -881,7 +885,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                         continue;
                     if (fparam->storageClass & (STCout | STCref))
                     {
-                        if (targ->constConv(tparam->castMod(mod)) == MATCHnomatch)
+                        if (targ->constConv(tparam->castMod(mod)) <= MATCHnomatch)
                             return;
                         continue;
                     }
@@ -890,12 +894,13 @@ MATCH implicitConvTo(Expression *e, Type *t)
 #if LOG
                 printf("[%d] earg: %s, targm: %s\n", (int)i, earg->toChars(), targ->addMod(mod)->toChars());
 #endif
-                if (implicitMod(earg, targ, mod) == MATCHnomatch)
+                if (implicitMod(earg, targ, mod) <= MATCHnomatch)
                     return;
             }
 
             /* Success
              */
+//printf("\tL%d\n", __LINE__);
             result = MATCHconst;
 #undef LOG
         }
@@ -1101,7 +1106,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
             /* See if fail only because of mod bits
              */
-            if (e->type->immutableOf()->implicitConvTo(t->immutableOf()) == MATCHnomatch)
+            if (!e->type->equivalent(t))
                 return;
 
             /* Get mod bits of what we're converting to

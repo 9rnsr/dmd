@@ -347,6 +347,26 @@ struct S13640
 }
 
 /***********************************/
+// 14141
+
+struct S14141
+{
+    Object obj;
+
+    const(Object) getObj() const pure
+    {
+        return obj;
+    }
+}
+
+void test14141()
+{
+    const S14141 s;
+    static assert(is(typeof(s.getObj()) == const Object));           // ok
+    static assert(!__traits(compiles, { Object o = s.getObj(); }));  // fails
+}
+
+/***********************************/
 
 void main()
 {
