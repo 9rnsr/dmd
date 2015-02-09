@@ -1129,10 +1129,14 @@ MATCH implicitConvTo(Expression *e, Type *t)
             {
                 /* Treat 'this' as just another function argument
                  */
+                /* Note that, currently this check is redundant. Because
+                 * new-ing mutable nested class from a const enclosing class instance is
+                 * disallowed in NewExp::semantic().
+                 * However, DIP29 could suppor following case:
+                 *  C.N n = new const C().new const N();
+                 */
                 Type *targ = e->thisexp->type;
-                if (targ->toBasetype()->ty == Tstruct)
-                    targ = targ->pointerTo();
-                if (targ->implicitConvTo(targ->addMod(mod)) == MATCHnomatch)
+                if (targ->constConv(targ->castMod(mod)) <= MATCHnomatch)
                     return;
             }
 
@@ -1168,9 +1172,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                             continue;
                         if (fparam->storageClass & (STCout | STCref))
                         {
-                            tparam = tparam->pointerTo();
-                            targ = targ->pointerTo();
-                            if (targ->implicitConvTo(tparam->addMod(mod)) == MATCHnomatch)
+                            if (targ->constConv(tparam->castMod(mod)) <= MATCHnomatch)
                                 return;
                             continue;
                         }
@@ -1179,7 +1181,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
 #if LOG
                     printf("[%d] earg: %s, targm: %s\n", (int)i, earg->toChars(), targ->addMod(mod)->toChars());
 #endif
-                    if (implicitMod(earg, targ, mod) == MATCHnomatch)
+                    if (implicitMod(earg, targ, mod) <= MATCHnomatch)
                         return;
                 }
             }
@@ -1197,7 +1199,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                     printf("[%d] earg: %s, targ: %s\n", (int)i, earg->toChars(), targ->toChars());
                     printf("[%d] earg: %s, targm: %s\n", (int)i, earg->toChars(), targ->addMod(mod)->toChars());
 #endif
-                    if (implicitMod(earg, targ, mod) == MATCHnomatch)
+                    if (implicitMod(earg, targ, mod) <= MATCHnomatch)
                         return;
                 }
             }
@@ -1247,7 +1249,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                                     else if (ExpInitializer *ei = init->isExpInitializer())
                                     {
                                         Type *tb = v->type->toBasetype();
-                                        if (implicitMod(ei->exp, tb, mod) == MATCHnomatch)
+                                        if (implicitMod(ei->exp, tb, mod) <= MATCHnomatch)
                                             return false;
                                     }
                                     else
@@ -1273,7 +1275,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                 Expression *earg = e->newtype->defaultInitLiteral(e->loc);
                 Type *targ = e->newtype->toBasetype();
 
-                if (implicitMod(earg, targ, mod) == MATCHnomatch)
+                if (implicitMod(earg, targ, mod) <= MATCHnomatch)
                     return;
             }
 
