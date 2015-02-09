@@ -800,14 +800,12 @@ MATCH implicitConvTo(Expression *e, Type *t)
              */
             if (e->f && e->f->isolateReturn())
             {
-//printf("\tL%d\n", __LINE__);
                 result = e->type->immutableOf()->implicitConvTo(t);
                 if (result > MATCHconst)    // Match level is MATCHconst at best.
                     result = MATCHconst;
                 return;
             }
 
-//printf("\tL%d\n", __LINE__);
             /* Conversion is 'const' conversion if:
              * 1. function is pure (weakly pure is ok)
              * 2. implicit conversion only fails because of mod bits
@@ -827,7 +825,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
             if (!e->type->equivalent(t))
                 return;
 
-//printf("\tL%d\n", __LINE__);
             /* Get mod bits of what we're converting to
              */
             Type *tb = t->toBasetype();
@@ -837,7 +834,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
             else
             {
                 Type *ti = getIndirection(t);
-//printf("\tL%d ti = %s\n", __LINE__, ti ? ti->toChars() : NULL);
                 if (ti)
                     mod = ti->mod;
             }
@@ -847,7 +843,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
             if (mod & MODwild)
                 return;                 // not sure what to do with this
 
-//printf("\tL%d\n", __LINE__);
             /* Apply mod bits to each function parameter,
              * and see if we can convert the function argument to the modded type
              */
@@ -864,7 +859,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
                          */
                         DotVarExp *dve = (DotVarExp *)e->e1;
                         Type *targ = dve->e1->type;
-//printf("\tL%d ethis = %s %s\n", __LINE__, ethis->type->toChars(), ethis->toChars());
                         if (targ->constConv(targ->castMod(mod)) <= MATCHnomatch)
                             return;
                     }
@@ -900,7 +894,6 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
             /* Success
              */
-//printf("\tL%d\n", __LINE__);
             result = MATCHconst;
 #undef LOG
         }
