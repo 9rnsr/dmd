@@ -3761,6 +3761,326 @@ bool traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool reversePass =
     return false;
 }
 
+#if 0
+// memo
+/+
+================================================================================
+A new concept proposal for strict function purity
+================================================================================
+
+Abstract:
+
+    D has `pure` function attribute. And all pure functions are categorized to one of three purity - weak, constant, and strong purity.
+    However, the definition for the three purity level is still ambiguous a little. This DIP challenges to define it strictly.
+
+Define a new concept - "isolate return":
+
+    When a function takes any indirections via parameters, but the indirections
+    won't appear in its return value, we call it an "isolate return" function.
+
+    TODO: Is there better naming for the concept?
+
+    Example:
+        module sample:
+
+        // f has no parameter, so it's definitely an isolate return function.
+        int* f();
+
+        // all paramters copied and has no indirections,
+        // so f can be isolate return function.
+        struct Val { int n; }
+        int* f(int, double, Val)
+
+        // The const(char) data won't appear in the return value in normal type system.
+        // so f can be isolate return function.
+        // Note that, any unsafe operations not considered in the concept.
+        char[] f(const(char)[] s);
+
+        // The indirection *p may appear in the return value,
+        // so the return value is not isolated from parameters.
+        int* f(int* p);
+        const(int*) f(int* p);  // same, with const conversion
+        const(int*) f(const(int*) p);
+        const(int*) f(immutable(int*) p);
+
+        // The int[] element of 'a' is implicitly convertible to void[],
+        // so it's not isolate return.
+        void[] f(int[][3] a);
+
+        // s.ptr may appear as the return value of f, so it's not isolate return.
+        struct S { int* ptr; }
+        int* f(S s);
+
+        void test()
+        {
+            int x;
+            int* f() { return &x; }
+
+            // the returned pointer may point the context via hidden pointer.
+            // so all nested functions are not isolate return.
+            auto p  = f();
+        }
+
+New definition of purity levels:
+
+    By using the "isolate return" concept, we can update the purity level definition.
+
+    1. If a pure function takes mutable indirection via parameter, it's deduced to weak purity.
+
+        // functioin may modify mutable referenced data
+        pure int foo(int* p);
+
+    2. If a pure function is an isolate return function, or all taking indirections are immutable, it's deduced to string purity.
+
+        // takes no indirection
+        pure int foo(int);
+
+        // takes const indirection but it doesn't apper in return value
+        pure int foo(const(int*) p);
+
+        // takes immutable indirection but it doesn't appear in return value
+        pure int foo(immutable(int)* p);
+
+        // takes immutable indirection and it may appear in return value
+        pure const(int*) foo(immutable(int)* p);
+
+    3. If a pure function is neither weak or string purity, it's deduced to constant purity.
+
+        // takes const indirection and it may appear in return value
+        pure const(int*) foo(const(int*) p);
+
+    Note that, an isolate return function is not always return unique object.
+    For example:
+
+        module test:
+        int g;
+
+        // f1 is an isolate return function, but its returned is not unique.
+        int* f1() { return &g; }
+
+        void test()
+        {
+            int x;
+
+            // f2 is an isolate return function, but its returned is not unique.
+            int* f2() { return &x; }
+        }
+
+One more idea - caller side purity deduction
+
+    Even if the called pure function is deduced to constant purity,
+    it could be handled as a strong purity call when all funciton arguments
+    are immutable.
+
+    Example:
+        // constant purity function
+        pure const(int*) foo(const(int*) p);
+
+        void test(int* mp, immutable int *ip)
+        {
+            foo(mp);    // const purity call
+            foo(ip);    // can be deduced to strong purity call.
+        }
+
+Relation:
+    A good article written by David Nadlinger:
+    http://klickverbot.at/blog/2012/05/purity-in-d/
+
+Written by Kenji Hara
+================================================================================
+
+
+
+
+
+
+================================================================================
+DIP draft for the enhanced uniqueness.
+================================================================================
+
+pure function and uniqueness of its return value:
+
+    A pure function cannot access global mutable data, so its return value is sometimes unique.
+    But it's not constantly. For example:
+
+        module sample;
+
+        int mg;
+        int* f1() pure
+        {
+            //return &mg;       // disallowed
+            return new int(1);  // NewExpression can create an unique object
+        }
+
+        immutable int ig;
+        const(int*) f2() pure
+        {
+            return &ig;         // pure function can access immutable global data.
+        }
+
+        class C
+        {
+            int* ptr;
+            this(int* p) pure { this.ptr = p; }
+            this(immutable(int*) p) immutable pure { this.ptr = p; }
+
+            // mutable pure method can return mutable object field
+            int* f3() pure { return this.ptr; }
+
+            // const/immutable pure method can return non-mutable object field, or an immutable global data.
+            const(int*) f4() const pure { return true ? this.ptr : &ig; }
+            immutable(int*) f5() immutable pure { return true ? this.ptr : &ig; }
+        }
+
+        void test() pure
+        {
+            // The int* returned by f1 is implicitly convertible to immutable(int*)
+            // because it can be assumed to unique.
+            immutable(int*) ip1 = f1();
+
+            // If a pure function returns a pointer to non-const object,
+            // it may refer an immutable global data.
+            // Therefore we cannot assume it to unique.
+            //int* mp2 = f2();              // disallowed
+            immutable(int*) ip2 = f2();     // ok
+
+            int m;
+            immutable int i;
+            C mc = new C(&m);
+            immutable(C) ic = new immutable(C)(&i);
+            //immutable(int*) ip3 = mc.f3();  // disallowed
+            //immutable(int*) ip4 = mc.f4();  // disallowed
+            //          int*  mp4 = ic.f4();  // disallowed
+            //          int*  mp5 = ic.f5();  // disallowed
+
+            int x;
+            int* f5() pure  // f5 is a weak purity function.
+            {
+                // can access the enclosing context via hidden pointer.
+                return &x;
+            }
+            // A nested pure function f5 may return a pointer to non-unique object,
+            // so we cannot assume the return value to unique.
+            //immutable(int*) ip5 = f5();  // disallowed
+        }
+
+    Therefore, pure if not enough to define uniqueness.
+
+    From DIPxxx:
+    Note that, an isolate return function is not always return unique object.
+    For example:
+
+        module test:
+        int g;
+
+        // f1 is an isolate return function, but its returned is not unique.
+        int* f1() { return &g; }
+
+        void test()
+        {
+            int x;
+
+            // f2 is an isolate return function, but its returned is not unique.
+            int* f2() { return &x; }
+        }
+
+    To represent uniqueness, we already have a tool in type system - inout.
+
+Using inout for the uniqueness
+
+    If a function returns inout object, the return value comes from inout parameter.
+
+    inout(int)[] foo(inout(int)[] a);
+
+    Any global data cannot have inout type, therefore we can assume that foo won't return any reference to a global data.
+    (In, here any unsafe operations not considered.)
+
+    By the DIP29 definition, an unique object is convertible to arbitrary type qualifiers.
+    Therefore an unique expression is also convertible to inout.
+
+    inout(int)[] foo(int kind, inout(int)[] a)
+    {
+        inout(int)[] x1 = a;             // normal
+        inout(int)[] x2 = new int[](3);  // ok!
+        inout(int)[] x3 = [1,2,3];       // ok!
+        if (kind == 1)      return x1;
+        else if (kind == 2) return x2;
+        else                return x3;
+    }
+
+    And unique value can be returned via inout typed return value.
+
+    If a function can create inout object purely inside the body, why the inout parameter is necessary?
+    We can allow following declarations.
+
+    inout(int)[] foo()
+    {
+        inout(int)[] x2 = [1, 2, 3];  // ok!
+        return x1;
+        // or: return [1, 2, 3];
+    }
+
+    It means, a function that returns inout type without inout parameters, returns a unique object.
+    // issue xxxxx
+
+What is the requirement for the unique return value?
+
+    If a function have any inout parameters, and their indirections may appear in the return, the function return value is not implicitly castable to arbitrary qualifier.
+
+    inout(int)[] foo(inout(int)[] a);
+    int[] a;
+    //immutable(int[]) b = foo(a);  // NG, can break type system.
+
+    inout(int)[] foo(int[] a);
+    immutable(int[]) b = foo(a);    // OK
+
+    inout(long)[] foo(inout(int)[] a);
+    int[] a;
+    immutable(long[]) b = foo(a);   // OK
+
+    In the DIPxxx, I have proposed "isolate return" concept.
+    By using it, we can represent the requirement easily.
+
+    If a function that have inout return, is isolate return function, the return value can be unique.
+
+
+================================================================================
++/
+
+
+
+
+/+
+A definition of "uniqueness" in this DIP:
+An expression is implicitly convertible to any type qualifiers.
+
+Examples:
+int* p = something;
+immutabel(int*) p = something;
+// <-- 'something' is completely equal expressions in AST
+
+
+immutable int g;
+
+inout(const int*) foo(bool cond, inout(const int*) p) pure
+{
+    return cond ? &g : p;
+}
+
+inout(int*) bar(bool cond, inout(int*) p) pure
+{
+    return cond ? &g : p;   // NG, immutable is not implicitly convertible to inout(int*)
+}
+
+inout(int*) make() pure
+{
+    return cond ? &g : p;   // NG, immutable is not implicitly convertible to inout(int*)
+}
++/
+
+
+#endif
+
 /********************************************
  * Returns true if the function return value has no indirection
  * which comes from the parameters.
