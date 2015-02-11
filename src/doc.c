@@ -772,15 +772,28 @@ bool emitEponymousMember(Scope *sc, OutBuffer *buf, TemplateDeclaration *td)
         //if (!td->comment)
         //    break;
 
+        if (td->onemember)
+        {
+            sx = td->onemember->isAggregateDeclaration();
+            if (!sx)
+            {
+                sx = td->onemember->isFuncDeclaration();
+                if (!sx)
+                    sx = td;
+            }
+        }
+
         buf->writestring("$(DDOC_TEMPLATE_MEMBERS ");
         {
             buf->writestring(ddoc_decl_s);
             size_t o = buf->offset;
-            toDocBuffer(td, buf, sc);
-            highlightCode(sc, td, buf, o);    // it's done in (Class|Struct)Declaration::toDecoBuffer()
+            toDocBuffer(sx, buf, sc);
+            if (td == sx)
+                highlightCode(sc, sx, buf, o);
             buf->writestring(ddoc_decl_e);
 
             buf->writestring(ddoc_decl_dd_s);
+            if (td == sx)
             emitEponymousMember(sc, buf, td);
             buf->writestring(ddoc_decl_dd_e);
         }
