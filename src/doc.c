@@ -749,6 +749,35 @@ void emitProtection(OutBuffer *buf, Prot prot)
     }
 }
 
+bool emitEponymousMember(Scope *sc, OutBuffer *buf, TemplateDeclaration *td)
+{
+    Dsymbol *sx = td->onemember;
+    if (sx && sx->isTemplateDeclaration() && sx->comment)
+    {
+        td = sx->isTemplateDeclaration();
+        //if (!td->comment)
+        //    break;
+
+        buf->writestring("$(DDOC_TEMPLATE_MEMBERS ");
+        {
+            buf->writestring(ddoc_decl_s);
+            size_t o = buf->offset;
+            toDocBuffer(td, buf, sc);
+            highlightCode(sc, td, buf, o);    // it's done in (Class|Struct)Declaration::toDecoBuffer()
+            buf->writestring(ddoc_decl_e);
+
+            buf->writestring(ddoc_decl_dd_s);
+            emitEponymousMember(sc, buf, td);
+            buf->writestring(ddoc_decl_dd_e);
+        }
+        //buf->writestring(ddoc_decl_dd_e);
+        buf->writestring(")\n");
+
+        return true;
+    }
+    return false;
+}
+
 void emitComment(Dsymbol *s, Scope *sc)
 {
     class EmitComment : public Visitor
@@ -839,6 +868,8 @@ void emitComment(Dsymbol *s, Scope *sc)
             //printf("TemplateDeclaration::emitComment() '%s', kind = %s\n", td->toChars(), td->kind());
             if (td->prot().kind == PROTprivate || sc->protection.kind == PROTprivate)
                 return;
+            if (!td->comment)
+                return;
 
             bool hasmembers = true;
 
@@ -850,66 +881,10 @@ void emitComment(Dsymbol *s, Scope *sc)
                 return;
             }
 
-            const utf8_t *com = td->comment;
+            //const utf8_t *com = td->comment;
             Dsymbol *ss = td;
-
             if (td->onemember)
             {
-#if 0
-                if (AggregateDeclaration *ad = td->onemember->isAggregateDeclaration())
-                {
-                    if (!ad->comment || isDitto(ad->comment))
-                    {
-                        /*  /// case 1: doc-comment
-                         *  template S(T) {
-                         *    // no comment
-                         *    struct S { ... }
-                         *  }
-                         *
-                         *  /// case 1a: doc-comment (equivalent with the case 1)
-                         *  struct S(T) { ... }
-                         *
-                         *  /// case 2: doc-comment
-                         *  template C(T) {
-                         *    /// ditto
-                         *    class S { ... }
-                         *  }
-                         */
-                    }
-                    else
-                    {
-                        /*  /// case 3: doc-comment
-                         *  template S(T) {
-                         *    /// explicit doc-comment on the eponymous member
-                         *    struct S { ... }
-                         *  }
-                         */
-                        com = Lexer::combineComments(com, ad->comment);
-                    }
-
-                    dc->pmacrotable = &sc->module->macrotable;
-
-                    buf->writestring(ddoc_decl_s);
-                    size_t o = buf->offset;
-                    toDocBuffer(ad, buf, sc);           // ad with template parameters
-                    //highlightCode(sc, td, buf, o);    // it's done in (Class|Struct)Declaration::toDecoBuffer()
-                    sc->lastoffset = buf->offset;
-                    buf->writestring(ddoc_decl_e);
-
-                    buf->writestring(ddoc_decl_dd_s);
-                    dc->writeSections(sc, td, buf);
-                    emitMemberComments(ad, sc);
-                    buf->writestring(ddoc_decl_dd_e);
-                    return;
-                }
-
-                if (FuncDeclaration *fdtd->onemember->isFuncDeclaration())
-                {
-                    if (!ad->comment || isDitto(ad->comment))
-                    {
-                    }
-                }
-#endif
                 ss = td->onemember->isAggregateDeclaration();
                 if (!ss)
                 {
@@ -917,16 +892,16 @@ void emitComment(Dsymbol *s, Scope *sc)
                     if (ss)
                     {
                         hasmembers = false;
-                        if (com != ss->comment)
-                            com = Lexer::combineComments(com, ss->comment);
+                        //if (com != ss->comment)   // This is a hack for the weird ddoc comment emission behavior of old dmd parser.
+                        //    com = Lexer::combineComments(com, ss->comment);
                     }
                     else
                         ss = td;
                 }
             }
 
-            if (!com)
-                return;
+            //if (!com)
+            //    return;
 
             dc->pmacrotable = &sc->module->macrotable;
 
@@ -940,42 +915,30 @@ void emitComment(Dsymbol *s, Scope *sc)
 
             buf->writestring(ddoc_decl_dd_s);
 
-#if 1
-            //<dl>
-            //    <dt>...</dt>
-            //    <dd>
-            //      <dl>    // eponymous members
-            //        <dt>...</dt>
-            //      </dl>
-            //      section
-            //    </dd>
-            //</dl>
-            // list eponymous members before the section document
-            if (td->onemember && td->onemember->isTemplateDeclaration())
-            //if (!ss && td->onemember)
+            /* <dl>
+             *   <dt>template foo(T)</dt>
+             *   <dd>
+             *
+             *     <dl>    // New: list eponymous members before the section text
+             *       <dt>void foo(U)(U arg)</dt>
+             *       <dd></dd>  // emit empty section when no more eponymous members exist.
+             *     </dl>
+             *
+             *     sections
+             *
+             *     <dl>    // Old: list eponymous members after the section text
+             *       <dt>void foo(U)(U arg)</dt>
+             *       <dd>...</dd>
+             *     </dl>
+             *
+             *   </dd>
+             * </dl>
+             */
+            if (emitEponymousMember(sc, buf, td))
             {
-                Dsymbol *sx = td->onemember;
-
-                buf->writestring("$(DDOC_TEMPLATE_MEMBERS ");
-                //buf->writestring(ddoc_decl_dd_s);
-                {
-                    buf->writestring(ddoc_decl_s);
-                    size_t o = buf->offset;
-                    toDocBuffer(sx, buf, sc);
-                    highlightCode(sc, sx, buf, o);    // it's done in (Class|Struct)Declaration::toDecoBuffer()
-                    buf->writestring(ddoc_decl_e);
-
-                    // emit empty section
-                    buf->writestring(ddoc_decl_dd_s);
-                    buf->writestring(ddoc_decl_dd_e);
-                }
-                //buf->writestring(ddoc_decl_dd_e);
-                buf->writestring(")\n");
-
                 hasmembers = false;
-                printf("buf[%d .. %d] = <<<\n%.*s>>>\n", o, buf->offset, buf->offset - o, buf->data + o);
+                //printf("buf[%d .. %d] = <<<\n%.*s>>>\n", o, buf->offset, buf->offset - o, buf->data + o);
             }
-#endif
 
             dc->writeSections(sc, td, buf);
             if (hasmembers)
@@ -1133,7 +1096,7 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
 
         void visit(Dsymbol *s)
         {
-            printf("Dsymbol::toDocBuffer() %s\n", s->toChars());
+            //printf("Dsymbol::toDocBuffer() %s\n", s->toChars());
             HdrGenState hgs;
             hgs.ddoc = true;
             ::toCBuffer(s, buf, &hgs);
@@ -1332,7 +1295,7 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
 
         void visit(StructDeclaration *sd)
         {
-            printf("StructDeclaration::toDocBuffer() %s\n", sd->toChars());
+            //printf("StructDeclaration::toDocBuffer() %s\n", sd->toChars());
             if (!sd->ident)
                 return;
 
