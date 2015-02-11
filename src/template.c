@@ -2084,19 +2084,28 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         Type *tthis_fd = fd->needThis() ? tthis : NULL;
         if (tthis_fd && fd->isCtorDeclaration())
         {
-            //printf("%s tf->mod = x%x tthis_fd->mod = x%x purity = %d, isolate = %d\n", tf->toChars(),
-            //        tf->mod, tthis_fd->mod, fd->isPure(), fd->isolateReturn());
-            if (MODimplicitConv(tf->mod, tthis_fd->mod) ||
-                tf->isWild() && tf->isShared() == tthis_fd->isShared() ||
-                fd->isPure() >= PUREweak && fd->isolateReturn())
+            //printf("%s tf->mod = x%x tthis_fd->mod = x%x %d\n", tf->toChars(),
+            //        tf->mod, tthis_fd->mod, fd->isolateReturn());
+            if (MODimplicitConv(tf->mod, tthis_fd->mod))
+            {
+                // Normal case: qualified constructor can create same or weaker qualifier object
+                tthis_fd = NULL;
+            }
+            else if (fd->isPure() >= PUREweak && fd->isolateReturn() && (tf->isMutable() || MODimplicitConv(MODimmutable, tthis_fd->mod)))
+            // fd->isPure() == PUREstrong && (tf->isMutable() || MODimplicitConv(MODimmutable, tthis_fd->mod))
             {
                 /* && tf->isShared() == tthis_fd->isShared()*/
                 // Uniquely constructed object can ignore shared qualifier.
                 // TODO: Is this appropriate?
                 tthis_fd = NULL;
             }
+            else if (tf->isWild() && tf->isShared() == tthis_fd->isShared())
+            {
+                // todo
+                tthis_fd = NULL;
+            }
             else
-                return 0;   // MATCHnomatch
+                return 0;   // MATTHnomatch
         }
         MATCH mfa = tf->callMatch(tthis_fd, fargs);
         //printf("test1: mfa = %d\n", mfa);
@@ -2325,10 +2334,17 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
                 if (tthis_fd)
                 {
                     assert(tf->next);
-                    if (MODimplicitConv(tf->mod, tthis_fd->mod) ||
-                        tf->isWild() && tf->isShared() == tthis_fd->isShared() ||
-                        fd->isPure() >= PUREweak && fd->isolateReturn())
+                    if (MODimplicitConv(tf->mod, tthis_fd->mod))
                     {
+                        tthis_fd = NULL;
+                    }
+                    else if (fd->isPure() >= PUREweak && fd->isolateReturn() && (tf->isMutable() || MODimplicitConv(MODimmutable, tthis_fd->mod)))
+                    {
+                        tthis_fd = NULL;
+                    }
+                    else if (tf->isWild() && tf->isShared() == tthis_fd->isShared())
+                    {
+                        // todo
                         tthis_fd = NULL;
                     }
                     else

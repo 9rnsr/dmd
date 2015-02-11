@@ -254,6 +254,82 @@ void test13515()
 
 /***************************************************/
 
+immutable int g;
+
+class C1
+{
+    int* p;
+    this(int) pure { static assert(!__traits(compiles, (p = &g))); }
+}
+class C2
+{
+    int* p;
+    this(int) const pure { p = &g;  }
+}
+class C3
+{
+    int* p;
+    this(int) immutable pure { p = &g; }
+}
+void testC()
+{
+                 C1 m1  = new              C1(1);
+          shared C1 s1  = new       shared C1(1);
+           const C1 c1  = new        const C1(1);
+    shared const C1 sc1 = new shared const C1(1);
+       immutable C1 i1  = new    immutable C1(1);
+
+    static assert(!__traits(compiles, {        C2 m2 = new        C2(2); }));
+    static assert(!__traits(compiles, { shared C2 s2 = new shared C2(2); }));
+           const C2 c2  = new        const C2(2);
+    shared const C2 sc2 = new shared const C2(2);
+       immutable C2 i2  = new    immutable C2(2);
+
+    static assert(!__traits(compiles, {        C3 m3 = new        C3(3); }));
+    static assert(!__traits(compiles, { shared C3 s3 = new shared C3(3); }));
+           const C3 c3  = new        const C3(3);
+    shared const C3 sc3 = new shared const C3(3);
+       immutable C3 i3  = new    immutable C3(3);
+}
+
+class T1
+{
+    int* p;
+    this(T)(T) pure { static assert(!__traits(compiles, (p = &g))); }
+}
+class T2
+{
+    int* p;
+    this(T)(T) const pure { p = &g;  }
+}
+class T3
+{
+    int* p;
+    this(T)(T) immutable pure { p = &g; }
+}
+void testT()
+{
+                 T1 m1  = new              T1(1);
+          shared T1 s1  = new       shared T1(1);
+           const T1 c1  = new        const T1(1);
+    shared const T1 sc1 = new shared const T1(1);
+       immutable T1 i1  = new    immutable T1(1);
+
+    static assert(!__traits(compiles, {        T2 m2 = new        T2(2); }));
+    static assert(!__traits(compiles, { shared T2 s2 = new shared T2(2); }));
+           const T2 c2  = new        const T2(2);
+    shared const T2 sc2 = new shared const T2(2);
+       immutable T2 i2  = new    immutable T2(2);
+
+    static assert(!__traits(compiles, {        T3 m3 = new        T3(3); }));
+    static assert(!__traits(compiles, { shared T3 s3 = new shared T3(3); }));
+           const T3 c3  = new        const T3(3);
+    shared const T3 sc3 = new shared const T3(3);
+       immutable T3 i3  = new    immutable T3(3);
+}
+
+/***************************************************/
+
 int main()
 {
     test8117();
