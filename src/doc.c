@@ -763,42 +763,47 @@ void emitProtection(OutBuffer *buf, Prot prot)
     }
 }
 
-bool emitEponymousMember(Scope *sc, OutBuffer *buf, TemplateDeclaration *td)
+bool emitEponymousMember(Scope *sc, OutBuffer *buf, TemplateDeclaration *td, int level)
 {
-    Dsymbol *sx = td->onemember;
-    if (sx && sx->isTemplateDeclaration() && sx->comment)
+    Dsymbol *ss = td->onemember;
+    if (ss && ss->isTemplateDeclaration() && ss->comment)
     {
-        td = sx->isTemplateDeclaration();
-        //if (!td->comment)
-        //    break;
+        td = ss->isTemplateDeclaration();
 
         if (td->onemember)
         {
-            sx = td->onemember->isAggregateDeclaration();
-            if (!sx)
+            ss = td->onemember->isAggregateDeclaration();
+            if (!ss)
             {
-                sx = td->onemember->isFuncDeclaration();
-                if (!sx)
-                    sx = td;
+                ss = td->onemember->isFuncDeclaration();
+                if (!ss)
+                    ss = td;
             }
         }
 
-        buf->writestring("$(DDOC_TEMPLATE_MEMBERS ");
-        {
-            buf->writestring(ddoc_decl_s);
+        //buf->writestring("$(BR)");
+        buf->writestring("$(UL ");
+        //for (size_t lv = 0; lv < level; lv++)
+        //    buf->writestring("....");
+        buf->writestring("$(LI ");
+        //buf->writestring("$(DDOC_TEMPLATE_MEMBERS ");
+        //{
+        //    buf->writestring(ddoc_decl_s);
             size_t o = buf->offset;
-            toDocBuffer(sx, buf, sc);
-            if (td == sx)
-                highlightCode(sc, sx, buf, o);
-            buf->writestring(ddoc_decl_e);
+            toDocBuffer(ss, buf, sc);
+            if (td == ss)
+            {
+                emitEponymousMember(sc, buf, td, level + 1);
+        //        highlightCode(sc, ss, buf, o);
+            }
+        //    buf->writestring(ddoc_decl_e);
 
-            buf->writestring(ddoc_decl_dd_s);
-            if (td == sx)
-            emitEponymousMember(sc, buf, td);
-            buf->writestring(ddoc_decl_dd_e);
-        }
+        //    buf->writestring(ddoc_decl_dd_s);
+        //    buf->writestring(ddoc_decl_dd_e);
+        //}
         //buf->writestring(ddoc_decl_dd_e);
-        buf->writestring(")\n");
+        //buf->writestring(")\n");
+        buf->writestring("))");
 
         return true;
     }
@@ -936,36 +941,18 @@ void emitComment(Dsymbol *s, Scope *sc)
             size_t o = buf->offset;
             toDocBuffer(ss, buf, sc);
             if (ss == td)
+            {
+                if (emitEponymousMember(sc, buf, td, 1))
+                {
+                    hasmembers = false;
+                    //printf("buf[%d .. %d] = <<<\n%.*s>>>\n", o, buf->offset, buf->offset - o, buf->data + o);
+                }
                 highlightCode(sc, td, buf, o);
+            }
             sc->lastoffset = buf->offset;
             buf->writestring(ddoc_decl_e);
 
             buf->writestring(ddoc_decl_dd_s);
-
-            /* <dl>
-             *   <dt>template foo(T)</dt>
-             *   <dd>
-             *
-             *     <dl>    // New: list eponymous members before the section text
-             *       <dt>void foo(U)(U arg)</dt>
-             *       <dd></dd>  // emit empty section when no more eponymous members exist.
-             *     </dl>
-             *
-             *     sections
-             *
-             *     <dl>    // Old: list eponymous members after the section text
-             *       <dt>void foo(U)(U arg)</dt>
-             *       <dd>...</dd>
-             *     </dl>
-             *
-             *   </dd>
-             * </dl>
-             */
-            if (emitEponymousMember(sc, buf, td))
-            {
-                hasmembers = false;
-                //printf("buf[%d .. %d] = <<<\n%.*s>>>\n", o, buf->offset, buf->offset - o, buf->data + o);
-            }
 
             dc->writeSections(sc, td, buf);
             if (hasmembers)
