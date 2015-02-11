@@ -658,7 +658,7 @@ void emitDitto(Dsymbol *s, Scope *sc)
     toDocBuffer(s, &b, sc);
     //printf("b: '%.*s'\n", b.offset, b.data);
     /* If 'this' is a function template, then highlightCode() was
-     * already run by FuncDeclaration::toDocbuffer().
+     * already run by FuncDeclaration::toDocBuffer().
      */
     if (!getEponymousParentTemplate(s))
         highlightCode(sc, s, &b, o);
@@ -814,7 +814,6 @@ void emitComment(Dsymbol *s, Scope *sc)
 
             OutBuffer *buf = sc->docbuf;
             DocComment *dc = DocComment::parse(sc, ad, ad->comment);
-
             if (!dc)
             {
                 emitDitto(ad, sc);
@@ -841,13 +840,76 @@ void emitComment(Dsymbol *s, Scope *sc)
             if (td->prot().kind == PROTprivate || sc->protection.kind == PROTprivate)
                 return;
 
-            const utf8_t *com = td->comment;
             bool hasmembers = true;
 
+            OutBuffer *buf = sc->docbuf;
+            DocComment *dc = DocComment::parse(sc, td, td->comment);
+            if (!dc)        // template itself has ditto comment, it should be ditto
+            {
+                emitDitto(td, sc);
+                return;
+            }
+
+            const utf8_t *com = td->comment;
             Dsymbol *ss = td;
 
             if (td->onemember)
             {
+#if 0
+                if (AggregateDeclaration *ad = td->onemember->isAggregateDeclaration())
+                {
+                    if (!ad->comment || isDitto(ad->comment))
+                    {
+                        /*  /// case 1: doc-comment
+                         *  template S(T) {
+                         *    // no comment
+                         *    struct S { ... }
+                         *  }
+                         *
+                         *  /// case 1a: doc-comment (equivalent with the case 1)
+                         *  struct S(T) { ... }
+                         *
+                         *  /// case 2: doc-comment
+                         *  template C(T) {
+                         *    /// ditto
+                         *    class S { ... }
+                         *  }
+                         */
+                    }
+                    else
+                    {
+                        /*  /// case 3: doc-comment
+                         *  template S(T) {
+                         *    /// explicit doc-comment on the eponymous member
+                         *    struct S { ... }
+                         *  }
+                         */
+                        com = Lexer::combineComments(com, ad->comment);
+                    }
+
+                    dc->pmacrotable = &sc->module->macrotable;
+
+                    buf->writestring(ddoc_decl_s);
+                    size_t o = buf->offset;
+                    toDocBuffer(ad, buf, sc);           // ad with template parameters
+                    //highlightCode(sc, td, buf, o);    // it's done in (Class|Struct)Declaration::toDecoBuffer()
+                    sc->lastoffset = buf->offset;
+                    buf->writestring(ddoc_decl_e);
+
+                    buf->writestring(ddoc_decl_dd_s);
+                    dc->writeSections(sc, td, buf);
+                    emitMemberComments(ad, sc);
+                    buf->writestring(ddoc_decl_dd_e);
+                    return;
+                }
+
+                if (FuncDeclaration *fdtd->onemember->isFuncDeclaration())
+                {
+                    if (!ad->comment || isDitto(ad->comment))
+                    {
+                    }
+                }
+#endif
                 ss = td->onemember->isAggregateDeclaration();
                 if (!ss)
                 {
@@ -866,25 +928,63 @@ void emitComment(Dsymbol *s, Scope *sc)
             if (!com)
                 return;
 
-            OutBuffer *buf = sc->docbuf;
-            DocComment *dc = DocComment::parse(sc, td, com);
-            size_t o;
-
-            if (!dc)
-            {
-                emitDitto(ss, sc);
-                return;
-            }
             dc->pmacrotable = &sc->module->macrotable;
 
             buf->writestring(ddoc_decl_s);
-            o = buf->offset;
+            size_t o = buf->offset;
             toDocBuffer(ss, buf, sc);
             if (ss == td)
                 highlightCode(sc, td, buf, o);
+
+
+            if (td->onemember && td->onemember->isTemplateDeclaration())
+            {
+                buf->writestring("$(DDOC_TEMPLATE_MEMBERS ");
+                //buf->writestring(ddoc_decl_dd_s);
+                {
+            #if 0
+                    emitMemberComments((ScopeDsymbol *)td, sc);
+            #else
+                    buf->writestring(ddoc_decl_s);
+                    size_t o = buf->offset;
+                    toDocBuffer(td->onemember, buf, sc);
+                    highlightCode(sc, td->onemember, buf, o);    // it's done in (Class|Struct)Declaration::toDecoBuffer()
+                    //sc->lastoffset = buf->offset;
+                    buf->writestring(ddoc_decl_e);
+            #endif
+                }
+                //buf->writestring(ddoc_decl_dd_e);
+                buf->writestring(")\n");
+                hasmembers = false;
+                printf("buf[%d .. %d] = <<<\n%.*s>>>\n", o, buf->offset, buf->offset - o, buf->data + o);
+            }
+
             sc->lastoffset = buf->offset;
             buf->writestring(ddoc_decl_e);
 
+#if 0   // 1
+            if (td->onemember && td->onemember->isTemplateDeclaration())
+            {
+                buf->writestring(ddoc_decl_dd_s);
+                buf->writestring("$(DDOC_TEMPLATE_MEMBERS ");
+                {
+            #if 0   // 2
+                    emitMemberComments((ScopeDsymbol *)td, sc);
+            #else
+                    buf->writestring(ddoc_decl_s);
+                    size_t o = buf->offset;
+                    toDocBuffer(td->onemember, buf, sc);
+                    highlightCode(sc, td->onemember, buf, o);    // it's done in (Class|Struct)Declaration::toDecoBuffer()
+                    sc->lastoffset = buf->offset;
+                    buf->writestring(ddoc_decl_e);
+            #endif
+                }
+                buf->writestring(")\n");
+                buf->writestring(ddoc_decl_dd_e);
+                hasmembers = false;
+                printf("buf[%d .. %d] = <<<\n%.*s>>>\n", o, buf->offset, buf->offset - o, buf->data + o);
+            }
+#endif
             buf->writestring(ddoc_decl_dd_s);
             dc->writeSections(sc, td, buf);
             if (hasmembers)
@@ -1042,7 +1142,7 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
 
         void visit(Dsymbol *s)
         {
-            //printf("Dsymbol::toDocbuffer() %s\n", s->toChars());
+            printf("Dsymbol::toDocBuffer() %s\n", s->toChars());
             HdrGenState hgs;
             hgs.ddoc = true;
             ::toCBuffer(s, buf, &hgs);
@@ -1126,7 +1226,7 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
 
         void visit(AliasDeclaration *ad)
         {
-            //printf("AliasDeclaration::toDocbuffer() %s\n", ad->toChars());
+            //printf("AliasDeclaration::toDocBuffer() %s\n", ad->toChars());
             if (!ad->ident)
                 return;
 
@@ -1209,7 +1309,7 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
 
         void visit(FuncDeclaration *fd)
         {
-            //printf("FuncDeclaration::toDocbuffer() %s\n", fd->toChars());
+            //printf("FuncDeclaration::toDocBuffer() %s\n", fd->toChars());
             if (!fd->ident)
                 return;
 
@@ -1241,7 +1341,7 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
 
         void visit(StructDeclaration *sd)
         {
-            //printf("StructDeclaration::toDocbuffer() %s\n", sd->toChars());
+            printf("StructDeclaration::toDocBuffer() %s\n", sd->toChars());
             if (!sd->ident)
                 return;
 
@@ -1263,7 +1363,7 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
 
         void visit(ClassDeclaration *cd)
         {
-            //printf("ClassDeclaration::toDocbuffer() %s\n", cd->toChars());
+            //printf("ClassDeclaration::toDocBuffer() %s\n", cd->toChars());
             if (!cd->ident)
                 return;
 
