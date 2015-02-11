@@ -935,57 +935,48 @@ void emitComment(Dsymbol *s, Scope *sc)
             toDocBuffer(ss, buf, sc);
             if (ss == td)
                 highlightCode(sc, td, buf, o);
-
-
-            if (td->onemember && td->onemember->isTemplateDeclaration())
-            {
-                buf->writestring("$(DDOC_TEMPLATE_MEMBERS ");
-                //buf->writestring(ddoc_decl_dd_s);
-                {
-            #if 0
-                    emitMemberComments((ScopeDsymbol *)td, sc);
-            #else
-                    buf->writestring(ddoc_decl_s);
-                    size_t o = buf->offset;
-                    toDocBuffer(td->onemember, buf, sc);
-                    highlightCode(sc, td->onemember, buf, o);    // it's done in (Class|Struct)Declaration::toDecoBuffer()
-                    //sc->lastoffset = buf->offset;
-                    buf->writestring(ddoc_decl_e);
-            #endif
-                }
-                //buf->writestring(ddoc_decl_dd_e);
-                buf->writestring(")\n");
-                hasmembers = false;
-                printf("buf[%d .. %d] = <<<\n%.*s>>>\n", o, buf->offset, buf->offset - o, buf->data + o);
-            }
-
             sc->lastoffset = buf->offset;
             buf->writestring(ddoc_decl_e);
 
-#if 0   // 1
+            buf->writestring(ddoc_decl_dd_s);
+
+#if 1
+            //<dl>
+            //    <dt>...</dt>
+            //    <dd>
+            //      <dl>    // eponymous members
+            //        <dt>...</dt>
+            //      </dl>
+            //      section
+            //    </dd>
+            //</dl>
+            // list eponymous members before the section document
             if (td->onemember && td->onemember->isTemplateDeclaration())
+            //if (!ss && td->onemember)
             {
-                buf->writestring(ddoc_decl_dd_s);
+                Dsymbol *sx = td->onemember;
+
                 buf->writestring("$(DDOC_TEMPLATE_MEMBERS ");
+                //buf->writestring(ddoc_decl_dd_s);
                 {
-            #if 0   // 2
-                    emitMemberComments((ScopeDsymbol *)td, sc);
-            #else
                     buf->writestring(ddoc_decl_s);
                     size_t o = buf->offset;
-                    toDocBuffer(td->onemember, buf, sc);
-                    highlightCode(sc, td->onemember, buf, o);    // it's done in (Class|Struct)Declaration::toDecoBuffer()
-                    sc->lastoffset = buf->offset;
+                    toDocBuffer(sx, buf, sc);
+                    highlightCode(sc, sx, buf, o);    // it's done in (Class|Struct)Declaration::toDecoBuffer()
                     buf->writestring(ddoc_decl_e);
-            #endif
+
+                    // emit empty section
+                    buf->writestring(ddoc_decl_dd_s);
+                    buf->writestring(ddoc_decl_dd_e);
                 }
+                //buf->writestring(ddoc_decl_dd_e);
                 buf->writestring(")\n");
-                buf->writestring(ddoc_decl_dd_e);
+
                 hasmembers = false;
                 printf("buf[%d .. %d] = <<<\n%.*s>>>\n", o, buf->offset, buf->offset - o, buf->data + o);
             }
 #endif
-            buf->writestring(ddoc_decl_dd_s);
+
             dc->writeSections(sc, td, buf);
             if (hasmembers)
                 emitMemberComments((ScopeDsymbol *)ss, sc);
