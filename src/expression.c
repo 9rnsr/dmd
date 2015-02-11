@@ -1947,13 +1947,13 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
     Type *tret = tf->next;
     if (isCtorCall)
     {
-        //printf("[%s] fd = %s %s, %d %d %d\n", loc.toChars(), fd->toChars(), fd->type->toChars(),
-        //    wildmatch, tf->isWild(), fd->isolateReturn());
+        //printf("[%s] fd = %s %s, %d %d purity = %d, isolate = %d\n", loc.toChars(), fd->toChars(), fd->type->toChars(),
+        //    wildmatch, tf->isWild(), fd->isPure(), fd->isolateReturn());
         if (!tthis)
         {   assert(sc->intypeof || global.errors);
             tthis = fd->isThis()->type->addMod(fd->type->mod);
         }
-        if (tf->isWild() && !fd->isolateReturn())
+        if (tf->isWild() && !(fd->isPure() < PUREweak || fd->isolateReturn()))
         {
             if (wildmatch)
                 tret = tret->substWildTo(wildmatch);

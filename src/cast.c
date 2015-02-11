@@ -798,7 +798,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
             /* Allow the result of strongly pure functions to
              * convert to immutable
              */
-            if (e->f && e->f->isolateReturn())
+            if (e->f && e->f->isPure() >= PUREweak && e->f->isolateReturn())
             {
                 result = e->type->immutableOf()->implicitConvTo(t);
                 if (result > MATCHconst)    // Match level is MATCHconst at best.

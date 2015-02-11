@@ -2084,11 +2084,11 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         Type *tthis_fd = fd->needThis() ? tthis : NULL;
         if (tthis_fd && fd->isCtorDeclaration())
         {
-            //printf("%s tf->mod = x%x tthis_fd->mod = x%x %d\n", tf->toChars(),
-            //        tf->mod, tthis_fd->mod, fd->isolateReturn());
+            //printf("%s tf->mod = x%x tthis_fd->mod = x%x purity = %d, isolate = %d\n", tf->toChars(),
+            //        tf->mod, tthis_fd->mod, fd->isPure(), fd->isolateReturn());
             if (MODimplicitConv(tf->mod, tthis_fd->mod) ||
                 tf->isWild() && tf->isShared() == tthis_fd->isShared() ||
-                fd->isolateReturn())
+                fd->isPure() >= PUREweak && fd->isolateReturn())
             {
                 /* && tf->isShared() == tthis_fd->isShared()*/
                 // Uniquely constructed object can ignore shared qualifier.
@@ -2327,7 +2327,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
                     assert(tf->next);
                     if (MODimplicitConv(tf->mod, tthis_fd->mod) ||
                         tf->isWild() && tf->isShared() == tthis_fd->isShared() ||
-                        fd->isolateReturn())
+                        fd->isPure() >= PUREweak && fd->isolateReturn())
                     {
                         tthis_fd = NULL;
                     }

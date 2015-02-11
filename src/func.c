@@ -1751,6 +1751,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     Expression *exp = rs->exp;
 
                     if (!exp->implicitConvTo(tret) &&
+                        isPureBypassingInference() && !isNested() &&
                         parametersIntersect(exp->type))
                     {
                         if (exp->type->immutableOf()->implicitConvTo(tret))
@@ -3727,7 +3728,10 @@ bool traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool reversePass =
     if (tb->ty == Tclass || tb->ty == Tstruct)
     {
         for (Ctxt *c = ctxt; c; c = c->prev)
-            if (tb == c->type) return false;
+        {
+            if (tb == c->type)
+                return false;
+        }
         Ctxt c;
         c.prev = ctxt;
         c.type = tb;
@@ -4107,9 +4111,6 @@ bool FuncDeclaration::isolateReturn()
 bool FuncDeclaration::parametersIntersect(Type *t)
 {
     assert(t);
-    if (!isPureBypassingInference() || isNested())
-        return false;
-
     assert(type->ty == Tfunction);
     TypeFunction *tf = (TypeFunction *)type;
 
