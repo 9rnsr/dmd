@@ -653,16 +653,30 @@ void emitDitto(Dsymbol *s, Scope *sc)
     OutBuffer *buf = sc->docbuf;
     OutBuffer b;
 
+    Dsymbol *ss = s;
+    TemplateDeclaration *td = s->isTemplateDeclaration();
+    if (td && td->onemember)
+    {
+        ss = td->onemember->isAggregateDeclaration();
+        if (!ss)
+        {
+            ss = td->onemember->isFuncDeclaration();
+            if (!ss)
+                ss = td;
+        }
+    }
+
     b.writestring("$(DDOC_DITTO ");
     size_t o = b.offset;
-    toDocBuffer(s, &b, sc);
+    toDocBuffer(ss, &b, sc);
     //printf("b: '%.*s'\n", b.offset, b.data);
     /* If 'this' is a function template, then highlightCode() was
      * already run by FuncDeclaration::toDocBuffer().
      */
-    if (!getEponymousParentTemplate(s))
+    if (ss == s/*!getEponymousParentTemplate(s)*/)
         highlightCode(sc, s, &b, o);
     b.writeByte(')');
+    //printf("+%d buf[%d .. %d] = <<<\n%.*s>>>\n", __LINE__, o, buf->offset, buf->offset - o, buf->data + o);
     buf->spread(sc->lastoffset, b.offset);
     memcpy(buf->data + sc->lastoffset, b.data, b.offset);
     sc->lastoffset += b.offset;

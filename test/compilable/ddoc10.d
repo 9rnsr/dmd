@@ -27,11 +27,11 @@ int func2(T)(T x) {}
 int func2()() {}
 
 
-///
+/** This used to work adequately and documented both func3 templates
+  * simultaneously. Now, it documents the first template twice and
+  * no longer documents the function argument and return types.
+  */
 template func3(T,U) {
-        /** This used to work adequately and documented both func3 templates
-          * simultaneously. Now, it documents the first template twice and
-          * no longer documents the function argument and return types.*/
         int func3(T x, U y) {}
 }
 
