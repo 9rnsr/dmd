@@ -67,14 +67,11 @@ bool canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow)
              * then this expression cannot throw.
              * Note that pure functions can throw.
              */
+            if (ce->f && ce->f == func)
+                return;
             Type *t = ce->e1->type->toBasetype();
             TypeFunction *tf = NULL;
-            if (ce->f && ce->f == func)
-            {
-                assert(ce->f->type->ty == Tfunction);
-                tf = (TypeFunction *)ce->f->type;
-            }
-            else if (t->ty == Tfunction)
+            if (t->ty == Tfunction)
             {
                 tf = (TypeFunction *)t;
                 //printf("1 tf = %s\n", tf->toChars());
