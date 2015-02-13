@@ -63,31 +63,33 @@ bool canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow)
             if (global.errors && !ce->e1->type)
                 return;                       // error recovery
 
+            // Recursive function call does not violate nothrow-ness.
+            if (ce->f && ce->f == func)
+                return;
+
             /* If calling a function or delegate that is typed as nothrow,
              * then this expression cannot throw.
              * Note that pure functions can throw.
              */
-            if (ce->f && ce->f == func)
-                return;
             Type *t = ce->e1->type->toBasetype();
-            TypeFunction *tf = NULL;
             if (t->ty == Tfunction)
             {
-                tf = (TypeFunction *)t;
-                //printf("1 tf = %s\n", tf->toChars());
+                TypeFunction *tf = (TypeFunction *)t;
+                if (tf->isnothrow)
+                    return;
             }
             else if (t->ty == Tdelegate)
             {
-                tf = (TypeFunction *)((TypeDelegate *)t)->next;
-                //printf("2 tf = %s\n", tf->toChars());
                 if (ce->e1->op == TOKvar &&
                     ((VarExp *)ce->e1)->var->storage_class & STClazy)
                 {
                     // a lazy parameter call is typed as nothrow, but actually it may throw.
-                    //printf(">>>[%s] ce = %s, check lazy parameter arguments\n", ce->loc.toChars(), ce->toChars());
                     stop = true;
                     return;
                 }
+                TypeFunction *tf = (TypeFunction *)((TypeDelegate *)t)->next;
+                if (tf->isnothrow)
+                    return;
             }
             else
                 assert(0);
