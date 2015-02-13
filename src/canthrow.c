@@ -68,13 +68,63 @@ bool canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow)
              * Note that pure functions can throw.
              */
             Type *t = ce->e1->type->toBasetype();
+            TypeFunction *tf = NULL;
             if (ce->f && ce->f == func)
-                ;
-            else if (t->ty == Tfunction && ((TypeFunction *)t)->isnothrow)
-                ;
-            else if (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->isnothrow)
-                ;
+            {
+                assert(ce->f->type->ty == Tfunction);
+                tf = (TypeFunction *)ce->f->type;
+            }
+            else if (t->ty == Tfunction)
+            {
+                tf = (TypeFunction *)t;
+                //printf("1 tf = %s\n", tf->toChars());
+            }
+            else if (t->ty == Tdelegate)
+            {
+                tf = (TypeFunction *)((TypeDelegate *)t)->next;
+                //printf("2 tf = %s\n", tf->toChars());
+                if (ce->e1->op == TOKvar &&
+                    ((VarExp *)ce->e1)->var->storage_class & STClazy)
+                {
+                    // a lazy parameter call is typed as nothrow, but actually it may throw.
+                    //printf(">>>[%s] ce = %s, check lazy parameter arguments\n", ce->loc.toChars(), ce->toChars());
+                    stop = true;
+                    return;
+                }
+            }
             else
+                assert(0);
+
+#if 0
+            bool isnothrow = tf->isnothrow;
+            if (isnothrow)
+            {
+                printf("[%s] ce = %s, check lazy parameter arguments\n", ce->loc.toChars(), ce->toChars());
+                size_t nargs = ce->arguments ? ce->arguments->dim : 0;
+                size_t nparams = Parameter::dim(tf->parameters);
+                for (size_t i = 0; i < nargs; i++)
+                {
+                    Expression *arg = (*ce->arguments)[i];
+                    assert(arg);
+                    if (i >= nparams)
+                        break;
+
+                    Parameter *p = Parameter::getNth(tf->parameters, i);
+                    if (p->storageClass & STClazy)
+                    {
+                        assert(arg->op == TOKfunction);
+                        int be = ((FuncExp *)arg)->fd->fbody->blockExit(func, mustNotThrow);
+                        if (be & BEthrow)
+                            stop = true;
+                    }
+                }
+                //if (!isnothrow)
+                //    stop = true;
+
+                return;
+            }
+#endif
+            if (!tf->isnothrow)
             {
                 if (mustNotThrow)
                 {

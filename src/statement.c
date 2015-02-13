@@ -4462,16 +4462,20 @@ Statement *TryCatchStatement::semantic(Scope *sc)
      * of recoverable exceptions.
      */
 
-    if (!(body->blockExit(sc->func, false) & BEthrow) && ClassDeclaration::exception)
+    int be = body->blockExit(sc->func, false);
+    //printf("[%s] try-catch be = %d, body = %s\n", loc.toChars(), be, body->toChars());
+    if (!(be & BEthrow) && ClassDeclaration::exception)
     {
         for (size_t i = 0; i < catches->dim; i++)
-        {   Catch *c = (*catches)[i];
+        {
+            Catch *c = (*catches)[i];
 
             /* If catch exception type is derived from Exception
              */
             if (c->type->toBasetype()->implicitConvTo(ClassDeclaration::exception->type) &&
                 (!c->handler || !c->handler->comeFrom()))
-            {   // Remove c from the array of catches
+            {
+                // Remove c from the array of catches
                 catches->remove(i);
                 --i;
             }
