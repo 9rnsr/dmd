@@ -1223,7 +1223,7 @@ Ldone:
 
 void FuncDeclaration::semantic2(Scope *sc)
 {
-    //printf("FuncDeclaration::semantic2 [%s] fd0 = %s %s\n", this->loc.toChars(), this->toChars(), this->type->toChars());
+    printf("(%s) FuncDeclaration::semantic2 [%s] fd0 = %s %s\n", kind(), this->loc.toChars(), this->toChars(), this->type->toChars());
 
     struct ConflictDg
     {
@@ -1251,10 +1251,25 @@ void FuncDeclaration::semantic2(Scope *sc)
         {
             if (f1 == f2 || f2->errors)
                 return 0;
+            printf("f1 = %s @ [%s], f2 = %s @ [%s]\n", f1->toChars(), f1->loc.toChars(), f2->toChars(), f2->loc.toChars());
 
             // Don't have to check conflict between declaration and definition.
             if ((f1->fbody != NULL) != (f2->fbody != NULL))
+            {
+                printf("\tL%d no\n", __LINE__);
                 return 0;
+            }
+            if (ClassDeclaration *cd = f1->parent->isClassDeclaration())
+            {
+                for (size_t i = 0; i < f1->foverrides.dim; i++)
+                {
+                    if (f1->foverrides[i] == f2)
+                    {
+                printf("\tL%d no\n", __LINE__);
+                        return 0;
+                    }
+                }
+            }
 
             buf2.reset();
             mangleToFuncSignature(&buf2, f2);
@@ -1262,7 +1277,7 @@ void FuncDeclaration::semantic2(Scope *sc)
             const char *s1 = buf1.peekString();
             const char *s2 = buf2.peekString();
 
-            //printf("+%s\n\ts1 = %s\n\ts2 = %s @ [%s]\n", toChars(), s1, s2, f2->loc.toChars());
+            printf("+%s\n\ts1 = %s\n\ts2 = %s @ [%s]\n", f1->toChars(), s1, s2, f2->loc.toChars());
             if (strcmp(s1, s2) == 0)
             {
                 TypeFunction *tf2 = (TypeFunction *)f2->type;
@@ -2718,7 +2733,7 @@ int FuncDeclaration::findVtblIndex(Dsymbols *vtbl, int dim)
 
 bool FuncDeclaration::overloadInsert(Dsymbol *s)
 {
-    //printf("FuncDeclaration::overloadInsert(s = %s) this = %s\n", s->toChars(), toChars());
+    printf("[%s](%s) FuncDeclaration::overloadInsert(s = %s) this = %s\n", loc.toChars(), kind(), s->toChars(), toChars());
     assert(s != this);
 
     AliasDeclaration *ad = s->isAliasDeclaration();

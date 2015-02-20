@@ -71,3 +71,26 @@ pure auto mul14147(const int[] left, const int[] right)
 {
     S14147!(a => a) s;
 }
+
+
+class B
+{
+    void foo() {}
+}
+class C : B
+{
+    override void foo() {}
+    //alias foo = B.foo;
+    alias foo = D.foo;
+}
+
+class D : C
+{
+    override void foo() {}
+}
+
+void main()
+{
+    C c;
+    c.foo();
+}

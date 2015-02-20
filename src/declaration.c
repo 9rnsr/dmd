@@ -495,19 +495,35 @@ void AliasDeclaration::semantic(Scope *sc)
     this->inSemantic = 0;
 }
 
+void AliasDeclaration::semantic2(Scope *sc)
+{
+    //printf("AliasDeclaration::semantic2() %s\n", toChars());
+
+    if (aliassym) // see test/test56.d
+    {
+        Dsymbol *sa = aliassym->toAlias();
+        if (FuncAliasDeclaration *fa = sa->isFuncAliasDeclaration())
+        {
+            //printf("[%s] AliasDeclaration::semantic2() fa = %s\n", loc.toChars(), fa->toChars());
+            //fa->semantic2(sc);
+        }
+    }
+}
+
 bool AliasDeclaration::overloadInsert(Dsymbol *s)
 {
     /* Don't know yet what the aliased symbol is, so assume it can
      * be overloaded and check later for correctness.
      */
 
-    //printf("AliasDeclaration::overloadInsert('%s')\n", s->toChars());
+    printf("AliasDeclaration::overloadInsert('%s')\n", s->toChars());
     if (aliassym) // see test/test56.d
     {
         Dsymbol *sa = aliassym->toAlias();
         if (FuncDeclaration *fd = sa->isFuncDeclaration())
         {
             FuncAliasDeclaration *fa = new FuncAliasDeclaration(fd);
+            fa->loc = loc;  // modify
             aliassym = fa;
             return fa->overloadInsert(s);
         }
