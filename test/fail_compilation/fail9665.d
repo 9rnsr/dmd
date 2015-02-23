@@ -240,3 +240,69 @@ void test6()
     static assert(X.tupleof.length == 1);
     S6!(X) s = X(1);
 }
+
+/***************************************************/
+// 12749 - in constructor local functions
+
+struct Aggr12749
+{
+    int opApply(int delegate(int) dg) { return dg(1); }
+}
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail9665.d(270): Error: immutable field 'inum' initialization is not allowed in foreach loop
+fail_compilation/fail9665.d(271): Error: const field 'cnum' initialization is not allowed in foreach loop
+fail_compilation/fail9665.d(276): Error: immutable field 'inum' initialization is not allowed in nested function 'set'
+fail_compilation/fail9665.d(277): Error: const field 'cnum' initialization is not allowed in nested function 'set'
+---
+*/
+struct S12749
+{
+    immutable int inum;
+    const     int cnum;
+
+    this(int i)
+    {
+        foreach (n; Aggr12749())
+        {
+            inum = i;
+            cnum = i;
+        }
+
+        void set(int i)
+        {
+            inum = i;
+            cnum = i;
+        }
+    }
+}
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail9665.d(299): Error: immutable variable 'inum12749' initialization is not allowed in foreach loop
+fail_compilation/fail9665.d(300): Error: const variable 'cnum12749' initialization is not allowed in foreach loop
+fail_compilation/fail9665.d(305): Error: immutable variable 'inum12749' initialization is not allowed in nested function 'set'
+fail_compilation/fail9665.d(306): Error: const variable 'cnum12749' initialization is not allowed in nested function 'set'
+---
+*/
+immutable int inum12749;
+const     int cnum12749;
+static this()
+{
+    int i = 10;
+
+    foreach (n; Aggr12749())
+    {
+        inum12749 = i;
+        cnum12749 = i;
+    }
+
+    void set(int i)
+    {
+        inum12749 = i;
+        cnum12749 = i;
+    }
+}
