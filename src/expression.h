@@ -583,6 +583,7 @@ public:
     dinteger_t offset;
 
     SymOffExp(Loc loc, Declaration *var, dinteger_t offset, bool hasOverloads = false);
+    static SymOffExp *create(Loc loc, Declaration *var, dinteger_t offset, bool hasOverloads = false);
     Expression *semantic(Scope *sc);
     bool isBool(bool result);
 

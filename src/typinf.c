@@ -108,8 +108,8 @@ Expression *getTypeInfo(Type *t, Scope *sc)
 {
     assert(t->ty != Terror);
     genTypeInfo(t, sc);
-    Expression *e = VarExp::create(Loc(), t->vtinfo);
-    e = e->addressOf();
+    Expression *e = SymOffExp::create(Loc(), t->vtinfo, 0);
+    //e = e->addressOf();
     e->type = t->vtinfo->type;     // do this so we don't get redundant dereference
     return e;
 }

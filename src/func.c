@@ -1752,14 +1752,21 @@ void FuncDeclaration::semantic3(Scope *sc)
                 {
                     ReturnStatement *rs = (*returns)[i];
                     Expression *exp = rs->exp;
+                    printf("[%s] return exp = %s %s\n", rs->loc.toChars(), exp->type->toChars(), exp->toChars());
 
                     if (!exp->implicitConvTo(tret) &&
                         parametersIntersect(exp->type))
                     {
                         if (exp->type->immutableOf()->implicitConvTo(tret))
+                        {
+                        printf("\tL%d\n", __LINE__);
                             exp = exp->castTo(sc2, exp->type->immutableOf());
+                        }
                         else if (exp->type->wildOf()->implicitConvTo(tret))
+                        {
+                        printf("\tL%d\n", __LINE__);
                             exp = exp->castTo(sc2, exp->type->wildOf());
+                        }
                     }
                     exp = exp->implicitCastTo(sc2, tret);
 

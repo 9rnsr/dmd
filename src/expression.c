@@ -5079,6 +5079,11 @@ SymOffExp::SymOffExp(Loc loc, Declaration *var, dinteger_t offset, bool hasOverl
         error("need 'this' for address of %s", v->toChars());
 }
 
+SymOffExp *SymOffExp::create(Loc loc, Declaration *var, dinteger_t offset, bool hasOverloads)
+{
+    return new SymOffExp(loc, var, offset, hasOverloads);
+}
+
 Expression *SymOffExp::semantic(Scope *sc)
 {
 #if LOGSEMANTIC
