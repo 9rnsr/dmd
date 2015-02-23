@@ -306,3 +306,33 @@ static this()
         cnum12749 = i;
     }
 }
+
+/***************************************************/
+// 12678 - diagnostic message improvement
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail9665.d(330): Error: const field 'cf1' initialized multiple times
+fail_compilation/fail9665.d(333): Error: immutable field 'if1' initialized multiple times
+fail_compilation/fail9665.d(336): Error: const field 'cf2' initialization is not allowed in loops or after labels
+---
+*/
+struct S12678
+{
+    const int cf1;
+    const int cf2;
+    immutable int if1;
+
+    this(int x)
+    {
+        cf1 = x;
+        cf1 = x;    // error
+
+        if1 = x;
+        if1 = x;    // error
+
+        foreach (i; 0 .. 5)
+            cf2 = x;    // error
+    }
+}
