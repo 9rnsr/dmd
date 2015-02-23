@@ -918,7 +918,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
         void visit(AddrExp *e)
         {
-        #if 1
+        #if 0
             printf("AddrExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
                 e->toChars(), e->type->toChars(), t->toChars());
         #endif
@@ -976,7 +976,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
 
         void visit(SymOffExp *e)
         {
-        #if 1
+        #if 0
             printf("SymOffExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
                 e->toChars(), e->type->toChars(), t->toChars());
         #endif
@@ -1003,7 +1003,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                     }
                 }
             }
-            printf("\tresult = %d\n", result);
+            //printf("\tresult = %d\n", result);
         }
 
         void visit(DelegateExp *e)

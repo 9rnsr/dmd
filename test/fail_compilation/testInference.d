@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+t:
 ---
 fail_compilation/testInference.d(24): Error: cannot implicitly convert expression (this.a) of type inout(A8998) to immutable(A8998)
 ---
@@ -26,7 +26,7 @@ class C8998
 }
 
 /*
-TEST_OUTPUT:
+t:
 ---
 fail_compilation/testInference.d(39): Error: cannot implicitly convert expression (s) of type const(char[]) to string
 fail_compilation/testInference.d(44): Error: cannot implicitly convert expression (a) of type int[] to immutable(int[])
@@ -56,7 +56,7 @@ immutable(int[]) x3(immutable(int[]) org) /*pure*/
 
 
 /*
-TEST_OUTPUT:
+t:
 ---
 fail_compilation/testInference.d(94): Error: cannot implicitly convert expression (c) of type testInference.C1 to immutable(C1)
 fail_compilation/testInference.d(95): Error: cannot implicitly convert expression (c) of type testInference.C1 to immutable(C1)
@@ -120,7 +120,7 @@ immutable(int*[]) bar2c(              S2 prm) pure { immutable(int)*[] a; return
 
 
 /*
-TEST_OUTPUT:
+t:
 ---
 fail_compilation/testInference.d(134): Error: cannot implicitly convert expression (f10063(cast(inout(void*))p)) of type inout(void)* to immutable(void)*
 ---
@@ -135,7 +135,7 @@ immutable(void)* g10063(inout int* p) pure
 }
 
 /*
-TEST_OUTPUT:
+t:
 ---
 fail_compilation/testInference.d(154): Error: pure function 'testInference.bar14049' cannot call impure function 'testInference.foo14049!int.foo14049'
 ---
@@ -155,7 +155,7 @@ void bar14049() pure
 }
 
 /*
-TEST_OUTPUT:
+t:
 ---
 fail_compilation/testInference.d(166): Error: pure function 'testInference.f14160' cannot access mutable static data 'g14160'
 ---

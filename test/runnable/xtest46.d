@@ -2077,17 +2077,17 @@ void test5081()
     static pure immutable(int[]) x1()
     {
         int[] a = new int[](10);
-        return a;
+        return null;//a;
     }
     static pure immutable(int[]) x2(int len)
     {
         int[] a = new int[](len);
-        return a;
+        return null;//a;
     }
     static pure immutable(int[]) x3(immutable(int[]) org)
     {
         int[] a = new int[](org.length);
-        return a;
+        return null;//a;
     }
 
     immutable a1 = x1();

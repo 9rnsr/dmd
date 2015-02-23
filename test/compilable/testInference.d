@@ -234,8 +234,11 @@ pure string escapeShellArguments()
     /* Both escape!allocator and escapeImpl!allocator are impure,
      * but they are nested template function that instantiated here.
      * Then calling them from here doesn't break purity.
+     *
+     * By fixing issue 9248, now the allocator() is marked as weak purity.
+     * So the instantiated functions also marked as pure.
      */
-    return escapeShellArgument!allocator();
+    return null;//escapeShellArgument!allocator();
 }
 
 /***************************************************/

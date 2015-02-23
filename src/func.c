@@ -1752,8 +1752,9 @@ void FuncDeclaration::semantic3(Scope *sc)
                 {
                     ReturnStatement *rs = (*returns)[i];
                     Expression *exp = rs->exp;
-                    printf("[%s] return exp = %s %s\n", rs->loc.toChars(), exp->type->toChars(), exp->toChars());
+                    //printf("[%s] return exp = %s %s\n", rs->loc.toChars(), exp->type->toChars(), exp->toChars());
 
+                #if 0   // rely on DIP25
                     if (!exp->implicitConvTo(tret) &&
                         parametersIntersect(exp->type))
                     {
@@ -1768,6 +1769,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                             exp = exp->castTo(sc2, exp->type->wildOf());
                         }
                     }
+                #endif
                     exp = exp->implicitCastTo(sc2, tret);
 
                     if (f->isref)
