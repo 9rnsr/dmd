@@ -46,6 +46,16 @@ Expression *toDelegate(Expression *e, Type* t, Scope *sc)
     FuncLiteralDeclaration *fld =
         new FuncLiteralDeclaration(loc, loc, tf, TOKdelegate, NULL);
 
+    Statement *s;
+    if (t->ty == Tvoid)
+        s = new ExpStatement(loc, e);
+    else
+        s = new ReturnStatement(loc, e);
+    fld->fbody = s;
+
+    FuncExp *fe = new FuncExp(loc, fld);
+    fe->genIdent(sc);   // emit identifier for diagnostic messages
+
     sc = sc->push();
     sc->parent = fld;           // set current function to be the delegate
     lambdaSetParent(e, sc);
@@ -54,17 +64,7 @@ Expression *toDelegate(Expression *e, Type* t, Scope *sc)
 
     if (!r)
         return new ErrorExp();
-
-    Statement *s;
-    if (t->ty == Tvoid)
-        s = new ExpStatement(loc, e);
-    else
-        s = new ReturnStatement(loc, e);
-    fld->fbody = s;
-
-    e = new FuncExp(loc, fld);
-    e = e->semantic(sc);
-    return e;
+    return fe->semantic(sc);
 }
 
 /******************************************
@@ -102,6 +102,17 @@ void lambdaSetParent(Expression *e, Scope *sc)
             {
                 //printf("lengthVar\n");
                 e->lengthVar->parent = sc->parent;
+            }
+        }
+
+        void visit(AssignExp *ae)
+        {
+            if (ae->op == TOKconstruct)
+            {
+                ::error(ae->loc, "field initialization '%s' is not allowed in nested function '%s'",
+                    ae->toChars(), sc->parent->toChars());
+                stop = true;
+                return;
             }
         }
     };

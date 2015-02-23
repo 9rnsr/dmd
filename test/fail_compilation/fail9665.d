@@ -336,3 +336,24 @@ struct S12678
             cf2 = x;    // error
     }
 }
+
+/***************************************************/
+// 10496 - in constructor local functions (for a lazy parameter)
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail9665.d(355): Error: field initialization 'this.x = 5' is not allowed in nested function '__dgliteral1'
+---
+*/
+class C10496
+{
+    immutable int x;
+
+    this()
+    {
+        this.f(this.x = 5);
+    }
+
+    void f(lazy int x){}
+}
