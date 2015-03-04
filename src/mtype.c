@@ -6386,6 +6386,8 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
             }
             if (s->isVarDeclaration())  // todo
             {
+                if (sm && sm->isTemplateMixin())
+                    goto L2;
                 goto L3;
             }
             if (!sm)
