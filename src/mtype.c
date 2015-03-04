@@ -6454,7 +6454,8 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                         //printf("dve = %s\n", dve->e1->toChars());
                         if (dve->e1->op == TOKthis ||
                             dve->e1->op == TOKsuper ||
-                            dve->e1->op == TOKvar && ((VarExp *)dve->e1)->var->isThisDeclaration())
+                            dve->e1->op == TOKvar && (((VarExp *)dve->e1)->var->isThisDeclaration() ||
+                                                      ((VarExp *)dve->e1)->var->isField()))     // vthis or unreal var
                         {
                             // Rewrite:
                             //  this.decl --> decl
