@@ -6356,10 +6356,10 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
     *ps = NULL;
     if (s)
     {
-        //printf("\t1: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
+        //printf("\t1: s = %p %s '%s'\n", s, s->kind(), s->toChars());
         s->checkDeprecated(loc, sc);            // check for deprecated aliases
         s = s->toAlias();
-        //printf("\t2: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
+        //printf("\t2: s = %p %s '%s'\n", s, s->kind(), s->toChars());
         for (size_t i = 0; i < idents.dim; i++)
         {
             RootObject *id = idents[i];
@@ -6384,6 +6384,10 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                         goto L3;
                 }
             }
+            if (s->isVarDeclaration())  // todo
+            {
+                goto L3;
+            }
             if (!sm)
             {
                 if (!t)
@@ -6402,14 +6406,17 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                 }
                 if (t)
                 {
-                    sm = t->toDsymbol(sc);
-                    if (sm && id->dyncast() == DYNCAST_IDENTIFIER)
+                    if (Dsymbol *s2 = t->toDsymbol(sc)) // maybe redundant?
                     {
-                        sm = sm->search(loc, (Identifier *)id);
-                        if (sm)
-                            goto L2;
+                        if (id->dyncast() == DYNCAST_IDENTIFIER)
+                        {
+                            sm = s2->search(loc, (Identifier *)id);
+                            if (sm)
+                                goto L2;
+                        }
                     }
                 L3:
+                    // 's' would be a contextful symbol, so analyze 's.id' as an expression.
                     Expression *e;
                     VarDeclaration *v = s->isVarDeclaration();
                     FuncDeclaration *f = s->isFuncDeclaration();
@@ -6418,6 +6425,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                     else
                         e = new VarExp(loc, s->isDeclaration());
                     e = e->semantic(sc);
+                    //printf("\tL3: e => %s %s\n", Token::toChars(e->op), e->toChars());
                     for (; i < idents.dim; i++)
                     {
                         RootObject *id2 = idents[i];
@@ -6440,13 +6448,32 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                         *pt = e->type;
                     else if (e->op == TOKerror)
                         *pt = Type::terror;
-                    else
+                    else if (e->op == TOKdotvar)
+                    {
+                        DotVarExp *dve = (DotVarExp *)e;
+                        //printf("dve = %s\n", dve->e1->toChars());
+                        if (dve->e1->op == TOKthis ||
+                            dve->e1->op == TOKsuper ||
+                            dve->e1->op == TOKvar && ((VarExp *)dve->e1)->var->isThisDeclaration())
+                        {
+                            // Rewrite:
+                            //  this.decl --> decl
+                            //  super.decl --> decl
+                            sm = dve->var;
+                            goto L2;
+                        }
                         *pe = e;
+                    }
+                    else
+                    {
+                        *pe = e;
+                    }
                 }
                 else
                 {
                     if (id->dyncast() == DYNCAST_DSYMBOL)
-                    {   // searchX already handles errors for template instances
+                    {
+                        // searchX already handles errors for template instances
                         assert(global.errors);
                     }
                     else
@@ -6530,7 +6557,8 @@ L1:
                     for (Scope *scx = sc; 1; scx = scx->enclosing)
                     {
                         if (!scx)
-                        {   error(loc, "forward reference to '%s'", t->toChars());
+                        {
+                            error(loc, "forward reference to '%s'", t->toChars());
                             *pt = Type::terror;
                             return;
                         }
@@ -6632,6 +6660,7 @@ void TypeIdentifier::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsy
 
     Dsymbol *scopesym;
     Dsymbol *s = sc->search(loc, ident, &scopesym);
+    //printf("ident - %s, s = %s\n", ident->toChars(), s ? s->kind(): NULL);  // "this" --> vthis
     resolveHelper(loc, sc, s, scopesym, pe, pt, ps, intypeid);
     if (*pt)
         (*pt) = (*pt)->addMod(mod);
