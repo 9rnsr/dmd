@@ -1278,6 +1278,7 @@ Lnomatch:
             checkFrameAccess(loc, sc, ((TypeStruct *)tv->toBasetype())->sym);
 
             Expression *e = tv->defaultInitLiteral(loc);
+//printf("1 e = %s\n", e->toChars());
             Expression *e1 = new VarExp(loc, this);
             e = new BlitExp(loc, e1, e);
             e = e->semantic(sc);
@@ -1395,7 +1396,7 @@ Lnomatch:
             else
             {
                 // Bugzilla 14166: Don't run CTFE for the temporary variables inside typeof
-                init = init->semantic(sc, type, sc->intypeof == 1 ? INITnointerpret : INITinterpret);
+                init = init->semantic(sc, type, sc->intypeof == 1 || (storage_class & STCfield) ? INITnointerpret : INITinterpret);
             }
         }
         else if (parent->isAggregateDeclaration())
@@ -1541,7 +1542,7 @@ void VarDeclaration::semantic2(Scope *sc)
         }
 #endif
         // Bugzilla 14166: Don't run CTFE for the temporary variables inside typeof
-        init = init->semantic(sc, type, sc->intypeof == 1 ? INITnointerpret : INITinterpret);
+        init = init->semantic(sc, type, sc->intypeof == 1 || (storage_class & STCfield) ? INITnointerpret : INITinterpret);
         inuse--;
     }
     if (storage_class & STCmanifest)

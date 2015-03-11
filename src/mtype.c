@@ -7692,6 +7692,16 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
     sym->size(loc);
     if (sym->sizeok != SIZEOKdone)
         return new ErrorExp();
+
+    StructLiteralExp *sle = new StructLiteralExp(loc, sym, NULL, this);
+    if (!sym->fill(loc, sle->elements, false))
+        return new ErrorExp();
+
+    sle->type = this;
+    //printf("sle = %s\n", sle->toChars());
+    return sle;
+
+#if 0
     Expressions *structelems = new Expressions();
     structelems->setDim(sym->fields.dim - sym->isNested());
     unsigned offset = 0;
@@ -7731,6 +7741,7 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
 
     structinit->type = this;
     return structinit;
+#endif
 }
 
 
