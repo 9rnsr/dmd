@@ -5759,8 +5759,19 @@ void TypeFunction::purityLevel()
  *      MATCHxxxx
  */
 
+/*
+    unmatchLevel:
+        <-- rough
+        1   ThisTypeMatchesToTheMethod  // If one or more overloads can match, test the following more precise conditions
+        2   ArgCount                    // 
+        3   TypeMatch                   // argument type
+        4   RefMatch
+        --> exactly
+*/
 MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
 {
+    int unmatchLevel;
+
     //printf("TypeFunction::callMatch() %s\n", toChars());
     MATCH match = MATCHexact;           // assume exact match
     unsigned char wildmatch = 0;
@@ -5780,7 +5791,10 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
                 match = MATCHconst;
             }
             else
+            {
+                unmatchLevel = 1;
                 return MATCHnomatch;
+            }
         }
         if (isWild())
         {
@@ -5802,8 +5816,20 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
     else if (nargs > nparams)
     {
         if (varargs == 0)
-            goto Nomatch;               // too many args; no match
-        match = MATCHconvert;           // match ... with a "conversion" match level
+        {
+            unmatchLevel = 2;   // too many args; no match
+            goto Lnomatch;
+        }
+        match = MATCHconvert;   // match ... with a "conversion" match level
+    }
+    else if (nargs < nparams)
+    {
+        if (!(varargs != 0 && nargs + 1 == nparams) ||
+            !Parameter::getNth(parameters, nargs)->defaultArg)
+        {
+            unmatchLevel = 2;   // too few args; no match
+            goto Lnomatch;
+        }
     }
 
     for (size_t u = 0; u < nargs; u++)
@@ -5845,11 +5871,15 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
 
         Parameter *p = Parameter::getNth(parameters, u);
         assert(p);
-        if (u >= nargs)
+        if (nargs <= u)
         {
             if (p->defaultArg)
                 continue;
-            goto L1;        // try typesafe variadics
+            m = MATCHnomatch;
+            if (varargs == 2 && u + 1 == nparams)
+                goto L1;    // try typesafe variadics
+            unmatchLevel = 2;       // too less args; no match
+            goto Lnomatch;
         }
         {
         Expression *arg = (*args)[u];
@@ -5904,7 +5934,10 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
                     }
                 }
                 else
-                    goto Nomatch;
+                {
+                    unmatchLevel = 4;
+                    goto Lnomatch;
+                }
             }
 
             /* find most derived alias this type being matched.
@@ -5923,99 +5956,115 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
              *  ref T[dim] <- an lvalue of const(T[dim]) argument
              */
             if (!ta->constConv(tp))
-                goto Nomatch;
+            {
+                unmatchLevel = 3;
+                goto Lnomatch;
+            }
         }
         else if (p->storageClass & STCout)
         {
             if (m && !arg->isLvalue())
-                goto Nomatch;
+            {
+                unmatchLevel = 4;
+                goto Lnomatch;
+            }
 
             Type *targb = targ->toBasetype();
             Type *tprmb = tprm->toBasetype();
             if (!targb->constConv(tprmb))
-                goto Nomatch;
+            {
+                unmatchLevel = 3;
+                goto Lnomatch;
+            }
         }
         }
+        //printf("\tm = %d\n", m);
 
         /* prefer matching the element type rather than the array
          * type when more arguments are present with T[]...
          */
-        if (varargs == 2 && u + 1 == nparams && nargs > nparams)
-            goto L1;
-
-        //printf("\tm = %d\n", m);
-        if (m == MATCHnomatch)                  // if no match
+        if (m == MATCHnomatch && varargs == 2 && u + 1 == nparams)
         {
-          L1:
-            if (varargs == 2 && u + 1 == nparams)       // if last varargs param
+        L1: // if last varargs param
+            Type *tb = p->type->toBasetype();
+            switch (tb->ty)
             {
-                Type *tb = p->type->toBasetype();
-                TypeSArray *tsa;
-                dinteger_t sz;
-
-                switch (tb->ty)
+                case Tsarray:
                 {
-                    case Tsarray:
-                        tsa = (TypeSArray *)tb;
-                        sz = tsa->dim->toInteger();
-                        if (sz != nargs - u)
-                            goto Nomatch;
-                    case Tarray:
+                    TypeSArray *tsa = (TypeSArray *)tb;
+                    dinteger_t sz = tsa->dim->toInteger();
+                    if (sz != nargs - u)
                     {
-                        TypeArray *ta = (TypeArray *)tb;
-                        for (; u < nargs; u++)
-                        {
-                            Expression *arg = (*args)[u];
-                            assert(arg);
-
-                            /* If lazy array of delegates,
-                             * convert arg(s) to delegate(s)
-                             */
-                            Type *tret = p->isLazyArray();
-                            if (tret)
-                            {
-                                if (ta->next->equals(arg->type))
-                                    m = MATCHexact;
-                                else if (tret->toBasetype()->ty == Tvoid)
-                                    m = MATCHconvert;
-                                else
-                                {
-                                    m = arg->implicitConvTo(tret);
-                                    if (m == MATCHnomatch)
-                                        m = arg->implicitConvTo(ta->next);
-                                }
-                            }
-                            else
-                                m = arg->implicitConvTo(ta->next);
-
-                            if (m == MATCHnomatch)
-                                goto Nomatch;
-                            if (m < match)
-                                match = m;
-                        }
-                        goto Ldone;
+                        unmatchLevel = 2;
+                        goto Lnomatch;
                     }
-                    case Tclass:
-                        // Should see if there's a constructor match?
-                        // Or just leave it ambiguous?
-                        goto Ldone;
+                    /* fall through */
+                }
+                case Tarray:
+                {
+                    TypeArray *ta = (TypeArray *)tb;
+                    for (; u < nargs; u++)
+                    {
+                        Expression *arg = (*args)[u];
+                        assert(arg);
 
-                    default:
-                        goto Nomatch;
+                        /* If lazy array of delegates,
+                         * convert arg(s) to delegate(s)
+                         */
+                        Type *tret = p->isLazyArray();
+                        if (tret)
+                        {
+                            if (ta->next->equals(arg->type))
+                                m = MATCHexact;
+                            else if (tret->toBasetype()->ty == Tvoid)
+                                m = MATCHconvert;
+                            else
+                            {
+                                m = arg->implicitConvTo(tret);
+                                if (m == MATCHnomatch)
+                                    m = arg->implicitConvTo(ta->next);
+                            }
+                        }
+                        else
+                            m = arg->implicitConvTo(ta->next);
+
+                        if (m == MATCHnomatch)
+                        {
+                            unmatchLevel = 3;
+                            goto Lnomatch;
+                        }
+                        if (m < match)
+                            match = m;
+                    }
+                    goto Ldone;
+                }
+                case Tclass:
+                    // Should see if there's a constructor match?
+                    // Or just leave it ambiguous?
+                    goto Ldone;
+
+                default:
+                {
+                    unmatchLevel = 3;
+                    goto Lnomatch;
                 }
             }
-            goto Nomatch;
         }
         if (m < match)
             match = m;                  // pick worst match
+        if (match <= MATCHnomatch)
+        {
+            unmatchLevel = 3;
+            goto Lnomatch;
+        }
     }
 
 Ldone:
     //printf("match = %d\n", match);
     return match;
 
-Nomatch:
-    //printf("no match\n");
+Lnomatch:
+    printf("no match, unmatchLevel = %d\n", unmatchLevel);
     return MATCHnomatch;
 }
 

@@ -2031,6 +2031,19 @@ bool TemplateDeclaration::isOverloadable()
     return true;
 }
 
+void addCandidateList(int currLv, int lv, FuncDeclarations *a, FuncDeclaration *f)
+{
+    if (lv < currLv)
+        return;
+    if (lv > currLv)
+    {
+        currLv = lv;
+        a->setDim(0);    // make an empty
+    }
+    a->push(f);
+}
+
+
 /*************************************************
  * Given function arguments, figure out which template function
  * to expand, and return matching result.
@@ -2087,6 +2100,9 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
     TemplateInstance *ti_best;
     MATCH ta_last;
     Type *tthis_best;
+
+    int unmatchLevel;
+    
 
     static int fp(void *param, Dsymbol *s)
     {
@@ -2151,7 +2167,11 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         }
         MATCH mfa = tf->callMatch(tthis_fd, fargs);
         //printf("test1: mfa = %d\n", mfa);
-        if (mfa > MATCHnomatch)
+        if (mfa <= MATCHnomatch)
+        {
+            return 0;
+        }
+
         {
             if (mfa > m->last) goto LfIsBetter;
             if (mfa < m->last) goto LlastIsBetter;
