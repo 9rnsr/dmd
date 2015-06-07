@@ -2948,11 +2948,6 @@ public:
         return true; // functions can be overloaded
     }
 
-    override final bool hasOverloads()
-    {
-        return overnext !is null;
-    }
-
     final PURE isPure()
     {
         //printf("FuncDeclaration::isPure() '%s'\n", toChars());

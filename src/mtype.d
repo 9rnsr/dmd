@@ -4616,7 +4616,7 @@ public:
         {
             // It's really an index expression
             if (Dsymbol s = getDsymbol(*pe))
-                *pe = new DsymbolExp(loc, s, 1);
+                *pe = new DsymbolExp(loc, s, true);
             *pe = new ArrayExp(loc, *pe, dim);
         }
         else if (*ps)
@@ -4949,7 +4949,7 @@ public:
         {
             // It's really a slice expression
             if (Dsymbol s = getDsymbol(*pe))
-                *pe = new DsymbolExp(loc, s, 1);
+                *pe = new DsymbolExp(loc, s, true);
             *pe = new ArrayExp(loc, *pe);
         }
         else if (*ps)
@@ -7120,16 +7120,14 @@ public:
                  *      // TypeIdentifier 'a', 'e', and 'v' should be TOKvar,
                  *      // because getDsymbol() need to work in AliasDeclaration::semantic().
                  */
-                if (!v.type || !v.type.deco)
+                if (!v.type || !v.type.deco && v.inuse)
                 {
                     if (v.inuse) // Bugzilla 9494
-                    {
-                        error(loc, "circular reference to '%s'", v.toPrettyChars());
-                        *pe = new ErrorExp();
-                        return;
-                    }
-                    if (v.sem < SemanticDone && v._scope)
-                        v.semantic(null);
+                        error(loc, "circular reference to %s '%s'", v.kind(), v.toPrettyChars());
+                    else
+                        error(loc, "forward reference to %s '%s'", v.kind(), v.toPrettyChars());
+                    *pe = new ErrorExp();
+                    return;
                 }
                 assert(v.type); // Bugzilla 14642
                 if (v.type.ty == Terror)
@@ -7142,7 +7140,7 @@ public:
             {
                 if (FuncDeclaration fd = s.isFuncDeclaration())
                 {
-                    *pe = new DsymbolExp(loc, fd, 1);
+                    *pe = new DsymbolExp(loc, fd, true);
                     return;
                 }
             }
@@ -7855,32 +7853,34 @@ public:
         {
             return em.getVarExp(e.loc, sc);
         }
-
-        VarDeclaration v = s.isVarDeclaration();
-        if (v && (!v.type || !v.type.deco))
+        if (auto v = s.isVarDeclaration())
         {
-            if (v.inuse) // Bugzilla 9494
+            if (!v.type || !v.type.deco && v.inuse)
             {
-                e.error("circular reference to '%s'", v.toPrettyChars());
+                if (v.inuse)        // Bugzilla 9494
+                    e.error("circular reference to %s '%s'", v.kind(), v.toPrettyChars());
+                else
+                    e.error("forward reference to %s '%s'", v.kind(), v.toPrettyChars());
                 return new ErrorExp();
             }
-            if (v._scope)
+            if ((v.storage_class & STCmanifest) && v._init)
             {
-                v.semantic(v._scope);
-                s = v.toAlias(); // Need this if 'v' is a tuple variable
-                v = s.isVarDeclaration();
+                if (v.inuse)
+                {
+                    e.error("circular initialization of %s '%s'", v.kind(), v.toPrettyChars());
+                    return new ErrorExp();
+                }
+                checkAccess(e.loc, sc, null, v);
+                // todo: need to use v.expandInitializer(loc) ?
+                Expression ve = new VarExp(e.loc, v);
+                ve = ve.semantic(sc);
+                return ve;
             }
         }
-        if (v && !v.isDataseg() && (v.storage_class & STCmanifest))
+
+        if (auto t = s.getType())
         {
-            checkAccess(e.loc, sc, null, v);
-            Expression ve = new VarExp(e.loc, v);
-            ve = ve.semantic(sc);
-            return ve;
-        }
-        if (s.getType())
-        {
-            return new TypeExp(e.loc, s.getType());
+            return new TypeExp(e.loc, t);
         }
 
         TemplateMixin tm = s.isTemplateMixin();
@@ -7894,7 +7894,7 @@ public:
         if (td)
         {
             if (e.op == TOKtype)
-                e = new ScopeExp(e.loc, td);
+                e = new TemplateExp(e.loc, td);
             else
                 e = new DotTemplateExp(e.loc, e, td);
             e = e.semantic(sc);
@@ -7979,8 +7979,10 @@ public:
             e = e.semantic(sc);
             return e;
         }
-        auto de = new DotVarExp(e.loc, e, d);
-        return de.semantic(sc);
+
+        e = new DotVarExp(e.loc, e, d, d.isFuncDeclaration() !is null);
+        e = e.semantic(sc);
+        return e;
     }
 
     override structalign_t alignment()
@@ -8709,32 +8711,34 @@ public:
         {
             return em.getVarExp(e.loc, sc);
         }
-
-        VarDeclaration v = s.isVarDeclaration();
-        if (v && (!v.type || !v.type.deco))
+        if (auto v = s.isVarDeclaration())
         {
-            if (v.inuse) // Bugzilla 9494
+            if (!v.type || !v.type.deco && v.inuse)
             {
-                e.error("circular reference to '%s'", v.toPrettyChars());
+                if (v.inuse)        // Bugzilla 9494
+                    e.error("circular reference to %s '%s'", v.kind(), v.toPrettyChars());
+                else
+                    e.error("forward reference to %s '%s'", v.kind(), v.toPrettyChars());
                 return new ErrorExp();
             }
-            if (v._scope)
+            if ((v.storage_class & STCmanifest) && v._init)
             {
-                v.semantic(v._scope);
-                s = v.toAlias(); // Need this if 'v' is a tuple variable
-                v = s.isVarDeclaration();
+                if (v.inuse)
+                {
+                    e.error("circular initialization of %s '%s'", v.kind(), v.toPrettyChars());
+                    return new ErrorExp();
+                }
+                checkAccess(e.loc, sc, null, v);
+                // todo: need to use v.expandInitializer(loc) ?
+                Expression ve = new VarExp(e.loc, v);
+                ve = ve.semantic(sc);
+                return ve;
             }
         }
-        if (v && !v.isDataseg() && (v.storage_class & STCmanifest))
+
+        if (auto t = s.getType())
         {
-            checkAccess(e.loc, sc, null, v);
-            Expression ve = new VarExp(e.loc, v);
-            ve = ve.semantic(sc);
-            return ve;
-        }
-        if (s.getType())
-        {
-            return new TypeExp(e.loc, s.getType());
+            return new TypeExp(e.loc, t);
         }
 
         TemplateMixin tm = s.isTemplateMixin();
@@ -8748,7 +8752,7 @@ public:
         if (td)
         {
             if (e.op == TOKtype)
-                e = new ScopeExp(e.loc, td);
+                e = new TemplateExp(e.loc, td);
             else
                 e = new DotTemplateExp(e.loc, e, td);
             e = e.semantic(sc);
@@ -8895,8 +8899,10 @@ public:
             e.type = d.type;
             return e;
         }
-        auto de = new DotVarExp(e.loc, e, d, d.hasOverloads());
-        return de.semantic(sc);
+
+        e = new DotVarExp(e.loc, e, d, d.isFuncDeclaration() !is null);
+        e = e.semantic(sc);
+        return e;
     }
 
     override ClassDeclaration isClassHandle()
@@ -9272,7 +9278,7 @@ public:
         {
             // It's really a slice expression
             if (Dsymbol s = getDsymbol(*pe))
-                *pe = new DsymbolExp(loc, s, 1);
+                *pe = new DsymbolExp(loc, s, true);
             *pe = new ArrayExp(loc, *pe, new IntervalExp(loc, lwr, upr));
         }
         else if (*ps)
