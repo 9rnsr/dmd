@@ -2923,6 +2923,54 @@ elem *toElem(Expression *e, IRState *irs)
                     goto Lret;
                 }
 
+                /* Optimize static array assignment with concatenations.
+                 * Rewrite:
+                 *      e1 = ((a ~ b) ~ c);
+                 * as:
+                 *      e1[0..2] = a[], e1[3] = b, e1[4..$] = c[];
+                 */
+                if (ae->op == TOKconstruct && ae->e2->op == TOKcat)
+                {
+                    Expression *e2x = ae->e2;
+                    size_t ofs = t1b->size();
+
+                    symbol *stmp = symbol_genauto(TYnptr);
+                    elem *ev = el_var(stmp);
+                    elem *e0 = el_bin(OPeq, TYnptr, ev, addressElem(e1, t1b));
+
+                    e = NULL;
+                    while (true)
+                    {
+                        Expression *e2y = e2x->op == TOKcat ? ((CatExp *)e2x)->e2 : e2x;
+                        tym_t ty = totym(e2y->type);
+                        ofs -= e2y->type->size();
+
+                        // ev: *(stmp + ofs)
+                        ev = el_var(stmp);
+                        if (ofs)
+                            ev = el_bin(OPadd, TYnptr, ev, el_long(TYsize_t, ofs));
+                        ev = el_una(OPind, ty, ev);
+                        if (tybasic(ty) == TYstruct)
+                            ev->ET = Type_toCtype(e2y->type);
+
+                        // *(stmp + ofs) = e2y;
+                        elem *eeq = el_bin(OPeq, ev->Ety, ev, toElem(e2y, irs));
+                        if (tybasic(ty) == TYstruct)
+                        {
+                            eeq->Eoper = OPstreq;
+                            eeq->ET = Type_toCtype(e2y->type);
+                        }
+
+                        e = el_combine(eeq, e);
+                        if (e2x->op == TOKcat)
+                            e2x = ((CatExp *)e2x)->e1;
+                        else
+                            break;
+                    }
+                    e = el_combine(e0, e);
+                    goto Lret;
+                }
+
                 /* Bugzilla 13661: Even if the elements in rhs are all rvalues and
                  * don't have to call postblits, this assignment should call
                  * destructors on old assigned elements.

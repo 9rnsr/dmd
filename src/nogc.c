@@ -191,6 +191,8 @@ public:
 
     void visit(CatExp *e)
     {
+        if (e->type->toBasetype()->ty == Tsarray)
+            return;
         if (f->setGC())
         {
             e->error("cannot use operator ~ in @nogc function %s", f->toChars());

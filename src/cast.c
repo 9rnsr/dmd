@@ -1360,6 +1360,23 @@ MATCH implicitConvTo(Expression *e, Type *t)
             if (tb->ty == Tpointer && e->e1->op == TOKstring)
                 e->e1->accept(this);
         }
+
+        void visit(CatExp *e)
+        {
+            //printf("CatExp::implicitConv(%s of type %s) => %s\n", e->toChars(), e->type->toChars(), t->toChars());
+            visit((Expression *)e);
+            if (result != MATCHnomatch)
+                return;
+            Type *tb = t->toBasetype();
+            if (tb->ty != Tsarray)
+                return;
+
+            dinteger_t dim = ((TypeSArray *)tb)->dim->toInteger();
+            if (getStaticArrayLen(e) == dim)
+            {
+                result = e->type->nextOf()->sarrayOf(dim)->implicitConvTo(t);
+            }
+        }
     };
 
     ImplicitConvTo v(t);
@@ -1388,6 +1405,48 @@ Type *toStaticArrayType(SliceExp *e)
             return t1b;
     }
     return NULL;
+}
+
+dinteger_t getStaticArrayLen(Expression *e)
+{
+    Type *tb = e->type->toBasetype();
+    if (tb->ty == Tsarray)
+        return ((TypeSArray *)tb)->dim->toInteger();
+
+    switch (e->op)
+    {
+        case TOKslice:
+        {
+            if (Type *tsa = toStaticArrayType((SliceExp *)e))
+                return ((TypeSArray *)tsa)->dim->toInteger();
+            else
+                return -1;
+        }
+        case TOKarrayliteral:
+            return ((ArrayLiteralExp *)e)->elements->dim;
+
+        case TOKcat:
+        {
+            CatExp *ce = (CatExp *)e;
+
+            Type *t1b = ce->e1->type->toBasetype();
+            bool e1arr = (t1b->ty == Tarray || t1b->ty == Tsarray);
+            dinteger_t dim1 = e1arr ? getStaticArrayLen(ce->e1) : 1;
+            if (dim1 == -1)
+                break;
+
+            Type *t2b = ce->e2->type->toBasetype();
+            bool e2arr = (t2b->ty == Tarray || t2b->ty == Tsarray);
+            dinteger_t dim2 = e2arr ? getStaticArrayLen(ce->e2) : 1;
+            if (dim2 == -1)
+                break;
+
+            return dim1 + dim2;
+        }
+        default:
+            break;
+    }
+    return -1;
 }
 
 /* ==================== castTo ====================== */
@@ -1555,14 +1614,22 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 {
                     // T[n] sa;
                     // cast(U[])sa; // ==> cast(U[])sa[];
-                    d_uns64 fsize = t1b->nextOf()->size();
-                    d_uns64 tsize = tob->nextOf()->size();
+                    Type *t1n = t1b->nextOf();
+                    Type *ton = tob->nextOf();
+                    d_uns64 fsize = t1n->size();
+                    d_uns64 tsize = ton->size();
                     if ((((TypeSArray *)t1b)->dim->toInteger() * fsize) % tsize != 0)
                     {
                         // copied from sarray_toDarray() in e2ir.c
                         e->error("cannot cast expression %s of type %s to %s since sizes don't line up",
                             e->toChars(), e->type->toChars(), t->toChars());
                         result = new ErrorExp();
+                        return;
+                    }
+                    if (t1n->constConv(ton))
+                    {
+                        result = new SliceExp(e->loc, e, NULL, NULL);
+                        result->type = t;       // Don't call semantic()
                         return;
                     }
                     goto Lok;
@@ -2399,6 +2466,53 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 e->toChars(), tsa ? tsa->toChars() : e->type->toChars(),
                 t->toChars());
             result = new ErrorExp();
+        }
+
+        void visit(CatExp *e)
+        {
+            //printf("CatExp::castTo(%s of type %s) => %s\n", e->toChars(), e->type->toChars(), t->toChars());
+            Type *tb = t->toBasetype();
+            if (tb->ty != Tsarray)
+            {
+            Lcant:
+                visit((Expression *)e);
+                return;
+            }
+
+            Type *t1b = e->e1->type->toBasetype();
+            bool e1arr = (t1b->ty == Tarray || t1b->ty == Tsarray);
+            dinteger_t dim = ((TypeSArray *)tb)->dim->toInteger();
+            dinteger_t dim1 = e1arr ? getStaticArrayLen(e->e1) : 1;
+            if (dim1 == -1)
+                goto Lcant;
+
+            Type *t2b = e->e2->type->toBasetype();
+            bool e2arr = (t2b->ty == Tarray || t2b->ty == Tsarray);
+            dinteger_t dim2 = e2arr ? getStaticArrayLen(e->e2) : 1;
+            if (dim2 == -1)
+                goto Lcant;
+
+            if (dim != dim1 + dim2)
+                goto Lcant;
+
+            //printf("dim = %llu, dim1/2 = %llu/%llu, e1/2arr = %d/%d, e = %s\n", dim, dim1, dim2, e1arr, e2arr, e->toChars());
+            Expression *e1x = e1arr ? castTo(e->e1, sc, tb->nextOf()->sarrayOf(dim1)) : e->e1;
+            Expression *e2x = e2arr ? castTo(e->e2, sc, tb->nextOf()->sarrayOf(dim2)) : e->e2;
+            if (e1x->op == TOKerror)
+            {
+                result = e1x;
+                return;
+            }
+            if (e2x->op == TOKerror)
+            {
+                result = e2x;
+                return;
+            }
+            e = (CatExp *)e->copy();
+            e->e1 = e1x;
+            e->e2 = e2x;
+            e->type = t;
+            result = e;
         }
     };
 

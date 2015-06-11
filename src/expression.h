@@ -94,6 +94,7 @@ Expression *ctfeInterpret(Expression *);
 Expression *inlineCopy(Expression *e, Scope *sc);
 Expression *op_overload(Expression *e, Scope *sc);
 Type *toStaticArrayType(SliceExp *e);
+dinteger_t getStaticArrayLen(Expression *e);
 Expression *scaleFactor(BinExp *be, Scope *sc);
 Expression *typeCombine(BinExp *be, Scope *sc);
 Expression *inferType(Expression *e, Type *t, int flag = 0);
