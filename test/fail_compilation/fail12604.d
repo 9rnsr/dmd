@@ -77,3 +77,17 @@ void testc()
     sa1[0..4] = [1,2,3];
     sa1[0..4] = sa2;
 }
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail12604.d(92): Error: mismatched array lengths, 6 and 5
+---
+*/
+void test4939()
+{
+    int[2] a1;
+    int[3] a2;
+    int[6] result;
+    result[] = a1 ~ a2;
+}

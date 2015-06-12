@@ -11738,20 +11738,11 @@ Expression *AssignExp::semantic(Scope *sc)
         /* If assigned elements number is known at compile time,
          * check the mismatch.
          */
-        SliceExp *se1 = (SliceExp *)e1;
-        TypeSArray *tsa1 = (TypeSArray *)toStaticArrayType(se1);
-        TypeSArray *tsa2 = NULL;
-        if (e2x->op == TOKarrayliteral)
-            tsa2 = (TypeSArray *)t2->nextOf()->sarrayOf(((ArrayLiteralExp *)e2x)->elements->dim);
-        else if (e2x->op == TOKslice)
-            tsa2 = (TypeSArray *)toStaticArrayType((SliceExp *)e2x);
-        else if (t2->ty == Tsarray)
-            tsa2 = (TypeSArray *)t2;
-        if (tsa1 && tsa2)
+        uinteger_t dim1 = getStaticArrayLen(e1);
+        if (dim1 != -1)
         {
-            uinteger_t dim1 = tsa1->dim->toInteger();
-            uinteger_t dim2 = tsa2->dim->toInteger();
-            if (dim1 != dim2)
+            uinteger_t dim2 = getStaticArrayLen(e2x);
+            if (dim2 != -1 && dim1 != dim2)
             {
                 error("mismatched array lengths, %d and %d", (int)dim1, (int)dim2);
                 return new ErrorExp();
