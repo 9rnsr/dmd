@@ -1338,10 +1338,10 @@ public:
         if (hgs->hdrgen && visitEponymousMember(d))
             return;
 
-        if (hgs->ddoc)
-            buf->writestring(d->kind());
+        if (hgs->ddoc && d->onemember && d->onemember->isAggregateDeclaration())
+            buf->writestring(d->onemember->kind());
         else
-            buf->writestring("template");
+            buf->writestring(d->kind());
         buf->writeByte(' ');
         buf->writestring(d->ident->toChars());
         buf->writeByte('(');

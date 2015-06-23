@@ -715,8 +715,7 @@ public:
     {
         objectStart();
 
-        // TemplateDeclaration::kind returns the kind of its Aggregate onemember, if it is one
-        property("kind", "template");
+        property("kind", d->kind());
 
         jsonProperties(d);
 

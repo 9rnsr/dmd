@@ -611,9 +611,7 @@ void TemplateDeclaration::semantic(Scope *sc)
 
 const char *TemplateDeclaration::kind()
 {
-    return (onemember && onemember->isAggregateDeclaration())
-                ? onemember->kind()
-                : (char *)"template";
+    return "template";
 }
 
 /**********************************
