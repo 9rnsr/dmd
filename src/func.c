@@ -4098,7 +4098,7 @@ bool FuncDeclaration::addPostInvariant()
 Expression *addInvariant(Loc loc, Scope *sc, AggregateDeclaration *ad, VarDeclaration *vthis, bool direct)
 {
     Expression *e = NULL;
-    if (direct)
+    if (direct || ad->isStructDeclaration())
     {
         // Call invariant directly only if it exists
         FuncDeclaration *inv = ad->inv;
@@ -4246,11 +4246,17 @@ bool FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
         return false;   // same level call
     // uplevel call
 
-    // Function literals from fdthis to fdv must be delegates
+    // Functions and aggregates from fdthis to fdv must be nested
     for (Dsymbol *s = fdthis; s && s != fdv; s = s->toParent2())
     {
         if (FuncLiteralDeclaration *fld = s->isFuncLiteralDeclaration())
             fld->tok = TOKdelegate;
+        if (AggregateDeclaration *ad = s->isAggregateDeclaration())
+        {
+            //printf("setting Nested f = %s --> ad = %s\n", toChars(), ad->toChars());
+            if (ad->vthis)
+                ad->vthis->init = NULL;     // determine to nested aggregate
+        }
     }
 
     // An access from a CT-only scope need not capture the enclosing frames.

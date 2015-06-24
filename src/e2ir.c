@@ -5403,7 +5403,14 @@ elem *toElem(Expression *e, IRState *irs)
                     if (sle->soffset)
                         e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, sle->soffset));
                 }
-                e1 = setEthis(sle->loc, irs, e1, sle->sd);
+                if (sle->sd->isNested2())
+                    e1 = setEthis(sle->loc, irs, e1, sle->sd);
+                else
+                {
+                    e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, sle->sd->vthis->offset));
+                    e1 = el_una(OPind, TYnptr, e1);
+                    e1 = el_bin(OPeq, TYnptr, e1, el_long(TYnptr, 0));
+                }
 
                 e = el_combine(e, e1);
             }

@@ -122,8 +122,9 @@ public:
     int numFieldsInUnion(int firstIndex); // #fields in union starting at index
     bool isDeprecated();         // is aggregate deprecated?
     bool muteDeprecationMessage(); // disable deprecation message on Dsymbol?
-    bool isNested();
     void makeNested();
+    bool isNested();            // true if aggregate has a hidden field
+    bool isNested2();           // true if the enclosing context is actually needed
     bool isExport();
     Dsymbol *searchCtor();
 

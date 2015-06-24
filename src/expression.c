@@ -3360,17 +3360,6 @@ Lagain:
             s = v->toAlias();   // Need this if 'v' is a tuple variable
         }
     }
-    if (s->needThis() && hasThis(sc))
-    {
-        // For functions, this should happen after overload resolution
-        if (!s->isFuncDeclaration())
-        {
-            // Supply an implicit 'this', as in
-            //    this.ident
-            DotVarExp *de = new DotVarExp(loc, new ThisExp(loc), s->isDeclaration());
-            return de->semantic(sc);
-        }
-    }
 
     if (EnumMember *em = s->isEnumMember())
     {
@@ -3378,6 +3367,14 @@ Lagain:
     }
     if (VarDeclaration *v = s->isVarDeclaration())
     {
+        if (s->needThis() && hasThis(sc))
+        {
+            // Supply an implicit 'this', as in
+            //    this.ident
+            DotVarExp *de = new DotVarExp(loc, new ThisExp(loc), s->isDeclaration());
+            return de->semantic(sc);
+        }
+
         //printf("Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
         if (!type)
         {
@@ -3430,6 +3427,9 @@ Lagain:
     }
     if (FuncDeclaration *f = s->isFuncDeclaration())
     {
+        // For functions, this should happen after overload resolution
+        //if (s->needThis() && hasThis(sc)) ...
+
         f = f->toAliasFunc();
         if (!f->functionSemantic())
             return new ErrorExp();
@@ -3485,6 +3485,14 @@ Lagain:
 
     if (TupleDeclaration *tup = s->isTupleDeclaration())
     {
+        if (s->needThis() && hasThis(sc))
+        {
+            // Supply an implicit 'this', as in
+            //    this.ident
+            DotVarExp *de = new DotVarExp(loc, new ThisExp(loc), s->isDeclaration());
+            return de->semantic(sc);
+        }
+
         e = new TupleExp(loc, tup);
         e = e->semantic(sc);
         return e;
@@ -4387,6 +4395,65 @@ Expression *StructLiteralExp::semantic(Scope *sc)
 
     if (checkFrameAccess(loc, sc, sd, elements->dim))
         return new ErrorExp();
+    if (sd->isNested() &&
+        sd->parent && sd->parent != sc->parent &&
+        sc->intypeof != 1 && !(sc->flags & SCOPEctfe))
+    {
+        //printf("[%s] %s\n", loc.toChars(), toChars());
+
+        FuncDeclaration *fdv = sd->toParent()->isFuncDeclaration();
+        FuncDeclaration *fdthis = sc->parent->isFuncDeclaration();
+
+        if (fdv && fdthis && fdv != fdthis)
+        {
+            //printf("\tfdv = %s\n", fdv->toChars());
+            //printf("\tfdthis = %s\n", fdthis->toChars());
+
+            Dsymbol *sparent = sd;//->toParent2();
+            Dsymbol *s = sc->func;
+            while (s)
+            {
+                if (s == sparent)   // hit!
+                    break;
+
+                if (FuncDeclaration *fd = s->isFuncDeclaration())
+                {
+                    if (!fd->isThis() && !fd->isNested())
+                        break;
+                }
+                if (AggregateDeclaration *ad2 = s->isAggregateDeclaration())
+                {
+                    if (ad2->storage_class & STCstatic)
+                        break;
+                }
+                s = s->toParent2();
+            }
+            //if (s != sparent) printf("[%s] checkFrameAccess\n", loc.toChars());
+            if (s != sparent)
+            {
+                // If this struct literal creation does not exist in the member function of sd.
+
+                // Function literals from fdthis to fdv must be delegates
+                for (s = fdthis; s && s != fdv; s = s->toParent2())
+                {
+                    // function literal has reference to enclosing scope is delegate
+                    if (FuncLiteralDeclaration *fld = s->isFuncLiteralDeclaration())
+                    {
+                        fld->tok = TOKdelegate;
+                    }
+                    if (AggregateDeclaration *ad = s->isThis())
+                    {
+                        if (StructDeclaration *sd2 = ad->isStructDeclaration())
+                        {
+                            //printf("setting Nested %s = %s --> sd2 = %s\n", toChars(), sd->toChars(), sd2->toChars());
+                            assert(sd2->fields.dim);
+                            sd2->fields[sd2->fields.dim - 1]->init = NULL;    // determine to nested struct
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     /* Fill out remainder of elements[] with default initializers for fields[]
      */

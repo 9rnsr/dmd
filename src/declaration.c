@@ -59,7 +59,7 @@ bool checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad, size_t iStar
             }
             s = s->toParent2();
         }
-        if (s != sparent)
+        if (s != sparent && ad->isNested2())
         {
             error(loc, "cannot access frame pointer of %s", ad->toPrettyChars());
             return true;
@@ -1844,11 +1844,17 @@ bool VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
         }
     }
 
-    // Function literals from fdthis to fdv must be delegates
+    // Functions and aggregates from fdthis to fdv must be nested
     for (Dsymbol *s = fdthis; s && s != fdv; s = s->toParent2())
     {
         if (FuncLiteralDeclaration *fld = s->isFuncLiteralDeclaration())
             fld->tok = TOKdelegate;
+        if (AggregateDeclaration *ad = s->isAggregateDeclaration())
+        {
+            //printf("setting Nested v = %s --> ad = %s\n", toChars(), ad->toChars());
+            if (ad->vthis)
+                ad->vthis->init = NULL;     // determine to nested aggregate
+        }
     }
 
     // Bugzilla 3326: __dollar creates problems because it isn't a real variable

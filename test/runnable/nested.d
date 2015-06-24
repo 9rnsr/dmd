@@ -1776,12 +1776,12 @@ void test8339a()
     int n;
 
     // Result has context pointer, so cannot copy
-    static assert (!is(typeof({ copy8339(map8339a!(a=>a)(x)); })));
-    static assert (!is(typeof({ copy8339(map8339a!(a=>n)(x)); })));
+    static assert( is(typeof({ copy8339(map8339a!(a=>a)(x)); })));
+    static assert( is(typeof({ copy8339(map8339a!(a=>n)(x)); })));
 
     // same as
-    static assert (!is(typeof({ copy8339(map8339b!(a=>a)(x)); })));
-    static assert (!is(typeof({ copy8339(map8339b!(a=>n)(x)); })));
+    static assert( is(typeof({ copy8339(map8339b!(a=>a)(x)); })));
+    static assert(!is(typeof({ copy8339(map8339b!(a=>n)(x)); })));
 
     // fun is never instantiated
     copy8339(map8339c!(a=>a)(x));
@@ -1834,10 +1834,11 @@ void check8704(T, int num)()
 
 void test8704()
 {
+    int x;
     struct S
     {
         int n;
-        void foo(){}
+        void foo() { x++; }
     }
 
     static assert(!is(typeof(check8704!(S, 1)())));
@@ -2457,6 +2458,74 @@ void test14398()
 
 /*******************************************/
 
+void testNestInference()
+{
+    static auto makeS1(int x)
+    {
+        // S1 is nested but does not need enclosing context
+        struct S1
+        {
+            int n;
+            int get() { return n; }     // no enclosing context access
+
+            int test()
+            {
+                // Creating S1 instance inside member functions
+                // does not affect inference result.
+                // It's checked in checkFrameAccess before ad->needThis() call.
+                auto s = S1(1);
+                return 0;
+            }
+        }
+        return S1(x);
+    }
+    auto s1a = makeS1(1);
+    static assert(s1a.tupleof.length == 2);     // (int n, void* vthis)
+    assert(s1a.tupleof[$-1] is null);
+    assert(s1a.get() == 1);
+    // Creating S1 instance outside of the enclosing contect is now allowed.
+    auto s1b = typeof(s1a)(2);  // NG -> OK
+    assert(s1b.tupleof[$-1] is null);
+    assert(s1b.get() == 2);
+
+    static auto makeS2(int x)
+    {
+        // S2 is nested and it actually needs enclosing context
+        struct S2
+        {
+            int n;
+            int get() { return x; }     // access variable in enclosing context
+        }
+        return S2(x);
+    }
+    auto s2a = makeS2(1);
+    static assert(s2a.tupleof.length == 2);     // (int n, void* vthis)
+    assert(s2a.tupleof[$-1] !is null);
+    assert(s2a.get() == 1);
+    // Creating S2 instance actually needs enclosing contect, so this is not allowed.
+    static assert(!__traits(compiles, { auto s2b = typeof(s2a)(2); }));
+
+    static auto makeS3(int x)
+    {
+        int f() { return x; }
+
+        // S3 is nested and it actually needs enclosing context
+        struct S3
+        {
+            int n;
+            int get() { return f(); }   // access nested function in enclosing context
+        }
+        return S3(x);
+    }
+    auto s3a = makeS3(1);
+    static assert(s3a.tupleof.length == 2);     // (int n, void* vthis)
+    assert(s3a.get() == 1);
+    // Creating S3 instance actually needs enclosing contect, so this is not allowed.
+    static assert(!__traits(compiles, { auto s3b = typeof(s3a)(2); }));
+}
+
+/*******************************************/
+
 int main()
 {
     test1();
@@ -2546,6 +2615,7 @@ int main()
     test12234();
     test13861();
     test14398();
+    testNestInference();
 
     printf("Success\n");
     return 0;

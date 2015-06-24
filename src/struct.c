@@ -509,17 +509,9 @@ unsigned AggregateDeclaration::placeField(
     return memoffset;
 }
 
-
 /****************************************
- * Returns true if there's an extra member which is the 'this'
- * pointer to the enclosing context (enclosing aggregate or function)
+ * Add an extra member to access enclosing context, if necessary.
  */
-
-bool AggregateDeclaration::isNested()
-{
-    return enclosing != NULL;
-}
-
 void AggregateDeclaration::makeNested()
 {
     if (enclosing)  // if already nested
@@ -570,8 +562,76 @@ void AggregateDeclaration::makeNested()
         assert(!vthis);
         vthis = new ThisDeclaration(loc, t);
         //vthis->storage_class |= STCref;
+        vthis->init = new VoidInitializer(loc);
         members->push(vthis);
     }
+}
+
+/****************************************
+ * Returns true if there's an extra member which is the 'this'
+ * pointer to the enclosing context (enclosing aggregate or function)
+ * Note that, the extra member may be NULL, if it's not actually necessary.
+ */
+bool AggregateDeclaration::isNested()
+{
+    return enclosing != NULL;
+}
+
+/****************************************
+ * Returns true if the enclosing context is actually used.
+ * Due to determine that, runs semantic3 of all instance member functions.
+ *
+ * Meaning of vthis->init:
+ *  VoidInitializer         not yet determined that vthis field can be null.
+ *  ExpInitializer(NullExp) vthis field can be null actually.
+ *  NULL                    vthis field needs to be filled in runtime.
+ */
+bool AggregateDeclaration::isNested2()
+{
+    if (!enclosing)
+        return false;
+    if (!members)
+        return true;
+    assert(vthis);
+
+    if (vthis->init && vthis->init->isVoidInitializer())
+    {
+        struct NV
+        {
+            /* Returns:
+             *  0       this member doesn't need further processing to determine
+             *  1       this member does
+             */
+            static int func(Dsymbol *s, void *param)
+            {
+                AggregateDeclaration *ad = (AggregateDeclaration *)param;
+
+                FuncDeclaration *f = s->isFuncDeclaration();
+                if (f && f->isThis() == ad)
+                {
+                    //printf("\t%s.%s (semanticRun = %d)\n", ad->toChars(), f->toChars(), f->semanticRun);
+                    if (f->semanticRun == PASSsemantic3)
+                        return 1;
+                    if (!f->functionSemantic3())
+                        return 1;
+                }
+                return 0;
+            }
+        };
+        //printf("++%s.isNested2() sizeok = %d\n", toChars(), sizeok);
+        for (size_t i = 0; i < members->dim; i++)
+        {
+            Dsymbol *s = (*members)[i];
+            if (s->apply(&NV::func, (void *)this))
+                goto L1;
+        }
+        if (vthis->init)    // store the inference result
+            vthis->init = new ExpInitializer(loc, new NullExp(loc, vthis->type));
+        //printf("--%s.isNested2() --> %d\n", toChars(), vthis->init == NULL);
+
+      L1: ;
+    }
+    return vthis->init == NULL;
 }
 
 /****************************************
