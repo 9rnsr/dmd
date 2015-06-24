@@ -2145,6 +2145,104 @@ void FuncDeclaration::semantic3(Scope *sc)
             printGCUsage(loc, "using closure causes GC allocation");
     }
 
+    if (closureVars.dim)
+    {
+        // Find nearest context-less function
+        FuncDeclaration *fdtop = this;
+        Dsymbol *s = fdtop;
+        while (s)
+        {
+            if (FuncDeclaration *fd = s->isFuncDeclaration())
+            {
+                if (!fd->isThis() && !fd->isNested())
+                {
+                    fdtop = fd;
+                    break;
+                }
+            }
+            if (AggregateDeclaration *ad = s->isAggregateDeclaration())
+            {
+                if (ad->storage_class & STCstatic)
+                    break;
+            }
+            s = s->toParent2();
+        }
+        fdtop->deferredNested.push(this);
+        assert(fdtop == this || deferredNested.dim == 0);
+    }
+    // Determine the offsets of closure vars from outside functions
+    while (deferredNested.dim)
+    {
+        FuncDeclaration *fd = deferredNested.pop();
+        if (!fd->needsClosure())
+            continue;
+
+        // TODO: Currently D ABI says nothing about the structure for closures.
+        unsigned offset = Target::ptrsize;  // leave room for previous sthis
+
+        for (size_t j = 0; j < fd->closureVars.dim; j++)
+        {
+            VarDeclaration *v = fd->closureVars[j];
+            //printf("closure var %s\n", v->toChars());
+
+            if (v->needsAutoDtor())
+            {
+                /* Because the value needs to survive the end of the scope!
+                 */
+                v->error("has scoped destruction, cannot build closure");
+            }
+            if (v->isargptr)
+            {
+                /* See Bugzilla 2479
+                 * This is actually a bug, but better to produce a nice
+                 * message at compile time rather than memory corruption at runtime
+                 */
+                v->error("cannot reference variadic arguments from closure");
+            }
+
+            /* Align and allocate space for v in the closure
+             * just like AggregateDeclaration::addField() does.
+             */
+            unsigned memsize;
+            unsigned memalignsize;
+            structalign_t xalign;
+            if (v->storage_class & STClazy)
+            {
+                /* Lazy variables are really delegates,
+                 * so give same answers that TypeDelegate would
+                 */
+                memsize = Target::ptrsize * 2;
+                memalignsize = memsize;
+                xalign = STRUCTALIGN_DEFAULT;
+            }
+            else if (v->isRef() || v->isOut())
+            {
+                // reference parameters are just pointers
+                memsize = Target::ptrsize;
+                memalignsize = memsize;
+                xalign = STRUCTALIGN_DEFAULT;
+            }
+            else
+            {
+                memsize = (unsigned)v->type->size();
+                memalignsize = v->type->alignsize();
+                xalign = v->alignment;
+            }
+            AggregateDeclaration::alignmember(xalign, memalignsize, &offset);
+            v->offset = offset;
+            offset += memsize;
+            //printf("closure field %s: memalignsize: %i, offset: %i\n", v->toChars(), memalignsize, v->offset);
+
+            /* Can't do nrvo if the variable is put in a closure, since
+             * what the shidden points to may no longer exist.
+             */
+            if (fd->nrvo_can && fd->nrvo_var == v)
+            {
+                fd->nrvo_can = 0;
+            }
+        }
+    }
+
     /* If function survived being marked as impure, then it is pure
      */
     if (flags & FUNCFLAGpurityInprocess)
