@@ -313,6 +313,31 @@ MATCH implicitConvTo(Expression *e, Type *t)
                 result = implicitConvToAddMin(e, t);
         }
 
+        void visit(MulExp *e)
+        {
+        #if 0
+            printf("MulExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
+                e->toChars(), e->type->toChars(), t->toChars());
+        #endif
+            visit((Expression *)e);
+            if (result == MATCHnomatch)
+            {
+                Type *typeb = e->type->toBasetype();
+                Type *tb = t->toBasetype();
+                if (typeb->ty == Tarray && tb->ty == Tsarray)
+                {
+                    dinteger_t dim = getStaticArrayLen(e);
+                    printf("MulExp::implicitConvTo(this=%s, type=%s, t=%s) dim = %lld\n",
+                        e->toChars(), e->type->toChars(), t->toChars(), dim);
+                    if (dim != -1)
+                    {
+                        result = typeb->nextOf()->sarrayOf(dim)->implicitConvTo(t);
+                        printf("mod typ = %s, result = %d\n", typeb->nextOf()->sarrayOf(dim)->toChars(), result);
+                    }
+                }
+            }
+        }
+
         void visit(IntegerExp *e)
         {
         #if 0
@@ -1390,6 +1415,61 @@ Type *toStaticArrayType(SliceExp *e)
     return NULL;
 }
 
+dinteger_t getStaticArrayLen(Expression *e)
+{
+    Type *tb = e->type->toBasetype();
+    if (tb->ty == Tsarray)
+        return ((TypeSArray *)tb)->dim->toInteger();
+
+    switch (e->op)
+    {
+        case TOKslice:
+        {
+            if (Type *tsa = toStaticArrayType((SliceExp *)e))
+                return ((TypeSArray *)tsa)->dim->toInteger();
+            else
+                return -1;
+        }
+        case TOKarrayliteral:
+            return ((ArrayLiteralExp *)e)->elements->dim;
+
+        case TOKcat:
+        {
+            CatExp *ce = (CatExp *)e;
+
+            Type *t1b = ce->e1->type->toBasetype();
+            bool e1arr = (t1b->ty == Tarray || t1b->ty == Tsarray);
+            dinteger_t dim1 = e1arr ? getStaticArrayLen(ce->e1) : 1;
+            if (dim1 == -1)
+                break;
+
+            Type *t2b = ce->e2->type->toBasetype();
+            bool e2arr = (t2b->ty == Tarray || t2b->ty == Tsarray);
+            dinteger_t dim2 = e2arr ? getStaticArrayLen(ce->e2) : 1;
+            if (dim2 == -1)
+                break;
+
+            return dim1 + dim2;
+        }
+        default:
+            break;
+    }
+
+    if (isUnaArrayOp(e->op))
+        return getStaticArrayLen(((UnaExp *)e)->e1);
+
+    if (isBinArrayOp(e->op))
+    {
+        BinExp *be = (BinExp *)e;
+        dinteger_t dim = getStaticArrayLen(be->e1);
+        if (dim == -1)
+            dim = getStaticArrayLen(be->e2);
+        return dim;
+    }
+
+    return -1;
+}
+
 /* ==================== castTo ====================== */
 
 /**************************************
@@ -1947,6 +2027,26 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
         Lcast:
             result = new CastExp(e->loc, se, t);
             result->type = t;        // so semantic() won't be run on e
+        }
+
+        void visit(MulExp *e)
+        {
+            Type *typeb = e->type->toBasetype();
+            Type *tb = t->toBasetype();
+            if (typeb->ty == Tarray && tb->ty == Tsarray)
+            {
+                dinteger_t dim = getStaticArrayLen(e);
+                printf("MulExp::castTo(this=%s, type=%s, t=%s) dim = %lld\n",
+                    e->toChars(), e->type->toChars(), t->toChars(), dim);
+                if (dim != -1)
+                {
+                    result = e->copy();
+                    result->type = typeb->nextOf()->sarrayOf(dim);
+                    printf("mod typ = %s, result = %s\n", typeb->nextOf()->sarrayOf(dim)->toChars(), result->toChars());
+                    return;
+                }
+            }
+            visit((Expression *)e);
         }
 
         void visit(AddrExp *e)
