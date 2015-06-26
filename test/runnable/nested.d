@@ -2526,6 +2526,87 @@ void testNestInference()
 
 /*******************************************/
 
+auto foo(alias fun)()
+{
+    return fun(1);
+}
+
+void testFunNestInference1a()
+{
+    int x;                          // on stack
+    //void esc() { auto p = &x; }
+    //auto y = &esc;
+
+    auto dg = &foo!(a => a);
+    static assert(is(typeof(dg) == delegate));
+    assert(dg.ptr is null);         // foo does not need the context of this function
+    assert(dg() == 1);
+}
+
+void testFunNestInference1b()
+{
+    int x;                          // on stack
+    void esc() { auto p = &x; }     // make the context of esc to frameptr
+    //auto y = &esc;
+
+    auto dg = &foo!(a => a);
+    static assert(is(typeof(dg) == delegate));
+    assert(dg.ptr is null);         // foo does not need the context of this function
+    assert(dg() == 1);
+}
+
+void testFunNestInference1c()
+{
+    int x;                          // on heap (closure var)
+    void esc() { auto p = &x; }
+    auto y = &esc;                  // make the context of esc to __closptr
+
+    auto dg = &foo!(a => a);
+    static assert(is(typeof(dg) == delegate));
+    assert(dg.ptr is null);         // foo does not need the context of this function
+    assert(dg() == 1);
+}
+
+void testFunNestInference2a()
+{
+    int x = 1;
+    //void esc() { auto p = &x; }
+    //auto y = &esc;
+
+    auto dg = &foo!(a => x);
+    static assert(is(typeof(dg) == delegate));
+    assert(dg.ptr !is null);        // __closptr
+    assert(dg() == 1);
+}
+
+void testFunNestInference2b()
+{
+    int x = 1;
+    void esc() { auto p = &x; }
+    //auto y = &esc;
+
+    auto dg = &foo!(a => x);
+    static assert(is(typeof(dg) == delegate));
+    assert(dg.ptr !is null);        // __closptr
+    assert(dg.ptr is (&esc).ptr);
+    assert(dg() == 1);
+}
+
+void testFunNestInference2c()
+{
+    int x = 1;
+    void esc() { auto p = &x; }
+    auto y = &esc;
+
+    auto dg = &foo!(a => x);
+    static assert(is(typeof(dg) == delegate));
+    assert(dg.ptr !is null);        // __closptr
+    assert(dg.ptr is (&esc).ptr);
+    assert(dg() == 1);
+}
+
+/*******************************************/
+
 int main()
 {
     test1();
@@ -2616,6 +2697,12 @@ int main()
     test13861();
     test14398();
     testNestInference();
+    testFunNestInference1a();
+    testFunNestInference1b();
+    testFunNestInference1c();
+    testFunNestInference2a();
+    testFunNestInference2b();
+    testFunNestInference2c();
 
     printf("Success\n");
     return 0;

@@ -3387,7 +3387,7 @@ elem *toElem(Expression *e, IRState *irs)
                 Dsymbol *owner = de->func->toParent();
                 while (!owner->isTemplateInstance() && owner->toParent())
                     owner = owner->toParent();
-                if (owner->isTemplateInstance() || owner == irs->m )
+                if (owner->isTemplateInstance() || owner == irs->m)
                 {
                     irs->deferToObj->push(de->func);
                 }
@@ -3399,8 +3399,8 @@ elem *toElem(Expression *e, IRState *irs)
             if (de->func->isNested())
             {
                 ep = el_ptr(sfunc);
-                if (de->e1->op == TOKnull)
-                    ethis = toElem(de->e1, irs);
+                if (de->e1->op == TOKnull || de->func->vthis->init)
+                    ethis = el_long(TYnptr, 0);
                 else
                     ethis = getEthis(de->loc, irs, de->func);
             }

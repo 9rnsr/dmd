@@ -48,6 +48,12 @@ Expression *toDelegate(Expression *e, Type* t, Scope *sc)
 
     fld->parent = sc->parent;
 
+    VarDeclaration *v = new ThisDeclaration(loc, Type::tvoidptr);
+    v->storage_class |= STCparameter;
+    v->init = new VoidInitializer(loc);
+    v->parent = fld;
+    fld->vthis = v;             // need for nested inference
+
     sc = sc->push();
     sc->parent = fld;           // set current function to be the delegate
     lambdaSetParent(e, sc);

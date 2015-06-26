@@ -913,7 +913,8 @@ void VarDeclaration::semantic(Scope *sc)
             if (sc->func->setUnsafe())
                 error("__gshared not allowed in safe functions; use shared");
         }
-        if (init && init->isVoidInitializer() &&
+        if (init && !isThisDeclaration() &&
+            init->isVoidInitializer() &&
             type->hasPointers())    // get type size
         {
             if (sc->func->setUnsafe())
@@ -1787,7 +1788,7 @@ bool lambdaCheckForNestedRef(Expression *e, Scope *sc);
 bool VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
 {
     //printf("VarDeclaration::checkNestedReference() %s\n", toChars());
-    if (sc->intypeof == 1 || (sc->flags & SCOPEctfe))
+    if (sc->intypeof == 1 || (sc->flags & (SCOPEctfe | SCOPEconstraint)))
         return false;
     if (!parent || parent == sc->parent)
         return false;
@@ -1847,8 +1848,15 @@ bool VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
     // Functions and aggregates from fdthis to fdv must be nested
     for (Dsymbol *s = fdthis; s && s != fdv; s = s->toParent2())
     {
-        if (FuncLiteralDeclaration *fld = s->isFuncLiteralDeclaration())
-            fld->tok = TOKdelegate;
+        if (FuncDeclaration *fd = s->isFuncDeclaration())
+        {
+            //printf("setting Nested v = %s --> fd = %s\n", toChars(), fd->toChars());
+            if (fd->vthis)
+                fd->vthis->init = NULL;
+
+            if (FuncLiteralDeclaration *fld = fd->isFuncLiteralDeclaration())
+                fld->tok = TOKdelegate;
+        }
         if (AggregateDeclaration *ad = s->isAggregateDeclaration())
         {
             //printf("setting Nested v = %s --> ad = %s\n", toChars(), ad->toChars());

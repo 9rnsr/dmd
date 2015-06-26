@@ -2400,6 +2400,7 @@ VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad
          */
         VarDeclaration *v = new ThisDeclaration(loc, Type::tvoid->pointerTo());
         v->storage_class |= STCparameter;
+        v->init = new VoidInitializer(loc);     // infer nest-ness
         v->semantic(sc);
         if (!sc->insert(v))
             assert(0);
@@ -4215,6 +4216,8 @@ const char *FuncDeclaration::kind()
 bool FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
 {
     //printf("FuncDeclaration::checkNestedReference() %s\n", toPrettyChars());
+    if (sc->flags & SCOPEconstraint)
+        return false;
     if (!parent || parent == sc->parent)
         return false;
     if (!isNested() || ident == Id::require || ident == Id::ensure)
@@ -4249,8 +4252,15 @@ bool FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
     // Functions and aggregates from fdthis to fdv must be nested
     for (Dsymbol *s = fdthis; s && s != fdv; s = s->toParent2())
     {
-        if (FuncLiteralDeclaration *fld = s->isFuncLiteralDeclaration())
-            fld->tok = TOKdelegate;
+        if (FuncDeclaration *fd = s->isFuncDeclaration())
+        {
+            //printf("setting Nested f = %s --> fd = %s\n", toChars(), fd->toChars());
+            if (fd->vthis)
+                fd->vthis->init = NULL;
+
+            if (FuncLiteralDeclaration *fld = fd->isFuncLiteralDeclaration())
+                fld->tok = TOKdelegate;
+        }
         if (AggregateDeclaration *ad = s->isAggregateDeclaration())
         {
             //printf("setting Nested f = %s --> ad = %s\n", toChars(), ad->toChars());

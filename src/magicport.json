@@ -2873,6 +2873,7 @@
                 "dscope",
                 "expression",
                 "func",
+                "init",
                 "tokens",
                 "globals",
                 "mtype",
