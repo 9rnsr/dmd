@@ -2369,31 +2369,28 @@ VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad
 {
     if (ad && !isFuncLiteralDeclaration())
     {
-        VarDeclaration *v;
+        Type *thandle = ad->handleType();
+        assert(thandle);
+        thandle = thandle->addMod(type->mod);
+        thandle = thandle->addStorageClass(storage_class);
+        VarDeclaration *v = new ThisDeclaration(loc, thandle);
+        v->storage_class |= STCparameter;
+        if (thandle->ty == Tstruct)
         {
-            Type *thandle = ad->handleType();
-            assert(thandle);
-            thandle = thandle->addMod(type->mod);
-            thandle = thandle->addStorageClass(storage_class);
-            v = new ThisDeclaration(loc, thandle);
-            v->storage_class |= STCparameter;
-            if (thandle->ty == Tstruct)
-            {
-                v->storage_class |= STCref;
+            v->storage_class |= STCref;
 
-                // if member function is marked 'inout', then 'this' is 'return ref'
-                if (type->ty == Tfunction && ((TypeFunction *)type)->iswild & 2)
-                    v->storage_class |= STCreturn;
-            }
-            if (type->ty == Tfunction && ((TypeFunction *)type)->isreturn)
+            // if member function is marked 'inout', then 'this' is 'return ref'
+            if (type->ty == Tfunction && ((TypeFunction *)type)->iswild & 2)
                 v->storage_class |= STCreturn;
-
-            v->semantic(sc);
-            if (!sc->insert(v))
-                assert(0);
-            v->parent = this;
-            return v;
         }
+        if (type->ty == Tfunction && ((TypeFunction *)type)->isreturn)
+            v->storage_class |= STCreturn;
+
+        v->semantic(sc);
+        if (!sc->insert(v))
+            assert(0);
+        v->parent = this;
+        return v;
     }
     else if (isNested())
     {
@@ -4218,59 +4215,56 @@ const char *FuncDeclaration::kind()
 bool FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
 {
     //printf("FuncDeclaration::checkNestedReference() %s\n", toPrettyChars());
-    if (parent && parent != sc->parent && this->isNested() &&
-        this->ident != Id::require && this->ident != Id::ensure)
+    if (!parent || parent == sc->parent)
+        return false;
+    if (!isNested() || ident == Id::require || ident == Id::ensure)
+        return false;
+
+    // The function that this function is in
+    FuncDeclaration *fdv = toParent2()->isFuncDeclaration();
+    if (!fdv)
+        return false;   // incorrect case, because isNested() is true
+    // The current function
+    FuncDeclaration *fdthis = sc->parent->isFuncDeclaration();
+    if (!fdthis)
+        return false;   // out of function scope
+
+    //printf("\tthis   = %s in [%s]\n", this->toChars(), this->loc.toChars());
+    //printf("\tfdv    = %s in [%s]\n", fdv->toChars(), fdv->loc.toChars());
+    //printf("\tfdthis = %s in [%s]\n", fdthis->toChars(), fdthis->loc.toChars());
+    if (fdthis == fdv)
+        return false;   // direct access
+
+    // Add this function to the list of those which called us
+    if (fdthis != this && !sc->intypeof && !(sc->flags & SCOPEcompile))
     {
-        // The function that this function is in
-        FuncDeclaration *fdv2 = toParent2()->isFuncDeclaration();
-
-        // The current function
-        FuncDeclaration *fdthis = sc->parent->isFuncDeclaration();
-
-        //printf("this = %s in [%s]\n", this->toChars(), this->loc.toChars());
-        //printf("fdv2 = %s in [%s]\n", fdv2->toChars(), fdv2->loc.toChars());
-        //printf("fdthis = %s in [%s]\n", fdthis->toChars(), fdthis->loc.toChars());
-
-        if (fdv2 && fdthis && fdv2 != fdthis)
+        for (size_t i = 0; 1; i++)
         {
-            // Add this function to the list of those which called us
-            if (fdthis != this)
+            if (i == siblingCallers.dim)
             {
-                bool found = false;
-                for (size_t i = 0; i < siblingCallers.dim; ++i)
-                {
-                    if (siblingCallers[i] == fdthis)
-                        found = true;
-                }
-                if (!found)
-                {
-                    //printf("\tadding sibling %s\n", fdthis->toPrettyChars());
-                    if (!sc->intypeof && !(sc->flags & SCOPEcompile))
-                        siblingCallers.push(fdthis);
-                }
+                //printf("\tadding sibling %s\n", fdthis->toPrettyChars());
+                siblingCallers.push(fdthis);
+                break;
             }
-        }
-
-        FuncDeclaration *fdv = toParent2()->isFuncDeclaration();
-        if (fdv && fdthis && fdv != fdthis)
-        {
-            int lv = fdthis->getLevel(loc, sc, fdv);
-            if (lv == -2)
-                return true;    // error
-            if (lv == -1)
-                return false;   // downlevel call
-            if (lv == 0)
-                return false;   // same level call
-
-            // Uplevel call
-
-            // BUG: may need to walk up outer scopes like Declaration::checkNestedReference() does
-
-            // function literal has reference to enclosing scope is delegate
-            if (FuncLiteralDeclaration *fld = fdthis->isFuncLiteralDeclaration())
-                fld->tok = TOKdelegate;
+            if (siblingCallers[i] == fdthis)
+                break;
         }
     }
+
+    int lv = fdthis->getLevel(loc, sc, fdv);
+    if (lv == -2)
+        return true;    // error
+    if (lv == -1)
+        return false;   // downlevel call
+    if (lv == 0)
+        return false;   // same level call
+    // uplevel call
+
+    // BUG: may need to walk up outer scopes like Declaration::checkNestedReference() does
+
+    // function literal has reference to enclosing scope is delegate
+    if (FuncLiteralDeclaration *fld = fdthis->isFuncLiteralDeclaration())
+        fld->tok = TOKdelegate;
     return false;
 }
 
