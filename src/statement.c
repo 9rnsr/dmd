@@ -2391,7 +2391,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                     tfld = (TypeFunction *)fdapply->type->semantic(loc, sc);
                     goto Lget;
                 }
-                else if (tab->ty == Tdelegate)
+                if (tab->ty == Tdelegate)
                 {
                     tfld = (TypeFunction *)tab->nextOf();
                 Lget:
@@ -3152,7 +3152,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
                 if (e->op == TOKerror)
                 {
                     errorSupplemental(loc, "while evaluating pragma(msg, %s)", (*args)[i]->toChars());
-                    goto Lerror;
+                    return new ErrorStatement();
                 }
                 StringExp *se = e->toStringExp();
                 if (se)
@@ -3172,12 +3172,12 @@ Statement *PragmaStatement::semantic(Scope *sc)
         /* Should this be allowed?
          */
         error("pragma(lib) not allowed as statement");
-        goto Lerror;
+        return new ErrorStatement();
 #else
         if (!args || args->dim != 1)
         {
             error("string expected for library name");
-            goto Lerror;
+            return new ErrorStatement();
         }
         else
         {
@@ -3194,9 +3194,9 @@ Statement *PragmaStatement::semantic(Scope *sc)
             if (!se)
             {
                 error("string expected for library name, not '%s'", e->toChars());
-                goto Lerror;
+                return new ErrorStatement();
             }
-            else if (global.params.verbose)
+            if (global.params.verbose)
             {
                 char *name = (char *)mem.malloc(se->len + 1);
                 memcpy(name, se->string, se->len);
@@ -3226,7 +3226,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
             if (!sa || !sa->isFuncDeclaration())
             {
                 error("function name expected for start address, not '%s'", e->toChars());
-                goto Lerror;
+                return new ErrorStatement();
             }
             if (body)
             {
@@ -3245,7 +3245,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
         else if (!args || args->dim != 1)
         {
             error("boolean expression expected for pragma(inline)");
-            goto Lerror;
+            return new ErrorStatement();
         }
         else
         {
@@ -3254,7 +3254,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
             if (e->op != TOKint64 || !e->type->equals(Type::tbool))
             {
                 error("pragma(inline, true or false) expected, not %s", e->toChars());
-                goto Lerror;
+                return new ErrorStatement();
             }
 
             if (e->isBool(true))
@@ -3266,7 +3266,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
             if (!fd)
             {
                 error("pragma(inline) is not inside a function");
-                goto Lerror;
+                return new ErrorStatement();
             }
             fd->inlining = inlining;
         }
@@ -3274,7 +3274,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
     else
     {
         error("unrecognized pragma(%s)", ident->toChars());
-        goto Lerror;
+        return new ErrorStatement();
     }
 
     if (body)
@@ -3282,9 +3282,6 @@ Statement *PragmaStatement::semantic(Scope *sc)
         body = body->semantic(sc);
     }
     return body;
-
-Lerror:
-    return new ErrorStatement();
 }
 
 /******************************** StaticAssertStatement ***************************/
@@ -4208,36 +4205,37 @@ Statement *BreakStatement::semantic(Scope *sc)
             if (ls && ls->ident == ident)
             {
                 Statement *s = ls->statement;
-
                 if (!s || !s->hasBreak())
-                    error("label '%s' has no break", ident->toChars());
-                else if (ls->tf != sc->tf)
-                    error("cannot break out of finally block");
-                else
                 {
-                    ls->breaks = true;
-                    return this;
+                    error("label '%s' has no break", ident->toChars());
+                    return new ErrorStatement();
                 }
-                return new ErrorStatement();
+                if (ls->tf != sc->tf)
+                {
+                    error("cannot break out of finally block");
+                    return new ErrorStatement();
+                }
+                ls->breaks = true;
+                return this;
             }
         }
         error("enclosing label '%s' for break not found", ident->toChars());
         return new ErrorStatement();
     }
-    else if (!sc->sbreak)
+    if (!sc->sbreak)
     {
         if (sc->os && sc->os->tok != TOKon_scope_failure)
         {
             error("break is not inside %s bodies", Token::toChars(sc->os->tok));
+            return new ErrorStatement();
         }
-        else if (sc->fes)
+        if (sc->fes)
         {
             // Replace break; with return 1;
             Statement *s = new ReturnStatement(Loc(), new IntegerExp(1));
             return s;
         }
-        else
-            error("break is not inside a loop or switch");
+        error("break is not inside a loop or switch");
         return new ErrorStatement();
     }
     return this;
@@ -4302,33 +4300,36 @@ Statement *ContinueStatement::semantic(Scope *sc)
             if (ls && ls->ident == ident)
             {
                 Statement *s = ls->statement;
-
                 if (!s || !s->hasContinue())
+                {
                     error("label '%s' has no continue", ident->toChars());
-                else if (ls->tf != sc->tf)
+                    return new ErrorStatement();
+                }
+                if (ls->tf != sc->tf)
+                {
                     error("cannot continue out of finally block");
-                else
-                    return this;
-                return new ErrorStatement();
+                    return new ErrorStatement();
+                }
+                return this;
             }
         }
         error("enclosing label '%s' for continue not found", ident->toChars());
         return new ErrorStatement();
     }
-    else if (!sc->scontinue)
+    if (!sc->scontinue)
     {
         if (sc->os && sc->os->tok != TOKon_scope_failure)
         {
             error("continue is not inside %s bodies", Token::toChars(sc->os->tok));
+            return new ErrorStatement();
         }
-        else if (sc->fes)
+        if (sc->fes)
         {
             // Replace continue; with return 0;
             Statement *s = new ReturnStatement(Loc(), new IntegerExp(0));
             return s;
         }
-        else
-            error("continue is not inside a loop");
+        error("continue is not inside a loop");
         return new ErrorStatement();
     }
     return this;
@@ -4366,7 +4367,7 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
             error("can only synchronize on class objects, not '%s'", exp->type->toChars());
             return new ErrorStatement();
         }
-        else if (cd->isInterfaceDeclaration())
+        if (cd->isInterfaceDeclaration())
         {
             /* Cast the interface to an object, as the object has the monitor,
              * not the interface.
@@ -5163,8 +5164,7 @@ Statement *LabelStatement::semantic(Scope *sc)
         error("label '%s' already defined", ls->toChars());
         return new ErrorStatement();
     }
-    else
-        ls->statement = this;
+    ls->statement = this;
 
     sc = sc->push();
     sc->scopesym = sc->enclosing->scopesym;
