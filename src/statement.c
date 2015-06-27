@@ -3509,91 +3509,90 @@ Statement *CaseStatement::syntaxCopy()
 Statement *CaseStatement::semantic(Scope *sc)
 {
     SwitchStatement *sw = sc->sw;
-    bool errors = false;
+    if (!sw)
+    {
+        error("case not in switch statement");
+        return new ErrorStatement();
+    }
+    if (sw->tf != sc->tf)
+    {
+        error("switch and case are in different finally blocks");
+        return new ErrorStatement();
+    }
 
     //printf("CaseStatement::semantic() %s\n", toChars());
+    bool errors = false;
+
     sc = sc->startCTFE();
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
     sc = sc->endCTFE();
-    if (sw)
+
+    exp = exp->implicitCastTo(sc, sw->condition->type);
+    exp = exp->optimize(WANTvalue);
+
+    /* This is where variables are allowed as case expressions.
+     */
+    if (exp->op == TOKvar)
     {
-        exp = exp->implicitCastTo(sc, sw->condition->type);
-        exp = exp->optimize(WANTvalue);
-
-        /* This is where variables are allowed as case expressions.
-         */
-        if (exp->op == TOKvar)
+        VarExp *ve = (VarExp *)exp;
+        VarDeclaration *v = ve->var->isVarDeclaration();
+        Type *t = exp->type->toBasetype();
+        if (v && (t->isintegral() || t->ty == Tclass))
         {
-            VarExp *ve = (VarExp *)exp;
-            VarDeclaration *v = ve->var->isVarDeclaration();
-            Type *t = exp->type->toBasetype();
-            if (v && (t->isintegral() || t->ty == Tclass))
+            /* Flag that we need to do special code generation
+             * for this, i.e. generate a sequence of if-then-else
+             */
+            sw->hasVars = 1;
+            if (sw->isFinal)
             {
-                /* Flag that we need to do special code generation
-                 * for this, i.e. generate a sequence of if-then-else
-                 */
-                sw->hasVars = 1;
-                if (sw->isFinal)
-                {
-                    error("case variables not allowed in final switch statements");
-                    errors = true;
-                }
-                goto L1;
-            }
-        }
-        else
-            exp = exp->ctfeInterpret();
-
-        if (StringExp *se = exp->toStringExp())
-            exp = se;
-        else if (exp->op != TOKint64 && exp->op != TOKerror)
-        {
-            error("case must be a string or an integral constant, not %s", exp->toChars());
-            errors = true;
-        }
-
-    L1:
-        for (size_t i = 0; i < sw->cases->dim; i++)
-        {
-            CaseStatement *cs = (*sw->cases)[i];
-
-            //printf("comparing '%s' with '%s'\n", exp->toChars(), cs->exp->toChars());
-            if (cs->exp->equals(exp))
-            {
-                error("duplicate case %s in switch statement", exp->toChars());
+                error("case variables not allowed in final switch statements");
                 errors = true;
-                break;
             }
-        }
-
-        sw->cases->push(this);
-
-        // Resolve any goto case's with no exp to this case statement
-        for (size_t i = 0; i < sw->gotoCases.dim; )
-        {
-            GotoCaseStatement *gcs = sw->gotoCases[i];
-
-            if (!gcs->exp)
-            {
-                gcs->cs = this;
-                sw->gotoCases.remove(i);        // remove from array
-                continue;
-            }
-            i++;
-        }
-
-        if (sc->sw->tf != sc->tf)
-        {
-            error("switch and case are in different finally blocks");
-            errors = true;
+            goto L1;
         }
     }
     else
+        exp = exp->ctfeInterpret();
+
+    if (StringExp *se = exp->toStringExp())
+        exp = se;
+    else if (exp->op != TOKint64 && exp->op != TOKerror)
     {
-        error("case not in switch statement");
+        error("case must be a string or an integral constant, not %s", exp->toChars());
         errors = true;
     }
+
+L1:
+    for (size_t i = 0; i < sw->cases->dim; i++)
+    {
+        CaseStatement *cs = (*sw->cases)[i];
+
+        //printf("comparing '%s' with '%s'\n", exp->toChars(), cs->exp->toChars());
+        if (cs->exp->equals(exp))
+        {
+            error("duplicate case %s in switch statement", exp->toChars());
+            errors = true;
+            break;
+        }
+    }
+
+    sw->cases->push(this);
+
+    // Resolve any goto case's with no exp to this case statement
+    for (size_t i = 0; i < sw->gotoCases.dim; )
+    {
+        GotoCaseStatement *gcs = sw->gotoCases[i];
+
+        if (!gcs->exp)
+        {
+            gcs->cs = this;
+            sw->gotoCases.remove(i);        // remove from array
+            continue;
+        }
+        i++;
+    }
+
     statement = statement->semantic(sc);
     if (statement->isErrorStatement())
         return statement;
@@ -3632,21 +3631,18 @@ Statement *CaseRangeStatement::syntaxCopy()
 Statement *CaseRangeStatement::semantic(Scope *sc)
 {
     SwitchStatement *sw = sc->sw;
-
-    if (sw == NULL)
+    if (!sw)
     {
         error("case range not in switch statement");
         return new ErrorStatement();
     }
-
-    //printf("CaseRangeStatement::semantic() %s\n", toChars());
-    bool errors = false;
     if (sw->isFinal)
     {
         error("case ranges not allowed in final switch");
-        errors = true;
+        return new ErrorStatement();
     }
 
+    //printf("CaseRangeStatement::semantic() %s\n", toChars());
     sc = sc->startCTFE();
     first = first->semantic(sc);
     first = resolveProperties(sc, first);
@@ -3661,7 +3657,7 @@ Statement *CaseRangeStatement::semantic(Scope *sc)
     last = last->implicitCastTo(sc, sw->condition->type);
     last = last->ctfeInterpret();
 
-    if (first->op == TOKerror || last->op == TOKerror || errors)
+    if (first->op == TOKerror || last->op == TOKerror)
     {
         if (statement)
             statement->semantic(sc);
@@ -3670,9 +3666,10 @@ Statement *CaseRangeStatement::semantic(Scope *sc)
 
     uinteger_t fval = first->toInteger();
     uinteger_t lval = last->toInteger();
+    bool errors = false;
 
-    if ( (first->type->isunsigned()  &&  fval > lval) ||
-        (!first->type->isunsigned()  &&  (sinteger_t)fval > (sinteger_t)lval))
+    if ( (first->type->isunsigned() && fval > lval) ||
+        (!first->type->isunsigned() && (sinteger_t)fval > (sinteger_t)lval))
     {
         error("first case %s is greater than last case %s",
             first->toChars(), last->toChars());
@@ -3733,36 +3730,34 @@ Statement *DefaultStatement::syntaxCopy()
 
 Statement *DefaultStatement::semantic(Scope *sc)
 {
-    //printf("DefaultStatement::semantic()\n");
-    bool errors = false;
-    if (sc->sw)
-    {
-        if (sc->sw->sdefault)
-        {
-            error("switch statement already has a default");
-            errors = true;
-        }
-        sc->sw->sdefault = this;
-
-        if (sc->sw->tf != sc->tf)
-        {
-            error("switch and default are in different finally blocks");
-            errors = true;
-        }
-        if (sc->sw->isFinal)
-        {
-            error("default statement not allowed in final switch statement");
-            errors = true;
-        }
-    }
-    else
+    SwitchStatement *sw = sc->sw;
+    if (!sw)
     {
         error("default not in switch statement");
-        errors = true;
-    }
-    statement = statement->semantic(sc);
-    if (errors || statement->isErrorStatement())
         return new ErrorStatement();
+    }
+    if (sw->sdefault)
+    {
+        error("switch statement already has a default");
+        return new ErrorStatement();
+    }
+    if (sw->tf != sc->tf)
+    {
+        error("switch and default are in different finally blocks");
+        return new ErrorStatement();
+    }
+    if (sw->isFinal)
+    {
+        error("default statement not allowed in final switch statement");
+        return new ErrorStatement();
+    }
+
+    //printf("DefaultStatement::semantic()\n");
+    sw->sdefault = this;
+
+    statement = statement->semantic(sc);
+    if (statement->isErrorStatement())
+        return statement;
     return this;
 }
 
@@ -3781,7 +3776,7 @@ Statement *GotoDefaultStatement::syntaxCopy()
 
 Statement *GotoDefaultStatement::semantic(Scope *sc)
 {
-    sw = sc->sw;
+    this->sw = sc->sw;
     if (!sw)
     {
         error("goto default not in switch statement");
@@ -3806,7 +3801,8 @@ Statement *GotoCaseStatement::syntaxCopy()
 
 Statement *GotoCaseStatement::semantic(Scope *sc)
 {
-    if (!sc->sw)
+    SwitchStatement *sw = sc->sw;
+    if (!sw)
     {
         error("goto case not in switch statement");
         return new ErrorStatement();
@@ -3815,13 +3811,13 @@ Statement *GotoCaseStatement::semantic(Scope *sc)
     if (exp)
     {
         exp = exp->semantic(sc);
-        exp = exp->implicitCastTo(sc, sc->sw->condition->type);
+        exp = exp->implicitCastTo(sc, sw->condition->type);
         exp = exp->optimize(WANTvalue);
         if (exp->op == TOKerror)
             return new ErrorStatement();
     }
 
-    sc->sw->gotoCases.push(this);
+    sw->gotoCases.push(this);
     return this;
 }
 
