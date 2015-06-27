@@ -1996,7 +1996,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
             if (dim < 1 || dim > 2)
             {
                 error("only one or two arguments for array foreach");
-                goto Lerror2;
+                goto Lerror;
             }
 
             /* Look for special case of parsing char types out of char type
@@ -2016,7 +2016,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                     if (p->storageClass & STCref)
                     {
                         error("foreach: value of UTF conversion cannot be ref");
-                        goto Lerror2;
+                        goto Lerror;
                     }
                     if (dim == 2)
                     {
@@ -2024,7 +2024,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                         if (p->storageClass & STCref)
                         {
                             error("foreach: key cannot be ref");
-                            goto Lerror2;
+                            goto Lerror;
                         }
                     }
                     goto Lapply;
@@ -2053,7 +2053,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                         {
                             error("key type mismatch, %s to ref %s",
                                   var->type->toChars(), p->type->toChars());
-                            goto Lerror2;
+                            goto Lerror;
                         }
                     }
                     if (tab->ty == Tsarray)
@@ -2063,7 +2063,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                         if (!IntRange::fromType(var->type).contains(dimrange))
                         {
                             error("index type '%s' cannot cover index range 0..%llu", p->type->toChars(), ta->dim->toInteger());
-                            goto Lerror2;
+                            goto Lerror;
                         }
                         key->range = new IntRange(SignExtendedNumber(0), dimrange.imax);
                     }
@@ -2087,7 +2087,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                         {
                             error("argument type mismatch, %s to ref %s",
                                   t->toChars(), p->type->toChars());
-                            goto Lerror2;
+                            goto Lerror;
                         }
                     }
                 }
@@ -2204,7 +2204,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
             if (dim < 1 || dim > 2)
             {
                 error("only one or two arguments for associative array foreach");
-                goto Lerror2;
+                goto Lerror;
             }
             goto Lapply;
 
@@ -2326,7 +2326,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                     const char *plural = exps->dim > 1 ? "s" : "";
                     error("cannot infer argument types, expected %d argument%s, not %d",
                           exps->dim, plural, dim);
-                    goto Lerror2;
+                    goto Lerror;
                 }
 
                 for (size_t i = 0; i < dim; i++)
@@ -2368,7 +2368,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
         Lrangeerr:
             error("cannot infer argument types");
-            goto Lerror2;
+            goto Lerror;
         }
         case Tdelegate:
             if (op == TOKforeach_reverse)
@@ -2432,7 +2432,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                         if (!stc)
                         {
                             error("foreach: cannot make %s ref", p->ident->toChars());
-                            goto Lerror2;
+                            goto Lerror;
                         }
                         goto LcopyArg;
                     }
@@ -2489,7 +2489,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 e = new DeclarationExp(loc, vinit);
                 e = e->semantic(sc);
                 if (e->op == TOKerror)
-                    goto Lerror2;
+                    goto Lerror;
             }
             if (taa)
             {
@@ -2503,7 +2503,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                     if (isRef ? !ti->constConv(ta) : !ti->implicitConvTo(ta))
                     {
                         error("foreach: index must be type %s, not %s", ti->toChars(), ta->toChars());
-                        goto Lerror2;
+                        goto Lerror;
                     }
                     p = (*parameters)[1];
                     isRef = (p->storageClass & STCref) != 0;
@@ -2513,7 +2513,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 if (isRef ? !taav->constConv(ta) : !taav->implicitConvTo(ta))
                 {
                     error("foreach: value must be type %s, not %s", taav->toChars(), ta->toChars());
-                    goto Lerror2;
+                    goto Lerror;
                 }
 
                 /* Call:
@@ -2630,11 +2630,11 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 ec = new CallExp(loc, aggr, flde);
                 ec = ec->semantic(sc);
                 if (ec->op == TOKerror)
-                    goto Lerror2;
+                    goto Lerror;
                 if (ec->type != Type::tint32)
                 {
                     error("opApply() function for %s must return an int", tab->toChars());
-                    goto Lerror2;
+                    goto Lerror;
                 }
             }
             else
@@ -2648,11 +2648,11 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 ec = new CallExp(loc, ec, flde);
                 ec = ec->semantic(sc);
                 if (ec->op == TOKerror)
-                    goto Lerror2;
+                    goto Lerror;
                 if (ec->type != Type::tint32)
                 {
                     error("opApply() function for %s must return an int", tab->toChars());
-                    goto Lerror2;
+                    goto Lerror;
                 }
             }
             e = Expression::combine(e, ec);
@@ -2689,13 +2689,13 @@ Statement *ForeachStatement::semantic(Scope *sc)
             break;
         }
         case Terror:
-        Lerror2:
+        Lerror:
             s = new ErrorStatement();
             break;
 
         default:
             error("foreach: %s is not an aggregate type", aggr->type->toChars());
-            goto Lerror2;
+            goto Lerror;
     }
     sc->noctor--;
     sc->pop();
