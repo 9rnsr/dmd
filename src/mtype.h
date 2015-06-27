@@ -250,8 +250,6 @@ public:
     Type *trySemantic(Loc loc, Scope *sc);
     Type *merge();
     Type *merge2();
-    void modToBuffer(OutBuffer *buf);
-    char *modToChars();
 
     /** For each active modifier (MODconst, MODimmutable, etc) call fp with a
     void* for the work param and a string representation of the attribute. */
@@ -931,8 +929,6 @@ public:
 
 bool arrayTypeCompatible(Loc loc, Type *t1, Type *t2);
 bool arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2);
-void MODtoBuffer(OutBuffer *buf, MOD mod);
-char *MODtoChars(MOD mod);
 bool MODimplicitConv(MOD modfrom, MOD modto);
 MATCH MODmethodConv(MOD modfrom, MOD modto);
 MOD MODmerge(MOD mod1, MOD mod2);

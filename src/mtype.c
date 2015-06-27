@@ -35,7 +35,6 @@
 #include "init.h"
 #include "expression.h"
 #include "statement.h"
-#include "attrib.h"
 #include "declaration.h"
 #include "template.h"
 #include "id.h"
@@ -1427,67 +1426,6 @@ MOD MODmerge(MOD mod1, MOD mod2)
     return result;
 }
 
-/*********************************
- * Store modifier name into buf.
- */
-void MODtoBuffer(OutBuffer *buf, MOD mod)
-{
-    switch (mod)
-    {
-        case 0:
-            break;
-
-        case MODimmutable:
-            buf->writestring(Token::tochars[TOKimmutable]);
-            break;
-
-        case MODshared:
-            buf->writestring(Token::tochars[TOKshared]);
-            break;
-
-        case MODshared | MODconst:
-            buf->writestring(Token::tochars[TOKshared]);
-            buf->writeByte(' ');
-            /* fall through */
-        case MODconst:
-            buf->writestring(Token::tochars[TOKconst]);
-            break;
-
-        case MODshared | MODwild:
-            buf->writestring(Token::tochars[TOKshared]);
-            buf->writeByte(' ');
-            /* fall through */
-        case MODwild:
-            buf->writestring(Token::tochars[TOKwild]);
-            break;
-
-        case MODshared | MODwildconst:
-            buf->writestring(Token::tochars[TOKshared]);
-            buf->writeByte(' ');
-            /* fall through */
-        case MODwildconst:
-            buf->writestring(Token::tochars[TOKwild]);
-            buf->writeByte(' ');
-            buf->writestring(Token::tochars[TOKconst]);
-            break;
-
-        default:
-            assert(0);
-    }
-}
-
-
-/*********************************
- * Return modifier name.
- */
-char *MODtoChars(MOD mod)
-{
-    OutBuffer buf;
-    buf.reserve(16);
-    MODtoBuffer(&buf, mod);
-    return buf.extractString();
-}
-
 /********************************
  * For pretty-printing a type.
  */
@@ -1514,29 +1452,6 @@ char *Type::toPrettyChars(bool QualifyTypes)
     return buf.extractString();
 }
 
-/*********************************
- * Store this type's modifier name into buf.
- */
-void Type::modToBuffer(OutBuffer *buf)
-{
-    if (mod)
-    {
-        buf->writeByte(' ');
-        MODtoBuffer(buf, mod);
-    }
-}
-
-/*********************************
- * Return this type's modifier name.
- */
-char *Type::modToChars()
-{
-    OutBuffer buf;
-    buf.reserve(16);
-    modToBuffer(&buf);
-    return buf.extractString();
-}
-
 /** For each active modifier (MODconst, MODimmutable, etc) call fp with a
 void* for the work param and a string representation of the attribute. */
 int Type::modifiersApply(void *param, int (*fp)(void *, const char *))
@@ -1547,7 +1462,7 @@ int Type::modifiersApply(void *param, int (*fp)(void *, const char *))
     {
         if (mod & modsArr[idx])
         {
-            if (int res = fp(param, MODtoChars(modsArr[idx])))
+            if (int res = fp(param, modToChars(modsArr[idx])))
                 return res;
         }
     }
@@ -5533,7 +5448,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             {
                 if (unsigned char m = fparam->type->mod & (MODimmutable | MODconst | MODwild))
                 {
-                    error(loc, "cannot have %s out parameter of type %s", MODtoChars(m), t->toChars());
+                    error(loc, "cannot have %s out parameter of type %s", modToChars(m), t->toChars());
                     errors = true;
                 }
                 else

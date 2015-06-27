@@ -45,4 +45,6 @@ const char *parametersTypeToChars(Parameters *parameters, int varargs);
 
 bool stcToBuffer(OutBuffer *buf, StorageClass stc);
 const char *stcToChars(StorageClass& stc);
+void modToBuffer(OutBuffer *buf, MOD mod);
+const char *modToChars(MOD mod);
 const char *linkageToChars(LINK linkage);

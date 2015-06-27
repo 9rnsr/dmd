@@ -21,7 +21,6 @@
 #include "mtype.h"
 #include "declaration.h"
 #include "id.h"
-#include "attrib.h"
 #include "hdrgen.h"
 
 /********************************* Import ****************************/

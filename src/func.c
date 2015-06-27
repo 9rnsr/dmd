@@ -15,7 +15,6 @@
 #include "mars.h"
 #include "init.h"
 #include "declaration.h"
-#include "attrib.h"
 #include "expression.h"
 #include "scope.h"
 #include "mtype.h"
@@ -527,7 +526,7 @@ void FuncDeclaration::semantic(Scope *sc)
         if (!tf->isNaked() && !(isThis() || isNested()))
         {
             OutBuffer buf;
-            MODtoBuffer(&buf, tf->mod);
+            modToBuffer(&buf, tf->mod);
             error("without 'this' cannot be %s", buf.peekString());
             tf->mod = 0;    // remove qualifiers
         }
@@ -1622,7 +1621,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                              *    as delegating calls to other constructors
                              */
                             if (v->isCtorinit() && !v->type->isMutable() && cd)
-                                error("missing initializer for %s field %s", MODtoChars(v->type->mod), v->toChars());
+                                error("missing initializer for %s field %s", modToChars(v->type->mod), v->toChars());
                             else if (v->storage_class & STCnodefaultctor)
                                 ::error(loc, "field %s must be initialized in constructor", v->toChars());
                             else if (v->type->needsNested())
@@ -3343,8 +3342,11 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
     fargsBuf.writeByte('(');
     argExpTypesToCBuffer(&fargsBuf, fargs);
     fargsBuf.writeByte(')');
-    if (tthis)
-        tthis->modToBuffer(&fargsBuf);
+    if (tthis && tthis->mod)
+    {
+        fargsBuf.writeByte(' ');
+        modToBuffer(&fargsBuf, tthis->mod);
+    }
 
     const int numOverloadsDisplay = 5; // sensible number to display
 
@@ -3387,9 +3389,9 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
                     ::error(loc, "None of the overloads of '%s' are callable using argument types %s, candidates are:",
                             fd->ident->toChars(), fargsBuf.peekString());
                 else
-                    fd->error(loc, "%s%s is not callable using argument types %s",
+                    fd->error(loc, "%s%s%s is not callable using argument types %s",
                         parametersTypeToChars(tf->parameters, tf->varargs),
-                        tf->modToChars(),
+                        (const char *)(tf->mod ? " " : ""), modToChars(tf->mod),
                         fargsBuf.peekString());
             }
 
