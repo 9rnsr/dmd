@@ -90,7 +90,9 @@ public:
     void error(const char *format, ...);
     void warning(const char *format, ...);
     void deprecation(const char *format, ...);
+    virtual Statements *flatten(Scope *sc);
     virtual Statement *semantic(Scope *sc);
+    virtual Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally);
     Statement *semanticScope(Scope *sc, Statement *sbreak, Statement *scontinue);
     Statement *semanticNoScope(Scope *sc);
     virtual Statement *getRelatedLabeled() { return this; }
@@ -100,8 +102,6 @@ public:
     int blockExit(FuncDeclaration *func, bool mustNotThrow);
     bool comeFrom();
     bool hasCode();
-    virtual Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
-    virtual Statements *flatten(Scope *sc);
     virtual Statement *last();
 
     // Avoid dynamic_cast
@@ -151,9 +151,9 @@ public:
     ExpStatement(Loc loc, Dsymbol *s);
     static ExpStatement *create(Loc loc, Expression *exp);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
-    Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     Statements *flatten(Scope *sc);
+    Statement *semantic(Scope *sc);
+    Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally);
 
     ExpStatement *isExpStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -196,8 +196,8 @@ public:
     CompoundStatement(Loc loc, Statement *s1, Statement *s2);
     static CompoundStatement *create(Loc loc, Statement *s1, Statement *s2);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
     Statements *flatten(Scope *sc);
+    Statement *semantic(Scope *sc);
     ReturnStatement *isReturnStatement();
     Statement *last();
 
@@ -294,7 +294,7 @@ public:
     ForStatement(Loc loc, Statement *init, Expression *condition, Expression *increment, Statement *body, Loc endloc);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
+    Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally);
     Statement *getRelatedLabeled() { return relatedLabeled ? relatedLabeled : this; }
     bool hasBreak();
     bool hasContinue();
@@ -378,8 +378,8 @@ public:
 
     ConditionalStatement(Loc loc, Condition *condition, Statement *ifbody, Statement *elsebody);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
     Statements *flatten(Scope *sc);
+    Statement *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -637,7 +637,7 @@ public:
     OnScopeStatement(Loc loc, TOK tok, Statement *statement);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
+    Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -664,8 +664,8 @@ public:
 
     DebugStatement(Loc loc, Statement *statement);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
     Statements *flatten(Scope *sc);
+    Statement *semantic(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -702,9 +702,9 @@ public:
 
     LabelStatement(Loc loc, Identifier *ident, Statement *statement);
     Statement *syntaxCopy();
-    Statement *semantic(Scope *sc);
     Statements *flatten(Scope *sc);
-    Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
+    Statement *semantic(Scope *sc);
+    Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally);
 
     LabelStatement *isLabelStatement() { return this; }
 
@@ -752,8 +752,8 @@ public:
 
     CompoundAsmStatement(Loc loc, Statements *s, StorageClass stc);
     CompoundAsmStatement *syntaxCopy();
-    CompoundAsmStatement *semantic(Scope *sc);
     Statements *flatten(Scope *sc);
+    Statement *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
 };

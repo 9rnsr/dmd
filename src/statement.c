@@ -94,8 +94,37 @@ char *Statement::toChars()
     return buf.extractString();
 }
 
+/*********************************
+ * Flatten out the scope by presenting the statement
+ * as an array of statements.
+ * Returns NULL if no flattening necessary.
+ */
+Statements *Statement::flatten(Scope *sc)
+{
+    return NULL;
+}
+
 Statement *Statement::semantic(Scope *sc)
 {
+    return this;
+}
+
+/****************************************
+ * If this statement has code that needs to run in a finally clause
+ * at the end of the current scope, return that code in the form of
+ * a Statement.
+ * Output:
+ *      *sentry         code executed upon entry to the scope
+ *      *sexception     code executed upon exit from the scope via exception
+ *      *sfinally       code executed in finally block
+ */
+Statement *Statement::scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally)
+{
+    //printf("Statement::scopeCode()\n");
+    //print();
+    *sentry = NULL;
+    *sexception = NULL;
+    *sfinally = NULL;
     return this;
 }
 
@@ -713,37 +742,6 @@ Statement *Statement::last()
     return this;
 }
 
-/****************************************
- * If this statement has code that needs to run in a finally clause
- * at the end of the current scope, return that code in the form of
- * a Statement.
- * Output:
- *      *sentry         code executed upon entry to the scope
- *      *sexception     code executed upon exit from the scope via exception
- *      *sfinally       code executed in finally block
- */
-
-Statement *Statement::scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally)
-{
-    //printf("Statement::scopeCode()\n");
-    //print();
-    *sentry = NULL;
-    *sexception = NULL;
-    *sfinally = NULL;
-    return this;
-}
-
-/*********************************
- * Flatten out the scope by presenting the statement
- * as an array of statements.
- * Returns NULL if no flattening necessary.
- */
-
-Statements *Statement::flatten(Scope *sc)
-{
-    return NULL;
-}
-
 /******************************** ErrorStatement ***************************/
 
 ErrorStatement::ErrorStatement()
@@ -800,91 +798,6 @@ ExpStatement *ExpStatement::create(Loc loc, Expression *exp)
 Statement *ExpStatement::syntaxCopy()
 {
     return new ExpStatement(loc, exp ? exp->syntaxCopy() : NULL);
-}
-
-Statement *ExpStatement::semantic(Scope *sc)
-{
-    if (exp)
-    {
-        //printf("ExpStatement::semantic() %s\n", exp->toChars());
-
-#if 0   // Doesn't work because of difficulty dealing with things like a.b.c!(args).Foo!(args)
-        // See if this should be rewritten as a TemplateMixin
-        if (exp->op == TOKdeclaration)
-        {
-            DeclarationExp *de = (DeclarationExp *)exp;
-            Dsymbol *s = de->declaration;
-
-            printf("s: %s %s\n", s->kind(), s->toChars());
-            VarDeclaration *v = s->isVarDeclaration();
-            if (v)
-            {
-                printf("%s, %d\n", v->type->toChars(), v->type->ty);
-            }
-        }
-#endif
-
-        exp = exp->semantic(sc);
-        exp = resolveProperties(sc, exp);
-        exp = exp->addDtorHook(sc);
-        discardValue(exp);
-        exp = exp->optimize(WANTvalue);
-        exp = checkGC(sc, exp);
-        if (exp->op == TOKerror)
-            return new ErrorStatement();
-    }
-    return this;
-}
-
-Statement *ExpStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally)
-{
-    //printf("ExpStatement::scopeCode()\n");
-    //print();
-
-    *sentry = NULL;
-    *sexception = NULL;
-    *sfinally = NULL;
-
-    if (exp)
-    {
-        if (exp->op == TOKdeclaration)
-        {
-            DeclarationExp *de = (DeclarationExp *)(exp);
-            VarDeclaration *v = de->declaration->isVarDeclaration();
-            if (v && !v->noscope && !v->isDataseg())
-            {
-                Expression *e = v->edtor;
-                if (e)
-                {
-                    //printf("dtor is: "); e->print();
-#if 0
-                    if (v->type->toBasetype()->ty == Tstruct)
-                    {
-                        /* Need a 'gate' to turn on/off destruction,
-                         * in case v gets moved elsewhere.
-                         */
-                        Identifier *id = Identifier::generateId("__runDtor");
-                        ExpInitializer *ie = new ExpInitializer(loc, new IntegerExp(1));
-                        VarDeclaration *rd = new VarDeclaration(loc, Type::tint32, id, ie);
-                        rd->storage_class |= STCtemp;
-                        *sentry = new ExpStatement(loc, rd);
-                        v->rundtor = rd;
-
-                        /* Rewrite e as:
-                         *  rundtor && e
-                         */
-                        Expression *ve = new VarExp(loc, v->rundtor);
-                        e = new AndAndExp(loc, ve, e);
-                        e->type = Type::tbool;
-                    }
-#endif
-                    *sfinally = new DtorExpStatement(loc, e, v);
-                }
-                v->noscope = 1;         // don't add in dtor again
-            }
-        }
-    }
-    return this;
 }
 
 /****************************************
@@ -1019,6 +932,91 @@ Statements *ExpStatement::flatten(Scope *sc)
     return NULL;
 }
 
+Statement *ExpStatement::semantic(Scope *sc)
+{
+    if (exp)
+    {
+        //printf("ExpStatement::semantic() %s\n", exp->toChars());
+
+#if 0   // Doesn't work because of difficulty dealing with things like a.b.c!(args).Foo!(args)
+        // See if this should be rewritten as a TemplateMixin
+        if (exp->op == TOKdeclaration)
+        {
+            DeclarationExp *de = (DeclarationExp *)exp;
+            Dsymbol *s = de->declaration;
+
+            printf("s: %s %s\n", s->kind(), s->toChars());
+            VarDeclaration *v = s->isVarDeclaration();
+            if (v)
+            {
+                printf("%s, %d\n", v->type->toChars(), v->type->ty);
+            }
+        }
+#endif
+
+        exp = exp->semantic(sc);
+        exp = resolveProperties(sc, exp);
+        exp = exp->addDtorHook(sc);
+        discardValue(exp);
+        exp = exp->optimize(WANTvalue);
+        exp = checkGC(sc, exp);
+        if (exp->op == TOKerror)
+            return new ErrorStatement();
+    }
+    return this;
+}
+
+Statement *ExpStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally)
+{
+    //printf("ExpStatement::scopeCode()\n");
+    //print();
+
+    *sentry = NULL;
+    *sexception = NULL;
+    *sfinally = NULL;
+
+    if (exp)
+    {
+        if (exp->op == TOKdeclaration)
+        {
+            DeclarationExp *de = (DeclarationExp *)(exp);
+            VarDeclaration *v = de->declaration->isVarDeclaration();
+            if (v && !v->noscope && !v->isDataseg())
+            {
+                Expression *e = v->edtor;
+                if (e)
+                {
+                    //printf("dtor is: "); e->print();
+#if 0
+                    if (v->type->toBasetype()->ty == Tstruct)
+                    {
+                        /* Need a 'gate' to turn on/off destruction,
+                         * in case v gets moved elsewhere.
+                         */
+                        Identifier *id = Identifier::generateId("__runDtor");
+                        ExpInitializer *ie = new ExpInitializer(loc, new IntegerExp(1));
+                        VarDeclaration *rd = new VarDeclaration(loc, Type::tint32, id, ie);
+                        rd->storage_class |= STCtemp;
+                        *sentry = new ExpStatement(loc, rd);
+                        v->rundtor = rd;
+
+                        /* Rewrite e as:
+                         *  rundtor && e
+                         */
+                        Expression *ve = new VarExp(loc, v->rundtor);
+                        e = new AndAndExp(loc, ve, e);
+                        e->type = Type::tbool;
+                    }
+#endif
+                    *sfinally = new DtorExpStatement(loc, e, v);
+                }
+                v->noscope = 1;         // don't add in dtor again
+            }
+        }
+    }
+    return this;
+}
+
 /******************************** DtorExpStatement ***************************/
 
 DtorExpStatement::DtorExpStatement(Loc loc, Expression *exp, VarDeclaration *v)
@@ -1134,6 +1132,11 @@ Statement *CompoundStatement::syntaxCopy()
         (*a)[i] = s ? s->syntaxCopy() : NULL;
     }
     return new CompoundStatement(loc, a);
+}
+
+Statements *CompoundStatement::flatten(Scope *sc)
+{
+    return statements;
 }
 
 Statement *CompoundStatement::semantic(Scope *sc)
@@ -1292,11 +1295,6 @@ Statement *CompoundStatement::semantic(Scope *sc)
         return (*statements)[0];
     }
     return this;
-}
-
-Statements *CompoundStatement::flatten(Scope *sc)
-{
-    return statements;
 }
 
 ReturnStatement *CompoundStatement::isReturnStatement()
@@ -3063,6 +3061,27 @@ Statement *ConditionalStatement::syntaxCopy()
         elsebody ? elsebody->syntaxCopy() : NULL);
 }
 
+Statements *ConditionalStatement::flatten(Scope *sc)
+{
+    Statement *s;
+
+    //printf("ConditionalStatement::flatten()\n");
+    if (condition->include(sc, NULL))
+    {
+        DebugCondition *dc = condition->isDebugCondition();
+        if (dc)
+            s = new DebugStatement(loc, ifbody);
+        else
+            s = ifbody;
+    }
+    else
+        s = elsebody;
+
+    Statements *a = new Statements();
+    a->push(s);
+    return a;
+}
+
 Statement *ConditionalStatement::semantic(Scope *sc)
 {
     //printf("ConditionalStatement::semantic()\n");
@@ -3090,27 +3109,6 @@ Statement *ConditionalStatement::semantic(Scope *sc)
             elsebody = elsebody->semantic(sc);
         return elsebody;
     }
-}
-
-Statements *ConditionalStatement::flatten(Scope *sc)
-{
-    Statement *s;
-
-    //printf("ConditionalStatement::flatten()\n");
-    if (condition->include(sc, NULL))
-    {
-        DebugCondition *dc = condition->isDebugCondition();
-        if (dc)
-            s = new DebugStatement(loc, ifbody);
-        else
-            s = ifbody;
-    }
-    else
-        s = elsebody;
-
-    Statements *a = new Statements();
-    a->push(s);
-    return a;
 }
 
 /******************************** PragmaStatement ***************************/
@@ -4990,18 +4988,6 @@ Statement *DebugStatement::syntaxCopy()
         statement ? statement->syntaxCopy() : NULL);
 }
 
-Statement *DebugStatement::semantic(Scope *sc)
-{
-    if (statement)
-    {
-        sc = sc->push();
-        sc->flags |= SCOPEdebug;
-        statement = statement->semantic(sc);
-        sc->pop();
-    }
-    return statement;
-}
-
 Statements *DebugStatement::flatten(Scope *sc)
 {
     Statements *a = statement ? statement->flatten(sc) : NULL;
@@ -5016,6 +5002,18 @@ Statements *DebugStatement::flatten(Scope *sc)
     }
 
     return a;
+}
+
+Statement *DebugStatement::semantic(Scope *sc)
+{
+    if (statement)
+    {
+        sc = sc->push();
+        sc->flags |= SCOPEdebug;
+        statement = statement->semantic(sc);
+        sc->pop();
+    }
+    return statement;
 }
 
 /******************************** GotoStatement ***************************/
@@ -5148,6 +5146,29 @@ Statement *LabelStatement::syntaxCopy()
     return new LabelStatement(loc, ident, statement ? statement->syntaxCopy() : NULL);
 }
 
+Statements *LabelStatement::flatten(Scope *sc)
+{
+    Statements *a = NULL;
+
+    if (statement)
+    {
+        a = statement->flatten(sc);
+        if (a)
+        {
+            if (!a->dim)
+            {
+                a->push(new ExpStatement(loc, (Expression *)NULL));
+            }
+
+            // reuse 'this' LabelStatement
+            this->statement = (*a)[0];
+            (*a)[0] = this;
+        }
+    }
+
+    return a;
+}
+
 Statement *LabelStatement::semantic(Scope *sc)
 {
     //printf("LabelStatement::semantic()\n");
@@ -5183,41 +5204,18 @@ Statement *LabelStatement::semantic(Scope *sc)
     return this;
 }
 
-Statement *LabelStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally)
+Statement *LabelStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally)
 {
     //printf("LabelStatement::scopeCode()\n");
     if (statement)
-        statement = statement->scopeCode(sc, sentry, sexit, sfinally);
+        statement = statement->scopeCode(sc, sentry, sexception, sfinally);
     else
     {
         *sentry = NULL;
-        *sexit = NULL;
+        *sexception = NULL;
         *sfinally = NULL;
     }
     return this;
-}
-
-Statements *LabelStatement::flatten(Scope *sc)
-{
-    Statements *a = NULL;
-
-    if (statement)
-    {
-        a = statement->flatten(sc);
-        if (a)
-        {
-            if (!a->dim)
-            {
-                a->push(new ExpStatement(loc, (Expression *)NULL));
-            }
-
-            // reuse 'this' LabelStatement
-            this->statement = (*a)[0];
-            (*a)[0] = this;
-        }
-    }
-
-    return a;
 }
 
 /******************************** LabelDsymbol ***************************/
@@ -5281,7 +5279,7 @@ Statements *CompoundAsmStatement::flatten(Scope *sc)
     return NULL;
 }
 
-CompoundAsmStatement *CompoundAsmStatement::semantic(Scope *sc)
+Statement *CompoundAsmStatement::semantic(Scope *sc)
 {
     for (size_t i = 0; i < statements->dim; i++)
     {
