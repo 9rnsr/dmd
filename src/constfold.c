@@ -186,15 +186,15 @@ UnionExp Add(Type *type, Expression *e1, Expression *e2)
 
         switch (x)
         {
-            case 0+0:   v = complex_t(r1 + r2, 0);      break;
-            case 0+1:   v = complex_t(r1, i2);          break;
+            case 0+0:   v = complex_t(r1 + r2, 0);                      break;
+            case 0+1:   v = complex_t(r1, i2);                          break;
             case 0+2:   v = complex_t(r1 + creall(c2), cimagl(c2));     break;
-            case 3+0:   v = complex_t(r2, i1);          break;
-            case 3+1:   v = complex_t(0, i1 + i2);      break;
+            case 3+0:   v = complex_t(r2, i1);                          break;
+            case 3+1:   v = complex_t(0, i1 + i2);                      break;
             case 3+2:   v = complex_t(creall(c2), i1 + cimagl(c2));     break;
             case 6+0:   v = complex_t(creall(c1) + r2, cimagl(c2));     break;
             case 6+1:   v = complex_t(creall(c1), cimagl(c1) + i2);     break;
-            case 6+2:   v = c1 + c2;                    break;
+            case 6+2:   v = c1 + c2;                                    break;
             default: assert(0);
         }
         new(&ue) ComplexExp(loc, v, type);
@@ -278,15 +278,15 @@ UnionExp Min(Type *type, Expression *e1, Expression *e2)
 
         switch (x)
         {
-            case 0+0:   v = complex_t(r1 - r2, 0);      break;
-            case 0+1:   v = complex_t(r1, -i2);         break;
+            case 0+0:   v = complex_t(r1 - r2, 0);                      break;
+            case 0+1:   v = complex_t(r1, -i2);                         break;
             case 0+2:   v = complex_t(r1 - creall(c2), -cimagl(c2));    break;
-            case 3+0:   v = complex_t(-r2, i1);         break;
-            case 3+1:   v = complex_t(0, i1 - i2);      break;
+            case 3+0:   v = complex_t(-r2, i1);                         break;
+            case 3+1:   v = complex_t(0, i1 - i2);                      break;
             case 3+2:   v = complex_t(-creall(c2), i1 - cimagl(c2));    break;
             case 6+0:   v = complex_t(creall(c1) - r2, cimagl(c1));     break;
             case 6+1:   v = complex_t(creall(c1), cimagl(c1) - i2);     break;
-            case 6+2:   v = c1 - c2;                    break;
+            case 6+2:   v = c1 - c2;                                    break;
             default: assert(0);
         }
         new(&ue) ComplexExp(loc, v, type);
@@ -402,12 +402,9 @@ UnionExp Div(Type *type, Expression *e1, Expression *e2)
     }
     else
     {
-        sinteger_t n1;
-        sinteger_t n2;
+        sinteger_t n1 = e1->toInteger();
+        sinteger_t n2 = e2->toInteger();
         sinteger_t n;
-
-        n1 = e1->toInteger();
-        n2 = e2->toInteger();
         if (n2 == 0)
         {
             e2->error("divide by 0");
@@ -434,13 +431,11 @@ UnionExp Mod(Type *type, Expression *e1, Expression *e2)
         if (e2->type->isreal())
         {
             real_t r2 = e2->toReal();
-
             c = complex_t(Port::fmodl(e1->toReal(), r2), Port::fmodl(e1->toImaginary(), r2));
         }
         else if (e2->type->isimaginary())
         {
             real_t i2 = e2->toImaginary();
-
             c = complex_t(Port::fmodl(e1->toReal(), i2), Port::fmodl(e1->toImaginary(), i2));
         }
         else
@@ -457,12 +452,9 @@ UnionExp Mod(Type *type, Expression *e1, Expression *e2)
     }
     else
     {
-        sinteger_t n1;
-        sinteger_t n2;
+        sinteger_t n1 = e1->toInteger();
+        sinteger_t n2 = e2->toInteger();
         sinteger_t n;
-
-        n1 = e1->toInteger();
-        n2 = e2->toInteger();
         if (n2 == 0)
         {
             e2->error("divide by 0");
@@ -600,46 +592,46 @@ UnionExp Shr(Type *type, Expression *e1, Expression *e2)
     switch (e1->type->toBasetype()->ty)
     {
         case Tint8:
-                value = (d_int8)(value) >> count;
-                break;
+            value = (d_int8)(value) >> count;
+            break;
 
         case Tuns8:
         case Tchar:
-                value = (d_uns8)(value) >> count;
-                break;
+            value = (d_uns8)(value) >> count;
+            break;
 
         case Tint16:
-                value = (d_int16)(value) >> count;
-                break;
+            value = (d_int16)(value) >> count;
+            break;
 
         case Tuns16:
         case Twchar:
-                value = (d_uns16)(value) >> count;
-                break;
+            value = (d_uns16)(value) >> count;
+            break;
 
         case Tint32:
-                value = (d_int32)(value) >> count;
-                break;
+            value = (d_int32)(value) >> count;
+            break;
 
         case Tuns32:
         case Tdchar:
-                value = (d_uns32)(value) >> count;
-                break;
+            value = (d_uns32)(value) >> count;
+            break;
 
         case Tint64:
-                value = (d_int64)(value) >> count;
-                break;
+            value = (d_int64)(value) >> count;
+            break;
 
         case Tuns64:
-                value = (d_uns64)(value) >> count;
-                break;
+            value = (d_uns64)(value) >> count;
+            break;
 
         case Terror:
-                new(&ue) ErrorExp();
-                return ue;
+            new(&ue) ErrorExp();
+            return ue;
 
         default:
-                assert(0);
+            assert(0);
     }
     new(&ue) IntegerExp(loc, value, type);
     return ue;
@@ -659,34 +651,34 @@ UnionExp Ushr(Type *type, Expression *e1, Expression *e2)
         case Tint8:
         case Tuns8:
         case Tchar:
-                // Possible only with >>>=. >>> always gets promoted to int.
-                value = (value & 0xFF) >> count;
-                break;
+            // Possible only with >>>=. >>> always gets promoted to int.
+            value = (value & 0xFF) >> count;
+            break;
 
         case Tint16:
         case Tuns16:
         case Twchar:
-                // Possible only with >>>=. >>> always gets promoted to int.
-                value = (value & 0xFFFF) >> count;
-                break;
+            // Possible only with >>>=. >>> always gets promoted to int.
+            value = (value & 0xFFFF) >> count;
+            break;
 
         case Tint32:
         case Tuns32:
         case Tdchar:
-                value = (value & 0xFFFFFFFF) >> count;
-                break;
+            value = (value & 0xFFFFFFFF) >> count;
+            break;
 
         case Tint64:
         case Tuns64:
-                value = (d_uns64)(value) >> count;
-                break;
+            value = (d_uns64)(value) >> count;
+            break;
 
         case Terror:
-                new(&ue) ErrorExp();
-                return ue;
+            new(&ue) ErrorExp();
+            return ue;
 
         default:
-                assert(0);
+            assert(0);
     }
     new(&ue) IntegerExp(loc, value, type);
     return ue;
@@ -769,7 +761,6 @@ UnionExp Equal(TOK op, Type *type, Expression *e1, Expression *e2)
     {
         StringExp *es1 = (StringExp *)e1;
         StringExp *es2 = (StringExp *)e2;
-
         if (es1->sz != es2->sz)
         {
             assert(global.errors);
@@ -786,7 +777,6 @@ UnionExp Equal(TOK op, Type *type, Expression *e1, Expression *e2)
     {
         ArrayLiteralExp *es1 = (ArrayLiteralExp *)e1;
         ArrayLiteralExp *es2 = (ArrayLiteralExp *)e2;
-
         if ((!es1->elements || !es1->elements->dim) &&
             (!es2->elements || !es2->elements->dim))
             cmp = 1;            // both arrays are empty
@@ -849,7 +839,6 @@ UnionExp Equal(TOK op, Type *type, Expression *e1, Expression *e2)
     {
         StructLiteralExp *es1 = (StructLiteralExp *)e1;
         StructLiteralExp *es2 = (StructLiteralExp *)e2;
-
         if (es1->sd != es2->sd)
             cmp = 0;
         else if ((!es1->elements || !es1->elements->dim) &&
@@ -951,7 +940,6 @@ UnionExp Identity(TOK op, Type *type, Expression *e1, Expression *e2)
     {
         SymOffExp *es1 = (SymOffExp *)e1;
         SymOffExp *es2 = (SymOffExp *)e2;
-
         cmp = (es1->var == es2->var && es1->offset == es2->offset);
     }
     else
@@ -1257,19 +1245,16 @@ L1:
     else if (tb->isreal())
     {
         real_t value = e1->toReal();
-
         new(&ue) RealExp(loc, value, type);
     }
     else if (tb->isimaginary())
     {
         real_t value = e1->toImaginary();
-
         new(&ue) RealExp(loc, value, type);
     }
     else if (tb->iscomplex())
     {
         complex_t value = e1->toComplex();
-
         new(&ue) ComplexExp(loc, value, type);
     }
     else if (tb->isscalar())
@@ -1321,21 +1306,18 @@ UnionExp ArrayLength(Type *type, Expression *e1)
     if (e1->op == TOKstring)
     {
         StringExp *es1 = (StringExp *)e1;
-
         new(&ue) IntegerExp(loc, es1->len, type);
     }
     else if (e1->op == TOKarrayliteral)
     {
         ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
         size_t dim = ale->elements ? ale->elements->dim : 0;
-
         new(&ue) IntegerExp(loc, dim, type);
     }
     else if (e1->op == TOKassocarrayliteral)
     {
         AssocArrayLiteralExp *ale = (AssocArrayLiteralExp *)e1;
         size_t dim = ale->keys->dim;
-
         new(&ue) IntegerExp(loc, dim, type);
     }
     else if (e1->type->toBasetype()->ty == Tsarray)

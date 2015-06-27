@@ -4937,8 +4937,8 @@ public:
         // If the comma returns a temporary variable, it needs to be an lvalue
         // (this is particularly important for struct constructors)
         if (e->e1->op == TOKdeclaration && e->e2->op == TOKvar &&
-            ((DeclarationExp *)e->e1)->declaration == ((VarExp*)e->e2)->var &&
-            ((VarExp*)e->e2)->var->storage_class & STCctfe)  // same as Expression::isTemp
+            ((DeclarationExp *)e->e1)->declaration == ((VarExp *)e->e2)->var &&
+            ((VarExp *)e->e2)->var->storage_class & STCctfe)  // same as Expression::isTemp
         {
             VarExp *ve = (VarExp *)e->e2;
             VarDeclaration *v = ve->var->isVarDeclaration();
@@ -5913,14 +5913,6 @@ public:
             return;
         }
 
-        VarDeclaration *v = e->var->isVarDeclaration();
-        if (!v)
-        {
-            e->error("CTFE internal error: %s", e->toChars());
-            result = CTFEExp::cantexp;
-            return;
-        }
-
         if (ex->op == TOKnull)
         {
             if (ex->type->toBasetype()->ty == Tclass)
@@ -5930,39 +5922,35 @@ public:
             result = CTFEExp::cantexp;
             return;
         }
-        if (ex->op != TOKstructliteral && ex->op != TOKclassreference)
+
+        StructLiteralExp *sle =
+            ex->op == TOKstructliteral  ? ((StructLiteralExp  *)ex):
+            ex->op == TOKclassreference ? ((ClassReferenceExp *)ex)->value : NULL;
+        VarDeclaration *v = e->var->isVarDeclaration();
+        if (!sle || !v)
         {
-            e->error("%s.%s is not yet implemented at compile time", e->e1->toChars(), e->var->toChars());
+            e->error("CTFE internal error: dotvar");
             result = CTFEExp::cantexp;
             return;
         }
-
-        StructLiteralExp *se;
-        int i;
 
         // We can't use getField, because it makes a copy
-        if (ex->op == TOKclassreference)
+        int fieldi = ex->op == TOKstructliteral
+            ? findFieldIndexByName(sle->sd, v)
+            : ((ClassReferenceExp *)ex)->findFieldIndexByName(v);
+        if (fieldi == -1)
         {
-            se = ((ClassReferenceExp *)ex)->value;
-            i  = ((ClassReferenceExp *)ex)->findFieldIndexByName(v);
-        }
-        else
-        {
-            se = (StructLiteralExp *)ex;
-            i  = findFieldIndexByName(se->sd, v);
-        }
-        if (i == -1)
-        {
-            e->error("couldn't find field %s of type %s in %s", v->toChars(), e->type->toChars(), se->toChars());
+            e->error("CTFE internal error: cannot find field %s in %s", v->toChars(), ex->toChars());
             result = CTFEExp::cantexp;
             return;
         }
+        assert(0 <= fieldi && fieldi < sle->elements->dim);
 
         if (goal == ctfeNeedLvalue)
         {
-            Expression *ev = (*se->elements)[i];
+            Expression *ev = (*sle->elements)[fieldi];
             if (!ev || ev->op == TOKvoid)
-                (*se->elements)[i] = voidInitLiteral(e->type, v).copy();
+                (*sle->elements)[fieldi] = voidInitLiteral(e->type, v).copy();
             // just return the (simplified) dotvar expression as a CTFE reference
             if (e->e1 == ex)
                 result = e;
@@ -5974,7 +5962,7 @@ public:
             return;
         }
 
-        result = (*se->elements)[i];
+        result = (*sle->elements)[fieldi];
         if (!result)
         {
             e->error("Internal Compiler Error: null field %s", v->toChars());
@@ -6002,7 +5990,7 @@ public:
             TypeSArray *tsa = (TypeSArray *)v->type;
             size_t len = (size_t)tsa->dim->toInteger();
             result = createBlockDuplicatedArrayLiteral(ex->loc, v->type, ex, len);
-            (*se->elements)[i] = result;
+            (*sle->elements)[fieldi] = result;
         }
     #if LOG
         if (CTFEExp::isCantExp(result))

@@ -556,14 +556,14 @@ ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Loc loc, Type *type,
 StringExp *createBlockDuplicatedStringLiteral(Loc loc, Type *type,
         unsigned value, size_t dim, unsigned char sz)
 {
-    utf8_t *s = (utf8_t *)mem.xcalloc(dim + 1, sz);
+    void *s = mem.xcalloc(dim + 1, sz);
     for (size_t elemi = 0; elemi < dim; ++elemi)
     {
         switch (sz)
         {
-            case 1:     s[elemi] = (utf8_t)value; break;
-            case 2:     ((unsigned short *)s)[elemi] = (unsigned short)value; break;
-            case 4:     ((unsigned *)s)[elemi] = value; break;
+            case 1:     (( utf8_t *)s)[elemi] = ( utf8_t)value; break;
+            case 2:     ((utf16_t *)s)[elemi] = (utf16_t)value; break;
+            case 4:     ((utf32_t *)s)[elemi] = (utf32_t)value; break;
             default:    assert(0);
         }
     }
@@ -579,19 +579,15 @@ StringExp *createBlockDuplicatedStringLiteral(Loc loc, Type *type,
 bool isAssocArray(Type *t)
 {
     t = t->toBasetype();
-    if (t->ty == Taarray)
-        return true;
-    return false;
+    return (t->ty == Taarray);
 }
 
 // Given a template AA type, extract the corresponding built-in AA type
 TypeAArray *toBuiltinAAType(Type *t)
 {
     t = t->toBasetype();
-    if (t->ty == Taarray)
-        return (TypeAArray *)t;
-    assert(0);
-    return NULL;
+    assert(t->ty == Taarray);
+    return (TypeAArray *)t;
 }
 
 /************** TypeInfo operations ************************************/
