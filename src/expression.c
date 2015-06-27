@@ -9868,10 +9868,12 @@ Expression *SliceExp::semantic(Scope *sc)
     if (type)
         return this;
 
-Lagain:
     if (Expression *ex = unaSemantic(sc))
         return ex;
     e1 = resolveProperties(sc, e1);
+Lagain:
+    if (e1->op == TOKerror)
+        return e1;
     if (e1->op == TOKtype && e1->type->ty != Ttuple)
     {
         if (lwr || upr)
@@ -9976,15 +9978,9 @@ Lagain:
             return new ErrorExp();
         }
     }
-    else if (t1b == Type::terror)
-    {
-        return new ErrorExp();
-    }
     else
     {
     Lerror:
-        if (e1->op == TOKerror)
-            return e1;
         error("%s cannot be sliced with []",
             t1b->ty == Tvoid ? e1->toChars() : t1b->toChars());
         return new ErrorExp();
