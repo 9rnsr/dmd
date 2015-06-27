@@ -2072,7 +2072,6 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
 
                 Expression *et = new TypeidExp(loc, type);
                 et = new DotIdExp(loc, et, Id::destroy);
-
                 e = new CallExp(loc, et, args);
             }
             else
@@ -2112,10 +2111,7 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
             if (1 || onstack || cd->dtors.dim)  // if any destructors
             {
                 // delete this;
-                Expression *ec;
-
-                ec = new VarExp(loc, this);
-                e = new DeleteExp(loc, ec);
+                e = new DeleteExp(loc, new VarExp(loc, this));
                 e->type = Type::tvoid;
                 break;
             }
