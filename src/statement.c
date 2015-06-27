@@ -94,7 +94,6 @@ char *Statement::toChars()
     return buf.extractString();
 }
 
-
 Statement *Statement::semantic(Scope *sc)
 {
     return this;
@@ -745,7 +744,6 @@ Statements *Statement::flatten(Scope *sc)
     return NULL;
 }
 
-
 /******************************** ErrorStatement ***************************/
 
 ErrorStatement::ErrorStatement()
@@ -813,7 +811,8 @@ Statement *ExpStatement::semantic(Scope *sc)
 #if 0   // Doesn't work because of difficulty dealing with things like a.b.c!(args).Foo!(args)
         // See if this should be rewritten as a TemplateMixin
         if (exp->op == TOKdeclaration)
-        {   DeclarationExp *de = (DeclarationExp *)exp;
+        {
+            DeclarationExp *de = (DeclarationExp *)exp;
             Dsymbol *s = de->declaration;
 
             printf("s: %s %s\n", s->kind(), s->toChars());
@@ -860,7 +859,8 @@ Statement *ExpStatement::scopeCode(Scope *sc, Statement **sentry, Statement **se
                     //printf("dtor is: "); e->print();
 #if 0
                     if (v->type->toBasetype()->ty == Tstruct)
-                    {   /* Need a 'gate' to turn on/off destruction,
+                    {
+                        /* Need a 'gate' to turn on/off destruction,
                          * in case v gets moved elsewhere.
                          */
                         Identifier *id = Identifier::generateId("__runDtor");
@@ -1321,7 +1321,8 @@ Statement *CompoundStatement::last()
     Statement *s = NULL;
 
     for (size_t i = statements->dim; i; --i)
-    {   s = (*statements)[i - 1];
+    {
+        s = (*statements)[i - 1];
         if (s)
         {
             s = s->last();
@@ -1429,12 +1430,11 @@ ReturnStatement *ScopeStatement::isReturnStatement()
 }
 
 Statement *ScopeStatement::semantic(Scope *sc)
-{   ScopeDsymbol *sym;
-
+{
     //printf("ScopeStatement::semantic(sc = %p)\n", sc);
     if (statement)
     {
-        sym = new ScopeDsymbol();
+        ScopeDsymbol *sym = new ScopeDsymbol();
         sym->parent = sc->scopesym;
         sc = sc->push(sym);
 
@@ -1553,10 +1553,8 @@ Statement *DoStatement::semantic(Scope *sc)
 
     if (condition->op == TOKerror)
         return new ErrorStatement();
-
     if (body && body->isErrorStatement())
         return body;
-
     return this;
 }
 
@@ -2733,7 +2731,6 @@ bool ForeachStatement::hasContinue()
 
 /**************************** ForeachRangeStatement ***************************/
 
-
 ForeachRangeStatement::ForeachRangeStatement(Loc loc, TOK op, Parameter *prm,
         Expression *lwr, Expression *upr, Statement *body, Loc endloc)
     : Statement(loc)
@@ -3153,7 +3150,8 @@ Statement *PragmaStatement::semantic(Scope *sc)
                 // pragma(msg) is allowed to contain types as well as expressions
                 e = ctfeInterpretForPragmaMsg(e);
                 if (e->op == TOKerror)
-                {   errorSupplemental(loc, "while evaluating pragma(msg, %s)", (*args)[i]->toChars());
+                {
+                    errorSupplemental(loc, "while evaluating pragma(msg, %s)", (*args)[i]->toChars());
                     goto Lerror;
                 }
                 StringExp *se = e->toStringExp();
@@ -3614,7 +3612,6 @@ int CaseStatement::compare(RootObject *obj)
 
 /******************************** CaseRangeStatement ***************************/
 
-
 CaseRangeStatement::CaseRangeStatement(Loc loc, Expression *first,
         Expression *last, Statement *s)
     : Statement(loc)
@@ -3633,7 +3630,8 @@ Statement *CaseRangeStatement::syntaxCopy()
 }
 
 Statement *CaseRangeStatement::semantic(Scope *sc)
-{   SwitchStatement *sw = sc->sw;
+{
+    SwitchStatement *sw = sc->sw;
 
     if (sw == NULL)
     {
@@ -3672,7 +3670,6 @@ Statement *CaseRangeStatement::semantic(Scope *sc)
 
     uinteger_t fval = first->toInteger();
     uinteger_t lval = last->toInteger();
-
 
     if ( (first->type->isunsigned()  &&  fval > lval) ||
         (!first->type->isunsigned()  &&  (sinteger_t)fval > (sinteger_t)lval))
@@ -4374,7 +4371,8 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
             return new ErrorStatement();
         }
         else if (cd->isInterfaceDeclaration())
-        {   /* Cast the interface to an object, as the object has the monitor,
+        {
+            /* Cast the interface to an object, as the object has the monitor,
              * not the interface.
              */
             if (!ClassDeclaration::object)
@@ -4635,16 +4633,19 @@ Statement *TryCatchStatement::semantic(Scope *sc)
      */
     bool catchErrors = false;
     for (size_t i = 0; i < catches->dim; i++)
-    {   Catch *c = (*catches)[i];
+    {
+        Catch *c = (*catches)[i];
         c->semantic(sc);
         if (c->type->ty == Terror)
-        {   catchErrors = true;
+        {
+            catchErrors = true;
             continue;
         }
 
         // Determine if current catch 'hides' any previous catches
         for (size_t j = 0; j < i; j++)
-        {   Catch *cj = (*catches)[j];
+        {
+            Catch *cj = (*catches)[j];
             char *si = c->loc.toChars();
             char *sj = cj->loc.toChars();
 
@@ -4668,13 +4669,15 @@ Statement *TryCatchStatement::semantic(Scope *sc)
     if (!(body->blockExit(sc->func, false) & BEthrow) && ClassDeclaration::exception)
     {
         for (size_t i = 0; i < catches->dim; i++)
-        {   Catch *c = (*catches)[i];
+        {
+            Catch *c = (*catches)[i];
 
             /* If catch exception type is derived from Exception
              */
             if (c->type->toBasetype()->implicitConvTo(ClassDeclaration::exception->type) &&
                 (!c->handler || !c->handler->comeFrom()))
-            {   // Remove c from the array of catches
+            {
+                // Remove c from the array of catches
                 catches->remove(i);
                 --i;
             }
@@ -4804,12 +4807,14 @@ Statement *TryFinallyStatement::semantic(Scope *sc)
 {
     //printf("TryFinallyStatement::semantic()\n");
     body = body->semantic(sc);
+
     sc = sc->push();
     sc->tf = this;
     sc->sbreak = NULL;
     sc->scontinue = NULL;       // no break or continue out of finally block
     finalbody = finalbody->semanticNoScope(sc);
     sc->pop();
+
     if (!body)
         return finalbody;
     if (!finalbody)
@@ -5006,8 +5011,8 @@ Statements *DebugStatement::flatten(Scope *sc)
     if (a)
     {
         for (size_t i = 0; i < a->dim; i++)
-        {   Statement *s = (*a)[i];
-
+        {
+            Statement *s = (*a)[i];
             s = new DebugStatement(loc, s);
             (*a)[i] = s;
         }
@@ -5236,7 +5241,6 @@ LabelDsymbol *LabelDsymbol::isLabel()           // is this a LabelDsymbol()?
 {
     return this;
 }
-
 
 /************************ AsmStatement ***************************************/
 
