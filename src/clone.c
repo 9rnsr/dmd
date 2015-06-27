@@ -828,7 +828,7 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
         {
             // typeid(typeof(v)).postblit(cast(void*)&this.v);
             Expression *ea = new AddrExp(loc, ex);
-            ea = new CastExp(loc, ea, Type::tvoid->pointerTo());
+            ea = new CastExp(loc, ea, Type::tvoidptr);
 
             Expression *et = new TypeidExp(loc, v->type);
             et = new DotIdExp(loc, et, Identifier::idPool("postblit"));
@@ -853,7 +853,7 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
         {
             // Typeinfo.destroy(cast(void*)&this.v);
             Expression *ea = new AddrExp(loc, ex);
-            ea = new CastExp(loc, ea, Type::tvoid->pointerTo());
+            ea = new CastExp(loc, ea, Type::tvoidptr);
 
             Expression *et = new TypeidExp(loc, v->type);
             et = new DotIdExp(loc, et, Id::destroy);
@@ -965,7 +965,7 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
         {
             // Typeinfo.destroy(cast(void*)&this.v);
             Expression *ea = new AddrExp(loc, ex);
-            ea = new CastExp(loc, ea, Type::tvoid->pointerTo());
+            ea = new CastExp(loc, ea, Type::tvoidptr);
 
             Expression *et = new TypeidExp(loc, v->type);
             et = new DotIdExp(loc, et, Id::destroy);

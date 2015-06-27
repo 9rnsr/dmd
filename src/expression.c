@@ -9576,7 +9576,7 @@ Expression *DeleteExp::semantic(Scope *sc)
 
                 if (f)
                 {
-                    Type *tpv = Type::tvoid->pointerTo();
+                    Type *tpv = Type::tvoidptr;
                     Expression *e = ea ? new VarExp(loc, v) : e1->castTo(sc, tpv);
                     e = new CallExp(loc, new VarExp(loc, f), e);
                     ec = e->semantic(sc);

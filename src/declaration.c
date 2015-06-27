@@ -2066,7 +2066,7 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
             {
                 // Typeinfo.destroy(cast(void*)&v);
                 Expression *ea = new SymOffExp(loc, this, 0, 0);
-                ea = new CastExp(loc, ea, Type::tvoid->pointerTo());
+                ea = new CastExp(loc, ea, Type::tvoidptr);
                 Expressions *args = new Expressions();
                 args->push(ea);
 

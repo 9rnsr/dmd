@@ -4901,7 +4901,7 @@ elem *toElem(Expression *e, IRState *irs)
                 // call _d_arrayliteralTX(ti, dim)
                 e = el_bin(OPcall,TYnptr,el_var(rtlsym[RTLSYM_ARRAYLITERALTX]),e);
                 toTraceGC(irs, e, &ale->loc);
-                Symbol *stmp = symbol_genauto(Type_toCtype(Type::tvoid->pointerTo()));
+                Symbol *stmp = symbol_genauto(Type_toCtype(Type::tvoidptr));
                 e = el_bin(OPeq,TYnptr,el_var(stmp),e);
 
                 targ_size_t sz = tb->nextOf()->size();      // element size

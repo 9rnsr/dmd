@@ -2533,7 +2533,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 if (!fdapply[i])
                 {
                     params = new Parameters();
-                    params->push(new Parameter(0, Type::tvoid->pointerTo(), NULL, NULL));
+                    params->push(new Parameter(0, Type::tvoidptr, NULL, NULL));
                     params->push(new Parameter(STCin, Type::tsize_t, NULL, NULL));
                     Parameters* dgparams = new Parameters;
                     dgparams->push(new Parameter(0, Type::tvoidptr, NULL, NULL));

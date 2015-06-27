@@ -2316,7 +2316,7 @@ VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad
          * enclosing function's stack frame.
          * Note that nested functions and member functions are disjoint.
          */
-        VarDeclaration *v = new ThisDeclaration(loc, Type::tvoid->pointerTo());
+        VarDeclaration *v = new ThisDeclaration(loc, Type::tvoidptr);
         v->storage_class |= STCparameter;
         v->semantic(sc);
         if (!sc->insert(v))
@@ -5284,7 +5284,7 @@ void NewDeclaration::semantic(Scope *sc)
         errors = true;
         return;
     }
-    Type *tret = Type::tvoid->pointerTo();
+    Type *tret = Type::tvoidptr;
     if (!type)
         type = new TypeFunction(parameters, tret, varargs, LINKd, storage_class);
 
@@ -5379,7 +5379,7 @@ void DeleteDeclaration::semantic(Scope *sc)
     else
     {
         Parameter *fparam = Parameter::getNth(tf->parameters, 0);
-        if (!fparam->type->equals(Type::tvoid->pointerTo()))
+        if (!fparam->type->equals(Type::tvoidptr))
             error("one argument of type void* expected, not %s", fparam->type->toChars());
     }
 
