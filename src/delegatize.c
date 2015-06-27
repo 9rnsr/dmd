@@ -46,6 +46,8 @@ Expression *toDelegate(Expression *e, Type* t, Scope *sc)
     FuncLiteralDeclaration *fld =
         new FuncLiteralDeclaration(loc, loc, tf, TOKdelegate, NULL);
 
+    fld->parent = sc->parent;
+
     sc = sc->push();
     sc->parent = fld;           // set current function to be the delegate
     lambdaSetParent(e, sc);
