@@ -1452,7 +1452,10 @@ UnionExp Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
         printf("\tupr = %s\n", upr->toChars());
     }
 #endif
-    if (e1->op == TOKstring && lwr->op == TOKint64 && upr->op == TOKint64)
+    if (lwr->op != TOKint64 || upr->op != TOKint64)
+        goto Lcant;
+
+    if (e1->op == TOKstring)
     {
         StringExp *es1 = (StringExp *)e1;
         uinteger_t ilwr = lwr->toInteger();
@@ -1462,26 +1465,24 @@ UnionExp Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
         {
             e1->error("string slice [%llu .. %llu] is out of bounds", ilwr, iupr);
             new(&ue) ErrorExp();
+            return ue;
         }
-        else
-        {
-            size_t len = (size_t)(iupr - ilwr);
-            unsigned char sz = es1->sz;
 
-            void *s = mem.xmalloc((len + 1) * sz);
-            memcpy((char *)s, (char *)es1->string + ilwr * sz, len * sz);
-            memset((char *)s + len * sz, 0, sz);
+        size_t len = (size_t)(iupr - ilwr);
+        unsigned char sz = es1->sz;
 
-            new(&ue) StringExp(loc, s, len, es1->postfix);
-            StringExp *es = (StringExp *)ue.exp();
-            es->sz = sz;
-            es->committed = es1->committed;
-            es->type = type;
-        }
+        void *s = mem.xmalloc((len + 1) * sz);
+        memcpy((utf8_t *)s, (utf8_t *)es1->string + ilwr * sz, len * sz);
+        memset((utf8_t *)s + len * sz, 0, sz);
+
+        new(&ue) StringExp(loc, s, len, es1->postfix);
+        StringExp *es = (StringExp *)ue.exp();
+        es->sz = sz;
+        es->committed = es1->committed;
+        es->type = type;
+        return ue;
     }
-    else if (e1->op == TOKarrayliteral &&
-            lwr->op == TOKint64 && upr->op == TOKint64 &&
-            !hasSideEffect(e1))
+    if (e1->op == TOKarrayliteral && !hasSideEffect(e1))
     {
         ArrayLiteralExp *es1 = (ArrayLiteralExp *)e1;
         uinteger_t ilwr = lwr->toInteger();
@@ -1491,20 +1492,20 @@ UnionExp Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
         {
             e1->error("array slice [%llu .. %llu] is out of bounds", ilwr, iupr);
             new(&ue) ErrorExp();
+            return ue;
         }
-        else
-        {
-            Expressions *elements = new Expressions();
-            elements->setDim((size_t)(iupr - ilwr));
-            memcpy(elements->tdata(),
-                   es1->elements->tdata() + ilwr,
-                   (size_t)(iupr - ilwr) * sizeof((*es1->elements)[0]));
-            new(&ue) ArrayLiteralExp(e1->loc, elements);
-            ue.exp()->type = type;
-        }
+
+        Expressions *elements = new Expressions();
+        elements->setDim((size_t)(iupr - ilwr));
+        memcpy(elements->tdata(),
+               es1->elements->tdata() + ilwr,
+               (size_t)(iupr - ilwr) * sizeof((*es1->elements)[0]));
+        new(&ue) ArrayLiteralExp(loc, elements);
+        ue.exp()->type = type;
+        return ue;
     }
-    else
-        new(&ue) CTFEExp(TOKcantexp);
+Lcant:
+    new(&ue) CTFEExp(TOKcantexp);
     assert(ue.exp()->type);
     return ue;
 }
