@@ -1120,7 +1120,7 @@ StaticIfDeclaration::StaticIfDeclaration(Condition *condition,
 {
     //printf("StaticIfDeclaration::StaticIfDeclaration()\n");
     scopesym = NULL;
-    addisdone = 0;
+    addisdone = false;
 }
 
 Dsymbol *StaticIfDeclaration::syntaxCopy(Dsymbol *s)
@@ -1162,7 +1162,7 @@ Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol *sds)
                 s->setScope(scope);
             }
 
-            addisdone = 1;
+            addisdone = true;
         }
         return d;
     }
