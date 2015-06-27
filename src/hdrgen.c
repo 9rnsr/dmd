@@ -3300,18 +3300,27 @@ void toCBuffer(Expression *e, OutBuffer *buf, HdrGenState *hgs)
 /**************************************************
  * Write out argument types to buf.
  */
-void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments)
+void argTypesToBuffer(OutBuffer *buf, Type *tthis, Expressions *arguments)
 {
-    if (!arguments || !arguments->dim)
-        return;
-
     HdrGenState hgs;
     PrettyPrintVisitor v(buf, &hgs);
-    for (size_t i = 0; i < arguments->dim; i++)
+
+    buf->writeByte('(');
+    if (arguments && arguments->dim)
     {
-        if (i)
-            buf->writestring(", ");
-        v.typeToBuffer((*arguments)[i]->type, NULL);
+        for (size_t i = 0; i < arguments->dim; i++)
+        {
+            if (i)
+                buf->writestring(", ");
+            v.typeToBuffer((*arguments)[i]->type, NULL);
+        }
+    }
+    buf->writeByte(')');
+
+    if (tthis && tthis->mod)
+    {
+        buf->writeByte(' ');
+        modToBuffer(buf, tthis->mod);
     }
 }
 

@@ -729,7 +729,7 @@
                 "function functionToBufferFull",
                 "function functionToBufferWithIdent",
                 "function toCBufferExpression*OutBuffer*HdrGenState*",
-                "function argExpTypesToCBuffer",
+                "function argTypesToBuffer",
                 "function toCBufferTemplateParameter*OutBuffer*HdrGenState*",
                 "function arrayObjectsToBuffer",
                 "function parametersTypeToChars"

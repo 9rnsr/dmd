@@ -8874,22 +8874,12 @@ Lagain:
 
         if (!tf->callMatch(NULL, arguments))
         {
-            OutBuffer buf;
-
-            buf.writeByte('(');
-            argExpTypesToCBuffer(&buf, arguments);
-            buf.writeByte(')');
-            if (tthis && tthis->mod)
-            {
-                buf.writeByte(' ');
-                modToBuffer(&buf, tthis->mod);
-            }
-
             //printf("tf = %s, args = %s\n", tf->deco, (*arguments)[0]->type->deco);
+            OutBuffer buf;
+            argTypesToBuffer(&buf, tthis, arguments);
             ::error(loc, "%s %s %s is not callable using argument types %s",
                 p, e1->toChars(), parametersTypeToChars(tf->parameters, tf->varargs),
                 buf.peekString());
-
             return new ErrorExp();
         }
 
@@ -8949,17 +8939,12 @@ Lagain:
             TypeFunction *tf = (TypeFunction *)f->type;
             if (!tf->callMatch(NULL, arguments))
             {
-                OutBuffer buf;
-
-                buf.writeByte('(');
-                argExpTypesToCBuffer(&buf, arguments);
-                buf.writeByte(')');
-
                 //printf("tf = %s, args = %s\n", tf->deco, (*arguments)[0]->type->deco);
+                OutBuffer buf;
+                argTypesToBuffer(&buf, NULL, arguments);
                 ::error(loc, "%s %s is not callable using argument types %s",
                     e1->toChars(), parametersTypeToChars(tf->parameters, tf->varargs),
                     buf.peekString());
-
                 f = NULL;
             }
         }
