@@ -5636,18 +5636,11 @@ Expression *FuncExp::semantic(Scope *sc)
             goto Ldone;
         }
 
-        unsigned olderrors = global.errors;
         fd->semantic(sc);
-        if (olderrors == global.errors)
+        fd->semantic2(sc);
+        fd->semantic3(sc);
+        if (fd->errors || fd->semantic3Errors)
         {
-            fd->semantic2(sc);
-            if (olderrors == global.errors)
-                fd->semantic3(sc);
-        }
-        if (olderrors != global.errors)
-        {
-            if (fd->type && fd->type->ty == Tfunction && !fd->type->nextOf())
-                ((TypeFunction *)fd->type)->next = Type::terror;
             e = new ErrorExp();
             goto Ldone;
         }
