@@ -1787,118 +1787,125 @@ bool lambdaCheckForNestedRef(Expression *e, Scope *sc);
 bool VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
 {
     //printf("VarDeclaration::checkNestedReference() %s\n", toChars());
-    if (parent && parent != sc->parent &&
-        !isDataseg() && !(storage_class & STCmanifest) &&
-        sc->intypeof != 1 && !(sc->flags & SCOPEctfe))
+    if (sc->intypeof == 1 || (sc->flags & SCOPEctfe))
+        return false;
+    if (!parent || parent == sc->parent)
+        return false;
+    if ((storage_class & STCmanifest) || isDataseg())
+        return false;
+
+    // The function that this variable is in
+    FuncDeclaration *fdv = toParent()->isFuncDeclaration();
+    if (!fdv)
+        return false;   // not a local variable
+    // The current function
+    FuncDeclaration *fdthis = sc->parent->isFuncDeclaration();
+    if (!fdthis)
+        return false;   // out of function scope
+
+    //printf("fdv    = %s in [%s]\n", fdv->toChars(), fdv->loc.toChars());
+    //printf("fdthis = %s in [%s]\n", fdthis->toChars(), fdthis->loc.toChars());
+    if (fdthis == fdv)
+        return false;   // direct access
+
+    // Add fdthis to nestedrefs[] if not already there
+    for (size_t i = 0; 1; i++)
     {
-        // The function that this variable is in
-        FuncDeclaration *fdv = toParent()->isFuncDeclaration();
-        // The current function
-        FuncDeclaration *fdthis = sc->parent->isFuncDeclaration();
-
-        if (fdv && fdthis && fdv != fdthis)
+        if (i == nestedrefs.dim)
         {
-            // Add fdthis to nestedrefs[] if not already there
-            for (size_t i = 0; 1; i++)
+            nestedrefs.push(fdthis);
+            break;
+        }
+        if (nestedrefs[i] == fdthis)
+            break;
+    }
+
+    /* __require and __ensure will always get called directly,
+     * so they never make outer functions closure.
+     */
+    if (fdthis->ident == Id::require || fdthis->ident == Id::ensure)
+        return false;
+
+    //printf("\tfdv = %s\n", fdv->toChars());
+    //printf("\tfdthis = %s\n", fdthis->toChars());
+
+    if (loc.filename)
+    {
+        int lv = fdthis->getLevel(loc, sc, fdv);
+        if (lv == -2)   // error
+            return true;
+        if (lv > 0 &&
+            fdv->isPureBypassingInference() >= PUREweak &&
+            fdthis->isPureBypassingInference() == PUREfwdref &&
+            fdthis->isInstantiated())
+        {
+            /* Bugzilla 9148 and 14039:
+             *  void foo() pure {
+             *    int x;
+             *    void bar()() {  // default is impure
+             *      x = 1;  // access to enclosing pure function context
+             *              // means that bar should have weak purity.
+             *    }
+             *  }
+             */
+            fdthis->flags &= ~FUNCFLAGpurityInprocess;
+            if (fdthis->type->ty == Tfunction)
             {
-                if (i == nestedrefs.dim)
+                TypeFunction *tf = (TypeFunction *)fdthis->type;
+                if (tf->deco)
                 {
-                    nestedrefs.push(fdthis);
-                    break;
+                    tf = (TypeFunction *)tf->copy();
+                    tf->purity = PUREfwdref;
+                    tf->deco = NULL;
+                    tf->deco = tf->merge()->deco;
                 }
-                if (nestedrefs[i] == fdthis)
-                    break;
-            }
-
-            if (fdthis->ident != Id::require && fdthis->ident != Id::ensure)
-            {
-                /* __require and __ensure will always get called directly,
-                 * so they never make outer functions closure.
-                 */
-
-                //printf("\tfdv = %s\n", fdv->toChars());
-                //printf("\tfdthis = %s\n", fdthis->toChars());
-
-                if (loc.filename)
-                {
-                    int lv = fdthis->getLevel(loc, sc, fdv);
-                    if (lv == -2)   // error
-                        return true;
-                    if (lv > 0 &&
-                        fdv->isPureBypassingInference() >= PUREweak &&
-                        fdthis->isPureBypassingInference() == PUREfwdref &&
-                        fdthis->isInstantiated())
-                    {
-                        /* Bugzilla 9148 and 14039:
-                         *  void foo() pure {
-                         *    int x;
-                         *    void bar()() {  // default is impure
-                         *      x = 1;  // access to enclosing pure function context
-                         *              // means that bar should have weak purity.
-                         *    }
-                         *  }
-                         */
-                        fdthis->flags &= ~FUNCFLAGpurityInprocess;
-                        if (fdthis->type->ty == Tfunction)
-                        {
-                            TypeFunction *tf = (TypeFunction *)fdthis->type;
-                            if (tf->deco)
-                            {
-                                tf = (TypeFunction *)tf->copy();
-                                tf->purity = PUREfwdref;
-                                tf->deco = NULL;
-                                tf->deco = tf->merge()->deco;
-                            }
-                            else
-                                tf->purity = PUREfwdref;
-                            fdthis->type = tf;
-                        }
-                    }
-                }
-
-                // Function literals from fdthis to fdv must be delegates
-                for (Dsymbol *s = fdthis; s && s != fdv; s = s->toParent2())
-                {
-                    // function literal has reference to enclosing scope is delegate
-                    if (FuncLiteralDeclaration *fld = s->isFuncLiteralDeclaration())
-                    {
-                        fld->tok = TOKdelegate;
-                    }
-                }
-
-                // Add this to fdv->closureVars[] if not already there
-                for (size_t i = 0; 1; i++)
-                {
-                    if (i == fdv->closureVars.dim)
-                    {
-                        if (!sc->intypeof && !(sc->flags & SCOPEcompile))
-                            fdv->closureVars.push(this);
-                        break;
-                    }
-                    if (fdv->closureVars[i] == this)
-                        break;
-                }
-
-                //printf("fdthis is %s\n", fdthis->toChars());
-                //printf("var %s in function %s is nested ref\n", toChars(), fdv->toChars());
-                // __dollar creates problems because it isn't a real variable Bugzilla 3326
-                if (ident == Id::dollar)
-                {
-                    ::error(loc, "cannnot use $ inside a function literal");
-                    return true;
-                }
-
-                if (ident == Id::withSym)       // Bugzilla 1759
-                {
-                    ExpInitializer *ez = init->isExpInitializer();
-                    assert(ez);
-                    Expression *e = ez->exp;
-                    if (e->op == TOKconstruct || e->op == TOKblit)
-                        e = ((AssignExp *)e)->e2;
-                    return lambdaCheckForNestedRef(e, sc);
-                }
+                else
+                    tf->purity = PUREfwdref;
+                fdthis->type = tf;
             }
         }
+    }
+
+    // Function literals from fdthis to fdv must be delegates
+    for (Dsymbol *s = fdthis; s && s != fdv; s = s->toParent2())
+    {
+        // function literal has reference to enclosing scope is delegate
+        if (FuncLiteralDeclaration *fld = s->isFuncLiteralDeclaration())
+        {
+            fld->tok = TOKdelegate;
+        }
+    }
+
+    // Add this to fdv->closureVars[] if not already there
+    for (size_t i = 0; 1; i++)
+    {
+        if (i == fdv->closureVars.dim)
+        {
+            if (!sc->intypeof && !(sc->flags & SCOPEcompile))
+                fdv->closureVars.push(this);
+            break;
+        }
+        if (fdv->closureVars[i] == this)
+            break;
+    }
+
+    //printf("fdthis is %s\n", fdthis->toChars());
+    //printf("var %s in function %s is nested ref\n", toChars(), fdv->toChars());
+    // __dollar creates problems because it isn't a real variable Bugzilla 3326
+    if (ident == Id::dollar)
+    {
+        ::error(loc, "cannnot use $ inside a function literal");
+        return true;
+    }
+
+    if (ident == Id::withSym)       // Bugzilla 1759
+    {
+        ExpInitializer *ez = init->isExpInitializer();
+        assert(ez);
+        Expression *e = ez->exp;
+        if (e->op == TOKconstruct || e->op == TOKblit)
+            e = ((AssignExp *)e)->e2;
+        return lambdaCheckForNestedRef(e, sc);
     }
     return false;
 }
