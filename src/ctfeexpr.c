@@ -616,48 +616,48 @@ bool isTrueBool(Expression *e)
            ((e->type->ty == Tpointer || e->type->ty == Tclass) && e->op != TOKnull);
 }
 
-/* Is it safe to convert from srcPointee* to destPointee* ?
+/* Is it safe to convert from srcPointee* to dstPointee* ?
  * srcPointee is the genuine type (never void).
- * destPointee may be void.
+ * dstPointee may be void.
  */
-bool isSafePointerCast(Type *srcPointee, Type *destPointee)
+bool isSafePointerCast(Type *srcPointee, Type *dstPointee)
 {
     // It's safe to cast S** to D** if it's OK to cast S* to D*
-    while (srcPointee->ty == Tpointer && destPointee->ty == Tpointer)
+    while (srcPointee->ty == Tpointer && dstPointee->ty == Tpointer)
     {
         srcPointee = srcPointee->nextOf();
-        destPointee = destPointee->nextOf();
+        dstPointee = dstPointee->nextOf();
     }
 
     // It's OK if both are the same (modulo const)
-    if (srcPointee->constConv(destPointee))
+    if (srcPointee->constConv(dstPointee))
         return true;
 
     // It's OK if function pointers differ only in safe/pure/nothrow
-    if (srcPointee->ty == Tfunction && destPointee->ty == Tfunction)
-        return srcPointee->covariant(destPointee) == 1;
+    if (srcPointee->ty == Tfunction && dstPointee->ty == Tfunction)
+        return srcPointee->covariant(dstPointee) == 1;
 
     // it's OK to cast to void*
-    if (destPointee->ty == Tvoid)
+    if (dstPointee->ty == Tvoid)
         return true;
 
     // It's OK to cast from V[K] to void*
-    if (srcPointee->ty == Taarray && destPointee == Type::tvoidptr)
+    if (srcPointee->ty == Taarray && dstPointee == Type::tvoidptr)
         return true;
 
     // It's OK if they are the same size (static array of) integers, eg:
     //     int*     --> uint*
     //     int[5][] --> uint[5][]
-    if (srcPointee->ty == Tsarray && destPointee->ty == Tsarray)
+    if (srcPointee->ty == Tsarray && dstPointee->ty == Tsarray)
     {
-        if (srcPointee->size() != destPointee->size())
+        if (srcPointee->size() != dstPointee->size())
             return false;
         srcPointee = srcPointee->baseElemOf();
-        destPointee = destPointee->baseElemOf();
+        dstPointee = dstPointee->baseElemOf();
     }
     return srcPointee->isintegral() &&
-           destPointee->isintegral() &&
-           srcPointee->size() == destPointee->size();
+           dstPointee->isintegral() &&
+           srcPointee->size() == dstPointee->size();
 }
 
 Expression *getAggregateFromPointer(Expression *e, dinteger_t *ofs)
@@ -988,9 +988,9 @@ void intUnary(TOK op, IntegerExp *e)
     }
 }
 
-/** dest = e1 OP e2;
+/** dst = e1 OP e2;
 */
-void intBinary(TOK op, IntegerExp *dest, Type *type, IntegerExp *e1, IntegerExp *e2)
+void intBinary(TOK op, IntegerExp *dst, Type *type, IntegerExp *e1, IntegerExp *e2)
 {
     dinteger_t result;
     switch (op)
@@ -1177,8 +1177,8 @@ void intBinary(TOK op, IntegerExp *dest, Type *type, IntegerExp *e1, IntegerExp 
     default:
         assert(0);
     }
-    dest->setInteger(result);
-    dest->type = type;
+    dst->setInteger(result);
+    dst->type = type;
 }
 
 /******** Constant folding, with support for CTFE ***************************/
@@ -1900,45 +1900,45 @@ Expression *ctfeCast(Loc loc, Type *type, Type *to, Expression *e)
 
 /******** Assignment helper functions ***************************/
 
-/* Set dest = src, where both dest and src are container value literals
+/* Set dst = src, where both dst and src are container value literals
  * (ie, struct literals, or static arrays (can be an array literal or a string))
  * Assignment is recursively in-place.
- * Purpose: any reference to a member of 'dest' will remain valid after the
+ * Purpose: any reference to a member of 'dst' will remain valid after the
  * assignment.
  */
-void assignInPlace(Expression *dest, Expression *src)
+void assignInPlace(Expression *dst, Expression *src)
 {
-    assert(dest->op == TOKstructliteral ||
-           dest->op == TOKarrayliteral ||
-           dest->op == TOKstring);
+    assert(dst->op == TOKstructliteral ||
+           dst->op == TOKarrayliteral ||
+           dst->op == TOKstring);
     Expressions *oldelems;
     Expressions *newelems;
-    if (dest->op == TOKstructliteral)
+    if (dst->op == TOKstructliteral)
     {
-        assert(dest->op == src->op);
-        oldelems = ((StructLiteralExp *)dest)->elements;
+        assert(dst->op == src->op);
+        oldelems = ((StructLiteralExp *)dst)->elements;
         newelems = ((StructLiteralExp *)src)->elements;
-        if (((StructLiteralExp *)dest)->sd->isNested() && oldelems->dim == newelems->dim - 1)
+        if (((StructLiteralExp *)dst)->sd->isNested() && oldelems->dim == newelems->dim - 1)
             oldelems->push(NULL);
     }
-    else if (dest->op == TOKarrayliteral && src->op==TOKarrayliteral)
+    else if (dst->op == TOKarrayliteral && src->op==TOKarrayliteral)
     {
-        oldelems = ((ArrayLiteralExp *)dest)->elements;
+        oldelems = ((ArrayLiteralExp *)dst)->elements;
         newelems = ((ArrayLiteralExp *)src)->elements;
     }
-    else if (dest->op == TOKstring && src->op == TOKstring)
+    else if (dst->op == TOKstring && src->op == TOKstring)
     {
-        sliceAssignStringFromString((StringExp *)dest, (StringExp *)src, 0);
+        sliceAssignStringFromString((StringExp *)dst, (StringExp *)src, 0);
         return;
     }
-    else if (dest->op == TOKarrayliteral && src->op == TOKstring)
+    else if (dst->op == TOKarrayliteral && src->op == TOKstring)
     {
-        sliceAssignArrayLiteralFromString((ArrayLiteralExp *)dest, (StringExp *)src, 0);
+        sliceAssignArrayLiteralFromString((ArrayLiteralExp *)dst, (StringExp *)src, 0);
         return;
     }
-    else if (src->op == TOKarrayliteral && dest->op == TOKstring)
+    else if (src->op == TOKarrayliteral && dst->op == TOKstring)
     {
-        sliceAssignStringFromArrayLiteral((StringExp *)dest, (ArrayLiteralExp *)src, 0);
+        sliceAssignStringFromArrayLiteral((StringExp *)dst, (ArrayLiteralExp *)src, 0);
         return;
     }
     else
@@ -1970,8 +1970,8 @@ void assignInPlace(Expression *dest, Expression *src)
 void recursiveBlockAssign(ArrayLiteralExp *ae, Expression *val, bool wantRef)
 {
     assert(ae->type->ty == Tsarray || ae->type->ty == Tarray);
-    Type *desttype = ((TypeArray *)ae->type)->next->toBasetype()->castMod(0);
-    bool directblk = (val->type->toBasetype()->castMod(0))->equals(desttype);
+    Type *dsttype = ((TypeArray *)ae->type)->next->toBasetype()->castMod(0);
+    bool directblk = (val->type->toBasetype()->castMod(0))->equals(dsttype);
 
     bool cow = val->op != TOKstructliteral &&
                val->op != TOKarrayliteral &&
