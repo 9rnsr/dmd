@@ -4234,22 +4234,8 @@ bool FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
     //printf("\tfdthis = %s in [%s]\n", fdthis->toChars(), fdthis->loc.toChars());
     if (fdthis == fdv)
         return false;   // direct access
-
-    // Add this function to the list of those which called us
-    if (fdthis != this && !sc->intypeof && !(sc->flags & SCOPEcompile))
-    {
-        for (size_t i = 0; 1; i++)
-        {
-            if (i == siblingCallers.dim)
-            {
-                //printf("\tadding sibling %s\n", fdthis->toPrettyChars());
-                siblingCallers.push(fdthis);
-                break;
-            }
-            if (siblingCallers[i] == fdthis)
-                break;
-        }
-    }
+    if (fdthis == this)
+        return false;   // self-recursive access
 
     int lv = fdthis->getLevel(loc, sc, fdv);
     if (lv == -2)
@@ -4260,11 +4246,29 @@ bool FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
         return false;   // same level call
     // uplevel call
 
-    // BUG: may need to walk up outer scopes like Declaration::checkNestedReference() does
+    // Function literals from fdthis to fdv must be delegates
+    for (Dsymbol *s = fdthis; s && s != fdv; s = s->toParent2())
+    {
+        if (FuncLiteralDeclaration *fld = s->isFuncLiteralDeclaration())
+            fld->tok = TOKdelegate;
+    }
 
-    // function literal has reference to enclosing scope is delegate
-    if (FuncLiteralDeclaration *fld = fdthis->isFuncLiteralDeclaration())
-        fld->tok = TOKdelegate;
+    // An access from a CT-only scope need not capture the enclosing frames.
+    if (sc->intypeof || (sc->flags & SCOPEcompile))
+        return false;
+
+    // Add this function to the list of those which called us
+    for (size_t i = 0; 1; i++)
+    {
+        if (i == siblingCallers.dim)
+        {
+            //printf("\tadding sibling %s\n", fdthis->toPrettyChars());
+            siblingCallers.push(fdthis);
+            break;
+        }
+        if (siblingCallers[i] == fdthis)
+            break;
+    }
     return false;
 }
 

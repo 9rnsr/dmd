@@ -1807,19 +1807,6 @@ bool VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
     //printf("fdthis = %s in [%s]\n", fdthis->toChars(), fdthis->loc.toChars());
     if (fdthis == fdv)
         return false;   // direct access
-
-    // Add fdthis to nestedrefs[] if not already there
-    for (size_t i = 0; 1; i++)
-    {
-        if (i == nestedrefs.dim)
-        {
-            nestedrefs.push(fdthis);
-            break;
-        }
-        if (nestedrefs[i] == fdthis)
-            break;
-    }
-
     if (fdthis->ident == Id::ensure)
         return false;   // __ensure is always called directly
 
@@ -1860,11 +1847,31 @@ bool VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
     // Function literals from fdthis to fdv must be delegates
     for (Dsymbol *s = fdthis; s && s != fdv; s = s->toParent2())
     {
-        // function literal has reference to enclosing scope is delegate
         if (FuncLiteralDeclaration *fld = s->isFuncLiteralDeclaration())
-        {
             fld->tok = TOKdelegate;
+    }
+
+    // Bugzilla 3326: __dollar creates problems because it isn't a real variable
+    if (ident == Id::dollar)
+    {
+        ::error(loc, "cannnot use $ inside a function literal");
+        return true;
+    }
+
+    // An access from a CT-only scope need not capture the enclosing frames.
+    if (sc->intypeof || (sc->flags & SCOPEcompile))
+        return false;
+
+    // Add fdthis to nestedrefs[] if not already there
+    for (size_t i = 0; 1; i++)
+    {
+        if (i == nestedrefs.dim)
+        {
+            nestedrefs.push(fdthis);
+            break;
         }
+        if (nestedrefs[i] == fdthis)
+            break;
     }
 
     // Add this to fdv->closureVars[] if not already there
@@ -1872,21 +1879,11 @@ bool VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
     {
         if (i == fdv->closureVars.dim)
         {
-            if (!sc->intypeof && !(sc->flags & SCOPEcompile))
-                fdv->closureVars.push(this);
+            fdv->closureVars.push(this);
             break;
         }
         if (fdv->closureVars[i] == this)
             break;
-    }
-
-    //printf("fdthis is %s\n", fdthis->toChars());
-    //printf("var %s in function %s is nested ref\n", toChars(), fdv->toChars());
-    // __dollar creates problems because it isn't a real variable Bugzilla 3326
-    if (ident == Id::dollar)
-    {
-        ::error(loc, "cannnot use $ inside a function literal");
-        return true;
     }
 
     if (ident == Id::withSym)       // Bugzilla 1759
