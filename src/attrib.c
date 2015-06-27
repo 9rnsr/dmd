@@ -1131,6 +1131,31 @@ Dsymbol *StaticIfDeclaration::syntaxCopy(Dsymbol *s)
         Dsymbol::arraySyntaxCopy(elsedecl));
 }
 
+void StaticIfDeclaration::addMember(Scope *sc, ScopeDsymbol *sds)
+{
+    //printf("StaticIfDeclaration::addMember() '%s'\n", toChars());
+    /* This is deferred until the condition evaluated later (by the include() call),
+     * so that expressions in the condition can refer to declarations
+     * in the same scope, such as:
+     *
+     * template Foo(int i)
+     * {
+     *     const int j = i + 1;
+     *     static if (j == 3)
+     *         const int k;
+     * }
+     */
+    this->scopesym = sds;
+}
+
+void StaticIfDeclaration::setScope(Scope *sc)
+{
+    // do not evaluate condition before semantic pass
+
+    // But do set the scope, in case we need it for forward referencing
+    Dsymbol::setScope(sc);
+}
+
 /****************************************
  * Different from other AttribDeclaration subclasses, include() call requires
  * the completion of addMember and setScope phases.
@@ -1172,34 +1197,9 @@ Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol *sds)
     }
 }
 
-void StaticIfDeclaration::addMember(Scope *sc, ScopeDsymbol *sds)
-{
-    //printf("StaticIfDeclaration::addMember() '%s'\n", toChars());
-    /* This is deferred until the condition evaluated later (by the include() call),
-     * so that expressions in the condition can refer to declarations
-     * in the same scope, such as:
-     *
-     * template Foo(int i)
-     * {
-     *     const int j = i + 1;
-     *     static if (j == 3)
-     *         const int k;
-     * }
-     */
-    this->scopesym = sds;
-}
-
 void StaticIfDeclaration::importAll(Scope *sc)
 {
     // do not evaluate condition before semantic pass
-}
-
-void StaticIfDeclaration::setScope(Scope *sc)
-{
-    // do not evaluate condition before semantic pass
-
-    // But do set the scope, in case we need it for forward referencing
-    Dsymbol::setScope(sc);
 }
 
 void StaticIfDeclaration::semantic(Scope *sc)

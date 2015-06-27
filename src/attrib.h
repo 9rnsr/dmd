@@ -46,11 +46,11 @@ public:
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
     void addComment(const utf8_t *comment);
-    const char *kind();
-    bool oneMember(Dsymbol **ps, Identifier *ident);
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     bool hasPointers();
     bool hasStaticCtorOrDtor();
+    const char *kind();
+    bool oneMember(Dsymbol **ps, Identifier *ident);
     void checkCtorConstInit();
     void addLocalClass(ClassDeclarations *);
     AttribDeclaration *isAttribDeclaration() { return this; }
@@ -65,9 +65,8 @@ public:
 
     StorageClassDeclaration(StorageClass stc, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    Scope *newScope(Scope *sc);
     bool oneMember(Dsymbol **ps, Identifier *ident);
-
+    Scope *newScope(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -144,8 +143,8 @@ public:
 
     PragmaDeclaration(Loc loc, Identifier *ident, Expressions *args, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    void semantic(Scope *sc);
     Scope *newScope(Scope *sc);
+    void semantic(Scope *sc);
     const char *kind();
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -173,11 +172,11 @@ public:
 
     StaticIfDeclaration(Condition *condition, Dsymbols *decl, Dsymbols *elsedecl);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    Dsymbols *include(Scope *sc, ScopeDsymbol *sds);
     void addMember(Scope *sc, ScopeDsymbol *sds);
+    void setScope(Scope *sc);
+    Dsymbols *include(Scope *sc, ScopeDsymbol *sds);
     void semantic(Scope *sc);
     void importAll(Scope *sc);
-    void setScope(Scope *sc);
     const char *kind();
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -214,9 +213,9 @@ public:
     UserAttributeDeclaration(Expressions *atts, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
+    void setScope(Scope *sc);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
-    void setScope(Scope *sc);
     static Expressions *concat(Expressions *udas1, Expressions *udas2);
     Expressions *getAttributes();
     const char *kind();
