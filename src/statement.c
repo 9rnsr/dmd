@@ -2761,20 +2761,20 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
     lwr = lwr->semantic(sc);
     lwr = resolveProperties(sc, lwr);
     lwr = lwr->optimize(WANTvalue);
-    if (!lwr->type)
-    {
-        error("invalid range lower bound %s", lwr->toChars());
-    Lerror:
-        return new ErrorStatement();
-    }
 
     upr = upr->semantic(sc);
     upr = resolveProperties(sc, upr);
     upr = upr->optimize(WANTvalue);
+
+    if (!lwr->type)
+    {
+        error("invalid range lower bound %s", lwr->toChars());
+        return new ErrorStatement();
+    }
     if (!upr->type)
     {
         error("invalid range upper bound %s", upr->toChars());
-        goto Lerror;
+        return new ErrorStatement();
     }
 
     if (prm->type)
@@ -2932,7 +2932,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
         {
             error("prmument type mismatch, %s to ref %s",
                   key->type->toChars(), prm->type->toChars());
-            goto Lerror;
+            return new ErrorStatement();
         }
     }
 
