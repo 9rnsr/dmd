@@ -3414,6 +3414,49 @@ void test13303()
 }
 
 /**********************************/
+// 13463
+
+void test13463()
+{
+    static string result;
+
+    struct S
+    {
+        this(this) { result ~= "postblit/"; }
+        ~this() { result ~= "dtor/"; }
+
+        S fun1()
+        {
+            result ~= "fun1/";
+            return this;
+        }
+
+        S fun2()
+        out(r) { }
+        body
+        {
+            result ~= "fun2/";
+            return this;
+        }
+    }
+
+    {
+        S s;
+
+        result = null;
+        s.fun1();
+        assert(result == "fun1/postblit/dtor/", result);
+
+        result = null;
+        s.fun2();
+        assert(result == "fun2/postblit/dtor/", result);
+
+        result = null;
+    }
+    assert(result == "dtor/");
+}
+
+/**********************************/
 
 struct S13673
 {
@@ -4167,6 +4210,7 @@ int main()
     test13089();
     test11763();
     test13303();
+    test13463();
     test13673();
     test13586();
     test14443();
