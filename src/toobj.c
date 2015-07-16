@@ -60,6 +60,10 @@ Symbol *toInitializer(AggregateDeclaration *ad);
 Symbol *toInitializer(EnumDeclaration *ed);
 void genTypeInfo(Type *t, Scope *sc);
 
+Symbol *toModuleArray(Module *m);
+Symbol *toModuleAssert(Module *m);
+Symbol *toModuleUnittest(Module *m);
+
 void toDebug(EnumDeclaration *ed);
 void toDebug(StructDeclaration *sd);
 void toDebug(ClassDeclaration *cd);
@@ -1106,6 +1110,16 @@ void toObjFile(Dsymbol *ds, bool multiobj)
         #endif
             if (!isError(ti) && ti->members)
             {
+                if (Module *m = ti->getModule())
+                {
+                    // Generate these functions as they may be used
+                    // when template is instantiated in other modules
+                    // even if assertions or bounds checking are disabled in this module
+                    toModuleArray(m);
+                    toModuleAssert(m);
+                    toModuleUnittest(m);
+                }
+
                 if (!ti->needsCodegen())
                 {
                     //printf("-speculative (%p, %s)\n", ti, ti->toPrettyChars());
