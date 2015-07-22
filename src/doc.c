@@ -969,7 +969,7 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
 
         void visit(Dsymbol *s)
         {
-            //printf("Dsymbol::toDocbuffer() %s\n", s->toChars());
+            //printf("Dsymbol::toDocBuffer() %s\n", s->toChars());
             HdrGenState hgs;
             hgs.ddoc = true;
             ::toCBuffer(s, buf, &hgs);
@@ -1012,7 +1012,7 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
                 return;
 
             TemplateDeclaration *td = getEponymousParent(d);
-            //printf("Declaration::toDocbuffer() %s, originalType = %s, td = %s\n", d->toChars(), d->originalType ? d->originalType->toChars() : "--", td ? td->toChars() : "--");
+            //printf("Declaration::toDocBuffer() %s, originalType = %s, td = %s\n", d->toChars(), d->originalType ? d->originalType->toChars() : "--", td ? td->toChars() : "--");
 
             HdrGenState hgs;
             hgs.ddoc = true;
@@ -1066,7 +1066,7 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
 
         void visit(AliasDeclaration *ad)
         {
-            //printf("AliasDeclaration::toDocbuffer() %s\n", ad->toChars());
+            //printf("AliasDeclaration::toDocBuffer() %s\n", ad->toChars());
             if (!ad->ident)
                 return;
 
@@ -1109,35 +1109,21 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
             }
         }
 
-        static bool inSameModule(Dsymbol *s, Dsymbol *p)
-        {
-            for ( ; s ; s = s->parent)
-            {
-                if (s->isModule())
-                    break;
-            }
-
-            for ( ; p ; p = p->parent)
-            {
-                if (p->isModule())
-                    break;
-            }
-
-            return s == p;
-        }
-
         void prettyPrintDsymbol(Dsymbol *s, Dsymbol *parent)
         {
-            if (s->parent && (s->parent == parent))  // in current scope -> naked name
+            if (s->parent && (s->parent == parent))
             {
+                // in current scope -> naked name
                 buf->writestring(s->toChars());
             }
-            else if (!inSameModule(s, parent))  // in another module -> full name
+            else if (s->getModule() != parent->getModule())
             {
+                // in another module -> full name
                 buf->writestring(s->toPrettyChars());
             }
-            else  // nested in a type in this module -> full name w/o module name
+            else
             {
+                // nested in a type in this module -> full name w/o module name
                 // if alias is nested in a user-type use module-scope lookup
                 if (!parent->isModule() && !parent->isPackage())
                     buf->writestring(".");
@@ -1161,7 +1147,7 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
 
         void visit(StructDeclaration *sd)
         {
-            //printf("StructDeclaration::toDocbuffer() %s\n", sd->toChars());
+            //printf("StructDeclaration::toDocBuffer() %s\n", sd->toChars());
             if (!sd->ident)
                 return;
 
@@ -1181,7 +1167,7 @@ void toDocBuffer(Dsymbol *s, OutBuffer *buf, Scope *sc)
 
         void visit(ClassDeclaration *cd)
         {
-            //printf("ClassDeclaration::toDocbuffer() %s\n", cd->toChars());
+            //printf("ClassDeclaration::toDocBuffer() %s\n", cd->toChars());
             if (!cd->ident)
                 return;
 
