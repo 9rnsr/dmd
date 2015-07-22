@@ -47,4 +47,7 @@ bool stcToBuffer(OutBuffer *buf, StorageClass stc);
 const char *stcToChars(StorageClass& stc);
 void modToBuffer(OutBuffer *buf, MOD mod);
 const char *modToChars(MOD mod);
+void trustToBuffer(OutBuffer *buf, TRUST trust);
+const char *trustToChars(TRUST trust);
+void linkageToBuffer(OutBuffer *buf, LINK linkage);
 const char *linkageToChars(LINK linkage);

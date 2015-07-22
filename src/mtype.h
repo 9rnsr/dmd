@@ -561,14 +561,17 @@ public:
     TypePointer(Type *t);
     Type *syntaxCopy();
     const char *kind();
-    Type *semantic(Loc loc, Scope *sc);
     d_uns64 size(Loc loc);
-    MATCH implicitConvTo(Type *to);
-    MATCH constConv(Type *to);
+
     bool isscalar();
-    Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc);
     bool hasPointers();
+
+    Type *semantic(Loc loc, Scope *sc);
+
+    MATCH implicitConvTo(Type *to);
+    MATCH constConv(Type *to);
+    Expression *defaultInit(Loc loc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -579,11 +582,15 @@ public:
     TypeReference(Type *t);
     Type *syntaxCopy();
     const char *kind();
-    Type *semantic(Loc loc, Scope *sc);
     d_uns64 size(Loc loc);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
-    Expression *defaultInit(Loc loc);
+
     bool isZeroInit(Loc loc);
+
+    Type *semantic(Loc loc, Scope *sc);
+
+    Expression *defaultInit(Loc loc);
+    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
+
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -594,10 +601,6 @@ enum TRUST
     TRUSTtrusted = 2,   // @trusted
     TRUSTsafe = 3,      // @safe
 };
-
-// in hdrgen.c
-void trustToBuffer(OutBuffer *buf, TRUST trust);
-const char *trustToChars(TRUST trust);
 
 enum TRUSTformat
 {

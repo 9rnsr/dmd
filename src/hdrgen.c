@@ -49,8 +49,6 @@
 #include "nspace.h"
 #include "hdrgen.h"
 
-void linkageToBuffer(OutBuffer *buf, LINK linkage);
-
 void genhdrfile(Module *m)
 {
     OutBuffer buf;

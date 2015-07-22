@@ -4818,6 +4818,26 @@ const char *TypePointer::kind()
     return "pointer";
 }
 
+d_uns64 TypePointer::size(Loc loc)
+{
+    return Target::ptrsize;
+}
+
+bool TypePointer::isscalar()
+{
+    return true;
+}
+
+bool TypePointer::isZeroInit(Loc loc)
+{
+    return true;
+}
+
+bool TypePointer::hasPointers()
+{
+    return true;
+}
+
 Type *TypePointer::semantic(Loc loc, Scope *sc)
 {
     //printf("TypePointer::semantic() %s\n", toChars());
@@ -4852,12 +4872,6 @@ Type *TypePointer::semantic(Loc loc, Scope *sc)
      */
     return this;
 #endif
-}
-
-
-d_uns64 TypePointer::size(Loc loc)
-{
-    return Target::ptrsize;
 }
 
 MATCH TypePointer::implicitConvTo(Type *to)
@@ -4940,11 +4954,6 @@ MATCH TypePointer::constConv(Type *to)
     return TypeNext::constConv(to);
 }
 
-bool TypePointer::isscalar()
-{
-    return true;
-}
-
 Expression *TypePointer::defaultInit(Loc loc)
 {
 #if LOGDEFAULTINIT
@@ -4952,17 +4961,6 @@ Expression *TypePointer::defaultInit(Loc loc)
 #endif
     return new NullExp(loc, this);
 }
-
-bool TypePointer::isZeroInit(Loc loc)
-{
-    return true;
-}
-
-bool TypePointer::hasPointers()
-{
-    return true;
-}
-
 
 /***************************** TypeReference *****************************/
 
@@ -4990,6 +4988,16 @@ const char *TypeReference::kind()
     return "reference";
 }
 
+d_uns64 TypeReference::size(Loc loc)
+{
+    return Target::ptrsize;
+}
+
+bool TypeReference::isZeroInit(Loc loc)
+{
+    return true;
+}
+
 Type *TypeReference::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeReference::semantic()\n");
@@ -5001,10 +5009,12 @@ Type *TypeReference::semantic(Loc loc, Scope *sc)
     return merge();
 }
 
-
-d_uns64 TypeReference::size(Loc loc)
+Expression *TypeReference::defaultInit(Loc loc)
 {
-    return Target::ptrsize;
+#if LOGDEFAULTINIT
+    printf("TypeReference::defaultInit() '%s'\n", toChars());
+#endif
+    return new NullExp(loc, this);
 }
 
 Expression *TypeReference::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
@@ -5016,20 +5026,6 @@ Expression *TypeReference::dotExp(Scope *sc, Expression *e, Identifier *ident, i
     // References just forward things along
     return next->dotExp(sc, e, ident, flag);
 }
-
-Expression *TypeReference::defaultInit(Loc loc)
-{
-#if LOGDEFAULTINIT
-    printf("TypeReference::defaultInit() '%s'\n", toChars());
-#endif
-    return new NullExp(loc, this);
-}
-
-bool TypeReference::isZeroInit(Loc loc)
-{
-    return true;
-}
-
 
 /***************************** TypeFunction *****************************/
 
