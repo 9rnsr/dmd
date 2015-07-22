@@ -126,33 +126,6 @@ typedef unsigned char MOD;
 class Type : public RootObject
 {
 public:
-    TY ty;
-    MOD mod;  // modifiers MODxxxx
-    char *deco;
-
-    /* These are cached values that are lazily evaluated by constOf(), immutableOf(), etc.
-     * They should not be referenced by anybody but mtype.c.
-     * They can be NULL if not lazily evaluated yet.
-     * Note that there is no "shared immutable", because that is just immutable
-     * Naked == no MOD bits
-     */
-
-    Type *cto;          // MODconst                 ? naked version of this type : const version
-    Type *ito;          // MODimmutable             ? naked version of this type : immutable version
-    Type *sto;          // MODshared                ? naked version of this type : shared mutable version
-    Type *scto;         // MODshared | MODconst     ? naked version of this type : shared const version
-    Type *wto;          // MODwild                  ? naked version of this type : wild version
-    Type *wcto;         // MODwildconst             ? naked version of this type : wild const version
-    Type *swto;         // MODshared | MODwild      ? naked version of this type : shared wild version
-    Type *swcto;        // MODshared | MODwildconst ? naked version of this type : shared wild const version
-
-    Type *pto;          // merged pointer to this type
-    Type *rto;          // reference to this type
-    Type *arrayof;      // array of this type
-    TypeInfoDeclaration *vtinfo;        // TypeInfo object for this Type
-
-    type *ctype;        // for back end
-
     static Type *tvoid;
     static Type *tint8;
     static Type *tuns8;
@@ -232,11 +205,36 @@ public:
     static void error(Loc loc, const char *format, ...);
     static void warning(Loc loc, const char *format, ...);
 
+public:
+    TY ty;
+    MOD mod;  // modifiers MODxxxx
+    char *deco;
+
+    /* These are cached values that are lazily evaluated by constOf(), immutableOf(), etc.
+     * They should not be referenced by anybody but mtype.c.
+     * They can be NULL if not lazily evaluated yet.
+     * Note that there is no "shared immutable", because that is just immutable
+     * Naked == no MOD bits
+     */
+    Type *cto;          // MODconst                 ? naked version of this type : const version
+    Type *ito;          // MODimmutable             ? naked version of this type : immutable version
+    Type *sto;          // MODshared                ? naked version of this type : shared mutable version
+    Type *scto;         // MODshared | MODconst     ? naked version of this type : shared const version
+    Type *wto;          // MODwild                  ? naked version of this type : wild version
+    Type *wcto;         // MODwildconst             ? naked version of this type : wild const version
+    Type *swto;         // MODshared | MODwild      ? naked version of this type : shared wild version
+    Type *swcto;        // MODshared | MODwildconst ? naked version of this type : shared wild const version
+
+    Type *pto;          // merged pointer to this type
+    Type *rto;          // reference to this type
+    Type *arrayof;      // array of this type
+    TypeInfoDeclaration *vtinfo;        // TypeInfo object for this Type
+
+    type *ctype;        // for back end
+
     Type(TY ty);
     Type *copy();
     virtual Type *syntaxCopy();
-    // kludge for template.isType()
-    int dyncast() { return DYNCAST_TYPE; }
     virtual const char *kind();
 
     bool equals(RootObject *o);
@@ -351,6 +349,7 @@ public:
     uinteger_t sizemask();
 
     // For eliminating dynamic_cast
+    int dyncast() { return DYNCAST_TYPE; }
     virtual ClassDeclaration *isClassHandle() { return NULL; }
     virtual TypeBasic *isTypeBasic() { return NULL; }
     virtual void accept(Visitor *v) { v->visit(this); }
@@ -426,6 +425,22 @@ public:
 
     // For eliminating dynamic_cast
     TypeBasic *isTypeBasic() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class TypeNull : public Type
+{
+public:
+    TypeNull();
+    Type *syntaxCopy();
+    const char *kind();
+    d_uns64 size(Loc loc);
+
+    bool isBoolean();
+
+    MATCH implicitConvTo(Type *to);
+    Expression *defaultInit(Loc loc);
+
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -668,99 +683,60 @@ public:
     TypeDelegate(Type *t);
     Type *syntaxCopy();
     const char *kind();
-    Type *semantic(Loc loc, Scope *sc);
     d_uns64 size(Loc loc);
     unsigned alignsize();
-    MATCH implicitConvTo(Type *to);
-    Expression *defaultInit(Loc loc);
-    bool isZeroInit(Loc loc);
+
     bool isBoolean();
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
+    bool isZeroInit(Loc loc);
     bool hasPointers();
 
+    Type *semantic(Loc loc, Scope *sc);
+
+    MATCH implicitConvTo(Type *to);
+    Expression *defaultInit(Loc loc);
+    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
+
     void accept(Visitor *v) { v->visit(this); }
 };
 
-class TypeQualified : public Type
+class TypeEnum : public Type
 {
 public:
-    Loc loc;
-    // array of Identifier and TypeInstance,
-    // representing ident.ident!tiargs.ident. ... etc.
-    Objects idents;
+    EnumDeclaration *sym;
 
-    TypeQualified(TY ty, Loc loc);
-    void syntaxCopyHelper(TypeQualified *t);
-    void addIdent(Identifier *ident);
-    void addInst(TemplateInstance *inst);
-    void addIndex(RootObject *expr);
+    TypeEnum(EnumDeclaration *sym);
+    const char *kind();
+    Type *syntaxCopy();
     d_uns64 size(Loc loc);
-    void resolveHelper(Loc loc, Scope *sc, Dsymbol *s, Dsymbol *scopesym,
-        Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
-    void accept(Visitor *v) { v->visit(this); }
+    unsigned alignsize();
 
-private:
-    bool resolveTypeTupleIndex(Loc loc, Scope *sc, Dsymbol **s, Type **pt, Dsymbol **ps, RootObject *id, Expression *indexExpr);
-};
+    Type *toBasetype();
+    Type *nextOf();
 
-class TypeIdentifier : public TypeQualified
-{
-public:
-    Identifier *ident;
-    Dsymbol *originalSymbol; // The symbol representing this identifier, before alias resolution
+    bool isintegral();
+    bool isfloating();
+    bool isreal();
+    bool isimaginary();
+    bool iscomplex();
+    bool isscalar();
+    bool isunsigned();
+    bool isBoolean();
+    bool isString();
+    bool isAssignable();
+    bool isZeroInit(Loc loc);
+    bool hasPointers();
+    bool needsDestruction();
+    bool needsNested();
 
-    TypeIdentifier(Loc loc, Identifier *ident);
-    Type *syntaxCopy();
-    const char *kind();
-    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     Dsymbol *toDsymbol(Scope *sc);
+
     Type *semantic(Loc loc, Scope *sc);
-    Expression *toExpression();
-    void accept(Visitor *v) { v->visit(this); }
-};
+    MATCH implicitConvTo(Type *to);
+    MATCH constConv(Type *to);
+    Expression *defaultInit(Loc loc);
+    Expression *getProperty(Loc loc, Identifier *ident, int flag);
+    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
 
-/* Similar to TypeIdentifier, but with a TemplateInstance as the root
- */
-class TypeInstance : public TypeQualified
-{
-public:
-    TemplateInstance *tempinst;
-
-    TypeInstance(Loc loc, TemplateInstance *tempinst);
-    Type *syntaxCopy();
-    const char *kind();
-    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
-    Type *semantic(Loc loc, Scope *sc);
-    Dsymbol *toDsymbol(Scope *sc);
-    Expression *toExpression();
-    void accept(Visitor *v) { v->visit(this); }
-};
-
-class TypeTypeof : public TypeQualified
-{
-public:
-    Expression *exp;
-    int inuse;
-
-    TypeTypeof(Loc loc, Expression *exp);
-    Type *syntaxCopy();
-    const char *kind();
-    Dsymbol *toDsymbol(Scope *sc);
-    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
-    Type *semantic(Loc loc, Scope *sc);
-    d_uns64 size(Loc loc);
-    void accept(Visitor *v) { v->visit(this); }
-};
-
-class TypeReturn : public TypeQualified
-{
-public:
-    TypeReturn(Loc loc);
-    Type *syntaxCopy();
-    const char *kind();
-    Dsymbol *toDsymbol(Scope *sc);
-    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
-    Type *semantic(Loc loc, Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -787,59 +763,27 @@ public:
     const char *kind();
     d_uns64 size(Loc loc);
     unsigned alignsize();
-    Type *semantic(Loc loc, Scope *sc);
-    Dsymbol *toDsymbol(Scope *sc);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     structalign_t alignment();
-    Expression *defaultInit(Loc loc);
-    Expression *defaultInitLiteral(Loc loc);
-    bool isZeroInit(Loc loc);
-    bool isAssignable();
+
+    Type *toHeadMutable();
+
     bool isBoolean();
+    bool isAssignable();
+    bool isZeroInit(Loc loc);
+    bool hasPointers();
     bool needsDestruction();
     bool needsNested();
-    bool hasPointers();
+
+    Dsymbol *toDsymbol(Scope *sc);
+
+    Type *semantic(Loc loc, Scope *sc);
+
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
     unsigned char deduceWild(Type *t, bool isRef);
-    Type *toHeadMutable();
-
-    void accept(Visitor *v) { v->visit(this); }
-};
-
-class TypeEnum : public Type
-{
-public:
-    EnumDeclaration *sym;
-
-    TypeEnum(EnumDeclaration *sym);
-    const char *kind();
-    Type *syntaxCopy();
-    d_uns64 size(Loc loc);
-    unsigned alignsize();
-    Type *semantic(Loc loc, Scope *sc);
-    Dsymbol *toDsymbol(Scope *sc);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
-    Expression *getProperty(Loc loc, Identifier *ident, int flag);
-    bool isintegral();
-    bool isfloating();
-    bool isreal();
-    bool isimaginary();
-    bool iscomplex();
-    bool isscalar();
-    bool isunsigned();
-    bool isBoolean();
-    bool isString();
-    bool isAssignable();
-    bool needsDestruction();
-    bool needsNested();
-    MATCH implicitConvTo(Type *to);
-    MATCH constConv(Type *to);
-    Type *toBasetype();
     Expression *defaultInit(Loc loc);
-    bool isZeroInit(Loc loc);
-    bool hasPointers();
-    Type *nextOf();
+    Expression *defaultInitLiteral(Loc loc);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -854,19 +798,23 @@ public:
     Type *syntaxCopy();
     const char *kind();
     d_uns64 size(Loc loc);
-    Type *semantic(Loc loc, Scope *sc);
-    Dsymbol *toDsymbol(Scope *sc);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
+
+    Type *toHeadMutable();
+
+    bool isscope();
+    bool isBoolean();
+    bool isZeroInit(Loc loc);
     bool isBaseOf(Type *t, int *poffset);
+    bool hasPointers();
+
+    Dsymbol *toDsymbol(Scope *sc);
+
+    Type *semantic(Loc loc, Scope *sc);
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
     unsigned char deduceWild(Type *t, bool isRef);
-    Type *toHeadMutable();
+    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
-    bool isZeroInit(Loc loc);
-    bool isscope();
-    bool isBoolean();
-    bool hasPointers();
 
     ClassDeclaration *isClassHandle() { return sym; }
     void accept(Visitor *v) { v->visit(this); }
@@ -885,10 +833,110 @@ public:
     TypeTuple(Type *t1, Type *t2);
     Type *syntaxCopy();
     const char *kind();
-    Type *semantic(Loc loc, Scope *sc);
     bool equals(RootObject *o);
-    Expression *getProperty(Loc loc, Identifier *ident, int flag);
+
+    Type *semantic(Loc loc, Scope *sc);
+
     Expression *defaultInit(Loc loc);
+    Expression *getProperty(Loc loc, Identifier *ident, int flag);
+
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class TypeQualified : public Type
+{
+public:
+    Loc loc;
+    // array of Identifier and TypeInstance,
+    // representing ident.ident!tiargs.ident. ... etc.
+    Objects idents;
+
+    TypeQualified(TY ty, Loc loc);
+    void syntaxCopyHelper(TypeQualified *t);
+    void addIdent(Identifier *ident);
+    void addInst(TemplateInstance *inst);
+    void addIndex(RootObject *expr);
+    d_uns64 size(Loc loc);
+
+    void resolveHelper(Loc loc, Scope *sc, Dsymbol *s, Dsymbol *scopesym,
+        Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
+
+    void accept(Visitor *v) { v->visit(this); }
+
+private:
+    bool resolveTypeTupleIndex(Loc loc, Scope *sc, Dsymbol **s, Type **pt, Dsymbol **ps, RootObject *id, Expression *indexExpr);
+};
+
+class TypeIdentifier : public TypeQualified
+{
+public:
+    Identifier *ident;
+    Dsymbol *originalSymbol; // The symbol representing this identifier, before alias resolution
+
+    TypeIdentifier(Loc loc, Identifier *ident);
+    Type *syntaxCopy();
+    const char *kind();
+
+    Dsymbol *toDsymbol(Scope *sc);
+
+    Expression *toExpression();
+    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
+    Type *semantic(Loc loc, Scope *sc);
+
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+/* Similar to TypeIdentifier, but with a TemplateInstance as the root
+ */
+class TypeInstance : public TypeQualified
+{
+public:
+    TemplateInstance *tempinst;
+
+    TypeInstance(Loc loc, TemplateInstance *tempinst);
+    Type *syntaxCopy();
+    const char *kind();
+
+    Dsymbol *toDsymbol(Scope *sc);
+
+    Expression *toExpression();
+    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
+    Type *semantic(Loc loc, Scope *sc);
+
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class TypeTypeof : public TypeQualified
+{
+public:
+    Expression *exp;
+    int inuse;
+
+    TypeTypeof(Loc loc, Expression *exp);
+    Type *syntaxCopy();
+    const char *kind();
+    d_uns64 size(Loc loc);
+
+    Dsymbol *toDsymbol(Scope *sc);
+
+    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
+    Type *semantic(Loc loc, Scope *sc);
+
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class TypeReturn : public TypeQualified
+{
+public:
+    TypeReturn(Loc loc);
+    Type *syntaxCopy();
+    const char *kind();
+
+    Dsymbol *toDsymbol(Scope *sc);
+
+    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
+    Type *semantic(Loc loc, Scope *sc);
+
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -901,21 +949,10 @@ public:
     TypeSlice(Type *next, Expression *lwr, Expression *upr);
     Type *syntaxCopy();
     const char *kind();
-    Type *semantic(Loc loc, Scope *sc);
-    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
-    void accept(Visitor *v) { v->visit(this); }
-};
 
-class TypeNull : public Type
-{
-public:
-    TypeNull();
-    Type *syntaxCopy();
-    const char *kind();
-    MATCH implicitConvTo(Type *to);
-    bool isBoolean();
-    d_uns64 size(Loc loc);
-    Expression *defaultInit(Loc loc);
+    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
+    Type *semantic(Loc loc, Scope *sc);
+
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -936,9 +973,6 @@ public:
     static Parameter *create(StorageClass storageClass, Type *type, Identifier *ident, Expression *defaultArg);
     Parameter *syntaxCopy();
     Type *isLazyArray();
-    // kludge for template.isType()
-    int dyncast() { return DYNCAST_PARAMETER; }
-    virtual void accept(Visitor *v) { v->visit(this); }
 
     static Parameters *arraySyntaxCopy(Parameters *parameters);
     static int isTPL(Parameters *parameters);
@@ -947,6 +981,10 @@ public:
 
     typedef int (*ForeachDg)(void *ctx, size_t paramidx, Parameter *param);
     static int foreach(Parameters *parameters, ForeachDg dg, void *ctx, size_t *pn=NULL);
+
+    // kludge for template.isType()
+    int dyncast() { return DYNCAST_PARAMETER; }
+    virtual void accept(Visitor *v) { v->visit(this); }
 };
 
 bool arrayTypeCompatible(Loc loc, Type *t1, Type *t2);
