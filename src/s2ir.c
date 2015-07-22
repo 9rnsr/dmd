@@ -754,7 +754,7 @@ public:
             assert(func->type->ty == Tfunction);
             TypeFunction *tf = (TypeFunction *)(func->type);
 
-            RET retmethod = retStyle(tf);
+            RET retmethod = Target::retStyle(tf);
             if (retmethod == RETstack)
             {
                 elem *es;

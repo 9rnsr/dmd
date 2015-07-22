@@ -1537,7 +1537,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 }
             }
 
-            if (!inferRetType && retStyle(f) != RETstack)
+            if (!inferRetType && Target::retStyle(f) != RETstack)
                 nrvo_can = 0;
 
             bool inferRef = (f->isref && (storage_class & STCauto));
@@ -1585,7 +1585,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 if (storage_class & STCauto)
                     storage_class &= ~STCauto;
             }
-            if (retStyle(f) != RETstack)
+            if (Target::retStyle(f) != RETstack)
                 nrvo_can = 0;
 
             if (fbody->isErrorStatement())

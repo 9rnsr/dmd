@@ -106,10 +106,3 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
     assert(0);
     return NULL;
 }
-
-// toir
-
-RET retStyle(TypeFunction *tf)
-{
-    return RETregs;
-}

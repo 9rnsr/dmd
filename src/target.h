@@ -19,6 +19,13 @@
 class Expression;
 class Type;
 class Module;
+class TypeFunction;
+
+enum RET
+{
+    RETregs     = 1,    // returned in registers
+    RETstack    = 2,    // returned on stack
+};
 
 struct Target
 {
@@ -39,6 +46,8 @@ struct Target
     static Expression *paintAsType(Expression *e, Type *type);
     static int checkVectorType(int sz, Type *type);
     static void loadModule(Module *m);
+
+    static RET retStyle(TypeFunction *tf);
 };
 
 #endif

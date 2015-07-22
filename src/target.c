@@ -13,6 +13,8 @@
 
 #include "target.h"
 #include "mars.h"
+#include "aggregate.h"
+#include "id.h"
 #include "mtype.h"
 
 int Target::ptrsize;
@@ -386,3 +388,144 @@ void Target::loadModule(Module *m)
 {
 }
 
+/***************************
+ * Determine return style of function - whether in registers or
+ * through a hidden pointer to the caller's stack.
+ */
+RET Target::retStyle(TypeFunction *tf)
+{
+    //printf("TypeFunction::retStyle() %s\n", toChars());
+    if (tf->isref)
+    {
+        //printf("  ref RETregs\n");
+        return RETregs;                 // returns a pointer
+    }
+
+    Type *tn = tf->next->toBasetype();
+    //printf("tn = %s\n", tn->toChars());
+    d_uns64 sz = tn->size();
+    Type *tns = tn;
+
+    if (global.params.isWindows && global.params.is64bit)
+    {
+        // http://msdn.microsoft.com/en-us/library/7572ztz4(v=vs.80)
+        if (tns->ty == Tcomplex32)
+            return RETstack;
+        if (tns->isscalar())
+            return RETregs;
+
+        tns = tns->baseElemOf();
+        if (tns->ty == Tstruct)
+        {
+            StructDeclaration *sd = ((TypeStruct *)tns)->sym;
+            if (sd->ident == Id::__c_long_double)
+                return RETregs;
+            if (!sd->isPOD() || sz >= 8)
+                return RETstack;
+            if (sd->fields.dim == 0)
+                return RETstack;
+        }
+        if (sz <= 16 && !(sz & (sz - 1)))
+            return RETregs;
+        return RETstack;
+    }
+
+Lagain:
+    if (tns->ty == Tsarray)
+    {
+        tns = tns->baseElemOf();
+        if (tns->ty != Tstruct)
+        {
+L2:
+            if (tf->linkage != LINKd &&
+                global.params.isLinux && !global.params.is64bit)
+            {
+                ;                               // 32 bit C/C++ structs always on stack
+            }
+            else
+            {
+                switch (sz)
+                {
+                    case 1:
+                    case 2:
+                    case 4:
+                    case 8:
+                        //printf("  sarray RETregs\n");
+                        return RETregs; // return small structs in regs
+                                            // (not 3 byte structs!)
+                    default:
+                        break;
+                }
+            }
+            //printf("  sarray RETstack\n");
+            return RETstack;
+        }
+    }
+
+    if (tns->ty == Tstruct)
+    {
+        StructDeclaration *sd = ((TypeStruct *)tns)->sym;
+        if (tf->linkage != LINKd &&
+            global.params.isLinux && !global.params.is64bit)
+        {
+            if (sd->ident == Id::__c_long || sd->ident == Id::__c_ulong)
+                return RETregs;
+
+            //printf("  2 RETstack\n");
+            return RETstack;            // 32 bit C/C++ structs always on stack
+        }
+        if (tf->linkage == LINKcpp && sd->isPOD() && sd->ctor &&
+            global.params.isWindows && !global.params.is64bit)
+        {
+            // win32 returns otherwise POD structs with ctors via memory
+            // unless it's not really a struct
+            if (sd->ident == Id::__c_long || sd->ident == Id::__c_ulong)
+                return RETregs;
+            return RETstack;
+        }
+        if (sd->arg1type && !sd->arg2type)
+        {
+            tns = sd->arg1type;
+            if (tns->ty != Tstruct)
+                goto L2;
+            goto Lagain;
+        }
+        if (!sd->arg1type && !sd->arg2type &&
+            global.params.is64bit)
+        {
+            return RETstack;
+        }
+        if (sd->isPOD())
+        {
+            switch (sz)
+            {
+                case 1:
+                case 2:
+                case 4:
+                case 8:
+                    //printf("  3 RETregs\n");
+                    return RETregs;     // return small structs in regs
+                                        // (not 3 byte structs!)
+                case 16:
+                    if (!global.params.isWindows && global.params.is64bit)
+                       return RETregs;
+
+                default:
+                    break;
+            }
+        }
+        //printf("  3 RETstack\n");
+        return RETstack;
+    }
+    if (tf->linkage == LINKc && tns->iscomplex() &&
+        (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isSolaris))
+    {
+        if (tns->ty == Tcomplex32)
+            return RETregs;     // in EDX:EAX, not ST1:ST0
+        else
+            return RETstack;
+    }
+    //assert(sz <= 16);
+    //printf("  4 RETregs\n");
+    return RETregs;
+}

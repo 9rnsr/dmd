@@ -169,7 +169,7 @@ elem *callfunc(Loc loc,
         assert(t->ty == Tfunction);
         tf = (TypeFunction *)(t);
     }
-    retmethod = retStyle(tf);
+    retmethod = Target::retStyle(tf);
     ty = ec->Ety;
     if (fd)
         ty = toSymbol(fd)->Stype->Tty;
@@ -2748,7 +2748,7 @@ elem *toElem(Expression *e, IRState *irs)
             {
                 CallExp *ce = (CallExp *)ae->e2;
                 TypeFunction *tf = (TypeFunction *)ce->e1->type->toBasetype();
-                if (tf->ty == Tfunction && retStyle(tf) == RETstack)
+                if (tf->ty == Tfunction && Target::retStyle(tf) == RETstack)
                 {
                     elem *ehidden = e1;
                     ehidden = el_una(OPaddr, TYnptr, ehidden);

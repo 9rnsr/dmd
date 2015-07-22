@@ -557,12 +557,6 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
-enum RET
-{
-    RETregs     = 1,    // returned in registers
-    RETstack    = 2,    // returned on stack
-};
-
 enum TRUST
 {
     TRUSTdefault = 0,
@@ -589,8 +583,6 @@ enum PURE
     PUREconst = 3,      // parameters are values or const
     PUREstrong = 4,     // parameters are values or immutable
 };
-
-RET retStyle(TypeFunction *tf);
 
 class TypeFunction : public TypeNext
 {
