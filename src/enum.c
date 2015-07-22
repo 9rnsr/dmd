@@ -50,11 +50,9 @@ Dsymbol *EnumDeclaration::syntaxCopy(Dsymbol *s)
     return ScopeDsymbol::syntaxCopy(ed);
 }
 
-void EnumDeclaration::setScope(Scope *sc)
+const char *EnumDeclaration::kind()
 {
-    if (semanticRun > PASSinit)
-        return;
-    ScopeDsymbol::setScope(sc);
+    return "enum";
 }
 
 void EnumDeclaration::addMember(Scope *sc, ScopeDsymbol *sds)
@@ -93,6 +91,12 @@ void EnumDeclaration::addMember(Scope *sc, ScopeDsymbol *sds)
     added = true;
 }
 
+void EnumDeclaration::setScope(Scope *sc)
+{
+    if (semanticRun > PASSinit)
+        return;
+    ScopeDsymbol::setScope(sc);
+}
 
 void EnumDeclaration::semantic(Scope *sc)
 {
@@ -279,7 +283,6 @@ void EnumDeclaration::semantic(Scope *sc)
  * Input:
  *      id      Id::max or Id::min
  */
-
 Expression *EnumDeclaration::getMaxMinValue(Loc loc, Identifier *id)
 {
     //printf("EnumDeclaration::getMaxValue()\n");
@@ -433,11 +436,6 @@ bool EnumDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
 Type *EnumDeclaration::getType()
 {
     return type;
-}
-
-const char *EnumDeclaration::kind()
-{
-    return "enum";
 }
 
 bool EnumDeclaration::isDeprecated()

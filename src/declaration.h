@@ -131,8 +131,8 @@ public:
     Semantic sem;
 
     Declaration(Identifier *id);
-    void semantic(Scope *sc);
     const char *kind();
+    void semantic(Scope *sc);
     unsigned size(Loc loc);
     int checkModify(Loc loc, Scope *sc, Type *t, Expression *e1, int flag);
 
@@ -201,9 +201,9 @@ public:
     AliasDeclaration(Loc loc, Identifier *ident, Type *type);
     AliasDeclaration(Loc loc, Identifier *ident, Dsymbol *s);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc);
-    bool overloadInsert(Dsymbol *s);
     const char *kind();
+    bool overloadInsert(Dsymbol *s);
+    void semantic(Scope *sc);
     Type *getType();
     Dsymbol *toAlias();
     Dsymbol *toAlias2();
@@ -223,9 +223,9 @@ public:
 
     OverDeclaration(Dsymbol *s, bool hasOverloads = true);
     const char *kind();
+    bool overloadInsert(Dsymbol *s);
     void semantic(Scope *sc);
     bool equals(RootObject *o);
-    bool overloadInsert(Dsymbol *s);
 
     Dsymbol *toAlias();
     Dsymbol *isUnique();
@@ -265,10 +265,10 @@ public:
 
     VarDeclaration(Loc loc, Type *t, Identifier *id, Initializer *init);
     Dsymbol *syntaxCopy(Dsymbol *);
+    const char *kind();
     void semantic(Scope *sc);
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     void semantic2(Scope *sc);
-    const char *kind();
     AggregateDeclaration *isThis();
     bool needThis();
     bool isExport();
@@ -588,6 +588,8 @@ public:
 
     FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);
+    const char *kind();
+    bool overloadInsert(Dsymbol *s);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
@@ -599,7 +601,6 @@ public:
 
     int overrides(FuncDeclaration *fd);
     int findVtblIndex(Dsymbols *vtbl, int dim);
-    bool overloadInsert(Dsymbol *s);
     FuncDeclaration *overloadExactMatch(Type *t);
     FuncDeclaration *overloadModMatch(Loc loc, Type *tthis, Type *&t);
     TemplateDeclaration *findTemplateDeclRoot();
@@ -642,7 +643,6 @@ public:
     virtual bool isFinalFunc();
     virtual bool addPreInvariant();
     virtual bool addPostInvariant();
-    const char *kind();
     FuncDeclaration *isUnique();
     bool checkNestedReference(Scope *sc, Loc loc);
     bool needsClosure();
@@ -674,9 +674,9 @@ public:
     bool hasOverloads;
 
     FuncAliasDeclaration(FuncDeclaration *funcalias, bool hasOverloads = true);
+    const char *kind();
 
     FuncAliasDeclaration *isFuncAliasDeclaration() { return this; }
-    const char *kind();
 
     FuncDeclaration *toAliasFunc();
     void accept(Visitor *v) { v->visit(this); }
@@ -691,6 +691,7 @@ public:
     FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type, TOK tok,
         ForeachStatement *fes, Identifier *id = NULL);
     Dsymbol *syntaxCopy(Dsymbol *);
+    const char *kind();
     bool isNested();
     bool isVirtual();
     bool addPreInvariant();
@@ -699,7 +700,6 @@ public:
     void modifyReturns(Scope *sc, Type *tret);
 
     FuncLiteralDeclaration *isFuncLiteralDeclaration() { return this; }
-    const char *kind();
     const char *toPrettyChars(bool QualifyTypes = false);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -709,8 +709,8 @@ class CtorDeclaration : public FuncDeclaration
 public:
     CtorDeclaration(Loc loc, Loc endloc, StorageClass stc, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc);
     const char *kind();
+    void semantic(Scope *sc);
     char *toChars();
     bool isVirtual();
     bool addPreInvariant();
@@ -725,11 +725,11 @@ class PostBlitDeclaration : public FuncDeclaration
 public:
     PostBlitDeclaration(Loc loc, Loc endloc, StorageClass stc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *);
+    bool overloadInsert(Dsymbol *s);
     void semantic(Scope *sc);
     bool isVirtual();
     bool addPreInvariant();
     bool addPostInvariant();
-    bool overloadInsert(Dsymbol *s);
 
     PostBlitDeclaration *isPostBlitDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -741,13 +741,13 @@ public:
     DtorDeclaration(Loc loc, Loc endloc);
     DtorDeclaration(Loc loc, Loc endloc, StorageClass stc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc);
     const char *kind();
+    bool overloadInsert(Dsymbol *s);
+    void semantic(Scope *sc);
     char *toChars();
     bool isVirtual();
     bool addPreInvariant();
     bool addPostInvariant();
-    bool overloadInsert(Dsymbol *s);
 
     DtorDeclaration *isDtorDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -851,8 +851,8 @@ public:
 
     NewDeclaration(Loc loc, Loc endloc, StorageClass stc, Parameters *arguments, int varargs);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc);
     const char *kind();
+    void semantic(Scope *sc);
     bool isVirtual();
     bool addPreInvariant();
     bool addPostInvariant();
@@ -869,8 +869,8 @@ public:
 
     DeleteDeclaration(Loc loc, Loc endloc, StorageClass stc, Parameters *arguments);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc);
     const char *kind();
+    void semantic(Scope *sc);
     bool isDelete();
     bool isVirtual();
     bool addPreInvariant();

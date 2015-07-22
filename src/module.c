@@ -129,6 +129,11 @@ Module *Module::create(const char *filename, Identifier *ident, int doDocComment
     return new Module(filename, ident, doDocComment, doHdrGen);
 }
 
+const char *Module::kind()
+{
+    return "module";
+}
+
 void Module::setDocfile()
 {
     docfile = setOutfile(global.params.docname, global.params.docdir, arg, global.doc_ext);
@@ -184,11 +189,6 @@ void Module::deleteObjFile()
         objfile->remove();
     if (docfile)
         docfile->remove();
-}
-
-const char *Module::kind()
-{
-    return "module";
 }
 
 Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
@@ -1066,7 +1066,6 @@ Package::Package(Identifier *ident)
     this->isPkgMod = PKGunknown;
     this->mod = NULL;
 }
-
 
 const char *Package::kind()
 {

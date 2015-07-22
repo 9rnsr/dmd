@@ -85,6 +85,11 @@ Dsymbol *AliasThis::syntaxCopy(Dsymbol *s)
     return this;
 }
 
+const char *AliasThis::kind()
+{
+    return "alias this";
+}
+
 void AliasThis::semantic(Scope *sc)
 {
     Dsymbol *p = sc->parent->pastMixin();
@@ -141,9 +146,4 @@ void AliasThis::semantic(Scope *sc)
     }
 
     ad->aliasthis = s;
-}
-
-const char *AliasThis::kind()
-{
-    return "alias this";
 }

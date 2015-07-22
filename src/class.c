@@ -257,6 +257,13 @@ Dsymbol *ClassDeclaration::syntaxCopy(Dsymbol *s)
     return ScopeDsymbol::syntaxCopy(cd);
 }
 
+/****************************************
+ */
+const char *ClassDeclaration::kind()
+{
+    return "class";
+}
+
 void ClassDeclaration::semantic(Scope *sc)
 {
     //printf("ClassDeclaration::semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
@@ -1269,14 +1276,6 @@ int ClassDeclaration::vtblOffset()
 /****************************************
  */
 
-const char *ClassDeclaration::kind()
-{
-    return "class";
-}
-
-/****************************************
- */
-
 void ClassDeclaration::addLocalClass(ClassDeclarations *aclasses)
 {
     aclasses->push(this);
@@ -1300,6 +1299,13 @@ Dsymbol *InterfaceDeclaration::syntaxCopy(Dsymbol *s)
         s ? (InterfaceDeclaration *)s
           : new InterfaceDeclaration(loc, ident, NULL);
     return ClassDeclaration::syntaxCopy(id);
+}
+
+/*******************************************
+ */
+const char *InterfaceDeclaration::kind()
+{
+    return "interface";
 }
 
 void InterfaceDeclaration::semantic(Scope *sc)
@@ -1735,15 +1741,6 @@ bool InterfaceDeclaration::isCPPinterface()
 {
     return cpp;
 }
-
-/*******************************************
- */
-
-const char *InterfaceDeclaration::kind()
-{
-    return "interface";
-}
-
 
 /******************************** BaseClass *****************************/
 

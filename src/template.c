@@ -488,6 +488,49 @@ Dsymbol *TemplateDeclaration::syntaxCopy(Dsymbol *)
         Dsymbol::arraySyntaxCopy(members), ismixin, literal);
 }
 
+const char *TemplateDeclaration::kind()
+{
+    return (onemember && onemember->isAggregateDeclaration())
+                ? onemember->kind()
+                : (char *)"template";
+}
+
+/**********************************
+ * Overload existing TemplateDeclaration 'this' with the new one 's'.
+ * Return true if successful; i.e. no conflict.
+ */
+bool TemplateDeclaration::overloadInsert(Dsymbol *s)
+{
+#if LOG
+    printf("TemplateDeclaration::overloadInsert('%s')\n", s->toChars());
+#endif
+    FuncDeclaration *fd = s->isFuncDeclaration();
+    if (fd)
+    {
+        if (funcroot)
+            return funcroot->overloadInsert(fd);
+        funcroot = fd;
+        return funcroot->overloadInsert(this);
+    }
+
+    TemplateDeclaration *td = s->isTemplateDeclaration();
+    if (!td)
+        return false;
+
+    TemplateDeclaration *pthis = this;
+    TemplateDeclaration **ptd;
+    for (ptd = &pthis; *ptd; ptd = &(*ptd)->overnext)
+    {
+    }
+
+    td->overroot = this;
+    *ptd = td;
+#if LOG
+    printf("\ttrue: no conflict\n");
+#endif
+    return true;
+}
+
 void TemplateDeclaration::semantic(Scope *sc)
 {
 #if LOG
@@ -607,50 +650,6 @@ void TemplateDeclaration::semantic(Scope *sc)
     /* BUG: should check:
      *  o no virtual functions or non-static data members of classes
      */
-}
-
-const char *TemplateDeclaration::kind()
-{
-    return (onemember && onemember->isAggregateDeclaration())
-                ? onemember->kind()
-                : (char *)"template";
-}
-
-/**********************************
- * Overload existing TemplateDeclaration 'this' with the new one 's'.
- * Return true if successful; i.e. no conflict.
- */
-
-bool TemplateDeclaration::overloadInsert(Dsymbol *s)
-{
-#if LOG
-    printf("TemplateDeclaration::overloadInsert('%s')\n", s->toChars());
-#endif
-    FuncDeclaration *fd = s->isFuncDeclaration();
-    if (fd)
-    {
-        if (funcroot)
-            return funcroot->overloadInsert(fd);
-        funcroot = fd;
-        return funcroot->overloadInsert(this);
-    }
-
-    TemplateDeclaration *td = s->isTemplateDeclaration();
-    if (!td)
-        return false;
-
-    TemplateDeclaration *pthis = this;
-    TemplateDeclaration **ptd;
-    for (ptd = &pthis; *ptd; ptd = &(*ptd)->overnext)
-    {
-    }
-
-    td->overroot = this;
-    *ptd = td;
-#if LOG
-    printf("\ttrue: no conflict\n");
-#endif
-    return true;
 }
 
 /****************************

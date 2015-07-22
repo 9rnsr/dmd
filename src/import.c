@@ -81,11 +81,6 @@ void Import::addAlias(Identifier *name, Identifier *alias)
     aliases.push(alias);
 }
 
-const char *Import::kind()
-{
-    return isstatic ? (char *)"static import" : (char *)"import";
-}
-
 Prot Import::prot()
 {
     return Prot(protection);
@@ -103,6 +98,11 @@ Dsymbol *Import::syntaxCopy(Dsymbol *s)
     }
 
     return si;
+}
+
+const char *Import::kind()
+{
+    return isstatic ? (char *)"static import" : (char *)"import";
 }
 
 /*****************************
@@ -134,6 +134,19 @@ void Import::addMember(Scope *sc, ScopeDsymbol *sd)
 
         aliasdecls.push(ad);
     }
+}
+
+bool Import::overloadInsert(Dsymbol *s)
+{
+    /* Allow multiple imports with the same package base, but disallow
+     * alias collisions (Bugzilla 5412).
+     */
+    assert(ident && ident == s->ident);
+    Import *imp;
+    if (!aliasId && (imp = s->isImport()) != NULL && !imp->aliasId)
+        return true;
+    else
+        return false;
 }
 
 void Import::load(Scope *sc)
@@ -439,17 +452,4 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
 
     // Forward it to the package/module
     return pkg->search(loc, ident, flags);
-}
-
-bool Import::overloadInsert(Dsymbol *s)
-{
-    /* Allow multiple imports with the same package base, but disallow
-     * alias collisions (Bugzilla 5412).
-     */
-    assert(ident && ident == s->ident);
-    Import *imp;
-    if (!aliasId && (imp = s->isImport()) != NULL && !imp->aliasId)
-        return true;
-    else
-        return false;
 }

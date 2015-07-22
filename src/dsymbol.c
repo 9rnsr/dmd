@@ -93,13 +93,17 @@ bool Dsymbol::equals(RootObject *o)
  * Used for template instantiations.
  * If s is NULL, allocate the new object, otherwise fill it in.
  */
-
 Dsymbol *Dsymbol::syntaxCopy(Dsymbol *s)
 {
     print();
     printf("%s %s\n", kind(), toChars());
     assert(0);
     return NULL;
+}
+
+const char *Dsymbol::kind()
+{
+    return "symbol";
 }
 
 /**************************************
@@ -262,11 +266,6 @@ char *Dsymbol::locToChars()
     return getLoc().toChars();
 }
 
-const char *Dsymbol::kind()
-{
-    return "symbol";
-}
-
 /*********************************
  * If this symbol is really an alias for another,
  * return that other.
@@ -356,11 +355,40 @@ bool Dsymbol::isAnonymous()
     return ident == NULL;
 }
 
+void Dsymbol::addMember(Scope *sc, ScopeDsymbol *sds)
+{
+    //printf("Dsymbol::addMember('%s')\n", toChars());
+    //printf("Dsymbol::addMember(this = %p, '%s' scopesym = '%s')\n", this, toChars(), sds->toChars());
+    //printf("Dsymbol::addMember(this = %p, '%s' sds = %p, sds->symtab = %p)\n", this, toChars(), sds, sds->symtab);
+    parent = sds;
+    if (!isAnonymous())         // no name, so can't add it to symbol table
+    {
+        if (!sds->symtabInsert(this))    // if name is already defined
+        {
+            Dsymbol *s2 = sds->symtab->lookup(ident);
+            if (!s2->overloadInsert(this))
+            {
+                sds->multiplyDefined(Loc(), this, s2);
+            }
+        }
+        if (sds->isAggregateDeclaration() || sds->isEnumDeclaration())
+        {
+            if (ident == Id::__sizeof || ident == Id::__xalignof || ident == Id::mangleof)
+                error(".%s property cannot be redefined", ident->toChars());
+        }
+    }
+}
+
+bool Dsymbol::overloadInsert(Dsymbol *s)
+{
+    //printf("Dsymbol::overloadInsert('%s')\n", s->toChars());
+    return false;
+}
+
 /*************************************
  * Set scope for future semantic analysis so we can
  * deal better with forward references.
  */
-
 void Dsymbol::setScope(Scope *sc)
 {
     //printf("Dsymbol::setScope() %p %s, %p stc = %llx\n", this, toChars(), sc, sc->stc);
@@ -381,7 +409,6 @@ void Dsymbol::importAll(Scope *sc)
 /*************************************
  * Does semantic analysis on the public face of declarations.
  */
-
 void Dsymbol::semantic(Scope *sc)
 {
     error("%p has no semantic routine", this);
@@ -390,7 +417,6 @@ void Dsymbol::semantic(Scope *sc)
 /*************************************
  * Does semantic analysis on initializers and members of aggregates.
  */
-
 void Dsymbol::semantic2(Scope *sc)
 {
     // Most Dsymbols have no further semantic analysis needed
@@ -399,7 +425,6 @@ void Dsymbol::semantic2(Scope *sc)
 /*************************************
  * Does semantic analysis on function bodies.
  */
-
 void Dsymbol::semantic3(Scope *sc)
 {
     // Most Dsymbols have no further semantic analysis needed
@@ -412,7 +437,6 @@ void Dsymbol::semantic3(Scope *sc)
  * Returns:
  *      NULL if not found
  */
-
 Dsymbol *Dsymbol::search(Loc loc, Identifier *ident, int flags)
 {
     //printf("Dsymbol::search(this=%p,%s, ident='%s')\n", this, toChars(), ident->toChars());
@@ -422,7 +446,6 @@ Dsymbol *Dsymbol::search(Loc loc, Identifier *ident, int flags)
 /***************************************************
  * Search for symbol with correct spelling.
  */
-
 void *symbol_search_fp(void *arg, const char *seed, int *cost)
 {
     /* If not in the lexer's string table, it certainly isn't in the symbol table.
@@ -492,7 +515,6 @@ Dsymbol *Dsymbol::takeTypeTupleIndex(Loc loc, Scope *sc, Dsymbol *s, RootObject 
  * Returns:
  *      symbol found, NULL if not
  */
-
 Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
 {
     //printf("Dsymbol::searchX(this=%p,%s, ident='%s')\n", this, toChars(), ident->toChars());
@@ -583,12 +605,6 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
             assert(0);
     }
     return sm;
-}
-
-bool Dsymbol::overloadInsert(Dsymbol *s)
-{
-    //printf("Dsymbol::overloadInsert('%s')\n", s->toChars());
-    return false;
 }
 
 unsigned Dsymbol::size(Loc loc)
@@ -685,30 +701,6 @@ bool Dsymbol::needThis()
 int Dsymbol::apply(Dsymbol_apply_ft_t fp, void *param)
 {
     return (*fp)(this, param);
-}
-
-void Dsymbol::addMember(Scope *sc, ScopeDsymbol *sds)
-{
-    //printf("Dsymbol::addMember('%s')\n", toChars());
-    //printf("Dsymbol::addMember(this = %p, '%s' scopesym = '%s')\n", this, toChars(), sds->toChars());
-    //printf("Dsymbol::addMember(this = %p, '%s' sds = %p, sds->symtab = %p)\n", this, toChars(), sds, sds->symtab);
-    parent = sds;
-    if (!isAnonymous())         // no name, so can't add it to symbol table
-    {
-        if (!sds->symtabInsert(this))    // if name is already defined
-        {
-            Dsymbol *s2 = sds->symtab->lookup(ident);
-            if (!s2->overloadInsert(this))
-            {
-                sds->multiplyDefined(Loc(), this, s2);
-            }
-        }
-        if (sds->isAggregateDeclaration() || sds->isEnumDeclaration())
-        {
-            if (ident == Id::__sizeof || ident == Id::__xalignof || ident == Id::mangleof)
-                error(".%s property cannot be redefined", ident->toChars());
-        }
-    }
 }
 
 void Dsymbol::error(const char *format, ...)
@@ -927,7 +919,6 @@ const char *OverloadSet::kind()
 {
     return "overloadset";
 }
-
 
 /********************************* ScopeDsymbol ****************************/
 

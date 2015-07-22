@@ -40,6 +40,11 @@ AttribDeclaration::AttribDeclaration(Dsymbols *decl)
     this->decl = decl;
 }
 
+const char *AttribDeclaration::kind()
+{
+    return "attribute";
+}
+
 Dsymbols *AttribDeclaration::include(Scope *sc, ScopeDsymbol *sds)
 {
     return decl;
@@ -286,11 +291,6 @@ bool AttribDeclaration::hasStaticCtorOrDtor()
     return false;
 }
 
-const char *AttribDeclaration::kind()
-{
-    return "attribute";
-}
-
 bool AttribDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
 {
     Dsymbols *d = include(NULL, NULL);
@@ -490,6 +490,11 @@ Dsymbol *ProtDeclaration::syntaxCopy(Dsymbol *s)
         return new ProtDeclaration(this->loc, protection, Dsymbol::arraySyntaxCopy(decl));
 }
 
+const char *ProtDeclaration::kind()
+{
+    return "protection attribute";
+}
+
 Scope *ProtDeclaration::newScope(Scope *sc)
 {
     if (pkg_identifiers)
@@ -517,11 +522,6 @@ void ProtDeclaration::addMember(Scope *sc, ScopeDsymbol *sds)
     }
 
     return AttribDeclaration::addMember(sc, sds);
-}
-
-const char *ProtDeclaration::kind()
-{
-    return "protection attribute";
 }
 
 const char *ProtDeclaration::toPrettyChars(bool)
@@ -569,6 +569,11 @@ Dsymbol *AnonDeclaration::syntaxCopy(Dsymbol *s)
 {
     assert(!s);
     return new AnonDeclaration(loc, isunion, Dsymbol::arraySyntaxCopy(decl));
+}
+
+const char *AnonDeclaration::kind()
+{
+    return (isunion ? "anonymous union" : "anonymous struct");
 }
 
 void AnonDeclaration::semantic(Scope *sc)
@@ -676,11 +681,6 @@ void AnonDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset
     }
 }
 
-const char *AnonDeclaration::kind()
-{
-    return (isunion ? "anonymous union" : "anonymous struct");
-}
-
 /********************************* PragmaDeclaration ****************************/
 
 PragmaDeclaration::PragmaDeclaration(Loc loc, Identifier *ident, Expressions *args, Dsymbols *decl)
@@ -698,6 +698,11 @@ Dsymbol *PragmaDeclaration::syntaxCopy(Dsymbol *s)
     return new PragmaDeclaration(loc, ident,
         Expression::arraySyntaxCopy(args),
         Dsymbol::arraySyntaxCopy(decl));
+}
+
+const char *PragmaDeclaration::kind()
+{
+    return "pragma";
 }
 
 Scope *PragmaDeclaration::newScope(Scope *sc)
@@ -1020,11 +1025,6 @@ Lnodecl:
     }
 }
 
-const char *PragmaDeclaration::kind()
-{
-    return "pragma";
-}
-
 /********************************* ConditionalDeclaration ****************************/
 
 ConditionalDeclaration::ConditionalDeclaration(Condition *condition, Dsymbols *decl, Dsymbols *elsedecl)
@@ -1131,6 +1131,11 @@ Dsymbol *StaticIfDeclaration::syntaxCopy(Dsymbol *s)
         Dsymbol::arraySyntaxCopy(elsedecl));
 }
 
+const char *StaticIfDeclaration::kind()
+{
+    return "static if";
+}
+
 void StaticIfDeclaration::addMember(Scope *sc, ScopeDsymbol *sds)
 {
     //printf("StaticIfDeclaration::addMember() '%s'\n", toChars());
@@ -1207,11 +1212,6 @@ void StaticIfDeclaration::semantic(Scope *sc)
     AttribDeclaration::semantic(sc);
 }
 
-const char *StaticIfDeclaration::kind()
-{
-    return "static if";
-}
-
 /***************************** CompileDeclaration *****************************/
 
 // These are mixin declarations, like mixin("int x");
@@ -1230,6 +1230,11 @@ Dsymbol *CompileDeclaration::syntaxCopy(Dsymbol *s)
 {
     //printf("CompileDeclaration::syntaxCopy('%s')\n", toChars());
     return new CompileDeclaration(loc, exp->syntaxCopy());
+}
+
+const char *CompileDeclaration::kind()
+{
+    return "mixin";
 }
 
 void CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sds)
@@ -1298,11 +1303,6 @@ void CompileDeclaration::semantic(Scope *sc)
     AttribDeclaration::semantic(sc);
 }
 
-const char *CompileDeclaration::kind()
-{
-    return "mixin";
-}
-
 /***************************** UserAttributeDeclaration *****************************/
 
 UserAttributeDeclaration::UserAttributeDeclaration(Expressions *atts, Dsymbols *decl)
@@ -1319,6 +1319,11 @@ Dsymbol *UserAttributeDeclaration::syntaxCopy(Dsymbol *s)
     return new UserAttributeDeclaration(
         Expression::arraySyntaxCopy(this->atts),
         Dsymbol::arraySyntaxCopy(decl));
+}
+
+const char *UserAttributeDeclaration::kind()
+{
+    return "UserAttribute";
 }
 
 Scope *UserAttributeDeclaration::newScope(Scope *sc)
@@ -1400,9 +1405,4 @@ Expressions *UserAttributeDeclaration::getAttributes()
         exps->push(new TupleExp(Loc(), atts));
 
     return exps;
-}
-
-const char *UserAttributeDeclaration::kind()
-{
-    return "UserAttribute";
 }

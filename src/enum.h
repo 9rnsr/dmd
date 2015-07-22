@@ -50,12 +50,12 @@ public:
 
     EnumDeclaration(Loc loc, Identifier *id, Type *memtype);
     Dsymbol *syntaxCopy(Dsymbol *s);
+    const char *kind();
     void addMember(Scope *sc, ScopeDsymbol *sds);
     void setScope(Scope *sc);
     void semantic(Scope *sc);
     bool oneMember(Dsymbol **ps, Identifier *ident);
     Type *getType();
-    const char *kind();
     Dsymbol *search(Loc, Identifier *ident, int flags = IgnoreNone);
     bool isDeprecated();                // is Dsymbol deprecated?
     Prot prot();

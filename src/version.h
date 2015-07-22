@@ -26,11 +26,11 @@ public:
     DebugSymbol(Loc loc, Identifier *ident);
     DebugSymbol(Loc loc, unsigned level);
     Dsymbol *syntaxCopy(Dsymbol *);
+    const char *kind();
 
     char *toChars();
     void addMember(Scope *sc, ScopeDsymbol *sds);
     void semantic(Scope *sc);
-    const char *kind();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -42,11 +42,11 @@ public:
     VersionSymbol(Loc loc, Identifier *ident);
     VersionSymbol(Loc loc, unsigned level);
     Dsymbol *syntaxCopy(Dsymbol *);
+    const char *kind();
 
     char *toChars();
     void addMember(Scope *sc, ScopeDsymbol *sds);
     void semantic(Scope *sc);
-    const char *kind();
     void accept(Visitor *v) { v->visit(this); }
 };
 

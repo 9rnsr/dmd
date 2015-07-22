@@ -94,13 +94,13 @@ Declaration::Declaration(Identifier *id)
     mangleOverride = NULL;
 }
 
-void Declaration::semantic(Scope *sc)
-{
-}
-
 const char *Declaration::kind()
 {
     return "declaration";
+}
+
+void Declaration::semantic(Scope *sc)
+{
 }
 
 unsigned Declaration::size(Loc loc)
@@ -336,6 +336,43 @@ Dsymbol *AliasDeclaration::syntaxCopy(Dsymbol *s)
     return sa;
 }
 
+const char *AliasDeclaration::kind()
+{
+    return "alias";
+}
+
+bool AliasDeclaration::overloadInsert(Dsymbol *s)
+{
+    /* Don't know yet what the aliased symbol is, so assume it can
+     * be overloaded and check later for correctness.
+     */
+
+    //printf("AliasDeclaration::overloadInsert('%s')\n", s->toChars());
+    if (aliassym) // see test/test56.d
+    {
+        Dsymbol *sa = aliassym->toAlias();
+        if (FuncDeclaration *fd = sa->isFuncDeclaration())
+        {
+            FuncAliasDeclaration *fa = new FuncAliasDeclaration(fd);
+            aliassym = fa;
+            return fa->overloadInsert(s);
+        }
+        if (TemplateDeclaration *td = sa->isTemplateDeclaration())
+        {
+            OverDeclaration *od = new OverDeclaration(td);
+            aliassym = od;
+            return od->overloadInsert(s);
+        }
+    }
+
+    if (overnext)
+        return overnext->overloadInsert(s);
+    if (s == this)
+        return true;
+    overnext = s;
+    return true;
+}
+
 void AliasDeclaration::semantic(Scope *sc)
 {
     //printf("AliasDeclaration::semantic() %s\n", toChars());
@@ -509,50 +546,6 @@ void AliasDeclaration::semantic(Scope *sc)
     inuse = 0;
 }
 
-bool AliasDeclaration::overloadInsert(Dsymbol *s)
-{
-    /* Don't know yet what the aliased symbol is, so assume it can
-     * be overloaded and check later for correctness.
-     */
-
-    //printf("AliasDeclaration::overloadInsert('%s')\n", s->toChars());
-    if (aliassym) // see test/test56.d
-    {
-        Dsymbol *sa = aliassym->toAlias();
-        if (FuncDeclaration *fd = sa->isFuncDeclaration())
-        {
-            FuncAliasDeclaration *fa = new FuncAliasDeclaration(fd);
-            aliassym = fa;
-            return fa->overloadInsert(s);
-        }
-        if (TemplateDeclaration *td = sa->isTemplateDeclaration())
-        {
-            OverDeclaration *od = new OverDeclaration(td);
-            aliassym = od;
-            return od->overloadInsert(s);
-        }
-    }
-
-    if (overnext == NULL)
-    {
-        if (s == this)
-        {
-            return true;
-        }
-        overnext = s;
-        return true;
-    }
-    else
-    {
-        return overnext->overloadInsert(s);
-    }
-}
-
-const char *AliasDeclaration::kind()
-{
-    return "alias";
-}
-
 Type *AliasDeclaration::getType()
 {
     if (type)
@@ -663,6 +656,17 @@ const char *OverDeclaration::kind()
     return "overload alias";    // todo
 }
 
+bool OverDeclaration::overloadInsert(Dsymbol *s)
+{
+    //printf("OverDeclaration::overloadInsert('%s') aliassym = %p, overnext = %p\n", s->toChars(), aliassym, overnext);
+    if (overnext)
+        return overnext->overloadInsert(s);
+    if (s == this)
+        return true;
+    overnext = s;
+    return true;
+}
+
 void OverDeclaration::semantic(Scope *sc)
 {
 }
@@ -696,24 +700,6 @@ bool OverDeclaration::equals(RootObject *o)
         }
     }
     return false;
-}
-
-bool OverDeclaration::overloadInsert(Dsymbol *s)
-{
-    //printf("OverDeclaration::overloadInsert('%s') aliassym = %p, overnext = %p\n", s->toChars(), aliassym, overnext);
-    if (overnext == NULL)
-    {
-        if (s == this)
-        {
-            return true;
-        }
-        overnext = s;
-        return true;
-    }
-    else
-    {
-        return overnext->overloadInsert(s);
-    }
 }
 
 Dsymbol *OverDeclaration::toAlias()
@@ -800,6 +786,10 @@ Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
     return v;
 }
 
+const char *VarDeclaration::kind()
+{
+    return "variable";
+}
 
 void VarDeclaration::semantic(Scope *sc)
 {
@@ -1717,11 +1707,6 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
     //printf("\t%s: memalignsize = %d\n", toChars(), memalignsize);
 
     //printf(" addField '%s' to '%s' at offset %d, size = %d\n", toChars(), ad->toChars(), offset, memsize);
-}
-
-const char *VarDeclaration::kind()
-{
-    return "variable";
 }
 
 Dsymbol *VarDeclaration::toAlias()

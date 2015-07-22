@@ -29,11 +29,12 @@ public:
     StaticAssert(Loc loc, Expression *exp, Expression *msg);
 
     Dsymbol *syntaxCopy(Dsymbol *s);
+    const char *kind();
     void addMember(Scope *sc, ScopeDsymbol *sds);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     bool oneMember(Dsymbol **ps, Identifier *ident);
-    const char *kind();
+
     void accept(Visitor *v) { v->visit(this); }
 };
 

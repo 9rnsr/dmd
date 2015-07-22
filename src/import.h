@@ -49,17 +49,17 @@ public:
     Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *aliasId,
         int isstatic);
     void addAlias(Identifier *name, Identifier *alias);
-    const char *kind();
     Prot prot();
     Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
+    const char *kind();
     void addMember(Scope *sc, ScopeDsymbol *sds);
+    bool overloadInsert(Dsymbol *s);
     void load(Scope *sc);
     void importAll(Scope *sc);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     Dsymbol *toAlias();
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
-    bool overloadInsert(Dsymbol *s);
 
     Import *isImport() { return this; }
     void accept(Visitor *v) { v->visit(this); }

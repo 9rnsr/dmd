@@ -351,6 +351,82 @@ Dsymbol *FuncDeclaration::syntaxCopy(Dsymbol *s)
     return f;
 }
 
+const char *FuncDeclaration::kind()
+{
+    return "function";
+}
+
+/****************************************************
+ * Overload this FuncDeclaration with the new one f.
+ * Return true if successful; i.e. no conflict.
+ */
+bool FuncDeclaration::overloadInsert(Dsymbol *s)
+{
+    //printf("FuncDeclaration::overloadInsert(s = %s) this = %s\n", s->toChars(), toChars());
+    assert(s != this);
+
+    AliasDeclaration *ad = s->isAliasDeclaration();
+    if (ad)
+    {
+        if (overnext)
+            return overnext->overloadInsert(ad);
+        if (!ad->aliassym && ad->type->ty != Tident && ad->type->ty != Tinstance)
+        {
+            //printf("\tad = '%s'\n", ad->type->toChars());
+            return false;
+        }
+        overnext = ad;
+        //printf("\ttrue: no conflict\n");
+        return true;
+    }
+    TemplateDeclaration *td = s->isTemplateDeclaration();
+    if (td)
+    {
+        if (!td->funcroot)
+            td->funcroot = this;
+        if (overnext)
+            return overnext->overloadInsert(td);
+        overnext = td;
+        return true;
+    }
+    FuncDeclaration *fd = s->isFuncDeclaration();
+    if (!fd)
+        return false;
+
+#if 0
+    /* Disable this check because:
+     *  const void foo();
+     * semantic() isn't run yet on foo(), so the const hasn't been
+     * applied yet.
+     */
+    if (type)
+    {   printf("type = %s\n", type->toChars());
+        printf("fd->type = %s\n", fd->type->toChars());
+    }
+    // fd->type can be NULL for overloaded constructors
+    if (type && fd->type &&
+        fd->type->covariant(type) &&
+        fd->type->mod == type->mod &&
+        !isFuncAliasDeclaration())
+    {
+        //printf("\tfalse: conflict %s\n", kind());
+        return false;
+    }
+#endif
+
+    if (overnext)
+    {
+        td = overnext->isTemplateDeclaration();
+        if (td)
+            fd->overloadInsert(td);
+        else
+            return overnext->overloadInsert(fd);
+    }
+    overnext = fd;
+    //printf("\ttrue: no conflict\n");
+    return true;
+}
+
 // Do the semantic analysis on the external interface to the function.
 
 void FuncDeclaration::semantic(Scope *sc)
@@ -2653,78 +2729,6 @@ int FuncDeclaration::findVtblIndex(Dsymbols *vtbl, int dim)
     return bestvi;
 }
 
-/****************************************************
- * Overload this FuncDeclaration with the new one f.
- * Return true if successful; i.e. no conflict.
- */
-
-bool FuncDeclaration::overloadInsert(Dsymbol *s)
-{
-    //printf("FuncDeclaration::overloadInsert(s = %s) this = %s\n", s->toChars(), toChars());
-    assert(s != this);
-
-    AliasDeclaration *ad = s->isAliasDeclaration();
-    if (ad)
-    {
-        if (overnext)
-            return overnext->overloadInsert(ad);
-        if (!ad->aliassym && ad->type->ty != Tident && ad->type->ty != Tinstance)
-        {
-            //printf("\tad = '%s'\n", ad->type->toChars());
-            return false;
-        }
-        overnext = ad;
-        //printf("\ttrue: no conflict\n");
-        return true;
-    }
-    TemplateDeclaration *td = s->isTemplateDeclaration();
-    if (td)
-    {
-        if (!td->funcroot)
-            td->funcroot = this;
-        if (overnext)
-            return overnext->overloadInsert(td);
-        overnext = td;
-        return true;
-    }
-    FuncDeclaration *fd = s->isFuncDeclaration();
-    if (!fd)
-        return false;
-
-#if 0
-    /* Disable this check because:
-     *  const void foo();
-     * semantic() isn't run yet on foo(), so the const hasn't been
-     * applied yet.
-     */
-    if (type)
-    {   printf("type = %s\n", type->toChars());
-        printf("fd->type = %s\n", fd->type->toChars());
-    }
-    // fd->type can be NULL for overloaded constructors
-    if (type && fd->type &&
-        fd->type->covariant(type) &&
-        fd->type->mod == type->mod &&
-        !isFuncAliasDeclaration())
-    {
-        //printf("\tfalse: conflict %s\n", kind());
-        return false;
-    }
-#endif
-
-    if (overnext)
-    {
-        td = overnext->isTemplateDeclaration();
-        if (td)
-            fd->overloadInsert(td);
-        else
-            return overnext->overloadInsert(fd);
-    }
-    overnext = fd;
-    //printf("\ttrue: no conflict\n");
-    return true;
-}
-
 /***************************************************
  * Visit each overloaded function/template in turn, and call
  * (*fp)(param, s) on it.
@@ -4109,11 +4113,6 @@ FuncDeclaration *FuncDeclaration::genCfunc(Parameters *fparams, Type *treturn, I
     return fd;
 }
 
-const char *FuncDeclaration::kind()
-{
-    return "function";
-}
-
 /*********************************************
  * In the current function, we are calling 'this' function.
  * 1. Check to see if the current function can call 'this' function, issue error if not.
@@ -4451,7 +4450,6 @@ FuncDeclaration *FuncAliasDeclaration::toAliasFunc()
     return funcalias->toAliasFunc();
 }
 
-
 /****************************** FuncLiteralDeclaration ************************/
 
 FuncLiteralDeclaration::FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type,
@@ -4473,6 +4471,12 @@ Dsymbol *FuncLiteralDeclaration::syntaxCopy(Dsymbol *s)
         type->syntaxCopy(), tok, fes, ident);
     f->treq = treq;     // don't need to copy
     return FuncDeclaration::syntaxCopy(f);
+}
+
+const char *FuncLiteralDeclaration::kind()
+{
+    // GCC requires the (char*) casts
+    return (tok != TOKfunction) ? (char*)"delegate" : (char*)"function";
 }
 
 bool FuncLiteralDeclaration::isNested()
@@ -4545,12 +4549,6 @@ void FuncLiteralDeclaration::modifyReturns(Scope *sc, Type *tret)
         ((TypeFunction *)type)->next = tret;
 }
 
-const char *FuncLiteralDeclaration::kind()
-{
-    // GCC requires the (char*) casts
-    return (tok != TOKfunction) ? (char*)"delegate" : (char*)"function";
-}
-
 const char *FuncLiteralDeclaration::toPrettyChars(bool QualifyTypes)
 {
     if (parent)
@@ -4575,6 +4573,11 @@ Dsymbol *CtorDeclaration::syntaxCopy(Dsymbol *s)
     assert(!s);
     CtorDeclaration *f = new CtorDeclaration(loc, endloc, storage_class, type->syntaxCopy());
     return FuncDeclaration::syntaxCopy(f);
+}
+
+const char *CtorDeclaration::kind()
+{
+    return "constructor";
 }
 
 void CtorDeclaration::semantic(Scope *sc)
@@ -4638,11 +4641,6 @@ void CtorDeclaration::semantic(Scope *sc)
     }
 }
 
-const char *CtorDeclaration::kind()
-{
-    return "constructor";
-}
-
 char *CtorDeclaration::toChars()
 {
     return (char *)"this";
@@ -4676,6 +4674,11 @@ Dsymbol *PostBlitDeclaration::syntaxCopy(Dsymbol *s)
     assert(!s);
     PostBlitDeclaration *dd = new PostBlitDeclaration(loc, endloc, storage_class, ident);
     return FuncDeclaration::syntaxCopy(dd);
+}
+
+bool PostBlitDeclaration::overloadInsert(Dsymbol *s)
+{
+    return false;       // cannot overload postblits
 }
 
 void PostBlitDeclaration::semantic(Scope *sc)
@@ -4716,11 +4719,6 @@ void PostBlitDeclaration::semantic(Scope *sc)
     sc->pop();
 }
 
-bool PostBlitDeclaration::overloadInsert(Dsymbol *s)
-{
-    return false;       // cannot overload postblits
-}
-
 bool PostBlitDeclaration::addPreInvariant()
 {
     return false;
@@ -4753,6 +4751,16 @@ Dsymbol *DtorDeclaration::syntaxCopy(Dsymbol *s)
     assert(!s);
     DtorDeclaration *dd = new DtorDeclaration(loc, endloc, storage_class, ident);
     return FuncDeclaration::syntaxCopy(dd);
+}
+
+const char *DtorDeclaration::kind()
+{
+    return "destructor";
+}
+
+bool DtorDeclaration::overloadInsert(Dsymbol *s)
+{
+    return false;       // cannot overload destructors
 }
 
 void DtorDeclaration::semantic(Scope *sc)
@@ -4792,11 +4800,6 @@ void DtorDeclaration::semantic(Scope *sc)
     sc->pop();
 }
 
-bool DtorDeclaration::overloadInsert(Dsymbol *s)
-{
-    return false;       // cannot overload destructors
-}
-
 bool DtorDeclaration::addPreInvariant()
 {
     return (isThis() && vthis && global.params.useInvariants);
@@ -4805,11 +4808,6 @@ bool DtorDeclaration::addPreInvariant()
 bool DtorDeclaration::addPostInvariant()
 {
     return false;
-}
-
-const char *DtorDeclaration::kind()
-{
-    return "destructor";
 }
 
 char *DtorDeclaration::toChars()
@@ -5257,6 +5255,11 @@ Dsymbol *NewDeclaration::syntaxCopy(Dsymbol *s)
     return FuncDeclaration::syntaxCopy(f);
 }
 
+const char *NewDeclaration::kind()
+{
+    return "allocator";
+}
+
 void NewDeclaration::semantic(Scope *sc)
 {
     //printf("NewDeclaration::semantic()\n");
@@ -5301,11 +5304,6 @@ void NewDeclaration::semantic(Scope *sc)
     FuncDeclaration::semantic(sc);
 }
 
-const char *NewDeclaration::kind()
-{
-    return "allocator";
-}
-
 bool NewDeclaration::isVirtual()
 {
     return false;
@@ -5335,6 +5333,11 @@ Dsymbol *DeleteDeclaration::syntaxCopy(Dsymbol *s)
     DeleteDeclaration *f = new DeleteDeclaration(loc, endloc,
             storage_class, Parameter::arraySyntaxCopy(parameters));
     return FuncDeclaration::syntaxCopy(f);
+}
+
+const char *DeleteDeclaration::kind()
+{
+    return "deallocator";
 }
 
 void DeleteDeclaration::semantic(Scope *sc)
@@ -5378,11 +5381,6 @@ void DeleteDeclaration::semantic(Scope *sc)
     }
 
     FuncDeclaration::semantic(sc);
-}
-
-const char *DeleteDeclaration::kind()
-{
-    return "deallocator";
 }
 
 bool DeleteDeclaration::isDelete()
