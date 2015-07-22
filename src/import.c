@@ -105,6 +105,37 @@ Dsymbol *Import::syntaxCopy(Dsymbol *s)
     return si;
 }
 
+/*****************************
+ * Add import to sd's symbol table.
+ */
+void Import::addMember(Scope *sc, ScopeDsymbol *sd)
+{
+    if (names.dim == 0)
+        return Dsymbol::addMember(sc, sd);
+
+    if (aliasId)
+        Dsymbol::addMember(sc, sd);
+
+    /* Instead of adding the import to sd's symbol table,
+     * add each of the alias=name pairs
+     */
+    for (size_t i = 0; i < names.dim; i++)
+    {
+        Identifier *name = names[i];
+        Identifier *alias = aliases[i];
+
+        if (!alias)
+            alias = name;
+
+        TypeIdentifier *tname = new TypeIdentifier(loc, name);
+        AliasDeclaration *ad = new AliasDeclaration(loc, alias, tname);
+        ad->import = this;
+        ad->addMember(sc, sd);
+
+        aliasdecls.push(ad);
+    }
+}
+
 void Import::load(Scope *sc)
 {
     //printf("Import::load('%s') %p\n", toPrettyChars(), this);
@@ -393,38 +424,6 @@ Dsymbol *Import::toAlias()
     if (aliasId)
         return mod;
     return this;
-}
-
-/*****************************
- * Add import to sd's symbol table.
- */
-
-void Import::addMember(Scope *sc, ScopeDsymbol *sd)
-{
-    if (names.dim == 0)
-        return Dsymbol::addMember(sc, sd);
-
-    if (aliasId)
-        Dsymbol::addMember(sc, sd);
-
-    /* Instead of adding the import to sd's symbol table,
-     * add each of the alias=name pairs
-     */
-    for (size_t i = 0; i < names.dim; i++)
-    {
-        Identifier *name = names[i];
-        Identifier *alias = aliases[i];
-
-        if (!alias)
-            alias = name;
-
-        TypeIdentifier *tname = new TypeIdentifier(loc, name);
-        AliasDeclaration *ad = new AliasDeclaration(loc, alias, tname);
-        ad->import = this;
-        ad->addMember(sc, sd);
-
-        aliasdecls.push(ad);
-    }
 }
 
 Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)

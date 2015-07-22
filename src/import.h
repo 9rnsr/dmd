@@ -52,12 +52,12 @@ public:
     const char *kind();
     Prot prot();
     Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
+    void addMember(Scope *sc, ScopeDsymbol *sds);
     void load(Scope *sc);
     void importAll(Scope *sc);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     Dsymbol *toAlias();
-    void addMember(Scope *sc, ScopeDsymbol *sds);
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
     bool overloadInsert(Dsymbol *s);
 
