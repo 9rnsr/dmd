@@ -2418,7 +2418,8 @@ bool Expression::checkPurity(Scope *sc, FuncDeclaration *f)
     {
         FuncDeclaration *ff = outerfunc;
         //if (sc->flags & SCOPEcompile ? ff->isPureBypassingInference() >= PUREweak : ff->setImpure())
-        if (!(ff->scope->flags & SCOPEcompile) ? ff->isNogcBypassingInference() : ff->setGC())
+        if (!(ff->scope->flags & SCOPEcompile) && !ff->scope->intypeof
+            ? ff->isPureBypassingInference() >= PUREweak : ff->setImpure())
         {
             error("pure function '%s' cannot call impure function '%s'",
                 ff->toPrettyChars(), f->toPrettyChars());
@@ -2486,7 +2487,8 @@ bool Expression::checkPurity(Scope *sc, VarDeclaration *v)
         //printf("[%s] e = %s, ff = %s (scope->flags = x%x)\n",
         //    loc.toChars(), toChars(), ff->toChars(), ff->scope->flags);
             //if (sc->flags & SCOPEcompile ? ff->isPureBypassingInference() >= PUREweak : ff->setImpure())
-            if (!(ff->scope->flags & SCOPEcompile) ? ff->isPureBypassingInference() >= PUREweak : ff->setImpure())
+            if (!(ff->scope->flags & SCOPEcompile) && !ff->scope->intypeof
+                ? ff->isPureBypassingInference() >= PUREweak : ff->setImpure())
             {
                 error("pure function '%s' cannot access mutable static data '%s'",
                     ff->toPrettyChars(), v->toChars());
@@ -2573,7 +2575,8 @@ bool Expression::checkPurity(Scope *sc, VarDeclaration *v)
     if (v->storage_class & STCgshared)
     {
         //if (sc->func->setUnsafe())
-        if (!(sc->func->scope->flags & SCOPEcompile) ? sc->func->isSafeBypassingInference() : sc->func->setUnsafe())
+        if (!(sc->func->scope->flags & SCOPEcompile) && !sc->func->scope->intypeof
+            ? sc->func->isSafeBypassingInference() : sc->func->setUnsafe())
         {
             error("safe function '%s' cannot access __gshared data '%s'",
                 sc->func->toChars(), v->toChars());
@@ -2604,7 +2607,8 @@ bool Expression::checkSafety(Scope *sc, FuncDeclaration *f)
     if (!f->isSafe() && !f->isTrusted())
     {
         //if (sc->flags & SCOPEcompile ? sc->func->isSafeBypassingInference() : sc->func->setUnsafe())
-        if (!(sc->func->scope->flags & SCOPEcompile) ? sc->func->isSafeBypassingInference() : sc->func->setUnsafe())
+        if (!(sc->func->scope->flags & SCOPEcompile) && !sc->func->scope->intypeof
+            ? sc->func->isSafeBypassingInference() : sc->func->setUnsafe())
         {
             if (loc.linnum == 0)  // e.g. implicitly generated dtor
                 loc = sc->func->loc;
@@ -2639,7 +2643,8 @@ bool Expression::checkNogc(Scope *sc, FuncDeclaration *f)
         printf("[%s] e = %s, sc->func = %s (scope->flags = x%x)\n",
             loc.toChars(), toChars(), sc->func->toChars(), sc->func->scope->flags);
         //if (/*sc->flags & SCOPEcompile ? sc->func->isNogcBypassingInference() : */sc->func->setGC())
-        if (!(sc->func->scope->flags & SCOPEcompile) ? sc->func->isNogcBypassingInference() : sc->func->setGC())
+        if (!(sc->func->scope->flags & SCOPEcompile) && !sc->func->scope->intypeof
+            ? sc->func->isNogcBypassingInference() : sc->func->setGC())
         {
             if (loc.linnum == 0)  // e.g. implicitly generated dtor
                 loc = sc->func->loc;
