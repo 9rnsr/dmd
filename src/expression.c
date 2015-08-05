@@ -2630,7 +2630,10 @@ bool Expression::checkNogc(Scope *sc, FuncDeclaration *f)
 
     if (!f->isNogc())
     {
-        if (sc->flags & SCOPEcompile ? sc->func->isNogcBypassingInference() : sc->func->setGC())
+        printf("[%s] e = %s, sc->func = %s (scope->flags = x%x)\n",
+            loc.toChars(), toChars(), sc->func->toChars(), sc->func->scope->flags);
+        //if (/*sc->flags & SCOPEcompile ? sc->func->isNogcBypassingInference() : */sc->func->setGC())
+        if (!(sc->func->scope->flags & SCOPEcompile) ? sc->func->isNogcBypassingInference() : sc->func->setGC())
         {
             if (loc.linnum == 0)  // e.g. implicitly generated dtor
                 loc = sc->func->loc;

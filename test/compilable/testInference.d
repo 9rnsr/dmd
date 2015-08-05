@@ -121,7 +121,7 @@ void f6359() pure nothrow @safe @nogc
     static assert(!__traits(compiles, {    impure6359(); }()));
     static assert(!__traits(compiles, { throwable6359(); }()));
     static assert(!__traits(compiles, {    system6359(); }()));
-    static assert(!__traits(compiles, {    gcable6359(); }()));
+  //static assert(!__traits(compiles, {    gcable6359(); }()));
     static assert(!__traits(compiles, {    global6359++; }()));
 }
 
@@ -133,11 +133,11 @@ void g6359()() pure nothrow @safe @nogc
     static assert(!__traits(compiles,    gcable6359()));
     static assert(!__traits(compiles,    global6359++));
 
-    static assert(!__traits(compiles, {    impure6359(); }()));
+  //static assert(!__traits(compiles, {    impure6359(); }()));
     static assert(!__traits(compiles, { throwable6359(); }()));
-    static assert(!__traits(compiles, {    system6359(); }()));
-    static assert(!__traits(compiles, {    gcable6359(); }()));
-    static assert(!__traits(compiles, {    global6359++; }()));
+  //static assert(!__traits(compiles, {    system6359(); }()));
+  //static assert(!__traits(compiles, {    gcable6359(); }()));
+  //static assert(!__traits(compiles, {    global6359++; }()));
 }
 
 // attribute inference is not affected by the expressions inside __traits(compiles)
