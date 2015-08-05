@@ -2412,11 +2412,14 @@ bool Expression::checkPurity(Scope *sc, FuncDeclaration *f)
         }
     }
 
+        FuncDeclaration *ff = outerfunc;
+    printf("[%s] checkPurity e = %s, ff = %s (scope->flags = x%x)\n",
+        loc.toChars(), toChars(), ff->toChars(), ff->scope->flags);
+
     // If the caller has a pure parent, then either the called func must be pure,
     // OR, they must have the same pure parent.
     if (!f->isPure() && calledparent != outerfunc)
     {
-        FuncDeclaration *ff = outerfunc;
         //if (sc->flags & SCOPEcompile ? ff->isPureBypassingInference() >= PUREweak : ff->setImpure())
         if (!(ff->scope->flags & SCOPEcompile) && !ff->scope->intypeof
             ? ff->isPureBypassingInference() >= PUREweak : ff->setImpure())
