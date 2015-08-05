@@ -8307,6 +8307,7 @@ L1:
             ClassDeclaration *cdp = sym->toParent2()->isClassDeclaration();
             DotVarExp *de = new DotVarExp(e->loc, e, sym->vthis, 0);
             de->type = (cdp ? cdp->type : sym->vthis->type)->addMod(e->type->mod);
+            //printf(".outer type = %s\n", sym->vthis->type->toChars());
             return de;
         }
         else

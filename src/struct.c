@@ -543,7 +543,7 @@ void AggregateDeclaration::makeNested()
         enclosing = fd;
 
         AggregateDeclaration *agg = fd->isMember2();
-        t = agg ? agg->handleType() : Type::tvoidptr;
+        t = /*agg ? agg->handleType() : */Type::tvoidptr;
     }
     else if (ad)
     {
@@ -563,7 +563,7 @@ void AggregateDeclaration::makeNested()
     }
     if (enclosing)
     {
-        //printf("makeNested %s, enclosing = %s\n", toChars(), enclosing->toChars());
+        //printf("makeNested %s, enclosing = %s, t = %s\n", toChars(), enclosing->toChars(), t->toChars());
         assert(t);
         if (t->ty == Tstruct)
             t = Type::tvoidptr;     // t should not be a ref type
