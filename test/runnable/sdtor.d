@@ -4184,3 +4184,77 @@ int main()
     printf("Success\n");
     return 0;
 }
+
+// 14903
+import core.stdc.stdio;
+
+struct Foo
+{
+    const char* name;
+    bool throwInDtor;
+
+    this(const char* name, bool throwInDtor)
+    {
+        printf("Constructing %s\n", name);
+        this.name = name;
+        this.throwInDtor = throwInDtor;
+    }
+
+    ~this()
+    {
+        printf("Destroying %s\n", name);
+        if (throwInDtor)
+            throw new Exception("dtor " ~ name[0]);
+    }
+}
+
+Foo make(const char* name, bool doThrow)
+{
+    if (doThrow)
+        throw new Exception("make()");
+    return Foo(name, false);
+}
+
+void foo(Foo a, Foo b, Foo c, Foo d)
+{
+    throw new Exception("foo()!");
+}
+
+void main()
+{
+    //foo(Foo("a", 1), make("b", 0), Foo("c", 1), make("d", 0));      // (1)
+    // a.ctor -> b.ctor -> c.ctor -> d.ctor -> foo throw / d.dtor -> c.dtor -> b.dtor -> a.dtor
+
+  /+
+    //foo(Foo("a", 1), make("b", 0), Foo("c", 1), make("d", 1));      // (2)
+    //  a.ctor -> b.ctor -> c.ctor -> throw in make! / c.dtor (throw!) -> b.dtor ->
+    try {
+        try {
+            try {
+                throw new Exception("make(d)");
+            } finally {
+                printf("Destroying %s\n", "c".ptr);
+                throw new Exception("c");   // c.dtor
+            }
+        } finally {
+            // b.dtor
+            printf("Destroying %s\n", "b".ptr);
+        }
+    } finally {
+        printf("Destroying %s\n", "a".ptr);
+        throw new Exception("a");   // a.dtor
+    }
+  // +/
+
+    //foo(Foo("a", 0), make("b", 0), Foo("c", 0), make("d", 1));      // (3)
+    //  a.ctor -> b.ctor -> c.ctor -> make(d) throw! / c.dtor -> c.dtor -> a.dtor
+
+    //foo(Foo("a", 0), make("b", 1), Foo("c", 0), make("d", 1));      // (4)
+    //  a.ctor -> make(b) throw! / a.dtor
+
+
+    //foo( Foo("a", 1), make("b", 1),  Foo("c", 0), make("d", 1));  // (5)
+    //  a.ctor -> (make b -> throw) -> (a.dtor -> throw)
+    //  ==> a.ctor a.dtor x inf
+}
+
