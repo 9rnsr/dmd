@@ -880,8 +880,6 @@ void VarDeclaration::semantic(Scope *sc)
         type = type->semantic(loc, sc2);
         inuse--;
         sc2->pop();
-
-        type->checkDeprecated(loc, sc);
     }
     //printf(" semantic type = %s\n", type ? type->toChars() : "null");
 
