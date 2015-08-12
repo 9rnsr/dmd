@@ -19,6 +19,7 @@
 #include "template.h"
 #include "scope.h"
 #include "aggregate.h"
+#include "enum.h"
 #include "module.h"
 #include "import.h"
 #include "id.h"
@@ -833,18 +834,12 @@ void VarDeclaration::semantic(Scope *sc)
      * override, abstract, and final.
      */
     storage_class |= (sc->stc & ~(STCsynchronized | STCoverride | STCabstract | STCfinal));
-    if (storage_class & STCextern && init)
-        error("extern symbols cannot have initializers");
-
-    userAttribDecl = sc->userAttribDecl;
-
-    AggregateDeclaration *ad = isThis();
-    if (ad)
+    if (AggregateDeclaration *ad = isThis())
         storage_class |= ad->storage_class & STC_TYPECTOR;
 
     /* If auto type inference, do the inference
      */
-    int inferred = 0;
+    bool inferred = false;
     if (!type)
     {
         inuse++;
@@ -861,7 +856,7 @@ void VarDeclaration::semantic(Scope *sc)
         if (needctfe) sc = sc->endCTFE();
 
         inuse--;
-        inferred = 1;
+        inferred = true;
 
         /* This is a kludge to support the existing syntax for RAII
          * declarations.
@@ -885,46 +880,25 @@ void VarDeclaration::semantic(Scope *sc)
         type = type->semantic(loc, sc2);
         inuse--;
         sc2->pop();
+
+        type->checkDeprecated(loc, sc);
     }
     //printf(" semantic type = %s\n", type ? type->toChars() : "null");
 
-    type->checkDeprecated(loc, sc);
+    parent = sc->parent;
     linkage = sc->linkage;
-    this->parent = sc->parent;
-    //printf("this = %p, parent = %p, '%s'\n", this, parent, parent->toChars());
-    protection = sc->protection;
-
-    /* If scope's alignment is the default, use the type's alignment,
-     * otherwise the scope overrrides.
-     */
     alignment = sc->structalign;
-    if (alignment == STRUCTALIGN_DEFAULT)
-        alignment = type->alignment();          // use type's alignment
-
+    protection = sc->protection;
+    //printf("this = %p, parent = %p, '%s'\n", this, parent, parent->toChars());
     //printf("sc->stc = %x\n", sc->stc);
     //printf("storage_class = x%x\n", storage_class);
 
-    if (global.params.vcomplex)
-        type->checkComplexTransition(loc);
-
-    // Calculate type size + safety checks
-    if (sc->func && !sc->intypeof && !isMember())
-    {
-        if (storage_class & STCgshared)
-        {
-            if (sc->func->setUnsafe())
-                error("__gshared not allowed in safe functions; use shared");
-        }
-        if (init && init->isVoidInitializer() &&
-            type->hasPointers())    // get type size
-        {
-            if (sc->func->setUnsafe())
-                error("void initializers for pointers not allowed in safe functions");
-        }
-    }
+    userAttribDecl = sc->userAttribDecl;
 
     Dsymbol *parent = toParent();
 
+    /* Validate the variable type
+     */
     Type *tb = type->toBasetype();
     Type *tbn = tb->baseElemOf();
     if (tb->ty == Tvoid && !(storage_class & STClazy))
@@ -945,16 +919,37 @@ void VarDeclaration::semantic(Scope *sc)
         type = Type::terror;
         tb = type;
     }
-    if (tb->ty == Tstruct)
+    if (tbn->ty == Tstruct && !((TypeStruct *)tbn)->sym->members ||
+        tbn->ty == Tenum && !((TypeEnum *)tbn)->sym->members)
     {
-        TypeStruct *ts = (TypeStruct *)tb;
-        if (!ts->sym->members)
+        error("cannot be declared with opaque type %s", type->toChars());
+        type = Type::terror;
+        tb = type;
+    }
+    if (global.params.vcomplex)
+        type->checkComplexTransition(loc);
+
+    /* If scope's alignment is the default, use the type's alignment,
+     * otherwise the scope overrrides.
+     */
+    if (alignment == STRUCTALIGN_DEFAULT)
+        alignment = type->alignment();          // use type's alignment
+
+    // Calculate type size + safety checks
+    if (sc->func && !sc->intypeof && !isMember())
+    {
+        if (storage_class & STCgshared)
         {
-            error("no definition of struct %s", ts->toChars());
+            if (sc->func->setUnsafe())
+                error("__gshared not allowed in safe functions; use shared");
+        }
+        if (init && init->isVoidInitializer() &&
+            type->hasPointers())    // get type size
+        {
+            if (sc->func->setUnsafe())
+                error("void initializers for pointers not allowed in safe functions");
         }
     }
-    if ((storage_class & STCauto) && !inferred)
-        error("storage class 'auto' has no effect if type is not inferred, did you mean 'scope'?");
 
     if (tb->ty == Ttuple)
     {
@@ -1137,6 +1132,13 @@ Lnomatch:
     else if (type->isWild())
         storage_class |= STCwild;
 
+    /* Validate the variable storage class
+     */
+    if (storage_class & STCextern && init)
+        error("extern symbols cannot have initializers");
+    if ((storage_class & STCauto) && !inferred)
+        error("storage class 'auto' has no effect if type is not inferred, did you mean 'scope'?");
+
     if (StorageClass stc = storage_class & (STCsynchronized | STCoverride | STCabstract | STCfinal))
     {
         if (stc == STCfinal)
@@ -1163,7 +1165,7 @@ Lnomatch:
             {
                 const char *p = loc.toChars();
                 const char *s = (storage_class & STCimmutable) ? "immutable" : "const";
-                fprintf(global.stdmsg, "%s: %s.%s is %s field\n", p ? p : "", ad->toPrettyChars(), toChars(), s);
+                fprintf(global.stdmsg, "%s: %s.%s is %s field\n", p ? p : "", aad->toPrettyChars(), toChars(), s);
             }
             storage_class |= STCfield;
             if (tbn->ty == Tstruct && ((TypeStruct *)tbn)->sym->noDefaultCtor)

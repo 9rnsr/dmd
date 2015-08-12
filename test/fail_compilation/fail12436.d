@@ -75,3 +75,25 @@ enum A14906;
 void f14906a(A14906) {}
 void f14906b(A14906[3]) {}
 void f14906c(A14906[3][3]) {}
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail12436.d(93): Error: variable fail12436.ev1 cannot be declared with opaque type E
+fail_compilation/fail12436.d(94): Error: variable fail12436.ev2 cannot be declared with opaque type E[3]
+fail_compilation/fail12436.d(95): Error: variable fail12436.ev3 cannot be declared with opaque type E[3][3]
+fail_compilation/fail12436.d(97): Error: variable fail12436.sv1 cannot be declared with opaque type S
+fail_compilation/fail12436.d(98): Error: variable fail12436.sv2 cannot be declared with opaque type S[3]
+fail_compilation/fail12436.d(99): Error: variable fail12436.sv3 cannot be declared with opaque type S[3][3]
+---
+*/
+enum E;
+struct S;
+
+E ev1;
+E[3] ev2;
+E[3][3] ev3;
+
+S sv1;
+S[3] sv2;
+S[3][3] sv3;
