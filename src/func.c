@@ -2057,9 +2057,9 @@ void FuncDeclaration::semantic3(Scope *sc)
              */
             if (parameters)
             {
-                for (size_t i = 0; i < parameters->dim; i++)
+                for (size_t i = parameters->dim; i; i--)
                 {
-                    VarDeclaration *v = (*parameters)[i];
+                    VarDeclaration *v = (*parameters)[i - 1];
 
                     if (v->storage_class & (STCref | STCout | STClazy))
                         continue;
