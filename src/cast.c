@@ -2393,6 +2393,87 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
             result = new ErrorExp();
         }
 
+        void visit(UnaExp *e)
+        {
+            Type *tob = t->toBasetype();
+            Type *t1b = e->type->toBasetype();
+            if (tob->ty == Tsarray && t1b->ty == Tarray)
+            {
+                dinteger_t dim = getStaticArrayLen(e->e1);
+                if (dim == ~0)
+                    goto Lno;
+
+                Type *t1b = e->e1->type->toBasetype();
+                Type *tsa = t1b->nextOf()->sarrayOf(dim);
+                MATCH m = tsa->implicitConvTo(t);
+                if (m <= MATCHnomatch)
+                    goto Lno;
+
+                Expression *e1x = e->e1->castTo(sc, tsa);
+                if (e1x->op == TOKerror)
+                {
+                    result = e1x;
+                    return;
+                }
+
+                e = (UnaExp *)e->copy();
+                e->type = t;
+                e->e1 = e1x;
+                result = e;
+                return;
+            }
+        Lno:
+            visit((Expression *)e);
+        }
+
+        void visit(BinExp *e)
+        {
+            Type *tob = t->toBasetype();
+            Type *t1b = e->type->toBasetype();
+            if (tob->ty == Tsarray && t1b->ty == Tarray)
+            {
+                Type *t1b = e->e1->type->toBasetype();
+                bool e1arr = (t1b->ty == Tarray || t1b->ty == Tsarray);
+                dinteger_t dim1 = e1arr ? getStaticArrayLen(e->e1) : 1;
+                if (dim1 == ~0)
+                    goto Lno;
+
+                Type *t2b = e->e2->type->toBasetype();
+                bool e2arr = (t2b->ty == Tarray || t2b->ty == Tsarray);
+                dinteger_t dim2 = e2arr ? getStaticArrayLen(e->e2) : 1;
+                if (dim2 == ~0)
+                    goto Lno;
+
+                dinteger_t dim = e1arr ? dim1 : dim2;
+                Type *tsa = t1b->nextOf()->sarrayOf(dim);
+                MATCH m = tsa->implicitConvTo(t);
+                if (m <= MATCHnomatch)
+                    goto Lno;
+
+                Expression *e1x = e1arr ? e->e1->castTo(sc, t1b->nextOf()->sarrayOf(dim1)) : e->e1;
+                Expression *e2x = e2arr ? e->e2->castTo(sc, t2b->nextOf()->sarrayOf(dim2)) : e->e2;
+                if (e1x->op == TOKerror)
+                {
+                    result = e1x;
+                    return;
+                }
+                if (e2x->op == TOKerror)
+                {
+                    result = e2x;
+                    return;
+                }
+
+                e = (BinExp *)e->copy();
+                e->type = t;
+                e->e1 = e1x;
+                e->e2 = e2x;
+                result = e;
+                return;
+            }
+        Lno:
+            visit((Expression *)e);
+        }
+
         void visit(CatExp *e)
         {
             //printf("CatExp::castTo(this=%s, t=%s)\n", e->toChars(), t->toChars());
