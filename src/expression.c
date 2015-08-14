@@ -2664,12 +2664,13 @@ bool Expression::checkPostblit(Scope *sc, Type *t)
                 sd->error(loc, "is not copyable because it is annotated with @disable");
                 return true;
             }
-            //checkDeprecated(sc, sd->postblit);        // necessary?
-            checkPurity(sc, sd->postblit);
-            checkSafety(sc, sd->postblit);
-            checkNogc(sc, sd->postblit);
-            //checkAccess(sd, loc, sc, sd->postblit);   // necessary?
-            return false;
+            bool err = false;
+          //err |= checkDeprecated(sc, sd->postblit);        // necessary?
+            err |= checkPurity(sc, sd->postblit);
+            err |= checkSafety(sc, sd->postblit);
+            err |= checkNogc(sc, sd->postblit);
+          //err |= checkAccess(sd, loc, sc, sd->postblit);   // necessary?
+            return err;
         }
     }
     return false;
