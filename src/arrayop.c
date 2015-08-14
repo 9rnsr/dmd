@@ -180,7 +180,7 @@ Lok:
 /*******
  * Returns:
  *  == NULL      no error
- *  != NULL      if invalid array operation found
+ *  != NULL      if array operations typed with Tarray exist
  *  ErrorExp:    if postblit error happens
  */
 Expression *checkArrayOp(Scope *sc, Expression *e)
@@ -412,33 +412,32 @@ Expression *arrayOp(AssignExp *e, Scope *sc)
     {
 //printf("L%d t1/t2 = %s / %s, = %s\n", __LINE__, t1->toChars(), t2->toChars(), toChars());
 
-        if (e->ismemset ||
-            e->e1->op != TOKslice && t1->ty == Tarray)
+        // no 'explicit' destination memory
+        if (Expression *ex = checkArrayOp(sc, e->e2))
         {
-            // no 'explicit' destination memory
-            if (Expression *ex = checkArrayOp(sc, e->e2))
-            {
-                if (ex->op == TOKerror)
-                    return ex;
+            if (ex->op == TOKerror)
+                return ex;
 
+            if (e->ismemset ||
+                /*t1->ty == Tarray && */e->e1->op != TOKslice)
+            {
                 const char *s = "";
                 if (!e->ismemset && e->op == TOKassign)
                     s = " (possible missing [])";
                 e->e2->error("array operation %s without destination memory not allowed%s", e->e2->toChars(), s);
                 return new ErrorExp();
             }
-
-//printf("L%d [%s] %s, type = %s / %s\n", __LINE__, e->loc.toChars(), e->toChars(), e->e1->type->toChars(), e->e2->type->toChars());
-            goto L1;        // normal assignment
         }
+
         if (!isUnaArrayOp(e->e2->op) && !isBinArrayOp(e->e2->op))   // workaround
         {
+            // todo: (unimplemented) array operations leaks into glue layer.
 //printf("L%d [%s] %s, type = %s / %s\n", __LINE__, e->loc.toChars(), e->toChars(), e->e1->type->toChars(), e->e2->type->toChars());
             goto L1;        // normal assignment
         }
 //printf("L%d [%s] %s, type = %s / %s\n", __LINE__, e->loc.toChars(), e->toChars(), e->e1->type->toChars(), e->e2->type->toChars());
 
-        if (e->op == TOKconstruct) // Bugzilla 10282: tweak mutability of e1 element
+        if (e->op == TOKconstruct)  // Bugzilla 10282: tweak mutability of e1 element
         {
             Type *t1n = e->e1->type->nextOf()->mutableOf();
             if (t1->ty == Tsarray)
