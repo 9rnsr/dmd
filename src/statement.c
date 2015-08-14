@@ -3933,7 +3933,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
             if (exp->checkValue())
                 exp = new ErrorExp();
         }
-        if (checkNonAssignmentArrayOp(exp))
+        if (checkNonAssignmentArrayOp(sc, exp))
             exp = new ErrorExp();
 
         // Extract side-effect part

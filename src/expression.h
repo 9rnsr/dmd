@@ -77,7 +77,7 @@ int isConst(Expression *e);
 Expression *toDelegate(Expression *e, Type* t, Scope *sc);
 AggregateDeclaration *isAggregate(Type *t);
 IntRange getIntRange(Expression *e);
-bool checkNonAssignmentArrayOp(Expression *e, bool suggestion = false);
+bool checkNonAssignmentArrayOp(Scope *sc, Expression *e);
 bool isUnaArrayOp(TOK op);
 bool isBinArrayOp(TOK op);
 bool isBinAssignArrayOp(TOK op);

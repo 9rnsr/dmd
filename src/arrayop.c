@@ -120,25 +120,18 @@ bool isArrayOpValid(Expression *e)
              return isArrayOpValid(((UnaExp *)e)->e1);
         }
         if (isBinArrayOp(e->op) ||
-            isBinAssignArrayOp(e->op) ||
-            e->op == TOKassign)
+            isBinAssignArrayOp(e->op))
         {
             BinExp *be = (BinExp *)e;
             return isArrayOpValid(be->e1) && isArrayOpValid(be->e2);
         }
-        if (e->op == TOKconstruct)
+        if (e->op == TOKassign ||
+            e->op == TOKconstruct)
         {
-            BinExp *be = (BinExp *)e;
-            return be->e1->op == TOKslice && isArrayOpValid(be->e2);
+            AssignExp *ae = (AssignExp *)e;
+            return (tb->ty == Tsarray ? true : isArrayOpValid(ae->e1)) && isArrayOpValid(ae->e2);
         }
-        if (e->op == TOKcall)
-        {
-             return false; // TODO: Decide if [] is required after arrayop calls.
-        }
-        else
-        {
-            return false;
-        }
+        return false;
     }
     return true;
 }
@@ -184,27 +177,152 @@ Lok:
     return e;
 }
 
-bool isNonAssignmentArrayOp(Expression *e)
+/*******
+ * Returns:
+ *  == NULL      no error
+ *  != NULL      if invalid array operation found
+ *  ErrorExp:    if postblit error happens
+ */
+Expression *checkArrayOp(Scope *sc, Expression *e)
 {
-    if (e->op == TOKslice)
-        return isNonAssignmentArrayOp(((SliceExp *)e)->e1);
-    Type *tb = e->type->toBasetype();
-
-    if (tb->ty == Tarray || tb->ty == Tsarray)
+    class CheckArrayOp : public Visitor
     {
-        return (isUnaArrayOp(e->op) || isBinArrayOp(e->op));
-    }
-    return false;
+    public:
+        Scope *sc;
+        Expression *result;
+
+        CheckArrayOp(Scope *sc) : sc(sc), result(false) {}
+
+        void visit(Expression *)
+        {
+        }
+
+        void visit(SliceExp *e)
+        {
+            // (a ~ b)[]
+            // --> will check CatExp in e1, both e->type is Tarray || Tsarray
+            Type *tb = e->type->toBasetype();
+            e->e1->accept(this);
+        }
+
+        void visit(ArrayLiteralExp *e)
+        {
+            // no error, array literal can appear as an operand of
+            // non array operation expression.
+        }
+
+        void visit(UnaExp *e)
+        {
+            if (!isUnaArrayOp(e->op))   // CastExp, etc
+                return;
+
+            Type *tb = e->type->toBasetype();
+            if (tb->ty == Tsarray)
+            {
+                e->e1->accept(this);
+            }
+            if (tb->ty == Tarray)
+            {
+                result = e;
+                return;
+            }
+        }
+        void visit(BinExp *e)
+        {
+            if (!isBinArrayOp(e->op))   // AssignExp, etc
+                return;
+
+            Type *tb = e->type->toBasetype();
+            if (tb->ty == Tsarray)
+            {
+                e->e1->accept(this);    Expression *r1 = result;
+                e->e2->accept(this);    Expression *r2 = result;
+                if (r1 && r1->op == TOKerror)
+                    result = r1;
+                else if (r2 && r2->op == TOKerror)
+                    result = r1;
+                else if (r1 || r2)
+                    result = e;
+            }
+            if (tb->ty == Tarray)
+            {
+                result = e;
+                return;
+            }
+        }
+        void visit(CatExp *e)
+        {
+            Type *tb = e->type->toBasetype();
+            if (tb->ty == Tsarray)
+            {
+                e->e1->accept(this);    Expression *r1 = result;
+                e->e2->accept(this);    Expression *r2 = result;
+                if (r1 && r1->op == TOKerror)
+                    result = r1;
+                else if (r2 && r2->op == TOKerror)
+                    result = r1;
+                else if (r1 || r2)
+                    result = e;
+                if (result)
+                    return;
+
+                if (e->e1->isLvalue())
+                {
+                    //printf("e1x->callCpCtor\n", e->e1->toChars());
+                    result = callCpCtor(sc, e->e1);
+                    if (result->op == TOKerror)
+                        return;
+                    e->e1 = result;
+                }
+                if (e->e2->isLvalue())
+                {
+                    //printf("e2x->callCpCtor\n", e->e2->toChars());
+                    result = callCpCtor(sc, e->e2);
+                    if (result->op == TOKerror)
+                        return;
+                    e->e2 = result;
+                }
+            }
+            if (tb->ty == Tarray)
+            {
+                // there's no destination memory, so the concat operands
+                // must not be array operations.
+                Expression *r1 = checkArrayOp(sc, e->e1);
+                Expression *r2 = checkArrayOp(sc, e->e2);
+                if (r1 && r1->op == TOKerror)
+                    result = r1;
+                else if (r2 && r2->op == TOKerror)
+                    result = r1;
+                else if (r1 || r2)
+                    result = e;
+                if (result)
+                    return;
+
+                // The concatenation allocates heap memory.
+                Type *tbn = tb->nextOf();
+                if (e->checkPostblit(sc, tbn))
+                {
+                    result = new ErrorExp();
+                    return;
+                }
+            }
+            result = NULL;
+        }
+    };
+
+    CheckArrayOp v(sc);
+    e->accept(&v);
+    return v.result;
 }
 
-bool checkNonAssignmentArrayOp(Expression *e, bool suggestion)
+bool checkNonAssignmentArrayOp(Scope *sc, Expression *e)
 {
-    if (isNonAssignmentArrayOp(e))
+    if (Expression *ex = checkArrayOp(sc, e))
     {
-        const char *s = "";
-        if (suggestion)
-            s = " (possible missing [])";
-        e->error("array operation %s without destination memory not allowed%s", e->toChars(), s);
+        if (ex->op == TOKerror)
+            return ex;
+
+        e->error("array operation %s without destination memory not allowed", e->toChars());
         return true;
     }
     return false;
@@ -288,7 +406,37 @@ Expression *arrayOp(AssignExp *e, Scope *sc)
 {
     //printf("AssignExp::arrayOp() %s\n", e->toChars());
 
-    return arrayOp((BinExp *)e, sc);
+    Type *t1 = e->e1->type->toBasetype();
+    Type *t2 = e->e2->type->toBasetype();
+    if ((t2->ty == Tarray || t2->ty == Tsarray) && isArrayOpValid(e->e2))
+    {
+        // Look for valid array operations
+        if (!e->ismemset && e->e1->op == TOKslice &&
+            (isUnaArrayOp(e->e2->op) || isBinArrayOp(e->e2->op)))
+        {
+            if (e->op == TOKconstruct) // Bugzilla 10282: tweak mutability of e1 element
+                e->e1->type = e->e1->type->nextOf()->mutableOf()->arrayOf();
+            return arrayOp((BinExp *)e, sc);
+        }
+
+        // Drop invalid array operations in e2
+        //  d = a[] + b[], d = (a[] + b[])[0..2], etc
+        if (Expression *ex = checkArrayOp(sc, e->e2))
+        {
+            if (ex->op == TOKerror)
+                return ex;
+
+            const char *s = "";
+            if (!e->ismemset && e->op == TOKassign)
+                s = " (possible missing [])";
+            e->e2->error("array operation %s without destination memory not allowed%s", e->e2->toChars(), s);
+            return new ErrorExp();
+        }
+
+        // Remains valid array assignments
+        //  d = d[], d = [1,2,3], etc
+    }
+    return NULL;
 }
 
 Expression *arrayOp(BinAssignExp *e, Scope *sc)

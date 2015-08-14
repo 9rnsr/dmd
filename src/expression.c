@@ -1123,7 +1123,7 @@ bool arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
             t0 = Type::terror;
             continue;
         }
-        if (checkNonAssignmentArrayOp(e))
+        if (checkNonAssignmentArrayOp(sc, e))
         {
             t0 = Type::terror;
             continue;
@@ -1229,7 +1229,7 @@ bool preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
                 arg = new ErrorExp();
                 err = true;
             }
-            else if (checkNonAssignmentArrayOp(arg))
+            else if (checkNonAssignmentArrayOp(sc, arg))
             {
                 arg = new ErrorExp();
                 err = true;
@@ -9491,7 +9491,7 @@ Expression *NotExp::semantic(Scope *sc)
         return e1;
 
     // Bugzilla 13910: Today NotExp can take an array as its operand.
-    if (checkNonAssignmentArrayOp(e1))
+    if (checkNonAssignmentArrayOp(sc, e1))
         return new ErrorExp();
 
     type = Type::tbool;
@@ -9733,7 +9733,7 @@ Expression *CastExp::semantic(Scope *sc)
 
     if (!t1b->equals(tob) && (t1b->ty == Tarray || t1b->ty == Tsarray))
     {
-        if (checkNonAssignmentArrayOp(e1))
+        if (checkNonAssignmentArrayOp(sc, e1))
             return new ErrorExp;
     }
 
@@ -11807,28 +11807,13 @@ Expression *AssignExp::semantic(Scope *sc)
     e2 = e2x;
     t2 = e2->type->toBasetype();
 
+    type = e1->type;
+    assert(type);
+
     /* Look for array operations
      */
-    if ((t2->ty == Tarray || t2->ty == Tsarray) && isArrayOpValid(e2))
-    {
-        // Look for valid array operations
-        if (!ismemset && e1->op == TOKslice &&
-            (isUnaArrayOp(e2->op) || isBinArrayOp(e2->op)))
-        {
-            type = e1->type;
-            if (op == TOKconstruct) // Bugzilla 10282: tweak mutability of e1 element
-                e1->type = e1->type->nextOf()->mutableOf()->arrayOf();
-            return arrayOp(this, sc);
-        }
-
-        // Drop invalid array operations in e2
-        //  d = a[] + b[], d = (a[] + b[])[0..2], etc
-        if (checkNonAssignmentArrayOp(e2, !ismemset && op == TOKassign))
-            return new ErrorExp();
-
-        // Remains valid array assignments
-        //  d = d[], d = [1,2,3], etc
-    }
+    if (Expression *e = arrayOp(this, sc))
+        return e;
 
     if (e1->op == TOKvar &&
         (((VarExp *)e1)->var->storage_class & STCscope) &&
@@ -11841,8 +11826,6 @@ Expression *AssignExp::semantic(Scope *sc)
         error("cannot modify compiler-generated variable __ctfe");
     }
 
-    type = e1->type;
-    assert(type);
     return op == TOKassign ? reorderSettingAAElem(sc) : this;
 }
 
@@ -11946,7 +11929,7 @@ Expression *CatAssignExp::semantic(Scope *sc)
     if (e2->op == TOKerror)
         return e2;
 
-    if (checkNonAssignmentArrayOp(e2))
+    if (checkNonAssignmentArrayOp(sc, e2))
         return new ErrorExp();
 
     Type *tb1 = e1->type->toBasetype();
@@ -12518,11 +12501,6 @@ Lpeer:
         tb1next->mod != tb2next->mod)
     {
         type = type->nextOf()->toHeadMutable()->arrayOf();
-    }
-    if (Type *tbn = tb->nextOf())
-    {
-        if (checkPostblit(sc, tbn))
-            return new ErrorExp();
     }
 #if 0
     e1->type->print();
