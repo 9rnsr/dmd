@@ -11129,6 +11129,19 @@ Expression *AssignExp::semantic(Scope *sc)
             return e;
         if (e1x->checkRightThis(sc))
             return new ErrorExp();
+
+        if (e1x->op == TOKslice)
+        {
+            uinteger_t dim1 = getStaticArrayLen(e1x);
+            if (dim1 != ~0)
+            {
+                Type *t1n = e1x->type->toBasetype()->nextOf();
+                assert(t1n);
+                e1x = e1x->copy();
+                e1x->type = t1n->sarrayOf(dim1);
+            }
+        }
+
         e1 = e1x;
         assert(e1->type);
     }
@@ -11556,14 +11569,12 @@ Expression *AssignExp::semantic(Scope *sc)
     }
     else if (t1->ty == Tsarray)
     {
-        // SliceExp cannot have static array type without context inference.
-        assert(e1->op != TOKslice);
-
         Expression *e1x = e1;
         Expression *e2x = e2;
 
         if (e2x->implicitConvTo(e1x->type))
         {
+#if 1   // todo?
             if (op != TOKblit &&
                 (e2x->op == TOKslice && ((UnaExp *)e2x)->e1->isLvalue() ||
                  e2x->op == TOKcast  && ((UnaExp *)e2x)->e1->isLvalue() ||
@@ -11572,20 +11583,7 @@ Expression *AssignExp::semantic(Scope *sc)
                 if (e1x->checkPostblit(sc, t1))
                     return new ErrorExp();
             }
-
-            // e2 matches to t1 because of the implicit length match, so
-            if (isUnaArrayOp(e2x->op) || isBinArrayOp(e2x->op))
-            {
-                // convert e1 to e1[]
-                // e.g. e1[] = a[] + b[];
-                e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
-                e1x = e1x->semantic(sc);
-            }
-            else
-            {
-                // convert e2 to t1 later
-                // e.g. e1 = [1, 2, 3];
-            }
+#endif
         }
         else
         {
@@ -11616,8 +11614,16 @@ Expression *AssignExp::semantic(Scope *sc)
                     e1x->type = t->nextOf()->sarrayOf(dim);
                 }
             }
-            e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
-            e1x = e1x->semantic(sc);
+            if (e1x->op == TOKslice)
+            {
+                e1x = e1x->copy();
+                e1x->type = t1->nextOf()->arrayOf();
+            }
+            else
+            {
+                e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
+                e1x = e1x->semantic(sc);
+            }
         }
         if (e1x->op == TOKerror)
             return e1x;
@@ -11774,6 +11780,7 @@ Expression *AssignExp::semantic(Scope *sc)
             if (isArrayOpValid(e2x))
             {
                 // Don't add CastExp to keep AST for array operations
+                // --> this is a hack. We should adjust (UnaExp|BinExp)::castTo for the cases.
                 e2x = e2x->copy();
                 e2x->type = e1->type->constOf();
             }

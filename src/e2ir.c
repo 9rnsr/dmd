@@ -2560,7 +2560,7 @@ elem *toElem(Expression *e, IRState *irs)
             }
 
             // Look for array[]=n
-            if (ae->e1->op == TOKslice)
+            if (ae->e1->op == TOKslice && ae->e1->type->ty == Tarray)
             {
                 SliceExp *are = (SliceExp *)ae->e1;
                 Type *t1 = t1b;
@@ -4798,7 +4798,8 @@ elem *toElem(Expression *e, IRState *irs)
             }
             else
             {
-                assert(t1->ty == tb->ty);   // Tarray or Tsarray
+                assert((t1->ty == Tarray || t1->ty == Tsarray) &&
+                       (tb->ty == Tarray || tb->ty == Tsarray));
 
                 // Bugzilla 14672: If se is in left side operand of element-wise
                 // assignment, the element type can be painted to the base class.

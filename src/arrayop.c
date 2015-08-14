@@ -408,34 +408,50 @@ Expression *arrayOp(AssignExp *e, Scope *sc)
 
     Type *t1 = e->e1->type->toBasetype();
     Type *t2 = e->e2->type->toBasetype();
-    if ((t2->ty == Tarray || t2->ty == Tsarray) && isArrayOpValid(e->e2))
+    if (t2->ty == Tarray || t2->ty == Tsarray)
     {
-        // Look for valid array operations
-        if (!e->ismemset && e->e1->op == TOKslice &&
-            (isUnaArrayOp(e->e2->op) || isBinArrayOp(e->e2->op)))
+//printf("L%d t1/t2 = %s / %s, = %s\n", __LINE__, t1->toChars(), t2->toChars(), toChars());
+
+        if (e->ismemset ||
+            e->e1->op != TOKslice && t1->ty == Tarray)
         {
-            if (e->op == TOKconstruct) // Bugzilla 10282: tweak mutability of e1 element
-                e->e1->type = e->e1->type->nextOf()->mutableOf()->arrayOf();
-            return arrayOp((BinExp *)e, sc);
-        }
+            // no 'explicit' destination memory
+            if (Expression *ex = checkArrayOp(sc, e->e2))
+            {
+                if (ex->op == TOKerror)
+                    return ex;
 
-        // Drop invalid array operations in e2
-        //  d = a[] + b[], d = (a[] + b[])[0..2], etc
-        if (Expression *ex = checkArrayOp(sc, e->e2))
+                const char *s = "";
+                if (!e->ismemset && e->op == TOKassign)
+                    s = " (possible missing [])";
+                e->e2->error("array operation %s without destination memory not allowed%s", e->e2->toChars(), s);
+                return new ErrorExp();
+            }
+
+//printf("L%d [%s] %s, type = %s / %s\n", __LINE__, e->loc.toChars(), e->toChars(), e->e1->type->toChars(), e->e2->type->toChars());
+            goto L1;        // normal assignment
+        }
+        if (!isUnaArrayOp(e->e2->op) && !isBinArrayOp(e->e2->op))   // workaround
         {
-            if (ex->op == TOKerror)
-                return ex;
-
-            const char *s = "";
-            if (!e->ismemset && e->op == TOKassign)
-                s = " (possible missing [])";
-            e->e2->error("array operation %s without destination memory not allowed%s", e->e2->toChars(), s);
-            return new ErrorExp();
+//printf("L%d [%s] %s, type = %s / %s\n", __LINE__, e->loc.toChars(), e->toChars(), e->e1->type->toChars(), e->e2->type->toChars());
+            goto L1;        // normal assignment
         }
+//printf("L%d [%s] %s, type = %s / %s\n", __LINE__, e->loc.toChars(), e->toChars(), e->e1->type->toChars(), e->e2->type->toChars());
 
-        // Remains valid array assignments
-        //  d = d[], d = [1,2,3], etc
+        if (e->op == TOKconstruct) // Bugzilla 10282: tweak mutability of e1 element
+        {
+            Type *t1n = e->e1->type->nextOf()->mutableOf();
+            if (t1->ty == Tsarray)
+                e->e1->type = t1n->sarrayOf(((TypeSArray *)t1)->dim->toInteger());
+            else
+                e->e1->type = t1n->arrayOf();
+        }
+        return arrayOp((BinExp *)e, sc);
     }
+
+L1:
+    // Remains valid array assignments
+    //  d = d[], d = [1,2,3], etc
     return NULL;
 }
 
