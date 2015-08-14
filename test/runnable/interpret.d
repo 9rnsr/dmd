@@ -3324,6 +3324,23 @@ void test113()
 }
 
 /************************************************/
+// 14197
+
+void test14197()
+{
+    class A {}
+    class B : A {}
+
+    bool test(A a)
+    {
+        return typeid(a) is typeid(B);
+    }
+    bool rt = test(new B()); // true
+    enum ct = test(new B()); // true <- false
+    assert(rt == ct);        // OK <- fails
+}
+
+/************************************************/
 
 int main()
 {
@@ -3443,6 +3460,7 @@ int main()
     test8818();
     test9023();
     test9954();
+    test14197();
 
     printf("Success\n");
     return 0;
