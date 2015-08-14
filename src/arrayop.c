@@ -69,7 +69,7 @@ FuncDeclaration *buildArrayOp(Identifier *ident, BinExp *exp, Scope *sc, Loc loc
 
     /* Construct the function
      */
-    TypeFunction *ftype = new TypeFunction(fparams, exp->type, 0, LINKc, stc);
+    TypeFunction *ftype = new TypeFunction(fparams, exp->type->nextOf()->arrayOf(), 0, LINKc, stc);
     //printf("fd: %s %s\n", ident->toChars(), ftype->toChars());
     FuncDeclaration *fd = new FuncDeclaration(Loc(), Loc(), ident, STCundefined, ftype);
     fd->fbody = fbody;
@@ -216,7 +216,7 @@ bool checkNonAssignmentArrayOp(Expression *e, bool suggestion)
 
 Expression *arrayOp(BinExp *e, Scope *sc)
 {
-    //printf("BinExp::arrayOp() %s\n", toChars());
+    //printf("BinExp::arrayOp() %s\n", e->toChars());
 
     Type *tb = e->type->toBasetype();
     assert(tb->ty == Tarray || tb->ty == Tsarray);
@@ -250,6 +250,12 @@ Expression *arrayOp(BinExp *e, Scope *sc)
     char *name = buf.peekString();
     Identifier *ident = Identifier::idPool(name);
 
+#if 0
+    printf("\tarrayOp: %s\n", ident->toChars());
+    for (size_t i = 0; i < arguments->dim; i++)
+        printf("\targs[%d] = %s %s\n", i, (*arguments)[i]->type->toChars(), (*arguments)[i]->toChars());
+#endif
+
     FuncDeclaration **pFd = (FuncDeclaration **)dmd_aaGet(&arrayfuncs, (void *)ident);
     FuncDeclaration *fd = *pFd;
 
@@ -278,9 +284,16 @@ Expression *arrayOp(BinExp *e, Scope *sc)
     return ec->semantic(sc);
 }
 
+Expression *arrayOp(AssignExp *e, Scope *sc)
+{
+    //printf("AssignExp::arrayOp() %s\n", e->toChars());
+
+    return arrayOp((BinExp *)e, sc);
+}
+
 Expression *arrayOp(BinAssignExp *e, Scope *sc)
 {
-    //printf("BinAssignExp::arrayOp() %s\n", toChars());
+    //printf("BinAssignExp::arrayOp() %s\n", e->toChars());
 
     /* Check that the elements of e1 can be assigned to
      */
@@ -319,7 +332,14 @@ void buildArrayIdent(Expression *e, OutBuffer *buf, Expressions *arguments)
         void visit(Expression *e)
         {
             buf->writestring("Exp");
-            arguments->shift(e);
+            if (e->type->toBasetype()->ty == Tsarray)
+            {
+                Expression *ex = new SliceExp(e->loc, e, NULL, NULL);
+                ex->type = e->type->nextOf()->arrayOf();
+                arguments->shift(ex);
+            }
+            else
+                arguments->shift(e);
         }
 
         void visit(CastExp *e)
@@ -336,13 +356,27 @@ void buildArrayIdent(Expression *e, OutBuffer *buf, Expressions *arguments)
         void visit(ArrayLiteralExp *e)
         {
             buf->writestring("Slice");
-            arguments->shift(e);
+            if (e->type->toBasetype()->ty == Tsarray)
+            {
+                Expression *ex = new SliceExp(e->loc, e, NULL, NULL);
+                ex->type = e->type->nextOf()->arrayOf();
+                arguments->shift(ex);
+            }
+            else
+                arguments->shift(e);
         }
 
         void visit(SliceExp *e)
         {
             buf->writestring("Slice");
-            arguments->shift(e);
+            if (e->type->toBasetype()->ty == Tsarray)
+            {
+                Expression *ex = e->copy();
+                ex->type = e->type->nextOf()->arrayOf();
+                arguments->shift(ex);
+            }
+            else
+                arguments->shift(e);
         }
 
         void visit(AssignExp *e)
@@ -484,8 +518,12 @@ Expression *buildArrayLoop(Expression *e, Parameters *fparams)
 
         void visit(ArrayLiteralExp *e)
         {
+            Type *t = e->type;
+            if (e->type->toBasetype()->ty == Tsarray)
+                t = t->nextOf()->arrayOf();
+
             Identifier *id = Identifier::generateId("p", fparams->dim);
-            Parameter *param = new Parameter(STCconst, e->type, id, NULL);
+            Parameter *param = new Parameter(STCconst, t, id, NULL);
             fparams->shift(param);
             Expression *ie = new IdentifierExp(Loc(), id);
             Expressions *arguments = new Expressions();
@@ -496,8 +534,12 @@ Expression *buildArrayLoop(Expression *e, Parameters *fparams)
 
         void visit(SliceExp *e)
         {
+            Type *t = e->type;
+            if (e->type->toBasetype()->ty == Tsarray)
+                t = t->nextOf()->arrayOf();
+
             Identifier *id = Identifier::generateId("p", fparams->dim);
-            Parameter *param = new Parameter(STCconst, e->type, id, NULL);
+            Parameter *param = new Parameter(STCconst, t, id, NULL);
             fparams->shift(param);
             Expression *ie = new IdentifierExp(Loc(), id);
             Expressions *arguments = new Expressions();
@@ -510,14 +552,24 @@ Expression *buildArrayLoop(Expression *e, Parameters *fparams)
         {
             /* Evaluate assign expressions right to left
              */
-            Expression *ex2 = buildArrayLoop(e->e2);
+            Expression *ex2 = e->e2;
+            ex2 = buildArrayLoop(ex2);
+
             /* Need the cast because:
              *   b = c + p[i];
              * where b is a byte fails because (c + p[i]) is an int
              * which cannot be implicitly cast to byte.
              */
             ex2 = new CastExp(Loc(), ex2, e->e1->type->nextOf());
-            Expression *ex1 = buildArrayLoop(e->e1);
+
+            Expression *ex1 = e->e1;
+            if (ex1->op != Tslice && ex1->type->toBasetype()->ty == Tsarray)
+            {
+                ex1 = new SliceExp(ex1->loc, ex1, NULL, NULL);
+                ex1->type = e->e1->type->toBasetype()->nextOf()->arrayOf();
+            }
+            ex1 = buildArrayLoop(ex1);
+
             Parameter *param = (*fparams)[0];
             param->storageClass = 0;
             result = new AssignExp(Loc(), ex1, ex2);

@@ -83,6 +83,7 @@ bool isBinArrayOp(TOK op);
 bool isBinAssignArrayOp(TOK op);
 bool isArrayOpOperand(Expression *e);
 Expression *arrayOp(BinExp *e, Scope *sc);
+Expression *arrayOp(AssignExp *e, Scope *sc);
 Expression *arrayOp(BinAssignExp *e, Scope *sc);
 bool hasSideEffect(Expression *e);
 bool canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow);
