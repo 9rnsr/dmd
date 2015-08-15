@@ -3781,6 +3781,20 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
             visit((Type *)t);
         }
 
+        TypeInstance *deduceInstanceTempDecl(Loc loc, TemplateDeclaration *td, TemplateDeclaration *tempdecl)
+        {
+            TypeInstance *tp = (TypeInstance *)tparam;
+
+            if (td->overroot)
+                td = td->overroot;
+            for (; td; td = td->overnext)
+            {
+                if (td == tempdecl)
+                    return tp;
+            }
+            return NULL;
+        }
+
         void visit(TypeInstance *t)
         {
         #if 0
@@ -3812,14 +3826,14 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                          * it up and seeing if is an alias. See Bugzilla 1454
                          */
                         TypeIdentifier *tid = new TypeIdentifier(tp->loc, tp->tempinst->name);
-                        Type *tx;
-                        Expression *e;
-                        Dsymbol *s;
-                        tid->resolve(tp->loc, sc, &e, &tx, &s);
-                        if (tx)
+                        Type *ta;
+                        Expression *ea;
+                        Dsymbol *sa;
+                        tid->resolve(tp->loc, sc, &ea, &ta, &sa);
+                        if (ta)
                         {
-                            s = tx->toDsymbol(sc);
-                            if (TemplateInstance *ti = s ? s->parent->isTemplateInstance() : NULL)
+                            sa = ta->toDsymbol(sc);
+                            if (TemplateInstance *ti = sa ? sa->parent->isTemplateInstance() : NULL)
                             {
                                 // Bugzilla 14290: Try to match with ti->tempecl,
                                 // only when ti is an enclosing instance.
@@ -3827,34 +3841,28 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                                 while (p && p != ti)
                                     p = p->parent;
                                 if (p)
-                                    s = ti->tempdecl;
+                                    sa = ti->tempdecl;
                             }
                         }
-                        if (s)
-                        {
-                            s = s->toAlias();
-                            TemplateDeclaration *td = s->isTemplateDeclaration();
-                            if (td)
-                            {
-                                if (td->overroot)
-                                    td = td->overroot;
-                                for (; td; td = td->overnext)
-                                {
-                                    if (td == tempdecl)
-                                        goto L2;
-                                }
-                            }
-                        }
-                        goto Lnomatch;
+                        if (!sa)
+                            goto Lnomatch;
+                        sa = sa->toAlias();
+                        TemplateDeclaration *td = sa->isTemplateDeclaration();
+                        if (!td)
+                            goto Lnomatch;
+                        tp = deduceInstanceTempDecl(tp->loc, td, tempdecl);
+                        if (!tp)
+                            goto Lnomatch;
                     }
-                    TemplateParameter *tpx = (*parameters)[i];
-                    if (!tpx->matchArg(sc, tempdecl, i, parameters, dedtypes, NULL))
-                        goto Lnomatch;
+                    else
+                    {
+                        TemplateParameter *tpx = (*parameters)[i];
+                        if (!tpx->matchArg(sc, tempdecl, i, parameters, dedtypes, NULL))
+                            goto Lnomatch;
+                    }
                 }
                 else if (tempdecl != tp->tempinst->tempdecl)
                     goto Lnomatch;
-
-              L2:
 
                 for (size_t i = 0; 1; i++)
                 {
