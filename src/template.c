@@ -3789,8 +3789,72 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                 td = td->overroot;
             for (; td; td = td->overnext)
             {
+                // if td is same with tempdecl
                 if (td == tempdecl)
                     return tp;
+
+                assert(td->scope);
+
+                // if td is the form: alias td(T) = X!tiargs;
+                if (!td->onemember || td->constraint)
+                    continue;
+                AliasDeclaration *ad = td->onemember->isAliasDeclaration();
+                if (!ad)
+                    continue;
+
+                // even if ad->type != Tinstance, replace TypeIdentifier's in it to the corresponding template arguments.
+                if (ad->type->ty != Tinstance)
+                    continue;
+                TypeInstance *tx = (TypeInstance *)ad->type;
+
+                TypeIdentifier *tid = new TypeIdentifier(tx->loc, tx->tempinst->name);
+                Type *ta;
+                Expression *ea;
+                Dsymbol *sa;
+                tid->resolve(tx->loc, td->scope, &ea, &ta, &sa);
+                if (ta)
+                {
+                    sa = ta->toDsymbol(td->scope);
+                    if (TemplateInstance *ti = sa ? sa->parent->isTemplateInstance() : NULL)
+                    {
+                        // Bugzilla 14290: Try to match with ti->tempecl,
+                        // only when ti is an enclosing instance.
+                        Dsymbol *p = td->scope->parent;
+                        while (p && p != ti)
+                            p = p->parent;
+                        if (p)
+                            sa = ti->tempdecl;
+                    }
+                }
+                if (!sa)
+                    continue;
+                sa = sa->toAlias();
+                if (sa->isTemplateDeclaration() != tempdecl)
+                    continue;
+                if (td->parameters->dim > tp->tempinst->tiargs->dim)
+                    continue;
+
+                tx = (TypeInstance *)tx->syntaxCopy();
+
+                for (size_t i = 0; i < td->parameters->dim; i++)
+                {
+                    for (size_t j = 0; j < tx->tempinst->tiargs->dim; j++)
+                    {
+                        printf("\ttd->parameters[%d] = %s, tx->tempinst->tiargs[%d] = %d\n",
+                            i, (*td->parameters)[i]->ident->toChars(),
+                            j, (*tx->tempinst->tiargs)[j]->dyncast());
+                        Type *targ = isType((*tx->tempinst->tiargs)[j]);
+                        if (!targ || targ->ty != Tident)
+                            continue;
+                        tid = (TypeIdentifier *)targ;
+                        if ((*td->parameters)[i]->ident == tid->ident && tid->idents.dim == 0)
+                        {
+                            (*tx->tempinst->tiargs)[j] = (*tp->tempinst->tiargs)[i];
+                        }
+                    }
+
+                }
+                return tx;
             }
             return NULL;
         }
