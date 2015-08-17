@@ -4834,6 +4834,121 @@ Type *reliesOnTident(Type *t, TemplateParameters *tparams, size_t iStart)
     return v.result;
 }
 
+#if 0
+Type *substTidents(Type *t, TemplateParameters *tdparams, Objects *tiargs)
+{
+    class SubstTidents : public Visitor
+    {
+    public:
+        TemplateParameters *tparams;
+        Objects *tiargs;
+
+        ReliesOnTident(TemplateParameters *tparams, Objects *tiargs)
+            : tparams(tparams), tiargs(tiargs)
+        {
+            result = NULL;
+        }
+
+        void visit(Type *t)
+        {
+        }
+
+        void visit(TypeNext *t)
+        {
+            t->next->accept(this);
+        }
+
+        void visit(TypeVector *t)
+        {
+            t->basetype->accept(this);
+        }
+
+        void visit(TypeAArray *t)
+        {
+            visit((TypeNext *)t);
+            t->index->accept(this);
+        }
+
+        void visit(TypeFunction *t)
+        {
+            size_t dim = Parameter::dim(t->parameters);
+            for (size_t i = 0; i < dim; i++)
+            {
+                Parameter *fparam = Parameter::getNth(t->parameters, i);
+                fparam->type->accept(this);
+            }
+            if (t->next)
+                t->next->accept(this);
+        }
+
+        void visit(TypeIdentifier *t)
+        {
+            if (t->idents.dim > 0)  // todo
+                return;
+
+            for (size_t i = 0; i < tparams->dim; i++)
+            {
+                TemplateParameter *tp = (*tparams)[i];
+                if (tp->ident->equals(t->ident))
+                {
+                    result = t;
+                    return;
+                }
+            }
+        }
+
+        void visit(TypeInstance *t)
+        {
+            if (!tparams)
+                return;
+
+            for (size_t i = 0; i < tparams->dim; i++)
+            {
+                TemplateParameter *tp = (*tparams)[i];
+                if (t->tempinst->name == tp->ident)
+                {
+                    result = t;
+                    return;
+                }
+            }
+            if (!t->tempinst->tiargs)
+                return;
+            for (size_t i = 0; i < t->tempinst->tiargs->dim; i++)
+            {
+                Type *ta = isType((*t->tempinst->tiargs)[i]);
+                if (ta)
+                {
+                    ta->accept(this);
+                    if (result)
+                        return;
+                }
+            }
+        }
+
+        void visit(TypeTuple *t)
+        {
+            if (t->arguments)
+            {
+                for (size_t i = 0; i < t->arguments->dim; i++)
+                {
+                    Parameter *arg = (*t->arguments)[i];
+                    arg->type->accept(this);
+                    if (result)
+                        return;
+                }
+            }
+        }
+    };
+
+    if (!t)
+        return NULL;
+
+    SubstTidents v(tparams, tiargs);
+    t->accept(&v);
+    return v.result;
+}
+#endif
+
 /* ======================== TemplateParameter =============================== */
 
 TemplateParameter::TemplateParameter(Loc loc, Identifier *ident)
