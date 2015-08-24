@@ -270,7 +270,7 @@ struct CompiledCtfeFunction
 
             void visit(DeclarationExp e)
             {
-                VarDeclaration v = e.declaration.isVarDeclaration();
+                auto v = e.declaration.isVarDeclaration();
                 if (!v)
                     return;
                 TupleDeclaration td = v.toAlias().isTupleDeclaration();
@@ -2299,7 +2299,7 @@ public:
         }
         if (goal == ctfeNeedLvalue)
         {
-            VarDeclaration v = e.var.isVarDeclaration();
+            auto v = e.var.isVarDeclaration();
             if (v && !v.isDataseg() && !v.isCTFE() && !istate)
             {
                 e.error("variable %s cannot be read at compile time", v.toChars());
@@ -3252,7 +3252,7 @@ public:
             else
                 return null;
         }
-        VarDeclaration v = (cast(VarExp)e).var.isVarDeclaration();
+        auto v = (cast(VarExp)e).var.isVarDeclaration();
         assert(v);
         return v;
     }
@@ -3305,7 +3305,7 @@ public:
             Expression newval = interpret(e.e2, istate, ctfeNeedLvalue);
             if (exceptionOrCant(newval))
                 return;
-            VarDeclaration v = (cast(VarExp)e1).var.isVarDeclaration();
+            auto v = (cast(VarExp)e1).var.isVarDeclaration();
             setValue(v, newval);
             // Get the value to return. Note that 'newval' is an Lvalue,
             // so if we need an Rvalue, we have to interpret again.
@@ -3453,7 +3453,7 @@ public:
             VarDeclaration ultimateVar = findParentVar(e1);
             if (e1.op == TOKvar)
             {
-                VarDeclaration v = (cast(VarExp)e1).var.isVarDeclaration();
+                auto v = (cast(VarExp)e1).var.isVarDeclaration();
                 assert(v);
                 if (v.storage_class & STCout)
                     goto L1;
@@ -3663,7 +3663,7 @@ public:
              */
             Expression ex = (cast(DotVarExp)e1).e1;
             StructLiteralExp sle = ex.op == TOKstructliteral ? (cast(StructLiteralExp)ex) : ex.op == TOKclassreference ? (cast(ClassReferenceExp)ex).value : null;
-            VarDeclaration v = (cast(DotVarExp)e1).var.isVarDeclaration();
+            auto v = (cast(DotVarExp)e1).var.isVarDeclaration();
             if (!sle || !v)
             {
                 e.error("CTFE internal error: dotvar assignment");
@@ -4775,7 +4775,7 @@ public:
         if (e.e1.op == TOKdeclaration && e.e2.op == TOKvar && (cast(DeclarationExp)e.e1).declaration == (cast(VarExp)e.e2).var && (cast(VarExp)e.e2).var.storage_class & STCctfe) // same as Expression::isTemp
         {
             VarExp ve = cast(VarExp)e.e2;
-            VarDeclaration v = ve.var.isVarDeclaration();
+            auto v = ve.var.isVarDeclaration();
             ctfeStack.push(v);
             if (!v._init && !getValue(v))
             {
@@ -5687,7 +5687,7 @@ public:
             }
             return;
         }
-        VarDeclaration v = e.var.isVarDeclaration();
+        auto v = e.var.isVarDeclaration();
         if (!v)
         {
             e.error("CTFE internal error: %s", e.toChars());

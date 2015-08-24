@@ -87,7 +87,7 @@ public:
         Dsymbol sx = s;
         if (sx.isAliasDeclaration())
             sx = sx.toAlias();
-        Declaration d = sx.isDeclaration();
+        auto d = sx.isDeclaration();
         if (d && !d.isTupleDeclaration())
         {
             Type t = d.type;

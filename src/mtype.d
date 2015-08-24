@@ -2082,7 +2082,7 @@ public:
             Dsymbol s = ad.aliasthis;
             if (s.isAliasDeclaration())
                 s = s.toAlias();
-            Declaration d = s.isDeclaration();
+            auto d = s.isDeclaration();
             if (d && !d.isTupleDeclaration())
             {
                 assert(d.type);
@@ -6937,7 +6937,7 @@ public:
         if (s)
         {
             //printf("\t1: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
-            Declaration d = s.isDeclaration();
+            auto d = s.isDeclaration();
             if (d && (d.storage_class & STCtemplateparameter))
                 s = s.toAlias();
             else
@@ -7010,8 +7010,8 @@ public:
                         }
                     L3:
                         Expression e;
-                        VarDeclaration v = s.isVarDeclaration();
-                        FuncDeclaration f = s.isFuncDeclaration();
+                        auto v = s.isVarDeclaration();
+                        auto f = s.isFuncDeclaration();
                         if (intypeid || !v && !f)
                             e = new DsymbolExp(loc, s);
                         else
@@ -7890,7 +7890,7 @@ public:
         if (!s.isFuncDeclaration()) // because of overloading
             s.checkDeprecated(e.loc, sc);
         s = s.toAlias();
-        VarDeclaration v = s.isVarDeclaration();
+        auto v = s.isVarDeclaration();
         if (v && (!v.type || !v.type.deco))
         {
             if (v.inuse) // Bugzilla 9494
@@ -7962,7 +7962,7 @@ public:
             e = e.semantic(sc);
             return e;
         }
-        OverloadSet o = s.isOverloadSet();
+        auto o = s.isOverloadSet();
         if (o)
         {
             auto oe = new OverExp(e.loc, o);
@@ -7970,7 +7970,7 @@ public:
                 return oe;
             return new DotExp(e.loc, e, oe);
         }
-        Declaration d = s.isDeclaration();
+        auto d = s.isDeclaration();
         debug
         {
             if (!d)
@@ -8363,7 +8363,7 @@ public:
             }
             return sym.getMemtype(Loc()).dotExp(sc, e, ident, flag);
         }
-        EnumMember m = s.isEnumMember();
+        auto m = s.isEnumMember();
         return m.getVarExp(e.loc, sc);
     }
 
@@ -8746,7 +8746,7 @@ public:
         if (!s.isFuncDeclaration()) // because of overloading
             s.checkDeprecated(e.loc, sc);
         s = s.toAlias();
-        VarDeclaration v = s.isVarDeclaration();
+        auto v = s.isVarDeclaration();
         if (v && (!v.type || !v.type.deco))
         {
             if (v.inuse) // Bugzilla 9494
@@ -8818,7 +8818,7 @@ public:
             e = e.semantic(sc);
             return e;
         }
-        OverloadSet o = s.isOverloadSet();
+        auto o = s.isOverloadSet();
         if (o)
         {
             auto oe = new OverExp(e.loc, o);
@@ -8826,7 +8826,7 @@ public:
                 return oe;
             return new DotExp(e.loc, e, oe);
         }
-        Declaration d = s.isDeclaration();
+        auto d = s.isDeclaration();
         if (!d)
         {
             e.error("%s.%s is not a declaration", e.toChars(), ident.toChars());
@@ -8883,7 +8883,7 @@ public:
                         int n = 0;
                         for (s = tcd.toParent(); s && s.isFuncDeclaration(); s = s.toParent())
                         {
-                            FuncDeclaration f = s.isFuncDeclaration();
+                            auto f = s.isFuncDeclaration();
                             if (f.vthis)
                             {
                                 //printf("rewriting e1 to %s's this\n", f->toChars());

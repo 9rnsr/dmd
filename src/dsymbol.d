@@ -339,7 +339,7 @@ public:
                 deprecation(loc, "is deprecated");
         }
     L1:
-        Declaration d = isDeclaration();
+        auto d = isDeclaration();
         if (d && d.storage_class & STCdisable)
         {
             if (!(sc.func && sc.func.storage_class & STCdisable))
@@ -364,7 +364,7 @@ public:
         while (s)
         {
             //printf("\ts = %s '%s'\n", s->kind(), s->toPrettyChars());
-            Module m = s.isModule();
+            auto m = s.isModule();
             if (m)
                 return m;
             s = s.parent;
@@ -384,7 +384,7 @@ public:
         while (s)
         {
             //printf("\ts = %s '%s'\n", s->kind(), s->toPrettyChars());
-            Module m = s.isModule();
+            auto m = s.isModule();
             if (m)
                 return m;
             TemplateInstance ti = s.isTemplateInstance();
@@ -1820,7 +1820,7 @@ public:
                             exp.error("%s only defines opDollar for one dimension", ad.toChars());
                             return null;
                         }
-                        Declaration d = s.isDeclaration();
+                        auto d = s.isDeclaration();
                         assert(d);
                         e = new DotVarExp(loc, ce, d);
                     }

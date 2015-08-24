@@ -1341,7 +1341,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             }
             if (e.op == TOKvar)
             {
-                VarDeclaration v = (cast(VarExp)e).var.isVarDeclaration();
+                auto v = (cast(VarExp)e).var.isVarDeclaration();
                 if (v && v.storage_class & STCmanifest)
                 {
                     result = e.ctfeInterpret();
@@ -1866,7 +1866,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 if (e.type.ty == Tpointer && e.type.nextOf().ty == Tfunction && tb.ty == Tpointer && tb.nextOf().ty == Tfunction && e.e1.op == TOKvar)
                 {
                     VarExp ve = cast(VarExp)e.e1;
-                    FuncDeclaration f = ve.var.isFuncDeclaration();
+                    auto f = ve.var.isFuncDeclaration();
                     if (f)
                     {
                         assert(f.isImportedSymbol());
@@ -2050,7 +2050,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             // Look for pointers to functions where the functions are overloaded.
             if (e.hasOverloads && typeb.ty == Tpointer && typeb.nextOf().ty == Tfunction && (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
             {
-                FuncDeclaration f = e.var.isFuncDeclaration();
+                auto f = e.var.isFuncDeclaration();
                 f = f ? f.overloadExactMatch(tb.nextOf()) : null;
                 if (f)
                 {

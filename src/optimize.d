@@ -145,7 +145,7 @@ extern (C++) Expression fromConstInitializer(int result, Expression e1)
     if (e1.op == TOKvar)
     {
         VarExp ve = cast(VarExp)e1;
-        VarDeclaration v = ve.var.isVarDeclaration();
+        auto v = ve.var.isVarDeclaration();
         e = expandVar(result, v);
         if (e)
         {
@@ -232,7 +232,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
         {
             if (keepLvalue)
             {
-                VarDeclaration v = e.var.isVarDeclaration();
+                auto v = e.var.isVarDeclaration();
                 if (v && !(v.storage_class & STCmanifest))
                     return;
             }
@@ -448,7 +448,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (e.e1.op == TOKsymoff)
             {
                 SymOffExp se = cast(SymOffExp)e.e1;
-                VarDeclaration v = se.var.isVarDeclaration();
+                auto v = se.var.isVarDeclaration();
                 Expression ex = expandVar(result, v);
                 if (ex && ex.op == TOKstructliteral)
                 {
@@ -473,7 +473,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (ex.op == TOKvar)
             {
                 VarExp ve = cast(VarExp)ex;
-                VarDeclaration v = ve.var.isVarDeclaration();
+                auto v = ve.var.isVarDeclaration();
                 ex = expandVar(result, v);
             }
             if (ex && ex.op == TOKstructliteral)
@@ -884,7 +884,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             // CTFE interpret static immutable arrays (to get better diagnostics)
             if (e.e1.op == TOKvar)
             {
-                VarDeclaration v = (cast(VarExp)e.e1).var.isVarDeclaration();
+                auto v = (cast(VarExp)e.e1).var.isVarDeclaration();
                 if (v && (v.storage_class & STCstatic) && (v.storage_class & STCimmutable) && v._init)
                 {
                     if (auto ci = v.getConstInitializer())

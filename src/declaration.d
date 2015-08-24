@@ -248,7 +248,7 @@ public:
      */
     final int checkModify(Loc loc, Scope* sc, Type t, Expression e1, int flag)
     {
-        VarDeclaration v = isVarDeclaration();
+        auto v = isVarDeclaration();
         if (v && v.canassign)
             return 2;
         if (isParameter() || isResult())
@@ -522,7 +522,7 @@ public:
                 if (e.op == TOKdsymbol)
                 {
                     DsymbolExp ve = cast(DsymbolExp)e;
-                    Declaration d = ve.s.isDeclaration();
+                    auto d = ve.s.isDeclaration();
                     if (d && d.needThis())
                     {
                         return true;
@@ -682,7 +682,7 @@ public:
     L2:
         //printf("alias is a symbol %s %s\n", s->kind(), s->toChars());
         type = null;
-        VarDeclaration v = s.isVarDeclaration();
+        auto v = s.isVarDeclaration();
         if (0 && v && v.linkage == LINKdefault)
         {
             error("forward reference of %s", v.toChars());

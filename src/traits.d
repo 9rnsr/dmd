@@ -53,7 +53,7 @@ struct Ptrait
 
 extern (C++) static int fptraits(void* param, Dsymbol s)
 {
-    FuncDeclaration f = s.isFuncDeclaration();
+    auto f = s.isFuncDeclaration();
     if (!f)
         return 0;
     Ptrait* p = cast(Ptrait*)param;
@@ -221,7 +221,7 @@ extern (C++) Expression isFuncX(TraitsExp e, bool function(FuncDeclaration f) fp
         Dsymbol s = getDsymbol((*e.args)[i]);
         if (!s)
             goto Lfalse;
-        FuncDeclaration f = s.isFuncDeclaration();
+        auto f = s.isFuncDeclaration();
         if (!f || !fp(f))
             goto Lfalse;
     }
@@ -255,7 +255,7 @@ extern (C++) Expression isDeclX(TraitsExp e, bool function(Declaration d) fp)
         Dsymbol s = getDsymbol((*e.args)[i]);
         if (!s)
             goto Lfalse;
-        Declaration d = s.isDeclaration();
+        auto d = s.isDeclaration();
         if (!d || !fp(d))
             goto Lfalse;
     }

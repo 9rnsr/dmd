@@ -118,28 +118,28 @@ extern (C++) bool lambdaCheckForNestedRef(Expression e, Scope* sc)
 
         void visit(SymOffExp e)
         {
-            VarDeclaration v = e.var.isVarDeclaration();
+            auto v = e.var.isVarDeclaration();
             if (v)
                 result = v.checkNestedReference(sc, Loc());
         }
 
         void visit(VarExp e)
         {
-            VarDeclaration v = e.var.isVarDeclaration();
+            auto v = e.var.isVarDeclaration();
             if (v)
                 result = v.checkNestedReference(sc, Loc());
         }
 
         void visit(ThisExp e)
         {
-            VarDeclaration v = e.var.isVarDeclaration();
+            auto v = e.var.isVarDeclaration();
             if (v)
                 result = v.checkNestedReference(sc, Loc());
         }
 
         void visit(DeclarationExp e)
         {
-            VarDeclaration v = e.declaration.isVarDeclaration();
+            auto v = e.declaration.isVarDeclaration();
             if (v)
             {
                 result = v.checkNestedReference(sc, Loc());

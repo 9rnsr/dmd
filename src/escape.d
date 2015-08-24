@@ -56,7 +56,7 @@ extern (C++) bool checkEscape(Scope* sc, Expression e, bool gag)
 
         void check(Loc loc, Declaration d)
         {
-            VarDeclaration v = d.isVarDeclaration();
+            auto v = d.isVarDeclaration();
             if (v && v.toParent2() == sc.func)
             {
                 if (v.isDataseg())
@@ -82,7 +82,7 @@ extern (C++) bool checkEscape(Scope* sc, Expression e, bool gag)
 
         void visit(VarExp e)
         {
-            VarDeclaration v = e.var.isVarDeclaration();
+            auto v = e.var.isVarDeclaration();
             if (v)
             {
                 Type tb = v.type.toBasetype();
@@ -169,7 +169,7 @@ extern (C++) bool checkEscape(Scope* sc, Expression e, bool gag)
         {
             if (e.e1.op == TOKvar)
             {
-                VarDeclaration v = (cast(VarExp)e.e1).var.isVarDeclaration();
+                auto v = (cast(VarExp)e.e1).var.isVarDeclaration();
                 Type tb = e.type.toBasetype();
                 if (v)
                 {
@@ -262,7 +262,7 @@ extern (C++) bool checkEscapeRef(Scope* sc, Expression e, bool gag)
         void check(Loc loc, Declaration d)
         {
             assert(d);
-            VarDeclaration v = d.isVarDeclaration();
+            auto v = d.isVarDeclaration();
             if (v && v.toParent2() == sc.func)
             {
                 if (v.isDataseg())
@@ -334,7 +334,7 @@ extern (C++) bool checkEscapeRef(Scope* sc, Expression e, bool gag)
         {
             if (e.e1.op == TOKvar)
             {
-                VarDeclaration v = (cast(VarExp)e.e1).var.isVarDeclaration();
+                auto v = (cast(VarExp)e.e1).var.isVarDeclaration();
                 if (v && v.toParent2() == sc.func)
                 {
                     Type tb = v.type.toBasetype();

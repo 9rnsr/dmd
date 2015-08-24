@@ -247,7 +247,7 @@ extern (C++) bool hasPackageAccess(Scope* sc, Dsymbol s)
                 assert(dst);
                 Dsymbol s2 = dst.lookup(m.ident);
                 assert(s2);
-                Package p = s2.isPackage();
+                auto p = s2.isPackage();
                 if (p && p.isPackageMod())
                 {
                     pkg = p;

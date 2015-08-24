@@ -66,7 +66,7 @@ public:
     void addMember(Scope* sc, ScopeDsymbol sds)
     {
         //printf("DebugSymbol::addMember('%s') %s\n", sds->toChars(), toChars());
-        Module m = sds.isModule();
+        auto m = sds.isModule();
         // Do not add the member to the symbol table,
         // just make sure subsequent debug declarations work.
         if (ident)
@@ -162,7 +162,7 @@ public:
     void addMember(Scope* sc, ScopeDsymbol sds)
     {
         //printf("VersionSymbol::addMember('%s') %s\n", sds->toChars(), toChars());
-        Module m = sds.isModule();
+        auto m = sds.isModule();
         // Do not add the member to the symbol table,
         // just make sure subsequent debug declarations work.
         if (ident)

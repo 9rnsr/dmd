@@ -235,7 +235,7 @@ public:
                  */
                 extern (C++) static int func(Dsymbol s, void* param)
                 {
-                    VarDeclaration v = s.isVarDeclaration();
+                    auto v = s.isVarDeclaration();
                     if (v)
                     {
                         /* Bugzilla 12799: enum a = ...; is a VarDeclaration and

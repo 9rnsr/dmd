@@ -719,7 +719,7 @@ extern (C++) Expression getAggregateFromPointer(Expression e, dinteger_t* ofs)
     if (e.op == TOKdotvar)
     {
         Expression ex = (cast(DotVarExp)e).e1;
-        VarDeclaration v = (cast(DotVarExp)e).var.isVarDeclaration();
+        auto v = (cast(DotVarExp)e).var.isVarDeclaration();
         assert(v);
         StructLiteralExp se = ex.op == TOKclassreference ? (cast(ClassReferenceExp)ex).value : cast(StructLiteralExp)ex;
         // We can't use getField, because it makes a copy
@@ -2245,7 +2245,7 @@ extern (C++) bool isCtfeReferenceValid(Expression newval)
         return true;
     if (newval.op == TOKvar)
     {
-        VarDeclaration v = (cast(VarExp)newval).var.isVarDeclaration();
+        auto v = (cast(VarExp)newval).var.isVarDeclaration();
         assert(v);
         // Must not be a reference to a reference
         return true;
@@ -2307,7 +2307,7 @@ extern (C++) void showCtfeExpr(Expression e, int level = 0)
     else if (e.op == TOKvar)
     {
         printf("VAR %p %s\n", e, e.toChars());
-        VarDeclaration v = (cast(VarExp)e).var.isVarDeclaration();
+        auto v = (cast(VarExp)e).var.isVarDeclaration();
         if (v && getValue(v))
             showCtfeExpr(getValue(v), level + 1);
     }

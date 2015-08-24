@@ -1141,7 +1141,7 @@ public:
                     DeclarationExp de = cast(DeclarationExp)exp;
                     Dsymbol s = de.declaration;
                     printf("s: %s %s\n", s.kind(), s.toChars());
-                    VarDeclaration v = s.isVarDeclaration();
+                    auto v = s.isVarDeclaration();
                     if (v)
                     {
                         printf("%s, %d\n", v.type.toChars(), v.type.ty);
@@ -1172,7 +1172,7 @@ public:
             if (exp.op == TOKdeclaration)
             {
                 DeclarationExp de = cast(DeclarationExp)exp;
-                VarDeclaration v = de.declaration.isVarDeclaration();
+                auto v = de.declaration.isVarDeclaration();
                 if (v && !v.noscope && !v.isDataseg())
                 {
                     Expression e = v.edtor;
@@ -2560,7 +2560,7 @@ public:
                     auto vd = new VarDeclaration(loc, null, id, ei);
                     vd.storage_class |= STCtemp | STCctfe | STCref | STCforeach;
                     makeargs = new ExpStatement(loc, vd);
-                    Declaration d = sfront.isDeclaration();
+                    auto d = sfront.isDeclaration();
                     if (auto f = d.isFuncDeclaration())
                     {
                         if (!f.functionSemantic())
@@ -3790,7 +3790,7 @@ public:
             if (exp.op == TOKvar)
             {
                 VarExp ve = cast(VarExp)exp;
-                VarDeclaration v = ve.var.isVarDeclaration();
+                auto v = ve.var.isVarDeclaration();
                 Type t = exp.type.toBasetype();
                 if (v && (t.isintegral() || t.ty == Tclass))
                 {
@@ -4312,7 +4312,7 @@ public:
             if (fd.nrvo_can && exp.op == TOKvar)
             {
                 VarExp ve = cast(VarExp)exp;
-                VarDeclaration v = ve.var.isVarDeclaration();
+                auto v = ve.var.isVarDeclaration();
                 if (tf.isref)
                 {
                     // Function returns a reference
@@ -5713,7 +5713,7 @@ public:
     {
         for (size_t i = 0; i < imports.dim; i++)
         {
-            Import s = (*imports)[i].isImport();
+            auto s = (*imports)[i].isImport();
             assert(!s.aliasdecls.dim);
             for (size_t j = 0; j < s.names.dim; j++)
             {

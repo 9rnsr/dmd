@@ -1868,7 +1868,7 @@ extern (C++) bool isKeyword(char* p, size_t len)
  */
 extern (C++) TypeFunction isTypeFunction(Dsymbol s)
 {
-    FuncDeclaration f = s.isFuncDeclaration();
+    auto f = s.isFuncDeclaration();
     /* f->type may be NULL for template members.
      */
     if (f && f.type)

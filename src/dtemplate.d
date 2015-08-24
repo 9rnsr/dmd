@@ -177,7 +177,7 @@ extern (C++) Expression getValue(ref Dsymbol s)
     Expression e = null;
     if (s)
     {
-        VarDeclaration v = s.isVarDeclaration();
+        auto v = s.isVarDeclaration();
         if (v && v.storage_class & STCmanifest)
         {
             e = v.getConstInitializer();
@@ -193,7 +193,7 @@ extern (C++) Expression getValue(Expression e)
 {
     if (e && e.op == TOKvar)
     {
-        VarDeclaration v = (cast(VarExp)e).var.isVarDeclaration();
+        auto v = (cast(VarExp)e).var.isVarDeclaration();
         if (v && v.storage_class & STCmanifest)
         {
             e = v.getConstInitializer();
@@ -4872,7 +4872,7 @@ public:
         if (!ei && oarg)
         {
             Dsymbol si = isDsymbol(oarg);
-            FuncDeclaration f = si ? si.isFuncDeclaration() : null;
+            auto f = si ? si.isFuncDeclaration() : null;
             if (!f || !f.fbody || f.needThis())
                 goto Lnomatch;
             ei = new VarExp(loc, f);
@@ -5124,7 +5124,7 @@ public:
              */
             if (specType)
             {
-                Declaration d = (cast(Dsymbol)sa).isDeclaration();
+                auto d = (cast(Dsymbol)sa).isDeclaration();
                 if (!d)
                     goto Lnomatch;
                 if (!d.type.equals(specType))
@@ -6802,7 +6802,7 @@ public:
                     err = true;
                     continue;
                 }
-                TupleDeclaration d = sa.toAlias().isTupleDeclaration();
+                auto d = sa.toAlias().isTupleDeclaration();
                 if (d)
                 {
                     // Expand tuple
@@ -7262,7 +7262,7 @@ public:
                         sa = ti;
                 }
                 TemplateInstance ti = sa.isTemplateInstance();
-                Declaration d = sa.isDeclaration();
+                auto d = sa.isDeclaration();
                 if ((td && td.literal) || (ti && ti.enclosing) || (d && !d.isDataseg() && !(d.storage_class & STCmanifest) && (!d.isFuncDeclaration() || d.isFuncDeclaration().isNested()) && !isTemplateMixin()))
                 {
                     // if module level template
@@ -7424,7 +7424,7 @@ public:
             Lsa:
                 buf.writeByte('S');
                 sa = sa.toAlias();
-                Declaration d = sa.isDeclaration();
+                auto d = sa.isDeclaration();
                 if (d && (!d.type || !d.type.deco))
                 {
                     error("forward reference of %s %s", d.kind(), d.toChars());
@@ -7544,7 +7544,7 @@ extern (C++) void unSpeculative(Scope* sc, RootObject o)
     Dsymbol s = getDsymbol(o);
     if (!s)
         return;
-    Declaration d = s.isDeclaration();
+    auto d = s.isDeclaration();
     if (d)
     {
         if (auto vd = d.isVarDeclaration())
@@ -7595,7 +7595,7 @@ extern (C++) bool definitelyValueParameter(Expression e)
      * as an alias.
      */
     // x.y.f cannot be a value
-    FuncDeclaration f = (cast(DotVarExp)e).var.isFuncDeclaration();
+    auto f = (cast(DotVarExp)e).var.isFuncDeclaration();
     if (f)
         return false;
     while (e.op == TOKdotvar)
@@ -7611,7 +7611,7 @@ extern (C++) bool definitelyValueParameter(Expression e)
     // var.x.y is the only other possible form of alias
     if (e.op != TOKvar)
         return true;
-    VarDeclaration v = (cast(VarExp)e).var.isVarDeclaration();
+    auto v = (cast(VarExp)e).var.isVarDeclaration();
     // func.x.y is not an alias
     if (!v)
         return true;

@@ -542,7 +542,7 @@ public:
             {
                 extern (C++) static int fp(Dsymbol s, void* ctxt)
                 {
-                    CtorDeclaration f = s.isCtorDeclaration();
+                    auto f = s.isCtorDeclaration();
                     if (f && f.semanticRun == PASSinit)
                         f.semantic(null);
                     return 0;

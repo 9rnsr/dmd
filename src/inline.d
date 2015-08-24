@@ -742,7 +742,7 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
              * should be inlined to:
              *      auto x = *(t.vthis.vthis + i->voffset) + *(t.vthis + g->voffset)
              */
-            VarDeclaration v = e.var.isVarDeclaration();
+            auto v = e.var.isVarDeclaration();
             if (v && v.nestedrefs.dim && ids.vthis)
             {
                 Dsymbol s = ids.fd;
@@ -752,7 +752,7 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
                 result.type = ids.vthis.type;
                 while (s != fdv)
                 {
-                    FuncDeclaration f = s.isFuncDeclaration();
+                    auto f = s.isFuncDeclaration();
                     if (auto ad = s.isThis())
                     {
                         assert(ad.vthis);

@@ -1542,7 +1542,7 @@ public:
                         {
                             Parameter narg = Parameter.getNth(t.arguments, j);
                             assert(narg.ident);
-                            VarDeclaration v = sc2.search(Loc(), narg.ident, null).isVarDeclaration();
+                            auto v = sc2.search(Loc(), narg.ident, null).isVarDeclaration();
                             assert(v);
                             Expression e = new VarExp(v.loc, v);
                             (*exps)[j] = e;
@@ -2523,7 +2523,7 @@ public:
 
             extern (C++) static int fp(void* param, Dsymbol s)
             {
-                FuncDeclaration f = s.isFuncDeclaration();
+                auto f = s.isFuncDeclaration();
                 if (!f)
                     return 0;
                 ParamExact* p = cast(ParamExact*)param;
@@ -3273,7 +3273,7 @@ public:
         {
             extern (C++) static int fp(void* param, Dsymbol s)
             {
-                FuncDeclaration f = s.isFuncDeclaration();
+                auto f = s.isFuncDeclaration();
                 if (!f)
                     return 0;
                 FuncDeclaration* pf = cast(FuncDeclaration*)param;
@@ -4054,7 +4054,7 @@ struct TemplateCandidateWalker
 
     extern (C++) static int fp(void* param, Dsymbol s)
     {
-        TemplateDeclaration t = s.isTemplateDeclaration();
+        auto t = s.isTemplateDeclaration();
         if (!t)
             return 0;
         TemplateCandidateWalker* p = cast(TemplateCandidateWalker*)param;
@@ -4096,7 +4096,7 @@ struct FuncCandidateWalker
 
     extern (C++) static int fp(void* param, Dsymbol s)
     {
-        FuncDeclaration f = s.isFuncDeclaration();
+        auto f = s.isFuncDeclaration();
         if (!f || f.errors || f.type.ty == Terror)
             return 0;
         FuncCandidateWalker* p = cast(FuncCandidateWalker*)param;

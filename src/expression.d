@@ -127,7 +127,7 @@ L1:
                 Dsymbol s;
                 for (s = tcd.toParent(); s && s.isFuncDeclaration(); s = s.toParent())
                 {
-                    FuncDeclaration f = s.isFuncDeclaration();
+                    auto f = s.isFuncDeclaration();
                     if (f.vthis)
                     {
                         //printf("rewriting e1 to %s's this\n", f->toChars());
@@ -453,7 +453,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
     if (e1.op == TOKvar)
     {
         VarExp ve = cast(VarExp)e1;
-        VarDeclaration v = ve.var.isVarDeclaration();
+        auto v = ve.var.isVarDeclaration();
         if (v && ve.checkPurity(sc, v))
             return new ErrorExp();
     }
@@ -475,7 +475,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
         else if (e1.op == TOKdotvar)
         {
             // Check for reading overlapped pointer field in @safe code.
-            VarDeclaration v = (cast(DotVarExp)e1).var.isVarDeclaration();
+            auto v = (cast(DotVarExp)e1).var.isVarDeclaration();
             if (v && v.overlapped && sc.func && !sc.intypeof)
             {
                 AggregateDeclaration ad = v.toParent2().isAggregateDeclaration();
@@ -682,7 +682,7 @@ extern (C++) Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
     }
     if (!s)
         return ue.e1.type.Type.getProperty(loc, ident, 0);
-    FuncDeclaration f = s.isFuncDeclaration();
+    auto f = s.isFuncDeclaration();
     if (f)
     {
         TemplateDeclaration td = getFuncTemplateDecl(f);
@@ -1009,7 +1009,7 @@ extern (C++) int expandAliasThisTuples(Expressions* exps, size_t starti = 0)
                 assert(e);
                 assert(e.op == TOKdsymbol);
                 DsymbolExp se = cast(DsymbolExp)e;
-                Declaration d = se.s.isDeclaration();
+                auto d = se.s.isDeclaration();
                 assert(d);
                 e = new DotVarExp(exp.loc, exp, d);
                 assert(d.type);
@@ -1129,7 +1129,7 @@ extern (C++) bool arrayExpressionToCommonType(Scope* sc, Expressions* exps, Type
  */
 extern (C++) TemplateDeclaration getFuncTemplateDecl(Dsymbol s)
 {
-    FuncDeclaration f = s.isFuncDeclaration();
+    auto f = s.isFuncDeclaration();
     if (f && f.parent)
     {
         TemplateInstance ti = f.parent.isTemplateInstance();
@@ -1599,7 +1599,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                     if (de.e1.op == TOKvar)
                     {
                         VarExp ve = cast(VarExp)de.e1;
-                        FuncDeclaration f = ve.var.isFuncDeclaration();
+                        auto f = ve.var.isFuncDeclaration();
                         if (f)
                         {
                             f.tookAddressOf--;
@@ -3586,14 +3586,14 @@ public:
             {
                 if (withsym)
                 {
-                    Declaration d = s.isDeclaration();
+                    auto d = s.isDeclaration();
                     if (d)
                         checkAccess(loc, sc, null, d);
                 }
                 /* If f is really a function template,
                  * then replace f with the function template declaration.
                  */
-                FuncDeclaration f = s.isFuncDeclaration();
+                auto f = s.isFuncDeclaration();
                 if (f)
                 {
                     TemplateDeclaration td = getFuncTemplateDecl(f);
@@ -3709,7 +3709,7 @@ public:
         //printf("DsymbolExp:: %p '%s' is a symbol\n", this, toChars());
         //printf("s = '%s', s->kind = '%s'\n", s->toChars(), s->kind());
         Dsymbol olds = s;
-        Declaration d = s.isDeclaration();
+        auto d = s.isDeclaration();
         if (d && (d.storage_class & STCtemplateparameter))
         {
             s = s.toAlias();
@@ -5779,7 +5779,7 @@ public:
     {
         super(loc, TOKsymoff, __traits(classInstanceSize, SymOffExp), var, hasOverloads);
         this.offset = offset;
-        VarDeclaration v = var.isVarDeclaration();
+        auto v = var.isVarDeclaration();
         if (v && v.needThis())
             error("need 'this' for address of %s", v.toChars());
     }
@@ -6419,7 +6419,7 @@ public:
             }
             break;
         }
-        VarDeclaration v = s.isVarDeclaration();
+        auto v = s.isVarDeclaration();
         if (v)
         {
             // Do semantic() on initializer first, so:
@@ -7848,7 +7848,7 @@ public:
                 {
                     return em.getVarExp(loc, sc);
                 }
-                VarDeclaration v = s.isVarDeclaration();
+                auto v = s.isVarDeclaration();
                 if (v)
                 {
                     //printf("DotIdExp:: Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
@@ -7877,7 +7877,7 @@ public:
                     e = e.deref();
                     return e.semantic(sc);
                 }
-                FuncDeclaration f = s.isFuncDeclaration();
+                auto f = s.isFuncDeclaration();
                 if (f)
                 {
                     //printf("it's a function\n");
@@ -7911,7 +7911,7 @@ public:
                     }
                     return e;
                 }
-                OverloadSet o = s.isOverloadSet();
+                auto o = s.isOverloadSet();
                 if (o)
                 {
                     //printf("'%s' is an overload set\n", o->toChars());
@@ -8170,7 +8170,7 @@ public:
                 return e;
             }
             checkAccess(loc, sc, e1, var);
-            VarDeclaration v = var.isVarDeclaration();
+            auto v = var.isVarDeclaration();
             if (v && (v.isDataseg() || (v.storage_class & STCmanifest)))
             {
                 Expression e = expandVar(WANTvalue, v);
@@ -8367,7 +8367,7 @@ public:
                 if (!ti.inst || ti.errors) // if template failed to expand
                     return new ErrorExp();
                 Dsymbol s = ti.toAlias();
-                Declaration v = s.isDeclaration();
+                auto v = s.isDeclaration();
                 if (v)
                 {
                     if (v.type && !v.type.deco)
@@ -8415,7 +8415,7 @@ public:
             if (!ti.inst || ti.errors) // if template failed to expand
                 return new ErrorExp();
             Dsymbol s = ti.toAlias();
-            Declaration v = s.isDeclaration();
+            auto v = s.isDeclaration();
             if (v && (v.isFuncDeclaration() || v.isVarDeclaration()))
             {
                 e = new DotVarExp(loc, e1, v);
@@ -8463,7 +8463,7 @@ public:
                 if (!ti.inst || ti.errors) // if template failed to expand
                     return new ErrorExp();
                 Dsymbol s = ti.toAlias();
-                Declaration v = s.isDeclaration();
+                auto v = s.isDeclaration();
                 if (v)
                 {
                     if (v.type && !v.type.deco)
@@ -8849,7 +8849,7 @@ public:
                     auto t = new TypeDelegate(tf);
                     ve.type = t.semantic(loc, sc);
                 }
-                VarDeclaration v = ve.var.isVarDeclaration();
+                auto v = ve.var.isVarDeclaration();
                 if (v && ve.checkPurity(sc, v))
                     return new ErrorExp();
             }
@@ -9545,7 +9545,7 @@ public:
                 if (!ti.inst || ti.errors) // if template failed to expand
                     return new ErrorExp();
                 Dsymbol s = ti.toAlias();
-                FuncDeclaration f = s.isFuncDeclaration();
+                auto f = s.isFuncDeclaration();
                 if (f)
                 {
                     e1 = new DotVarExp(e1.loc, dti.e1, f);
@@ -9563,7 +9563,7 @@ public:
                 if (!ti.inst || ti.errors) // if template failed to expand
                     return new ErrorExp();
                 Dsymbol s = ti.toAlias();
-                FuncDeclaration f = s.isFuncDeclaration();
+                auto f = s.isFuncDeclaration();
                 if (f)
                 {
                     e1 = new VarExp(e1.loc, f);
@@ -9602,7 +9602,7 @@ public:
         if (e1.op == TOKdotvar)
         {
             DotVarExp dve = cast(DotVarExp)e1;
-            FuncDeclaration f = dve.var.isFuncDeclaration();
+            auto f = dve.var.isFuncDeclaration();
             if (f)
             {
                 f = f.toAliasFunc(); // FIXME, should see overlods - Bugzilla 1983
@@ -9620,7 +9620,7 @@ public:
         else if (e1.op == TOKvar)
         {
             VarExp ve = cast(VarExp)e1;
-            VarDeclaration v = ve.var.isVarDeclaration();
+            auto v = ve.var.isVarDeclaration();
             if (v)
             {
                 if (!v.canTakeAddressOf())
@@ -9638,7 +9638,7 @@ public:
                 }
                 ve.checkPurity(sc, v);
             }
-            FuncDeclaration f = ve.var.isFuncDeclaration();
+            auto f = ve.var.isFuncDeclaration();
             if (f)
             {
                 /* Because nested functions cannot be overloaded,

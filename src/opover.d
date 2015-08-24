@@ -1854,7 +1854,7 @@ extern (C++) static Dsymbol inferApplyArgTypesX(Expression ethis, FuncDeclaratio
 
         extern (C++) static int fp(void* param, Dsymbol s)
         {
-            FuncDeclaration f = s.isFuncDeclaration();
+            auto f = s.isFuncDeclaration();
             if (!f)
                 return 0;
             ParamOpOver* p = cast(ParamOpOver*)param;

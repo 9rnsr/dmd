@@ -226,7 +226,7 @@ extern (C++) void discardValue(Expression e)
         return;
     case TOKvar:
         {
-            VarDeclaration v = (cast(VarExp)e).var.isVarDeclaration();
+            auto v = (cast(VarExp)e).var.isVarDeclaration();
             if (v && (v.storage_class & STCtemp))
             {
                 // Bugzilla 5810: Don't complain about an internal generated variable.

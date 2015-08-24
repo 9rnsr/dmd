@@ -2327,7 +2327,7 @@ public:
         else if (hgs !is null && hgs.ddoc)
         {
             // fixes bug 6491
-            Module m = e.sds.isModule();
+            auto m = e.sds.isModule();
             if (m)
                 buf.writestring(m.md.toChars());
             else

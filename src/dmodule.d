@@ -779,7 +779,7 @@ public:
             Package ppack = null;
             dst = Package.resolve(md.packages, &this.parent, &ppack);
             assert(dst);
-            Module m = ppack ? ppack.isModule() : null;
+            auto m = ppack ? ppack.isModule() : null;
             if (m && strcmp(m.srcfile.name.name(), "package.d") != 0)
             {
                 .error(md.loc, "package name '%s' conflicts with usage as a module name in file %s", ppack.toPrettyChars(), m.srcfile.toChars());

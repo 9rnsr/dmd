@@ -52,7 +52,7 @@ public:
     void visit(DeclarationExp e)
     {
         // Note that, walkPostorder does not support DeclarationExp today.
-        VarDeclaration v = e.declaration.isVarDeclaration();
+        auto v = e.declaration.isVarDeclaration();
         if (v && !(v.storage_class & STCmanifest) && !v.isDataseg() && v._init)
         {
             if (v._init.isVoidInitializer())
@@ -121,7 +121,7 @@ public:
     {
         if (e.e1.op == TOKvar)
         {
-            VarDeclaration v = (cast(VarExp)e.e1).var.isVarDeclaration();
+            auto v = (cast(VarExp)e.e1).var.isVarDeclaration();
             if (v && v.onstack)
                 return; // delete for scope allocated class object
         }
