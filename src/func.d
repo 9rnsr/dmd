@@ -889,7 +889,7 @@ public:
                     continue;
                 for (size_t j = 0; j < cbd.vtbl.dim; j++)
                 {
-                    FuncDeclaration f2 = cbd.vtbl[j].isFuncDeclaration();
+                    auto f2 = cbd.vtbl[j].isFuncDeclaration();
                     if (!f2 || f2.ident != ident)
                         continue;
                     if (cbd.parent && cbd.parent.isTemplateInstance())
@@ -926,7 +926,7 @@ public:
                     Dsymbol s = cd.baseClass.search(loc, ident);
                     if (s)
                     {
-                        FuncDeclaration f2 = s.isFuncDeclaration();
+                        auto f2 = s.isFuncDeclaration();
                         if (f2)
                         {
                             f2 = f2.overloadExactMatch(type);
@@ -1145,7 +1145,7 @@ public:
                     Dsymbol s = search_function(b.sym, ident);
                     if (s)
                     {
-                        FuncDeclaration f2 = s.isFuncDeclaration();
+                        auto f2 = s.isFuncDeclaration();
                         if (f2)
                         {
                             f2 = f2.overloadExactMatch(type);
@@ -2328,8 +2328,8 @@ public:
         Dsymbol s = isDsymbol(o);
         if (s)
         {
-            FuncDeclaration fd1 = this;
-            FuncDeclaration fd2 = s.isFuncDeclaration();
+            auto fd1 = this;
+            auto fd2 = s.isFuncDeclaration();
             if (!fd2)
                 return false;
             FuncAliasDeclaration fa1 = fd1.isFuncAliasDeclaration();
@@ -2361,8 +2361,8 @@ public:
             int cov = type.covariant(fd.type);
             if (cov)
             {
-                ClassDeclaration cd1 = toParent().isClassDeclaration();
-                ClassDeclaration cd2 = fd.toParent().isClassDeclaration();
+                auto cd1 = toParent().isClassDeclaration();
+                auto cd2 = fd.toParent().isClassDeclaration();
                 if (cd1 && cd2 && cd2.isBaseOf(cd1, null))
                     result = 1;
             }
@@ -3310,7 +3310,7 @@ public:
         if (parent && parent != sc.parent && this.isNested() && this.ident != Id.require && this.ident != Id.ensure)
         {
             // The function that this function is in
-            FuncDeclaration fdv2 = toParent2().isFuncDeclaration();
+            auto fdv2 = toParent2().isFuncDeclaration();
             // The current function
             auto fdthis = sc.parent.isFuncDeclaration();
             //printf("this = %s in [%s]\n", this->toChars(), this->loc.toChars());

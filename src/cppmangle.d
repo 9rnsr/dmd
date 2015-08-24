@@ -201,7 +201,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                         }
                         else if (e && e.op == TOKvar && (cast(VarExp)e).var.isVarDeclaration())
                         {
-                            VarDeclaration vd = (cast(VarExp)e).var.isVarDeclaration();
+                            auto vd = (cast(VarExp)e).var.isVarDeclaration();
                             buf.writeByte('L');
                             mangle_variable(vd, true);
                             buf.writeByte('E');
@@ -517,7 +517,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
 
         char* mangleOf(Dsymbol s)
         {
-            VarDeclaration vd = s.isVarDeclaration();
+            auto vd = s.isVarDeclaration();
             auto fd = s.isFuncDeclaration();
             if (vd)
             {
@@ -1301,7 +1301,7 @@ else static if (TARGET_WINDOS)
 
         char* mangleOf(Dsymbol s)
         {
-            VarDeclaration vd = s.isVarDeclaration();
+            auto vd = s.isVarDeclaration();
             auto fd = s.isFuncDeclaration();
             if (vd)
             {

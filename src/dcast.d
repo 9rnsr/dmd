@@ -893,7 +893,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 for (size_t i = 0; i < eo.vars.a.dim; i++)
                 {
                     Dsymbol s = eo.vars.a[i];
-                    FuncDeclaration f2 = s.isFuncDeclaration();
+                    auto f2 = s.isFuncDeclaration();
                     assert(f2);
                     if (f2.overloadExactMatch(t.nextOf()))
                     {
@@ -1380,7 +1380,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 {
                     if (t1b.ty == Tclass && tob.ty == Tclass)
                     {
-                        ClassDeclaration t1cd = t1b.isClassHandle();
+                        auto t1cd = t1b.isClassHandle();
                         auto tocd = tob.isClassHandle();
                         int offset;
                         if (tocd.isBaseOf(t1cd, &offset))
@@ -1838,7 +1838,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     for (size_t i = 0; i < eo.vars.a.dim; i++)
                     {
                         Dsymbol s = eo.vars.a[i];
-                        FuncDeclaration f2 = s.isFuncDeclaration();
+                        auto f2 = s.isFuncDeclaration();
                         assert(f2);
                         if (f2.overloadExactMatch(t.nextOf()))
                         {
@@ -2582,8 +2582,8 @@ Lagain:
         }
         else if (t1n.ty == Tclass && t2n.ty == Tclass)
         {
-            ClassDeclaration cd1 = t1n.isClassHandle();
-            ClassDeclaration cd2 = t2n.isClassHandle();
+            auto cd1 = t1n.isClassHandle();
+            auto cd2 = t2n.isClassHandle();
             int offset;
             if (cd1.isBaseOf(cd2, &offset))
             {
@@ -2735,8 +2735,8 @@ Lagain:
                 auto tc2 = cast(TypeClass)t2;
                 /* Pick 'tightest' type
                  */
-                ClassDeclaration cd1 = tc1.sym.baseClass;
-                ClassDeclaration cd2 = tc2.sym.baseClass;
+                auto cd1 = tc1.sym.baseClass;
+                auto cd2 = tc2.sym.baseClass;
                 if (cd1 && cd2)
                 {
                     t1 = cd1.type;

@@ -284,7 +284,7 @@ struct CompiledCtfeFunction
                         Expression ex = isExpression(o);
                         DsymbolExp s = (ex && ex.op == TOKdsymbol) ? cast(DsymbolExp)ex : null;
                         assert(s);
-                        VarDeclaration v2 = s.s.isVarDeclaration();
+                        auto v2 = s.s.isVarDeclaration();
                         assert(v2);
                         if (!v2.isDataseg() || v2.isCTFE())
                             ccf.onDeclaration(v2);
@@ -2366,7 +2366,7 @@ public:
                     RootObject o = (*td.objects)[i];
                     Expression ex = isExpression(o);
                     DsymbolExp ds = (ex && ex.op == TOKdsymbol) ? cast(DsymbolExp)ex : null;
-                    VarDeclaration v2 = ds ? ds.s.isVarDeclaration() : null;
+                    auto v2 = ds ? ds.s.isVarDeclaration() : null;
                     assert(v2);
                     if (v2.isDataseg() && !v2.isCTFE())
                         continue;

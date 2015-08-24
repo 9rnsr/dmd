@@ -1080,7 +1080,7 @@ public:
             for (size_t i = 0; i < os.a.dim; i++)
             {
                 Dsymbol s2 = os.a[i];
-                FuncDeclaration f2 = s2.isFuncDeclaration();
+                auto f2 = s2.isFuncDeclaration();
                 if (f2 && overloadApply(f2, cast(void*)fd, &isf))
                     return false;
             }

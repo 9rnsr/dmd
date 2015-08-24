@@ -864,8 +864,8 @@ public:
                     else if (s.isOverloadable() && (*ps).isOverloadable())
                     {
                         // keep head of overload set
-                        FuncDeclaration f1 = s.isFuncDeclaration();
-                        FuncDeclaration f2 = (*ps).isFuncDeclaration();
+                        auto f1 = s.isFuncDeclaration();
+                        auto f2 = (*ps).isFuncDeclaration();
                         if (f1 && f2)
                         {
                             assert(!f1.isFuncAliasDeclaration());

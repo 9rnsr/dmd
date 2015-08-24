@@ -3890,7 +3890,7 @@ public:
                     if (udas)
                         error("user defined attributes not allowed for %s declarations", Token.toChars(tok));
                     t = parseType();
-                    Declaration v = new AliasDeclaration(loc, ident, t);
+                    auto v = new AliasDeclaration(loc, ident, t);
                     v.storage_class = storage_class;
                     Dsymbol s = v;
                     if (tpl)

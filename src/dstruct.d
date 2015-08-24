@@ -674,7 +674,7 @@ public:
             {
                 if (i == j)
                     continue;
-                VarDeclaration v2 = fields[j];
+                auto v2 = fields[j];
                 bool overlap = (vd.offset < v2.offset + v2.type.size() && v2.offset < vd.offset + vd.type.size());
                 if (!overlap)
                     continue;

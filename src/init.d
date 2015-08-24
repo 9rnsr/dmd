@@ -307,7 +307,7 @@ public:
                 }
                 for (size_t j = 0; j < nfields; j++)
                 {
-                    VarDeclaration v2 = sd.fields[j];
+                    auto v2 = sd.fields[j];
                     bool overlap = (vd.offset < v2.offset + v2.type.size() && v2.offset < vd.offset + vd.type.size());
                     if (overlap && (*elements)[j])
                     {

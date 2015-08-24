@@ -8052,7 +8052,7 @@ public:
         {
             printf("TypeStruct::defaultInit() '%s'\n", toChars());
         }
-        Declaration d = new SymbolDeclaration(sym.loc, sym);
+        auto d = new SymbolDeclaration(sym.loc, sym);
         assert(d);
         d.type = this;
         d.storage_class |= STCrvalue; // Bugzilla 14398
@@ -8181,7 +8181,7 @@ public:
         sym.size(Loc()); // give error for forward references
         for (size_t i = 0; i < s.fields.dim; i++)
         {
-            Declaration d = s.fields[i];
+            auto d = s.fields[i];
             if (d.storage_class & STCref || d.hasPointers())
                 return true;
         }

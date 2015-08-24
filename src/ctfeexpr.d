@@ -98,7 +98,7 @@ public:
                 fieldsSoFar += cd.fields.dim;
                 cd = cd.baseClass;
             }
-            VarDeclaration v2 = cd.fields[j - fieldsSoFar];
+            auto v2 = cd.fields[j - fieldsSoFar];
             if (fieldoffset == v2.offset && fieldtype.size() == v2.type.size())
             {
                 return cast(int)(value.elements.dim - fieldsSoFar - cd.fields.dim + (j - fieldsSoFar));
@@ -120,7 +120,7 @@ public:
                 fieldsSoFar += cd.fields.dim;
                 cd = cd.baseClass;
             }
-            VarDeclaration v2 = cd.fields[j - fieldsSoFar];
+            auto v2 = cd.fields[j - fieldsSoFar];
             if (v == v2)
             {
                 return cast(int)(value.elements.dim - fieldsSoFar - cd.fields.dim + (j - fieldsSoFar));
@@ -2211,7 +2211,7 @@ extern (C++) bool isCtfeValueValid(Expression newval)
     if (newval.op == TOKsymoff)
     {
         // function pointer, or pointer to static variable
-        Declaration d = (cast(SymOffExp)newval).var;
+        auto d = (cast(SymOffExp)newval).var;
         return d.isFuncDeclaration() || d.isDataseg();
     }
     if (newval.op == TOKtypeid)

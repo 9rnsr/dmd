@@ -4585,7 +4585,7 @@ public:
     {
         //printf("TemplateTypeParameter::declareParameter('%s')\n", ident->toChars());
         auto ti = new TypeIdentifier(loc, ident);
-        Declaration ad = new AliasDeclaration(loc, ident, ti);
+        auto ad = new AliasDeclaration(loc, ident, ti);
         return sc.insert(ad) !is null;
     }
 
@@ -4958,7 +4958,7 @@ public:
         if (psparam)
         {
             Initializer _init = new ExpInitializer(loc, ei);
-            Declaration sparam = new VarDeclaration(loc, vt, ident, _init);
+            auto sparam = new VarDeclaration(loc, vt, ident, _init);
             sparam.storage_class = STCmanifest;
             *psparam = sparam;
         }
@@ -5050,7 +5050,7 @@ public:
     bool declareParameter(Scope* sc)
     {
         auto ti = new TypeIdentifier(loc, ident);
-        Declaration ad = new AliasDeclaration(loc, ident, ti);
+        auto ad = new AliasDeclaration(loc, ident, ti);
         return sc.insert(ad) !is null;
     }
 
@@ -5268,7 +5268,7 @@ public:
     bool declareParameter(Scope* sc)
     {
         auto ti = new TypeIdentifier(loc, ident);
-        Declaration ad = new AliasDeclaration(loc, ident, ti);
+        auto ad = new AliasDeclaration(loc, ident, ti);
         return sc.insert(ad) !is null;
     }
 

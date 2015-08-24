@@ -9200,7 +9200,7 @@ public:
                 s = eo.vars.a[i];
                 if (tiargs && s.isFuncDeclaration())
                     continue;
-                FuncDeclaration f2 = resolveFuncCall(loc, sc, s, tiargs, tthis, arguments, 1);
+                auto f2 = resolveFuncCall(loc, sc, s, tiargs, tthis, arguments, 1);
                 if (f2)
                 {
                     if (f2.errors)
@@ -9590,7 +9590,7 @@ public:
             if (e1.op == TOKvar)
             {
                 VarExp ve = cast(VarExp)e1;
-                Declaration d = ve.var;
+                auto d = ve.var;
                 error("forward reference to %s %s", d.kind(), d.toChars());
             }
             else

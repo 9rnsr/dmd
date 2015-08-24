@@ -250,7 +250,7 @@ public:
         auto tb = e.type.toBasetype();
         if (tb.ty == Tstruct)
         {
-            StructDeclaration sd = (cast(TypeStruct)tb).sym;
+            auto sd = (cast(TypeStruct)tb).sym;
             if (sd.isNested())
             {
                 /* An inner struct will be nested inside another function hierarchy than where
@@ -326,7 +326,7 @@ public:
     void visit(DeclarationExp e)
     {
         //printf("DeclarationExp::inlineCost3()\n");
-        VarDeclaration vd = e.declaration.isVarDeclaration();
+        auto vd = e.declaration.isVarDeclaration();
         if (vd)
         {
             TupleDeclaration td = vd.toAlias().isTupleDeclaration();
@@ -938,7 +938,7 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
             if (e.lengthVar)
             {
                 //printf("lengthVar\n");
-                VarDeclaration vd = e.lengthVar;
+                auto vd = e.lengthVar;
                 auto vto = new VarDeclaration(vd.loc, vd.type, vd.ident, vd._init);
                 memcpy(cast(void*)vto, cast(void*)vd, __traits(classInstanceSize, VarDeclaration));
                 vto.parent = ids.parent;
@@ -965,7 +965,7 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
             if (e.lengthVar)
             {
                 //printf("lengthVar\n");
-                VarDeclaration vd = e.lengthVar;
+                auto vd = e.lengthVar;
                 auto vto = new VarDeclaration(vd.loc, vd.type, vd.ident, vd._init);
                 memcpy(cast(void*)vto, cast(void*)vd, __traits(classInstanceSize, VarDeclaration));
                 vto.parent = ids.parent;
@@ -1271,7 +1271,7 @@ public:
     Expression scanVar(Dsymbol s)
     {
         //printf("scanVar(%s %s)\n", s->kind(), s->toPrettyChars());
-        VarDeclaration vd = s.isVarDeclaration();
+        auto vd = s.isVarDeclaration();
         if (vd)
         {
             TupleDeclaration td = vd.toAlias().isTupleDeclaration();
@@ -1341,7 +1341,7 @@ public:
                      *   S s = foo();   // initializing by rvalue
                      *   S s = S(1);    // constrcutor call
                      */
-                    Declaration d = (cast(VarExp)e.e1).var;
+                    auto d = (cast(VarExp)e.e1).var;
                     if (d.storage_class & (STCout | STCref)) // refinit
                         goto L1;
                 }
@@ -1851,7 +1851,7 @@ extern (C++) static Expression expandInline(FuncDeclaration fd, FuncDeclaration 
         assert(fd.parameters.dim == arguments.dim);
         for (size_t i = 0; i < arguments.dim; i++)
         {
-            VarDeclaration vfrom = (*fd.parameters)[i];
+            auto vfrom = (*fd.parameters)[i];
             VarDeclaration vto;
             Expression arg = (*arguments)[i];
             ExpInitializer ei;

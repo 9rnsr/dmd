@@ -1101,8 +1101,8 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
             auto t2 = e.e2.type.toBasetype();
             if (t1.ty == Tclass && t2.ty == Tclass)
             {
-                ClassDeclaration cd1 = t1.isClassHandle();
-                ClassDeclaration cd2 = t2.isClassHandle();
+                auto cd1 = t1.isClassHandle();
+                auto cd2 = t2.isClassHandle();
                 if (!(cd1.cpp || cd2.cpp))
                 {
                     /* Rewrite as:
@@ -1584,7 +1584,7 @@ extern (C++) Expression build_overload(Loc loc, Scope* sc, Expression ethis, Exp
     //printf("build_overload(id = '%s')\n", id->toChars());
     //earg->print();
     //earg->type->print();
-    Declaration decl = d.isDeclaration();
+    auto decl = d.isDeclaration();
     if (decl)
         e = new DotVarExp(loc, ethis, decl, 0);
     else
