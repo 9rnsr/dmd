@@ -583,7 +583,7 @@ public:
     {
         //printf("AliasDeclaration::syntaxCopy()\n");
         assert(!s);
-        AliasDeclaration sa = type ? new AliasDeclaration(loc, ident, type.syntaxCopy()) : new AliasDeclaration(loc, ident, aliassym.syntaxCopy(null));
+        auto sa = type ? new AliasDeclaration(loc, ident, type.syntaxCopy()) : new AliasDeclaration(loc, ident, aliassym.syntaxCopy(null));
         sa.storage_class = storage_class;
         return sa;
     }
@@ -1429,7 +1429,7 @@ public:
             }
             /* Templates cannot add fields to aggregates
              */
-            TemplateInstance ti = parent.isTemplateInstance();
+            auto ti = parent.isTemplateInstance();
             if (ti)
             {
                 // Take care of nested templates

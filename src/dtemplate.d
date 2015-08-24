@@ -576,10 +576,10 @@ public:
             funcroot = fd;
             return funcroot.overloadInsert(this);
         }
-        TemplateDeclaration td = s.isTemplateDeclaration();
+        auto td = s.isTemplateDeclaration();
         if (!td)
             return false;
-        TemplateDeclaration pthis = this;
+        auto pthis = this;
         TemplateDeclaration* ptd;
         for (ptd = &pthis; *ptd; ptd = &(*ptd).overnext)
         {
@@ -952,7 +952,7 @@ public:
          * If it works, then this template is at least as specialized
          * as td2.
          */
-        scope TemplateInstance ti = new TemplateInstance(Loc(), ident); // create dummy template instance
+        scope auto ti = new TemplateInstance(Loc(), ident); // create dummy template instance
         // Set type arguments to dummy template instance to be types
         // generated from the parameters to this template declaration
         ti.tiargs = new Objects();
@@ -2029,7 +2029,7 @@ public:
         {
             for (size_t i = 0; i < instances.dim; i++)
             {
-                TemplateInstance ti = (*instances)[i];
+                auto ti = (*instances)[i];
                 static if (LOG)
                 {
                     printf("\t%s: checking for match with instance %d (%p): '%s'\n", tithis.toChars(), i, ti, ti.toChars());
@@ -2101,7 +2101,7 @@ public:
         TemplateInstances* instances = buckets[bi];
         for (size_t i = 0; i < instances.dim; i++)
         {
-            TemplateInstance ti = (*instances)[i];
+            auto ti = (*instances)[i];
             if (handle == ti)
             {
                 instances.remove(i);
@@ -2606,7 +2606,7 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
     p.ti_best = null;
     p.ta_last = m.last != MATCHnomatch ? MATCHexact : MATCHnomatch;
     p.tthis_best = null;
-    TemplateDeclaration td = dstart.isTemplateDeclaration();
+    auto td = dstart.isTemplateDeclaration();
     if (td && td.funcroot)
         dstart = td.funcroot;
     overloadApply(dstart, &p, &ParamDeduce.fp);
@@ -3538,7 +3538,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             // Extra check
             if (tparam && tparam.ty == Tinstance && t.tempinst.tempdecl)
             {
-                TemplateDeclaration tempdecl = t.tempinst.tempdecl.isTemplateDeclaration();
+                auto tempdecl = t.tempinst.tempdecl.isTemplateDeclaration();
                 assert(tempdecl);
                 auto tp = cast(TypeInstance)tparam;
                 //printf("tempinst->tempdecl = %p\n", tempdecl);
@@ -3577,7 +3577,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                         if (s)
                         {
                             s = s.toAlias();
-                            TemplateDeclaration td = s.isTemplateDeclaration();
+                            auto td = s.isTemplateDeclaration();
                             if (td)
                             {
                                 if (td.overroot)
@@ -3781,7 +3781,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
              * it against a template instance, convert the struct type
              * to a template instance, too, and try again.
              */
-            TemplateInstance ti = t.sym.parent.isTemplateInstance();
+            auto ti = t.sym.parent.isTemplateInstance();
             if (tparam && tparam.ty == Tinstance)
             {
                 if (ti && ti.toAlias() == t.sym)
@@ -3869,7 +3869,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
          */
         static void deduceBaseClassParameters(BaseClass* b, Scope* sc, Type tparam, TemplateParameters* parameters, Objects* dedtypes, Objects* best, ref int numBaseClassMatches)
         {
-            TemplateInstance parti = b.sym ? b.sym.parent.isTemplateInstance() : null;
+            auto parti = b.sym ? b.sym.parent.isTemplateInstance() : null;
             if (parti)
             {
                 // Make a temporary copy of dedtypes so we don't destroy it
@@ -3908,7 +3908,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
              * it against a template instance, convert the class type
              * to a template instance, too, and try again.
              */
-            TemplateInstance ti = t.sym.parent.isTemplateInstance();
+            auto ti = t.sym.parent.isTemplateInstance();
             if (tparam && tparam.ty == Tinstance)
             {
                 if (ti && ti.toAlias() == t.sym)
@@ -5171,7 +5171,7 @@ public:
                 auto talias = isType(specAlias);
                 if (!talias)
                     goto Lnomatch;
-                TemplateInstance ti = sx.isTemplateInstance();
+                auto ti = sx.isTemplateInstance();
                 if (!ti && sx.parent)
                 {
                     ti = sx.parent.isTemplateInstance();
@@ -5486,7 +5486,7 @@ public:
 
     Dsymbol syntaxCopy(Dsymbol s)
     {
-        TemplateInstance ti = s ? cast(TemplateInstance)s : new TemplateInstance(loc, name);
+        auto ti = s ? cast(TemplateInstance)s : new TemplateInstance(loc, name);
         ti.tiargs = arraySyntaxCopy(tiargs);
         TemplateDeclaration td;
         if (inst && tempdecl && (td = tempdecl.isTemplateDeclaration()) !is null)
@@ -5573,7 +5573,7 @@ public:
             errors = true;
             return;
         }
-        TemplateDeclaration tempdecl = this.tempdecl.isTemplateDeclaration();
+        auto tempdecl = this.tempdecl.isTemplateDeclaration();
         assert(tempdecl);
         // If tempdecl is a mixin, disallow it
         if (tempdecl.ismixin)
@@ -5621,7 +5621,7 @@ public:
             if (tinst && !inst.tinst && !inst.minst)
             {
                 // Reconnect the chain if this instantiation is not in speculative context.
-                TemplateInstance ti = tinst;
+                auto ti = tinst;
                 while (ti && ti != inst)
                     ti = ti.tinst;
                 if (ti != inst) // Bugzilla 13379: Prevent circular chain
@@ -5896,7 +5896,7 @@ public:
             {
                 trySemantic3(sc2);
             }
-            TemplateInstance ti = tinst;
+            auto ti = tinst;
             int nest = 0;
             while (ti && !ti.deferred && ti.tinst)
             {
@@ -5981,7 +5981,7 @@ public:
             assert(instances);
             for (size_t i = 0; i < instances.dim; i++)
             {
-                TemplateInstance ti = (*instances)[i];
+                auto ti = (*instances)[i];
                 if (ti == errinst)
                 {
                     (*instances)[i] = this; // override
@@ -6011,7 +6011,7 @@ public:
         }
         if (!errors && members)
         {
-            TemplateDeclaration tempdecl = this.tempdecl.isTemplateDeclaration();
+            auto tempdecl = this.tempdecl.isTemplateDeclaration();
             assert(tempdecl);
             sc = tempdecl._scope;
             assert(sc);
@@ -6069,7 +6069,7 @@ public:
         semanticRun = PASSsemantic3;
         if (!errors && members)
         {
-            TemplateDeclaration tempdecl = this.tempdecl.isTemplateDeclaration();
+            auto tempdecl = this.tempdecl.isTemplateDeclaration();
             assert(tempdecl);
             sc = tempdecl._scope;
             sc = sc.push(argsym);
@@ -6180,7 +6180,7 @@ public:
         // determine instantiation depth and number of recursive instantiations
         int n_instantiations = 1;
         int n_totalrecursions = 0;
-        for (TemplateInstance cur = this; cur; cur = cur.tinst)
+        for (auto cur = this; cur; cur = cur.tinst)
         {
             ++n_instantiations;
             // If two instantiations use the same declaration, they are recursive.
@@ -6194,7 +6194,7 @@ public:
         // show full trace only if it's short or verbose is on
         if (n_instantiations <= max_shown || global.params.verbose)
         {
-            for (TemplateInstance cur = this; cur; cur = cur.tinst)
+            for (auto cur = this; cur; cur = cur.tinst)
             {
                 cur.errors = true;
                 errorSupplemental(cur.loc, format, cur.toChars());
@@ -6205,7 +6205,7 @@ public:
             // By collapsing recursive instantiations into a single line,
             // we can stay under the limit.
             int recursionDepth = 0;
-            for (TemplateInstance cur = this; cur; cur = cur.tinst)
+            for (auto cur = this; cur; cur = cur.tinst)
             {
                 cur.errors = true;
                 if (cur.tinst && cur.tempdecl && cur.tinst.tempdecl && cur.tempdecl.loc.equals(cur.tinst.tempdecl.loc))
@@ -6227,7 +6227,7 @@ public:
             // Even after collapsing the recursions, the depth is too deep.
             // Just display the first few and last few instantiations.
             uint i = 0;
-            for (TemplateInstance cur = this; cur; cur = cur.tinst)
+            for (auto cur = this; cur; cur = cur.tinst)
             {
                 cur.errors = true;
                 if (i == max_shown / 2)
@@ -6356,8 +6356,8 @@ public:
         // If this may be a speculative instantiation:
         if (!minst)
         {
-            TemplateInstance tnext = this.tnext;
-            TemplateInstance tinst = this.tinst;
+            auto tnext = this.tnext;
+            auto tinst = this.tinst;
             // At first, disconnect chain first to prevent infinite recursion.
             this.tnext = null;
             this.tinst = null;
@@ -6381,7 +6381,7 @@ public:
         if (minst.isRoot())
         {
             // Prefer instantiation in non-root module, to minimize object code size
-            TemplateInstance tnext = this.tnext;
+            auto tnext = this.tnext;
             this.tnext = null;
             if (tnext && !tnext.needsCodegen() && tnext.minst)
             {
@@ -6468,7 +6468,7 @@ public:
                      * template, even if it has the same name as a member
                      * of the template, if it has a !(arguments)
                      */
-                    TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration();
+                    auto td = ti.tempdecl.isTemplateDeclaration();
                     assert(td);
                     if (td.overroot) // if not start of overloaded list of TemplateDeclaration's
                         td = td.overroot; // then get the start
@@ -6485,7 +6485,7 @@ public:
         {
             extern (C++) static int fp(void* param, Dsymbol s)
             {
-                TemplateDeclaration td = s.isTemplateDeclaration();
+                auto td = s.isTemplateDeclaration();
                 if (!td)
                     return 0;
                 auto ti = cast(TemplateInstance)param;
@@ -6564,7 +6564,7 @@ public:
                     return false;
                 }
             }
-            OverDeclaration od = s.isOverDeclaration();
+            auto od = s.isOverDeclaration();
             if (od)
             {
                 tempdecl = od; // TODO: more strict check
@@ -6595,14 +6595,14 @@ public:
                     //if (!s->parent) printf("s = %s %s\n", s->kind(), s->toChars());
                 }
                 //assert(s->parent);
-                TemplateInstance ti = s.parent ? s.parent.isTemplateInstance() : null;
+                auto ti = s.parent ? s.parent.isTemplateInstance() : null;
                 if (ti && (ti.name == s.ident || ti.toAlias().ident == s.ident) && ti.tempdecl)
                 {
                     /* This is so that one can refer to the enclosing
                      * template, even if it has the same name as a member
                      * of the template, if it has a !(arguments)
                      */
-                    TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration();
+                    auto td = ti.tempdecl.isTemplateDeclaration();
                     assert(td);
                     if (td.overroot) // if not start of overloaded list of TemplateDeclaration's
                         td = td.overroot; // then get the start
@@ -6822,7 +6822,7 @@ public:
                     }
                 }
                 (*tiargs)[j] = sa;
-                TemplateDeclaration td = sa.isTemplateDeclaration();
+                auto td = sa.isTemplateDeclaration();
                 if (td && td.semanticRun == PASSinit && td.literal)
                 {
                     td.semantic(sc);
@@ -6884,7 +6884,7 @@ public:
     {
         if (havetempdecl)
         {
-            TemplateDeclaration tempdecl = this.tempdecl.isTemplateDeclaration();
+            auto tempdecl = this.tempdecl.isTemplateDeclaration();
             assert(tempdecl);
             assert(tempdecl._scope);
             // Deduce tdtypes
@@ -6920,7 +6920,7 @@ public:
 
             extern (C++) int fp(Dsymbol s)
             {
-                TemplateDeclaration td = s.isTemplateDeclaration();
+                auto td = s.isTemplateDeclaration();
                 if (!td)
                     return 0;
                 if (td == td_best) // skip duplicates
@@ -7047,7 +7047,7 @@ public:
         }
         else
         {
-            TemplateDeclaration tdecl = tempdecl.isTemplateDeclaration();
+            auto tdecl = tempdecl.isTemplateDeclaration();
             if (errs != global.errors)
                 errorSupplemental(loc, "while looking for match for %s", toChars());
             else if (tovers)
@@ -7101,7 +7101,7 @@ public:
 
             extern (C++) int fp(Dsymbol s)
             {
-                TemplateDeclaration td = s.isTemplateDeclaration();
+                auto td = s.isTemplateDeclaration();
                 if (!td)
                 {
                     return 0;
@@ -7254,14 +7254,14 @@ public:
             {
             Lsa:
                 sa = sa.toAlias();
-                TemplateDeclaration td = sa.isTemplateDeclaration();
+                auto td = sa.isTemplateDeclaration();
                 if (td)
                 {
-                    TemplateInstance ti = sa.toParent().isTemplateInstance();
+                    auto ti = sa.toParent().isTemplateInstance();
                     if (ti && ti.enclosing)
                         sa = ti;
                 }
-                TemplateInstance ti = sa.isTemplateInstance();
+                auto ti = sa.isTemplateInstance();
                 auto d = sa.isDeclaration();
                 if ((td && td.literal) || (ti && ti.enclosing) || (d && !d.isDataseg() && !(d.storage_class & STCmanifest) && (!d.isFuncDeclaration() || d.isFuncDeclaration().isNested()) && !isTemplateMixin()))
                 {
@@ -7320,7 +7320,7 @@ public:
      */
     final void declareParameters(Scope* sc)
     {
-        TemplateDeclaration tempdecl = this.tempdecl.isTemplateDeclaration();
+        auto tempdecl = this.tempdecl.isTemplateDeclaration();
         assert(tempdecl);
         //printf("TemplateInstance::declareParameters()\n");
         for (size_t i = 0; i < tdtypes.dim; i++)
@@ -7340,7 +7340,7 @@ public:
      */
     final Identifier genIdent(Objects* args)
     {
-        TemplateDeclaration tempdecl = this.tempdecl.isTemplateDeclaration();
+        auto tempdecl = this.tempdecl.isTemplateDeclaration();
         assert(tempdecl);
         //printf("TemplateInstance::genIdent('%s')\n", tempdecl->ident->toChars());
         OutBuffer buf;
@@ -7700,7 +7700,7 @@ public:
             errors = true;
             return; // error recovery
         }
-        TemplateDeclaration tempdecl = this.tempdecl.isTemplateDeclaration();
+        auto tempdecl = this.tempdecl.isTemplateDeclaration();
         assert(tempdecl);
         if (!ident)
         {
@@ -8037,7 +8037,7 @@ public:
         {
             extern (C++) static int fp(void* param, Dsymbol s)
             {
-                TemplateDeclaration td = s.isTemplateDeclaration();
+                auto td = s.isTemplateDeclaration();
                 if (!td)
                     return 0;
                 auto tm = cast(TemplateMixin)param;

@@ -190,7 +190,7 @@ extern (C++) FuncDeclaration hasThis(Scope* sc)
         {
             if (!parent)
                 goto Lno;
-            TemplateInstance ti = parent.isTemplateInstance();
+            auto ti = parent.isTemplateInstance();
             if (ti)
                 parent = ti.parent;
             else
@@ -358,7 +358,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
             tthis = null;
             goto Lfd;
         }
-        TemplateInstance ti = s.isTemplateInstance();
+        auto ti = s.isTemplateInstance();
         if (ti && !ti.semanticRun && ti.tempdecl)
         {
             //assert(ti->needsTypeInference(sc));
@@ -613,7 +613,7 @@ extern (C++) Expression resolvePropertiesOnly(Scope* sc, Expression e1)
         td = s.isTemplateDeclaration();
         if (td)
             goto Ltd;
-        TemplateInstance ti = s.isTemplateInstance();
+        auto ti = s.isTemplateInstance();
         if (ti && !ti.semanticRun && ti.tempdecl)
         {
             if ((td = ti.tempdecl.isTemplateDeclaration()) !is null)
@@ -685,7 +685,7 @@ extern (C++) Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
     auto f = s.isFuncDeclaration();
     if (f)
     {
-        TemplateDeclaration td = getFuncTemplateDecl(f);
+        auto td = getFuncTemplateDecl(f);
         if (td)
         {
             if (td.overroot)
@@ -978,7 +978,7 @@ Lagain:
             s = ad.aliasthis;
             if (s && s.isVarDeclaration())
             {
-                TupleDeclaration td = s.isVarDeclaration().toAlias().isTupleDeclaration();
+                auto td = s.isVarDeclaration().toAlias().isTupleDeclaration();
                 if (td && td.isexp)
                     return td;
             }
@@ -999,7 +999,7 @@ extern (C++) int expandAliasThisTuples(Expressions* exps, size_t starti = 0)
     for (size_t u = starti; u < exps.dim; u++)
     {
         Expression exp = (*exps)[u];
-        TupleDeclaration td = isAliasThisTuple(exp);
+        auto td = isAliasThisTuple(exp);
         if (td)
         {
             exps.remove(u);
@@ -1132,7 +1132,7 @@ extern (C++) TemplateDeclaration getFuncTemplateDecl(Dsymbol s)
     auto f = s.isFuncDeclaration();
     if (f && f.parent)
     {
-        TemplateInstance ti = f.parent.isTemplateInstance();
+        auto ti = f.parent.isTemplateInstance();
         if (ti && !ti.isTemplateMixin() && ti.tempdecl && (cast(TemplateDeclaration)ti.tempdecl).onemember && ti.tempdecl.ident == f.ident)
         {
             return cast(TemplateDeclaration)ti.tempdecl;
@@ -1323,7 +1323,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
     }
     else if (fd && fd.parent)
     {
-        TemplateInstance ti = fd.parent.isTemplateInstance();
+        auto ti = fd.parent.isTemplateInstance();
         if (ti && ti.tempdecl)
         {
             fd.functionSemantic3();
@@ -3596,7 +3596,7 @@ public:
                 auto f = s.isFuncDeclaration();
                 if (f)
                 {
-                    TemplateDeclaration td = getFuncTemplateDecl(f);
+                    auto td = getFuncTemplateDecl(f);
                     if (td)
                     {
                         if (td.overroot) // if not start of overloaded list of TemplateDeclaration's
@@ -5163,7 +5163,7 @@ public:
         //if (type == Type::tvoid)
         //    return this;
     Lagain:
-        TemplateInstance ti = sds.isTemplateInstance();
+        auto ti = sds.isTemplateInstance();
         if (ti)
         {
             WithScopeSymbol withsym;
@@ -7922,7 +7922,7 @@ public:
                 {
                     return new TypeExp(loc, t);
                 }
-                TupleDeclaration tup = s.isTupleDeclaration();
+                auto tup = s.isTupleDeclaration();
                 if (tup)
                 {
                     if (eleft)
@@ -8064,7 +8064,7 @@ public:
         if (type)
             return this;
         var = var.toAlias().isDeclaration();
-        TupleDeclaration tup = var.isTupleDeclaration();
+        auto tup = var.isTupleDeclaration();
         if (tup)
         {
             /* Replace:
@@ -8349,7 +8349,7 @@ public:
             auto dve = cast(DotVarExp)e;
             if (auto fd = dve.var.isFuncDeclaration())
             {
-                TemplateDeclaration td = fd.findTemplateDeclRoot();
+                auto td = fd.findTemplateDeclRoot();
                 if (td)
                 {
                     e = new DotTemplateExp(dve.loc, dve.e1, td);
@@ -8387,7 +8387,7 @@ public:
             auto ve = cast(VarExp)e;
             if (auto fd = ve.var.isFuncDeclaration())
             {
-                TemplateDeclaration td = fd.findTemplateDeclRoot();
+                auto td = fd.findTemplateDeclRoot();
                 if (td)
                 {
                     e = new ScopeExp(ve.loc, td);
@@ -8436,7 +8436,7 @@ public:
         else if (e.op == TOKimport)
         {
             auto se = cast(ScopeExp)e;
-            TemplateDeclaration td = se.sds.isTemplateDeclaration();
+            auto td = se.sds.isTemplateDeclaration();
             if (!td)
             {
                 error("%s is not a template", e.toChars());
@@ -8719,7 +8719,7 @@ public:
         if (e1.op == TOKimport && !e1.type)
         {
             auto se = cast(ScopeExp)e1;
-            TemplateInstance ti = se.sds.isTemplateInstance();
+            auto ti = se.sds.isTemplateInstance();
             if (ti)
             {
                 /* Attempt to instantiate ti. If that works, go with it.
@@ -8765,7 +8765,7 @@ public:
         if (e1.op == TOKdotti && !e1.type)
         {
             auto se = cast(DotTemplateInstanceExp)e1;
-            TemplateInstance ti = se.ti;
+            auto ti = se.ti;
             {
                 /* Attempt to instantiate ti. If that works, go with it.
                  * If not, go with partial explicit specialization.
@@ -9538,7 +9538,7 @@ public:
         if (e1.op == TOKdotti)
         {
             auto dti = cast(DotTemplateInstanceExp)e1;
-            TemplateInstance ti = dti.ti;
+            auto ti = dti.ti;
             {
                 //assert(ti->needsTypeInference(sc));
                 ti.semantic(sc);
@@ -9555,7 +9555,7 @@ public:
         }
         else if (e1.op == TOKimport)
         {
-            TemplateInstance ti = (cast(ScopeExp)e1).sds.isTemplateInstance();
+            auto ti = (cast(ScopeExp)e1).sds.isTemplateInstance();
             if (ti)
             {
                 //assert(ti->needsTypeInference(sc));
@@ -10794,7 +10794,7 @@ public:
         if (e2.op == TOKimport)
         {
             auto se = cast(ScopeExp)e2;
-            TemplateDeclaration td = se.sds.isTemplateDeclaration();
+            auto td = se.sds.isTemplateDeclaration();
             if (td)
             {
                 Expression e = new DotTemplateExp(loc, e1, td);
@@ -11644,7 +11644,7 @@ public:
              */
             if (e1.op == TOKtuple)
             {
-                TupleDeclaration td = isAliasThisTuple(e2x);
+                auto td = isAliasThisTuple(e2x);
                 if (!td)
                     goto Lnomatch;
                 assert(e1.type.ty == Ttuple);

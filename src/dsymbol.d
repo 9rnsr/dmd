@@ -387,7 +387,7 @@ public:
             auto m = s.isModule();
             if (m)
                 return m;
-            TemplateInstance ti = s.isTemplateInstance();
+            auto ti = s.isTemplateInstance();
             if (ti && ti.enclosing)
             {
                 /* Because of local template instantiation, the parent isn't where the access
@@ -432,7 +432,7 @@ public:
     {
         for (Dsymbol s = parent; s; s = s.parent)
         {
-            TemplateInstance ti = s.isTemplateInstance();
+            auto ti = s.isTemplateInstance();
             if (ti && !ti.isTemplateMixin())
                 return ti;
         }
@@ -448,7 +448,7 @@ public:
         Dsymbol par = parent;
         while (par)
         {
-            TemplateInstance ti = par.isTemplateInstance();
+            auto ti = par.isTemplateInstance();
             if (ti && ti.gagged)
                 return ti;
             par = par.toParent();
@@ -665,7 +665,7 @@ public:
                 // It's a template instance
                 //printf("\ttemplate instance id\n");
                 auto st = cast(Dsymbol)id;
-                TemplateInstance ti = st.isTemplateInstance();
+                auto ti = st.isTemplateInstance();
                 sm = s.search(loc, ti.name);
                 if (!sm)
                 {
@@ -677,7 +677,7 @@ public:
                     return null;
                 }
                 sm = sm.toAlias();
-                TemplateDeclaration td = sm.isTemplateDeclaration();
+                auto td = sm.isTemplateDeclaration();
                 if (!td)
                 {
                     .error(loc, "%s.%s is not a template, it is a %s", s.toPrettyChars(), ti.name.toChars(), sm.kind());

@@ -777,7 +777,7 @@ public:
         if (exp.op == TOKimport)
         {
             auto se = cast(ScopeExp)exp;
-            TemplateInstance ti = se.sds.isTemplateInstance();
+            auto ti = se.sds.isTemplateInstance();
             if (ti && ti.semanticRun == PASSsemantic && !ti.aliasdecl)
                 se.error("cannot infer type from %s %s, possible circular dependency", se.sds.kind(), se.toChars());
             else

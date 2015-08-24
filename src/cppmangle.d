@@ -107,7 +107,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
         void source_name(Dsymbol s, bool skipname = false)
         {
             //printf("source_name(%s)\n", s->toChars());
-            TemplateInstance ti = s.isTemplateInstance();
+            auto ti = s.isTemplateInstance();
             if (ti)
             {
                 if (!skipname && !substitute(ti.tempdecl))
@@ -126,7 +126,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                     TemplateTupleParameter tt = null;
                     if (!is_var_arg)
                     {
-                        TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration();
+                        auto td = ti.tempdecl.isTemplateDeclaration();
                         assert(td);
                         tp = (*td.parameters)[i];
                         tv = tp.isTemplateValueParameter();
@@ -1482,7 +1482,7 @@ else static if (TARGET_WINDOS)
                     TemplateTupleParameter tt = null;
                     if (!is_var_arg)
                     {
-                        TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration();
+                        auto td = ti.tempdecl.isTemplateDeclaration();
                         assert(td);
                         tp = (*td.parameters)[i];
                         tv = tp.isTemplateValueParameter();

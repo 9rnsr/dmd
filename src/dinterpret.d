@@ -273,7 +273,7 @@ struct CompiledCtfeFunction
                 auto v = e.declaration.isVarDeclaration();
                 if (!v)
                     return;
-                TupleDeclaration td = v.toAlias().isTupleDeclaration();
+                auto td = v.toAlias().isTupleDeclaration();
                 if (td)
                 {
                     if (!td.objects)

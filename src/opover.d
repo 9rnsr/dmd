@@ -1608,7 +1608,7 @@ extern (C++) Dsymbol search_function(ScopeDsymbol ad, Identifier funcid)
         auto fd = s2.isFuncDeclaration();
         if (fd && fd.type.ty == Tfunction)
             return fd;
-        TemplateDeclaration td = s2.isTemplateDeclaration();
+        auto td = s2.isTemplateDeclaration();
         if (td)
             return td;
     }

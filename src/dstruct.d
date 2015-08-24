@@ -234,7 +234,7 @@ public:
         type = type.semantic(loc, sc);
         if (type.ty == Tstruct && (cast(TypeStruct)type).sym != this)
         {
-            TemplateInstance ti = (cast(TypeStruct)type).sym.isInstantiated();
+            auto ti = (cast(TypeStruct)type).sym.isInstantiated();
             if (ti && isError(ti))
                 (cast(TypeStruct)type).sym = this;
         }

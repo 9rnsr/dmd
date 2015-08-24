@@ -2116,7 +2116,7 @@ public:
                 auto t = ed.type;
                 return t;
             }
-            TemplateDeclaration td = s.isTemplateDeclaration();
+            auto td = s.isTemplateDeclaration();
             if (td)
             {
                 assert(td._scope);
@@ -2624,7 +2624,7 @@ public:
                 /* Rewrite e.ident as:
                  *  e.opDispatch!("ident")
                  */
-                TemplateDeclaration td = fd.isTemplateDeclaration();
+                auto td = fd.isTemplateDeclaration();
                 if (!td)
                 {
                     fd.error("must be a template opDispatch(string s), not a %s", fd.kind());
@@ -4460,7 +4460,7 @@ public:
         next.resolve(loc, sc, &e, &t, &s);
         if (dim && s && s.isTupleDeclaration())
         {
-            TupleDeclaration sd = s.isTupleDeclaration();
+            auto sd = s.isTupleDeclaration();
             dim = semanticLength(sc, sd, dim);
             dim = dim.ctfeInterpret();
             uinteger_t d = dim.toUInteger();
@@ -4586,7 +4586,7 @@ public:
         else if (*ps)
         {
             Dsymbol s = *ps;
-            TupleDeclaration td = s.isTupleDeclaration();
+            auto td = s.isTupleDeclaration();
             if (td)
             {
                 ScopeDsymbol sym = new ArrayScopeSymbol(sc, td);
@@ -4921,7 +4921,7 @@ public:
         }
         else if (*ps)
         {
-            TupleDeclaration td = (*ps).isTupleDeclaration();
+            auto td = (*ps).isTupleDeclaration();
             if (td)
             {
                 // keep *ps
@@ -6818,7 +6818,7 @@ public:
         *pt = null;
         *ps = null;
         *pe = null;
-        TupleDeclaration td = s.isTupleDeclaration();
+        auto td = s.isTupleDeclaration();
         Expression eindex = isExpression(oindex);
         auto tindex = isType(oindex);
         Dsymbol sindex = isDsymbol(oindex);
@@ -6902,7 +6902,7 @@ public:
             else
             {
                 assert(id.dyncast() == DYNCAST_DSYMBOL);
-                TemplateInstance ti = (cast(Dsymbol)id).isTemplateInstance();
+                auto ti = (cast(Dsymbol)id).isTemplateInstance();
                 assert(ti);
                 auto dte = new DotTemplateInstanceExp(e.loc, e, ti.name, ti.tiargs);
                 e = dte.semanticY(sc, 0);
@@ -7297,7 +7297,7 @@ public:
             else
             {
                 assert(id.dyncast() == DYNCAST_DSYMBOL);
-                TemplateInstance ti = (cast(Dsymbol)id).isTemplateInstance();
+                auto ti = (cast(Dsymbol)id).isTemplateInstance();
                 assert(ti);
                 e = new DotTemplateInstanceExp(loc, e, ti.name, ti.tiargs);
             }
@@ -7426,7 +7426,7 @@ public:
             else
             {
                 assert(id.dyncast() == DYNCAST_DSYMBOL);
-                TemplateInstance ti = (cast(Dsymbol)id).isTemplateInstance();
+                auto ti = (cast(Dsymbol)id).isTemplateInstance();
                 assert(ti);
                 e = new DotTemplateInstanceExp(loc, e, ti.name, ti.tiargs);
             }
@@ -7558,7 +7558,7 @@ public:
                         break;
                     case DYNCAST_DSYMBOL:
                         {
-                            TemplateInstance ti = (cast(Dsymbol)id).isTemplateInstance();
+                            auto ti = (cast(Dsymbol)id).isTemplateInstance();
                             e = new DotExp(loc, e, new ScopeExp(loc, ti));
                             break;
                         }
@@ -7686,7 +7686,7 @@ public:
                         break;
                     case DYNCAST_DSYMBOL:
                         {
-                            TemplateInstance ti = (cast(Dsymbol)id).isTemplateInstance();
+                            auto ti = (cast(Dsymbol)id).isTemplateInstance();
                             e = new DotExp(loc, e, new ScopeExp(loc, ti));
                             break;
                         }
@@ -7928,7 +7928,7 @@ public:
             de.type = e.type;
             return de;
         }
-        TemplateDeclaration td = s.isTemplateDeclaration();
+        auto td = s.isTemplateDeclaration();
         if (td)
         {
             if (e.op == TOKtype)
@@ -7938,7 +7938,7 @@ public:
             e = e.semantic(sc);
             return e;
         }
-        TemplateInstance ti = s.isTemplateInstance();
+        auto ti = s.isTemplateInstance();
         if (ti)
         {
             if (!ti.semanticRun)
@@ -8784,7 +8784,7 @@ public:
             de.type = e.type;
             return de;
         }
-        TemplateDeclaration td = s.isTemplateDeclaration();
+        auto td = s.isTemplateDeclaration();
         if (td)
         {
             if (e.op == TOKtype)
@@ -8794,7 +8794,7 @@ public:
             e = e.semantic(sc);
             return e;
         }
-        TemplateInstance ti = s.isTemplateInstance();
+        auto ti = s.isTemplateInstance();
         if (ti)
         {
             if (!ti.semanticRun)
@@ -8838,7 +8838,7 @@ public:
              *    Class.d
              */
             // If Class is in a failed template, return an error
-            TemplateInstance tiparent = d.isInstantiated();
+            auto tiparent = d.isInstantiated();
             if (tiparent && tiparent.errors)
                 return new ErrorExp();
             if (auto tup = d.isTupleDeclaration())
@@ -9314,7 +9314,7 @@ public:
         else if (*ps)
         {
             Dsymbol s = *ps;
-            TupleDeclaration td = s.isTupleDeclaration();
+            auto td = s.isTupleDeclaration();
             if (td)
             {
                 /* It's a slice of a TupleDeclaration

@@ -329,7 +329,7 @@ public:
         auto vd = e.declaration.isVarDeclaration();
         if (vd)
         {
-            TupleDeclaration td = vd.toAlias().isTupleDeclaration();
+            auto td = vd.toAlias().isTupleDeclaration();
             if (td)
             {
                 cost = COST_MAX; // finish DeclarationExp::doInline
@@ -810,7 +810,7 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
                 version (none)
                 {
                     // Need to figure this out before inlining can work for tuples
-                    TupleDeclaration td = vd.toAlias().isTupleDeclaration();
+                    auto td = vd.toAlias().isTupleDeclaration();
                     if (td)
                     {
                         for (size_t i = 0; i < td.objects.dim; i++)
@@ -1274,7 +1274,7 @@ public:
         auto vd = s.isVarDeclaration();
         if (vd)
         {
-            TupleDeclaration td = vd.toAlias().isTupleDeclaration();
+            auto td = vd.toAlias().isTupleDeclaration();
             if (td)
             {
                 for (size_t i = 0; i < td.objects.dim; i++)

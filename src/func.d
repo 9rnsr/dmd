@@ -1166,7 +1166,7 @@ public:
          */
         if (isVirtual())
         {
-            TemplateInstance ti = parent.isTemplateInstance();
+            auto ti = parent.isTemplateInstance();
             if (ti)
             {
                 // Take care of nested templates
@@ -2217,7 +2217,7 @@ public:
             return true;
         if (!originalType) // semantic not yet run
         {
-            TemplateInstance spec = isSpeculative();
+            auto spec = isSpeculative();
             uint olderrs = global.errors;
             uint oldgag = global.gag;
             if (global.gag && !spec)
@@ -2258,7 +2258,7 @@ public:
              * If errors are gagged, and it's not part of a template instance,
              * we need to temporarily ungag errors.
              */
-            TemplateInstance spec = isSpeculative();
+            auto spec = isSpeculative();
             uint olderrs = global.errors;
             uint oldgag = global.gag;
             if (global.gag && !spec)
@@ -2452,7 +2452,7 @@ public:
     {
         //printf("FuncDeclaration::overloadInsert(s = %s) this = %s\n", s->toChars(), toChars());
         assert(s != this);
-        AliasDeclaration ad = s.isAliasDeclaration();
+        auto ad = s.isAliasDeclaration();
         if (ad)
         {
             if (overnext)
@@ -2466,7 +2466,7 @@ public:
             //printf("\ttrue: no conflict\n");
             return true;
         }
-        TemplateDeclaration td = s.isTemplateDeclaration();
+        auto td = s.isTemplateDeclaration();
         if (td)
         {
             if (!td.funcroot)
@@ -2693,7 +2693,7 @@ public:
         while (f && f.overnext)
         {
             //printf("f->overnext = %p %s\n", f->overnext, f->overnext->toChars());
-            TemplateDeclaration td = f.overnext.isTemplateDeclaration();
+            auto td = f.overnext.isTemplateDeclaration();
             if (td)
                 return td;
             f = f.overnext.isFuncDeclaration();
@@ -3966,7 +3966,7 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s, Obje
             return null; // no match
     }
     auto fd = s.isFuncDeclaration();
-    TemplateDeclaration td = s.isTemplateDeclaration();
+    auto td = s.isTemplateDeclaration();
     if (td && td.funcroot)
         s = fd = td.funcroot;
     OutBuffer tiargsBuf;
@@ -4423,7 +4423,7 @@ public:
     {
         if (parent)
         {
-            TemplateInstance ti = parent.isTemplateInstance();
+            auto ti = parent.isTemplateInstance();
             if (ti)
                 return ti.tempdecl.toPrettyChars(QualifyTypes);
         }

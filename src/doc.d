@@ -338,7 +338,7 @@ extern (C++) static TemplateDeclaration getEponymousParent(Dsymbol s)
 {
     if (!s.parent)
         return null;
-    TemplateDeclaration td = s.parent.isTemplateDeclaration();
+    auto td = s.parent.isTemplateDeclaration();
     return (td && getEponymousMember(td)) ? td : null;
 }
 
@@ -654,7 +654,7 @@ extern (C++) static void emitAnchor(OutBuffer* buf, Dsymbol s, Scope* sc)
         ident = Identifier.idPool(anc.peekString());
     }
     size_t* count = cast(size_t*)dmd_aaGet(&sc.anchorCounts, cast(void*)ident);
-    TemplateDeclaration td = getEponymousParent(s);
+    auto td = getEponymousParent(s);
     // don't write an anchor for matching consecutive ditto symbols
     if (*count > 0 && sc.prevAnchor == ident && sc.lastdc && (isDitto(s.comment) || (td && isDitto(td.comment))))
         return;
@@ -689,7 +689,7 @@ extern (C++) static void expandTemplateMixinComments(TemplateMixin tm, OutBuffer
 {
     if (!tm.semanticRun)
         tm.semantic(sc);
-    TemplateDeclaration td = (tm && tm.tempdecl) ? tm.tempdecl.isTemplateDeclaration() : null;
+    auto td = (tm && tm.tempdecl) ? tm.tempdecl.isTemplateDeclaration() : null;
     if (td && td.members)
     {
         for (size_t i = 0; i < td.members.dim; i++)
@@ -1061,7 +1061,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
         {
             if (!d.ident)
                 return;
-            TemplateDeclaration td = getEponymousParent(d);
+            auto td = getEponymousParent(d);
             //printf("Declaration::toDocbuffer() %s, originalType = %s, td = %s\n", d->toChars(), d->originalType ? d->originalType->toChars() : "--", td ? td->toChars() : "--");
             HdrGenState hgs;
             hgs.ddoc = true;
@@ -1908,7 +1908,7 @@ extern (C++) TemplateParameter isTemplateParameter(Dsymbols* a, const(char)* p, 
 {
     for (size_t i = 0; i < a.dim; i++)
     {
-        TemplateDeclaration td = getEponymousParent((*a)[i]);
+        auto td = getEponymousParent((*a)[i]);
         if (td && td.origParameters)
         {
             for (size_t k = 0; k < td.origParameters.dim; k++)

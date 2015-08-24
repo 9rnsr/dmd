@@ -272,7 +272,7 @@ public:
             }
             for (size_t i = 0; i < aliasdecls.dim; i++)
             {
-                AliasDeclaration ad = aliasdecls[i];
+                auto ad = aliasdecls[i];
                 //printf("\tImport alias semantic('%s')\n", ad->toChars());
                 if (mod.search(loc, names[i]))
                 {

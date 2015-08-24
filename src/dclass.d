@@ -419,7 +419,7 @@ public:
         type = type.semantic(loc, sc);
         if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
         {
-            TemplateInstance ti = (cast(TypeClass)type).sym.isInstantiated();
+            auto ti = (cast(TypeClass)type).sym.isInstantiated();
             if (ti && isError(ti))
                 (cast(TypeClass)type).sym = this;
         }
@@ -1335,7 +1335,7 @@ public:
         type = type.semantic(loc, sc);
         if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
         {
-            TemplateInstance ti = (cast(TypeClass)type).sym.isInstantiated();
+            auto ti = (cast(TypeClass)type).sym.isInstantiated();
             if (ti && isError(ti))
                 (cast(TypeClass)type).sym = this;
         }
