@@ -172,7 +172,7 @@ extern (C++) Expression isTypeX(TraitsExp e, bool function(Type t) fp)
         goto Lfalse;
     for (size_t i = 0; i < e.args.dim; i++)
     {
-        Type t = getType((*e.args)[i]);
+        auto t = getType((*e.args)[i]);
         if (!t || !fp(t))
             goto Lfalse;
     }
@@ -394,7 +394,7 @@ extern (C++) Expression pointerBitmap(TraitsExp e)
         error(e.loc, "a single type expected for trait pointerBitmap");
         return new ErrorExp();
     }
-    Type t = getType((*e.args)[0]);
+    auto t = getType((*e.args)[0]);
     if (!t)
     {
         error(e.loc, "%s is not a type", (*e.args)[0].toChars());
@@ -429,7 +429,7 @@ extern (C++) Expression pointerBitmap(TraitsExp e)
 
         void visit(Type t)
         {
-            Type tb = t.toBasetype();
+            auto tb = t.toBasetype();
             if (tb != t)
                 tb.accept(this);
         }
@@ -662,14 +662,14 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (dim != 1)
             goto Ldimerror;
         RootObject o = (*e.args)[0];
-        Type t = isType(o);
+        auto t = isType(o);
         StructDeclaration sd;
         if (!t)
         {
             e.error("type expected as second argument of __traits %s instead of %s", e.ident.toChars(), o.toChars());
             goto Lfalse;
         }
-        Type tb = t.baseElemOf();
+        auto tb = t.baseElemOf();
         if (tb.ty == Tstruct && ((sd = cast(StructDeclaration)(cast(TypeStruct)tb).sym) !is null))
         {
             if (sd.isPOD())
@@ -996,7 +996,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             version (none)
             {
                 Expression x = isExpression(o);
-                Type t = isType(o);
+                auto t = isType(o);
                 if (x)
                     printf("e = %s %s\n", Token.toChars(x.op), x.toChars());
                 if (t)
@@ -1021,7 +1021,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             goto Ldimerror;
         RootObject o = (*e.args)[0];
         Dsymbol s = getDsymbol(o);
-        Type t = isType(o);
+        auto t = isType(o);
         TypeFunction tf = null;
         if (s)
         {
@@ -1178,7 +1178,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             sc2.flags = (sc.flags & ~(SCOPEctfe | SCOPEcondition)) | SCOPEcompile;
             bool err = false;
             RootObject o = (*e.args)[i];
-            Type t = isType(o);
+            auto t = isType(o);
             Expression ex = t ? t.toExpression() : isExpression(o);
             if (!ex && t)
             {
@@ -1200,7 +1200,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 ex = ex.optimize(WANTvalue);
                 if (sc2.func && sc2.func.type.ty == Tfunction)
                 {
-                    TypeFunction tf = cast(TypeFunction)sc2.func.type;
+                    auto tf = cast(TypeFunction)sc2.func.type;
                     canThrow(ex, sc2.func, tf.isnothrow);
                 }
                 ex = checkGC(sc2, ex);
@@ -1237,7 +1237,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 Expression ea = isExpression(o1);
                 if (ea)
                     printf("%s\n", ea.toChars());
-                Type ta = isType(o1);
+                auto ta = isType(o1);
                 if (ta)
                     printf("%s\n", ta.toChars());
                 goto Lfalse;

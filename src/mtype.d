@@ -240,7 +240,7 @@ extern (C++) Type stripDefaultArgs(Type t)
                 for (size_t i = 0; i < params.dim; i++)
                 {
                     Parameter p = (*params)[i];
-                    Type ta = stripDefaultArgs(p.type);
+                    auto ta = stripDefaultArgs(p.type);
                     if (ta != p.type || p.defaultArg || p.ident)
                     {
                         if (params == parameters)
@@ -263,8 +263,8 @@ extern (C++) Type stripDefaultArgs(Type t)
         return t;
     if (t.ty == Tfunction)
     {
-        TypeFunction tf = cast(TypeFunction)t;
-        Type tret = stripDefaultArgs(tf.next);
+        auto tf = cast(TypeFunction)t;
+        auto tret = stripDefaultArgs(tf.next);
         Parameters* params = N.stripParams(tf.parameters);
         if (tret == tf.next && params == tf.parameters)
             goto Lnot;
@@ -276,7 +276,7 @@ extern (C++) Type stripDefaultArgs(Type t)
     }
     else if (t.ty == Ttuple)
     {
-        TypeTuple tt = cast(TypeTuple)t;
+        auto tt = cast(TypeTuple)t;
         Parameters* args = N.stripParams(tt.arguments);
         if (args == tt.arguments)
             goto Lnot;
@@ -290,8 +290,8 @@ extern (C++) Type stripDefaultArgs(Type t)
     }
     else
     {
-        Type tn = t.nextOf();
-        Type n = stripDefaultArgs(tn);
+        auto tn = t.nextOf();
+        auto n = stripDefaultArgs(tn);
         if (n == tn)
             goto Lnot;
         t = t.copy();
@@ -730,8 +730,8 @@ public:
             goto Lnotcovariant;
         {
             // Return types
-            Type t1n = t1.next;
-            Type t2n = t2.next;
+            auto t1n = t1.next;
+            auto t2n = t2.next;
             if (!t1n || !t2n) // happens with return type inference
                 goto Lnotcovariant;
             if (t1n.equals(t2n))
@@ -989,7 +989,7 @@ public:
     {
         //printf("+trySemantic(%s) %d\n", toChars(), global.errors);
         uint errors = global.startGagging();
-        Type t = semantic(loc, sc);
+        auto t = semantic(loc, sc);
         if (global.endGagging(errors) || t.ty == Terror) // if any errors happened
         {
             t = null;
@@ -1015,7 +1015,7 @@ public:
         if (ty != Tenum && nextOf() && !nextOf().deco)
             return this;
         //printf("merge(%s)\n", toChars());
-        Type t = this;
+        auto t = this;
         assert(t);
         if (!deco)
         {
@@ -1051,7 +1051,7 @@ public:
     final Type merge2()
     {
         //printf("merge2(%s)\n", toChars());
-        Type t = this;
+        auto t = this;
         assert(t);
         if (!t.deco)
             return t.merge();
@@ -1273,7 +1273,7 @@ public:
             assert(cto.mod == MODconst);
             return cto;
         }
-        Type t = makeConst();
+        auto t = makeConst();
         t = t.merge();
         t.fixTo(this);
         //printf("-Type::constOf() %p %s\n", t, t->toChars());
@@ -1293,7 +1293,7 @@ public:
             assert(ito.isImmutable());
             return ito;
         }
-        Type t = makeImmutable();
+        auto t = makeImmutable();
         t = t.merge();
         t.fixTo(this);
         //printf("\t%p\n", t);
@@ -1306,7 +1306,7 @@ public:
     final Type mutableOf()
     {
         //printf("Type::mutableOf() %p, %s\n", this, toChars());
-        Type t = this;
+        auto t = this;
         if (isImmutable())
         {
             t = ito; // immutable => naked
@@ -1360,7 +1360,7 @@ public:
             assert(sto.mod == MODshared);
             return sto;
         }
-        Type t = makeShared();
+        auto t = makeShared();
         t = t.merge();
         t.fixTo(this);
         //printf("\t%p\n", t);
@@ -1377,7 +1377,7 @@ public:
             assert(scto.mod == (MODshared | MODconst));
             return scto;
         }
-        Type t = makeSharedConst();
+        auto t = makeSharedConst();
         t = t.merge();
         t.fixTo(this);
         //printf("\t%p\n", t);
@@ -1399,7 +1399,7 @@ public:
     final Type unSharedOf()
     {
         //printf("Type::unSharedOf() %p, %s\n", this, toChars());
-        Type t = this;
+        auto t = this;
         if (isShared())
         {
             if (isWild())
@@ -1445,7 +1445,7 @@ public:
             assert(wto.mod == MODwild);
             return wto;
         }
-        Type t = makeWild();
+        auto t = makeWild();
         t = t.merge();
         t.fixTo(this);
         //printf("\t%p %s\n", t, t->toChars());
@@ -1462,7 +1462,7 @@ public:
             assert(wcto.mod == MODwildconst);
             return wcto;
         }
-        Type t = makeWildConst();
+        auto t = makeWildConst();
         t = t.merge();
         t.fixTo(this);
         //printf("\t%p %s\n", t, t->toChars());
@@ -1479,7 +1479,7 @@ public:
             assert(swto.mod == (MODshared | MODwild));
             return swto;
         }
-        Type t = makeSharedWild();
+        auto t = makeSharedWild();
         t = t.merge();
         t.fixTo(this);
         //printf("\t%p %s\n", t, t->toChars());
@@ -1496,7 +1496,7 @@ public:
             assert(swcto.mod == (MODshared | MODwildconst));
             return swcto;
         }
-        Type t = makeSharedWildConst();
+        auto t = makeSharedWildConst();
         t = t.merge();
         t.fixTo(this);
         //printf("\t%p %s\n", t, t->toChars());
@@ -1512,7 +1512,7 @@ public:
         // If fixing this: immutable(T*) by t: immutable(T)*,
         // cache t to this->xto won't break transitivity.
         Type mto = null;
-        Type tn = nextOf();
+        auto tn = nextOf();
         if (!tn || ty != Tsarray && tn.mod == t.nextOf().mod)
         {
             switch (t.mod)
@@ -1767,7 +1767,7 @@ public:
         default:
             assert(0);
         }
-        Type tn = nextOf();
+        auto tn = nextOf();
         if (tn && ty != Tfunction && tn.ty != Tfunction && ty != Tenum)
         {
             // Verify transitivity
@@ -1797,7 +1797,7 @@ public:
      */
     final Type addSTC(StorageClass stc)
     {
-        Type t = this;
+        auto t = this;
         if (t.isImmutable())
         {
         }
@@ -1912,7 +1912,7 @@ public:
     {
         /* Add anything to immutable, and it remains immutable
          */
-        Type t = this;
+        auto t = this;
         if (!t.isImmutable())
         {
             //printf("addMod(%x) %s\n", mod, toChars());
@@ -2027,7 +2027,7 @@ public:
             return this;
         if (!pto)
         {
-            Type t = new TypePointer(this);
+            auto t = new TypePointer(this);
             if (ty == Tfunction)
             {
                 t.deco = t.merge().deco;
@@ -2045,7 +2045,7 @@ public:
             return this;
         if (!rto)
         {
-            Type t = new TypeReference(this);
+            auto t = new TypeReference(this);
             rto = t.merge();
         }
         return rto;
@@ -2057,7 +2057,7 @@ public:
             return this;
         if (!arrayof)
         {
-            Type t = new TypeDArray(this);
+            auto t = new TypeDArray(this);
             arrayof = t.merge();
         }
         return arrayof;
@@ -2086,7 +2086,7 @@ public:
             if (d && !d.isTupleDeclaration())
             {
                 assert(d.type);
-                Type t = d.type;
+                auto t = d.type;
                 if (d.isVarDeclaration() && d.needThis())
                 {
                     t = t.addMod(this.mod);
@@ -2113,7 +2113,7 @@ public:
             EnumDeclaration ed = s.isEnumDeclaration();
             if (ed)
             {
-                Type t = ed.type;
+                auto t = ed.type;
                 return t;
             }
             TemplateDeclaration td = s.isTemplateDeclaration();
@@ -2125,7 +2125,7 @@ public:
                     return Type.terror;
                 if (fd && fd.functionSemantic())
                 {
-                    Type t = fd.type.nextOf();
+                    auto t = fd.type.nextOf();
                     t = t.substWildTo(mod == 0 ? MODmutable : mod);
                     return t;
                 }
@@ -2139,7 +2139,7 @@ public:
 
     final bool checkAliasThisRec()
     {
-        Type tb = toBasetype();
+        auto tb = toBasetype();
         AliasThisRec* pflag;
         if (tb.ty == Tstruct)
             pflag = &(cast(TypeStruct)tb).att;
@@ -2150,7 +2150,7 @@ public:
         AliasThisRec flag = cast(AliasThisRec)(*pflag & RECtypeMask);
         if (flag == RECfwdref)
         {
-            Type att = aliasthisOf();
+            auto att = aliasthisOf();
             flag = att && att.implicitConvTo(this) ? RECyes : RECno;
         }
         *pflag = cast(AliasThisRec)(flag | (*pflag & ~RECtypeMask));
@@ -2162,7 +2162,7 @@ public:
         //printf("Type::makeConst() %p, %s\n", this, toChars());
         if (cto)
             return cto;
-        Type t = this.nullAttributes();
+        auto t = this.nullAttributes();
         t.mod = MODconst;
         //printf("-Type::makeConst() %p, %s\n", t, toChars());
         return t;
@@ -2172,7 +2172,7 @@ public:
     {
         if (ito)
             return ito;
-        Type t = this.nullAttributes();
+        auto t = this.nullAttributes();
         t.mod = MODimmutable;
         return t;
     }
@@ -2181,7 +2181,7 @@ public:
     {
         if (sto)
             return sto;
-        Type t = this.nullAttributes();
+        auto t = this.nullAttributes();
         t.mod = MODshared;
         return t;
     }
@@ -2190,7 +2190,7 @@ public:
     {
         if (scto)
             return scto;
-        Type t = this.nullAttributes();
+        auto t = this.nullAttributes();
         t.mod = MODshared | MODconst;
         return t;
     }
@@ -2199,7 +2199,7 @@ public:
     {
         if (wto)
             return wto;
-        Type t = this.nullAttributes();
+        auto t = this.nullAttributes();
         t.mod = MODwild;
         return t;
     }
@@ -2208,7 +2208,7 @@ public:
     {
         if (wcto)
             return wcto;
-        Type t = this.nullAttributes();
+        auto t = this.nullAttributes();
         t.mod = MODwildconst;
         return t;
     }
@@ -2217,7 +2217,7 @@ public:
     {
         if (swto)
             return swto;
-        Type t = this.nullAttributes();
+        auto t = this.nullAttributes();
         t.mod = MODshared | MODwild;
         return t;
     }
@@ -2226,14 +2226,14 @@ public:
     {
         if (swcto)
             return swcto;
-        Type t = this.nullAttributes();
+        auto t = this.nullAttributes();
         t.mod = MODshared | MODwildconst;
         return t;
     }
 
     Type makeMutable()
     {
-        Type t = this.nullAttributes();
+        auto t = this.nullAttributes();
         t.mod = mod & MODshared;
         return t;
     }
@@ -2399,11 +2399,11 @@ public:
 
     final Type unqualify(uint m)
     {
-        Type t = mutableOf().unSharedOf();
-        Type tn = ty == Tenum ? null : nextOf();
+        auto t = mutableOf().unSharedOf();
+        auto tn = ty == Tenum ? null : nextOf();
         if (tn && tn.ty != Tfunction)
         {
-            Type utn = tn.unqualify(m);
+            auto utn = tn.unqualify(m);
             if (utn != tn)
             {
                 if (ty == Tpointer)
@@ -2466,7 +2466,7 @@ public:
         }
         else if (ident == Id._init)
         {
-            Type tb = toBasetype();
+            auto tb = toBasetype();
             e = defaultInitLiteral(loc);
             if (tb.ty == Tstruct && tb.needsNested())
             {
@@ -2555,7 +2555,7 @@ public:
             }
             else if (ident == Id._init)
             {
-                Type tb = toBasetype();
+                auto tb = toBasetype();
                 e = defaultInitLiteral(e.loc);
                 if (tb.ty == Tstruct && tb.needsNested())
                 {
@@ -2720,7 +2720,7 @@ public:
     void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
     {
         //printf("Type::resolve() %s, %d\n", toChars(), ty);
-        Type t = semantic(loc, sc);
+        auto t = semantic(loc, sc);
         *pt = t;
         *pe = null;
         *ps = null;
@@ -2767,7 +2767,7 @@ public:
      */
     final Type baseElemOf()
     {
-        Type t = toBasetype();
+        auto t = toBasetype();
         while (t.ty == Tsarray)
             t = (cast(TypeSArray)t).next.toBasetype();
         return t;
@@ -2833,7 +2833,7 @@ public:
      */
     final void checkComplexTransition(Loc loc)
     {
-        Type t = baseElemOf();
+        auto t = baseElemOf();
         while (t.ty == Tpointer || t.ty == Tarray)
             t = t.nextOf().baseElemOf();
         if (t.isimaginary() || t.iscomplex())
@@ -3182,7 +3182,7 @@ public:
             return MATCHexact;
         if (!(ty == to.ty && MODimplicitConv(mod, to.mod)))
             return MATCHnomatch;
-        Type tn = to.nextOf();
+        auto tn = to.nextOf();
         if (!(tn && next.ty == tn.ty))
             return MATCHnomatch;
         MATCH m;
@@ -3206,7 +3206,7 @@ public:
         if (ty == Tfunction)
             return 0;
         ubyte wm;
-        Type tn = t.nextOf();
+        auto tn = t.nextOf();
         if (!isRef && (ty == Tarray || ty == Tpointer) && tn)
         {
             wm = next.deduceWild(tn, true);
@@ -3957,7 +3957,7 @@ public:
         TypeBasic tob;
         if (to.ty == Tvector && to.deco)
         {
-            TypeVector tv = cast(TypeVector)to;
+            auto tv = cast(TypeVector)to;
             tob = tv.elementType();
         }
         else
@@ -4244,7 +4244,7 @@ public:
     {
         assert(basetype.ty == Tsarray);
         auto t = cast(TypeSArray)basetype;
-        TypeBasic tb = t.nextOf().isTypeBasic();
+        auto tb = t.nextOf().isTypeBasic();
         assert(tb);
         return tb;
     }
@@ -4271,7 +4271,7 @@ public:
 
     Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
     {
-        Type n = this.next.toBasetype(); // uncover any typedef's
+        auto n = this.next.toBasetype(); // uncover any typedef's
         static if (LOGDOTEXP)
         {
             printf("TypeArray::dotExp(e = '%s', ident = '%s')\n", e.toChars(), ident.toChars());
@@ -4301,8 +4301,8 @@ public:
             if (!reverseFd[i])
             {
                 auto params = new Parameters();
-                Type next = n.ty == Twchar ? Type.twchar : Type.tchar;
-                Type arrty = next.arrayOf();
+                auto next = n.ty == Twchar ? Type.twchar : Type.tchar;
+                auto arrty = next.arrayOf();
                 params.push(new Parameter(0, arrty, null, null));
                 reverseFd[i] = FuncDeclaration.genCfunc(params, arrty, reverseName[i]);
             }
@@ -4322,8 +4322,8 @@ public:
             if (!sortFd[i])
             {
                 auto params = new Parameters();
-                Type next = n.ty == Twchar ? Type.twchar : Type.tchar;
-                Type arrty = next.arrayOf();
+                auto next = n.ty == Twchar ? Type.twchar : Type.tchar;
+                auto arrty = next.arrayOf();
                 params.push(new Parameter(0, arrty, null, null));
                 sortFd[i] = FuncDeclaration.genCfunc(params, arrty, sortName[i]);
             }
@@ -4421,7 +4421,7 @@ public:
 
     Type syntaxCopy()
     {
-        Type t = next.syntaxCopy();
+        auto t = next.syntaxCopy();
         Expression e = dim.syntaxCopy();
         t = new TypeSArray(t, e);
         t.mod = mod;
@@ -4478,10 +4478,10 @@ public:
             t = (cast(Type)o).addMod(this.mod);
             return t;
         }
-        Type tn = next.semantic(loc, sc);
+        auto tn = next.semantic(loc, sc);
         if (tn.ty == Terror)
             return terror;
-        Type tbn = tn.toBasetype();
+        auto tbn = tn.toBasetype();
         if (dim)
         {
             uint errors = global.errors;
@@ -4512,7 +4512,7 @@ public:
                 error(loc, "%s size %llu * %llu exceeds 16MiB size limit for static array", toChars(), cast(ulong)tbn.size(loc), cast(ulong)d1);
                 goto Lerror;
             }
-            Type tbx = tbn.baseElemOf();
+            auto tbx = tbn.baseElemOf();
             if (tbx.ty == Tstruct && !(cast(TypeStruct)tbx).sym.members || tbx.ty == Tenum && !(cast(TypeEnum)tbx).sym.members)
             {
                 /* To avoid meaningess error message, skip the total size limit check
@@ -4535,14 +4535,14 @@ public:
             {
                 // Index the tuple to get the type
                 assert(dim);
-                TypeTuple tt = cast(TypeTuple)tbn;
+                auto tt = cast(TypeTuple)tbn;
                 uinteger_t d = dim.toUInteger();
                 if (d >= tt.arguments.dim)
                 {
                     error(loc, "tuple index %llu exceeds %u", d, tt.arguments.dim);
                     goto Lerror;
                 }
-                Type telem = (*tt.arguments)[cast(size_t)d].type;
+                auto telem = (*tt.arguments)[cast(size_t)d].type;
                 return telem.addMod(this.mod);
             }
         case Tfunction:
@@ -4705,7 +4705,7 @@ public:
     {
         if (to.ty == Tsarray)
         {
-            TypeSArray tsa = cast(TypeSArray)to;
+            auto tsa = cast(TypeSArray)to;
             if (!dim.equals(tsa.dim))
                 return MATCHnomatch;
         }
@@ -4717,7 +4717,7 @@ public:
         //printf("TypeSArray::implicitConvTo(to = %s) this = %s\n", to->toChars(), toChars());
         if (to.ty == Tarray)
         {
-            TypeDArray ta = cast(TypeDArray)to;
+            auto ta = cast(TypeDArray)to;
             if (!MODimplicitConv(next.mod, ta.next.mod))
                 return MATCHnomatch;
             /* Allow conversion to void[]
@@ -4737,7 +4737,7 @@ public:
         {
             if (this == to)
                 return MATCHexact;
-            TypeSArray tsa = cast(TypeSArray)to;
+            auto tsa = cast(TypeSArray)to;
             if (dim.equals(tsa.dim))
             {
                 /* Since static arrays are value types, allow
@@ -4856,7 +4856,7 @@ public:
 
     Type syntaxCopy()
     {
-        Type t = next.syntaxCopy();
+        auto t = next.syntaxCopy();
         if (t == next)
             t = this;
         else
@@ -4882,8 +4882,8 @@ public:
 
     Type semantic(Loc loc, Scope* sc)
     {
-        Type tn = next.semantic(loc, sc);
-        Type tbn = tn.toBasetype();
+        auto tn = next.semantic(loc, sc);
+        auto tbn = tn.toBasetype();
         switch (tbn.ty)
         {
         case Ttuple:
@@ -4997,7 +4997,7 @@ public:
             return MATCHexact;
         if (to.ty == Tarray)
         {
-            TypeDArray ta = cast(TypeDArray)to;
+            auto ta = cast(TypeDArray)to;
             if (!MODimplicitConv(next.mod, ta.next.mod))
                 return MATCHnomatch; // not const-compatible
             /* Allow conversion to void[]
@@ -5065,8 +5065,8 @@ public:
 
     Type syntaxCopy()
     {
-        Type t = next.syntaxCopy();
-        Type ti = index.syntaxCopy();
+        auto t = next.syntaxCopy();
+        auto ti = index.syntaxCopy();
         if (t == next && ti == index)
             t = this;
         else
@@ -5145,7 +5145,7 @@ public:
         default:
             break;
         }
-        Type tbase = index.baseElemOf();
+        auto tbase = index.baseElemOf();
         while (tbase.ty == Tarray)
             tbase = tbase.nextOf().baseElemOf();
         if (tbase.ty == Tstruct)
@@ -5304,7 +5304,7 @@ public:
                 auto fparams = new Parameters();
                 fparams.push(new Parameter(STCin, this, null, null));
                 fd_aaLen = FuncDeclaration.genCfunc(fparams, Type.tsize_t, Id.aaLen);
-                TypeFunction tf = cast(TypeFunction)fd_aaLen.type;
+                auto tf = cast(TypeFunction)fd_aaLen.type;
                 tf.purity = PUREconst;
                 tf.isnothrow = true;
                 tf.isnogc = false;
@@ -5365,7 +5365,7 @@ public:
             return MATCHexact;
         if (to.ty == Taarray)
         {
-            TypeAArray ta = cast(TypeAArray)to;
+            auto ta = cast(TypeAArray)to;
             if (!MODimplicitConv(next.mod, ta.next.mod))
                 return MATCHnomatch; // not const-compatible
             if (!MODimplicitConv(index.mod, ta.index.mod))
@@ -5384,7 +5384,7 @@ public:
     {
         if (to.ty == Taarray)
         {
-            TypeAArray taa = cast(TypeAArray)to;
+            auto taa = cast(TypeAArray)to;
             MATCH mindex = index.constConv(taa.index);
             MATCH mkey = next.constConv(taa.next);
             // Pick the worst match
@@ -5415,7 +5415,7 @@ public:
 
     Type syntaxCopy()
     {
-        Type t = next.syntaxCopy();
+        auto t = next.syntaxCopy();
         if (t == next)
             t = this;
         else
@@ -5431,7 +5431,7 @@ public:
         //printf("TypePointer::semantic() %s\n", toChars());
         if (deco)
             return this;
-        Type n = next.semantic(loc, sc);
+        auto n = next.semantic(loc, sc);
         switch (n.toBasetype().ty)
         {
         case Ttuple:
@@ -5480,15 +5480,15 @@ public:
         {
             if (to.ty == Tpointer)
             {
-                TypePointer tp = cast(TypePointer)to;
+                auto tp = cast(TypePointer)to;
                 if (tp.next.ty == Tfunction)
                 {
                     if (next.equals(tp.next))
                         return MATCHconst;
                     if (next.covariant(tp.next) == 1)
                     {
-                        Type tret = this.next.nextOf();
-                        Type toret = tp.next.nextOf();
+                        auto tret = this.next.nextOf();
+                        auto toret = tp.next.nextOf();
                         if (tret.ty == Tclass && toret.ty == Tclass)
                         {
                             /* Bugzilla 10219: Check covariant interface return with offset tweaking.
@@ -5513,7 +5513,7 @@ public:
         }
         else if (to.ty == Tpointer)
         {
-            TypePointer tp = cast(TypePointer)to;
+            auto tp = cast(TypePointer)to;
             assert(tp.next);
             if (!MODimplicitConv(next.mod, tp.next.mod))
                 return MATCHnomatch; // not const-compatible
@@ -5593,7 +5593,7 @@ public:
 
     Type syntaxCopy()
     {
-        Type t = next.syntaxCopy();
+        auto t = next.syntaxCopy();
         if (t == next)
             t = this;
         else
@@ -5607,7 +5607,7 @@ public:
     Type semantic(Loc loc, Scope* sc)
     {
         //printf("TypeReference::semantic()\n");
-        Type n = next.semantic(loc, sc);
+        auto n = next.semantic(loc, sc);
         if (n != next)
             deco = null;
         next = n;
@@ -5767,7 +5767,7 @@ public:
 
     Type syntaxCopy()
     {
-        Type treturn = next ? next.syntaxCopy() : null;
+        auto treturn = next ? next.syntaxCopy() : null;
         Parameters* params = Parameter.arraySyntaxCopy(parameters);
         auto t = new TypeFunction(params, treturn, varargs, linkage);
         t.mod = mod;
@@ -5797,7 +5797,7 @@ public:
          * This can produce redundant copies if inferring return type,
          * as semantic() will get called again on this.
          */
-        TypeFunction tf = cast(TypeFunction)copy();
+        auto tf = cast(TypeFunction)copy();
         if (parameters)
         {
             tf.parameters = parameters.copy();
@@ -5890,7 +5890,7 @@ public:
                     if (!fparam.type)
                         continue;
                 }
-                Type t = fparam.type.toBasetype();
+                auto t = fparam.type.toBasetype();
                 if (t.ty == Tfunction)
                 {
                     error(loc, "cannot have parameter of function type %s", fparam.type.toChars());
@@ -5898,7 +5898,7 @@ public:
                 }
                 else if (!(fparam.storageClass & (STCref | STCout)) && (t.ty == Tstruct || t.ty == Tsarray || t.ty == Tenum))
                 {
-                    Type tb2 = t.baseElemOf();
+                    auto tb2 = t.baseElemOf();
                     if (tb2.ty == Tstruct && !(cast(TypeStruct)tb2).sym.members || tb2.ty == Tenum && !(cast(TypeEnum)tb2).sym.memtype)
                     {
                         error(loc, "cannot have parameter of opaque type %s by value", fparam.type.toChars());
@@ -5932,7 +5932,7 @@ public:
                     }
                     else
                     {
-                        Type tv = t;
+                        auto tv = t;
                         while (tv.ty == Tsarray)
                             tv = tv.nextOf().toBasetype();
                         if (tv.ty == Tstruct && (cast(TypeStruct)tv).sym.noDefaultCtor)
@@ -5982,7 +5982,7 @@ public:
                      * the elements of TypeTuple::arguments to avoid unintended
                      * sharing of Parameter object among other functions.
                      */
-                    TypeTuple tt = cast(TypeTuple)t;
+                    auto tt = cast(TypeTuple)t;
                     if (tt.arguments && tt.arguments.dim)
                     {
                         /* Propagate additional storage class from tuple parameters to their
@@ -6073,7 +6073,7 @@ public:
      */
     void purityLevel()
     {
-        TypeFunction tf = this;
+        auto tf = this;
         if (tf.purity != PUREfwdref)
             return;
         /* Evaluate what kind of purity based on the modifiers for the parameters
@@ -6085,7 +6085,7 @@ public:
         for (size_t i = 0; i < dim; i++)
         {
             Parameter fparam = Parameter.getNth(tf.parameters, i);
-            Type t = fparam.type;
+            auto t = fparam.type;
             if (!t)
                 continue;
             if (fparam.storageClass & (STClazy | STCout))
@@ -6114,7 +6114,7 @@ public:
              */
             if (t.ty == Tarray || t.ty == Tpointer)
             {
-                Type tn = t.nextOf().toBasetype();
+                auto tn = t.nextOf().toBasetype();
                 if (tn.mod & MODimmutable)
                     continue;
                 if (tn.mod & (MODconst | MODwild))
@@ -6180,7 +6180,7 @@ public:
             /* With pure functions, we need only be concerned if p escapes
              * via any return statement.
              */
-            Type tret = nextOf().toBasetype();
+            auto tret = nextOf().toBasetype();
             if (!isref && !tret.hasPointers())
             {
                 /* The result has no references, so p could not be escaping
@@ -6275,14 +6275,14 @@ public:
         // qualifer - const.
         uint m = MODconst;
         assert(next);
-        Type tret = next.substWildTo(m);
+        auto tret = next.substWildTo(m);
         Parameters* params = parameters;
         if (mod & MODwild)
             params = parameters.copy();
         for (size_t i = 0; i < params.dim; i++)
         {
             Parameter p = (*params)[i];
-            Type t = p.type.substWildTo(m);
+            auto t = p.type.substWildTo(m);
             if (t == p.type)
                 continue;
             if (params == parameters)
@@ -6321,7 +6321,7 @@ public:
         ubyte wildmatch = 0;
         if (tthis)
         {
-            Type t = tthis;
+            auto t = tthis;
             if (t.toBasetype().ty == Tpointer)
                 t = t.toBasetype().nextOf(); // change struct* to struct
             if (t.mod != mod)
@@ -6366,8 +6366,8 @@ public:
             Parameter p = Parameter.getNth(parameters, u);
             Expression arg = (*args)[u];
             assert(arg);
-            Type tprm = p.type;
-            Type targ = arg.type;
+            auto tprm = p.type;
+            auto targ = arg.type;
             if (!(p.storageClass & STClazy && tprm.ty == Tvoid && targ.ty != Tvoid))
             {
                 bool isRef = (p.storageClass & (STCref | STCout)) != 0;
@@ -6406,8 +6406,8 @@ public:
                 Expression arg = (*args)[u];
                 assert(arg);
                 //printf("arg: %s, type: %s\n", arg->toChars(), arg->type->toChars());
-                Type targ = arg.type;
-                Type tprm = wildmatch ? p.type.substWildTo(wildmatch) : p.type;
+                auto targ = arg.type;
+                auto tprm = wildmatch ? p.type.substWildTo(wildmatch) : p.type;
                 if (p.storageClass & STClazy && tprm.ty == Tvoid && targ.ty != Tvoid)
                     m = MATCHconvert;
                 else
@@ -6426,8 +6426,8 @@ public:
                 if (p.storageClass & STCref)
                 {
                     // Bugzilla 13783: Don't use toBasetype() to handle enum types.
-                    Type ta = targ;
-                    Type tp = tprm;
+                    auto ta = targ;
+                    auto tp = tprm;
                     //printf("fparam[%d] ta = %s, tp = %s\n", u, ta->toChars(), tp->toChars());
                     if (m && !arg.isLvalue())
                     {
@@ -6435,7 +6435,7 @@ public:
                         {
                             if (ta.ty != Tsarray)
                             {
-                                Type tn = tp.nextOf().castMod(ta.nextOf().mod);
+                                auto tn = tp.nextOf().castMod(ta.nextOf().mod);
                                 dinteger_t dim = (cast(StringExp)arg).len;
                                 ta = tn.sarrayOf(dim);
                             }
@@ -6445,7 +6445,7 @@ public:
                             // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
                             if (ta.ty != Tsarray)
                             {
-                                Type tn = ta.nextOf();
+                                auto tn = ta.nextOf();
                                 dinteger_t dim = (cast(TypeSArray)tp).dim.toUInteger();
                                 ta = tn.sarrayOf(dim);
                             }
@@ -6457,7 +6457,7 @@ public:
                      */
                     while (1)
                     {
-                        Type tat = ta.toBasetype().aliasthisOf();
+                        auto tat = ta.toBasetype().aliasthisOf();
                         if (!tat || !tat.implicitConvTo(tprm))
                             break;
                         ta = tat;
@@ -6474,8 +6474,8 @@ public:
                 {
                     if (m && !arg.isLvalue())
                         goto Nomatch;
-                    Type targb = targ.toBasetype();
-                    Type tprmb = tprm.toBasetype();
+                    auto targb = targ.toBasetype();
+                    auto tprmb = tprm.toBasetype();
                     if (!targb.constConv(tprmb))
                         goto Nomatch;
                 }
@@ -6491,7 +6491,7 @@ public:
             L1:
                 if (varargs == 2 && u + 1 == nparams) // if last varargs param
                 {
-                    Type tb = p.type.toBasetype();
+                    auto tb = p.type.toBasetype();
                     TypeSArray tsa;
                     dinteger_t sz;
                     switch (tb.ty)
@@ -6503,7 +6503,7 @@ public:
                             goto Nomatch;
                     case Tarray:
                         {
-                            TypeArray ta = cast(TypeArray)tb;
+                            auto ta = cast(TypeArray)tb;
                             for (; u < nargs; u++)
                             {
                                 Expression arg = (*args)[u];
@@ -6511,7 +6511,7 @@ public:
                                 /* If lazy array of delegates,
                                  * convert arg(s) to delegate(s)
                                  */
-                                Type tret = p.isLazyArray();
+                                auto tret = p.isLazyArray();
                                 if (tret)
                                 {
                                     if (ta.next.equals(arg.type))
@@ -6557,7 +6557,7 @@ public:
 
     bool checkRetType(Loc loc)
     {
-        Type tb = next.toBasetype();
+        auto tb = next.toBasetype();
         if (tb.ty == Tfunction)
         {
             error(loc, "functions cannot return a function");
@@ -6570,7 +6570,7 @@ public:
         }
         if (!isref && (tb.ty == Tstruct || tb.ty == Tsarray))
         {
-            Type tb2 = tb.baseElemOf();
+            auto tb2 = tb.baseElemOf();
             if (tb2.ty == Tstruct && !(cast(TypeStruct)tb2).sym.members)
             {
                 error(loc, "functions cannot return opaque type %s by value", tb.toChars());
@@ -6611,7 +6611,7 @@ public:
 
     Type syntaxCopy()
     {
-        Type t = next.syntaxCopy();
+        auto t = next.syntaxCopy();
         if (t == next)
             t = this;
         else
@@ -6673,8 +6673,8 @@ public:
             // not allowing covariant conversions because it interferes with overriding
             if (to.ty == Tdelegate && this.nextOf().covariant(to.nextOf()) == 1)
             {
-                Type tret = this.next.nextOf();
-                Type toret = (cast(TypeDelegate)to).next.nextOf();
+                auto tret = this.next.nextOf();
+                auto toret = (cast(TypeDelegate)to).next.nextOf();
                 if (tret.ty == Tclass && toret.ty == Tclass)
                 {
                     /* Bugzilla 10219: Check covariant interface return with offset tweaking.
@@ -6781,7 +6781,7 @@ public:
             }
             else if (id.dyncast() == DYNCAST_TYPE)
             {
-                Type tx = cast(Type)id;
+                auto tx = cast(Type)id;
                 tx = tx.syntaxCopy();
                 id = tx;
             }
@@ -6820,7 +6820,7 @@ public:
         *pe = null;
         TupleDeclaration td = s.isTupleDeclaration();
         Expression eindex = isExpression(oindex);
-        Type tindex = isType(oindex);
+        auto tindex = isType(oindex);
         Dsymbol sindex = isDsymbol(oindex);
         if (!td)
         {
@@ -6964,7 +6964,7 @@ public:
                     resolveExprType(loc, sc, ex, i + 1, pe, pt);
                     return;
                 }
-                Type t = s.getType(); // type symbol, type alias, or type tuple?
+                auto t = s.getType(); // type symbol, type alias, or type tuple?
                 uint errorsave = global.errors;
                 Dsymbol sm = s.searchX(loc, sc, id);
                 if (global.errors != errorsave)
@@ -7087,7 +7087,7 @@ public:
                 return;
             }
         L1:
-            Type t = s.getType();
+            auto t = s.getType();
             if (!t)
             {
                 // If the symbol is an import, try looking inside the import
@@ -8224,9 +8224,9 @@ public:
                                 return m;
                         }
                         // 'from' type
-                        Type tvf = v.type.addMod(mod);
+                        auto tvf = v.type.addMod(mod);
                         // 'to' type
-                        Type tv = v.type.addMod(to.mod);
+                        auto tv = v.type.addMod(to.mod);
                         // field match
                         MATCH mf = tvf.implicitConvTo(tv);
                         //printf("\t%s => %s, match = %d\n", v->type->toChars(), tv->toChars(), mf);
@@ -8313,7 +8313,7 @@ public:
 
     uint alignsize()
     {
-        Type t = sym.getMemtype(Loc());
+        auto t = sym.getMemtype(Loc());
         if (t.ty == Terror)
             return 4;
         return t.alignsize();
@@ -8665,7 +8665,7 @@ public:
             if (ident == Id.classinfo)
             {
                 assert(Type.typeinfoclass);
-                Type t = Type.typeinfoclass.type;
+                auto t = Type.typeinfoclass.type;
                 if (e.op == TOKtype || e.op == TOKdottype)
                 {
                     /* For type.classinfo, we know the classinfo
@@ -8858,7 +8858,7 @@ public:
                     Expression e1 = new ThisExp(e.loc);
                     e1 = e1.semantic(sc);
                 L2:
-                    Type t = e1.type.toBasetype();
+                    auto t = e1.type.toBasetype();
                     auto cd = e.type.isClassHandle();
                     auto tcd = t.isClassHandle();
                     if (cd && tcd && (tcd == cd || cd.isBaseOf(tcd, null)))
@@ -9147,7 +9147,7 @@ public:
     Type syntaxCopy()
     {
         Parameters* args = Parameter.arraySyntaxCopy(arguments);
-        Type t = new TypeTuple(args);
+        auto t = new TypeTuple(args);
         t.mod = mod;
         return t;
     }
@@ -9172,7 +9172,7 @@ public:
             return true;
         if (t.ty == Ttuple)
         {
-            TypeTuple tt = cast(TypeTuple)t;
+            auto tt = cast(TypeTuple)t;
             if (arguments.dim == tt.arguments.dim)
             {
                 for (size_t i = 0; i < tt.arguments.dim; i++)
@@ -9260,7 +9260,7 @@ public:
 
     Type syntaxCopy()
     {
-        Type t = new TypeSlice(next.syntaxCopy(), lwr.syntaxCopy(), upr.syntaxCopy());
+        auto t = new TypeSlice(next.syntaxCopy(), lwr.syntaxCopy(), upr.syntaxCopy());
         t.mod = mod;
         return t;
     }
@@ -9268,15 +9268,15 @@ public:
     Type semantic(Loc loc, Scope* sc)
     {
         //printf("TypeSlice::semantic() %s\n", toChars());
-        Type tn = next.semantic(loc, sc);
+        auto tn = next.semantic(loc, sc);
         //printf("next: %s\n", tn->toChars());
-        Type tbn = tn.toBasetype();
+        auto tbn = tn.toBasetype();
         if (tbn.ty != Ttuple)
         {
             error(loc, "can only slice tuple types, not %s", tbn.toChars());
             return Type.terror;
         }
-        TypeTuple tt = cast(TypeTuple)tbn;
+        auto tt = cast(TypeTuple)tbn;
         lwr = semanticLength(sc, tbn, lwr);
         lwr = lwr.ctfeInterpret();
         uinteger_t i1 = lwr.toUInteger();
@@ -9297,7 +9297,7 @@ public:
             Parameter arg = (*tt.arguments)[i];
             args.push(arg);
         }
-        Type t = new TypeTuple(args);
+        auto t = new TypeTuple(args);
         return t.semantic(loc, sc);
     }
 
@@ -9402,7 +9402,7 @@ public:
         // NULL implicitly converts to any pointer type or dynamic array
         //if (type->ty == Tpointer && type->nextOf()->ty == Tvoid)
         {
-            Type tb = to.toBasetype();
+            auto tb = to.toBasetype();
             if (tb.ty == Tnull || tb.ty == Tpointer || tb.ty == Tarray || tb.ty == Taarray || tb.ty == Tclass || tb.ty == Tdelegate)
                 return MATCHconst;
         }
@@ -9471,14 +9471,14 @@ public:
      */
     Type isLazyArray()
     {
-        Type tb = type.toBasetype();
+        auto tb = type.toBasetype();
         if (tb.ty == Tsarray || tb.ty == Tarray)
         {
-            Type tel = (cast(TypeArray)tb).next.toBasetype();
+            auto tel = (cast(TypeArray)tb).next.toBasetype();
             if (tel.ty == Tdelegate)
             {
-                TypeDelegate td = cast(TypeDelegate)tel;
-                TypeFunction tf = cast(TypeFunction)td.next;
+                auto td = cast(TypeDelegate)tel;
+                auto tf = cast(TypeFunction)td.next;
                 if (!tf.varargs && Parameter.dim(tf.parameters) == 0)
                 {
                     return tf.next; // return type of delegate
@@ -9551,10 +9551,10 @@ public:
         for (size_t i = 0; i < parameters.dim; i++)
         {
             Parameter p = (*parameters)[i];
-            Type t = p.type.toBasetype();
+            auto t = p.type.toBasetype();
             if (t.ty == Ttuple)
             {
-                TypeTuple tu = cast(TypeTuple)t;
+                auto tu = cast(TypeTuple)t;
                 result = _foreach(tu.arguments, dg, ctx, &n);
             }
             else

@@ -283,7 +283,7 @@ public:
             goto L1;
         // write out last one
         buf.writestring(")\n");
-        TypeFunction tf = a.dim == 1 ? isTypeFunction(s) : null;
+        auto tf = a.dim == 1 ? isTypeFunction(s) : null;
         if (tf)
         {
             size_t pcount = (tf.parameters ? tf.parameters.dim : 0) + cast(int)(tf.varargs == 1);
@@ -314,7 +314,7 @@ extern (C++) bool isCVariadicParameter(Dsymbols* a, const(char)* p, size_t len)
 {
     for (size_t i = 0; i < a.dim; i++)
     {
-        TypeFunction tf = isTypeFunction((*a)[i]);
+        auto tf = isTypeFunction((*a)[i]);
         if (tf && tf.varargs == 1 && cmp("...", p, len) == 0)
             return true;
     }
@@ -1873,7 +1873,7 @@ extern (C++) TypeFunction isTypeFunction(Dsymbol s)
      */
     if (f && f.type)
     {
-        Type t = f.originalType ? f.originalType : f.type;
+        auto t = f.originalType ? f.originalType : f.type;
         if (t.ty == Tfunction)
             return cast(TypeFunction)t;
     }
@@ -1886,7 +1886,7 @@ extern (C++) Parameter isFunctionParameter(Dsymbols* a, const(char)* p, size_t l
 {
     for (size_t i = 0; i < a.dim; i++)
     {
-        TypeFunction tf = isTypeFunction((*a)[i]);
+        auto tf = isTypeFunction((*a)[i]);
         if (tf && tf.parameters)
         {
             for (size_t k = 0; k < tf.parameters.dim; k++)

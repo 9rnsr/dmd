@@ -1618,7 +1618,7 @@ public:
             }
             else
             {
-                Type t = e.type.toBasetype();
+                auto t = e.type.toBasetype();
                 s = t.toDsymbol(null);
             }
             if (s)
@@ -1750,7 +1750,7 @@ public:
              */
             if (ce.op == TOKtype)
             {
-                Type t = (cast(TypeExp)ce).type;
+                auto t = (cast(TypeExp)ce).type;
                 if (t.ty == Ttuple)
                 {
                     type = cast(TypeTuple)t;

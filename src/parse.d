@@ -1766,7 +1766,7 @@ public:
             if (isDeclaration(&token, 0, TOKreserved, null))
             {
                 // Template argument is a type
-                Type ta = parseType();
+                auto ta = parseType();
                 tiargs.push(ta);
             }
             else
@@ -1974,7 +1974,7 @@ public:
         Loc loc = token.loc;
         nextToken();
         check(TOKlparen);
-        Type tb = parseType();
+        auto tb = parseType();
         check(TOKrparen);
         return new TypeVector(loc, tb);
     }
@@ -3322,7 +3322,7 @@ public:
                         // We need to have a while loop to unwind all index taking:
                         // T[e1][e2].U   ->  T, addIndex(e1), addIndex(e2)
                         Objects dimStack;
-                        Type t = maybeArray;
+                        auto t = maybeArray;
                         while (true)
                         {
                             if (t.ty == Tsarray)
@@ -3371,7 +3371,7 @@ public:
                     if (dontLookDotIdents) // workaround for Bugzilla 14911
                         goto Lend;
                     nextToken();
-                    Type t = maybeArray ? maybeArray : cast(Type)tid;
+                    auto t = maybeArray ? maybeArray : cast(Type)tid;
                     if (token.value == TOKrbracket)
                     {
                         // It's a dynamic array, and we're done:
@@ -3386,7 +3386,7 @@ public:
                         //  1 - an associative array declaration, T[type]
                         //  2 - an associative array declaration, T[expr]
                         // These  can only be disambiguated later.
-                        Type index = parseType(); // [ type ]
+                        auto index = parseType(); // [ type ]
                         maybeArray = new TypeAArray(t, index);
                         check(TOKrbracket);
                     }
@@ -3463,7 +3463,7 @@ public:
                 {
                     // It's an associative array declaration
                     //printf("it's an associative array\n");
-                    Type index = parseType(); // [ type ]
+                    auto index = parseType(); // [ type ]
                     t = new TypeAArray(t, index);
                     check(TOKrbracket);
                 }
@@ -3599,7 +3599,7 @@ public:
                         {
                             // It's an associative array
                             //printf("it's an associative array\n");
-                            Type index = parseType(); // [ type ]
+                            auto index = parseType(); // [ type ]
                             check(TOKrbracket);
                             ta = new TypeAArray(t, index);
                             *palt |= 2;
@@ -4100,7 +4100,7 @@ public:
                 Expression constraint = null;
                 version (none)
                 {
-                    TypeFunction tf = cast(TypeFunction)t;
+                    auto tf = cast(TypeFunction)t;
                     if (Parameter.isTPL(tf.parameters))
                     {
                         if (!tpl)
@@ -4252,7 +4252,7 @@ public:
                 // identifier => expression
                 parameters = new Parameters();
                 Identifier id = Identifier.generateId("__T");
-                Type t = new TypeIdentifier(loc, id);
+                auto t = new TypeIdentifier(loc, id);
                 parameters.push(new Parameter(0, t, token.ident, null));
                 tpl = new TemplateParameters();
                 TemplateParameter tp = new TemplateTypeParameter(loc, id, null, null);
@@ -4332,7 +4332,7 @@ public:
                 check(TOKlparen);
                 while (1)
                 {
-                    Type tb = parseBasicType();
+                    auto tb = parseBasicType();
                     f.fthrows.push(tb);
                     if (token.value == TOKcomma)
                     {
@@ -4950,7 +4950,7 @@ public:
                 else if (isDeclaration(&token, 2, TOKassign, null))
                 {
                     Identifier ai;
-                    Type at = parseType(&ai);
+                    auto at = parseType(&ai);
                     check(TOKassign);
                     param = new Parameter(storageClass, at, ai, null);
                 }
@@ -7038,7 +7038,7 @@ public:
                 }
                 else
                 {
-                    Type t = parseType(); // cast( type )
+                    auto t = parseType(); // cast( type )
                     t = t.addMod(m); // cast( const type )
                     check(TOKrparen);
                     e = parseUnaryExp();
@@ -7053,7 +7053,7 @@ public:
             // immutable(type)(arguments) / immutable(type).init
             {
                 StorageClass stc = parseTypeCtor();
-                Type t = parseBasicType();
+                auto t = parseBasicType();
                 t = t.addSTC(stc);
                 e = new TypeExp(loc, t);
                 if (stc == 0 && token.value == TOKdot)
@@ -7720,8 +7720,8 @@ public:
         t = t.addSTC(stc);
         if (t.ty == Taarray)
         {
-            TypeAArray taa = cast(TypeAArray)t;
-            Type index = taa.index;
+            auto taa = cast(TypeAArray)t;
+            auto index = taa.index;
             Expression e = index.toExpression();
             if (e)
             {
@@ -7737,7 +7737,7 @@ public:
         }
         else if (t.ty == Tsarray)
         {
-            TypeSArray tsa = cast(TypeSArray)t;
+            auto tsa = cast(TypeSArray)t;
             Expression e = tsa.dim;
             arguments = new Expressions();
             arguments.push(e);

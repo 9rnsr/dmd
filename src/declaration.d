@@ -85,7 +85,7 @@ extern (C++) bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, 
     for (size_t i = iStart; i < ad.fields.dim; i++)
     {
         auto vd = ad.fields[i];
-        Type tb = vd.type.baseElemOf();
+        auto tb = vd.type.baseElemOf();
         if (tb.ty == Tstruct)
         {
             result |= checkFrameAccess(loc, sc, (cast(TypeStruct)tb).sym);
@@ -471,7 +471,7 @@ public:
             int hasdeco = 1;
             for (size_t i = 0; i < types.dim; i++)
             {
-                Type t = (*types)[i];
+                auto t = (*types)[i];
                 //printf("type = %s\n", t->toChars());
                 version (none)
                 {
@@ -610,7 +610,7 @@ public:
         // type. If it is a symbol, then aliassym is set and type is NULL -
         // toAlias() will return aliasssym.
         uint errors = global.errors;
-        Type savedtype = type;
+        auto savedtype = type;
         Dsymbol s;
         Type t;
         Expression e;
@@ -830,7 +830,7 @@ public:
             }
             else
             {
-                Type t = type.semantic(loc, _scope);
+                auto t = type.semantic(loc, _scope);
                 if (t.ty == Terror)
                     goto Lerr;
                 if (global.errors != olderrors)
@@ -1197,8 +1197,8 @@ public:
             }
         }
         Dsymbol parent = toParent();
-        Type tb = type.toBasetype();
-        Type tbn = tb.baseElemOf();
+        auto tb = type.toBasetype();
+        auto tbn = tb.baseElemOf();
         if (tb.ty == Tvoid && !(storage_class & STClazy))
         {
             if (inferred)
@@ -1218,7 +1218,7 @@ public:
         }
         if (tb.ty == Tstruct)
         {
-            TypeStruct ts = cast(TypeStruct)tb;
+            auto ts = cast(TypeStruct)tb;
             if (!ts.sym.members)
             {
                 error("no definition of struct %s", ts.toChars());
@@ -1231,7 +1231,7 @@ public:
             /* Instead, declare variables for each of the tuple elements
              * and add those.
              */
-            TypeTuple tt = cast(TypeTuple)tb;
+            auto tt = cast(TypeTuple)tb;
             size_t nelems = Parameter.dim(tt.arguments);
             Expression ie = (_init && !_init.isVoidInitializer()) ? _init.toExpression() : null;
             if (ie)
@@ -1524,7 +1524,7 @@ public:
             //printf("Providing default initializer for '%s'\n", toChars());
             if (type.needsNested())
             {
-                Type tv = type;
+                auto tv = type;
                 while (tv.toBasetype().ty == Tsarray)
                     tv = tv.toBasetype().nextOf();
                 assert(tv.toBasetype().ty == Tstruct);
@@ -1671,8 +1671,8 @@ public:
                         exp = resolveProperties(sc, exp);
                         if (needctfe)
                             sc = sc.endCTFE();
-                        Type tb2 = type.toBasetype();
-                        Type ti = exp.type.toBasetype();
+                        auto tb2 = type.toBasetype();
+                        auto ti = exp.type.toBasetype();
                         /* The problem is the following code:
                          *  struct CopyTest {
                          *     double x;
@@ -1780,7 +1780,7 @@ public:
             }
         }
         // Check for forward referenced types which will fail the size() call
-        Type t = type.toBasetype();
+        auto t = type.toBasetype();
         if (storage_class & STCref)
         {
             // References are the size of a pointer
@@ -1788,10 +1788,10 @@ public:
         }
         if (t.ty == Tstruct || t.ty == Tsarray)
         {
-            Type tv = t.baseElemOf();
+            auto tv = t.baseElemOf();
             if (tv.ty == Tstruct)
             {
-                TypeStruct ts = cast(TypeStruct)tv;
+                auto ts = cast(TypeStruct)tv;
                 if (ts.sym == ad)
                 {
                     const(char)* s = (t.ty == Tsarray) ? "static array of " : "";
@@ -2049,7 +2049,7 @@ public:
         }
         Expression e = null;
         // Destructors for structs and arrays of structs
-        Type tv = type.baseElemOf();
+        auto tv = type.baseElemOf();
         if (tv.ty == Tstruct)
         {
             auto sd = (cast(TypeStruct)tv).sym;
@@ -2221,7 +2221,7 @@ public:
                             fdthis.flags &= ~FUNCFLAGpurityInprocess;
                             if (fdthis.type.ty == Tfunction)
                             {
-                                TypeFunction tf = cast(TypeFunction)fdthis.type;
+                                auto tf = cast(TypeFunction)fdthis.type;
                                 if (tf.deco)
                                 {
                                     tf = cast(TypeFunction)tf.copy();

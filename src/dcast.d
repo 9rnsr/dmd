@@ -141,7 +141,7 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
         void visit(ArrayLiteralExp e)
         {
             visit(cast(Expression)e);
-            Type tb = result.type.toBasetype();
+            auto tb = result.type.toBasetype();
             if (tb.ty == Tarray)
                 semanticTypeInfo(sc, (cast(TypeDArray)tb).next);
         }
@@ -155,7 +155,7 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
             if (e.e1.op == TOKarrayliteral)
             {
                 ArrayLiteralExp ale = cast(ArrayLiteralExp)e.e1;
-                Type tb = t.toBasetype();
+                auto tb = t.toBasetype();
                 Type tx;
                 if (tb.ty == Tsarray)
                     tx = tb.nextOf().sarrayOf(ale.elements ? ale.elements.dim : 0);
@@ -263,12 +263,12 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
              * This is to support doing things like implicitly converting a mutable unique
              * pointer to an immutable pointer.
              */
-            Type typeb = e.type.toBasetype();
-            Type tb = t.toBasetype();
+            auto typeb = e.type.toBasetype();
+            auto tb = t.toBasetype();
             if (typeb.ty != Tpointer || tb.ty != Tpointer)
                 return MATCHnomatch;
-            Type t1b = e.e1.type.toBasetype();
-            Type t2b = e.e2.type.toBasetype();
+            auto t1b = e.e1.type.toBasetype();
+            auto t2b = e.e2.type.toBasetype();
             if (t1b.ty == Tpointer && t2b.isintegral() && t1b.equivalent(tb))
             {
                 // ptr + offset
@@ -326,8 +326,8 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 return;
             if (t.ty == Tvector)
             {
-                TypeVector tv = cast(TypeVector)t;
-                TypeBasic tb = tv.elementType();
+                auto tv = cast(TypeVector)t;
+                auto tb = tv.elementType();
                 if (tb.ty == Tvoid)
                     return;
                 toty = tb.ty;
@@ -519,7 +519,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     Expression el = (*e.elements)[i];
                     if (!el)
                         continue;
-                    Type te = el.type;
+                    auto te = el.type;
                     te = e.sd.fields[i].type.addMod(t.mod);
                     MATCH m2 = el.implicitConvTo(te);
                     //printf("\t%s => %s, match = %d\n", el->toChars(), te->toChars(), m2);
@@ -611,7 +611,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                         /* fall through */
                     case Tarray:
                     case Tpointer:
-                        Type tn = t.nextOf();
+                        auto tn = t.nextOf();
                         MATCH m = MATCHexact;
                         if (e.type.nextOf().mod != tn.mod)
                         {
@@ -657,19 +657,19 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             {
                 printf("ArrayLiteralExp::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
             }
-            Type typeb = e.type.toBasetype();
-            Type tb = t.toBasetype();
+            auto typeb = e.type.toBasetype();
+            auto tb = t.toBasetype();
             if ((tb.ty == Tarray || tb.ty == Tsarray) && (typeb.ty == Tarray || typeb.ty == Tsarray))
             {
                 result = MATCHexact;
-                Type typen = typeb.nextOf().toBasetype();
+                auto typen = typeb.nextOf().toBasetype();
                 if (tb.ty == Tsarray)
                 {
-                    TypeSArray tsa = cast(TypeSArray)tb;
+                    auto tsa = cast(TypeSArray)tb;
                     if (e.elements.dim != tsa.dim.toInteger())
                         result = MATCHnomatch;
                 }
-                Type telement = tb.nextOf();
+                auto telement = tb.nextOf();
                 if (!e.elements.dim)
                 {
                     if (typen.ty != Tvoid)
@@ -696,15 +696,15 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             {
                 result = MATCHexact;
                 // Convert array literal to vector type
-                TypeVector tv = cast(TypeVector)tb;
-                TypeSArray tbase = cast(TypeSArray)tv.basetype;
+                auto tv = cast(TypeVector)tb;
+                auto tbase = cast(TypeSArray)tv.basetype;
                 assert(tbase.ty == Tsarray);
                 if (e.elements.dim != tbase.dim.toInteger())
                 {
                     result = MATCHnomatch;
                     return;
                 }
-                Type telement = tv.elementType();
+                auto telement = tv.elementType();
                 for (size_t i = 0; i < e.elements.dim; i++)
                 {
                     Expression el = (*e.elements)[i];
@@ -722,8 +722,8 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
 
         void visit(AssocArrayLiteralExp e)
         {
-            Type typeb = e.type.toBasetype();
-            Type tb = t.toBasetype();
+            auto typeb = e.type.toBasetype();
+            auto tb = t.toBasetype();
             if (tb.ty == Taarray && typeb.ty == Taarray)
             {
                 result = MATCHexact;
@@ -775,11 +775,11 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
              * 2. implicit conversion only fails because of mod bits
              * 3. each function parameter can be implicitly converted to the mod bits
              */
-            Type tx = e.f ? e.f.type : e.e1.type;
+            auto tx = e.f ? e.f.type : e.e1.type;
             tx = tx.toBasetype();
             if (tx.ty != Tfunction)
                 return;
-            TypeFunction tf = cast(TypeFunction)tx;
+            auto tf = cast(TypeFunction)tx;
             if (tf.purity == PUREimpure)
                 return;
             if (e.f && e.f.isNested())
@@ -808,14 +808,14 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             // conversions of mutable types between thread-local and shared.
             /* Get mod bits of what we're converting to
              */
-            Type tb = t.toBasetype();
+            auto tb = t.toBasetype();
             MOD mod = tb.mod;
             if (tf.isref)
             {
             }
             else
             {
-                Type ti = getIndirection(t);
+                auto ti = getIndirection(t);
                 if (ti)
                     mod = ti.mod;
             }
@@ -835,14 +835,14 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 /* Treat 'this' as just another function argument
                  */
                 DotVarExp dve = cast(DotVarExp)e.e1;
-                Type targ = dve.e1.type;
+                auto targ = dve.e1.type;
                 if (targ.constConv(targ.castMod(mod)) == MATCHnomatch)
                     return;
             }
             for (size_t i = j; i < e.arguments.dim; ++i)
             {
                 Expression earg = (*e.arguments)[i];
-                Type targ = earg.type.toBasetype();
+                auto targ = earg.type.toBasetype();
                 static if (LOG)
                 {
                     printf("[%d] earg: %s, targ: %s\n", cast(int)i, earg.toChars(), targ.toChars());
@@ -852,7 +852,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     Parameter fparam = Parameter.getNth(tf.parameters, i - j);
                     if (fparam.storageClass & STClazy)
                         return; // not sure what to do with this
-                    Type tparam = fparam.type;
+                    auto tparam = fparam.type;
                     if (!tparam)
                         continue;
                     if (fparam.storageClass & (STCout | STCref))
@@ -1055,7 +1055,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 return;
             /* Get mod bits of what we're converting to
              */
-            Type tb = t.toBasetype();
+            auto tb = t.toBasetype();
             MOD mod = tb.mod;
             if (auto ti = getIndirection(t))
                 mod = ti.mod;
@@ -1072,7 +1072,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             {
                 /* Treat 'this' as just another function argument
                  */
-                Type targ = e.thisexp.type;
+                auto targ = e.thisexp.type;
                 if (targ.constConv(targ.castMod(mod)) == MATCHnomatch)
                     return;
             }
@@ -1085,7 +1085,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     continue;
                 if (fd.errors || fd.type.ty != Tfunction)
                     return; // error
-                TypeFunction tf = cast(TypeFunction)fd.type;
+                auto tf = cast(TypeFunction)fd.type;
                 if (tf.purity == PUREimpure)
                     return; // impure
                 if (fd == e.member)
@@ -1103,7 +1103,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 for (size_t i = j; i < e.arguments.dim; ++i)
                 {
                     Expression earg = (*args)[i];
-                    Type targ = earg.type.toBasetype();
+                    auto targ = earg.type.toBasetype();
                     static if (LOG)
                     {
                         printf("[%d] earg: %s, targ: %s\n", cast(int)i, earg.toChars(), targ.toChars());
@@ -1113,7 +1113,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                         Parameter fparam = Parameter.getNth(tf.parameters, i - j);
                         if (fparam.storageClass & STClazy)
                             return; // not sure what to do with this
-                        Type tparam = fparam.type;
+                        auto tparam = fparam.type;
                         if (!tparam)
                             continue;
                         if (fparam.storageClass & (STCout | STCref))
@@ -1141,7 +1141,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     Expression earg = (*e.arguments)[i];
                     if (!earg) // Bugzilla 14853: if it's on overlapped field
                         continue;
-                    Type targ = earg.type.toBasetype();
+                    auto targ = earg.type.toBasetype();
                     static if (LOG)
                     {
                         printf("[%d] earg: %s, targ: %s\n", cast(int)i, earg.toChars(), targ.toChars());
@@ -1153,7 +1153,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             }
             /* Consider the .init expression as an argument
              */
-            Type ntb = e.newtype.toBasetype();
+            auto ntb = e.newtype.toBasetype();
             if (ntb.ty == Tarray)
                 ntb = ntb.nextOf().toBasetype();
             if (ntb.ty == Tstruct)
@@ -1192,7 +1192,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                                     }
                                     else if (auto ei = _init.isExpInitializer())
                                     {
-                                        Type tb = v.type.toBasetype();
+                                        auto tb = v.type.toBasetype();
                                         if (implicitMod(ei.exp, tb, mod) == MATCHnomatch)
                                             return false;
                                     }
@@ -1217,7 +1217,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             else
             {
                 Expression earg = e.newtype.defaultInitLiteral(e.loc);
-                Type targ = e.newtype.toBasetype();
+                auto targ = e.newtype.toBasetype();
                 if (implicitMod(earg, targ, mod) == MATCHnomatch)
                     return;
             }
@@ -1232,8 +1232,8 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             visit(cast(Expression)e);
             if (result != MATCHnomatch)
                 return;
-            Type tb = t.toBasetype();
-            Type typeb = e.type.toBasetype();
+            auto tb = t.toBasetype();
+            auto typeb = e.type.toBasetype();
             if (tb.ty == Tsarray && typeb.ty == Tarray)
             {
                 typeb = toStaticArrayType(e);
@@ -1245,10 +1245,10 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
              * then test for conversion by seeing if e1 can be converted with those
              * same mod bits.
              */
-            Type t1b = e.e1.type.toBasetype();
+            auto t1b = e.e1.type.toBasetype();
             if (tb.ty == Tarray && typeb.equivalent(tb))
             {
-                Type tbn = tb.nextOf();
+                auto tbn = tb.nextOf();
                 Type tx = null;
                 /* If e->e1 is dynamic array or pointer, the uniqueness of e->e1
                  * is equivalent with the uniqueness of the referred data. And in here
@@ -1298,7 +1298,7 @@ extern (C++) Type toStaticArrayType(SliceExp e)
     }
     else
     {
-        Type t1b = e.e1.type.toBasetype();
+        auto t1b = e.e1.type.toBasetype();
         if (t1b.ty == Tsarray)
             return t1b;
     }
@@ -1349,8 +1349,8 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     return;
                 }
             }
-            Type tob = t.toBasetype();
-            Type t1b = e.type.toBasetype();
+            auto tob = t.toBasetype();
+            auto t1b = e.type.toBasetype();
             if (tob.equals(t1b))
             {
                 result = e.copy(); // because of COW for assignment to e->type
@@ -1397,7 +1397,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             else if (tob.ty == Tvector && t1b.ty != Tvector)
             {
                 //printf("test1 e = %s, e->type = %s, tob = %s\n", e->toChars(), e->type->toChars(), tob->toChars());
-                TypeVector tv = cast(TypeVector)tob;
+                auto tv = cast(TypeVector)tob;
                 result = new CastExp(e.loc, e, tv.elementType());
                 result = new VectorExp(e.loc, result, tob);
                 result = result.semantic(sc);
@@ -1599,14 +1599,14 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 result = se;
                 return;
             }
-            Type tb = t.toBasetype();
+            auto tb = t.toBasetype();
             //printf("\ttype = %s\n", e->type->toChars());
             if (tb.ty == Tdelegate && e.type.toBasetype().ty != Tdelegate)
             {
                 visit(cast(Expression)e);
                 return;
             }
-            Type typeb = e.type.toBasetype();
+            auto typeb = e.type.toBasetype();
             if (typeb.equals(tb))
             {
                 if (!copied)
@@ -1927,8 +1927,8 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 return;
             }
             ArrayLiteralExp ae = e;
-            Type typeb = e.type.toBasetype();
-            Type tb = t.toBasetype();
+            auto typeb = e.type.toBasetype();
+            auto tb = t.toBasetype();
             if ((tb.ty == Tarray || tb.ty == Tsarray) && (typeb.ty == Tarray || typeb.ty == Tsarray))
             {
                 if (tb.nextOf().toBasetype().ty == Tvoid && typeb.nextOf().toBasetype().ty != Tvoid)
@@ -1943,7 +1943,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 {
                     if (tb.ty == Tsarray)
                     {
-                        TypeSArray tsa = cast(TypeSArray)tb;
+                        auto tsa = cast(TypeSArray)tb;
                         if (e.elements.dim != tsa.dim.toInteger())
                             goto L1;
                     }
@@ -1962,7 +1962,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             }
             else if (tb.ty == Tpointer && typeb.ty == Tsarray)
             {
-                Type tp = typeb.nextOf().pointerTo();
+                auto tp = typeb.nextOf().pointerTo();
                 if (!tp.equals(ae.type))
                 {
                     ae = cast(ArrayLiteralExp)e.copy();
@@ -1972,15 +1972,15 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             else if (tb.ty == Tvector && (typeb.ty == Tarray || typeb.ty == Tsarray))
             {
                 // Convert array literal to vector type
-                TypeVector tv = cast(TypeVector)tb;
-                TypeSArray tbase = cast(TypeSArray)tv.basetype;
+                auto tv = cast(TypeVector)tb;
+                auto tbase = cast(TypeSArray)tv.basetype;
                 assert(tbase.ty == Tsarray);
                 if (e.elements.dim != tbase.dim.toInteger())
                     goto L1;
                 ae = cast(ArrayLiteralExp)e.copy();
                 ae.type = tbase; // Bugzilla 12642
                 ae.elements = e.elements.copy();
-                Type telement = tv.elementType();
+                auto telement = tv.elementType();
                 for (size_t i = 0; i < e.elements.dim; i++)
                 {
                     Expression ex = (*e.elements)[i];
@@ -2003,8 +2003,8 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 result = e;
                 return;
             }
-            Type typeb = e.type.toBasetype();
-            Type tb = t.toBasetype();
+            auto typeb = e.type.toBasetype();
+            auto tb = t.toBasetype();
             if (tb.ty == Taarray && typeb.ty == Taarray && tb.nextOf().toBasetype().ty != Tvoid)
             {
                 AssocArrayLiteralExp ae = cast(AssocArrayLiteralExp)e.copy();
@@ -2038,8 +2038,8 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 result = e;
                 return;
             }
-            Type tb = t.toBasetype();
-            Type typeb = e.type.toBasetype();
+            auto tb = t.toBasetype();
+            auto typeb = e.type.toBasetype();
             if (tb.equals(typeb))
             {
                 result = e.copy();
@@ -2098,8 +2098,8 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 printf("DelegateExp::castTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
             }
             static __gshared const(char)* msg = "cannot form delegate due to covariant return type";
-            Type tb = t.toBasetype();
-            Type typeb = e.type.toBasetype();
+            auto tb = t.toBasetype();
+            auto typeb = e.type.toBasetype();
             if (!tb.equals(typeb) || e.hasOverloads)
             {
                 // Look for delegates to functions where the functions are overloaded.
@@ -2176,8 +2176,8 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
         void visit(SliceExp e)
         {
             //printf("SliceExp::castTo e = %s, type = %s, t = %s\n", e->toChars(), e->type->toChars(), t->toChars());
-            Type typeb = e.type.toBasetype();
-            Type tb = t.toBasetype();
+            auto typeb = e.type.toBasetype();
+            auto tb = t.toBasetype();
             if (e.type.equals(t) || typeb.ty != Tarray || (tb.ty != Tarray && tb.ty != Tsarray))
             {
                 visit(cast(Expression)e);
@@ -2198,7 +2198,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 return;
             }
             // Handle the cast from Tarray to Tsarray with CT-known slicing
-            TypeSArray tsa = cast(TypeSArray)toStaticArrayType(e);
+            auto tsa = cast(TypeSArray)toStaticArrayType(e);
             if (tsa && tsa.size(e.loc) == tb.size(e.loc))
             {
                 /* Match if the sarray sizes are equal:
@@ -2218,7 +2218,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                  * with the implicit conversion of e->e1:
                  *  cast(float[2]) [2.0, 1.0, 0.0][0..2];
                  */
-                Type t1b = e.e1.type.toBasetype();
+                auto t1b = e.e1.type.toBasetype();
                 if (t1b.ty == Tsarray)
                     t1b = tb.nextOf().sarrayOf((cast(TypeSArray)t1b).dim.toInteger());
                 else if (t1b.ty == Tarray)
@@ -2278,10 +2278,10 @@ extern (C++) Expression inferType(Expression e, Type t, int flag = 0)
 
         void visit(ArrayLiteralExp ale)
         {
-            Type tb = t.toBasetype();
+            auto tb = t.toBasetype();
             if (tb.ty == Tarray || tb.ty == Tsarray)
             {
-                Type tn = tb.nextOf();
+                auto tn = tb.nextOf();
                 for (size_t i = 0; i < ale.elements.dim; i++)
                 {
                     Expression e = (*ale.elements)[i];
@@ -2297,12 +2297,12 @@ extern (C++) Expression inferType(Expression e, Type t, int flag = 0)
 
         void visit(AssocArrayLiteralExp aale)
         {
-            Type tb = t.toBasetype();
+            auto tb = t.toBasetype();
             if (tb.ty == Taarray)
             {
-                TypeAArray taa = cast(TypeAArray)tb;
-                Type ti = taa.index;
-                Type tv = taa.nextOf();
+                auto taa = cast(TypeAArray)tb;
+                auto ti = taa.index;
+                auto tv = taa.nextOf();
                 for (size_t i = 0; i < aale.keys.dim; i++)
                 {
                     Expression e = (*aale.keys)[i];
@@ -2337,7 +2337,7 @@ extern (C++) Expression inferType(Expression e, Type t, int flag = 0)
 
         void visit(CondExp ce)
         {
-            Type tb = t.toBasetype();
+            auto tb = t.toBasetype();
             ce.e1 = inferType(ce.e1, tb, flag);
             ce.e2 = inferType(ce.e2, tb, flag);
             result = ce;
@@ -2357,14 +2357,14 @@ extern (C++) Expression inferType(Expression e, Type t, int flag = 0)
  */
 extern (C++) Expression scaleFactor(BinExp be, Scope* sc)
 {
-    Type t1b = be.e1.type.toBasetype();
-    Type t2b = be.e2.type.toBasetype();
+    auto t1b = be.e1.type.toBasetype();
+    auto t2b = be.e2.type.toBasetype();
     Expression eoff;
     if (t1b.ty == Tpointer && t2b.isintegral())
     {
         // Need to adjust operator by the stride
         // Replace (ptr + int) with (ptr + (int * stride))
-        Type t = Type.tptrdiff_t;
+        auto t = Type.tptrdiff_t;
         d_uns64 stride = t1b.nextOf().size(be.loc);
         if (!t.equals(t2b))
             be.e2 = be.e2.castTo(sc, t);
@@ -2377,7 +2377,7 @@ extern (C++) Expression scaleFactor(BinExp be, Scope* sc)
     {
         // Need to adjust operator by the stride
         // Replace (int + ptr) with (ptr + (int * stride))
-        Type t = Type.tptrdiff_t;
+        auto t = Type.tptrdiff_t;
         Expression e;
         d_uns64 stride = t2b.nextOf().size(be.loc);
         if (!t.equals(t1b))
@@ -2427,7 +2427,7 @@ extern (C++) bool isVoidArrayLiteral(Expression e, Type other)
     }
     if (other.ty != Tsarray && other.ty != Tarray)
         return false;
-    Type t = e.type;
+    auto t = e.type;
     return (e.op == TOKarrayliteral && t.ty == Tarray && t.nextOf().ty == Tvoid && (cast(ArrayLiteralExp)e).elements.dim == 0);
 }
 
@@ -2447,17 +2447,17 @@ extern (C++) bool typeMerge(Scope* sc, TOK op, Type* pt, Expression* pe1, Expres
     MATCH m;
     Expression e1 = *pe1;
     Expression e2 = *pe2;
-    Type t1b = e1.type.toBasetype();
-    Type t2b = e2.type.toBasetype();
+    auto t1b = e1.type.toBasetype();
+    auto t2b = e2.type.toBasetype();
     if (op != TOKquestion || t1b.ty != t2b.ty && (t1b.isTypeBasic() && t2b.isTypeBasic()))
     {
         e1 = integralPromotions(e1, sc);
         e2 = integralPromotions(e2, sc);
     }
-    Type t1 = e1.type;
-    Type t2 = e2.type;
+    auto t1 = e1.type;
+    auto t2 = e2.type;
     assert(t1);
-    Type t = t1;
+    auto t = t1;
     /* The start type of alias this type recursion.
      * In following case, we should save A, and stop recursion
      * if it appears again.
@@ -2517,8 +2517,8 @@ Lagain:
     else if ((t1.ty == Tpointer && t2.ty == Tpointer) || (t1.ty == Tdelegate && t2.ty == Tdelegate))
     {
         // Bring pointers to compatible type
-        Type t1n = t1.nextOf();
-        Type t2n = t2.nextOf();
+        auto t1n = t1.nextOf();
+        auto t2n = t2.nextOf();
         if (t1n.equals(t2n))
         {
         }
@@ -2537,8 +2537,8 @@ Lagain:
         }
         else if (t1n.ty == Tfunction && t2n.ty == Tfunction)
         {
-            TypeFunction tf1 = cast(TypeFunction)t1n;
-            TypeFunction tf2 = cast(TypeFunction)t2n;
+            auto tf1 = cast(TypeFunction)t1n;
+            auto tf2 = cast(TypeFunction)t2n;
             tf1.purityLevel();
             tf2.purityLevel();
             auto d = cast(TypeFunction)tf1.syntaxCopy();
@@ -2662,8 +2662,8 @@ Lagain:
         /* If one is mutable and the other invariant, then retry
          * with both of them as const
          */
-        Type t1n = t1.nextOf();
-        Type t2n = t2.nextOf();
+        auto t1n = t1.nextOf();
+        auto t2n = t2.nextOf();
         ubyte mod;
         if (e1.op == TOKnull && e2.op != TOKnull)
             mod = t2n.mod;
@@ -2731,8 +2731,8 @@ Lagain:
             }
             else if (t1.ty == Tclass && t2.ty == Tclass)
             {
-                TypeClass tc1 = cast(TypeClass)t1;
-                TypeClass tc2 = cast(TypeClass)t2;
+                auto tc1 = cast(TypeClass)t1;
+                auto tc2 = cast(TypeClass)t2;
                 /* Pick 'tightest' type
                  */
                 ClassDeclaration cd1 = tc1.sym.baseClass;
@@ -2787,8 +2787,8 @@ Lagain:
             t = t1;
             goto Lagain;
         }
-        TypeStruct ts1 = cast(TypeStruct)t1;
-        TypeStruct ts2 = cast(TypeStruct)t2;
+        auto ts1 = cast(TypeStruct)t1;
+        auto ts2 = cast(TypeStruct)t2;
         if (ts1.sym != ts2.sym)
         {
             if (!ts1.sym.aliasthis && !ts2.sym.aliasthis)
@@ -3045,8 +3045,8 @@ Lt2:
  */
 extern (C++) Expression typeCombine(BinExp be, Scope* sc)
 {
-    Type t1 = be.e1.type.toBasetype();
-    Type t2 = be.e2.type.toBasetype();
+    auto t1 = be.e1.type.toBasetype();
+    auto t2 = be.e2.type.toBasetype();
     if (be.op == TOKmin || be.op == TOKadd)
     {
         // struct+struct, and class+class are errors

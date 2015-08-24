@@ -363,8 +363,8 @@ public:
             buf.writeByte(Type.needThisPrefix());
         if (inParent)
         {
-            TypeFunction tf = cast(TypeFunction)fd.type;
-            TypeFunction tfo = cast(TypeFunction)fd.originalType;
+            auto tf = cast(TypeFunction)fd.type;
+            auto tfo = cast(TypeFunction)fd.originalType;
             mangleFuncType(tf, tfo, 0, null);
         }
         else if (fd.type.deco)

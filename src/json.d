@@ -618,7 +618,7 @@ public:
     {
         objectStart();
         jsonProperties(d);
-        TypeFunction tf = cast(TypeFunction)d.type;
+        auto tf = cast(TypeFunction)d.type;
         if (tf && tf.ty == Tfunction)
             property("parameters", tf.parameters);
         property("endline", "endchar", &d.endloc);

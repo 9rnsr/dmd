@@ -378,7 +378,7 @@ extern (C++) UnionExp copyLiteral(Expression e)
             if ((v.type.ty != m.type.ty) && v.type.ty == Tsarray)
             {
                 // Block assignment from inside struct literals
-                TypeSArray tsa = cast(TypeSArray)v.type;
+                auto tsa = cast(TypeSArray)v.type;
                 uinteger_t length = tsa.dim.toInteger();
                 m = createBlockDuplicatedArrayLiteral(e.loc, v.type, m, cast(size_t)length);
             }
@@ -662,7 +662,7 @@ extern (C++) bool isTypeInfo_Class(Type type)
 // Return true if t is a pointer (not a function pointer)
 extern (C++) bool isPointer(Type t)
 {
-    Type tb = t.toBasetype();
+    auto tb = t.toBasetype();
     return tb.ty == Tpointer && tb.nextOf().ty != Tfunction;
 }
 
@@ -786,7 +786,7 @@ extern (C++) UnionExp pointerDifference(Loc loc, Type type, Expression e1, Expre
     Expression agg2 = getAggregateFromPointer(e2, &ofs2);
     if (agg1 == agg2)
     {
-        Type pointee = (cast(TypePointer)agg1.type).next;
+        auto pointee = (cast(TypePointer)agg1.type).next;
         dinteger_t sz = pointee.size();
         emplaceExp!(IntegerExp)(&ue, loc, (ofs1 - ofs2) * sz, type);
     }
@@ -794,7 +794,7 @@ extern (C++) UnionExp pointerDifference(Loc loc, Type type, Expression e1, Expre
     {
         if ((cast(StringExp)agg1).string == (cast(StringExp)agg2).string)
         {
-            Type pointee = (cast(TypePointer)agg1.type).next;
+            auto pointee = (cast(TypePointer)agg1.type).next;
             dinteger_t sz = pointee.size();
             emplaceExp!(IntegerExp)(&ue, loc, (ofs1 - ofs2) * sz, type);
         }
@@ -841,7 +841,7 @@ extern (C++) UnionExp pointerArithmetic(Loc loc, TOK op, Type type, Expression e
         goto Lcant;
     }
     dinteger_t ofs2 = e2.toInteger();
-    Type pointee = (cast(TypeNext)agg1.type.toBasetype()).next;
+    auto pointee = (cast(TypeNext)agg1.type.toBasetype()).next;
     dinteger_t sz = pointee.size();
     sinteger_t indx;
     dinteger_t len;
@@ -1509,8 +1509,8 @@ extern (C++) int ctfeRawCmp(Loc loc, Expression e1, Expression e2)
     {
         // printf("e1: %s\n", e1->toChars());
         // printf("e2: %s\n", e2->toChars());
-        Type t1 = isType((cast(TypeidExp)e1).obj);
-        Type t2 = isType((cast(TypeidExp)e2).obj);
+        auto t1 = isType((cast(TypeidExp)e1).obj);
+        auto t2 = isType((cast(TypeidExp)e2).obj);
         assert(t1);
         assert(t2);
         return t1 != t2;
@@ -1719,8 +1719,8 @@ extern (C++) int ctfeIdentity(Loc loc, TOK op, Expression e1, Expression e2)
 extern (C++) int ctfeCmp(Loc loc, TOK op, Expression e1, Expression e2)
 {
     int n;
-    Type t1 = e1.type.toBasetype();
-    Type t2 = e2.type.toBasetype();
+    auto t1 = e1.type.toBasetype();
+    auto t2 = e2.type.toBasetype();
     if (t1.isString() && t2.isString())
     {
         int cmp = ctfeRawCmp(loc, e1, e2);
@@ -1788,8 +1788,8 @@ extern (C++) int ctfeCmp(Loc loc, TOK op, Expression e1, Expression e2)
 extern (C++) UnionExp ctfeCat(Type type, Expression e1, Expression e2)
 {
     Loc loc = e1.loc;
-    Type t1 = e1.type.toBasetype();
-    Type t2 = e2.type.toBasetype();
+    auto t1 = e1.type.toBasetype();
+    auto t2 = e2.type.toBasetype();
     UnionExp ue;
     if (e2.op == TOKstring && e1.op == TOKarrayliteral && t1.nextOf().isintegral())
     {
@@ -2178,7 +2178,7 @@ extern (C++) UnionExp changeArrayLiteralLength(Loc loc, TypeArray arrayType, Exp
 /*************************** CTFE Sanity Checks ***************************/
 extern (C++) bool isCtfeValueValid(Expression newval)
 {
-    Type tb = newval.type.toBasetype();
+    auto tb = newval.type.toBasetype();
     if (newval.op == TOKint64 || newval.op == TOKfloat64 || newval.op == TOKchar || newval.op == TOKcomplex80)
     {
         return tb.isscalar();
@@ -2380,7 +2380,7 @@ extern (C++) UnionExp voidInitLiteral(Type t, VarDeclaration var)
     UnionExp ue;
     if (t.ty == Tsarray)
     {
-        TypeSArray tsa = cast(TypeSArray)t;
+        auto tsa = cast(TypeSArray)t;
         Expression elem = voidInitLiteral(tsa.next, var).copy();
         // For aggregate value types (structs, static arrays) we must
         // create an a separate copy for each element.
@@ -2401,7 +2401,7 @@ extern (C++) UnionExp voidInitLiteral(Type t, VarDeclaration var)
     }
     else if (t.ty == Tstruct)
     {
-        TypeStruct ts = cast(TypeStruct)t;
+        auto ts = cast(TypeStruct)t;
         auto exps = new Expressions();
         exps.setDim(ts.sym.fields.dim);
         for (size_t i = 0; i < ts.sym.fields.dim; i++)

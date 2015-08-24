@@ -344,7 +344,7 @@ public:
             /* Rewrite as empty delegate literal { }
              */
             auto parameters = new Parameters();
-            Type tf = new TypeFunction(parameters, null, 0, LINKd);
+            auto tf = new TypeFunction(parameters, null, 0, LINKd);
             auto fd = new FuncLiteralDeclaration(loc, Loc(), tf, tok, null);
             fd.fbody = new CompoundStatement(loc, new Statements());
             fd.endloc = loc;
@@ -850,7 +850,7 @@ public:
             return this; // Failed, suppress duplicate error messages
         if (exp.type.ty == Ttuple && (cast(TypeTuple)exp.type).arguments.dim == 0)
         {
-            Type et = exp.type;
+            auto et = exp.type;
             exp = new TupleExp(exp.loc, new Expressions());
             exp.type = et;
         }
@@ -865,8 +865,8 @@ public:
             exp.error("cannot use non-constant CTFE pointer in an initializer '%s'", exp.toChars());
             return new ErrorInitializer();
         }
-        Type tb = t.toBasetype();
-        Type ti = exp.type.toBasetype();
+        auto tb = t.toBasetype();
+        auto ti = exp.type.toBasetype();
         if (exp.op == TOKtuple && expandTuples && !exp.implicitConvTo(t))
             return new ExpInitializer(loc, exp);
         /* Look for case of initializing a static array with a too-short
@@ -878,7 +878,7 @@ public:
         if (exp.op == TOKstring && tb.ty == Tsarray)
         {
             StringExp se = cast(StringExp)exp;
-            Type typeb = se.type.toBasetype();
+            auto typeb = se.type.toBasetype();
             TY tynto = tb.nextOf().ty;
             if (!se.committed && (typeb.ty == Tarray || typeb.ty == Tsarray) && (tynto == Tchar || tynto == Twchar || tynto == Tdchar) && se.length(cast(int)tb.nextOf().size()) < (cast(TypeSArray)tb).dim.toInteger())
             {
@@ -932,7 +932,7 @@ public:
                 }
                 else if (exp.op == TOKslice)
                 {
-                    Type tx = toStaticArrayType(cast(SliceExp)exp);
+                    auto tx = toStaticArrayType(cast(SliceExp)exp);
                     if (tx)
                         dim2 = (cast(TypeSArray)tx).dim.toInteger();
                 }
@@ -960,11 +960,11 @@ public:
         if (t)
         {
             //printf("ExpInitializer::toExpression(t = %s) exp = %s\n", t->toChars(), exp->toChars());
-            Type tb = t.toBasetype();
+            auto tb = t.toBasetype();
             Expression e = (exp.op == TOKconstruct || exp.op == TOKblit) ? (cast(AssignExp)exp).e2 : exp;
             if (tb.ty == Tsarray && e.implicitConvTo(tb.nextOf()))
             {
-                TypeSArray tsa = cast(TypeSArray)tb;
+                auto tsa = cast(TypeSArray)tb;
                 size_t d = cast(size_t)tsa.dim.toInteger();
                 auto elements = new Expressions();
                 elements.setDim(d);

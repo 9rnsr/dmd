@@ -96,7 +96,7 @@ extern (C++) Expression getRightThis(Loc loc, Scope* sc, AggregateDeclaration ad
 {
     //printf("\ngetRightThis(e1 = %s, ad = %s, var = %s)\n", e1->toChars(), ad->toChars(), var->toChars());
 L1:
-    Type t = e1.type.toBasetype();
+    auto t = e1.type.toBasetype();
     //printf("e1->type = %s, var->type = %s\n", e1->type->toChars(), var->type->toChars());
     /* If e1 is not the 'this' pointer for ad
      */
@@ -288,7 +288,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
                         return new ErrorExp();
                     fd = f;
                     assert(fd.type.ty == Tfunction);
-                    TypeFunction tf = cast(TypeFunction)fd.type;
+                    auto tf = cast(TypeFunction)fd.type;
                     if (!tf.isproperty && global.params.enforcePropertySyntax)
                         goto Leprop;
                 }
@@ -309,7 +309,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
                         return new ErrorExp();
                     fd = f;
                     assert(fd.type.ty == Tfunction);
-                    TypeFunction tf = cast(TypeFunction)fd.type;
+                    auto tf = cast(TypeFunction)fd.type;
                     if (!tf.isref && e2)
                         goto Leproplvalue;
                     if (!tf.isproperty && global.params.enforcePropertySyntax)
@@ -408,7 +408,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
                 if (fd.errors)
                     return new ErrorExp();
                 assert(fd.type.ty == Tfunction);
-                TypeFunction tf = cast(TypeFunction)fd.type;
+                auto tf = cast(TypeFunction)fd.type;
                 if (!tf.isproperty && global.params.enforcePropertySyntax)
                     goto Leprop;
                 Expression e = new CallExp(loc, e1, e2);
@@ -422,7 +422,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
                 if (fd.errors)
                     return new ErrorExp();
                 assert(fd.type.ty == Tfunction);
-                TypeFunction tf = cast(TypeFunction)fd.type;
+                auto tf = cast(TypeFunction)fd.type;
                 if (!e2 || tf.isref)
                 {
                     if (!tf.isproperty && global.params.enforcePropertySyntax)
@@ -438,7 +438,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
         {
             // Keep better diagnostic message for invalid property usage of functions
             assert(fd.type.ty == Tfunction);
-            TypeFunction tf = cast(TypeFunction)fd.type;
+            auto tf = cast(TypeFunction)fd.type;
             if (!tf.isproperty && global.params.enforcePropertySyntax)
             {
                 error(loc, "not a property %s", e1.toChars());
@@ -736,7 +736,7 @@ extern (C++) Expression resolveUFCS(Scope* sc, CallExp ce)
             return null;
         }
         eleft = die.e1;
-        Type t = eleft.type.toBasetype();
+        auto t = eleft.type.toBasetype();
         if (t.ty == Tarray || t.ty == Tsarray || t.ty == Tnull || (t.isTypeBasic() && t.ty != Tvoid))
         {
             /* Built-in types and arrays have no callable properties, so do shortcut.
@@ -763,7 +763,7 @@ extern (C++) Expression resolveUFCS(Scope* sc, CallExp ce)
                 Expression key = (*ce.arguments)[0];
                 key = key.semantic(sc);
                 key = resolveProperties(sc, key);
-                TypeAArray taa = cast(TypeAArray)t;
+                auto taa = cast(TypeAArray)t;
                 key = key.implicitCastTo(sc, taa.index);
                 if (key.checkValue())
                     return new ErrorExp();
@@ -935,7 +935,7 @@ extern (C++) void expandTuples(Expressions* exps)
                 auto e = cast(TypeExp)arg;
                 if (e.type.toBasetype().ty == Ttuple)
                 {
-                    TypeTuple tt = cast(TypeTuple)e.type.toBasetype();
+                    auto tt = cast(TypeTuple)e.type.toBasetype();
                     if (!tt.arguments || tt.arguments.dim == 0)
                     {
                         exps.remove(i);
@@ -968,7 +968,7 @@ extern (C++) TupleDeclaration isAliasThisTuple(Expression e)
 {
     if (!e.type)
         return null;
-    Type t = e.type.toBasetype();
+    auto t = e.type.toBasetype();
 Lagain:
     if (auto s = t.toDsymbol(null))
     {
@@ -1255,7 +1255,7 @@ extern (C++) bool checkDefCtor(Loc loc, Type t)
  */
 extern (C++) Expression callCpCtor(Scope* sc, Expression e)
 {
-    Type tv = e.type.baseElemOf();
+    auto tv = e.type.baseElemOf();
     if (tv.ty == Tstruct)
     {
         auto sd = (cast(TypeStruct)tv).sym;
@@ -1337,7 +1337,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
     MOD wildmatch = 0;
     if (tthis && tf.isWild() && !isCtorCall)
     {
-        Type t = tthis;
+        auto t = tthis;
         if (t.isImmutable())
             wildmatch = MODimmutable;
         else if (t.isWildConst())
@@ -1394,8 +1394,8 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                     }
                 }
             L2:
-                Type tb = p.type.toBasetype();
-                Type tret = p.isLazyArray();
+                auto tb = p.type.toBasetype();
+                auto tret = p.isLazyArray();
                 switch (tb.ty)
                 {
                 case Tsarray:
@@ -1407,8 +1407,8 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                          * The array literal in the initializer of the hidden variable
                          * is now optimized. See Bugzilla 2356.
                          */
-                        Type tbn = (cast(TypeArray)tb).next;
-                        Type tsa = tbn.sarrayOf(nargs - i);
+                        auto tbn = (cast(TypeArray)tb).next;
+                        auto tsa = tbn.sarrayOf(nargs - i);
                         auto elements = new Expressions();
                         elements.setDim(nargs - i);
                         for (size_t u = 0; u < elements.dim; u++)
@@ -1527,7 +1527,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
             Parameter p = Parameter.getNth(tf.parameters, i);
             if (!(p.storageClass & STClazy && p.type.ty == Tvoid))
             {
-                Type tprm = p.type;
+                auto tprm = p.type;
                 if (p.type.hasWild())
                     tprm = p.type.substWildTo(wildmatch);
                 if (!tprm.equals(arg.type))
@@ -1549,7 +1549,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
             }
             else if (p.storageClass & STCout)
             {
-                Type t = arg.type;
+                auto t = arg.type;
                 if (!t.isMutable() || !t.isAssignable()) // check blit assignable
                 {
                     arg.error("cannot modify struct %s with immutable members", arg.toChars());
@@ -1653,11 +1653,11 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
             }
             // Convert static arrays to dynamic arrays
             // BUG: I don't think this is right for D2
-            Type tb = arg.type.toBasetype();
+            auto tb = arg.type.toBasetype();
             if (tb.ty == Tsarray)
             {
-                TypeSArray ts = cast(TypeSArray)tb;
-                Type ta = ts.next.arrayOf();
+                auto ts = cast(TypeSArray)tb;
+                auto ta = ts.next.arrayOf();
                 if (ts.size(arg.loc) == 0)
                     arg = new NullExp(arg.loc, ta);
                 else
@@ -1727,7 +1727,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                     continue;
             }
             TypeStruct ts = null;
-            Type tv = arg.type.baseElemOf();
+            auto tv = arg.type.baseElemOf();
             if (tv.ty == Tstruct)
                 ts = cast(TypeStruct)tv;
             if (anythrow && i < lastthrow) // if there are throws after this arg
@@ -1824,7 +1824,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
         e = e.semantic(sc);
         arguments.insert(0, e);
     }
-    Type tret = tf.next;
+    auto tret = tf.next;
     if (isCtorCall)
     {
         //printf("[%s] fd = %s %s, %d %d %d\n", loc.toChars(), fd->toChars(), fd->type->toChars(),
@@ -2081,15 +2081,15 @@ extern (C++) bool needDirectEq(Scope* sc, Type t1, Type t2)
 {
     assert(t1.ty == Tarray || t1.ty == Tsarray);
     assert(t2.ty == Tarray || t2.ty == Tsarray);
-    Type t1n = t1.nextOf().toBasetype();
-    Type t2n = t2.nextOf().toBasetype();
+    auto t1n = t1.nextOf().toBasetype();
+    auto t2n = t2.nextOf().toBasetype();
     if (((t1n.ty == Tchar || t1n.ty == Twchar || t1n.ty == Tdchar) && (t2n.ty == Tchar || t2n.ty == Twchar || t2n.ty == Tdchar)) || (t1n.ty == Tvoid || t2n.ty == Tvoid))
     {
         return false;
     }
     if (t1n.constOf() != t2n.constOf())
         return true;
-    Type t = t1n;
+    auto t = t1n;
     while (t.toBasetype().nextOf())
         t = t.nextOf().toBasetype();
     if (t.ty != Tstruct)
@@ -3054,8 +3054,8 @@ public:
             assert(type);
         }
         Expression e = this;
-        Type t = type;
-        Type tb = type.toBasetype();
+        auto t = type;
+        auto tb = type.toBasetype();
         Type att = null;
     Lagain:
         // Structs can be converted to bool using opCast(bool)()
@@ -3232,7 +3232,7 @@ public:
     real_t toReal()
     {
         normalize(); // necessary until we fix all the paints of 'type'
-        Type t = type.toBasetype();
+        auto t = type.toBasetype();
         if (t.ty == Tuns64)
             return ldouble(cast(d_uns64)value);
         else
@@ -3576,7 +3576,7 @@ public:
                 }
                 else
                 {
-                    Type t = withsym.withstate.wthis.type;
+                    auto t = withsym.withstate.wthis.type;
                     if (t.ty == Tpointer)
                         t = (cast(TypePointer)t).next;
                     e = typeDotIdExp(loc, t, ident);
@@ -4986,7 +4986,7 @@ public:
                  */
                 if (e.type.castMod(0) != type.castMod(0) && type.ty == Tsarray)
                 {
-                    TypeSArray tsa = cast(TypeSArray)type;
+                    auto tsa = cast(TypeSArray)type;
                     size_t length = cast(size_t)tsa.dim.toInteger();
                     auto z = new Expressions();
                     z.setDim(length);
@@ -5509,7 +5509,7 @@ public:
                 checkSafety(sc, f);
                 checkNogc(sc, f);
                 checkAccess(cd, loc, sc, f);
-                TypeFunction tf = cast(TypeFunction)f.type;
+                auto tf = cast(TypeFunction)f.type;
                 Type rettype;
                 if (functionParameters(loc, sc, tf, null, newargs, f, &rettype, &newprefix))
                     return new ErrorExp();
@@ -5534,7 +5534,7 @@ public:
                 checkSafety(sc, f);
                 checkNogc(sc, f);
                 checkAccess(cd, loc, sc, f);
-                TypeFunction tf = cast(TypeFunction)f.type;
+                auto tf = cast(TypeFunction)f.type;
                 if (!arguments)
                     arguments = new Expressions();
                 if (functionParameters(loc, sc, tf, type, arguments, f, &type, &argprefix))
@@ -5578,7 +5578,7 @@ public:
                 checkSafety(sc, f);
                 checkNogc(sc, f);
                 checkAccess(sd, loc, sc, f);
-                TypeFunction tf = cast(TypeFunction)f.type;
+                auto tf = cast(TypeFunction)f.type;
                 Type rettype;
                 if (functionParameters(loc, sc, tf, null, newargs, f, &rettype, &newprefix))
                     return new ErrorExp();
@@ -5603,7 +5603,7 @@ public:
                 checkSafety(sc, f);
                 checkNogc(sc, f);
                 checkAccess(sd, loc, sc, f);
-                TypeFunction tf = cast(TypeFunction)f.type;
+                auto tf = cast(TypeFunction)f.type;
                 if (!arguments)
                     arguments = new Expressions();
                 if (functionParameters(loc, sc, tf, type, arguments, f, &type, &argprefix))
@@ -5626,7 +5626,7 @@ public:
         }
         else if (tb.ty == Tarray && nargs)
         {
-            Type tn = tb.nextOf().baseElemOf();
+            auto tn = tb.nextOf().baseElemOf();
             Dsymbol s = tn.toDsymbol(sc);
             AggregateDeclaration ad = s ? s.isAggregateDeclaration() : null;
             if (ad && ad.noDefaultCtor)
@@ -6092,7 +6092,7 @@ public:
                     tfv = cast(TypeFunction)fd.treq.nextOf();
                 if (tfv)
                 {
-                    TypeFunction tfl = cast(TypeFunction)fd.type;
+                    auto tfl = cast(TypeFunction)fd.type;
                     tfl.next = tfv.nextOf();
                 }
             }
@@ -6175,7 +6175,7 @@ public:
             genIdent(sc);
             assert(td.parameters && td.parameters.dim);
             td.semantic(sc);
-            TypeFunction tfl = cast(TypeFunction)fd.type;
+            auto tfl = cast(TypeFunction)fd.type;
             size_t dim = Parameter.dim(tfl.parameters);
             if (arguments.dim < dim)
             {
@@ -6248,7 +6248,7 @@ public:
             }
             // Parameter types inference from 'tof'
             assert(td._scope);
-            TypeFunction tf = cast(TypeFunction)fd.type;
+            auto tf = cast(TypeFunction)fd.type;
             //printf("\ttof = %s\n", tof->toChars());
             //printf("\ttf  = %s\n", tf->toChars());
             size_t dim = Parameter.dim(tf.parameters);
@@ -6270,7 +6270,7 @@ public:
                 }
                 assert(u < dim);
                 Parameter pto = Parameter.getNth(tof.parameters, u);
-                Type t = pto.type;
+                auto t = pto.type;
                 if (t.ty == Terror)
                     goto L1;
                 tiargs.push(t);
@@ -6291,7 +6291,7 @@ public:
         if (!tof || !tof.next)
             return MATCHnomatch;
         assert(type && type != Type.tvoid);
-        TypeFunction tfx = cast(TypeFunction)fd.type;
+        auto tfx = cast(TypeFunction)fd.type;
         bool convertMatch = (type.ty != to.ty);
         if (fd.inferRetType && tfx.next.implicitConvTo(tof.next) == MATCHconvert)
         {
@@ -6516,7 +6516,7 @@ public:
         {
             printf("TypeidExp::semantic() %s\n", toChars());
         }
-        Type ta = isType(obj);
+        auto ta = isType(obj);
         Expression ea = isExpression(obj);
         Dsymbol sa = isDsymbol(obj);
         //printf("ta %p ea %p sa %p\n", ta, ea, sa);
@@ -6689,7 +6689,7 @@ public:
         Scope* sc2 = sc.copy(); // keep sc->flags
         sc2.tinst = null;
         sc2.minst = null;
-        Type t = targ.trySemantic(loc, sc2);
+        auto t = targ.trySemantic(loc, sc2);
         sc2.pop();
         if (!t)
             goto Lno;
@@ -7103,8 +7103,8 @@ public:
     final Expression checkOpAssignTypes(Scope* sc)
     {
         // At that point t1 and t2 are the merged types. type is the original type of the lhs.
-        Type t1 = e1.type;
-        Type t2 = e2.type;
+        auto t1 = e1.type;
+        auto t2 = e2.type;
         // T opAssign floating yields a floating. Prevent truncating conversions (float to int).
         // See issue 3841.
         // Should we also prevent double to float (type->isfloating() && type->size() < t2 ->size()) ?
@@ -7825,7 +7825,7 @@ public:
             eleft = null;
             eright = e1;
         }
-        Type t1b = e1.type.toBasetype();
+        auto t1b = e1.type.toBasetype();
         if (eright.op == TOKimport) // also used for template alias's
         {
             ScopeExp ie = cast(ScopeExp)eright;
@@ -7917,7 +7917,7 @@ public:
                     //printf("'%s' is an overload set\n", o->toChars());
                     return new OverExp(loc, o);
                 }
-                Type t = s.getType();
+                auto t = s.getType();
                 if (t)
                 {
                     return new TypeExp(loc, t);
@@ -7979,7 +7979,7 @@ public:
         }
         else if (t1b.ty == Tpointer && e1.type.ty != Tenum && ident != Id._init && ident != Id.__sizeof && ident != Id.__xalignof && ident != Id.offsetof && ident != Id._mangleof && ident != Id.stringof)
         {
-            Type t1bn = t1b.nextOf();
+            auto t1bn = t1b.nextOf();
             if (flag)
             {
                 AggregateDeclaration ad = isAggregate(t1bn);
@@ -8122,7 +8122,7 @@ public:
         }
         e1 = e1.semantic(sc);
         e1 = e1.addDtorHook(sc);
-        Type t1 = e1.type;
+        auto t1 = e1.type;
         if (auto fd = var.isFuncDeclaration())
         {
             // for functions, do checks after overload resolution
@@ -8320,7 +8320,7 @@ public:
         if (e == die)
         {
             e1 = die.e1; // take back
-            Type t1b = e1.type.toBasetype();
+            auto t1b = e1.type.toBasetype();
             if (t1b.ty == Tarray || t1b.ty == Tsarray || t1b.ty == Taarray || t1b.ty == Tnull || (t1b.isTypeBasic() && t1b.ty != Tvoid))
             {
                 /* No built-in type has templatized properties, so do shortcut.
@@ -8842,8 +8842,8 @@ public:
                 if (ve.var.storage_class & STClazy)
                 {
                     // lazy paramaters can be called without violating purity and safety
-                    Type tw = ve.var.type;
-                    Type tc = ve.var.type.substWildTo(MODconst);
+                    auto tw = ve.var.type;
+                    auto tc = ve.var.type.substWildTo(MODconst);
                     auto tf = new TypeFunction(null, tc, 0, LINKd, STCsafe | STCpure);
                     (tf = cast(TypeFunction)tf.semantic(loc, sc)).next = tw; // hack for bug7757
                     auto t = new TypeDelegate(tf);
@@ -9254,7 +9254,7 @@ public:
             }
             else if (t1.ty == Tdelegate)
             {
-                TypeDelegate td = cast(TypeDelegate)t1;
+                auto td = cast(TypeDelegate)t1;
                 assert(td.next.ty == Tfunction);
                 tf = cast(TypeFunction)td.next;
                 p = "delegate";
@@ -9378,7 +9378,7 @@ public:
             else
             {
                 f = f.toAliasFunc();
-                TypeFunction tf = cast(TypeFunction)f.type;
+                auto tf = cast(TypeFunction)f.type;
                 if (!tf.callMatch(null, arguments))
                 {
                     OutBuffer buf;
@@ -9437,9 +9437,9 @@ public:
         }
         if (f && f.tintro)
         {
-            Type t = type;
+            auto t = type;
             int offset = 0;
-            TypeFunction tf = cast(TypeFunction)f.tintro;
+            auto tf = cast(TypeFunction)f.tintro;
             if (tf.next.isBaseOf(t, &offset) && offset)
             {
                 type = tf.next;
@@ -9456,7 +9456,7 @@ public:
 
     bool isLvalue()
     {
-        Type tb = e1.type.toBasetype();
+        auto tb = e1.type.toBasetype();
         if (tb.ty == Tdelegate || tb.ty == Tpointer)
             tb = tb.nextOf();
         if (tb.ty == Tfunction && (cast(TypeFunction)tb).isref)
@@ -9483,14 +9483,14 @@ public:
          */
         if (e1.type && e1.type.ty == Tfunction)
         {
-            TypeFunction tf = cast(TypeFunction)e1.type;
+            auto tf = cast(TypeFunction)e1.type;
             if (tf.isref)
                 return this;
         }
-        Type tv = type.baseElemOf();
+        auto tv = type.baseElemOf();
         if (tv.ty == Tstruct)
         {
-            TypeStruct ts = cast(TypeStruct)tv;
+            auto ts = cast(TypeStruct)tv;
             auto sd = ts.sym;
             if (sd.dtor)
             {
@@ -9730,7 +9730,7 @@ public:
         Expression e = op_overload(sc);
         if (e)
             return e;
-        Type tb = e1.type.toBasetype();
+        auto tb = e1.type.toBasetype();
         switch (tb.ty)
         {
         case Tpointer:
@@ -9810,7 +9810,7 @@ public:
         if (e)
             return e;
         type = e1.type;
-        Type tb = type.toBasetype();
+        auto tb = type.toBasetype();
         if (tb.ty == Tarray || tb.ty == Tsarray)
         {
             if (!isArrayOpValid(e1))
@@ -9882,7 +9882,7 @@ public:
         if (e)
             return e;
         type = e1.type;
-        Type tb = type.toBasetype();
+        auto tb = type.toBasetype();
         if (tb.ty == Tarray || tb.ty == Tsarray)
         {
             if (!isArrayOpValid(e1))
@@ -9987,12 +9987,12 @@ public:
         if (e1.op == TOKerror)
             return e1;
         type = Type.tvoid;
-        Type tb = e1.type.toBasetype();
+        auto tb = e1.type.toBasetype();
         switch (tb.ty)
         {
         case Tclass:
             {
-                TypeClass tc = cast(TypeClass)tb;
+                auto tc = cast(TypeClass)tb;
                 auto cd = tc.sym;
                 if (cd.isCOMinterface())
                 {
@@ -10007,7 +10007,7 @@ public:
             tb = (cast(TypePointer)tb).next.toBasetype();
             if (tb.ty == Tstruct)
             {
-                TypeStruct ts = cast(TypeStruct)tb;
+                auto ts = cast(TypeStruct)tb;
                 auto sd = ts.sym;
                 auto f = sd.aggDelete;
                 auto fd = sd.dtor;
@@ -10041,7 +10041,7 @@ public:
                 }
                 if (f)
                 {
-                    Type tpv = Type.tvoid.pointerTo();
+                    auto tpv = Type.tvoid.pointerTo();
                     Expression e = ea ? new VarExp(loc, v) : e1.castTo(sc, tpv);
                     e = new CallExp(loc, new VarExp(loc, f), e);
                     ec = e.semantic(sc);
@@ -10054,10 +10054,10 @@ public:
             break;
         case Tarray:
             {
-                Type tv = tb.nextOf().baseElemOf();
+                auto tv = tb.nextOf().baseElemOf();
                 if (tv.ty == Tstruct)
                 {
-                    TypeStruct ts = cast(TypeStruct)tv;
+                    auto ts = cast(TypeStruct)tv;
                     auto sd = ts.sym;
                     if (sd.dtor)
                         semanticTypeInfo(sc, ts);
@@ -10160,8 +10160,8 @@ public:
             if (auto e = op_overload(sc))
                 return e.implicitCastTo(sc, to);
         }
-        Type t1b = e1.type.toBasetype();
-        Type tob = to.toBasetype();
+        auto t1b = e1.type.toBasetype();
+        auto tob = to.toBasetype();
         if (tob.ty == Tstruct && !tob.equals(t1b))
         {
             /* Look to replace:
@@ -10215,15 +10215,15 @@ public:
                 t1b = t1b.nextOf().arrayOf();
             if (tob.ty == Tarray && t1b.ty == Tarray)
             {
-                Type tobn = tob.nextOf().toBasetype();
-                Type t1bn = t1b.nextOf().toBasetype();
+                auto tobn = tob.nextOf().toBasetype();
+                auto t1bn = t1b.nextOf().toBasetype();
                 if (!tobn.hasPointers() && MODimplicitConv(t1bn.mod, tobn.mod))
                     goto Lsafe;
             }
             if (tob.ty == Tpointer && t1b.ty == Tpointer)
             {
-                Type tobn = tob.nextOf().toBasetype();
-                Type t1bn = t1b.nextOf().toBasetype();
+                auto tobn = tob.nextOf().toBasetype();
+                auto t1bn = t1b.nextOf().toBasetype();
                 // If the struct is opaque we don't know about the struct members and the cast becomes unsafe
                 bool sfwrd = tobn.ty == Tstruct && !(cast(StructDeclaration)(cast(TypeStruct)tobn).sym).members || t1bn.ty == Tstruct && !(cast(StructDeclaration)(cast(TypeStruct)t1bn).sym).members;
                 if (!sfwrd && !tobn.hasPointers() && tobn.ty != Tfunction && t1bn.ty != Tfunction && tobn.size() <= t1bn.size() && MODimplicitConv(t1bn.mod, tobn.mod))
@@ -10280,10 +10280,10 @@ public:
         type = to.semantic(loc, sc);
         if (e1.op == TOKerror || type.ty == Terror)
             return e1;
-        Type tb = type.toBasetype();
+        auto tb = type.toBasetype();
         assert(tb.ty == Tvector);
-        TypeVector tv = cast(TypeVector)tb;
-        Type te = tv.elementType();
+        auto tv = cast(TypeVector)tb;
+        auto te = tv.elementType();
         dim = cast(int)(tv.size(loc) / te.size(loc));
         return this;
     }
@@ -10348,7 +10348,7 @@ public:
             if (e1.op == TOKarrayliteral)
             {
                 // Convert [a,b,c][] to [a,b,c]
-                Type t1b = e1.type.toBasetype();
+                auto t1b = e1.type.toBasetype();
                 Expression e = e1;
                 if (t1b.ty == Tsarray)
                 {
@@ -10370,7 +10370,7 @@ public:
                 return e1;
             }
         }
-        Type t1b = e1.type.toBasetype();
+        auto t1b = e1.type.toBasetype();
         AggregateDeclaration ad = isAggregate(t1b);
         if (t1b.ty == Tpointer)
         {
@@ -10719,7 +10719,7 @@ public:
         if (e1x.op == TOKerror)
             return e1x;
         e1 = e1x;
-        Type t1 = e1.type.toBasetype();
+        auto t1 = e1.type.toBasetype();
         if (t1.ty != Tclass && t1.ty != Tstruct)
         {
             // Convert to IndexExp
@@ -11063,7 +11063,7 @@ public:
         if (e1.type.ty == Terror)
             return new ErrorExp();
         // Note that unlike C we do not implement the int[ptr]
-        Type t1b = e1.type.toBasetype();
+        auto t1b = e1.type.toBasetype();
         /* Run semantic on e2
          */
         Scope* scx = sc;
@@ -11129,7 +11129,7 @@ public:
             }
         case Taarray:
             {
-                TypeAArray taa = cast(TypeAArray)t1b;
+                auto taa = cast(TypeAArray)t1b;
                 /* We can skip the implicit conversion if they differ only by
                  * constness (Bugzilla 2684, see also bug 2954b)
                  */
@@ -11236,7 +11236,7 @@ public:
     {
         if (e1.type.toBasetype().ty == Taarray)
         {
-            Type t2b = e2.type.toBasetype();
+            auto t2b = e2.type.toBasetype();
             if (t2b.ty == Tarray && t2b.nextOf().isMutable())
             {
                 error("associative arrays can only be assigned values with immutable keys, not %s", e2.type.toChars());
@@ -11297,7 +11297,7 @@ public:
             return new ErrorExp();
         }
         e1 = e1.optimize(WANTvalue);
-        Type t1 = e1.type.toBasetype();
+        auto t1 = e1.type.toBasetype();
         if (t1.ty == Tclass || t1.ty == Tstruct || e1.op == TOKarraylength)
         {
             /* Check for operator overloading,
@@ -11428,7 +11428,7 @@ public:
             ArrayExp ae = cast(ArrayExp)e1;
             ae.e1 = ae.e1.semantic(sc);
             ae.e1 = resolveProperties(sc, ae.e1);
-            Type t1 = ae.e1.type.toBasetype();
+            auto t1 = ae.e1.type.toBasetype();
             AggregateDeclaration ad = isAggregate(t1);
             if (ad)
             {
@@ -11500,7 +11500,7 @@ public:
             SliceExp ae = cast(SliceExp)e1;
             ae.e1 = ae.e1.semantic(sc);
             ae.e1 = resolveProperties(sc, ae.e1);
-            Type t1 = ae.e1.type.toBasetype();
+            auto t1 = ae.e1.type.toBasetype();
             AggregateDeclaration ad = isAggregate(t1);
             if (ad)
             {
@@ -11589,7 +11589,7 @@ public:
             e1 = e1x;
             assert(e1.type);
         }
-        Type t1 = e1.type.toBasetype();
+        auto t1 = e1.type.toBasetype();
         /* Run this->e2 semantic.
          * Different from other binary expressions, the analysis of e2
          * depends on the result of e1 in assignments.
@@ -11648,7 +11648,7 @@ public:
                 if (!td)
                     goto Lnomatch;
                 assert(e1.type.ty == Ttuple);
-                TypeTuple tt = cast(TypeTuple)e1.type;
+                auto tt = cast(TypeTuple)e1.type;
                 Identifier id = Identifier.generateId("__tup");
                 auto ei = new ExpInitializer(e2x.loc, e2x);
                 auto v = new VarDeclaration(e2x.loc, null, id, ei);
@@ -11719,7 +11719,7 @@ public:
             auto sd = (cast(TypeStruct)t1).sym;
             if (op == TOKconstruct)
             {
-                Type t2 = e2x.type.toBasetype();
+                auto t2 = e2x.type.toBasetype();
                 if (t2.ty == Tstruct && sd == (cast(TypeStruct)t2).sym)
                 {
                     CallExp ce;
@@ -11867,7 +11867,7 @@ public:
                      *          : ConstructExp(__aatmp[__aakey], __aaval));
                      */
                     IndexExp ie = cast(IndexExp)e1x;
-                    Type t2 = e2x.type.toBasetype();
+                    auto t2 = e2x.type.toBasetype();
                     Expression e0 = null;
                     Expression ea = ie.e1;
                     Expression ek = ie.e2;
@@ -12010,7 +12010,7 @@ public:
                     }
                     else if (e2x.op == TOKslice)
                     {
-                        Type tx = toStaticArrayType(cast(SliceExp)e2x);
+                        auto tx = toStaticArrayType(cast(SliceExp)e2x);
                         if (tx)
                             dim2 = (cast(TypeSArray)tx).dim.toInteger();
                     }
@@ -12026,7 +12026,7 @@ public:
                 {
                     // If multidimensional static array, treat as one large array
                     dinteger_t dim = (cast(TypeSArray)t1).dim.toInteger();
-                    Type t = t1;
+                    auto t = t1;
                     while (1)
                     {
                         t = t.nextOf().toBasetype();
@@ -12058,13 +12058,13 @@ public:
             if (ale1x.op == TOKerror)
                 return ale1x;
             ale.e1 = ale1x;
-            Type tn = ale.e1.type.toBasetype().nextOf();
+            auto tn = ale.e1.type.toBasetype().nextOf();
             checkDefCtor(ale.loc, tn);
             semanticTypeInfo(sc, tn);
         }
         else if (e1.op == TOKslice)
         {
-            Type tn = e1.type.nextOf();
+            auto tn = e1.type.nextOf();
             if (op == TOKassign && !tn.isMutable())
             {
                 error("slice %s is not mutable", e1.toChars());
@@ -12097,10 +12097,10 @@ public:
         /* Tweak e2 based on the type of e1.
          */
         Expression e2x = e2;
-        Type t2 = e2x.type.toBasetype();
+        auto t2 = e2x.type.toBasetype();
         // If it is a array, get the element type. Note that it may be
         // multi-dimensional.
-        Type telem = t1;
+        auto telem = t1;
         while (telem.ty == Tarray)
             telem = telem.nextOf();
         if (e1.op == TOKslice && t1.nextOf() && (telem.ty != Tvoid || e2x.op == TOKnull) && e2x.implicitConvTo(t1.nextOf()))
@@ -12122,7 +12122,7 @@ public:
              * check the mismatch.
              */
             SliceExp se1 = cast(SliceExp)e1;
-            TypeSArray tsa1 = cast(TypeSArray)toStaticArrayType(se1);
+            auto tsa1 = cast(TypeSArray)toStaticArrayType(se1);
             TypeSArray tsa2 = null;
             if (e2x.op == TOKarrayliteral)
                 tsa2 = cast(TypeSArray)t2.nextOf().sarrayOf((cast(ArrayLiteralExp)e2x).elements.dim);
@@ -12151,8 +12151,8 @@ public:
                 const(char)* e2str = e2x.toChars();
                 warning("explicit element-wise assignment %s = (%s)[] is better than %s = %s", e1str, e2str, e1str, e2str);
             }
-            Type t2n = t2.nextOf();
-            Type t1n = t1.nextOf();
+            auto t2n = t2.nextOf();
+            auto t1n = t1.nextOf();
             int offset;
             if (t2n.equivalent(t1n) || t1n.isBaseOf(t2n, &offset) && offset == 0)
             {
@@ -12450,8 +12450,8 @@ public:
             else if (auto ex = typeCombine(this, sc))
                 return ex;
             // Check element types are arithmetic
-            Type tb1 = e1.type.nextOf().toBasetype();
-            Type tb2 = e2.type.toBasetype();
+            auto tb1 = e1.type.nextOf().toBasetype();
+            auto tb2 = e2.type.toBasetype();
             if (tb2.ty == Tarray || tb2.ty == Tsarray)
                 tb2 = tb2.nextOf().toBasetype();
             if ((tb1.isintegral() || tb1.isfloating()) && (tb2.isintegral() || tb2.isfloating()))
@@ -12581,9 +12581,9 @@ public:
             return e2;
         if (checkNonAssignmentArrayOp(e2))
             return new ErrorExp();
-        Type tb1 = e1.type.toBasetype();
-        Type tb1next = tb1.nextOf();
-        Type tb2 = e2.type.toBasetype();
+        auto tb1 = e1.type.toBasetype();
+        auto tb1next = tb1.nextOf();
+        auto tb2 = e2.type.toBasetype();
         if ((tb1.ty == Tarray) && (tb2.ty == Tarray || tb2.ty == Tsarray) && (e2.implicitConvTo(e1.type) || (tb2.nextOf().implicitConvTo(tb1next) && (tb2.nextOf().size(Loc()) == tb1next.size(Loc())))))
         {
             // Append array
@@ -12646,8 +12646,8 @@ public:
         Expression e = op_overload(sc);
         if (e)
             return e;
-        Type tb1 = e1.type.toBasetype();
-        Type tb2 = e2.type.toBasetype();
+        auto tb1 = e1.type.toBasetype();
+        auto tb2 = e2.type.toBasetype();
         bool err = false;
         if (tb1.ty == Tdelegate || tb1.ty == Tpointer && tb1.nextOf().ty == Tfunction)
         {
@@ -12669,7 +12669,7 @@ public:
         }
         if (auto ex = typeCombine(this, sc))
             return ex;
-        Type tb = type.toBasetype();
+        auto tb = type.toBasetype();
         if (tb.ty == Tarray || tb.ty == Tsarray)
         {
             if (!isArrayOpValid(this))
@@ -12735,8 +12735,8 @@ public:
         Expression e = op_overload(sc);
         if (e)
             return e;
-        Type t1 = e1.type.toBasetype();
-        Type t2 = e2.type.toBasetype();
+        auto t1 = e1.type.toBasetype();
+        auto t2 = e2.type.toBasetype();
         bool err = false;
         if (t1.ty == Tdelegate || t1.ty == Tpointer && t1.nextOf().ty == Tfunction)
         {
@@ -12787,7 +12787,7 @@ public:
         }
         if (auto ex = typeCombine(this, sc))
             return ex;
-        Type tb = type.toBasetype();
+        auto tb = type.toBasetype();
         if (tb.ty == Tarray || tb.ty == Tsarray)
         {
             if (!isArrayOpValid(this))
@@ -12851,8 +12851,8 @@ public:
         Expression e = op_overload(sc);
         if (e)
             return e;
-        Type tb1 = e1.type.toBasetype();
-        Type tb2 = e2.type.toBasetype();
+        auto tb1 = e1.type.toBasetype();
+        auto tb2 = e2.type.toBasetype();
         /* BUG: Should handle things like:
          *      char c;
          *      c ~ ' '
@@ -12863,8 +12863,8 @@ public:
             e1.type.print();
             e2.type.print();
         }
-        Type tb1next = tb1.nextOf();
-        Type tb2next = tb2.nextOf();
+        auto tb1next = tb1.nextOf();
+        auto tb2next = tb2.nextOf();
         // Check for: array ~ array
         if (tb1next && tb2next && (tb1next.implicitConvTo(tb2next) >= MATCHconst || tb2next.implicitConvTo(tb1next) >= MATCHconst || e1.op == TOKarrayliteral && e1.implicitConvTo(tb2) || e2.op == TOKarrayliteral && e2.implicitConvTo(tb1)))
         {
@@ -12940,8 +12940,8 @@ public:
     Lpeer:
         if ((tb1.ty == Tsarray || tb1.ty == Tarray) && (tb2.ty == Tsarray || tb2.ty == Tarray) && (tb1next.mod || tb2next.mod) && (tb1next.mod != tb2next.mod))
         {
-            Type t1 = tb1next.mutableOf().constOf().arrayOf();
-            Type t2 = tb2next.mutableOf().constOf().arrayOf();
+            auto t1 = tb1next.mutableOf().constOf().arrayOf();
+            auto t2 = tb2next.mutableOf().constOf().arrayOf();
             if (e1.op == TOKstring && !(cast(StringExp)e1).committed)
                 e1.type = t1;
             else
@@ -12954,7 +12954,7 @@ public:
         if (auto ex = typeCombine(this, sc))
             return ex;
         type = type.toHeadMutable();
-        Type tb = type.toBasetype();
+        auto tb = type.toBasetype();
         if (tb.ty == Tsarray)
             type = tb.nextOf().arrayOf();
         if (type.ty == Tarray && tb1next && tb2next && tb1next.mod != tb2next.mod)
@@ -12973,8 +12973,8 @@ public:
             type.print();
             print();
         }
-        Type t1 = e1.type.toBasetype();
-        Type t2 = e2.type.toBasetype();
+        auto t1 = e1.type.toBasetype();
+        auto t2 = e2.type.toBasetype();
         if (e1.op == TOKstring && e2.op == TOKstring)
         {
             e = optimize(WANTvalue);
@@ -13022,7 +13022,7 @@ public:
             return e;
         if (auto ex = typeCombine(this, sc))
             return ex;
-        Type tb = type.toBasetype();
+        auto tb = type.toBasetype();
         if (tb.ty == Tarray || tb.ty == Tsarray)
         {
             if (!isArrayOpValid(this))
@@ -13036,8 +13036,8 @@ public:
             return new ErrorExp();
         if (type.isfloating())
         {
-            Type t1 = e1.type;
-            Type t2 = e2.type;
+            auto t1 = e1.type;
+            auto t2 = e2.type;
             if (t1.isreal())
             {
                 type = t2;
@@ -13113,7 +13113,7 @@ public:
             return e;
         if (auto ex = typeCombine(this, sc))
             return ex;
-        Type tb = type.toBasetype();
+        auto tb = type.toBasetype();
         if (tb.ty == Tarray || tb.ty == Tsarray)
         {
             if (!isArrayOpValid(this))
@@ -13127,8 +13127,8 @@ public:
             return new ErrorExp();
         if (type.isfloating())
         {
-            Type t1 = e1.type;
-            Type t2 = e2.type;
+            auto t1 = e1.type;
+            auto t2 = e2.type;
             if (t1.isreal())
             {
                 type = t2;
@@ -13205,7 +13205,7 @@ public:
             return e;
         if (auto ex = typeCombine(this, sc))
             return ex;
-        Type tb = type.toBasetype();
+        auto tb = type.toBasetype();
         if (tb.ty == Tarray || tb.ty == Tsarray)
         {
             if (!isArrayOpValid(this))
@@ -13260,7 +13260,7 @@ public:
             return e;
         if (auto ex = typeCombine(this, sc))
             return ex;
-        Type tb = type.toBasetype();
+        auto tb = type.toBasetype();
         if (tb.ty == Tarray || tb.ty == Tsarray)
         {
             if (!isArrayOpValid(this))
@@ -13491,7 +13491,7 @@ public:
         }
         if (auto ex = typeCombine(this, sc))
             return ex;
-        Type tb = type.toBasetype();
+        auto tb = type.toBasetype();
         if (tb.ty == Tarray || tb.ty == Tsarray)
         {
             if (!isArrayOpValid(this))
@@ -13537,7 +13537,7 @@ public:
         }
         if (auto ex = typeCombine(this, sc))
             return ex;
-        Type tb = type.toBasetype();
+        auto tb = type.toBasetype();
         if (tb.ty == Tarray || tb.ty == Tsarray)
         {
             if (!isArrayOpValid(this))
@@ -13583,7 +13583,7 @@ public:
         }
         if (auto ex = typeCombine(this, sc))
             return ex;
-        Type tb = type.toBasetype();
+        auto tb = type.toBasetype();
         if (tb.ty == Tarray || tb.ty == Tsarray)
         {
             if (!isArrayOpValid(this))
@@ -13743,8 +13743,8 @@ public:
             return this;
         if (auto ex = binSemanticProp(sc))
             return ex;
-        Type t1 = e1.type.toBasetype();
-        Type t2 = e2.type.toBasetype();
+        auto t1 = e1.type.toBasetype();
+        auto t2 = e2.type.toBasetype();
         if (t1.ty == Tclass && e2.op == TOKnull || t2.ty == Tclass && e1.op == TOKnull)
         {
             error("do not use null when comparing class types");
@@ -13773,8 +13773,8 @@ public:
         t2 = e2.type.toBasetype();
         if ((t1.ty == Tarray || t1.ty == Tsarray || t1.ty == Tpointer) && (t2.ty == Tarray || t2.ty == Tsarray || t2.ty == Tpointer))
         {
-            Type t1next = t1.nextOf();
-            Type t2next = t2.nextOf();
+            auto t1next = t1.nextOf();
+            auto t2next = t2.nextOf();
             if (t1next.implicitConvTo(t2next) < MATCHconst && t2next.implicitConvTo(t1next) < MATCHconst && (t1next.ty != Tvoid && t2next.ty != Tvoid))
             {
                 error("array comparison type mismatch, %s vs %s", t1next.toChars(), t2next.toChars());
@@ -13894,12 +13894,12 @@ public:
         Expression e = op_overload(sc);
         if (e)
             return e;
-        Type t2b = e2.type.toBasetype();
+        auto t2b = e2.type.toBasetype();
         switch (t2b.ty)
         {
         case Taarray:
             {
-                TypeAArray ta = cast(TypeAArray)t2b;
+                auto ta = cast(TypeAArray)t2b;
                 // Special handling for array keys
                 if (!arrayTypeCompatible(e1.loc, e1.type, ta.index))
                 {
@@ -13988,8 +13988,8 @@ public:
                 }
             }
         }
-        Type t1 = e1.type.toBasetype();
-        Type t2 = e2.type.toBasetype();
+        auto t1 = e1.type.toBasetype();
+        auto t2 = e2.type.toBasetype();
         if (t1.ty == Tclass && e2.op == TOKnull || t2.ty == Tclass && e1.op == TOKnull)
         {
             error("use '%s' instead of '%s' when comparing with null", Token.toChars(op == TOKequal ? TOKidentity : TOKnotidentity), Token.toChars(op));
@@ -14210,8 +14210,8 @@ public:
             return new ErrorExp();
         e2 = e2x;
         // If either operand is void, the result is void
-        Type t1 = e1.type;
-        Type t2 = e2.type;
+        auto t1 = e1.type;
+        auto t2 = e2.type;
         if (t1.ty == Tvoid || t2.ty == Tvoid)
             type = Type.tvoid;
         else if (t1 == t2)

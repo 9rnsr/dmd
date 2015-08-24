@@ -678,7 +678,7 @@ public:
                     result = BEfallthru;
                     return;
                 }
-                Type t = s.exp.type.toBasetype();
+                auto t = s.exp.type.toBasetype();
                 auto cd = t.isClassHandle();
                 assert(cd);
                 if (cd == ClassDeclaration.errorException || ClassDeclaration.errorException.isBaseOf(cd, null))
@@ -2096,7 +2096,7 @@ public:
                         Parameter fparam = Parameter.getNth(fparameters, 0);
                         if ((fparam.type.ty == Tpointer || fparam.type.ty == Tdelegate) && fparam.type.nextOf().ty == Tfunction)
                         {
-                            TypeFunction tf = cast(TypeFunction)fparam.type.nextOf();
+                            auto tf = cast(TypeFunction)fparam.type.nextOf();
                             foreachParamCount = Parameter.dim(tf.parameters);
                             foundMismatch = true;
                         }
@@ -2113,7 +2113,7 @@ public:
                 error("cannot uniquely infer foreach argument types");
             return new ErrorStatement();
         }
-        Type tab = aggr.type.toBasetype();
+        auto tab = aggr.type.toBasetype();
         if (tab.ty == Ttuple) // don't generate new scope for tuple loops
         {
             if (dim < 1 || dim > 2)
@@ -2121,14 +2121,14 @@ public:
                 error("only one (value) or two (key,value) arguments for tuple foreach");
                 return new ErrorStatement();
             }
-            Type paramtype = (*parameters)[dim - 1].type;
+            auto paramtype = (*parameters)[dim - 1].type;
             if (paramtype)
             {
                 paramtype = paramtype.semantic(loc, sc);
                 if (paramtype.ty == Terror)
                     return new ErrorStatement();
             }
-            TypeTuple tuple = cast(TypeTuple)tab;
+            auto tuple = cast(TypeTuple)tab;
             auto statements = new Statements();
             //printf("aggr: op = %d, %s\n", aggr->op, aggr->toChars());
             size_t n;
@@ -2196,7 +2196,7 @@ public:
                 Dsymbol var;
                 if (te)
                 {
-                    Type tb = e.type.toBasetype();
+                    auto tb = e.type.toBasetype();
                     Dsymbol ds = null;
                     if ((tb.ty == Tfunction || tb.ty == Tsarray) && e.op == TOKvar)
                         ds = (cast(VarExp)e).var;
@@ -2349,7 +2349,7 @@ public:
                         }
                         if (tab.ty == Tsarray)
                         {
-                            TypeSArray ta = cast(TypeSArray)tab;
+                            auto ta = cast(TypeSArray)tab;
                             IntRange dimrange = getIntRange(ta.dim);
                             if (!IntRange.fromType(var.type).contains(dimrange))
                             {
@@ -2371,7 +2371,7 @@ public:
                         {
                             if (aggr.checkModifiable(sc, 1) == 2)
                                 var.storage_class |= STCctorinit;
-                            Type t = tab.nextOf();
+                            auto t = tab.nextOf();
                             if (t.constConv(p.type) <= MATCHnomatch)
                             {
                                 error("argument type mismatch, %s to ref %s", t.toChars(), p.type.toChars());
@@ -2654,7 +2654,7 @@ public:
                             Parameter p = Parameter.getNth(tfld.parameters, 0);
                             if (p.type && p.type.ty == Tdelegate)
                             {
-                                Type t = p.type.semantic(loc, sc);
+                                auto t = p.type.semantic(loc, sc);
                                 assert(t.ty == Tdelegate);
                                 tfld = cast(TypeFunction)t.nextOf();
                             }
@@ -2744,10 +2744,10 @@ public:
                     // Check types
                     Parameter p = (*parameters)[0];
                     bool isRef = (p.storageClass & STCref) != 0;
-                    Type ta = p.type;
+                    auto ta = p.type;
                     if (dim == 2)
                     {
-                        Type ti = (isRef ? taa.index.addMod(MODconst) : taa.index);
+                        auto ti = (isRef ? taa.index.addMod(MODconst) : taa.index);
                         if (isRef ? !ti.constConv(ta) : !ti.implicitConvTo(ta))
                         {
                             error("foreach: index must be type %s, not %s", ti.toChars(), ta.toChars());
@@ -2757,7 +2757,7 @@ public:
                         isRef = (p.storageClass & STCref) != 0;
                         ta = p.type;
                     }
-                    Type taav = taa.nextOf();
+                    auto taav = taa.nextOf();
                     if (isRef ? !taav.constConv(ta) : !taav.implicitConvTo(ta))
                     {
                         error("foreach: value must be type %s, not %s", taav.toChars(), ta.toChars());
@@ -3052,7 +3052,7 @@ public:
         {
             /* Must infer types from lwr and upr
              */
-            Type tlwr = lwr.type.toBasetype();
+            auto tlwr = lwr.type.toBasetype();
             if (tlwr.ty == Tstruct || tlwr.ty == Tclass)
             {
                 /* Just picking the first really isn't good enough.
@@ -3681,7 +3681,7 @@ public:
         }
         if (isFinal)
         {
-            Type t = condition.type;
+            auto t = condition.type;
             Dsymbol ds;
             EnumDeclaration ed = null;
             if (t && ((ds = t.toDsymbol(sc)) !is null))
@@ -3791,7 +3791,7 @@ public:
             {
                 VarExp ve = cast(VarExp)exp;
                 auto v = ve.var.isVarDeclaration();
-                Type t = exp.type.toBasetype();
+                auto t = exp.type.toBasetype();
                 if (v && (t.isintegral() || t.ty == Tclass))
                 {
                     /* Flag that we need to do special code generation
@@ -4157,7 +4157,7 @@ public:
         auto fd = sc.parent.isFuncDeclaration();
         if (fd.fes)
             fd = fd.fes.func; // fd is now function enclosing foreach
-        TypeFunction tf = cast(TypeFunction)fd.type;
+        auto tf = cast(TypeFunction)fd.type;
         assert(tf.ty == Tfunction);
         if (exp && exp.op == TOKvar && (cast(VarExp)exp).var == fd.vresult)
         {
@@ -4179,8 +4179,8 @@ public:
             fd.returns.push(this);
             return this;
         }
-        Type tret = tf.next;
-        Type tbret = tret ? tret.toBasetype() : null;
+        auto tret = tf.next;
+        auto tbret = tret ? tret.toBasetype() : null;
         bool inferRef = (tf.isref && (fd.storage_class & STCauto));
         Expression e0 = null;
         bool errors = false;
@@ -4676,7 +4676,7 @@ public:
                     error("missing or corrupt object.d");
                     fatal();
                 }
-                Type t = ClassDeclaration.object.type;
+                auto t = ClassDeclaration.object.type;
                 t = t.semantic(Loc(), sc).toBasetype();
                 assert(t.ty == Tclass);
                 exp = new CastExp(loc, exp, t);
@@ -4719,7 +4719,7 @@ public:
              *  try { body } finally { _d_criticalexit(critsec.ptr); }
              */
             Identifier id = Identifier.generateId("__critsec");
-            Type t = new TypeSArray(Type.tint8, new IntegerExp(Target.ptrsize + Target.critsecsize()));
+            auto t = new TypeSArray(Type.tint8, new IntegerExp(Target.ptrsize + Target.critsecsize()));
             auto tmp = new VarDeclaration(loc, t, id, null);
             tmp.storage_class |= STCtemp | STCgshared | STCstatic;
             auto cs = new Statements();
@@ -4823,7 +4823,7 @@ public:
         }
         else
         {
-            Type t = exp.type.toBasetype();
+            auto t = exp.type.toBasetype();
             Expression olde = exp;
             if (t.ty == Tpointer)
             {

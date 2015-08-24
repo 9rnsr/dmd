@@ -136,7 +136,7 @@ public:
 
     void visit(IndexExp e)
     {
-        Type t1b = e.e1.type.toBasetype();
+        auto t1b = e.e1.type.toBasetype();
         if (t1b.ty == Taarray)
         {
             if (f.setGC())

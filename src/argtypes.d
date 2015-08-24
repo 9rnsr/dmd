@@ -244,7 +244,7 @@ extern (C++) TypeTuple toArgTypes(Type t)
             {
                 // For AMD64 ILP32 ABI, D arrays fit into a single integer register.
                 uint offset = cast(uint)Type.tsize_t.size(Loc());
-                Type t = argtypemerge(Type.tsize_t, Type.tvoidptr, offset);
+                auto t = argtypemerge(Type.tsize_t, Type.tvoidptr, offset);
                 if (t)
                 {
                     result = new TypeTuple(t);
@@ -263,7 +263,7 @@ extern (C++) TypeTuple toArgTypes(Type t)
             {
                 // For AMD64 ILP32 ABI, delegates fit into a single integer register.
                 uint offset = cast(uint)Type.tsize_t.size(Loc());
-                Type t = argtypemerge(Type.tsize_t, Type.tvoidptr, offset);
+                auto t = argtypemerge(Type.tsize_t, Type.tvoidptr, offset);
                 if (t)
                 {
                     result = new TypeTuple(t);
@@ -335,7 +335,7 @@ extern (C++) TypeTuple toArgTypes(Type t)
                     {
                         auto f = t.sym.fields[i];
                         //printf("f->type = %s\n", f->type->toChars());
-                        TypeTuple tup = toArgTypes(f.type);
+                        auto tup = toArgTypes(f.type);
                         if (!tup)
                             goto Lmemory;
                         size_t dim = tup.arguments.dim;
@@ -413,7 +413,7 @@ extern (C++) TypeTuple toArgTypes(Type t)
                     {
                         auto f = t.sym.fields[0];
                         //printf("f->type = %s\n", f->type->toChars());
-                        TypeTuple tup = toArgTypes(f.type);
+                        auto tup = toArgTypes(f.type);
                         if (tup)
                         {
                             size_t dim = tup.arguments.dim;

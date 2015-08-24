@@ -90,7 +90,7 @@ public:
         auto d = sx.isDeclaration();
         if (d && !d.isTupleDeclaration())
         {
-            Type t = d.type;
+            auto t = d.type;
             assert(t);
             if (ad.type.implicitConvTo(t) > MATCHnomatch)
             {
@@ -122,7 +122,7 @@ extern (C++) Expression resolveAliasThis(Scope* sc, Expression e)
     if (ad && ad.aliasthis)
     {
         Loc loc = e.loc;
-        Type tthis = (e.op == TOKtype ? e.type : null);
+        auto tthis = (e.op == TOKtype ? e.type : null);
         e = new DotIdExp(loc, e, ad.aliasthis.ident);
         e = e.semantic(sc);
         if (tthis && ad.aliasthis.needThis())

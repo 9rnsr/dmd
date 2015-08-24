@@ -67,7 +67,7 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
 
         void visit(Type t)
         {
-            Type tb = t.toBasetype();
+            auto tb = t.toBasetype();
             if (tb != t)
                 tb.accept(this);
         }
@@ -128,7 +128,7 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
             {
                 for (size_t i = 0; i < t.arguments.dim; i++)
                 {
-                    Type tprm = (*t.arguments)[i].type;
+                    auto tprm = (*t.arguments)[i].type;
                     if (tprm)
                         tprm.accept(this);
                 }
@@ -334,7 +334,7 @@ public:
         for (size_t i = 0; i < fields.dim; i++)
         {
             auto v = fields[i];
-            Type tb = v.type.baseElemOf();
+            auto tb = v.type.baseElemOf();
             if (tb.ty != Tstruct)
                 continue;
             auto sd = (cast(TypeStruct)tb).sym;
@@ -391,7 +391,7 @@ public:
         }
         Module.dprogress++;
         semanticRun = PASSsemanticdone;
-        TypeTuple tup = toArgTypes(type);
+        auto tup = toArgTypes(type);
         size_t dim = tup.arguments.dim;
         if (dim >= 1)
         {
@@ -596,11 +596,11 @@ public:
                 return false;
             }
             offset = cast(uint)(v.offset + v.type.size());
-            Type t = v.type;
+            auto t = v.type;
             if (stype)
                 t = t.addMod(stype.mod);
             Type origType = t;
-            Type tb = t.toBasetype();
+            auto tb = t.toBasetype();
             /* Look for case of initializing a static array with a too-short
              * string literal, such as:
              *  char[5] foo = "abc";
@@ -610,7 +610,7 @@ public:
             if (e.op == TOKstring && tb.ty == Tsarray)
             {
                 StringExp se = cast(StringExp)e;
-                Type typeb = se.type.toBasetype();
+                auto typeb = se.type.toBasetype();
                 TY tynto = tb.nextOf().ty;
                 if (!se.committed && (typeb.ty == Tarray || typeb.ty == Tsarray) && (tynto == Tchar || tynto == Twchar || tynto == Tdchar) && se.length(cast(int)tb.nextOf().size()) < (cast(TypeSArray)tb).dim.toInteger())
                 {
@@ -683,7 +683,7 @@ public:
                 auto v = vd;
                 for (int k = 0; k < 2; ++k, v = v2)
                 {
-                    Type tv = v.type.baseElemOf();
+                    auto tv = v.type.baseElemOf();
                     Dsymbol sv = tv.toDsymbol(null);
                     if (sv && !errors)
                     {
@@ -764,7 +764,7 @@ public:
                     }
                     /* Bugzilla 12509: Get the element of static array type.
                      */
-                    Type telem = vx.type;
+                    auto telem = vx.type;
                     if (telem.ty == Tsarray)
                     {
                         /* We cannot use Type::baseElemOf() here.
@@ -822,10 +822,10 @@ public:
                 ispod = ISPODno;
                 break;
             }
-            Type tv = v.type.baseElemOf();
+            auto tv = v.type.baseElemOf();
             if (tv.ty == Tstruct)
             {
-                TypeStruct ts = cast(TypeStruct)tv;
+                auto ts = cast(TypeStruct)tv;
                 auto sd = ts.sym;
                 if (!sd.isPOD())
                 {

@@ -85,7 +85,7 @@ extern (C++) bool checkEscape(Scope* sc, Expression e, bool gag)
             auto v = e.var.isVarDeclaration();
             if (v)
             {
-                Type tb = v.type.toBasetype();
+                auto tb = v.type.toBasetype();
                 if (v.isScope())
                 {
                     /* Today, scope attribute almost doesn't work for escape analysis.
@@ -119,7 +119,7 @@ extern (C++) bool checkEscape(Scope* sc, Expression e, bool gag)
 
         void visit(ArrayLiteralExp e)
         {
-            Type tb = e.type.toBasetype();
+            auto tb = e.type.toBasetype();
             if (tb.ty == Tsarray || tb.ty == Tarray)
             {
                 for (size_t i = 0; i < e.elements.dim; i++)
@@ -144,7 +144,7 @@ extern (C++) bool checkEscape(Scope* sc, Expression e, bool gag)
 
         void visit(NewExp e)
         {
-            Type tb = e.newtype.toBasetype();
+            auto tb = e.newtype.toBasetype();
             if (tb.ty == Tstruct && !e.member && e.arguments)
             {
                 for (size_t i = 0; i < e.arguments.dim; i++)
@@ -158,7 +158,7 @@ extern (C++) bool checkEscape(Scope* sc, Expression e, bool gag)
 
         void visit(CastExp e)
         {
-            Type tb = e.type.toBasetype();
+            auto tb = e.type.toBasetype();
             if (tb.ty == Tarray && e.e1.type.toBasetype().ty == Tsarray)
             {
                 result |= checkEscapeRef(sc, e.e1, gag);
@@ -170,7 +170,7 @@ extern (C++) bool checkEscape(Scope* sc, Expression e, bool gag)
             if (e.e1.op == TOKvar)
             {
                 auto v = (cast(VarExp)e.e1).var.isVarDeclaration();
-                Type tb = e.type.toBasetype();
+                auto tb = e.type.toBasetype();
                 if (v)
                 {
                     if (tb.ty == Tsarray)
@@ -182,7 +182,7 @@ extern (C++) bool checkEscape(Scope* sc, Expression e, bool gag)
                     }
                 }
             }
-            Type t1b = e.e1.type.toBasetype();
+            auto t1b = e.e1.type.toBasetype();
             if (t1b.ty == Tsarray)
                 result |= checkEscapeRef(sc, e.e1, gag);
             else
@@ -191,7 +191,7 @@ extern (C++) bool checkEscape(Scope* sc, Expression e, bool gag)
 
         void visit(BinExp e)
         {
-            Type tb = e.type.toBasetype();
+            auto tb = e.type.toBasetype();
             if (tb.ty == Tpointer)
             {
                 e.e1.accept(this);
@@ -280,7 +280,7 @@ extern (C++) bool checkEscapeRef(Scope* sc, Expression e, bool gag)
                         v.storage_class |= STCreturn;
                         if (v == sc.func.vthis)
                         {
-                            TypeFunction tf = cast(TypeFunction)sc.func.type;
+                            auto tf = cast(TypeFunction)sc.func.type;
                             if (tf.ty == Tfunction)
                             {
                                 //printf("'this' too\n");
@@ -337,7 +337,7 @@ extern (C++) bool checkEscapeRef(Scope* sc, Expression e, bool gag)
                 auto v = (cast(VarExp)e.e1).var.isVarDeclaration();
                 if (v && v.toParent2() == sc.func)
                 {
-                    Type tb = v.type.toBasetype();
+                    auto tb = v.type.toBasetype();
                     if (tb.ty == Tarray || tb.ty == Tsarray)
                     {
                         if (v.storage_class & STCvariadic)
@@ -348,7 +348,7 @@ extern (C++) bool checkEscapeRef(Scope* sc, Expression e, bool gag)
                     }
                 }
             }
-            Type tb = e.e1.type.toBasetype();
+            auto tb = e.e1.type.toBasetype();
             if (tb.ty == Tsarray)
             {
                 e.e1.accept(this);
@@ -357,7 +357,7 @@ extern (C++) bool checkEscapeRef(Scope* sc, Expression e, bool gag)
 
         void visit(DotVarExp e)
         {
-            Type t1b = e.e1.type.toBasetype();
+            auto t1b = e.e1.type.toBasetype();
             if (t1b.ty == Tclass)
                 result |= checkEscape(sc, e.e1, gag);
             else
@@ -390,7 +390,7 @@ extern (C++) bool checkEscapeRef(Scope* sc, Expression e, bool gag)
             /* If the function returns by ref, check each argument that is
              * passed as 'return ref'.
              */
-            Type t1 = e.e1.type.toBasetype();
+            auto t1 = e.e1.type.toBasetype();
             TypeFunction tf;
             if (t1.ty == Tdelegate)
                 tf = cast(TypeFunction)(cast(TypeDelegate)t1).next;

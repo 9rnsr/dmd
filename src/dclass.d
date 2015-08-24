@@ -462,10 +462,10 @@ public:
                 b.type = b.type.semantic(loc, sc);
                 //printf("- %s [%d] b->type = %s\n", toChars(), i, b->type->toChars());
                 _scope = null;
-                Type tb = b.type.toBasetype();
+                auto tb = b.type.toBasetype();
                 if (tb.ty == Ttuple)
                 {
-                    TypeTuple tup = cast(TypeTuple)tb;
+                    auto tup = cast(TypeTuple)tb;
                     Prot protection = b.protection;
                     baseclasses.remove(i);
                     size_t dim = Parameter.dim(tup.arguments);
@@ -490,8 +490,8 @@ public:
             if (baseclasses.dim)
             {
                 BaseClass* b = (*baseclasses)[0];
-                Type tb = b.type.toBasetype();
-                TypeClass tc = (tb.ty == Tclass) ? cast(TypeClass)tb : null;
+                auto tb = b.type.toBasetype();
+                auto tc = (tb.ty == Tclass) ? cast(TypeClass)tb : null;
                 if (!tc)
                 {
                     if (b.type != Type.terror)
@@ -542,8 +542,8 @@ public:
             for (size_t i = (baseClass ? 1 : 0); i < baseclasses.dim;)
             {
                 BaseClass* b = (*baseclasses)[i];
-                Type tb = b.type.toBasetype();
-                TypeClass tc = (tb.ty == Tclass) ? cast(TypeClass)tb : null;
+                auto tb = b.type.toBasetype();
+                auto tc = (tb.ty == Tclass) ? cast(TypeClass)tb : null;
                 if (!tc || !tc.sym.isInterfaceDeclaration())
                 {
                     if (b.type != Type.terror)
@@ -601,10 +601,10 @@ public:
                     error("missing or corrupt object.d");
                     fatal();
                 }
-                Type t = object.type;
+                auto t = object.type;
                 t = t.semantic(loc, sc).toBasetype();
                 assert(t.ty == Tclass);
-                TypeClass tc = cast(TypeClass)t;
+                auto tc = cast(TypeClass)t;
                 auto b = new BaseClass(tc, Prot(PROTpublic));
                 baseclasses.shift(b);
                 baseClass = tc.sym;
@@ -691,9 +691,9 @@ public:
         for (size_t i = 0; i < baseclasses.dim; i++)
         {
             BaseClass* b = (*baseclasses)[i];
-            Type tb = b.type.toBasetype();
+            auto tb = b.type.toBasetype();
             assert(tb.ty == Tclass);
-            TypeClass tc = cast(TypeClass)tb;
+            auto tc = cast(TypeClass)tb;
             if (tc.sym.semanticRun < PASSsemanticdone)
             {
                 // Forward referencee of one or more bases, try again later
@@ -834,7 +834,7 @@ public:
             if (fd && !fd.errors)
             {
                 //printf("Creating default this(){} for class %s\n", toChars());
-                TypeFunction btf = cast(TypeFunction)fd.type;
+                auto btf = cast(TypeFunction)fd.type;
                 auto tf = new TypeFunction(null, null, 0, LINKd, fd.storage_class);
                 tf.purity = btf.purity;
                 tf.isnothrow = btf.isnothrow;
@@ -1369,10 +1369,10 @@ public:
                 BaseClass* b = (*baseclasses)[i];
                 b.type = b.type.semantic(loc, sc);
                 _scope = null;
-                Type tb = b.type.toBasetype();
+                auto tb = b.type.toBasetype();
                 if (tb.ty == Ttuple)
                 {
-                    TypeTuple tup = cast(TypeTuple)tb;
+                    auto tup = cast(TypeTuple)tb;
                     Prot protection = b.protection;
                     baseclasses.remove(i);
                     size_t dim = Parameter.dim(tup.arguments);
@@ -1400,8 +1400,8 @@ public:
             for (size_t i = 0; i < baseclasses.dim;)
             {
                 BaseClass* b = (*baseclasses)[i];
-                Type tb = b.type.toBasetype();
-                TypeClass tc = (tb.ty == Tclass) ? cast(TypeClass)tb : null;
+                auto tb = b.type.toBasetype();
+                auto tc = (tb.ty == Tclass) ? cast(TypeClass)tb : null;
                 if (!tc || !tc.sym.isInterfaceDeclaration())
                 {
                     if (b.type != Type.terror)
@@ -1481,9 +1481,9 @@ public:
         for (size_t i = 0; i < baseclasses.dim; i++)
         {
             BaseClass* b = (*baseclasses)[i];
-            Type tb = b.type.toBasetype();
+            auto tb = b.type.toBasetype();
             assert(tb.ty == Tclass);
-            TypeClass tc = cast(TypeClass)tb;
+            auto tc = cast(TypeClass)tb;
             if (tc.sym.semanticRun < PASSsemanticdone)
             {
                 // Forward referencee of one or more bases, try again later

@@ -247,7 +247,7 @@ public:
     void visit(VarExp e)
     {
         //printf("VarExp::inlineCost3() %s\n", toChars());
-        Type tb = e.type.toBasetype();
+        auto tb = e.type.toBasetype();
         if (tb.ty == Tstruct)
         {
             StructDeclaration sd = (cast(TypeStruct)tb).sym;
@@ -878,7 +878,7 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
         void visit(TypeidExp e)
         {
             //printf("TypeidExp::doInline(): %s\n", e->toChars());
-            TypeidExp te = cast(TypeidExp)e.copy();
+            auto te = cast(TypeidExp)e.copy();
             if (auto ex = isExpression(te.obj))
             {
                 te.obj = doInline(ex, ids);
@@ -1624,7 +1624,7 @@ extern (C++) bool canInline(FuncDeclaration fd, int hasthis, int hdrscan, int st
     if (fd.type)
     {
         assert(fd.type.ty == Tfunction);
-        TypeFunction tf = cast(TypeFunction)fd.type;
+        auto tf = cast(TypeFunction)fd.type;
         if (tf.varargs == 1) // no variadic parameter lists
             goto Lno;
         /* Don't inline a function that returns non-void, but has
@@ -1746,7 +1746,7 @@ extern (C++) static Expression expandInline(FuncDeclaration fd, FuncDeclaration 
     InlineDoState ids;
     Expression e = null;
     Statements* as = null;
-    TypeFunction tf = cast(TypeFunction)fd.type;
+    auto tf = cast(TypeFunction)fd.type;
     static if (LOG || CANINLINE_LOG)
     {
         printf("FuncDeclaration::expandInline('%s')\n", fd.toChars());
@@ -1793,7 +1793,7 @@ extern (C++) static Expression expandInline(FuncDeclaration fd, FuncDeclaration 
         VarExp ve;
         if (ethis.type.ty == Tpointer)
         {
-            Type t = ethis.type.nextOf();
+            auto t = ethis.type.nextOf();
             ethis = new PtrExp(ethis.loc, ethis);
             ethis.type = t;
         }

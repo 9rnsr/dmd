@@ -175,7 +175,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                     }
                     else if (!tp || tp.isTemplateTypeParameter())
                     {
-                        Type t = isType(o);
+                        auto t = isType(o);
                         assert(t);
                         t.accept(this);
                     }
@@ -416,7 +416,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
              *         ::= <data name>
              *         ::= <special-name>
              */
-            TypeFunction tf = cast(TypeFunction)d.type;
+            auto tf = cast(TypeFunction)d.type;
             buf.writestring("_Z");
             Dsymbol p = d.toParent();
             if (p && !p.isModule() && tf.linkage == LINKcpp)
@@ -468,13 +468,13 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
         static int paramsCppMangleDg(void* ctx, size_t n, Parameter fparam)
         {
             CppMangleVisitor mangler = cast(CppMangleVisitor)ctx;
-            Type t = fparam.type.merge2();
+            auto t = fparam.type.merge2();
             if (fparam.storageClass & (STCout | STCref))
                 t = t.referenceTo();
             else if (fparam.storageClass & STClazy)
             {
                 // Mangle as delegate
-                Type td = new TypeFunction(null, t, 0, LINKd);
+                auto td = new TypeFunction(null, t, 0, LINKd);
                 td = new TypeDelegate(td);
                 t = t.merge();
             }
@@ -783,7 +783,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             buf.writeByte('F');
             if (t.linkage == LINKc)
                 buf.writeByte('Y');
-            Type tn = t.next;
+            auto tn = t.next;
             if (t.isref)
                 tn = tn.referenceTo();
             tn.accept(this);
@@ -1426,7 +1426,7 @@ else static if (TARGET_WINDOS)
                 }
             }
             char cv_mod = 0;
-            Type t = d.type;
+            auto t = d.type;
             if (t.isImmutable() || t.isShared())
             {
                 visit(cast(Type)t);
@@ -1530,7 +1530,7 @@ else static if (TARGET_WINDOS)
                     }
                     else if (!tp || tp.isTemplateTypeParameter())
                     {
-                        Type t = isType(o);
+                        auto t = isType(o);
                         assert(t);
                         t.accept(tmp);
                     }
@@ -1774,7 +1774,7 @@ else static if (TARGET_WINDOS)
             cur = type;
             while (cur && cur.ty == Tsarray) // sizes of dimensions
             {
-                TypeSArray sa = cast(TypeSArray)cur;
+                auto sa = cast(TypeSArray)cur;
                 mangleNumber(sa.dim ? sa.dim.toInteger() : 0);
                 cur = cur.nextOf();
             }
@@ -1785,7 +1785,7 @@ else static if (TARGET_WINDOS)
         static int mangleParameterDg(void* ctx, size_t n, Parameter p)
         {
             VisualCPPMangler mangler = cast(VisualCPPMangler)ctx;
-            Type t = p.type;
+            auto t = p.type;
             if (p.storageClass & (STCout | STCref))
             {
                 t = t.referenceTo();
@@ -1848,7 +1848,7 @@ else static if (TARGET_WINDOS)
             }
             else
             {
-                Type rettype = type.next;
+                auto rettype = type.next;
                 if (type.isref)
                     rettype = rettype.referenceTo();
                 flags &= ~IGNORE_CONST;

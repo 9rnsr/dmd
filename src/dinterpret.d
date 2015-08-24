@@ -670,7 +670,7 @@ extern (C++) void ctfeCompile(FuncDeclaration fd)
     fd.ctfeCode = new CompiledCtfeFunction(fd);
     if (fd.parameters)
     {
-        Type tb = fd.type.toBasetype();
+        auto tb = fd.type.toBasetype();
         assert(tb.ty == Tfunction);
         for (size_t i = 0; i < fd.parameters.dim; i++)
         {
@@ -789,9 +789,9 @@ extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expres
     // CTFE-compile the function
     if (!fd.ctfeCode)
         ctfeCompile(fd);
-    Type tb = fd.type.toBasetype();
+    auto tb = fd.type.toBasetype();
     assert(tb.ty == Tfunction);
-    TypeFunction tf = cast(TypeFunction)tb;
+    auto tf = cast(TypeFunction)tb;
     if (tf.varargs && arguments && ((fd.parameters && arguments.dim != fd.parameters.dim) || (!fd.parameters && arguments.dim)))
     {
         fd.error("C-style variadic functions are not yet implemented in CTFE");
@@ -843,7 +843,7 @@ extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expres
         {
             /* Value parameters
              */
-            Type ta = fparam.type.toBasetype();
+            auto ta = fparam.type.toBasetype();
             if (ta.ty == Tsarray && earg.op == TOKaddress)
             {
                 /* Static arrays are passed by a simple pointer.
@@ -1255,7 +1255,7 @@ public:
             return;
         }
         assert(istate && istate.fd && istate.fd.type && istate.fd.type.ty == Tfunction);
-        TypeFunction tf = cast(TypeFunction)istate.fd.type;
+        auto tf = cast(TypeFunction)istate.fd.type;
         /* If the function returns a ref AND it's been called from an assignment,
          * we need to return an lvalue. Otherwise, just do an (rvalue) interpret.
          */
@@ -1655,12 +1655,12 @@ public:
         if (e && e.op == TOKthrownexception)
         {
             ThrownExceptionExp ex = cast(ThrownExceptionExp)e;
-            Type extype = ex.thrown.originalClass().type;
+            auto extype = ex.thrown.originalClass().type;
             // Search for an appropriate catch clause.
             for (size_t i = 0; i < s.catches.dim; i++)
             {
                 Catch ca = (*s.catches)[i];
-                Type catype = ca.type;
+                auto catype = ca.type;
                 if (!catype.equals(extype) && !catype.isBaseOf(extype, null))
                     continue;
                 // Execute the handler
@@ -2004,7 +2004,7 @@ public:
             result = CTFEExp.cantexp;
             return;
         }
-        Type pointee = (cast(TypePointer)e.type).next;
+        auto pointee = (cast(TypePointer)e.type).next;
         if (e.var.isThreadlocal())
         {
             e.error("cannot take address of thread-local variable %s at compile time", e.var.toChars());
@@ -2029,7 +2029,7 @@ public:
         if (val.type.ty == Tarray || val.type.ty == Tsarray)
         {
             // Check for unsupported type painting operations
-            Type elemtype = (cast(TypeArray)val.type).next;
+            auto elemtype = (cast(TypeArray)val.type).next;
             d_uns64 elemsize = elemtype.size();
             // It's OK to cast from fixed length to dynamic array, eg &int[3] to int[]*
             if (val.type.ty == Tsarray && pointee.ty == Tarray && elemsize == pointee.nextOf().size())
@@ -2560,7 +2560,7 @@ public:
             result = e;
             return;
         }
-        Type tn = e.type.toBasetype().nextOf().toBasetype();
+        auto tn = e.type.toBasetype().nextOf().toBasetype();
         bool wantCopy = (tn.ty == Tsarray || tn.ty == Tstruct);
         Expressions* expsx = null;
         size_t dim = e.elements ? e.elements.dim : 0;
@@ -2750,7 +2750,7 @@ public:
                     if ((v.type.ty != ex.type.ty) && v.type.ty == Tsarray)
                     {
                         // Block assignment from inside struct literals
-                        TypeSArray tsa = cast(TypeSArray)v.type;
+                        auto tsa = cast(TypeSArray)v.type;
                         size_t len = cast(size_t)tsa.dim.toInteger();
                         ex = createBlockDuplicatedArrayLiteral(ex.loc, v.type, ex, len);
                     }
@@ -3283,8 +3283,8 @@ public:
         if (e1.op == TOKslice)
         {
             // a[] = e can have const e. So we compare the naked types.
-            Type tdst = e1.type.toBasetype();
-            Type tsrc = e.e2.type.toBasetype();
+            auto tdst = e1.type.toBasetype();
+            auto tsrc = e.e2.type.toBasetype();
             while (tdst.ty == Tsarray || tdst.ty == Tarray)
             {
                 tdst = (cast(TypeArray)tdst).next.toBasetype();
@@ -3591,7 +3591,7 @@ public:
             // We have changed it into a reference assignment
             // Note that returnValue is still the new length.
             e1 = (cast(ArrayLengthExp)e1).e1;
-            Type t = e1.type.toBasetype();
+            auto t = e1.type.toBasetype();
             if (t.ty != Tarray)
             {
                 e.error("%s is not yet supported at compile time", e.toChars());
@@ -3756,7 +3756,7 @@ public:
             e.error("%s cannot be evaluated at compile time", e.toChars());
             return CTFEExp.cantexp;
         }
-        Type t1b = e1.type.toBasetype();
+        auto t1b = e1.type.toBasetype();
         bool wantCopy = t1b.baseElemOf().ty == Tstruct;
         if (newval.op == TOKstructliteral && oldval)
         {
@@ -3784,7 +3784,7 @@ public:
             Expressions* oldelems = (cast(ArrayLiteralExp)oldval).elements;
             Expressions* newelems = (cast(ArrayLiteralExp)newval).elements;
             assert(oldelems.dim == newelems.dim);
-            Type elemtype = oldval.type.nextOf();
+            auto elemtype = oldval.type.nextOf();
             for (size_t i = 0; i < newelems.dim; i++)
             {
                 Expression oldelem = (*oldelems)[i];
@@ -4034,7 +4034,7 @@ public:
                     assert(aggr2.op == TOKarrayliteral);
                     Expressions* oldelems = existingAE.elements;
                     Expressions* newelems = (cast(ArrayLiteralExp)aggr2).elements;
-                    Type elemtype = aggregate.type.nextOf();
+                    auto elemtype = aggregate.type.nextOf();
                     bool needsPostblit = e.e2.isLvalue();
                     if (aggregate == aggr2 && srclower < lowerbound && lowerbound < srcupper)
                     {
@@ -4109,7 +4109,7 @@ public:
             {
                 Expressions* oldelems = existingAE.elements;
                 Expressions* newelems = (cast(ArrayLiteralExp)newval).elements;
-                Type elemtype = existingAE.type.nextOf();
+                auto elemtype = existingAE.type.nextOf();
                 bool needsPostblit = e.op != TOKblit && e.e2.isLvalue();
                 for (size_t j = 0; j < newelems.dim; j++)
                 {
@@ -4186,10 +4186,10 @@ public:
                 }
             }
 
-            Type tn = newval.type.toBasetype();
+            auto tn = newval.type.toBasetype();
             bool wantRef = (tn.ty == Tarray || isAssocArray(tn) || tn.ty == Tclass);
             bool cow = newval.op != TOKstructliteral && newval.op != TOKarrayliteral && newval.op != TOKstring;
-            Type tb = tn.baseElemOf();
+            auto tb = tn.baseElemOf();
             auto sd = (tb.ty == Tstruct ? (cast(TypeStruct)tb).sym : null);
             RecursiveBlock rb;
             rb.istate = istate;
@@ -5350,7 +5350,7 @@ public:
         }
         if (e.to.ty == Tpointer && e1.op != TOKnull)
         {
-            Type pointee = (cast(TypePointer)e.type).next;
+            auto pointee = (cast(TypePointer)e.type).next;
             // Implement special cases of normally-unsafe casts
             if (e1.op == TOKint64)
             {
@@ -5365,7 +5365,7 @@ public:
                 // Check for unsupported type painting operations
                 // For slices, we need the type being sliced,
                 // since it may have already been type painted
-                Type elemtype = e1.type.nextOf();
+                auto elemtype = e1.type.nextOf();
                 if (e1.op == TOKslice)
                     elemtype = (cast(SliceExp)e1).e1.type.nextOf();
                 // Allow casts from X* to void *, and X** to void** for any X.
@@ -5767,7 +5767,7 @@ public:
         if (v.type.ty != result.type.ty && v.type.ty == Tsarray)
         {
             // Block assignment from inside struct literals
-            TypeSArray tsa = cast(TypeSArray)v.type;
+            auto tsa = cast(TypeSArray)v.type;
             size_t len = cast(size_t)tsa.dim.toInteger();
             result = createBlockDuplicatedArrayLiteral(ex.loc, v.type, ex, len);
             (*se.elements)[i] = result;
@@ -6155,7 +6155,7 @@ extern (C++) Expression interpret_aaApply(InterState* istate, Expression aa, Exp
         Expression evalue = (*ae.values)[i];
         if (wantRefValue)
         {
-            Type t = evalue.type;
+            auto t = evalue.type;
             evalue = new IndexExp(deleg.loc, ae, ekey);
             evalue.type = t;
         }
@@ -6515,7 +6515,7 @@ extern (C++) Expression evaluateIfBuiltin(InterState* istate, Loc loc, FuncDecla
 
 extern (C++) Expression evaluatePostblit(InterState* istate, Expression e)
 {
-    Type tb = e.type.baseElemOf();
+    auto tb = e.type.baseElemOf();
     if (tb.ty != Tstruct)
         return null;
     auto sd = (cast(TypeStruct)tb).sym;
@@ -6546,7 +6546,7 @@ extern (C++) Expression evaluatePostblit(InterState* istate, Expression e)
 
 extern (C++) Expression evaluateDtor(InterState* istate, Expression e)
 {
-    Type tb = e.type.baseElemOf();
+    auto tb = e.type.baseElemOf();
     if (tb.ty != Tstruct)
         return null;
     auto sd = (cast(TypeStruct)tb).sym;

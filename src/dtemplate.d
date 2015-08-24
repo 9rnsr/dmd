@@ -94,7 +94,7 @@ extern (C++) Parameter isParameter(RootObject o)
  */
 extern (C++) bool isError(RootObject o)
 {
-    Type t = isType(o);
+    auto t = isType(o);
     if (t)
         return (t.ty == Terror);
     Expression e = isExpression(o);
@@ -129,7 +129,7 @@ extern (C++) bool arrayObjectIsError(Objects* args)
  */
 extern (C++) Type getType(RootObject o)
 {
-    Type t = isType(o);
+    auto t = isType(o);
     if (!t)
     {
         Expression e = isExpression(o);
@@ -163,7 +163,7 @@ extern (C++) Dsymbol getDsymbol(RootObject oarg)
     else
     {
         // Try to convert Type to symbol
-        Type ta = isType(oarg);
+        auto ta = isType(oarg);
         if (ta)
             sa = ta.toDsymbol(null);
         else
@@ -208,8 +208,8 @@ extern (C++) Expression getValue(Expression e)
  */
 extern (C++) bool match(RootObject o1, RootObject o2)
 {
-    Type t1 = isType(o1);
-    Type t2 = isType(o2);
+    auto t1 = isType(o1);
+    auto t2 = isType(o2);
     Dsymbol s1 = isDsymbol(o1);
     Dsymbol s2 = isDsymbol(o2);
     Expression e1 = s1 ? getValue(s1) : getValue(isExpression(o1));
@@ -624,7 +624,7 @@ public:
             auto fd = onemember.isFuncDeclaration();
             if (fd && fd.type)
             {
-                TypeFunction tf = cast(TypeFunction)fd.type;
+                auto tf = cast(TypeFunction)fd.type;
                 buf.writestring(parametersTypeToChars(tf.parameters, tf.varargs));
             }
         }
@@ -692,7 +692,7 @@ public:
             /* Declare all the function parameters as variables and add them to the scope
              * Making parameters is similar to FuncDeclaration::semantic3
              */
-            TypeFunction tf = cast(TypeFunction)fd.type;
+            auto tf = cast(TypeFunction)fd.type;
             assert(tf.ty == Tfunction);
             scx.parent = fd;
             Parameters* fparameters = tf.parameters;
@@ -866,7 +866,7 @@ public:
             if (fd)
             {
                 assert(fd.type.ty == Tfunction);
-                TypeFunction tf = cast(TypeFunction)fd.type.syntaxCopy();
+                auto tf = cast(TypeFunction)fd.type.syntaxCopy();
                 fd = new FuncDeclaration(fd.loc, fd.endloc, fd.ident, fd.storage_class, tf);
                 fd.parent = ti;
                 fd.inferRetType = true;
@@ -1165,7 +1165,7 @@ public:
                     Parameter fparam = (*fparameters)[fptupindex];
                     if (fparam.type.ty != Tident)
                         continue;
-                    TypeIdentifier tid = cast(TypeIdentifier)fparam.type;
+                    auto tid = cast(TypeIdentifier)fparam.type;
                     if (!tp.ident.equals(tid.ident) || tid.idents.dim)
                         continue;
                     if (fvarargs) // variadic function doesn't
@@ -1189,7 +1189,7 @@ public:
                 if (ttp)
                 {
                     hasttp = true;
-                    Type t = new TypeIdentifier(Loc(), ttp.ident);
+                    auto t = new TypeIdentifier(Loc(), ttp.ident);
                     MATCH m = deduceType(tthis, paramscope, t, parameters, dedtypes);
                     if (m <= MATCHnomatch)
                         goto Lnomatch;
@@ -1240,7 +1240,7 @@ public:
             {
                 Parameter fparam = Parameter.getNth(fparameters, parami);
                 // Apply function parameter storage classes to parameter types
-                Type prmtype = fparam.type.addStorageClass(fparam.storageClass);
+                auto prmtype = fparam.type.addStorageClass(fparam.storageClass);
                 Expression farg;
                 /* See function parameters which wound up
                  * as part of a template tuple parameter.
@@ -1248,7 +1248,7 @@ public:
                 if (fptupindex != IDX_NOTFOUND && parami == fptupindex)
                 {
                     assert(prmtype.ty == Tident);
-                    TypeIdentifier tid = cast(TypeIdentifier)prmtype;
+                    auto tid = cast(TypeIdentifier)prmtype;
                     if (!declaredTuple)
                     {
                         /* The types of the function arguments
@@ -1265,7 +1265,7 @@ public:
                             Parameter p = Parameter.getNth(fparameters, j);
                             if (!reliesOnTident(p.type, parameters, inferStart))
                             {
-                                Type pt = p.type.syntaxCopy().semantic(fd.loc, paramscope);
+                                auto pt = p.type.syntaxCopy().semantic(fd.loc, paramscope);
                                 rem += pt.ty == Ttuple ? (cast(TypeTuple)pt).arguments.dim : 1;
                             }
                             else
@@ -1331,7 +1331,7 @@ public:
                     prmtype = prmtype.syntaxCopy().semantic(fd.loc, paramscope);
                     if (prmtype.ty == Ttuple)
                     {
-                        TypeTuple tt = cast(TypeTuple)prmtype;
+                        auto tt = cast(TypeTuple)prmtype;
                         size_t tt_dim = tt.arguments.dim;
                         for (size_t j = 0; j < tt_dim; j++, ++argi)
                         {
@@ -1378,10 +1378,10 @@ public:
                     {
                         for (size_t i = 0; i < dedtypes.dim; i++)
                         {
-                            Type at = isType((*dedtypes)[i]);
+                            auto at = isType((*dedtypes)[i]);
                             if (at && at.ty == Tnone)
                             {
-                                TypeDeduced xt = cast(TypeDeduced)at;
+                                auto xt = cast(TypeDeduced)at;
                                 (*dedtypes)[i] = xt.tded; // 'unbox'
                             }
                         }
@@ -1464,7 +1464,7 @@ public:
                         printf("\tfarg->type   = %s\n", farg.type.toChars());
                         printf("\tfparam->type = %s\n", prmtype.toChars());
                     }
-                    Type argtype = farg.type;
+                    auto argtype = farg.type;
                     if (!(fparam.storageClass & STClazy) && argtype.ty == Tvoid && farg.op != TOKfunction)
                         goto Lnomatch;
                     // Bugzilla 12876: optimize arugument to allow CT-known length matching
@@ -1509,7 +1509,7 @@ public:
                          *  qualifier(T) <- const(E)[]  const(E[])
                          *  qualifier(T) <- const(E[])  const(E[])
                          */
-                        Type ta = argtype.castMod(prmtype.mod ? argtype.nextOf().mod : 0);
+                        auto ta = argtype.castMod(prmtype.mod ? argtype.nextOf().mod : 0);
                         if (ta != argtype)
                         {
                             Expression ea = farg.copy();
@@ -1582,7 +1582,7 @@ public:
                     goto Lnomatch;
                 /* Check for match with function parameter T...
                  */
-                Type tb = prmtype.toBasetype();
+                auto tb = prmtype.toBasetype();
                 switch (tb.ty)
                 {
                     // 6764 fix - TypeAArray may be TypeSArray have not yet run semantic().
@@ -1592,14 +1592,14 @@ public:
                         // Perhaps we can do better with this, see TypeFunction::callMatch()
                         if (tb.ty == Tsarray)
                         {
-                            TypeSArray tsa = cast(TypeSArray)tb;
+                            auto tsa = cast(TypeSArray)tb;
                             dinteger_t sz = tsa.dim.toInteger();
                             if (sz != nfargs - argi)
                                 goto Lnomatch;
                         }
                         else if (tb.ty == Taarray)
                         {
-                            TypeAArray taa = cast(TypeAArray)tb;
+                            auto taa = cast(TypeAArray)tb;
                             Expression dim = new IntegerExp(instLoc, nfargs - argi, Type.tsize_t);
                             size_t i = templateParameterLookup(taa.index, parameters);
                             if (i == IDX_NOTFOUND)
@@ -1631,7 +1631,7 @@ public:
                                 }
                                 else
                                 {
-                                    Type vt = tvp.valType.semantic(Loc(), sc);
+                                    auto vt = tvp.valType.semantic(Loc(), sc);
                                     auto m = cast(MATCH)dim.implicitConvTo(vt);
                                     if (m <= MATCHnomatch)
                                         goto Lnomatch;
@@ -1643,8 +1643,8 @@ public:
                     }
                 case Tarray:
                     {
-                        TypeArray ta = cast(TypeArray)tb;
-                        Type tret = fparam.isLazyArray();
+                        auto ta = cast(TypeArray)tb;
+                        auto tret = fparam.isLazyArray();
                         for (; argi < nfargs; argi++)
                         {
                             Expression arg = (*fargs)[argi];
@@ -1697,12 +1697,12 @@ public:
     Lmatch:
         for (size_t i = 0; i < dedtypes.dim; i++)
         {
-            Type at = isType((*dedtypes)[i]);
+            auto at = isType((*dedtypes)[i]);
             if (at)
             {
                 if (at.ty == Tnone)
                 {
-                    TypeDeduced xt = cast(TypeDeduced)at;
+                    auto xt = cast(TypeDeduced)at;
                     at = xt.tded; // 'unbox'
                 }
                 (*dedtypes)[i] = at.merge2();
@@ -1847,7 +1847,7 @@ public:
     RootObject declareParameter(Scope* sc, TemplateParameter tp, RootObject o)
     {
         //printf("TemplateDeclaration::declareParameter('%s', o = %p)\n", tp->ident->toChars(), o);
-        Type ta = isType(o);
+        auto ta = isType(o);
         Expression ea = isExpression(o);
         Dsymbol sa = isDsymbol(o);
         Tuple va = isTuple(o);
@@ -1881,7 +1881,7 @@ public:
             // tdtypes.data[i] always matches ea here
             Initializer _init = new ExpInitializer(loc, ea);
             TemplateValueParameter tvp = tp.isTemplateValueParameter();
-            Type t = tvp ? tvp.valType : null;
+            auto t = tvp ? tvp.valType : null;
             v = new VarDeclaration(loc, t, tp.ident, _init);
             v.storage_class = STCmanifest | STCtemplateparameter;
             d = v;
@@ -1902,7 +1902,7 @@ public:
         d.storage_class |= STCtemplateparameter;
         if (ta)
         {
-            Type t = ta;
+            auto t = ta;
             // consistent with Type::checkDeprecated()
             while (t.ty != Tenum)
             {
@@ -1948,7 +1948,7 @@ public:
             fd = new FuncDeclaration(fd.loc, fd.endloc, fd.ident, fd.storage_class, fd.type.syntaxCopy());
         fd.parent = ti;
         assert(fd.type.ty == Tfunction);
-        TypeFunction tf = cast(TypeFunction)fd.type;
+        auto tf = cast(TypeFunction)fd.type;
         tf.fargs = fargs;
         if (tthis)
         {
@@ -2172,7 +2172,7 @@ public:
             assert(e);
             if (e == emptyArrayElement)
                 continue;
-            Type t = tt.addMod(tparams[j].mod).substWildTo(MODconst);
+            auto t = tt.addMod(tparams[j].mod).substWildTo(MODconst);
             MATCH m = e.implicitConvTo(t);
             if (match > m)
                 match = m;
@@ -2282,7 +2282,7 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
             }
             //printf("fd = %s %s, fargs = %s\n", fd->toChars(), fd->type->toChars(), fargs->toChars());
             m.anyf = fd;
-            TypeFunction tf = cast(TypeFunction)fd.type;
+            auto tf = cast(TypeFunction)fd.type;
             int prop = tf.isproperty ? 1 : 2;
             if (property == 0)
                 property = prop;
@@ -2452,7 +2452,7 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
                 if (fd.type.ty != Tfunction)
                     goto Lerror;
                 Type tthis_fd = fd.needThis() && !fd.isCtorDeclaration() ? tthis : null;
-                TypeFunction tf = cast(TypeFunction)fd.type;
+                auto tf = cast(TypeFunction)fd.type;
                 MATCH mfa = tf.callMatch(tthis_fd, fargs);
                 if (mfa < m.last)
                     return 0;
@@ -2507,7 +2507,7 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
                 if (fd.isCtorDeclaration())
                 {
                     // Constructor call requires additional check.
-                    TypeFunction tf = cast(TypeFunction)fd.type;
+                    auto tf = cast(TypeFunction)fd.type;
                     if (tthis_fd)
                     {
                         assert(tf.next);
@@ -2542,9 +2542,9 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
                 assert(fd && m.lastf);
                 {
                     // Disambiguate by tf->callMatch
-                    TypeFunction tf1 = cast(TypeFunction)fd.type;
+                    auto tf1 = cast(TypeFunction)fd.type;
                     assert(tf1.ty == Tfunction);
-                    TypeFunction tf2 = cast(TypeFunction)m.lastf.type;
+                    auto tf2 = cast(TypeFunction)m.lastf.type;
                     assert(tf2.ty == Tfunction);
                     MATCH c1 = tf1.callMatch(tthis_fd, fargs);
                     MATCH c2 = tf2.callMatch(tthis_best, fargs);
@@ -2643,7 +2643,7 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
             assert(m.lastf);
         }
         p.tthis_best = m.lastf.needThis() && !m.lastf.isCtorDeclaration() ? tthis : null;
-        TypeFunction tf = cast(TypeFunction)m.lastf.type;
+        auto tf = cast(TypeFunction)m.lastf.type;
         if (tf.ty == Terror)
             goto Lerror;
         assert(tf.ty == Tfunction);
@@ -2709,7 +2709,7 @@ extern (C++) size_t templateParameterLookup(Type tparam, TemplateParameters* par
 {
     if (tparam.ty == Tident)
     {
-        TypeIdentifier tident = cast(TypeIdentifier)tparam;
+        auto tident = cast(TypeIdentifier)tparam;
         //printf("\ttident = '%s'\n", tident->toChars());
         return templateIdentifierLookup(tident.ident, parameters);
     }
@@ -3060,7 +3060,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                     return;
                 }
                 TemplateParameter tp = (*parameters)[i];
-                TypeIdentifier tident = cast(TypeIdentifier)tparam;
+                auto tident = cast(TypeIdentifier)tparam;
                 if (tident.idents.dim > 0)
                 {
                     //printf("matching %s to %s\n", tparam->toChars(), t->toChars());
@@ -3095,10 +3095,10 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                     //printf("[e] s = %s\n", s?s->toChars():"(null)");
                     if (tp.isTemplateTypeParameter())
                     {
-                        Type tt = s.getType();
+                        auto tt = s.getType();
                         if (!tt)
                             goto Lnomatch;
-                        Type at = cast(Type)(*dedtypes)[i];
+                        auto at = cast(Type)(*dedtypes)[i];
                         if (at && at.ty == Tnone)
                             at = (cast(TypeDeduced)at).tded;
                         if (!at || tt.equals(at))
@@ -3121,7 +3121,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                 // Found the corresponding parameter tp
                 if (!tp.isTemplateTypeParameter())
                     goto Lnomatch;
-                Type at = cast(Type)(*dedtypes)[i];
+                auto at = cast(Type)(*dedtypes)[i];
                 Type tt;
                 if (auto wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
                 {
@@ -3136,7 +3136,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                     // type vs expressions
                     if (at.ty == Tnone)
                     {
-                        TypeDeduced xt = cast(TypeDeduced)at;
+                        auto xt = cast(TypeDeduced)at;
                         result = xt.matchAll(tt);
                         if (result > MATCHnomatch)
                         {
@@ -3178,7 +3178,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                     // type vs expressions
                     if (at.ty == Tnone)
                     {
-                        TypeDeduced xt = cast(TypeDeduced)at;
+                        auto xt = cast(TypeDeduced)at;
                         result = xt.matchAll(tt);
                         if (result > MATCHnomatch)
                         {
@@ -3227,7 +3227,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                 {
                     if (t.ty == Tclass)
                     {
-                        TypeClass tc = cast(TypeClass)t;
+                        auto tc = cast(TypeClass)t;
                         if (tc.sym.aliasthis && !(tc.att & RECtracingDT))
                         {
                             tc.att = cast(AliasThisRec)(tc.att | RECtracingDT);
@@ -3237,7 +3237,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                     }
                     else if (t.ty == Tstruct)
                     {
-                        TypeStruct ts = cast(TypeStruct)t;
+                        auto ts = cast(TypeStruct)t;
                         if (ts.sym.aliasthis && !(ts.att & RECtracingDT))
                         {
                             ts.att = cast(AliasThisRec)(ts.att | RECtracingDT);
@@ -3256,7 +3256,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                     result = t.implicitConvTo(tparam);
                     return;
                 }
-                Type tpn = tparam.nextOf();
+                auto tpn = tparam.nextOf();
                 if (wm && t.ty == Taarray && tparam.isWild())
                 {
                     // Bugzilla 12403: In IFTI, stop inout matching on transitive part of AA types.
@@ -3287,7 +3287,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             }
             if (tparam.ty == Tvector)
             {
-                TypeVector tp = cast(TypeVector)tparam;
+                auto tp = cast(TypeVector)tparam;
                 result = deduceType(t.basetype, sc, tp.basetype, parameters, dedtypes, wm);
                 return;
             }
@@ -3331,7 +3331,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                 size_t i;
                 if (tparam.ty == Tsarray)
                 {
-                    TypeSArray tsa = cast(TypeSArray)tparam;
+                    auto tsa = cast(TypeSArray)tparam;
                     if (tsa.dim.op == TOKvar && (cast(VarExp)tsa.dim).var.storage_class & STCtemplateparameter)
                     {
                         Identifier id = (cast(VarExp)tsa.dim).var.ident;
@@ -3344,7 +3344,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                 }
                 else if (tparam.ty == Taarray)
                 {
-                    TypeAArray taa = cast(TypeAArray)tparam;
+                    auto taa = cast(TypeAArray)tparam;
                     i = templateParameterLookup(taa.index, parameters);
                     if (i != IDX_NOTFOUND)
                         tp = (*parameters)[i];
@@ -3381,7 +3381,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             // Extra check that index type must match
             if (tparam && tparam.ty == Taarray)
             {
-                TypeAArray tp = cast(TypeAArray)tparam;
+                auto tp = cast(TypeAArray)tparam;
                 if (!deduceType(t.index, sc, tp.index, parameters, dedtypes))
                 {
                     result = MATCHnomatch;
@@ -3399,7 +3399,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             // Extra check that function characteristics must match
             if (tparam && tparam.ty == Tfunction)
             {
-                TypeFunction tp = cast(TypeFunction)tparam;
+                auto tp = cast(TypeFunction)tparam;
                 if (t.varargs != tp.varargs || t.linkage != tp.linkage)
                 {
                     result = MATCHnomatch;
@@ -3428,7 +3428,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                     assert(fparam.type);
                     if (fparam.type.ty != Tident)
                         goto L1;
-                    TypeIdentifier tid = cast(TypeIdentifier)fparam.type;
+                    auto tid = cast(TypeIdentifier)fparam.type;
                     if (tid.idents.dim)
                         goto L1;
                     /* Look through parameters to find tuple matching tid->ident
@@ -3510,7 +3510,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             // Extra check
             if (tparam && tparam.ty == Tident)
             {
-                TypeIdentifier tp = cast(TypeIdentifier)tparam;
+                auto tp = cast(TypeIdentifier)tparam;
                 for (size_t i = 0; i < t.idents.dim; i++)
                 {
                     RootObject id1 = t.idents[i];
@@ -3540,7 +3540,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             {
                 TemplateDeclaration tempdecl = t.tempinst.tempdecl.isTemplateDeclaration();
                 assert(tempdecl);
-                TypeInstance tp = cast(TypeInstance)tparam;
+                auto tp = cast(TypeInstance)tparam;
                 //printf("tempinst->tempdecl = %p\n", tempdecl);
                 //printf("tp->tempinst->tempdecl = %p\n", tp->tempinst->tempdecl);
                 if (!tp.tempinst.tempdecl)
@@ -3624,7 +3624,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                         goto Lnomatch;
                     }
                     RootObject o2 = (*tp.tempinst.tiargs)[i];
-                    Type t2 = isType(o2);
+                    auto t2 = isType(o2);
                     size_t j;
                     if (t2 && t2.ty == Tident && i == tp.tempinst.tiargs.dim - 1 && (j = templateParameterLookup(t2, parameters), j != IDX_NOTFOUND) && j == parameters.dim - 1 && (*parameters)[j].isTemplateTupleParameter())
                     {
@@ -3660,7 +3660,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                     }
                     else if (!o1)
                         break;
-                    Type t1 = isType(o1);
+                    auto t1 = isType(o1);
                     Dsymbol s1 = isDsymbol(o1);
                     Dsymbol s2 = isDsymbol(o2);
                     Expression e1 = s1 ? getValue(s1) : getValue(isExpression(o1));
@@ -3793,13 +3793,13 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                 /* Match things like:
                  *  S!(T).foo
                  */
-                TypeInstance tpi = cast(TypeInstance)tparam;
+                auto tpi = cast(TypeInstance)tparam;
                 if (tpi.idents.dim)
                 {
                     RootObject id = tpi.idents[tpi.idents.dim - 1];
                     if (id.dyncast() == DYNCAST_IDENTIFIER && t.sym.ident.equals(cast(Identifier)id))
                     {
-                        Type tparent = t.sym.parent.getType();
+                        auto tparent = t.sym.parent.getType();
                         if (tparent)
                         {
                             /* Slice off the .foo in S!(T).foo
@@ -3815,7 +3815,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             // Extra check
             if (tparam && tparam.ty == Tstruct)
             {
-                TypeStruct tp = cast(TypeStruct)tparam;
+                auto tp = cast(TypeStruct)tparam;
                 //printf("\t%d\n", (MATCH) t->implicitConvTo(tp));
                 if (wm && t.deduceWild(tparam, false))
                 {
@@ -3833,14 +3833,14 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             // Extra check
             if (tparam && tparam.ty == Tenum)
             {
-                TypeEnum tp = cast(TypeEnum)tparam;
+                auto tp = cast(TypeEnum)tparam;
                 if (t.sym == tp.sym)
                     visit(cast(Type)t);
                 else
                     result = MATCHnomatch;
                 return;
             }
-            Type tb = t.toBasetype();
+            auto tb = t.toBasetype();
             if (tb.ty == tparam.ty || tb.ty == Tsarray && tparam.ty == Taarray)
             {
                 result = deduceType(tb, sc, tparam, parameters, dedtypes, wm);
@@ -3926,13 +3926,13 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                 /* Match things like:
                  *  S!(T).foo
                  */
-                TypeInstance tpi = cast(TypeInstance)tparam;
+                auto tpi = cast(TypeInstance)tparam;
                 if (tpi.idents.dim)
                 {
                     RootObject id = tpi.idents[tpi.idents.dim - 1];
                     if (id.dyncast() == DYNCAST_IDENTIFIER && t.sym.ident.equals(cast(Identifier)id))
                     {
-                        Type tparent = t.sym.parent.getType();
+                        auto tparent = t.sym.parent.getType();
                         if (tparent)
                         {
                             /* Slice off the .foo in S!(T).foo
@@ -3982,7 +3982,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             // Extra check
             if (tparam && tparam.ty == Tclass)
             {
-                TypeClass tp = cast(TypeClass)tparam;
+                auto tp = cast(TypeClass)tparam;
                 //printf("\t%d\n", (MATCH) t->implicitConvTo(tp));
                 if (wm && t.deduceWild(tparam, false))
                 {
@@ -4003,7 +4003,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             {
                 if (e == emptyArrayElement && tparam.ty == Tarray)
                 {
-                    Type tn = (cast(TypeNext)tparam).next;
+                    auto tn = (cast(TypeNext)tparam).next;
                     result = deduceType(emptyArrayElement, sc, tn, parameters, dedtypes, wm);
                     return;
                 }
@@ -4026,7 +4026,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                     return;
                 }
             }
-            Type at = cast(Type)(*dedtypes)[i];
+            auto at = cast(Type)(*dedtypes)[i];
             Type tt;
             if (auto wx = deduceWildHelper(e.type, &tt, tparam))
             {
@@ -4056,7 +4056,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             if (xt)
                 match1 = xt.matchAll(tt);
             // From current expresssion to previous deduced type
-            Type pt = at.addMod(tparam.mod);
+            auto pt = at.addMod(tparam.mod);
             if (*wm)
                 pt = pt.substWildTo(*wm);
             MATCH match2 = e.implicitConvTo(pt);
@@ -4116,7 +4116,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                 emptyArrayElement.type = Type.tvoid;
             }
             assert(tparam.ty == Tarray);
-            Type tn = (cast(TypeNext)tparam).next;
+            auto tn = (cast(TypeNext)tparam).next;
             return deduceType(emptyArrayElement, sc, tn, parameters, dedtypes, wm);
         }
 
@@ -4153,7 +4153,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             }
             if (tparam.ty == Tarray && e.elements && e.elements.dim)
             {
-                Type tn = (cast(TypeDArray)tparam).next;
+                auto tn = (cast(TypeDArray)tparam).next;
                 result = MATCHexact;
                 for (size_t i = 0; i < e.elements.dim; i++)
                 {
@@ -4179,7 +4179,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
         {
             if (tparam.ty == Taarray && e.keys && e.keys.dim)
             {
-                TypeAArray taa = cast(TypeAArray)tparam;
+                auto taa = cast(TypeAArray)tparam;
                 result = MATCHexact;
                 for (size_t i = 0; i < e.keys.dim; i++)
                 {
@@ -4204,13 +4204,13 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             //printf("e->type = %s, tparam = %s\n", e->type->toChars(), tparam->toChars());
             if (e.td)
             {
-                Type to = tparam;
+                auto to = tparam;
                 if (!to.nextOf() || to.nextOf().ty != Tfunction)
                     return;
-                TypeFunction tof = cast(TypeFunction)to.nextOf();
+                auto tof = cast(TypeFunction)to.nextOf();
                 // Parameter types inference from 'tof'
                 assert(e.td._scope);
-                TypeFunction tf = cast(TypeFunction)e.fd.type;
+                auto tf = cast(TypeFunction)e.fd.type;
                 //printf("\ttof = %s\n", tof->toChars());
                 //printf("\ttf  = %s\n", tf->toChars());
                 size_t dim = Parameter.dim(tf.parameters);
@@ -4234,7 +4234,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                     Parameter pto = Parameter.getNth(tof.parameters, u);
                     if (!pto)
                         break;
-                    Type t = pto.type.syntaxCopy(); // Bugzilla 11774
+                    auto t = pto.type.syntaxCopy(); // Bugzilla 11774
                     if (reliesOnTident(t, parameters, inferStart))
                         return;
                     t = t.semantic(e.loc, sc);
@@ -4256,13 +4256,13 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                 visit(ex.type);
                 return;
             }
-            Type t = e.type;
+            auto t = e.type;
             if (t.ty == Tdelegate && tparam.ty == Tpointer)
                 return;
             // Allow conversion from implicit function pointer to delegate
             if (e.tok == TOKreserved && t.ty == Tpointer && tparam.ty == Tdelegate)
             {
-                TypeFunction tf = cast(TypeFunction)t.nextOf();
+                auto tf = cast(TypeFunction)t.nextOf();
                 t = (new TypeDelegate(tf)).merge();
             }
             //printf("tparam = %s <= e->type = %s, t = %s\n", tparam->toChars(), e->type->toChars(), t->toChars());
@@ -4399,7 +4399,7 @@ extern (C++) Type reliesOnTident(Type t, TemplateParameters* tparams = null, siz
                 return;
             for (size_t i = 0; i < t.tempinst.tiargs.dim; i++)
             {
-                Type ta = isType((*t.tempinst.tiargs)[i]);
+                auto ta = isType((*t.tempinst.tiargs)[i]);
                 if (ta)
                 {
                     ta.accept(this);
@@ -4610,8 +4610,8 @@ public:
     final void print(RootObject oarg, RootObject oded)
     {
         printf(" %s\n", ident.toChars());
-        Type t = isType(oarg);
-        Type ta = isType(oded);
+        auto t = isType(oarg);
+        auto ta = isType(oded);
         assert(ta);
         if (specType)
             printf("\tSpecialization: %s\n", specType.toChars());
@@ -4628,7 +4628,7 @@ public:
 
     final RootObject defaultArg(Loc instLoc, Scope* sc)
     {
-        Type t = defaultType;
+        auto t = defaultType;
         if (t)
         {
             t = t.syntaxCopy();
@@ -4646,7 +4646,7 @@ public:
     {
         //printf("TemplateTypeParameter::matchArg('%s')\n", ident->toChars());
         MATCH m = MATCHexact;
-        Type ta = isType(oarg);
+        auto ta = isType(oarg);
         if (!ta)
         {
             //printf("%s %p %p %p\n", oarg->toChars(), isExpression(oarg), isDsymbol(oarg), isTuple(oarg));
@@ -4711,7 +4711,7 @@ public:
 
     final void* dummyArg()
     {
-        Type t = specType;
+        auto t = specType;
         if (!t)
         {
             // Use this for alias-parameter's too (?)
@@ -4995,7 +4995,7 @@ extern (C++) RootObject aliasParameterSemantic(Loc loc, Scope* sc, RootObject o,
     if (o)
     {
         Expression ea = isExpression(o);
-        Type ta = isType(o);
+        auto ta = isType(o);
         if (ta && (!parameters || !reliesOnTident(ta, parameters)))
         {
             Dsymbol s = ta.toDsymbol(sc);
@@ -5086,7 +5086,7 @@ public:
     RootObject defaultArg(Loc instLoc, Scope* sc)
     {
         RootObject da = defaultAlias;
-        Type ta = isType(defaultAlias);
+        auto ta = isType(defaultAlias);
         if (ta)
         {
             if (ta.ty == Tinstance)
@@ -5108,7 +5108,7 @@ public:
     {
         //printf("TemplateAliasParameter::matchArg('%s')\n", ident->toChars());
         MATCH m = MATCHexact;
-        Type ta = isType(oarg);
+        auto ta = isType(oarg);
         RootObject sa = ta && !ta.deco ? null : getDsymbol(oarg);
         Expression ea = isExpression(oarg);
         if (ea && (ea.op == TOKthis || ea.op == TOKsuper))
@@ -5168,7 +5168,7 @@ public:
             Dsymbol sx = isDsymbol(sa);
             if (sa != specAlias && sx)
             {
-                Type talias = isType(specAlias);
+                auto talias = isType(specAlias);
                 if (!talias)
                     goto Lnomatch;
                 TemplateInstance ti = sx.isTemplateInstance();
@@ -5180,7 +5180,7 @@ public:
                 }
                 if (!ti)
                     goto Lnomatch;
-                Type t = new TypeInstance(Loc(), ti);
+                auto t = new TypeInstance(Loc(), ti);
                 MATCH m2 = deduceType(t, sc, talias, parameters, dedtypes);
                 if (m2 <= MATCHnomatch)
                     goto Lnomatch;
@@ -5291,7 +5291,7 @@ public:
             Dsymbol sa = isDsymbol(o);
             if (sa)
                 printf("alias: %s", sa.toChars());
-            Type ta = isType(o);
+            auto ta = isType(o);
             if (ta)
                 printf("type: %s", ta.toChars());
             Expression ea = isExpression(o);
@@ -5715,7 +5715,7 @@ public:
         {
             if ((*tempdecl.parameters)[i].isTemplateThisParameter() is null)
                 continue;
-            Type t = isType((*tiargs)[i]);
+            auto t = isType((*tiargs)[i]);
             assert(t);
             if (auto stc = ModToStc(t.mod))
             {
@@ -5792,7 +5792,7 @@ public:
                 /* Transmit fargs to type so that TypeFunction::semantic() can
                  * resolve any "auto ref" storage classes.
                  */
-                TypeFunction tf = cast(TypeFunction)fd.type;
+                auto tf = cast(TypeFunction)fd.type;
                 if (tf && tf.ty == Tfunction)
                     tf.fargs = fargs;
             }
@@ -6639,7 +6639,7 @@ public:
         for (size_t j = 0; j < tiargs.dim; j++)
         {
             RootObject o = (*tiargs)[j];
-            Type ta = isType(o);
+            auto ta = isType(o);
             Expression ea = isExpression(o);
             Dsymbol sa = isDsymbol(o);
             //printf("1: (*tiargs)[%d] = %p, s=%p, v=%p, ea=%p, ta=%p\n", j, o, isDsymbol(o), isTuple(o), ea, ta);
@@ -6661,7 +6661,7 @@ public:
                 if (ta.ty == Ttuple)
                 {
                     // Expand tuple
-                    TypeTuple tt = cast(TypeTuple)ta;
+                    auto tt = cast(TypeTuple)ta;
                     size_t dim = tt.arguments.dim;
                     tiargs.remove(j);
                     if (dim)
@@ -6846,7 +6846,7 @@ public:
             for (size_t j = 0; j < tiargs.dim; j++)
             {
                 RootObject o = (*tiargs)[j];
-                Type ta = isType(o);
+                auto ta = isType(o);
                 Expression ea = isExpression(o);
                 Dsymbol sa = isDsymbol(o);
                 Tuple va = isTuple(o);
@@ -7133,7 +7133,7 @@ public:
                  * to instantiate the template.
                  */
                 //printf("tp = %p, td->parameters->dim = %d, tiargs->dim = %d\n", tp, td->parameters->dim, ti->tiargs->dim);
-                TypeFunction tf = cast(TypeFunction)fd.type;
+                auto tf = cast(TypeFunction)fd.type;
                 if (size_t dim = Parameter.dim(tf.parameters))
                 {
                     TemplateParameter tp = td.isVariadic();
@@ -7356,7 +7356,7 @@ public:
         for (size_t i = 0; i < args.dim; i++)
         {
             RootObject o = (*args)[i];
-            Type ta = isType(o);
+            auto ta = isType(o);
             Expression ea = isExpression(o);
             Dsymbol sa = isDsymbol(o);
             Tuple va = isTuple(o);
@@ -7744,13 +7744,13 @@ public:
             for (size_t i = 0; i < tiargs.dim; i++)
             {
                 RootObject o = (*tiargs)[i];
-                Type ta = isType(o);
+                auto ta = isType(o);
                 Expression ea = isExpression(o);
                 Dsymbol sa = isDsymbol(o);
                 RootObject tmo = (*tm.tiargs)[i];
                 if (ta)
                 {
-                    Type tmta = isType(tmo);
+                    auto tmta = isType(tmo);
                     if (!tmta)
                         goto Lcontinue;
                     if (!ta.equals(tmta))

@@ -62,7 +62,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
              * then this expression cannot throw.
              * Note that pure functions can throw.
              */
-            Type t = ce.e1.type.toBasetype();
+            auto t = ce.e1.type.toBasetype();
             if (ce.f && ce.f == func)
             {
             }
@@ -97,7 +97,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
             if (ne.member)
             {
                 // See if constructor call can throw
-                Type t = ne.member.type.toBasetype();
+                auto t = ne.member.type.toBasetype();
                 if (t.ty == Tfunction && !(cast(TypeFunction)t).isnothrow)
                 {
                     if (mustNotThrow)
@@ -126,7 +126,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                 t = (cast(SliceExp)ae.e1).e1.type;
             else
                 return;
-            Type tv = t.baseElemOf();
+            auto tv = t.baseElemOf();
             if (tv.ty != Tstruct)
                 return;
             auto sd = (cast(TypeStruct)tv).sym;

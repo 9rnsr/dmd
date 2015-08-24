@@ -87,12 +87,12 @@ extern (C++) bool isArrayOpValid(Expression e)
         return true;
     if (e.op == TOKarrayliteral)
     {
-        Type t = e.type.toBasetype();
+        auto t = e.type.toBasetype();
         while (t.ty == Tarray || t.ty == Tsarray)
             t = t.nextOf().toBasetype();
         return (t.ty != Tvoid);
     }
-    Type tb = e.type.toBasetype();
+    auto tb = e.type.toBasetype();
     if (tb.ty == Tarray || tb.ty == Tsarray)
     {
         if (isUnaArrayOp(e.op))
@@ -125,7 +125,7 @@ extern (C++) bool isNonAssignmentArrayOp(Expression e)
 {
     if (e.op == TOKslice)
         return isNonAssignmentArrayOp((cast(SliceExp)e).e1);
-    Type tb = e.type.toBasetype();
+    auto tb = e.type.toBasetype();
     if (tb.ty == Tarray || tb.ty == Tsarray)
     {
         return (isUnaArrayOp(e.op) || isBinArrayOp(e.op));
@@ -152,9 +152,9 @@ extern (C++) bool checkNonAssignmentArrayOp(Expression e, bool suggestion = fals
 extern (C++) Expression arrayOp(BinExp e, Scope* sc)
 {
     //printf("BinExp::arrayOp() %s\n", toChars());
-    Type tb = e.type.toBasetype();
+    auto tb = e.type.toBasetype();
     assert(tb.ty == Tarray || tb.ty == Tsarray);
-    Type tbn = tb.nextOf().toBasetype();
+    auto tbn = tb.nextOf().toBasetype();
     if (tbn.ty == Tvoid)
     {
         e.error("cannot perform array operations on void[] arrays");
@@ -206,7 +206,7 @@ extern (C++) Expression arrayOp(BinAssignExp e, Scope* sc)
     //printf("BinAssignExp::arrayOp() %s\n", toChars());
     /* Check that the elements of e1 can be assigned to
      */
-    Type tn = e.e1.type.toBasetype().nextOf();
+    auto tn = e.e1.type.toBasetype().nextOf();
     if (tn && (!tn.isMutable() || !tn.isAssignable()))
     {
         e.error("slice %s is not mutable", e.e1.toChars());
@@ -246,7 +246,7 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
 
         void visit(CastExp e)
         {
-            Type tb = e.type.toBasetype();
+            auto tb = e.type.toBasetype();
             if (tb.ty == Tarray || tb.ty == Tsarray)
             {
                 e.e1.accept(this);
@@ -369,9 +369,9 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
             }
             if (s)
             {
-                Type tb = e.type.toBasetype();
-                Type t1 = e.e1.type.toBasetype();
-                Type t2 = e.e2.type.toBasetype();
+                auto tb = e.type.toBasetype();
+                auto t1 = e.e1.type.toBasetype();
+                auto t2 = e.e2.type.toBasetype();
                 e.e1.accept(this);
                 if (t1.ty == Tarray && (t2.ty == Tarray && !t1.equivalent(tb) || t2.ty != Tarray && !t1.nextOf().equivalent(e.e2.type)))
                 {
@@ -430,7 +430,7 @@ extern (C++) Expression buildArrayLoop(Expression e, Parameters* fparams)
 
         void visit(CastExp e)
         {
-            Type tb = e.type.toBasetype();
+            auto tb = e.type.toBasetype();
             if (tb.ty == Tarray || tb.ty == Tsarray)
             {
                 e.e1.accept(this);
@@ -637,12 +637,12 @@ extern (C++) bool isArrayOpOperand(Expression e)
         return true;
     if (e.op == TOKarrayliteral)
     {
-        Type t = e.type.toBasetype();
+        auto t = e.type.toBasetype();
         while (t.ty == Tarray || t.ty == Tsarray)
             t = t.nextOf().toBasetype();
         return (t.ty != Tvoid);
     }
-    Type tb = e.type.toBasetype();
+    auto tb = e.type.toBasetype();
     if (tb.ty == Tarray)
     {
         return (isUnaArrayOp(e.op) || isBinArrayOp(e.op) || isBinAssignArrayOp(e.op) || e.op == TOKassign);

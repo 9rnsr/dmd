@@ -90,7 +90,7 @@ extern (C++) int callSideEffectLevel(FuncDeclaration f)
     if (f.isCtorDeclaration())
         return 0;
     assert(f.type.ty == Tfunction);
-    TypeFunction tf = cast(TypeFunction)f.type;
+    auto tf = cast(TypeFunction)f.type;
     if (tf.isnothrow)
     {
         PURE purity = f.isPure();
@@ -172,7 +172,7 @@ extern (C++) bool lambdaHasSideEffect(Expression e)
              */
             if (ce.e1.type)
             {
-                Type t = ce.e1.type.toBasetype();
+                auto t = ce.e1.type.toBasetype();
                 if (t.ty == Tdelegate)
                     t = (cast(TypeDelegate)t).next;
                 if (t.ty == Tfunction && (ce.f ? callSideEffectLevel(ce.f) : callSideEffectLevel(ce.e1.type)) > 0)
@@ -251,7 +251,7 @@ extern (C++) void discardValue(Expression e)
             }
             else if (ce.e1.type)
             {
-                Type t = ce.e1.type.toBasetype();
+                auto t = ce.e1.type.toBasetype();
                 if (t.ty == Tdelegate)
                     t = (cast(TypeDelegate)t).next;
                 if (t.ty == Tfunction && (ce.f ? callSideEffectLevel(ce.f) : callSideEffectLevel(ce.e1.type)) > 0)

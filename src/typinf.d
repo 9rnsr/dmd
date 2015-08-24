@@ -30,7 +30,7 @@ extern (C++) void genTypeInfo(Type torig, Scope* sc)
         torig.error(Loc(), "TypeInfo not found. object.d may be incorrectly installed or corrupt, compile with -v switch");
         fatal();
     }
-    Type t = torig.merge2(); // do this since not all Type's are merge'd
+    auto t = torig.merge2(); // do this since not all Type's are merge'd
     if (!t.vtinfo)
     {
         if (t.isShared()) // does both 'shared' and 'shared const'
@@ -128,7 +128,7 @@ extern (C++) static bool builtinTypeInfo(Type t)
         return !t.mod;
     if (t.ty == Tarray)
     {
-        Type next = t.nextOf();
+        auto next = t.nextOf();
         // strings are so common, make them builtin
         return !t.mod && (next.isTypeBasic() !is null && !next.mod || next.ty == Tchar && next.mod == MODimmutable || next.ty == Tchar && next.mod == MODconst);
     }

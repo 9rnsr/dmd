@@ -644,7 +644,7 @@ public:
             if (emprev.errors)
                 goto Lerrors;
             Expression eprev = emprev.value;
-            Type tprev = eprev.type.equals(ed.type) ? ed.memtype : eprev.type;
+            auto tprev = eprev.type.equals(ed.type) ? ed.memtype : eprev.type;
             Expression emax = tprev.getProperty(ed.loc, Id.max, 0);
             emax = emax.semantic(sc);
             emax = emax.ctfeInterpret();

@@ -39,7 +39,7 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
         {
             return e;
         }
-        Type tb = v.type.toBasetype();
+        auto tb = v.type.toBasetype();
         if (v.storage_class & STCmanifest || v.type.toBasetype().isscalar() || ((result & WANTexpand) && (tb.ty != Tsarray && tb.ty != Tstruct)))
         {
             if (v._init)
@@ -400,7 +400,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                     VarExp ve = cast(VarExp)ae.e1;
                     if (ve.type.ty == Tsarray && !ve.var.isImportedSymbol())
                     {
-                        TypeSArray ts = cast(TypeSArray)ve.type;
+                        auto ts = cast(TypeSArray)ve.type;
                         sinteger_t dim = ts.dim.toInteger();
                         if (index < 0 || index >= dim)
                         {
@@ -527,11 +527,11 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             // Optimize parameters with keeping lvalue-ness
             if (e.arguments)
             {
-                Type t1 = e.e1.type.toBasetype();
+                auto t1 = e.e1.type.toBasetype();
                 if (t1.ty == Tdelegate)
                     t1 = t1.nextOf();
                 assert(t1.ty == Tfunction);
-                TypeFunction tf = cast(TypeFunction)t1;
+                auto tf = cast(TypeFunction)t1;
                 for (size_t i = 0; i < e.arguments.dim; i++)
                 {
                     Parameter p = Parameter.getNth(tf.parameters, i);
@@ -949,7 +949,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 len = (cast(ArrayLiteralExp)arr).elements.dim;
             else
             {
-                Type t = arr.type.toBasetype();
+                auto t = arr.type.toBasetype();
                 if (t.ty == Tsarray)
                     len = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
                 else
@@ -984,7 +984,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 if (e.e1.op == TOKstring)
                 {
                     // Convert slice of string literal into dynamic array
-                    Type t = e.e1.type.toBasetype();
+                    auto t = e.e1.type.toBasetype();
                     if (auto tn = t.nextOf())
                         ret = e.e1.castTo(null, tn.arrayOf());
                 }

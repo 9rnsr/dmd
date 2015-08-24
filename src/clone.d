@@ -35,7 +35,7 @@ extern (C++) StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration f)
     if (!f)
         return s1;
     StorageClass s2 = (f.storage_class & STCdisable);
-    TypeFunction tf = cast(TypeFunction)f.type;
+    auto tf = cast(TypeFunction)f.type;
     if (tf.trust == TRUSTsafe)
         s2 |= STCsafe;
     else if (tf.trust == TRUSTsystem)
@@ -140,10 +140,10 @@ extern (C++) bool needOpAssign(StructDeclaration sd)
         auto v = sd.fields[i];
         if (v.storage_class & STCref)
             continue;
-        Type tv = v.type.baseElemOf();
+        auto tv = v.type.baseElemOf();
         if (tv.ty == Tstruct)
         {
-            TypeStruct ts = cast(TypeStruct)tv;
+            auto ts = cast(TypeStruct)tv;
             if (needOpAssign(ts.sym))
                 goto Lneed;
         }
@@ -205,7 +205,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
             auto v = sd.fields[i];
             if (v.storage_class & STCref)
                 continue;
-            Type tv = v.type.baseElemOf();
+            auto tv = v.type.baseElemOf();
             if (tv.ty != Tstruct)
                 continue;
             auto sdv = (cast(TypeStruct)tv).sym;
@@ -315,7 +315,7 @@ extern (C++) bool needOpEquals(StructDeclaration sd)
         auto v = sd.fields[i];
         if (v.storage_class & STCref)
             continue;
-        Type tv = v.type.toBasetype();
+        auto tv = v.type.toBasetype();
         if (tv.isfloating())
         {
             // This is necessray for:
@@ -332,7 +332,7 @@ extern (C++) bool needOpEquals(StructDeclaration sd)
         tv = tv.baseElemOf();
         if (tv.ty == Tstruct)
         {
-            TypeStruct ts = cast(TypeStruct)tv;
+            auto ts = cast(TypeStruct)tv;
             if (needOpEquals(ts.sym))
                 goto Lneed;
             if (ts.sym.aliasthis) // Bugzilla 14806
@@ -631,7 +631,7 @@ extern (C++) bool needToHash(StructDeclaration sd)
         auto v = sd.fields[i];
         if (v.storage_class & STCref)
             continue;
-        Type tv = v.type.toBasetype();
+        auto tv = v.type.toBasetype();
         if (tv.isfloating())
         {
             // This is necessray for:
@@ -647,7 +647,7 @@ extern (C++) bool needToHash(StructDeclaration sd)
         tv = tv.baseElemOf();
         if (tv.ty == Tstruct)
         {
-            TypeStruct ts = cast(TypeStruct)tv;
+            auto ts = cast(TypeStruct)tv;
             if (needToHash(ts.sym))
                 goto Lneed;
         }
@@ -727,7 +727,7 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         auto v = sd.fields[i];
         if (v.storage_class & STCref)
             continue;
-        Type tv = v.type.baseElemOf();
+        auto tv = v.type.baseElemOf();
         if (tv.ty != Tstruct || !v.type.size())
             continue;
         auto sdv = (cast(TypeStruct)tv).sym;
@@ -881,7 +881,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         auto v = ad.fields[i];
         if (v.storage_class & STCref)
             continue;
-        Type tv = v.type.baseElemOf();
+        auto tv = v.type.baseElemOf();
         if (tv.ty != Tstruct || !v.type.size())
             continue;
         auto sdv = (cast(TypeStruct)tv).sym;

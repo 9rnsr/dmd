@@ -605,7 +605,7 @@ public:
         FuncLiteralDeclaration fld = isFuncLiteralDeclaration();
         if (fld && fld.treq)
         {
-            Type treq = fld.treq;
+            auto treq = fld.treq;
             assert(treq.nextOf().ty == Tfunction);
             if (treq.ty == Tdelegate)
                 fld.tok = TOKdelegate;
@@ -626,7 +626,7 @@ public:
         {
             sc = sc.push();
             sc.stc |= storage_class & (STCdisable | STCdeprecated); // forward to function type
-            TypeFunction tf = cast(TypeFunction)type;
+            auto tf = cast(TypeFunction)type;
             if (sc.func)
             {
                 /* If the parent is @safe, then this function defaults to safe too.
@@ -700,7 +700,7 @@ public:
             if (isCtorDeclaration())
             {
                 sc.flags |= SCOPEctor;
-                Type tret = ad.handleType();
+                auto tret = ad.handleType();
                 assert(tret);
                 tret = tret.addStorageClass(storage_class | sc.stc);
                 tret = tret.addMod(type.mod);
@@ -784,8 +784,8 @@ public:
         {
             // Merge back function attributes into 'originalType'.
             // It's used for mangling, ddoc, and json output.
-            TypeFunction tfo = cast(TypeFunction)originalType;
-            TypeFunction tfx = cast(TypeFunction)type;
+            auto tfo = cast(TypeFunction)originalType;
+            auto tfx = cast(TypeFunction)type;
             tfo.mod = tfx.mod;
             tfo.isref = tfx.isref;
             tfo.isnothrow = tfx.isnothrow;
@@ -1463,7 +1463,7 @@ public:
                     sc2.insert(v_arguments);
                     v_arguments.parent = this;
                     //Type *t = Type::typeinfo->type->constOf()->arrayOf();
-                    Type t = Type.dtypeinfo.type.arrayOf();
+                    auto t = Type.dtypeinfo.type.arrayOf();
                     _arguments = new VarDeclaration(Loc(), t, Id._arguments, null);
                     _arguments.storage_class |= STCtemp;
                     _arguments.semantic(sc2);
@@ -1473,7 +1473,7 @@ public:
                 if (f.linkage == LINKd || (f.parameters && Parameter.dim(f.parameters)))
                 {
                     // Declare _argptr
-                    Type t = Type.tvalist;
+                    auto t = Type.tvalist;
                     argptr = new VarDeclaration(Loc(), t, Id._argptr, null);
                     argptr.storage_class |= STCtemp;
                     argptr.semantic(sc2);
@@ -1505,7 +1505,7 @@ public:
                         fparam.ident = id = Identifier.generateId("_param_", i);
                         stc |= STCtemp;
                     }
-                    Type vtype = fparam.type;
+                    auto vtype = fparam.type;
                     auto v = new VarDeclaration(loc, vtype, id, null);
                     //printf("declaring parameter %s of type %s\n", v->toChars(), v->type->toChars());
                     stc |= STCparameter;
@@ -1794,7 +1794,7 @@ public:
                 if (returns && !fbody.isErrorStatement())
                 {
                     bool implicit0 = (f.next.ty == Tvoid && isMain());
-                    Type tret = implicit0 ? Type.tint32 : f.next;
+                    auto tret = implicit0 ? Type.tint32 : f.next;
                     assert(tret.ty != Tvoid);
                     if (vresult || returnLabel)
                         buildResultVar(scout ? scout : sc2, tret);
@@ -1940,7 +1940,7 @@ public:
                     }
                     else
                     {
-                        Type t = argptr.type;
+                        auto t = argptr.type;
                         if (global.params.is64bit && !global.params.isWindows)
                         {
                             // Initialize _argptr to point to v_argsave
@@ -2282,7 +2282,7 @@ public:
         {
             VarDeclaration v;
             {
-                Type thandle = ad.handleType();
+                auto thandle = ad.handleType();
                 assert(thandle);
                 thandle = thandle.addMod(type.mod);
                 thandle = thandle.addStorageClass(storage_class);
@@ -2527,7 +2527,7 @@ public:
                 if (!f)
                     return 0;
                 ParamExact* p = cast(ParamExact*)param;
-                Type t = p.t;
+                auto t = p.t;
                 if (t.equals(f.type))
                 {
                     p.f = f;
@@ -2539,7 +2539,7 @@ public:
                  */
                 if (t.ty == Tfunction)
                 {
-                    TypeFunction tf = cast(TypeFunction)f.type;
+                    auto tf = cast(TypeFunction)f.type;
                     if (tf.covariant(t) == 1 && tf.nextOf().implicitConvTo(t.nextOf()) >= MATCHconst)
                     {
                         p.f = f;
@@ -2598,7 +2598,7 @@ public:
                 if (f == m.lastf) // skip duplicates
                     return 0;
                 m.anyf = f;
-                TypeFunction tf = cast(TypeFunction)f.type;
+                auto tf = cast(TypeFunction)f.type;
                 //printf("tf = %s\n", tf->toChars());
                 MATCH match;
                 if (tthis) // non-static functions are preferred than static ones
@@ -2671,7 +2671,7 @@ public:
         else // no match
         {
             t = null;
-            TypeFunction tf = cast(TypeFunction)this.type;
+            auto tf = cast(TypeFunction)this.type;
             assert(tthis);
             assert(!MODimplicitConv(tthis.mod, tf.mod)); // modifier mismatch
             {
@@ -2737,8 +2737,8 @@ public:
          * if that is possible, then f() is at least as specialized
          * as g() is.
          */
-        TypeFunction tf = cast(TypeFunction)type;
-        TypeFunction tg = cast(TypeFunction)g.type;
+        auto tf = cast(TypeFunction)type;
+        auto tg = cast(TypeFunction)g.type;
         size_t nfparams = Parameter.dim(tf.parameters);
         /* If both functions have a 'this' pointer, and the mods are not
          * the same and g's is not const, then this is less specialized.
@@ -2995,7 +2995,7 @@ public:
     {
         //printf("FuncDeclaration::isPure() '%s'\n", toChars());
         assert(type.ty == Tfunction);
-        TypeFunction tf = cast(TypeFunction)type;
+        auto tf = cast(TypeFunction)type;
         if (flags & FUNCFLAGpurityInprocess)
             setImpure();
         if (tf.purity == PUREfwdref)
@@ -3137,9 +3137,9 @@ public:
     final bool isolateReturn()
     {
         assert(type.ty == Tfunction);
-        TypeFunction tf = cast(TypeFunction)type;
+        auto tf = cast(TypeFunction)type;
         assert(tf.next);
-        Type treti = tf.next;
+        auto treti = tf.next;
         treti = tf.isref ? treti : getIndirection(treti);
         if (!treti)
             return true; // target has no mutable indirection
@@ -3156,7 +3156,7 @@ public:
         if (!isPureBypassingInference() || isNested())
             return false;
         assert(type.ty == Tfunction);
-        TypeFunction tf = cast(TypeFunction)type;
+        auto tf = cast(TypeFunction)type;
         //printf("parametersIntersect(%s) t = %s\n", tf->toChars(), t->toChars());
         size_t dim = Parameter.dim(tf.parameters);
         for (size_t i = 0; i < dim; i++)
@@ -3164,7 +3164,7 @@ public:
             Parameter fparam = Parameter.getNth(tf.parameters, i);
             if (!fparam.type)
                 continue;
-            Type tprmi = (fparam.storageClass & (STClazy | STCout | STCref)) ? fparam.type : getIndirection(fparam.type);
+            auto tprmi = (fparam.storageClass & (STClazy | STCout | STCref)) ? fparam.type : getIndirection(fparam.type);
             if (!tprmi)
                 continue;
             // there is no mutable indirection
@@ -3174,7 +3174,7 @@ public:
         }
         if (auto ad = isCtorDeclaration() ? null : isThis())
         {
-            Type tthis = ad.getType().addMod(tf.mod);
+            auto tthis = ad.getType().addMod(tf.mod);
             //printf("\ttthis = %s\n", tthis->toChars());
             if (traverseIndirections(tthis, t))
                 return false;
@@ -3429,7 +3429,7 @@ public:
         if (closureVars.dim)
         {
             assert(type.ty == Tfunction);
-            Type tret = (cast(TypeFunction)type).next;
+            auto tret = (cast(TypeFunction)type).next;
             assert(tret);
             tret = tret.toBasetype();
             //printf("\t\treturning %s\n", tret->toChars());
@@ -3508,7 +3508,7 @@ public:
         if (sc && vresult.sem == SemanticStart)
         {
             assert(type.ty == Tfunction);
-            TypeFunction tf = cast(TypeFunction)type;
+            auto tf = cast(TypeFunction)type;
             if (tf.isref)
                 vresult.storage_class |= STCref | STCforeach;
             vresult.type = tret;
@@ -3631,8 +3631,8 @@ public:
                 if (outId)
                 {
                     eresult = new IdentifierExp(loc, oid);
-                    Type t1 = fdv.type.nextOf().toBasetype();
-                    Type t2 = this.type.nextOf().toBasetype();
+                    auto t1 = fdv.type.nextOf().toBasetype();
+                    auto t2 = this.type.nextOf().toBasetype();
                     if (t1.isBaseOf(t2, null))
                     {
                         /* Making temporary reference variable is necessary
@@ -3671,7 +3671,7 @@ public:
         if (type)
         {
             assert(type.ty == Tfunction);
-            TypeFunction fdtype = cast(TypeFunction)type;
+            auto fdtype = cast(TypeFunction)type;
             fparameters = fdtype.parameters;
             fvarargs = fdtype.varargs;
         }
@@ -3993,7 +3993,7 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s, Obje
         {
             assert(fd);
             bool hasOverloads = fd.overnext !is null;
-            TypeFunction tf = cast(TypeFunction)fd.type;
+            auto tf = cast(TypeFunction)fd.type;
             if (tthis && !MODimplicitConv(tthis.mod, tf.mod)) // modifier mismatch
             {
                 OutBuffer thisBuf, funcBuf;
@@ -4024,8 +4024,8 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s, Obje
     }
     else if (m.nextf)
     {
-        TypeFunction tf1 = cast(TypeFunction)m.lastf.type;
-        TypeFunction tf2 = cast(TypeFunction)m.nextf.type;
+        auto tf1 = cast(TypeFunction)m.lastf.type;
+        auto tf2 = cast(TypeFunction)m.nextf.type;
         const(char)* lastprms = parametersTypeToChars(tf1.parameters, tf1.varargs);
         const(char)* nextprms = parametersTypeToChars(tf2.parameters, tf2.varargs);
         .error(loc, "%s.%s called with argument types %s matches both:\n%s:     %s%s\nand:\n%s:     %s%s", s.parent.toPrettyChars(), s.ident.toChars(), fargsBuf.peekString(), m.lastf.loc.toChars(), m.lastf.toPrettyChars(), lastprms, m.nextf.loc.toChars(), m.nextf.toPrettyChars(), nextprms);
@@ -4100,7 +4100,7 @@ struct FuncCandidateWalker
         if (!f || f.errors || f.type.ty == Terror)
             return 0;
         FuncCandidateWalker* p = cast(FuncCandidateWalker*)param;
-        TypeFunction tf = cast(TypeFunction)f.type;
+        auto tf = cast(TypeFunction)f.type;
         .errorSupplemental(f.loc, "%s%s", f.toPrettyChars(), parametersTypeToChars(tf.parameters, tf.varargs));
         if (!global.params.verbose && --p.numToDisplay == 0 && f.overnext)
         {
@@ -4143,8 +4143,8 @@ extern (C++) Type getIndirection(Type t)
  */
 extern (C++) bool traverseIndirections(Type ta, Type tb, void* p = null, bool reversePass = false)
 {
-    Type source = ta;
-    Type target = tb;
+    auto source = ta;
+    auto target = tb;
     if (reversePass)
     {
         source = tb;
@@ -4155,7 +4155,7 @@ extern (C++) bool traverseIndirections(Type ta, Type tb, void* p = null, bool re
     else if (target.ty == Tvoid && MODimplicitConv(source.mod, target.mod))
         return true;
     // No direct match, so try breaking up one of the types (starting with tb).
-    Type tbb = tb.toBasetype().baseElemOf();
+    auto tbb = tb.toBasetype().baseElemOf();
     if (tbb != tb)
         return traverseIndirections(ta, tbb, p, reversePass);
     // context date to detect circular look up
@@ -4178,7 +4178,7 @@ extern (C++) bool traverseIndirections(Type ta, Type tb, void* p = null, bool re
         for (size_t i = 0; i < sym.fields.dim; i++)
         {
             auto v = sym.fields[i];
-            Type tprmi = v.type.addMod(tb.mod);
+            auto tprmi = v.type.addMod(tb.mod);
             //printf("\ttb = %s, tprmi = %s\n", tb->toChars(), tprmi->toChars());
             if (traverseIndirections(ta, tprmi, &c, reversePass))
                 return true;
@@ -4186,7 +4186,7 @@ extern (C++) bool traverseIndirections(Type ta, Type tb, void* p = null, bool re
     }
     else if (tb.ty == Tarray || tb.ty == Taarray || tb.ty == Tpointer)
     {
-        Type tind = tb.nextOf();
+        auto tind = tb.nextOf();
         if (traverseIndirections(ta, tind, ctxt, reversePass))
             return true;
     }
@@ -4480,7 +4480,7 @@ public:
         sc.pop();
         if (errors)
             return;
-        TypeFunction tf = cast(TypeFunction)type;
+        auto tf = cast(TypeFunction)type;
         assert(tf && tf.ty == Tfunction);
         /* See if it's the default constructor
          * But, template constructor should not become a default constructor.
@@ -5231,13 +5231,13 @@ public:
             errors = true;
             return;
         }
-        Type tret = Type.tvoid.pointerTo();
+        auto tret = Type.tvoid.pointerTo();
         if (!type)
             type = new TypeFunction(parameters, tret, varargs, LINKd, storage_class);
         type = type.semantic(loc, sc);
         assert(type.ty == Tfunction);
         // Check that there is at least one argument of type size_t
-        TypeFunction tf = cast(TypeFunction)type;
+        auto tf = cast(TypeFunction)type;
         if (Parameter.dim(tf.parameters) < 1)
         {
             error("at least one argument of type size_t expected");
@@ -5325,7 +5325,7 @@ public:
         type = type.semantic(loc, sc);
         assert(type.ty == Tfunction);
         // Check that there is only one argument of type void*
-        TypeFunction tf = cast(TypeFunction)type;
+        auto tf = cast(TypeFunction)type;
         if (Parameter.dim(tf.parameters) != 1)
         {
             error("one argument of type void* expected");

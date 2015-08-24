@@ -746,7 +746,7 @@ public:
 
     void visit(TypeDArray t)
     {
-        Type ut = t.castMod(0);
+        auto ut = t.castMod(0);
         if (declstring)
             goto L1;
         if (ut.equals(Type.tstring))
@@ -1814,7 +1814,7 @@ public:
             buf.writestring(f.kind());
             buf.writeByte(' ');
         }
-        TypeFunction tf = cast(TypeFunction)f.type;
+        auto tf = cast(TypeFunction)f.type;
         // Don't print tf->mod, tf->trust, and tf->linkage
         if (!f.inferRetType && tf.next)
             typeToBuffer(tf.next, null);
@@ -2052,13 +2052,13 @@ public:
         dinteger_t v = e.toInteger();
         if (e.type)
         {
-            Type t = e.type;
+            auto t = e.type;
         L1:
             switch (t.ty)
             {
             case Tenum:
                 {
-                    TypeEnum te = cast(TypeEnum)t;
+                    auto te = cast(TypeEnum)t;
                     buf.printf("cast(%s)", te.sym.toChars());
                     t = te.sym.memtype;
                     goto L1;
@@ -2170,7 +2170,7 @@ public:
         buf.writestring(buffer.ptr);
         if (type)
         {
-            Type t = type.toBasetype();
+            auto t = type.toBasetype();
             switch (t.ty)
             {
             case Tfloat32:

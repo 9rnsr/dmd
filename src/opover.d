@@ -1097,8 +1097,8 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
         void visit(EqualExp e)
         {
             //printf("EqualExp::op_overload() (%s)\n", e->toChars());
-            Type t1 = e.e1.type.toBasetype();
-            Type t2 = e.e2.type.toBasetype();
+            auto t1 = e.e1.type.toBasetype();
+            auto t2 = e.e2.type.toBasetype();
             if (t1.ty == Tclass && t2.ty == Tclass)
             {
                 ClassDeclaration cd1 = t1.isClassHandle();
@@ -1114,7 +1114,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                      * The explicit cast is necessary for interfaces,
                      * see http://d.puremagic.com/issues/show_bug.cgi?id=4088
                      */
-                    Type to = ClassDeclaration.object.getType();
+                    auto to = ClassDeclaration.object.getType();
                     if (cd1.isInterfaceDeclaration())
                         e1x = new CastExp(e.loc, e.e1, t1.isMutable() ? to : to.constOf());
                     if (cd2.isInterfaceDeclaration())
@@ -1719,7 +1719,7 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
             }
         }
         Expression ethis;
-        Type tab = fes.aggr.type.toBasetype();
+        auto tab = fes.aggr.type.toBasetype();
         if (tab.ty == Tclass || tab.ty == Tstruct)
             ethis = fes.aggr;
         else
@@ -1748,9 +1748,9 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
     }
     AggregateDeclaration ad;
     Parameter p = (*fes.parameters)[0];
-    Type taggr = fes.aggr.type;
+    auto taggr = fes.aggr.type;
     assert(taggr);
-    Type tab = taggr.toBasetype();
+    auto tab = taggr.toBasetype();
     switch (tab.ty)
     {
     case Tarray:
@@ -1773,7 +1773,7 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
         break;
     case Taarray:
         {
-            TypeAArray taa = cast(TypeAArray)tab;
+            auto taa = cast(TypeAArray)tab;
             if (fes.parameters.dim == 2)
             {
                 if (!p.type)
@@ -1858,7 +1858,7 @@ extern (C++) static Dsymbol inferApplyArgTypesX(Expression ethis, FuncDeclaratio
             if (!f)
                 return 0;
             ParamOpOver* p = cast(ParamOpOver*)param;
-            TypeFunction tf = cast(TypeFunction)f.type;
+            auto tf = cast(TypeFunction)f.type;
             MATCH m = MATCHexact;
             if (f.isThis())
             {

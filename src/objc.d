@@ -79,7 +79,7 @@ struct ObjcSelector
     {
         OutBuffer buf;
         size_t pcount = 0;
-        TypeFunction ftype = cast(TypeFunction)fdecl.type;
+        auto ftype = cast(TypeFunction)fdecl.type;
         // Special case: property setter
         if (ftype.isproperty && ftype.parameters && ftype.parameters.dim == 1)
         {
@@ -201,7 +201,7 @@ extern (C++) void objc_FuncDeclaration_semantic_validateSelector(FuncDeclaration
 {
     if (!fd.objc.selector)
         return;
-    TypeFunction tf = cast(TypeFunction)fd.type;
+    auto tf = cast(TypeFunction)fd.type;
     if (fd.objc.selector.paramCount != tf.parameters.dim)
         fd.error("number of colons in Objective-C selector must match number of parameters");
     if (fd.parent && fd.parent.isTemplateInstance())

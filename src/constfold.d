@@ -1226,8 +1226,8 @@ extern (C++) UnionExp Cast(Type type, Type to, Expression e1)
 {
     UnionExp ue;
     Loc loc = e1.loc;
-    Type tb = to.toBasetype();
-    Type typeb = type.toBasetype();
+    auto tb = to.toBasetype();
+    auto typeb = type.toBasetype();
     //printf("Cast(type = %s, to = %s, e1 = %s)\n", type->toChars(), to->toChars(), e1->toChars());
     //printf("\te1->type = %s\n", e1->type->toChars());
     if (e1.type.equals(type) && type.equals(to))
@@ -1431,7 +1431,7 @@ extern (C++) UnionExp Index(Type type, Expression e1, Expression e2)
     }
     else if (e1.type.toBasetype().ty == Tsarray && e2.op == TOKint64)
     {
-        TypeSArray tsa = cast(TypeSArray)e1.type.toBasetype();
+        auto tsa = cast(TypeSArray)e1.type.toBasetype();
         uinteger_t length = tsa.dim.toInteger();
         uinteger_t i = e2.toInteger();
         if (i >= length)
@@ -1696,8 +1696,8 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
     Expression e = CTFEExp.cantexp;
     Loc loc = e1.loc;
     Type t;
-    Type t1 = e1.type.toBasetype();
-    Type t2 = e2.type.toBasetype();
+    auto t1 = e1.type.toBasetype();
+    auto t2 = e2.type.toBasetype();
     //printf("Cat(e1 = %s, e2 = %s)\n", e1->toChars(), e2->toChars());
     //printf("\tt1 = %s, t2 = %s, type = %s\n", t1->toChars(), t2->toChars(), type->toChars());
     if (e1.op == TOKnull && (e2.op == TOKint64 || e2.op == TOKstructliteral))
@@ -1711,7 +1711,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         e = e1;
         t = t2;
     L2:
-        Type tn = e.type.toBasetype();
+        auto tn = e.type.toBasetype();
         if (tn.ty == Tchar || tn.ty == Twchar || tn.ty == Tdchar)
         {
             // Create a StringExp
@@ -1981,7 +1981,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         e = e1;
         t = e2.type;
     L1:
-        Type tb = t.toBasetype();
+        auto tb = t.toBasetype();
         if (tb.ty == Tarray && tb.nextOf().equivalent(e.type))
         {
             auto expressions = new Expressions();
