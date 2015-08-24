@@ -723,18 +723,6 @@ public:
         {
             symtab = new DsymbolTable();
 
-            /* Bugzilla 12152: The semantic analysis of base classes should be finished
-             * before the members semantic analysis of this class, in order to determine
-             * vtbl in this class. However if a base class refers the member of this class,
-             * it can be resolved as a normal forward reference.
-             * Call addMember() and setScope() to make this class members visible from the base classes.
-             */
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                auto s = (*members)[i];
-                s.addMember(sc, this);
-            }
-
             Scope* sc2 = sc.push(this);
             sc2.stc &= STCsafe | STCtrusted | STCsystem;
             sc2.parent = this;
@@ -751,14 +739,20 @@ public:
             sc2.structalign = STRUCTALIGN_DEFAULT;
             sc2.userAttribDecl = null;
 
+            /* Bugzilla 12152: The semantic analysis of base classes should be finished
+             * before the members semantic analysis of this class, in order to determine
+             * vtbl in this class. However if a base class refers the member of this class,
+             * it can be resolved as a normal forward reference.
+             * Call addMember() to make this class members visible from the base classes.
+             */
             /* Set scope so if there are forward references, we still might be able to
              * resolve individual members like enums.
              */
             for (size_t i = 0; i < members.dim; i++)
             {
                 auto s = (*members)[i];
-                //printf("[%d] setScope %s %s, sc2 = %p\n", i, s.kind(), s.toChars(), sc2);
-                s.setScope(sc2);
+                //printf("[%d] addMember %s %s, sc2 = %p\n", i, s.kind(), s.toChars(), sc2);
+                s.addMember(sc2, this);
             }
 
             sc2.pop();
@@ -943,7 +937,7 @@ public:
                 ctor.fbody = new CompoundStatement(Loc(), new Statements());
 
                 members.push(ctor);
-                ctor.addMember(sc, this);
+                ctor.addMember(sc2, this);
                 ctor.semantic(sc2);
 
                 this.ctor = ctor;
@@ -1757,12 +1751,6 @@ public:
             }
         }
 
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
-            s.addMember(sc, this);
-        }
-
         Scope* sc2 = sc.push(this);
         sc2.stc &= STCsafe | STCtrusted | STCsystem;
         sc2.parent = this;
@@ -1784,8 +1772,8 @@ public:
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
-            //printf("setScope %s %s\n", s.kind(), s.toChars());
-            s.setScope(sc2);
+            //printf("addMember %s %s\n", s.kind(), s.toChars());
+            s.addMember(sc2, this);
         }
 
         for (size_t i = 0; i < members.dim; i++)

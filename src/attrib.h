@@ -33,20 +33,19 @@ public:
     Dsymbols *decl;     // array of Dsymbol's
 
     AttribDeclaration(Dsymbols *decl);
-    virtual Dsymbols *include(Scope *sc, ScopeDsymbol *sds);
+    virtual Dsymbols *include(Scope *sc);
     int apply(Dsymbol_apply_ft_t fp, void *param);
     static Scope *createNewScope(Scope *sc,
         StorageClass newstc, LINK linkage, Prot protection, int explictProtection,
         structalign_t structalign, PINLINE inlining);
     virtual Scope *newScope(Scope *sc);
     void addMember(Scope *sc, ScopeDsymbol *sds);
-    void setScope(Scope *sc);
     void importAll(Scope *sc);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
     void addComment(const utf8_t *comment);
-    const char *kind();
+    const char *kind() const;
     bool oneMember(Dsymbol **ps, Identifier *ident);
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     bool hasPointers();
@@ -78,7 +77,10 @@ public:
 
     DeprecatedDeclaration(Expression *msg, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    void setScope(Scope *sc);
+    Scope *newScope(Scope *sc);
+    void addMember(Scope *sc, ScopeDsymbol *sds);
+    void semantic2(Scope *sc);
+    const char *getMessage();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -90,7 +92,7 @@ public:
     LinkDeclaration(LINK p, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
-    char *toChars();
+    const char *toChars() const;
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -106,7 +108,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
     void addMember(Scope *sc, ScopeDsymbol *sds);
-    const char *kind();
+    const char *kind() const;
     const char *toPrettyChars(bool unused);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -136,7 +138,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
-    const char *kind();
+    const char *kind() const;
     AnonDeclaration *isAnonDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -148,9 +150,9 @@ public:
 
     PragmaDeclaration(Loc loc, Identifier *ident, Expressions *args, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    void semantic(Scope *sc);
     Scope *newScope(Scope *sc);
-    const char *kind();
+    void semantic(Scope *sc);
+    const char *kind() const;
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -163,26 +165,24 @@ public:
     ConditionalDeclaration(Condition *condition, Dsymbols *decl, Dsymbols *elsedecl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     bool oneMember(Dsymbol **ps, Identifier *ident);
-    Dsymbols *include(Scope *sc, ScopeDsymbol *sds);
+    Dsymbols *include(Scope *sc);
     void addComment(const utf8_t *comment);
-    void setScope(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class StaticIfDeclaration : public ConditionalDeclaration
 {
 public:
-    ScopeDsymbol *scopesym;
-    int addisdone;
+    ScopeDsymbol *scopesym;     // used for the introduced members
+    bool addisdone;
 
     StaticIfDeclaration(Condition *condition, Dsymbols *decl, Dsymbols *elsedecl);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    Dsymbols *include(Scope *sc, ScopeDsymbol *sds);
+    Dsymbols *include(Scope *sc);
     void addMember(Scope *sc, ScopeDsymbol *sds);
-    void semantic(Scope *sc);
     void importAll(Scope *sc);
-    void setScope(Scope *sc);
-    const char *kind();
+    void semantic(Scope *sc);
+    const char *kind() const;
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -192,17 +192,15 @@ class CompileDeclaration : public AttribDeclaration
 {
 public:
     Expression *exp;
-
-    ScopeDsymbol *scopesym;
+    ScopeDsymbol *scopesym;     // used for the introduced members
     int compiled;
 
     CompileDeclaration(Loc loc, Expression *exp);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void addMember(Scope *sc, ScopeDsymbol *sds);
-    void setScope(Scope *sc);
     void compileIt(Scope *sc);
     void semantic(Scope *sc);
-    const char *kind();
+    const char *kind() const;
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -218,12 +216,12 @@ public:
     UserAttributeDeclaration(Expressions *atts, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
+    void addMember(Scope *sc, ScopeDsymbol *sds);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
-    void setScope(Scope *sc);
     static Expressions *concat(Expressions *udas1, Expressions *udas2);
     Expressions *getAttributes();
-    const char *kind();
+    const char *kind() const;
     void accept(Visitor *v) { v->visit(this); }
 };
 

@@ -49,6 +49,7 @@ public:
         {
             if (!symtab)
                 symtab = new DsymbolTable();
+
             // The namespace becomes 'imported' into the enclosing scope
             for (Scope* sce = sc; 1; sce = sce.enclosing)
             {
@@ -59,31 +60,16 @@ public:
                     break;
                 }
             }
+
             assert(sc);
             sc = sc.push(this);
             sc.linkage = LINKcpp; // namespaces default to C++ linkage
             sc.parent = this;
+
             foreach (s; *members)
             {
                 //printf("add %s to scope %s\n", s->toChars(), toChars());
                 s.addMember(sc, this);
-            }
-            sc.pop();
-        }
-    }
-
-    override void setScope(Scope* sc)
-    {
-        ScopeDsymbol.setScope(sc);
-        if (members)
-        {
-            assert(sc);
-            sc = sc.push(this);
-            sc.linkage = LINKcpp; // namespaces default to C++ linkage
-            sc.parent = this;
-            foreach (s; *members)
-            {
-                s.setScope(sc);
             }
             sc.pop();
         }
@@ -114,6 +100,7 @@ public:
             {
                 s.importAll(sc);
             }
+
             foreach (s; *members)
             {
                 static if (LOG)
@@ -122,6 +109,7 @@ public:
                 }
                 s.semantic(sc);
             }
+
             sc.pop();
         }
         static if (LOG)

@@ -6241,9 +6241,20 @@ public:
         declareParameters(paramscope);
         paramscope.pop();
 
-        // Add members of template instance to template instance symbol table
-        //parent = scope->scopesym;
         symtab = new DsymbolTable();
+
+        // Do semantic() analysis on template instance members
+        static if (LOG)
+        {
+            printf("\tdo semantic() on template instance members '%s'\n", toChars());
+        }
+        Scope* sc2 = _scope.push(this);
+        //printf("enclosing = %d, sc->parent = %s\n", enclosing, sc->parent->toChars());
+        sc2.parent = this;
+        sc2.tinst = this;
+        sc2.minst = minst;
+
+        // Add members of template instance to template instance symbol table
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
@@ -6251,7 +6262,7 @@ public:
             {
                 printf("\t[%d] adding member '%s' %p kind %s to '%s'\n", i, s.toChars(), s, s.kind(), this.toChars());
             }
-            s.addMember(_scope, this);
+            s.addMember(sc2, this);
         }
         static if (LOG)
         {
@@ -6289,18 +6300,6 @@ public:
                     tf.fargs = fargs;
             }
         }
-
-        // Do semantic() analysis on template instance members
-        static if (LOG)
-        {
-            printf("\tdo semantic() on template instance members '%s'\n", toChars());
-        }
-        Scope* sc2;
-        sc2 = _scope.push(this);
-        //printf("enclosing = %d, sc->parent = %s\n", enclosing, sc->parent->toChars());
-        sc2.parent = this;
-        sc2.tinst = this;
-        sc2.minst = minst;
 
         tryExpandMembers(sc2);
 
@@ -8177,12 +8176,6 @@ public:
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
-            s.setScope(sc2);
-        }
-
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
             s.importAll(sc2);
         }
 
@@ -8551,15 +8544,6 @@ public:
         // Declare each template parameter as an alias for the argument type
         declareParameters(argscope);
 
-        // Add members to enclosing scope, as well as this scope
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
-            s.addMember(argscope, this);
-            //printf("sc->parent = %p, sc->scopesym = %p\n", sc->parent, sc->scopesym);
-            //printf("s->parent = %s\n", s->parent->toChars());
-        }
-
         // Do semantic() analysis on template instance members
         static if (LOG)
         {
@@ -8577,10 +8561,11 @@ public:
             fatal();
         }
 
+        // Add members to enclosing scope, as well as this scope
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
-            s.setScope(sc2);
+            s.addMember(sc2, this);
         }
 
         for (size_t i = 0; i < members.dim; i++)

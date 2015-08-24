@@ -329,17 +329,6 @@ public:
             semanticRun = PASSsemanticdone;
             return;
         }
-        if (!symtab)
-        {
-            symtab = new DsymbolTable();
-
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                auto s = (*members)[i];
-                //printf("adding member '%s' to '%s'\n", s.toChars(), this.toChars());
-                s.addMember(sc, this);
-            }
-        }
 
         Scope* sc2 = sc.push(this);
         sc2.stc &= STCsafe | STCtrusted | STCsystem;
@@ -351,14 +340,19 @@ public:
         sc2.structalign = STRUCTALIGN_DEFAULT;
         sc2.userAttribDecl = null;
 
-        /* Set scope so if there are forward references, we still might be able to
-         * resolve individual members like enums.
-         */
-        for (size_t i = 0; i < members.dim; i++)
+        if (!symtab) // if not already done the addMember step
         {
-            auto s = (*members)[i];
-            //printf("struct: setScope %s %s\n", s.kind(), s.toChars());
-            s.setScope(sc2);
+            symtab = new DsymbolTable();
+
+            /* Set scope so if there are forward references, we still might be able to
+             * resolve individual members like enums.
+             */
+            for (size_t i = 0; i < members.dim; i++)
+            {
+                auto s = (*members)[i];
+                //printf("adding member '%s' to '%s'\n", s.toChars(), this.toChars());
+                s.addMember(sc2, this);
+            }
         }
 
         for (size_t i = 0; i < members.dim; i++)

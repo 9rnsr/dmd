@@ -1105,8 +1105,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
 
         void visit(AttribDeclaration *ad)
         {
-            Dsymbols *d = ad->include(NULL, NULL);
-
+            Dsymbols *d = ad->include(NULL);
             if (d)
             {
                 for (size_t i = 0; i < d->dim; i++)
