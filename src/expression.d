@@ -102,8 +102,8 @@ L1:
      */
     if (ad && !(t.ty == Tpointer && t.nextOf().ty == Tstruct && (cast(TypeStruct)t.nextOf()).sym == ad) && !(t.ty == Tstruct && (cast(TypeStruct)t).sym == ad))
     {
-        ClassDeclaration cd = ad.isClassDeclaration();
-        ClassDeclaration tcd = t.isClassHandle();
+        auto cd = ad.isClassDeclaration();
+        auto tcd = t.isClassHandle();
         /* e1 is the right this if ad is a base class of e1
          */
         if (!cd || !tcd || !(tcd == cd || cd.isBaseOf(tcd, null)))
@@ -1203,7 +1203,7 @@ extern (C++) Expression valueNoDtor(Expression e)
                     if (comma.e2.op == TOKvar)
                     {
                         VarExp ve = cast(VarExp)comma.e2;
-                        VarDeclaration ctmp = ve.var.isVarDeclaration();
+                        auto ctmp = ve.var.isVarDeclaration();
                         if (ctmp)
                         {
                             ctmp.noscope = 1;
@@ -1216,7 +1216,7 @@ extern (C++) Expression valueNoDtor(Expression e)
     }
     else if (e.op == TOKvar)
     {
-        VarDeclaration vtmp = (cast(VarExp)e).var.isVarDeclaration();
+        auto vtmp = (cast(VarExp)e).var.isVarDeclaration();
         if (vtmp && vtmp.storage_class & STCrvalue)
         {
             vtmp.noscope = 1;
@@ -1236,7 +1236,7 @@ extern (C++) bool checkDefCtor(Loc loc, Type t)
     t = t.baseElemOf();
     if (t.ty == Tstruct)
     {
-        StructDeclaration sd = (cast(TypeStruct)t).sym;
+        auto sd = (cast(TypeStruct)t).sym;
         if (sd.noDefaultCtor)
         {
             sd.error(loc, "default construction is disabled");
@@ -1258,7 +1258,7 @@ extern (C++) Expression callCpCtor(Scope* sc, Expression e)
     Type tv = e.type.baseElemOf();
     if (tv.ty == Tstruct)
     {
-        StructDeclaration sd = (cast(TypeStruct)tv).sym;
+        auto sd = (cast(TypeStruct)tv).sym;
         if (sd.postblit)
         {
             /* Create a variable tmp, and replace the argument e with:
@@ -2958,7 +2958,7 @@ public:
         {
             // Bugzilla 11395: Require TypeInfo generation for array concatenation
             semanticTypeInfo(sc, t);
-            StructDeclaration sd = (cast(TypeStruct)t).sym;
+            auto sd = (cast(TypeStruct)t).sym;
             if (sd.postblit)
             {
                 if (sd.postblit.storage_class & STCdisable)
@@ -3936,13 +3936,13 @@ public:
                     error("%s is not in a class or struct scope", toChars());
                     goto Lerr;
                 }
-                ClassDeclaration cd = s.isClassDeclaration();
+                auto cd = s.isClassDeclaration();
                 if (cd)
                 {
                     type = cd.type;
                     return this;
                 }
-                StructDeclaration sd = s.isStructDeclaration();
+                auto sd = s.isStructDeclaration();
                 if (sd)
                 {
                     type = sd.type;
@@ -5022,7 +5022,7 @@ public:
         {
             for (size_t i = 0; i < sd.fields.dim; i++)
             {
-                VarDeclaration v = sd.fields[i];
+                auto v = sd.fields[i];
                 if (offset == v.offset && type.size() == v.type.size())
                 {
                     /* context field might not be filled. */
@@ -5393,7 +5393,7 @@ public:
         }
         if (tb.ty == Tclass)
         {
-            ClassDeclaration cd = (cast(TypeClass)tb).sym;
+            auto cd = (cast(TypeClass)tb).sym;
             cd.size(loc);
             if (cd.sizeok != SIZEOKdone)
                 return new ErrorExp();
@@ -5425,7 +5425,7 @@ public:
                  * Ensure we have the right one.
                  */
                 Dsymbol s = cd.toParent2();
-                ClassDeclaration cdn = s.isClassDeclaration();
+                auto cdn = s.isClassDeclaration();
                 auto fdn = s.isFuncDeclaration();
                 //printf("cd isNested, cdn = %s\n", cdn ? cdn->toChars() : "null");
                 if (cdn)
@@ -5441,7 +5441,7 @@ public:
                                 error("outer class %s 'this' needed to 'new' nested class %s", cdn.toChars(), cd.toChars());
                                 goto Lerr;
                             }
-                            ClassDeclaration cdp = sp.isClassDeclaration();
+                            auto cdp = sp.isClassDeclaration();
                             if (!cdp)
                                 continue;
                             if (cdp == cdn || cdn.isBaseOf(cdp, null))
@@ -5553,7 +5553,7 @@ public:
         }
         else if (tb.ty == Tstruct)
         {
-            StructDeclaration sd = (cast(TypeStruct)tb).sym;
+            auto sd = (cast(TypeStruct)tb).sym;
             sd.size(loc);
             if (sd.sizeok != SIZEOKdone)
                 return new ErrorExp();
@@ -6755,7 +6755,7 @@ public:
                     goto Lno;
                 else
                 {
-                    ClassDeclaration cd = (cast(TypeClass)targ).sym;
+                    auto cd = (cast(TypeClass)targ).sym;
                     auto args = new Parameters();
                     args.reserve(cd.baseclasses.dim);
                     if (cd._scope && !cd.symtab)
@@ -7803,7 +7803,7 @@ public:
                 }
                 else
                 {
-                    ClassDeclaration cd = ad.isClassDeclaration();
+                    auto cd = ad.isClassDeclaration();
                     if (cd && cd.baseClass)
                         e1 = new TypeExp(e1.loc, cd.baseClass.type);
                 }
@@ -8906,7 +8906,7 @@ public:
         {
             if (t1.ty == Tstruct)
             {
-                StructDeclaration sd = (cast(TypeStruct)t1).sym;
+                auto sd = (cast(TypeStruct)t1).sym;
                 sd.size(loc); // Resolve forward references to construct object
                 if (sd.sizeok != SIZEOKdone)
                     return new ErrorExp();
@@ -9089,7 +9089,7 @@ public:
                 }
                 // See if we need to adjust the 'this' pointer
                 AggregateDeclaration ad = f.isThis();
-                ClassDeclaration cd = ue.e1.type.isClassHandle();
+                auto cd = ue.e1.type.isClassHandle();
                 if (ad && cd && ad.isClassDeclaration())
                 {
                     if (ue.e1.op == TOKdottype)
@@ -9491,7 +9491,7 @@ public:
         if (tv.ty == Tstruct)
         {
             TypeStruct ts = cast(TypeStruct)tv;
-            StructDeclaration sd = ts.sym;
+            auto sd = ts.sym;
             if (sd.dtor)
             {
                 /* Type needs destruction, so declare a tmp
@@ -9993,7 +9993,7 @@ public:
         case Tclass:
             {
                 TypeClass tc = cast(TypeClass)tb;
-                ClassDeclaration cd = tc.sym;
+                auto cd = tc.sym;
                 if (cd.isCOMinterface())
                 {
                     /* Because COM classes are deleted by IUnknown.Release()
@@ -10008,7 +10008,7 @@ public:
             if (tb.ty == Tstruct)
             {
                 TypeStruct ts = cast(TypeStruct)tb;
-                StructDeclaration sd = ts.sym;
+                auto sd = ts.sym;
                 auto f = sd.aggDelete;
                 auto fd = sd.dtor;
                 if (!f)
@@ -10058,7 +10058,7 @@ public:
                 if (tv.ty == Tstruct)
                 {
                     TypeStruct ts = cast(TypeStruct)tv;
-                    StructDeclaration sd = ts.sym;
+                    auto sd = ts.sym;
                     if (sd.dtor)
                         semanticTypeInfo(sc, ts);
                 }
@@ -10200,8 +10200,8 @@ public:
                 goto Lsafe;
             if (tob.ty == Tclass && t1b.ty == Tclass)
             {
-                ClassDeclaration cdfrom = t1b.isClassHandle();
-                ClassDeclaration cdto = tob.isClassHandle();
+                auto cdfrom = t1b.isClassHandle();
+                auto cdto = tob.isClassHandle();
                 int offset;
                 if (!cdfrom.isBaseOf(cdto, &offset))
                     goto Lunsafe;
@@ -11716,7 +11716,7 @@ public:
         {
             Expression e1x = e1;
             Expression e2x = e2;
-            StructDeclaration sd = (cast(TypeStruct)t1).sym;
+            auto sd = (cast(TypeStruct)t1).sym;
             if (op == TOKconstruct)
             {
                 Type t2 = e2x.type.toBasetype();
@@ -14038,7 +14038,7 @@ public:
         }
         if (t1.ty == Tstruct && t2.ty == Tstruct)
         {
-            StructDeclaration sd = (cast(TypeStruct)t1).sym;
+            auto sd = (cast(TypeStruct)t1).sym;
             if (sd == (cast(TypeStruct)t2).sym)
             {
                 if (needOpEquals(sd))

@@ -1159,7 +1159,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             if (ntb.ty == Tstruct)
             {
                 // Don't allow nested structs - uplevel reference may not be convertible
-                StructDeclaration sd = (cast(TypeStruct)ntb).sym;
+                auto sd = (cast(TypeStruct)ntb).sym;
                 sd.size(e.loc); // resolve any forward references
                 if (sd.isNested())
                     return;
@@ -1172,7 +1172,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 {
                     /* With new() must look at the class instance initializer.
                      */
-                    ClassDeclaration cd = (cast(TypeClass)ntb).sym;
+                    auto cd = (cast(TypeClass)ntb).sym;
                     cd.size(e.loc); // resolve any forward references
                     if (cd.isNested())
                         return; // uplevel reference may not be convertible
@@ -1183,7 +1183,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                         {
                             for (size_t i = 0; i < cd.fields.dim; i++)
                             {
-                                VarDeclaration v = cd.fields[i];
+                                auto v = cd.fields[i];
                                 Initializer _init = v._init;
                                 if (_init)
                                 {
@@ -1381,7 +1381,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     if (t1b.ty == Tclass && tob.ty == Tclass)
                     {
                         ClassDeclaration t1cd = t1b.isClassHandle();
-                        ClassDeclaration tocd = tob.isClassHandle();
+                        auto tocd = tob.isClassHandle();
                         int offset;
                         if (tocd.isBaseOf(t1cd, &offset))
                             goto Lok;
@@ -3439,7 +3439,7 @@ extern (C++) IntRange getIntRange(Expression e)
         void visit(VarExp e)
         {
             Expression ie;
-            VarDeclaration vd = e.var.isVarDeclaration();
+            auto vd = e.var.isVarDeclaration();
             if (vd && vd.range)
                 range = vd.range._cast(e.type);
             else if (vd && vd._init && !vd.type.isMutable() && (ie = vd.getConstInitializer()) !is null)

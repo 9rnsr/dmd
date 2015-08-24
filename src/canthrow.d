@@ -129,7 +129,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
             Type tv = t.baseElemOf();
             if (tv.ty != Tstruct)
                 return;
-            StructDeclaration sd = (cast(TypeStruct)tv).sym;
+            auto sd = (cast(TypeStruct)tv).sym;
             if (!sd.postblit || sd.postblit.type.ty != Tfunction)
                 return;
             if ((cast(TypeFunction)sd.postblit.type).isnothrow)

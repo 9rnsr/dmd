@@ -560,7 +560,7 @@ extern (C++) Expression pointerBitmap(TraitsExp e)
             d_uns64 structoff = offset;
             for (size_t i = 0; i < t.sym.fields.dim; i++)
             {
-                VarDeclaration v = t.sym.fields[i];
+                auto v = t.sym.fields[i];
                 offset = structoff + v.offset;
                 if (v.type.ty == Tclass)
                     setpointer(offset);
@@ -579,7 +579,7 @@ extern (C++) Expression pointerBitmap(TraitsExp e)
                 visitClass(cast(TypeClass)t.sym.baseClass.type);
             for (size_t i = 0; i < t.sym.fields.dim; i++)
             {
-                VarDeclaration v = t.sym.fields[i];
+                auto v = t.sym.fields[i];
                 offset = classoff + v.offset;
                 v.type.accept(this);
             }
@@ -1123,7 +1123,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
 
         auto idents = new Identifiers();
         ScopeDsymbol._foreach(sc, sds.members, &PushIdentsDg.dg, idents);
-        ClassDeclaration cd = sds.isClassDeclaration();
+        auto cd = sds.isClassDeclaration();
         if (cd && e.ident == Id.allMembers)
         {
             if (cd._scope)
@@ -1134,7 +1134,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 {
                     for (size_t i = 0; i < cd.baseclasses.dim; i++)
                     {
-                        ClassDeclaration cb = (*cd.baseclasses)[i].sym;
+                        auto cb = (*cd.baseclasses)[i].sym;
                         assert(cb);
                         ScopeDsymbol._foreach(null, cb.members, &PushIdentsDg.dg, idents);
                         if (cb.baseclasses.dim)

@@ -137,7 +137,7 @@ extern (C++) bool needOpAssign(StructDeclaration sd)
      */
     for (size_t i = 0; i < sd.fields.dim; i++)
     {
-        VarDeclaration v = sd.fields[i];
+        auto v = sd.fields[i];
         if (v.storage_class & STCref)
             continue;
         Type tv = v.type.baseElemOf();
@@ -202,13 +202,13 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     {
         for (size_t i = 0; i < sd.fields.dim; i++)
         {
-            VarDeclaration v = sd.fields[i];
+            auto v = sd.fields[i];
             if (v.storage_class & STCref)
                 continue;
             Type tv = v.type.baseElemOf();
             if (tv.ty != Tstruct)
                 continue;
-            StructDeclaration sdv = (cast(TypeStruct)tv).sym;
+            auto sdv = (cast(TypeStruct)tv).sym;
             stc = mergeFuncAttrs(stc, hasIdentityOpAssign(sdv, sc));
         }
     }
@@ -257,7 +257,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
         //printf("\tmemberwise copy\n");
         for (size_t i = 0; i < sd.fields.dim; i++)
         {
-            VarDeclaration v = sd.fields[i];
+            auto v = sd.fields[i];
             // this.v = s.v;
             auto ec = new AssignExp(loc, new DotVarExp(loc, new ThisExp(loc), v, 0), new DotVarExp(loc, new IdentifierExp(loc, Id.p), v, 0));
             e = Expression.combine(e, ec);
@@ -312,7 +312,7 @@ extern (C++) bool needOpEquals(StructDeclaration sd)
      */
     for (size_t i = 0; i < sd.fields.dim; i++)
     {
-        VarDeclaration v = sd.fields[i];
+        auto v = sd.fields[i];
         if (v.storage_class & STCref)
             continue;
         Type tv = v.type.toBasetype();
@@ -628,7 +628,7 @@ extern (C++) bool needToHash(StructDeclaration sd)
      */
     for (size_t i = 0; i < sd.fields.dim; i++)
     {
-        VarDeclaration v = sd.fields[i];
+        auto v = sd.fields[i];
         if (v.storage_class & STCref)
             continue;
         Type tv = v.type.toBasetype();
@@ -724,13 +724,13 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
     Statements* a = null;
     for (size_t i = 0; i < sd.fields.dim && !(stc & STCdisable); i++)
     {
-        VarDeclaration v = sd.fields[i];
+        auto v = sd.fields[i];
         if (v.storage_class & STCref)
             continue;
         Type tv = v.type.baseElemOf();
         if (tv.ty != Tstruct || !v.type.size())
             continue;
-        StructDeclaration sdv = (cast(TypeStruct)tv).sym;
+        auto sdv = (cast(TypeStruct)tv).sym;
         if (!sdv.postblit)
             continue;
         stc = mergeFuncAttrs(stc, sdv.postblit);
@@ -878,13 +878,13 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
     Expression e = null;
     for (size_t i = 0; i < ad.fields.dim; i++)
     {
-        VarDeclaration v = ad.fields[i];
+        auto v = ad.fields[i];
         if (v.storage_class & STCref)
             continue;
         Type tv = v.type.baseElemOf();
         if (tv.ty != Tstruct || !v.type.size())
             continue;
-        StructDeclaration sdv = (cast(TypeStruct)tv).sym;
+        auto sdv = (cast(TypeStruct)tv).sym;
         if (!sdv.dtor)
             continue;
         stc = mergeFuncAttrs(stc, sdv.dtor);

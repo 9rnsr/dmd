@@ -375,7 +375,7 @@ public:
     Dsymbol syntaxCopy(Dsymbol s)
     {
         //printf("ClassDeclaration::syntaxCopy('%s')\n", toChars());
-        ClassDeclaration cd = s ? cast(ClassDeclaration)s : new ClassDeclaration(loc, ident, null);
+        auto cd = s ? cast(ClassDeclaration)s : new ClassDeclaration(loc, ident, null);
         cd.storage_class |= storage_class;
         cd.baseclasses.setDim(this.baseclasses.dim);
         for (size_t i = 0; i < cd.baseclasses.dim; i++)
@@ -510,7 +510,7 @@ public:
                 }
                 if (tc.sym.isInterfaceDeclaration())
                     goto L7;
-                for (ClassDeclaration cdb = tc.sym; cdb; cdb = cdb.baseClass)
+                for (auto cdb = tc.sym; cdb; cdb = cdb.baseClass)
                 {
                     if (cdb == this)
                     {
@@ -790,7 +790,7 @@ public:
             // Unwind what we did, and defer it for later
             for (size_t i = 0; i < fields.dim; i++)
             {
-                VarDeclaration v = fields[i];
+                auto v = fields[i];
                 v.offset = 0;
             }
             fields.setDim(0);
@@ -820,7 +820,7 @@ public:
             // A class object is always created by constructor, so this check is legitimate.
             for (size_t i = 0; i < fields.dim; i++)
             {
-                VarDeclaration v = fields[i];
+                auto v = fields[i];
                 if (v.storage_class & STCnodefaultctor)
                     .error(v.loc, "field %s must be initialized in constructor", v.toChars());
             }
@@ -991,7 +991,7 @@ public:
         for (size_t i = 0; i < baseclasses.dim; i++)
         {
             BaseClass* b = (*baseclasses)[i];
-            ClassDeclaration cdb = b.type.isClassHandle();
+            auto cdb = b.type.isClassHandle();
             if (!cdb) // Bugzilla 10616
                 return null;
             if (cdb.ident.equals(ident))
@@ -1105,7 +1105,7 @@ public:
         //printf("ClassDeclaration::findFunc(%s, %s) %s\n", ident->toChars(), tf->toChars(), toChars());
         FuncDeclaration fdmatch = null;
         FuncDeclaration fdambig = null;
-        ClassDeclaration cd = this;
+        auto cd = this;
         Dsymbols* vtbl = &cd.vtbl;
         while (1)
         {
@@ -1309,7 +1309,7 @@ public:
 
     Dsymbol syntaxCopy(Dsymbol s)
     {
-        InterfaceDeclaration id = s ? cast(InterfaceDeclaration)s : new InterfaceDeclaration(loc, ident, null);
+        auto id = s ? cast(InterfaceDeclaration)s : new InterfaceDeclaration(loc, ident, null);
         return ClassDeclaration.syntaxCopy(id);
     }
 

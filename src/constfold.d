@@ -1347,12 +1347,12 @@ extern (C++) UnionExp Cast(Type type, Type to, Expression e1)
     else if (tb.ty == Tstruct && e1.op == TOKint64)
     {
         // Struct = 0;
-        StructDeclaration sd = tb.toDsymbol(null).isStructDeclaration();
+        auto sd = tb.toDsymbol(null).isStructDeclaration();
         assert(sd);
         auto elements = new Expressions();
         for (size_t i = 0; i < sd.fields.dim; i++)
         {
-            VarDeclaration v = sd.fields[i];
+            auto v = sd.fields[i];
             UnionExp zero;
             emplaceExp!(IntegerExp)(&zero, 0);
             ue = Cast(v.type, v.type, zero.exp());

@@ -479,7 +479,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (ex && ex.op == TOKstructliteral)
             {
                 StructLiteralExp sle = cast(StructLiteralExp)ex;
-                VarDeclaration vf = e.var.isVarDeclaration();
+                auto vf = e.var.isVarDeclaration();
                 if (vf && !vf.overlapped)
                 {
                     /* Bugzilla 13021: Prevent optimization if vf has overlapped fields.
@@ -596,8 +596,8 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (e.type.ty == Tclass && e.e1.type.ty == Tclass)
             {
                 // See if we can remove an unnecessary cast
-                ClassDeclaration cdfrom = e.e1.type.isClassHandle();
-                ClassDeclaration cdto = e.type.isClassHandle();
+                auto cdfrom = e.e1.type.isClassHandle();
+                auto cdto = e.type.isClassHandle();
                 int offset;
                 if (cdto.isBaseOf(cdfrom, &offset) && offset == 0)
                 {

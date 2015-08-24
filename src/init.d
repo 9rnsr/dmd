@@ -248,7 +248,7 @@ public:
             t = t.nextOf().toBasetype();
         if (t.ty == Tstruct)
         {
-            StructDeclaration sd = (cast(TypeStruct)t).sym;
+            auto sd = (cast(TypeStruct)t).sym;
             if (sd.ctor)
             {
                 error(loc, "%s %s has constructors, cannot use { initializers }, use %s( initializers ) instead", sd.kind(), sd.toChars(), sd.toChars());
@@ -298,7 +298,7 @@ public:
                     error(loc, "too many initializers for %s", sd.toChars());
                     return new ErrorInitializer();
                 }
-                VarDeclaration vd = sd.fields[fieldi];
+                auto vd = sd.fields[fieldi];
                 if ((*elements)[fieldi])
                 {
                     error(loc, "duplicate initializer for field '%s'", vd.toChars());
@@ -889,7 +889,7 @@ public:
         // Look for implicit constructor call
         if (tb.ty == Tstruct && !(ti.ty == Tstruct && tb.toDsymbol(sc) == ti.toDsymbol(sc)) && !exp.implicitConvTo(t))
         {
-            StructDeclaration sd = (cast(TypeStruct)tb).sym;
+            auto sd = (cast(TypeStruct)tb).sym;
             if (sd.ctor)
             {
                 // Rewrite as S().ctor(exp)

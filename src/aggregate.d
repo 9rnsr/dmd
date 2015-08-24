@@ -162,7 +162,7 @@ public:
         //printf("AggregateDeclaration::semantic3(%s) type = %s, errors = %d\n", toChars(), type->toChars(), errors);
         if (!members)
             return;
-        StructDeclaration sd = isStructDeclaration();
+        auto sd = isStructDeclaration();
         if (!sc) // from runDeferredSemantic3 for TypeInfo generation
         {
             assert(sd);
@@ -363,13 +363,13 @@ public:
     {
         if (isUnionDeclaration())
             return 0;
-        VarDeclaration vd = fields[indx];
+        auto vd = fields[indx];
         int firstNonZero = indx; // first index in the union with non-zero size
         for (;;)
         {
             if (indx == 0)
                 return firstNonZero;
-            VarDeclaration v = fields[indx - 1];
+            auto v = fields[indx - 1];
             if (v.offset != vd.offset)
                 return firstNonZero;
             --indx;
@@ -388,7 +388,7 @@ public:
      */
     final int numFieldsInUnion(int firstIndex)
     {
-        VarDeclaration vd = fields[firstIndex];
+        auto vd = fields[firstIndex];
         /* If it is a zero-length field, AND we can't find an earlier non-zero
          * sized field with the same offset, we assume it's not part of a union.
          */
@@ -397,7 +397,7 @@ public:
         int count = 1;
         for (size_t i = firstIndex + 1; i < fields.dim; ++i)
         {
-            VarDeclaration v = fields[i];
+            auto v = fields[i];
             // If offsets are different, they are not in the same union
             if (v.offset != vd.offset)
                 break;

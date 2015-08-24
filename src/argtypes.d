@@ -333,7 +333,7 @@ extern (C++) TypeTuple toArgTypes(Type t)
                     t1 = null;
                     for (size_t i = 0; i < t.sym.fields.dim; i++)
                     {
-                        VarDeclaration f = t.sym.fields[i];
+                        auto f = t.sym.fields[i];
                         //printf("f->type = %s\n", f->type->toChars());
                         TypeTuple tup = toArgTypes(f.type);
                         if (!tup)
@@ -411,7 +411,7 @@ extern (C++) TypeTuple toArgTypes(Type t)
                 {
                     if (t.sym.fields.dim == 1)
                     {
-                        VarDeclaration f = t.sym.fields[0];
+                        auto f = t.sym.fields[0];
                         //printf("f->type = %s\n", f->type->toChars());
                         TypeTuple tup = toArgTypes(f.type);
                         if (tup)

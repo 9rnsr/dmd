@@ -76,7 +76,7 @@ public:
 
     VarDeclaration getFieldAt(uint index)
     {
-        ClassDeclaration cd = originalClass();
+        auto cd = originalClass();
         uint fieldsSoFar = 0;
         while (index - fieldsSoFar >= cd.fields.dim)
         {
@@ -89,7 +89,7 @@ public:
     // Return index of the field, or -1 if not found
     int getFieldIndex(Type fieldtype, uint fieldoffset)
     {
-        ClassDeclaration cd = originalClass();
+        auto cd = originalClass();
         uint fieldsSoFar = 0;
         for (size_t j = 0; j < value.elements.dim; j++)
         {
@@ -111,7 +111,7 @@ public:
     // Same as getFieldIndex, but checks for a direct match with the VarDeclaration
     int findFieldIndexByName(VarDeclaration v)
     {
-        ClassDeclaration cd = originalClass();
+        auto cd = originalClass();
         size_t fieldsSoFar = 0;
         for (size_t j = 0; j < value.elements.dim; j++)
         {
@@ -371,7 +371,7 @@ extern (C++) UnionExp copyLiteral(Expression e)
             Expression m = (*oldelems)[i];
             // We need the struct definition to detect block assignment
             AggregateDeclaration sd = se.sd;
-            VarDeclaration v = sd.fields[i];
+            auto v = sd.fields[i];
             // If it is a void assignment, use the default initializer
             if (!m)
                 m = voidInitLiteral(v.type, v).copy();

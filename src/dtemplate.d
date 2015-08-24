@@ -3956,7 +3956,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                 // Our best guess at dedtypes
                 auto best = new Objects();
                 best.setDim(dedtypes.dim);
-                ClassDeclaration s = t.sym;
+                auto s = t.sym;
                 while (s && s.baseclasses.dim > 0)
                 {
                     // Test the base class

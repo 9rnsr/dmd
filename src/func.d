@@ -884,7 +884,7 @@ public:
             for (size_t i = 0; i < cd.baseclasses.dim; i++)
             {
                 BaseClass* b = (*cd.baseclasses)[i];
-                ClassDeclaration cbd = b.type.toBasetype().isClassHandle();
+                auto cbd = b.type.toBasetype().isClassHandle();
                 if (!cbd)
                     continue;
                 for (size_t j = 0; j < cbd.vtbl.dim; j++)
@@ -1178,7 +1178,7 @@ public:
                     ti = ti2;
                 }
                 // If it's a member template
-                ClassDeclaration cd = ti.tempdecl.isClassMember();
+                auto cd = ti.tempdecl.isClassMember();
                 if (cd)
                 {
                     error("cannot use template to add virtual function to class '%s'", cd.toChars());
@@ -1602,7 +1602,7 @@ public:
                     sc2.fieldinit_dim = ad2.fields.dim;
                     for (size_t i = 0; i < ad2.fields.dim; i++)
                     {
-                        VarDeclaration v = ad2.fields[i];
+                        auto v = ad2.fields[i];
                         v.ctorinit = 0;
                         sc2.fieldinit[i] = 0;
                     }
@@ -1666,13 +1666,13 @@ public:
                 }
                 else if (ad2 && isCtorDeclaration())
                 {
-                    ClassDeclaration cd = ad2.isClassDeclaration();
+                    auto cd = ad2.isClassDeclaration();
                     // Verify that all the ctorinit fields got initialized
                     if (!(sc2.callSuper & CSXthis_ctor))
                     {
                         for (size_t i = 0; i < ad2.fields.dim; i++)
                         {
-                            VarDeclaration v = ad2.fields[i];
+                            auto v = ad2.fields[i];
                             if (v.ctorinit == 0)
                             {
                                 /* Current bugs in the flow analysis:
@@ -1917,7 +1917,7 @@ public:
                 {
                     for (size_t i = 0; i < parameters.dim; i++)
                     {
-                        VarDeclaration v = (*parameters)[i];
+                        auto v = (*parameters)[i];
                         if (v.storage_class & STCout)
                         {
                             assert(v._init);
@@ -2076,7 +2076,7 @@ public:
                 {
                     for (size_t i = 0; i < parameters.dim; i++)
                     {
-                        VarDeclaration v = (*parameters)[i];
+                        auto v = (*parameters)[i];
                         if (v.storage_class & (STCref | STCout | STClazy))
                             continue;
                         if (v.noscope)
@@ -2106,7 +2106,7 @@ public:
                 {
                     /* Wrap the entire function body in a synchronized statement
                      */
-                    ClassDeclaration cd = isThis() ? isThis().isClassDeclaration() : parent.isClassDeclaration();
+                    auto cd = isThis() ? isThis().isClassDeclaration() : parent.isClassDeclaration();
                     if (cd)
                     {
                         if (!global.params.is64bit && global.params.isWindows && !isStatic() && !sbody.usesEH() && !global.params.trace)
@@ -2139,7 +2139,7 @@ public:
                     }
                 }
                 // If declaration has no body, don't set sbody to prevent incorrect codegen.
-                InterfaceDeclaration id = parent.isInterfaceDeclaration();
+                auto id = parent.isInterfaceDeclaration();
                 if (fbody || id && (fdensure || fdrequire) && isVirtual())
                     fbody = sbody;
             }
@@ -2310,7 +2310,7 @@ public:
              * enclosing function's stack frame.
              * Note that nested functions and member functions are disjoint.
              */
-            VarDeclaration v = new ThisDeclaration(loc, Type.tvoid.pointerTo());
+            auto v = new ThisDeclaration(loc, Type.tvoid.pointerTo());
             v.storage_class |= STCparameter;
             v.semantic(sc);
             if (!sc.insert(v))
@@ -3247,14 +3247,14 @@ public:
     bool addPreInvariant()
     {
         AggregateDeclaration ad = isThis();
-        ClassDeclaration cd = ad ? ad.isClassDeclaration() : null;
+        auto cd = ad ? ad.isClassDeclaration() : null;
         return (ad && !(cd && cd.isCPPclass()) && global.params.useInvariants && (protection.kind == PROTprotected || protection.kind == PROTpublic || protection.kind == PROTexport) && !naked);
     }
 
     bool addPostInvariant()
     {
         AggregateDeclaration ad = isThis();
-        ClassDeclaration cd = ad ? ad.isClassDeclaration() : null;
+        auto cd = ad ? ad.isClassDeclaration() : null;
         return (ad && !(cd && cd.isCPPclass()) && ad.inv && global.params.useInvariants && (protection.kind == PROTprotected || protection.kind == PROTpublic || protection.kind == PROTexport) && !naked);
     }
 
@@ -3384,7 +3384,7 @@ public:
             goto Lyes;
         for (size_t i = 0; i < closureVars.dim; i++)
         {
-            VarDeclaration v = closureVars[i];
+            auto v = closureVars[i];
             assert(v.isVarDeclaration());
             //printf("\tv = %s\n", v->toChars());
             for (size_t j = 0; j < v.nestedrefs.dim; j++)
@@ -3749,7 +3749,7 @@ extern (C++) Expression addInvariant(Loc loc, Scope* sc, AggregateDeclaration ad
     {
         // Call invariant directly only if it exists
         auto inv = ad.inv;
-        ClassDeclaration cd = ad.isClassDeclaration();
+        auto cd = ad.isClassDeclaration();
         while (!inv && cd)
         {
             cd = cd.baseClass;
@@ -4177,7 +4177,7 @@ extern (C++) bool traverseIndirections(Type ta, Type tb, void* p = null, bool re
         AggregateDeclaration sym = tb.toDsymbol(null).isAggregateDeclaration();
         for (size_t i = 0; i < sym.fields.dim; i++)
         {
-            VarDeclaration v = sym.fields[i];
+            auto v = sym.fields[i];
             Type tprmi = v.type.addMod(tb.mod);
             //printf("\ttb = %s, tprmi = %s\n", tb->toChars(), tprmi->toChars());
             if (traverseIndirections(ta, tprmi, &c, reversePass))
@@ -4487,7 +4487,7 @@ public:
          */
         if (ad && tf.varargs == 0 && Parameter.dim(tf.parameters) == 0 && (!parent.isTemplateInstance() || parent.isTemplateMixin()))
         {
-            StructDeclaration sd = ad.isStructDeclaration();
+            auto sd = ad.isStructDeclaration();
             if (sd)
             {
                 if (fbody || !(storage_class & STCdisable))
@@ -4571,7 +4571,7 @@ public:
         }
         parent = sc.parent;
         Dsymbol p = toParent2();
-        StructDeclaration ad = p.isStructDeclaration();
+        auto ad = p.isStructDeclaration();
         if (!ad)
         {
             .error(loc, "postblit can only be a member of struct/union, not %s %s", p.kind(), p.toChars());

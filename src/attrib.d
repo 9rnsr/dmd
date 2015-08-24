@@ -687,7 +687,7 @@ public:
             //printf("anon fields, anonoffset = %d\n", anonoffset);
             for (size_t i = fieldstart; i < ad.fields.dim; i++)
             {
-                VarDeclaration v = ad.fields[i];
+                auto v = ad.fields[i];
                 //printf("\t[%d] %s %d\n", i, v->toChars(), v->offset);
                 v.offset += anonoffset;
             }

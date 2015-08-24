@@ -84,7 +84,7 @@ extern (C++) bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, 
     bool result = false;
     for (size_t i = iStart; i < ad.fields.dim; i++)
     {
-        VarDeclaration vd = ad.fields[i];
+        auto vd = ad.fields[i];
         Type tb = vd.type.baseElemOf();
         if (tb.ty == Tstruct)
         {
@@ -1418,7 +1418,7 @@ public:
                         aad.noDefaultCtor = true;
                 }
             }
-            InterfaceDeclaration id = parent.isInterfaceDeclaration();
+            auto id = parent.isInterfaceDeclaration();
             if (id)
             {
                 error("field not allowed in interface");
@@ -1686,7 +1686,7 @@ public:
                          */
                         if (ti.ty == Tstruct)
                         {
-                            StructDeclaration sd = (cast(TypeStruct)ti).sym;
+                            auto sd = (cast(TypeStruct)ti).sym;
                             /* Look to see if initializer involves a copy constructor
                              * (which implies a postblit)
                              */
@@ -2052,7 +2052,7 @@ public:
         Type tv = type.baseElemOf();
         if (tv.ty == Tstruct)
         {
-            StructDeclaration sd = (cast(TypeStruct)tv).sym;
+            auto sd = (cast(TypeStruct)tv).sym;
             if (!sd.dtor || !type.size())
                 return null;
             if (type.toBasetype().ty == Tstruct)
@@ -2085,7 +2085,7 @@ public:
         // Destructors for classes
         if (storage_class & (STCauto | STCscope))
         {
-            for (ClassDeclaration cd = type.isClassHandle(); cd; cd = cd.baseClass)
+            for (auto cd = type.isClassHandle(); cd; cd = cd.baseClass)
             {
                 /* We can do better if there's a way with onstack
                  * classes to determine if there's no way the monitor

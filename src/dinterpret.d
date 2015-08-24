@@ -172,7 +172,7 @@ public:
         assert(values.dim >= stackpointer);
         for (size_t i = stackpointer; i < values.dim; ++i)
         {
-            VarDeclaration v = vars[i];
+            auto v = vars[i];
             v.ctfeAdrOnStack = cast(int)cast(size_t)savedId[i];
         }
         values.setDim(stackpointer);
@@ -674,7 +674,7 @@ extern (C++) void ctfeCompile(FuncDeclaration fd)
         assert(tb.ty == Tfunction);
         for (size_t i = 0; i < fd.parameters.dim; i++)
         {
-            VarDeclaration v = (*fd.parameters)[i];
+            auto v = (*fd.parameters)[i];
             fd.ctfeCode.onDeclaration(v);
         }
     }
@@ -884,7 +884,7 @@ extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expres
     {
         Expression earg = eargs[i];
         Parameter fparam = Parameter.getNth(tf.parameters, i);
-        VarDeclaration v = (*fd.parameters)[i];
+        auto v = (*fd.parameters)[i];
         static if (LOG)
         {
             printf("arg[%d] = %s\n", i, earg.toChars());
@@ -892,7 +892,7 @@ extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expres
         ctfeStack.push(v);
         if ((fparam.storageClass & (STCout | STCref)) && earg.op == TOKvar && (cast(VarExp)earg).var.toParent2() == fd)
         {
-            VarDeclaration vx = (cast(VarExp)earg).var.isVarDeclaration();
+            auto vx = (cast(VarExp)earg).var.isVarDeclaration();
             if (!vx)
             {
                 fd.error("cannot interpret %s as a ref parameter", earg.toChars());
@@ -2488,7 +2488,7 @@ public:
                 result = CTFEExp.cantexp;
                 return;
             }
-            ClassDeclaration cd = (cast(ClassReferenceExp)result).originalClass();
+            auto cd = (cast(ClassReferenceExp)result).originalClass();
             assert(cd);
             result = new TypeidExp(e.loc, cd.type);
             result.type = e.type;
@@ -2720,7 +2720,7 @@ public:
         Expressions* expsx = null;
         for (size_t i = 0; i < e.sd.fields.dim; i++)
         {
-            VarDeclaration v = e.sd.fields[i];
+            auto v = e.sd.fields[i];
             Expression ex = null;
             Expression exp = null;
             if (i >= elemdim)
@@ -2856,7 +2856,7 @@ public:
             }
             else
             {
-                StructDeclaration sd = (cast(TypeStruct)e.newtype.toBasetype()).sym;
+                auto sd = (cast(TypeStruct)e.newtype.toBasetype()).sym;
                 auto exps = new Expressions();
                 exps.reserve(sd.fields.dim);
                 if (e.arguments)
@@ -2885,19 +2885,19 @@ public:
         }
         if (e.newtype.toBasetype().ty == Tclass)
         {
-            ClassDeclaration cd = (cast(TypeClass)e.newtype.toBasetype()).sym;
+            auto cd = (cast(TypeClass)e.newtype.toBasetype()).sym;
             size_t totalFieldCount = 0;
-            for (ClassDeclaration c = cd; c; c = c.baseClass)
+            for (auto c = cd; c; c = c.baseClass)
                 totalFieldCount += c.fields.dim;
             auto elems = new Expressions();
             elems.setDim(totalFieldCount);
             size_t fieldsSoFar = totalFieldCount;
-            for (ClassDeclaration c = cd; c; c = c.baseClass)
+            for (auto c = cd; c; c = c.baseClass)
             {
                 fieldsSoFar -= c.fields.dim;
                 for (size_t i = 0; i < c.fields.dim; i++)
                 {
-                    VarDeclaration v = c.fields[i];
+                    auto v = c.fields[i];
                     if (v.inuse)
                     {
                         e.error("circular reference to '%s'", v.toPrettyChars());
@@ -4190,7 +4190,7 @@ public:
             bool wantRef = (tn.ty == Tarray || isAssocArray(tn) || tn.ty == Tclass);
             bool cow = newval.op != TOKstructliteral && newval.op != TOKarrayliteral && newval.op != TOKstring;
             Type tb = tn.baseElemOf();
-            StructDeclaration sd = (tb.ty == Tstruct ? (cast(TypeStruct)tb).sym : null);
+            auto sd = (tb.ty == Tstruct ? (cast(TypeStruct)tb).sym : null);
             RecursiveBlock rb;
             rb.istate = istate;
             rb.newval = newval;
@@ -4712,7 +4712,7 @@ public:
                 // Make a virtual function call.
                 // Get the function from the vtable of the original class
                 assert(pthis.op == TOKclassreference);
-                ClassDeclaration cd = (cast(ClassReferenceExp)pthis).originalClass();
+                auto cd = (cast(ClassReferenceExp)pthis).originalClass();
                 // We can't just use the vtable index to look it up, because
                 // vtables for interfaces don't get populated until the glue layer.
                 fd = cd.findFunc(fd.ident, cast(TypeFunction)fd.type);
@@ -6518,7 +6518,7 @@ extern (C++) Expression evaluatePostblit(InterState* istate, Expression e)
     Type tb = e.type.baseElemOf();
     if (tb.ty != Tstruct)
         return null;
-    StructDeclaration sd = (cast(TypeStruct)tb).sym;
+    auto sd = (cast(TypeStruct)tb).sym;
     if (!sd.postblit)
         return null;
     if (e.op == TOKarrayliteral)
@@ -6549,7 +6549,7 @@ extern (C++) Expression evaluateDtor(InterState* istate, Expression e)
     Type tb = e.type.baseElemOf();
     if (tb.ty != Tstruct)
         return null;
-    StructDeclaration sd = (cast(TypeStruct)tb).sym;
+    auto sd = (cast(TypeStruct)tb).sym;
     if (!sd.dtor)
         return null;
     if (e.op == TOKarrayliteral)

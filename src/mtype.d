@@ -745,7 +745,7 @@ public:
                 if ((cast(TypeClass)t1n).sym == (cast(TypeClass)t2n).sym && MODimplicitConv(t1n.mod, t2n.mod))
                     goto Lcovariant;
                 // If t1n is forward referenced:
-                ClassDeclaration cd = (cast(TypeClass)t1n).sym;
+                auto cd = (cast(TypeClass)t1n).sym;
                 if (cd._scope)
                     cd.semantic(null);
                 if (!cd.isBaseInfoComplete())
@@ -5152,7 +5152,7 @@ public:
         {
             /* AA's need typeid(index).equals() and getHash(). Issue error if not correctly set up.
              */
-            StructDeclaration sd = (cast(TypeStruct)tbase).sym;
+            auto sd = (cast(TypeStruct)tbase).sym;
             if (sd._scope)
                 sd.semantic(null);
             // duplicate a part of StructDeclaration::semanticTypeInfoMembers
@@ -5210,7 +5210,7 @@ public:
         }
         else if (tbase.ty == Tclass && !(cast(TypeClass)tbase).sym.isInterfaceDeclaration())
         {
-            ClassDeclaration cd = (cast(TypeClass)tbase).sym;
+            auto cd = (cast(TypeClass)tbase).sym;
             if (cd._scope)
                 cd.semantic(null);
             if (!ClassDeclaration.object)
@@ -7208,7 +7208,7 @@ public:
             AggregateDeclaration ad = sc.getStructClassScope();
             if (ad)
             {
-                ClassDeclaration cd = ad.isClassDeclaration();
+                auto cd = ad.isClassDeclaration();
                 if (cd)
                 {
                     if (ident.equals(Id.This))
@@ -7218,7 +7218,7 @@ public:
                 }
                 else
                 {
-                    StructDeclaration sd = ad.isStructDeclaration();
+                    auto sd = ad.isStructDeclaration();
                     if (sd && ident.equals(Id.This))
                         ident = sd.ident;
                 }
@@ -7844,7 +7844,7 @@ public:
             }
             for (size_t i = 0; i < sym.fields.dim; i++)
             {
-                VarDeclaration v = sym.fields[i];
+                auto v = sym.fields[i];
                 Expression ex;
                 if (ev)
                     ex = new DotVarExp(e.loc, ev, v);
@@ -8077,7 +8077,7 @@ public:
         uint offset = 0;
         for (size_t j = 0; j < structelems.dim; j++)
         {
-            VarDeclaration vd = sym.fields[j];
+            auto vd = sym.fields[j];
             Expression e;
             if (vd.inuse)
             {
@@ -8125,7 +8125,7 @@ public:
          */
         for (size_t i = 0; i < sym.fields.dim; i++)
         {
-            VarDeclaration v = sym.fields[i];
+            auto v = sym.fields[i];
             //printf("%s [%d] v = (%s) %s, v->offset = %d, v->parent = %s", sym->toChars(), i, v->kind(), v->toChars(), v->offset, v->parent->kind());
             if (i == 0)
             {
@@ -8167,7 +8167,7 @@ public:
             return true;
         for (size_t i = 0; i < sym.fields.dim; i++)
         {
-            VarDeclaration v = sym.fields[i];
+            auto v = sym.fields[i];
             if (!v.isDataseg() && v.type.needsNested())
                 return true;
         }
@@ -8177,7 +8177,7 @@ public:
     bool hasPointers()
     {
         // Probably should cache this information in sym rather than recompute
-        StructDeclaration s = sym;
+        auto s = sym;
         sym.size(Loc()); // give error for forward references
         for (size_t i = 0; i < s.fields.dim; i++)
         {
@@ -8209,7 +8209,7 @@ public:
                     uint offset = ~0; // dead-store to prevent spurious warning
                     for (size_t i = 0; i < sym.fields.dim; i++)
                     {
-                        VarDeclaration v = sym.fields[i];
+                        auto v = sym.fields[i];
                         if (i == 0)
                         {
                         }
@@ -8620,7 +8620,7 @@ public:
             }
             for (size_t i = 0; i < sym.fields.dim; i++)
             {
-                VarDeclaration v = sym.fields[i];
+                auto v = sym.fields[i];
                 // Don't include hidden 'this' pointer
                 if (v.isThisDeclaration())
                     continue;
@@ -8733,7 +8733,7 @@ public:
             {
                 if (sym.vthis._scope)
                     sym.vthis.semantic(null);
-                ClassDeclaration cdp = sym.toParent2().isClassDeclaration();
+                auto cdp = sym.toParent2().isClassDeclaration();
                 auto de = new DotVarExp(e.loc, e, sym.vthis, 0);
                 de.type = (cdp ? cdp.type : sym.vthis.type).addMod(e.type.mod);
                 return de;
@@ -8859,8 +8859,8 @@ public:
                     e1 = e1.semantic(sc);
                 L2:
                     Type t = e1.type.toBasetype();
-                    ClassDeclaration cd = e.type.isClassHandle();
-                    ClassDeclaration tcd = t.isClassHandle();
+                    auto cd = e.type.isClassHandle();
+                    auto tcd = t.isClassHandle();
                     if (cd && tcd && (tcd == cd || cd.isBaseOf(tcd, null)))
                     {
                         e = new DotTypeExp(e1.loc, e1, cd);
@@ -8949,7 +8949,7 @@ public:
     {
         if (t && t.ty == Tclass)
         {
-            ClassDeclaration cd = (cast(TypeClass)t).sym;
+            auto cd = (cast(TypeClass)t).sym;
             if (sym.isBaseOf(cd, poffset))
                 return true;
         }
@@ -8962,7 +8962,7 @@ public:
         MATCH m = constConv(to);
         if (m > MATCHnomatch)
             return m;
-        ClassDeclaration cdto = to.isClassHandle();
+        auto cdto = to.isClassHandle();
         if (cdto)
         {
             //printf("TypeClass::implicitConvTo(to = '%s') %s, isbase = %d %d\n", to->toChars(), toChars(), cdto->isBaseInfoComplete(), sym->isBaseInfoComplete());
@@ -9008,7 +9008,7 @@ public:
 
     ubyte deduceWild(Type t, bool isRef)
     {
-        ClassDeclaration cd = t.isClassHandle();
+        auto cd = t.isClassHandle();
         if (cd && (sym == cd || cd.isBaseOf(sym, null)))
             return Type.deduceWild(t, isRef);
         ubyte wm = 0;

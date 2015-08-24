@@ -544,7 +544,7 @@ public:
 
     void visit(AggregateDeclaration ad)
     {
-        ClassDeclaration cd = ad.isClassDeclaration();
+        auto cd = ad.isClassDeclaration();
         Dsymbol parentsave = ad.parent;
         if (cd)
         {

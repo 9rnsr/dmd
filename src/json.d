@@ -581,7 +581,7 @@ public:
     {
         objectStart();
         jsonProperties(d);
-        ClassDeclaration cd = d.isClassDeclaration();
+        auto cd = d.isClassDeclaration();
         if (cd)
         {
             if (cd.baseClass && cd.baseClass.ident != Id.Object)

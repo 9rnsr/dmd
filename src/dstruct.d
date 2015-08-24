@@ -101,7 +101,7 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
 
         void visit(TypeStruct t)
         {
-            StructDeclaration sd = t.sym;
+            auto sd = t.sym;
             if (!sd.members)
                 return; // opaque struct
             if (sd.semanticRun >= PASSsemantic3)
@@ -206,7 +206,7 @@ public:
 
     Dsymbol syntaxCopy(Dsymbol s)
     {
-        StructDeclaration sd = s ? cast(StructDeclaration)s : new StructDeclaration(loc, ident);
+        auto sd = s ? cast(StructDeclaration)s : new StructDeclaration(loc, ident);
         return ScopeDsymbol.syntaxCopy(sd);
     }
 
@@ -311,7 +311,7 @@ public:
             // Unwind what we did, and defer it for later
             for (size_t i = 0; i < fields.dim; i++)
             {
-                VarDeclaration v = fields[i];
+                auto v = fields[i];
                 v.offset = 0;
             }
             fields.setDim(0);
@@ -333,11 +333,11 @@ public:
         // See the case in compilable/test14838.d
         for (size_t i = 0; i < fields.dim; i++)
         {
-            VarDeclaration v = fields[i];
+            auto v = fields[i];
             Type tb = v.type.baseElemOf();
             if (tb.ty != Tstruct)
                 continue;
-            StructDeclaration sd = (cast(TypeStruct)tb).sym;
+            auto sd = (cast(TypeStruct)tb).sym;
             if (sd.semanticRun >= PASSsemanticdone)
                 continue;
             sc2.pop();
@@ -514,7 +514,7 @@ public:
         zeroInit = 1;
         for (size_t i = 0; i < fields.dim; i++)
         {
-            VarDeclaration vd = fields[i];
+            auto vd = fields[i];
             if (!vd.isDataseg())
             {
                 if (vd._init)
@@ -589,7 +589,7 @@ public:
                 .error(loc, "more initializers than fields (%d) of %s", nfields, toChars());
                 return false;
             }
-            VarDeclaration v = fields[i];
+            auto v = fields[i];
             if (v.offset < offset)
             {
                 .error(loc, "overlapping initialization for %s", v.toChars());
@@ -664,8 +664,8 @@ public:
         {
             if (elements && (*elements)[i])
                 continue;
-            VarDeclaration vd = fields[i];
-            VarDeclaration vx = vd;
+            auto vd = fields[i];
+            auto vx = vd;
             if (vd._init && vd._init.isVoidInitializer())
                 vx = null;
             // Find overlapped fields with the hole [vd->offset .. vd->offset->size()].
@@ -680,14 +680,14 @@ public:
                     continue;
                 // vd and v2 are overlapping. If either has destructors, postblits, etc., then error
                 //printf("overlapping fields %s and %s\n", vd->toChars(), v2->toChars());
-                VarDeclaration v = vd;
+                auto v = vd;
                 for (int k = 0; k < 2; ++k, v = v2)
                 {
                     Type tv = v.type.baseElemOf();
                     Dsymbol sv = tv.toDsymbol(null);
                     if (sv && !errors)
                     {
-                        StructDeclaration sd = sv.isStructDeclaration();
+                        auto sd = sv.isStructDeclaration();
                         if (sd && (sd.dtor || sd.inv || sd.postblit))
                         {
                             error("destructors, postblits and invariants are not allowed in overlapping fields %s and %s", vd.toChars(), v2.toChars());
@@ -816,7 +816,7 @@ public:
         // Recursively check all fields are POD.
         for (size_t i = 0; i < fields.dim; i++)
         {
-            VarDeclaration v = fields[i];
+            auto v = fields[i];
             if (v.storage_class & STCref)
             {
                 ispod = ISPODno;
@@ -826,7 +826,7 @@ public:
             if (tv.ty == Tstruct)
             {
                 TypeStruct ts = cast(TypeStruct)tv;
-                StructDeclaration sd = ts.sym;
+                auto sd = ts.sym;
                 if (!sd.isPOD())
                 {
                     ispod = ISPODno;

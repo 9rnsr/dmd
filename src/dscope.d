@@ -427,7 +427,7 @@ struct Scope
             assert(ad);
             for (size_t i = 0; i < ad.fields.dim; i++)
             {
-                VarDeclaration v = ad.fields[i];
+                auto v = ad.fields[i];
                 bool mustInit = (v.storage_class & STCnodefaultctor || v.type.needsNested());
                 if (!.mergeFieldInit(loc, fieldinit[i], fies[i], mustInit))
                 {
@@ -534,7 +534,7 @@ struct Scope
         {
             if (!sc.scopesym)
                 continue;
-            ClassDeclaration cd = sc.scopesym.isClassDeclaration();
+            auto cd = sc.scopesym.isClassDeclaration();
             if (cd)
                 return cd;
         }

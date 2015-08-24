@@ -804,7 +804,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
             AggregateDeclaration ad2 = isAggregate(e.e2.type);
             if (e.op == TOKassign && ad1 == ad2)
             {
-                StructDeclaration sd = ad1.isStructDeclaration();
+                auto sd = ad1.isStructDeclaration();
                 if (sd && !sd.hasIdentityAssign)
                 {
                     /* This is bitwise struct assignment. */

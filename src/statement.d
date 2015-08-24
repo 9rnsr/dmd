@@ -679,7 +679,7 @@ public:
                     return;
                 }
                 Type t = s.exp.type.toBasetype();
-                ClassDeclaration cd = t.isClassHandle();
+                auto cd = t.isClassHandle();
                 assert(cd);
                 if (cd == ClassDeclaration.errorException || ClassDeclaration.errorException.isBaseOf(cd, null))
                 {
@@ -4380,7 +4380,7 @@ public:
             size_t dim = sc.fieldinit_dim;
             for (size_t i = 0; i < dim; i++)
             {
-                VarDeclaration v = ad.fields[i];
+                auto v = ad.fields[i];
                 bool mustInit = (v.storage_class & STCnodefaultctor || v.type.needsNested());
                 if (mustInit && !(sc.fieldinit[i] & CSXthis_ctor))
                 {
@@ -4660,7 +4660,7 @@ public:
             exp = checkGC(sc, exp);
             if (exp.op == TOKerror)
                 goto Lbody;
-            ClassDeclaration cd = exp.type.isClassHandle();
+            auto cd = exp.type.isClassHandle();
             if (!cd)
             {
                 error("can only synchronize on class objects, not '%s'", exp.type.toChars());
@@ -5053,7 +5053,7 @@ public:
             type = tid;
         }
         type = type.semantic(loc, sc);
-        ClassDeclaration cd = type.toBasetype().isClassHandle();
+        auto cd = type.toBasetype().isClassHandle();
         if (!cd || ((cd != ClassDeclaration.throwable) && !ClassDeclaration.throwable.isBaseOf(cd, null)))
         {
             if (type != Type.terror)
@@ -5278,7 +5278,7 @@ public:
         exp = checkGC(sc, exp);
         if (exp.op == TOKerror)
             return new ErrorStatement();
-        ClassDeclaration cd = exp.type.toBasetype().isClassHandle();
+        auto cd = exp.type.toBasetype().isClassHandle();
         if (!cd || ((cd != ClassDeclaration.throwable) && !ClassDeclaration.throwable.isBaseOf(cd, null)))
         {
             error("can only throw class objects derived from Throwable, not type %s", exp.type.toChars());
@@ -5428,10 +5428,10 @@ public:
             error("cannot goto in or out of finally block");
             return true;
         }
-        VarDeclaration vd = label.statement.lastVar;
+        auto vd = label.statement.lastVar;
         if (!vd || vd.isDataseg() || (vd.storage_class & STCmanifest))
             return false;
-        VarDeclaration last = lastVar;
+        auto last = lastVar;
         while (last && last != vd)
             last = last.lastVar;
         if (last == vd)
