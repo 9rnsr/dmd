@@ -1458,13 +1458,13 @@ public:
             {
                 error("only parameters or stack based variables can be inout");
             }
-            FuncDeclaration func = sc.func;
+            auto func = sc.func;
             if (func)
             {
                 if (func.fes)
                     func = func.fes.func;
                 bool isWild = false;
-                for (FuncDeclaration fd = func; fd; fd = fd.toParent2().isFuncDeclaration())
+                for (auto fd = func; fd; fd = fd.toParent2().isFuncDeclaration())
                 {
                     if ((cast(TypeFunction)fd.type).iswild)
                     {
@@ -1495,7 +1495,7 @@ public:
                     error("default construction is disabled for type %s", type.toChars());
             }
         }
-        FuncDeclaration fd = parent.isFuncDeclaration();
+        auto fd = parent.isFuncDeclaration();
         if (type.isscope() && !noscope)
         {
             if (storage_class & (STCfield | STCout | STCref | STCstatic | STCmanifest | STCtls | STCgshared) || !fd)
@@ -1634,7 +1634,7 @@ public:
                         else if (ex.op == TOKfunction)
                         {
                             // or a delegate that doesn't escape a reference to the function
-                            FuncDeclaration f = (cast(FuncExp)ex).fd;
+                            auto f = (cast(FuncExp)ex).fd;
                             f.tookAddressOf--;
                         }
                     }
@@ -2179,9 +2179,9 @@ public:
         if (parent && parent != sc.parent && !isDataseg() && !(storage_class & STCmanifest) && sc.intypeof != 1 && !(sc.flags & SCOPEctfe))
         {
             // The function that this variable is in
-            FuncDeclaration fdv = toParent().isFuncDeclaration();
+            auto fdv = toParent().isFuncDeclaration();
             // The current function
-            FuncDeclaration fdthis = sc.parent.isFuncDeclaration();
+            auto fdthis = sc.parent.isFuncDeclaration();
             if (fdv && fdthis && fdv != fdthis)
             {
                 // Add fdthis to nestedrefs[] if not already there

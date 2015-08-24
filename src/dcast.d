@@ -2107,7 +2107,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 {
                     if (e.func)
                     {
-                        FuncDeclaration f = e.func.overloadExactMatch(tb.nextOf());
+                        auto f = e.func.overloadExactMatch(tb.nextOf());
                         if (f)
                         {
                             int offset;

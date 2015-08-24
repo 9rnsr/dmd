@@ -518,7 +518,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
         char* mangleOf(Dsymbol s)
         {
             VarDeclaration vd = s.isVarDeclaration();
-            FuncDeclaration fd = s.isFuncDeclaration();
+            auto fd = s.isFuncDeclaration();
             if (vd)
             {
                 mangle_variable(vd, false);
@@ -1302,7 +1302,7 @@ else static if (TARGET_WINDOS)
         char* mangleOf(Dsymbol s)
         {
             VarDeclaration vd = s.isVarDeclaration();
-            FuncDeclaration fd = s.isFuncDeclaration();
+            auto fd = s.isFuncDeclaration();
             if (vd)
             {
                 mangleVariable(vd);

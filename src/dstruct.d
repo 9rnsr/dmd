@@ -40,7 +40,7 @@ import ddmd.visitor;
 extern (C++) FuncDeclaration search_toString(StructDeclaration sd)
 {
     Dsymbol s = search_function(sd, Id.tostring);
-    FuncDeclaration fd = s ? s.isFuncDeclaration() : null;
+    auto fd = s ? s.isFuncDeclaration() : null;
     if (fd)
     {
         static __gshared TypeFunction tftostring;
@@ -379,7 +379,7 @@ public:
                 sc = sc.push();
                 sc.tinst = null;
                 sc.minst = null;
-                FuncDeclaration fcall = resolveFuncCall(loc, sc, scall, null, null, null, 1);
+                auto fcall = resolveFuncCall(loc, sc, scall, null, null, null, 1);
                 sc = sc.pop();
                 global.endGagging(xerrors);
                 if (fcall && fcall.isStatic())
@@ -442,7 +442,7 @@ public:
             if (global.endGagging(errors))
                 xcmp = xerrcmp;
         }
-        FuncDeclaration ftostr = search_toString(this);
+        auto ftostr = search_toString(this);
         if (ftostr && ftostr._scope && ftostr.semanticRun < PASSsemantic3done)
         {
             ftostr.semantic3(ftostr._scope);

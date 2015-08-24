@@ -134,7 +134,7 @@ extern (C++) static bool isAccessible(Dsymbol smember, Dsymbol sfunc, AggregateD
  */
 extern (C++) bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymbol smember)
 {
-    FuncDeclaration f = sc.func;
+    auto f = sc.func;
     AggregateDeclaration cdscope = sc.getStructClassScope();
     static if (LOG)
     {

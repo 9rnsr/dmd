@@ -568,7 +568,7 @@ public:
         {
             printf("TemplateDeclaration::overloadInsert('%s')\n", s.toChars());
         }
-        FuncDeclaration fd = s.isFuncDeclaration();
+        auto fd = s.isFuncDeclaration();
         if (fd)
         {
             if (funcroot)
@@ -621,7 +621,7 @@ public:
         buf.writeByte(')');
         if (onemember)
         {
-            FuncDeclaration fd = onemember.isFuncDeclaration();
+            auto fd = onemember.isFuncDeclaration();
             if (fd && fd.type)
             {
                 TypeFunction tf = cast(TypeFunction)fd.type;
@@ -862,7 +862,7 @@ public:
             else
                 ti.parent = this.parent;
             // Similar to doHeaderInstantiation
-            FuncDeclaration fd = onemember ? onemember.isFuncDeclaration() : null;
+            auto fd = onemember ? onemember.isFuncDeclaration() : null;
             if (fd)
             {
                 assert(fd.type.ty == Tfunction);
@@ -2496,7 +2496,7 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
                  */
                 auto ti = new TemplateInstance(loc, td, tiargs);
                 ti.parent = td.parent; // Maybe calculating valid 'enclosing' is unnecessary.
-                FuncDeclaration fd = f;
+                auto fd = f;
                 int x = td.deduceFunctionTemplateMatch(ti, sc, fd, tthis, fargs);
                 MATCH mta = cast(MATCH)(x >> 4);
                 MATCH mfa = cast(MATCH)(x & 0xF);
@@ -5786,7 +5786,7 @@ public:
          */
         if (fargs && aliasdecl)
         {
-            FuncDeclaration fd = aliasdecl.isFuncDeclaration();
+            auto fd = aliasdecl.isFuncDeclaration();
             if (fd)
             {
                 /* Transmit fargs to type so that TypeFunction::semantic() can
@@ -6269,7 +6269,7 @@ public:
          */
         if (fargs)
         {
-            FuncDeclaration fd = ti.toAlias().isFuncDeclaration();
+            auto fd = ti.toAlias().isFuncDeclaration();
             if (fd && !fd.errors)
             {
                 Parameters* fparameters = fd.getParameters(null);
@@ -6813,7 +6813,7 @@ public:
                 }
                 if (auto fa = sa.isFuncAliasDeclaration())
                 {
-                    FuncDeclaration f = fa.toAliasFunc();
+                    auto f = fa.toAliasFunc();
                     if (!fa.hasOverloads && f.isUnique())
                     {
                         // Strip FuncAlias only when the aliased function
@@ -6827,7 +6827,7 @@ public:
                 {
                     td.semantic(sc);
                 }
-                FuncDeclaration fd = sa.isFuncDeclaration();
+                auto fd = sa.isFuncDeclaration();
                 if (fd)
                     fd.functionSemantic();
             }

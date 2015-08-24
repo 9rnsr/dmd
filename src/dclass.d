@@ -40,7 +40,7 @@ import ddmd.visitor;
  */
 extern (C++) int isf(void* param, Dsymbol s)
 {
-    FuncDeclaration fd = s.isFuncDeclaration();
+    auto fd = s.isFuncDeclaration();
     if (!fd)
         return 0;
     //printf("param = %p, fd = %p %s\n", param, fd, fd->toChars());
@@ -91,7 +91,7 @@ struct BaseClass
         // first entry is ClassInfo reference
         for (size_t j = sym.vtblOffset(); j < sym.vtbl.dim; j++)
         {
-            FuncDeclaration ifd = sym.vtbl[j].isFuncDeclaration();
+            auto ifd = sym.vtbl[j].isFuncDeclaration();
             FuncDeclaration fd;
             TypeFunction tf;
             //printf("        vtbl[%d] is '%s'\n", j, ifd ? ifd->toChars() : "null");
@@ -830,7 +830,7 @@ public:
         //    this() { }
         if (!ctor && baseClass && baseClass.ctor)
         {
-            FuncDeclaration fd = resolveFuncCall(loc, sc2, baseClass.ctor, null, null, null, 1);
+            auto fd = resolveFuncCall(loc, sc2, baseClass.ctor, null, null, null, 1);
             if (fd && !fd.errors)
             {
                 //printf("Creating default this(){} for class %s\n", toChars());
@@ -1088,7 +1088,7 @@ public:
         }
         else
         {
-            FuncDeclaration fdstart = s.isFuncDeclaration();
+            auto fdstart = s.isFuncDeclaration();
             //printf("%s fdstart = %p\n", s->kind(), fdstart);
             if (overloadApply(fdstart, cast(void*)fd, &isf))
                 return false;
@@ -1111,7 +1111,7 @@ public:
         {
             for (size_t i = 0; i < vtbl.dim; i++)
             {
-                FuncDeclaration fd = (*vtbl)[i].isFuncDeclaration();
+                auto fd = (*vtbl)[i].isFuncDeclaration();
                 if (!fd)
                     continue;
                 // the first entry might be a ClassInfo
@@ -1240,7 +1240,7 @@ public:
             return true;
         for (size_t i = 1; i < vtbl.dim; i++)
         {
-            FuncDeclaration fd = vtbl[i].isFuncDeclaration();
+            auto fd = vtbl[i].isFuncDeclaration();
             //printf("\tvtbl[%d] = %p\n", i, fd);
             if (!fd || fd.isAbstract())
             {

@@ -1477,7 +1477,7 @@ public:
     final FuncDeclaration findGetMembers()
     {
         Dsymbol s = search_function(this, Id.getmembers);
-        FuncDeclaration fdx = s ? s.isFuncDeclaration() : null;
+        auto fdx = s ? s.isFuncDeclaration() : null;
         version (none)
         {
             // Finish

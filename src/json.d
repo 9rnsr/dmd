@@ -628,7 +628,7 @@ public:
             arrayStart();
             for (size_t i = 0; i < d.foverrides.dim; i++)
             {
-                FuncDeclaration fd = d.foverrides[i];
+                auto fd = d.foverrides[i];
                 item(fd.toPrettyChars());
             }
             arrayEnd();

@@ -420,7 +420,7 @@ struct Scope
     {
         if (fieldinit && fies)
         {
-            FuncDeclaration f = func;
+            auto f = func;
             if (fes)
                 f = fes.func;
             AggregateDeclaration ad = f.isAggregateMember2();

@@ -470,7 +470,7 @@ public:
     // ditto
     void visit(FuncAliasDeclaration fd)
     {
-        FuncDeclaration f = fd.toAliasFunc();
+        auto f = fd.toAliasFunc();
         FuncAliasDeclaration fa = f.isFuncAliasDeclaration();
         if (!fd.hasOverloads && !fa)
         {

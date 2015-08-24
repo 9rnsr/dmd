@@ -2093,7 +2093,7 @@ public:
                 }
                 else if (d.isFuncDeclaration())
                 {
-                    FuncDeclaration fd = resolveFuncCall(Loc(), null, d, null, this, null, 1);
+                    auto fd = resolveFuncCall(Loc(), null, d, null, this, null, 1);
                     if (fd && fd.errors)
                         return Type.terror;
                     if (fd && !fd.type.nextOf() && !fd.functionSemantic())
@@ -2120,7 +2120,7 @@ public:
             if (td)
             {
                 assert(td._scope);
-                FuncDeclaration fd = resolveFuncCall(Loc(), null, td, null, this, null, 1);
+                auto fd = resolveFuncCall(Loc(), null, td, null, this, null, 1);
                 if (fd && fd.errors)
                     return Type.terror;
                 if (fd && fd.functionSemantic())
@@ -5837,7 +5837,7 @@ public:
             if (tf.trust == TRUSTdefault)
                 for (Dsymbol p = sc.func; p; p = p.toParent2())
                 {
-                    FuncDeclaration fd = p.isFuncDeclaration();
+                    auto fd = p.isFuncDeclaration();
                     if (fd)
                     {
                         if (fd.isSafeBypassingInference())
@@ -7652,7 +7652,7 @@ public:
         //printf("TypeReturn::resolve(sc = %p, idents = '%s')\n", sc, toChars());
         Type t;
         {
-            FuncDeclaration func = sc.func;
+            auto func = sc.func;
             if (!func)
             {
                 error(loc, "typeof(return) must be inside function");

@@ -832,7 +832,7 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         stc = STCsafe | STCnothrow | STCpure | STCnogc;
         for (size_t i = 0; i < sd.postblits.dim; i++)
         {
-            FuncDeclaration fd = sd.postblits[i];
+            auto fd = sd.postblits[i];
             stc = mergeFuncAttrs(stc, fd);
             if (stc & STCdisable)
             {
@@ -948,7 +948,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         stc = STCsafe | STCnothrow | STCpure | STCnogc;
         for (size_t i = 0; i < ad.dtors.dim; i++)
         {
-            FuncDeclaration fd = ad.dtors[i];
+            auto fd = ad.dtors[i];
             stc = mergeFuncAttrs(stc, fd);
             if (stc & STCdisable)
             {

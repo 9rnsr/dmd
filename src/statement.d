@@ -2637,7 +2637,7 @@ public:
                 TypeFunction tfld = null;
                 if (sapply)
                 {
-                    FuncDeclaration fdapply = sapply.isFuncDeclaration();
+                    auto fdapply = sapply.isFuncDeclaration();
                     if (fdapply)
                     {
                         assert(fdapply.type && fdapply.type.ty == Tfunction);
@@ -3517,7 +3517,7 @@ public:
                     inlining = PINLINEalways;
                 else if (e.isBool(false))
                     inlining = PINLINEnever;
-                FuncDeclaration fd = sc.func;
+                auto fd = sc.func;
                 if (!fd)
                 {
                     error("pragma(inline) is not inside a function");
@@ -4154,7 +4154,7 @@ public:
     Statement semantic(Scope* sc)
     {
         //printf("ReturnStatement::semantic() %s\n", toChars());
-        FuncDeclaration fd = sc.parent.isFuncDeclaration();
+        auto fd = sc.parent.isFuncDeclaration();
         if (fd.fes)
             fd = fd.fes.func; // fd is now function enclosing foreach
         TypeFunction tf = cast(TypeFunction)fd.type;
@@ -4470,7 +4470,7 @@ public:
         if (ident)
         {
             ident = fixupLabelName(sc, ident);
-            FuncDeclaration thisfunc = sc.func;
+            auto thisfunc = sc.func;
             for (Scope* scx = sc; scx; scx = scx.enclosing)
             {
                 if (scx.func != thisfunc) // if in enclosing function
@@ -4559,7 +4559,7 @@ public:
         {
             ident = fixupLabelName(sc, ident);
             Scope* scx;
-            FuncDeclaration thisfunc = sc.func;
+            auto thisfunc = sc.func;
             for (scx = sc; scx; scx = scx.enclosing)
             {
                 LabelStatement ls;
@@ -4697,11 +4697,11 @@ public:
                 cs.push(new ExpStatement(loc, tmp));
                 auto args = new Parameters();
                 args.push(new Parameter(0, ClassDeclaration.object.type, null, null));
-                FuncDeclaration fdenter = FuncDeclaration.genCfunc(args, Type.tvoid, Id.monitorenter);
+                auto fdenter = FuncDeclaration.genCfunc(args, Type.tvoid, Id.monitorenter);
                 Expression e = new CallExp(loc, new VarExp(loc, fdenter), new VarExp(loc, tmp));
                 e.type = Type.tvoid; // do not run semantic on e
                 cs.push(new ExpStatement(loc, e));
-                FuncDeclaration fdexit = FuncDeclaration.genCfunc(args, Type.tvoid, Id.monitorexit);
+                auto fdexit = FuncDeclaration.genCfunc(args, Type.tvoid, Id.monitorexit);
                 e = new CallExp(loc, new VarExp(loc, fdexit), new VarExp(loc, tmp));
                 e.type = Type.tvoid; // do not run semantic on e
                 Statement s = new ExpStatement(loc, e);
@@ -4732,13 +4732,13 @@ public:
             cs.push(new ExpStatement(loc, v));
             auto args = new Parameters();
             args.push(new Parameter(0, t.pointerTo(), null, null));
-            FuncDeclaration fdenter = FuncDeclaration.genCfunc(args, Type.tvoid, Id.criticalenter, STCnothrow);
+            auto fdenter = FuncDeclaration.genCfunc(args, Type.tvoid, Id.criticalenter, STCnothrow);
             Expression e = new DotIdExp(loc, new VarExp(loc, tmp), Id.ptr);
             e = e.semantic(sc);
             e = new CallExp(loc, new VarExp(loc, fdenter), e);
             e.type = Type.tvoid; // do not run semantic on e
             cs.push(new ExpStatement(loc, e));
-            FuncDeclaration fdexit = FuncDeclaration.genCfunc(args, Type.tvoid, Id.criticalexit, STCnothrow);
+            auto fdexit = FuncDeclaration.genCfunc(args, Type.tvoid, Id.criticalexit, STCnothrow);
             e = new DotIdExp(loc, new VarExp(loc, tmp), Id.ptr);
             e = e.semantic(sc);
             e = new CallExp(loc, new VarExp(loc, fdexit), e);
@@ -5271,7 +5271,7 @@ public:
     Statement semantic(Scope* sc)
     {
         //printf("ThrowStatement::semantic()\n");
-        FuncDeclaration fd = sc.parent.isFuncDeclaration();
+        auto fd = sc.parent.isFuncDeclaration();
         fd.hasReturnExp |= 2;
         exp = exp.semantic(sc);
         exp = resolveProperties(sc, exp);
@@ -5371,7 +5371,7 @@ public:
     Statement semantic(Scope* sc)
     {
         //printf("GotoStatement::semantic()\n");
-        FuncDeclaration fd = sc.func;
+        auto fd = sc.func;
         ident = fixupLabelName(sc, ident);
         label = fd.searchLabel(ident);
         tf = sc.tf;
@@ -5489,7 +5489,7 @@ public:
     Statement semantic(Scope* sc)
     {
         //printf("LabelStatement::semantic()\n");
-        FuncDeclaration fd = sc.parent.isFuncDeclaration();
+        auto fd = sc.parent.isFuncDeclaration();
         ident = fixupLabelName(sc, ident);
         tf = sc.tf;
         os = sc.os;

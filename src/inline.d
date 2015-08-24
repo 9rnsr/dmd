@@ -265,7 +265,7 @@ public:
                 return;
             }
         }
-        FuncDeclaration fd = e.var.isFuncDeclaration();
+        auto fd = e.var.isFuncDeclaration();
         if (fd && fd.isNested()) // see Bugzilla 7199 for test case
             cost = COST_MAX;
         else
@@ -746,7 +746,7 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
             if (v && v.nestedrefs.dim && ids.vthis)
             {
                 Dsymbol s = ids.fd;
-                FuncDeclaration fdv = v.toParent().isFuncDeclaration();
+                auto fdv = v.toParent().isFuncDeclaration();
                 assert(fdv);
                 result = new VarExp(e.loc, ids.vthis);
                 result.type = ids.vthis.type;
@@ -1092,7 +1092,7 @@ public:
                 if (ce.e1.op == TOKvar)
                 {
                     VarExp ve = cast(VarExp)ce.e1;
-                    FuncDeclaration fd = ve.var.isFuncDeclaration();
+                    auto fd = ve.var.isFuncDeclaration();
                     if (fd && fd != parent && canInline(fd, 0, 0, 1))
                     {
                         expandInline(fd, parent, null, null, ce.arguments, &result);
@@ -1377,7 +1377,7 @@ public:
         if (e.e1.op == TOKvar)
         {
             VarExp ve = cast(VarExp)e.e1;
-            FuncDeclaration fd = ve.var.isFuncDeclaration();
+            auto fd = ve.var.isFuncDeclaration();
             if (fd && fd != parent && canInline(fd, 0, 0, 0))
             {
                 Expression ex = expandInline(fd, parent, eret, null, e.arguments, null);
@@ -1392,7 +1392,7 @@ public:
         else if (e.e1.op == TOKdotvar)
         {
             DotVarExp dve = cast(DotVarExp)e.e1;
-            FuncDeclaration fd = dve.var.isFuncDeclaration();
+            auto fd = dve.var.isFuncDeclaration();
             if (fd && fd != parent && canInline(fd, 1, 0, 0))
             {
                 if (dve.e1.op == TOKcall && dve.e1.type.toBasetype().ty == Tstruct)
@@ -1506,7 +1506,7 @@ public:
         }
         if (fd.isUnitTestDeclaration() && !global.params.useUnitTests)
             return;
-        FuncDeclaration oldparent = parent;
+        auto oldparent = parent;
         parent = fd;
         if (fd.fbody && !fd.naked)
         {

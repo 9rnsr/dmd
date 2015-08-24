@@ -368,7 +368,7 @@ public:
              * before the semantic analysis of 'to', so that template overloading based on the
              * 'this' pointer can be successful.
              */
-            FuncDeclaration fd = (*ps).isFuncDeclaration();
+            auto fd = (*ps).isFuncDeclaration();
             if (fd)
             {
                 /* Use storage_class2 instead of storage_class otherwise when we do .di generation

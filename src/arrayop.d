@@ -180,7 +180,7 @@ extern (C++) Expression arrayOp(BinExp e, Scope* sc)
     char* name = buf.peekString();
     Identifier ident = Identifier.idPool(name);
     FuncDeclaration* pFd = cast(FuncDeclaration*)dmd_aaGet(&arrayfuncs, cast(void*)ident);
-    FuncDeclaration fd = *pFd;
+    auto fd = *pFd;
     if (!fd)
         fd = buildArrayOp(ident, e, sc, e.loc);
     if (fd && fd.errors)

@@ -896,7 +896,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         return;
                     }
                 }
-                FuncDeclaration lastf = m.lastf;
+                auto lastf = m.lastf;
                 if (s_r)
                 {
                     functionResolve(&m, s_r, e.loc, sc, tiargs, e.e2.type, &args1);
@@ -983,7 +983,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                                 return;
                             }
                         }
-                        FuncDeclaration lastf = m.lastf;
+                        auto lastf = m.lastf;
                         if (s)
                         {
                             functionResolve(&m, s, e.loc, sc, tiargs, e.e2.type, &args1);
@@ -1462,7 +1462,7 @@ extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
             if (m.lastf && m.lastf.errors)
                 return new ErrorExp();
         }
-        FuncDeclaration lastf = m.lastf;
+        auto lastf = m.lastf;
         int count = m.count;
         if (s_r)
         {
@@ -1605,7 +1605,7 @@ extern (C++) Dsymbol search_function(ScopeDsymbol ad, Identifier funcid)
         //printf("search_function: s = '%s'\n", s->kind());
         Dsymbol s2 = s.toAlias();
         //printf("search_function: s2 = '%s'\n", s2->kind());
-        FuncDeclaration fd = s2.isFuncDeclaration();
+        auto fd = s2.isFuncDeclaration();
         if (fd && fd.type.ty == Tfunction)
             return fd;
         TemplateDeclaration td = s2.isTemplateDeclaration();
@@ -1731,7 +1731,7 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
          *  int opApply(int delegate(ref Type [, ...]) dg);
          * overload
          */
-        FuncDeclaration fd = sapply.isFuncDeclaration();
+        auto fd = sapply.isFuncDeclaration();
         if (fd)
         {
             sapply = inferApplyArgTypesX(ethis, fd, fes.parameters);
@@ -1807,7 +1807,7 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
                  */
                 Identifier id = (fes.op == TOKforeach) ? Id.Ffront : Id.Fback;
                 Dsymbol s = ad.search(Loc(), id);
-                FuncDeclaration fd = s ? s.isFuncDeclaration() : null;
+                auto fd = s ? s.isFuncDeclaration() : null;
                 if (fd)
                 {
                     // Resolve inout qualifier of front type

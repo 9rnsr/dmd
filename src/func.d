@@ -633,7 +633,7 @@ public:
                  */
                 if (tf.trust == TRUSTdefault)
                 {
-                    FuncDeclaration fd = sc.func;
+                    auto fd = sc.func;
                     /* If the parent's @safe-ty is inferred, then this function's @safe-ty needs
                      * to be inferred first.
                      * If this function's @safe-ty is inferred, then it needs to be infeerd first.
@@ -961,7 +961,7 @@ public:
                         // shift all existing functions back
                         for (size_t i = cd.vtbl.dim; i > vtblIndex; i--)
                         {
-                            FuncDeclaration fd = cd.vtbl[i - 1].isFuncDeclaration();
+                            auto fd = cd.vtbl[i - 1].isFuncDeclaration();
                             assert(fd);
                             fd.vtblIndex++;
                         }
@@ -983,8 +983,8 @@ public:
                 return;
             default:
                 {
-                    FuncDeclaration fdv = cd.baseClass.vtbl[vi].isFuncDeclaration();
-                    FuncDeclaration fdc = cd.vtbl[vi].isFuncDeclaration();
+                    auto fdv = cd.baseClass.vtbl[vi].isFuncDeclaration();
+                    auto fdc = cd.vtbl[vi].isFuncDeclaration();
                     // This function is covariant with fdv
                     if (fdc == this)
                     {
@@ -1069,7 +1069,7 @@ public:
                     return;
                 default:
                     {
-                        FuncDeclaration fdv = cast(FuncDeclaration)b.sym.vtbl[vi];
+                        auto fdv = cast(FuncDeclaration)b.sym.vtbl[vi];
                         Type ti = null;
                         /* Remember which functions this overrides
                          */
@@ -1368,7 +1368,7 @@ public:
         {
             for (size_t i = 0; i < foverrides.dim; i++)
             {
-                FuncDeclaration fdv = foverrides[i];
+                auto fdv = foverrides[i];
                 if (fdv.fbody && !fdv.frequire)
                 {
                     error("cannot have an in contract when overriden function %s does not have an in contract", fdv.toPrettyChars());
@@ -1704,7 +1704,7 @@ public:
                     {
                         sc2.callSuper = 0;
                         // Insert implicit super() at start of fbody
-                        FuncDeclaration fd = resolveFuncCall(Loc(), sc2, cd.baseClass.ctor, null, null, null, 1);
+                        auto fd = resolveFuncCall(Loc(), sc2, cd.baseClass.ctor, null, null, null, 1);
                         if (!fd)
                         {
                             error("no match for implicit super() call in constructor");
@@ -2387,7 +2387,7 @@ public:
         int bestvi = -1;
         for (int vi = 0; vi < dim; vi++)
         {
-            FuncDeclaration fdv = (*vtbl)[vi].isFuncDeclaration();
+            auto fdv = (*vtbl)[vi].isFuncDeclaration();
             if (fdv && fdv.ident == ident)
             {
                 if (type.equals(fdv.type)) // if exact match
@@ -2476,7 +2476,7 @@ public:
             overnext = td;
             return true;
         }
-        FuncDeclaration fd = s.isFuncDeclaration();
+        auto fd = s.isFuncDeclaration();
         if (!fd)
             return false;
         version (none)
@@ -2689,7 +2689,7 @@ public:
      */
     final TemplateDeclaration findTemplateDeclRoot()
     {
-        FuncDeclaration f = this;
+        auto f = this;
         while (f && f.overnext)
         {
             //printf("f->overnext = %p %s\n", f->overnext, f->overnext->toChars());
@@ -2874,7 +2874,7 @@ public:
         while (fd != s && fdparent != s.toParent2())
         {
             //printf("\ts = %s, '%s'\n", s->kind(), s->toChars());
-            FuncDeclaration thisfd = s.isFuncDeclaration();
+            auto thisfd = s.isFuncDeclaration();
             if (thisfd)
             {
                 if (!thisfd.isNested() && !thisfd.vthis && !sc.intypeof)
@@ -3186,7 +3186,7 @@ public:
     // a static frame pointer to its lexically enclosing function
     bool isNested()
     {
-        FuncDeclaration f = toAliasFunc();
+        auto f = toAliasFunc();
         //printf("\ttoParent2() = '%s'\n", f->toParent2()->toChars());
         return ((f.storage_class & STCstatic) == 0) && (f.linkage == LINKd) && (f.toParent2().isFuncDeclaration() !is null);
     }
@@ -3312,7 +3312,7 @@ public:
             // The function that this function is in
             FuncDeclaration fdv2 = toParent2().isFuncDeclaration();
             // The current function
-            FuncDeclaration fdthis = sc.parent.isFuncDeclaration();
+            auto fdthis = sc.parent.isFuncDeclaration();
             //printf("this = %s in [%s]\n", this->toChars(), this->loc.toChars());
             //printf("fdv2 = %s in [%s]\n", fdv2->toChars(), fdv2->loc.toChars());
             //printf("fdthis = %s in [%s]\n", fdthis->toChars(), fdthis->loc.toChars());
@@ -3335,7 +3335,7 @@ public:
                     }
                 }
             }
-            FuncDeclaration fdv = toParent2().isFuncDeclaration();
+            auto fdv = toParent2().isFuncDeclaration();
             if (fdv && fdthis && fdv != fdthis)
             {
                 int lv = fdthis.getLevel(loc, sc, fdv);
@@ -3389,7 +3389,7 @@ public:
             //printf("\tv = %s\n", v->toChars());
             for (size_t j = 0; j < v.nestedrefs.dim; j++)
             {
-                FuncDeclaration f = v.nestedrefs[j];
+                auto f = v.nestedrefs[j];
                 assert(f != this);
                 //printf("\t\tf = %s, isVirtual=%d, isThis=%p, tookAddressOf=%d\n", f->toChars(), f->isVirtual(), f->isThis(), f->tookAddressOf);
                 /* Look to see if f escapes. We consider all parents of f within
@@ -3399,7 +3399,7 @@ public:
                  */
                 for (Dsymbol s = f; s && s != this; s = s.parent)
                 {
-                    FuncDeclaration fx = s.isFuncDeclaration();
+                    auto fx = s.isFuncDeclaration();
                     if (!fx)
                         continue;
                     if (fx.isThis() || fx.tookAddressOf)
@@ -3475,7 +3475,7 @@ public:
         {
             for (size_t i = 0; i < foverrides.dim; i++)
             {
-                FuncDeclaration fdv = foverrides[i];
+                auto fdv = foverrides[i];
                 if (fdv.hasNestedFrameRefs())
                     return true;
             }
@@ -3558,7 +3558,7 @@ public:
          */
         for (size_t i = 0; i < foverrides.dim; i++)
         {
-            FuncDeclaration fdv = foverrides[i];
+            auto fdv = foverrides[i];
             /* The semantic pass on the contracts of the overridden functions must
              * be completed before code generation occurs (bug 3602).
              */
@@ -3610,7 +3610,7 @@ public:
          */
         for (size_t i = 0; i < foverrides.dim; i++)
         {
-            FuncDeclaration fdv = foverrides[i];
+            auto fdv = foverrides[i];
             /* The semantic pass on the contracts of the overridden functions must
              * be completed before code generation occurs (bug 3602 and 5230).
              */
@@ -3748,7 +3748,7 @@ extern (C++) Expression addInvariant(Loc loc, Scope* sc, AggregateDeclaration ad
     if (direct)
     {
         // Call invariant directly only if it exists
-        FuncDeclaration inv = ad.inv;
+        auto inv = ad.inv;
         ClassDeclaration cd = ad.isClassDeclaration();
         while (!inv && cd)
         {
@@ -3839,7 +3839,7 @@ extern (C++) int overloadApply(Dsymbol fstart, void* param, int function(void*, 
             }
             else
             {
-                FuncDeclaration fd = fa.toAliasFunc();
+                auto fd = fa.toAliasFunc();
                 if (!fd)
                 {
                     d.error("is aliased to a function");
@@ -3866,7 +3866,7 @@ extern (C++) int overloadApply(Dsymbol fstart, void* param, int function(void*, 
         }
         else
         {
-            FuncDeclaration fd = d.isFuncDeclaration();
+            auto fd = d.isFuncDeclaration();
             if (!fd)
             {
                 d.error("is aliased to a function");
@@ -3965,7 +3965,7 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s, Obje
         if (flags & 1)
             return null; // no match
     }
-    FuncDeclaration fd = s.isFuncDeclaration();
+    auto fd = s.isFuncDeclaration();
     TemplateDeclaration td = s.isTemplateDeclaration();
     if (td && td.funcroot)
         s = fd = td.funcroot;
@@ -4208,7 +4208,7 @@ extern (C++) void markAsNeedingClosure(Dsymbol f, FuncDeclaration outerFunc)
 {
     for (Dsymbol sx = f; sx && sx != outerFunc; sx = sx.parent)
     {
-        FuncDeclaration fy = sx.isFuncDeclaration();
+        auto fy = sx.isFuncDeclaration();
         if (fy && fy.closureVars.dim)
         {
             /* fy needs a closure if it has closureVars[],
@@ -4242,7 +4242,7 @@ extern (C++) bool checkEscapingSiblings(FuncDeclaration f, FuncDeclaration outer
     bool bAnyClosures = false;
     for (size_t i = 0; i < f.siblingCallers.dim; ++i)
     {
-        FuncDeclaration g = f.siblingCallers[i];
+        auto g = f.siblingCallers[i];
         if (g.isThis() || g.tookAddressOf)
         {
             markAsNeedingClosure(g, outerFunc);

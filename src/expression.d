@@ -173,10 +173,10 @@ extern (C++) FuncDeclaration hasThis(Scope* sc)
     Dsymbol p = sc.parent;
     while (p && p.isTemplateMixin())
         p = p.parent;
-    FuncDeclaration fdthis = p ? p.isFuncDeclaration() : null;
+    auto fdthis = p ? p.isFuncDeclaration() : null;
     //printf("fdthis = %p, '%s'\n", fdthis, fdthis ? fdthis->toChars() : "");
     // Go upwards until we find the enclosing member function
-    FuncDeclaration fd = fdthis;
+    auto fd = fdthis;
     while (1)
     {
         if (!fd)
@@ -281,7 +281,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
             a.push(e2);
             for (size_t i = 0; i < os.a.dim; i++)
             {
-                FuncDeclaration f = resolveFuncCall(loc, sc, os.a[i], tiargs, tthis, &a, 1);
+                auto f = resolveFuncCall(loc, sc, os.a[i], tiargs, tthis, &a, 1);
                 if (f)
                 {
                     if (f.errors)
@@ -302,7 +302,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
         {
             for (size_t i = 0; i < os.a.dim; i++)
             {
-                FuncDeclaration f = resolveFuncCall(loc, sc, os.a[i], tiargs, tthis, null, 1);
+                auto f = resolveFuncCall(loc, sc, os.a[i], tiargs, tthis, null, 1);
                 if (f)
                 {
                     if (f.errors)
@@ -402,7 +402,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
             e2 = resolveProperties(sc, e2);
             Expressions a;
             a.push(e2);
-            FuncDeclaration fd = resolveFuncCall(loc, sc, s, tiargs, tthis, &a, 1);
+            auto fd = resolveFuncCall(loc, sc, s, tiargs, tthis, &a, 1);
             if (fd && fd.type)
             {
                 if (fd.errors)
@@ -416,7 +416,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
             }
         }
         {
-            FuncDeclaration fd = resolveFuncCall(loc, sc, s, tiargs, tthis, null, 1);
+            auto fd = resolveFuncCall(loc, sc, s, tiargs, tthis, null, 1);
             if (fd && fd.type)
             {
                 if (fd.errors)
@@ -2182,7 +2182,7 @@ extern (C++) Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
             fargs.push(ie.upr);
             uint xerrors = global.startGagging();
             sc = sc.push();
-            FuncDeclaration fslice = resolveFuncCall(ae.loc, sc, slice, tiargs, ae.e1.type, fargs, 1);
+            auto fslice = resolveFuncCall(ae.loc, sc, slice, tiargs, ae.e1.type, fargs, 1);
             sc = sc.pop();
             global.endGagging(xerrors);
             if (!fslice)
@@ -2692,8 +2692,8 @@ public:
          * i() can call h() and g() but not f()
          */
         // Find the closest pure parent of the calling function
-        FuncDeclaration outerfunc = sc.func;
-        FuncDeclaration calledparent = f;
+        auto outerfunc = sc.func;
+        auto calledparent = f;
         if (outerfunc.isInstantiated())
         {
             // The attributes of outerfunc should be inferred from the call of f.
@@ -2740,7 +2740,7 @@ public:
         // OR, they must have the same pure parent.
         if (!f.isPure() && calledparent != outerfunc)
         {
-            FuncDeclaration ff = outerfunc;
+            auto ff = outerfunc;
             if (sc.flags & SCOPEcompile ? ff.isPureBypassingInference() >= PUREweak : ff.setImpure())
             {
                 error("pure function '%s' cannot call impure function '%s'", ff.toPrettyChars(), f.toPrettyChars());
@@ -2798,7 +2798,7 @@ public:
              */
             for (Dsymbol s = sc.func; s; s = s.toParent2())
             {
-                FuncDeclaration ff = s.isFuncDeclaration();
+                auto ff = s.isFuncDeclaration();
                 if (!ff)
                     break;
                 if (sc.flags & SCOPEcompile ? ff.isPureBypassingInference() >= PUREweak : ff.setImpure())
@@ -2850,7 +2850,7 @@ public:
                         continue;
                     break;
                 }
-                FuncDeclaration ff = s.isFuncDeclaration();
+                auto ff = s.isFuncDeclaration();
                 if (!ff)
                     break;
                 if (ff.isNested())
@@ -3810,7 +3810,7 @@ public:
                 error("forward reference to %s'%s'", trailMsg, toChars());
                 return new ErrorExp();
             }
-            FuncDeclaration fd = s.isFuncDeclaration();
+            auto fd = s.isFuncDeclaration();
             fd.type = f.type;
             return new VarExp(loc, fd, hasOverloads);
         }
@@ -3870,7 +3870,7 @@ public:
         if (auto td = s.isTemplateDeclaration())
         {
             Dsymbol p = td.toParent2();
-            FuncDeclaration fdthis = hasThis(sc);
+            auto fdthis = hasThis(sc);
             AggregateDeclaration ad = p ? p.isAggregateDeclaration() : null;
             if (fdthis && ad && isAggregate(fdthis.vthis.type) == ad && (td._scope.stc & STCstatic) == 0)
             {
@@ -3922,7 +3922,7 @@ public:
         }
         if (type)
             return this;
-        FuncDeclaration fd = hasThis(sc); // fd is the uplevel function with the 'this' variable
+        auto fd = hasThis(sc); // fd is the uplevel function with the 'this' variable
         /* Special case for typeof(this) and typeof(super) since both
          * should work even if they are not inside a non-static member function
          */
@@ -4016,7 +4016,7 @@ public:
         }
         if (type)
             return this;
-        FuncDeclaration fd = hasThis(sc);
+        auto fd = hasThis(sc);
         ClassDeclaration cd;
         Dsymbol s;
         /* Special case for typeof(this) and typeof(super) since both
@@ -5182,7 +5182,7 @@ public:
                 if (auto td = ti.tempdecl.isTemplateDeclaration())
                 {
                     Dsymbol p = td.toParent2();
-                    FuncDeclaration fdthis = hasThis(sc);
+                    auto fdthis = hasThis(sc);
                     AggregateDeclaration ad = p ? p.isAggregateDeclaration() : null;
                     if (fdthis && ad && isAggregate(fdthis.vthis.type) == ad && (td._scope.stc & STCstatic) == 0)
                     {
@@ -5192,7 +5192,7 @@ public:
                 }
                 else if (auto os = ti.tempdecl.isOverloadSet())
                 {
-                    FuncDeclaration fdthis = hasThis(sc);
+                    auto fdthis = hasThis(sc);
                     AggregateDeclaration ad = os.parent.isAggregateDeclaration();
                     if (fdthis && ad && isAggregate(fdthis.vthis.type) == ad)
                     {
@@ -5412,7 +5412,7 @@ public:
                 error("cannot create instance of abstract class %s", cd.toChars());
                 for (size_t i = 0; i < cd.vtbl.dim; i++)
                 {
-                    FuncDeclaration fd = cd.vtbl[i].isFuncDeclaration();
+                    auto fd = cd.vtbl[i].isFuncDeclaration();
                     if (fd && fd.isAbstract())
                         errorSupplemental(loc, "function '%s' is not implemented", fd.toFullSignature());
                 }
@@ -5426,7 +5426,7 @@ public:
                  */
                 Dsymbol s = cd.toParent2();
                 ClassDeclaration cdn = s.isClassDeclaration();
-                FuncDeclaration fdn = s.isFuncDeclaration();
+                auto fdn = s.isFuncDeclaration();
                 //printf("cd isNested, cdn = %s\n", cdn ? cdn->toChars() : "null");
                 if (cdn)
                 {
@@ -5474,7 +5474,7 @@ public:
                     {
                         if (fdn == sp)
                             break;
-                        FuncDeclaration fsp = sp ? sp.isFuncDeclaration() : null;
+                        auto fsp = sp ? sp.isFuncDeclaration() : null;
                         if (!sp || (fsp && fsp.isStatic()))
                         {
                             error("outer function context of %s is needed to 'new' nested class %s", fdn.toPrettyChars(), cd.toPrettyChars());
@@ -5501,7 +5501,7 @@ public:
                 if (!newargs)
                     newargs = new Expressions();
                 newargs.shift(e);
-                FuncDeclaration f = resolveFuncCall(loc, sc, cd.aggNew, null, tb, newargs);
+                auto f = resolveFuncCall(loc, sc, cd.aggNew, null, tb, newargs);
                 if (!f || f.errors)
                     goto Lerr;
                 checkDeprecated(sc, f);
@@ -5526,7 +5526,7 @@ public:
             }
             if (cd.ctor)
             {
-                FuncDeclaration f = resolveFuncCall(loc, sc, cd.ctor, null, tb, arguments, 0);
+                auto f = resolveFuncCall(loc, sc, cd.ctor, null, tb, arguments, 0);
                 if (!f || f.errors)
                     goto Lerr;
                 checkDeprecated(sc, f);
@@ -5570,7 +5570,7 @@ public:
                 if (!newargs)
                     newargs = new Expressions();
                 newargs.shift(e);
-                FuncDeclaration f = resolveFuncCall(loc, sc, sd.aggNew, null, tb, newargs);
+                auto f = resolveFuncCall(loc, sc, sd.aggNew, null, tb, newargs);
                 if (!f || f.errors)
                     goto Lerr;
                 checkDeprecated(sc, f);
@@ -5595,7 +5595,7 @@ public:
             }
             if (sd.ctor && nargs)
             {
-                FuncDeclaration f = resolveFuncCall(loc, sc, sd.ctor, null, tb, arguments, 0);
+                auto f = resolveFuncCall(loc, sc, sd.ctor, null, tb, arguments, 0);
                 if (!f || f.errors)
                     goto Lerr;
                 checkDeprecated(sc, f);
@@ -7610,7 +7610,7 @@ public:
             return msg;
         if (e1.isBool(false))
         {
-            FuncDeclaration fd = sc.parent.isFuncDeclaration();
+            auto fd = sc.parent.isFuncDeclaration();
             if (fd)
                 fd.hasReturnExp |= 4;
             sc.callSuper |= CSXhalt;
@@ -8540,7 +8540,7 @@ public:
         e1 = e1.semantic(sc);
         type = new TypeDelegate(func.type);
         type = type.semantic(loc, sc);
-        FuncDeclaration f = func.toAliasFunc();
+        auto f = func.toAliasFunc();
         AggregateDeclaration ad = f.toParent().isAggregateDeclaration();
         if (f.needThis())
             e1 = getRightThis(loc, sc, ad, e1, f);
@@ -10009,8 +10009,8 @@ public:
             {
                 TypeStruct ts = cast(TypeStruct)tb;
                 StructDeclaration sd = ts.sym;
-                FuncDeclaration f = sd.aggDelete;
-                FuncDeclaration fd = sd.dtor;
+                auto f = sd.aggDelete;
+                auto fd = sd.dtor;
                 if (!f)
                     break;
                 /* Construct:

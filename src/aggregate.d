@@ -436,7 +436,7 @@ public:
         if (!s)
             return;
         AggregateDeclaration ad = s.isAggregateDeclaration();
-        FuncDeclaration fd = s.isFuncDeclaration();
+        auto fd = s.isFuncDeclaration();
         Type t = null;
         if (fd)
         {
