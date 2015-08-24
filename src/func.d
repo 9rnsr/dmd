@@ -593,7 +593,7 @@ public:
         if (ad)
         {
             storage_class |= ad.storage_class & (STC_TYPECTOR | STCsynchronized);
-            if (StructDeclaration sd = ad.isStructDeclaration())
+            if (auto sd = ad.isStructDeclaration())
                 sd.makeNested();
         }
         if (sc.func)
@@ -661,7 +661,7 @@ public:
                     FuncDeclaration fd = null;
                     for (Dsymbol p = toParent2(); p; p = p.toParent2())
                     {
-                        if (AggregateDeclaration adx = p.isAggregateDeclaration())
+                        if (auto adx = p.isAggregateDeclaration())
                         {
                             if (adx.isNested())
                                 continue;
@@ -847,7 +847,7 @@ public:
             if (fbody && isVirtual())
                 error("function body only allowed in final functions in interface %s", id.toChars());
         }
-        if (UnionDeclaration ud = parent.isUnionDeclaration())
+        if (auto ud = parent.isUnionDeclaration())
         {
             if (isPostBlitDeclaration() || isDtorDeclaration() || isInvariantDeclaration())
                 error("destructors, postblits and invariants are not allowed in union %s", ud.toChars());
@@ -856,14 +856,14 @@ public:
          */
         if (!fbody && (fensure || frequire) && !(id && isVirtual()))
             error("in and out contracts require function body");
-        if (StructDeclaration sd = parent.isStructDeclaration())
+        if (auto sd = parent.isStructDeclaration())
         {
             if (isCtorDeclaration())
             {
                 goto Ldone;
             }
         }
-        if (ClassDeclaration cd = parent.isClassDeclaration())
+        if (auto cd = parent.isClassDeclaration())
         {
             if (isCtorDeclaration())
             {
@@ -1323,7 +1323,7 @@ public:
         semanticRun = PASSsemantic2;
         objc_FuncDeclaration_semantic_setSelector(this, sc);
         objc_FuncDeclaration_semantic_validateSelector(this);
-        if (ClassDeclaration cd = parent.isClassDeclaration())
+        if (auto cd = parent.isClassDeclaration())
         {
             objc_FuncDeclaration_semantic_checkLinkage(this);
         }
@@ -2588,7 +2588,7 @@ public:
 
             extern (C++) static int fp(void* param, Dsymbol s)
             {
-                if (FuncDeclaration fd = s.isFuncDeclaration())
+                if (auto fd = s.isFuncDeclaration())
                     return (cast(ParamMod*)param).fp(fd);
                 return 0;
             }
@@ -3172,7 +3172,7 @@ public:
             if (traverseIndirections(tprmi, t))
                 return false;
         }
-        if (AggregateDeclaration ad = isCtorDeclaration() ? null : isThis())
+        if (auto ad = isCtorDeclaration() ? null : isThis())
         {
             Type tthis = ad.getType().addMod(tf.mod);
             //printf("\ttthis = %s\n", tthis->toChars());
@@ -3348,7 +3348,7 @@ public:
                 // Uplevel call
                 // BUG: may need to walk up outer scopes like Declaration::checkNestedReference() does
                 // function literal has reference to enclosing scope is delegate
-                if (FuncLiteralDeclaration fld = fdthis.isFuncLiteralDeclaration())
+                if (auto fld = fdthis.isFuncLiteralDeclaration())
                     fld.tok = TOKdelegate;
             }
         }
@@ -3816,25 +3816,25 @@ extern (C++) int overloadApply(Dsymbol fstart, void* param, int function(void*, 
     Dsymbol next;
     for (d = fstart; d; d = next)
     {
-        if (OverDeclaration od = d.isOverDeclaration())
+        if (auto od = d.isOverDeclaration())
         {
             if (od.hasOverloads)
             {
-                if (int r = overloadApply(od.aliassym, param, fp))
+                if (auto r = overloadApply(od.aliassym, param, fp))
                     return r;
             }
             else
             {
-                if (int r = (*fp)(param, od.aliassym))
+                if (auto r = (*fp)(param, od.aliassym))
                     return r;
             }
             next = od.overnext;
         }
-        else if (FuncAliasDeclaration fa = d.isFuncAliasDeclaration())
+        else if (auto fa = d.isFuncAliasDeclaration())
         {
             if (fa.hasOverloads)
             {
-                if (int r = overloadApply(fa.funcalias, param, fp))
+                if (auto r = overloadApply(fa.funcalias, param, fp))
                     return r;
             }
             else
@@ -3845,12 +3845,12 @@ extern (C++) int overloadApply(Dsymbol fstart, void* param, int function(void*, 
                     d.error("is aliased to a function");
                     break;
                 }
-                if (int r = (*fp)(param, fd))
+                if (auto r = (*fp)(param, fd))
                     return r;
             }
             next = fa.overnext;
         }
-        else if (AliasDeclaration ad = d.isAliasDeclaration())
+        else if (auto ad = d.isAliasDeclaration())
         {
             next = ad.toAlias();
             if (next == ad)
@@ -3858,9 +3858,9 @@ extern (C++) int overloadApply(Dsymbol fstart, void* param, int function(void*, 
             if (next == fstart)
                 break;
         }
-        else if (TemplateDeclaration td = d.isTemplateDeclaration())
+        else if (auto td = d.isTemplateDeclaration())
         {
-            if (int r = (*fp)(param, td))
+            if (auto r = (*fp)(param, td))
                 return r;
             next = td.overnext;
         }
@@ -3873,7 +3873,7 @@ extern (C++) int overloadApply(Dsymbol fstart, void* param, int function(void*, 
                 break;
                 // BUG: should print error message?
             }
-            if (int r = (*fp)(param, fd))
+            if (auto r = (*fp)(param, fd))
                 return r;
             next = fd.overnext;
         }
@@ -4281,7 +4281,7 @@ public:
         this.hasOverloads = hasOverloads;
         if (hasOverloads)
         {
-            if (FuncAliasDeclaration fad = funcalias.isFuncAliasDeclaration())
+            if (auto fad = funcalias.isFuncAliasDeclaration())
                 this.hasOverloads = fad.hasOverloads;
         }
         else

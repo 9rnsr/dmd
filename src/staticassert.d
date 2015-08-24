@@ -87,7 +87,7 @@ public:
                 msg = resolveProperties(sc, msg);
                 sc = sc.endCTFE();
                 msg = msg.ctfeInterpret();
-                if (StringExp se = msg.toStringExp())
+                if (auto se = msg.toStringExp())
                 {
                     // same with pragma(msg)
                     se = se.toUTF8(sc);

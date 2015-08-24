@@ -940,7 +940,7 @@ public:
                 if (ident == Id.mangle)
                 {
                     assert(args && args.dim == 1);
-                    if (StringExp se = (*args)[0].toStringExp())
+                    if (auto se = (*args)[0].toStringExp())
                     {
                         char* name = cast(char*)mem.xmalloc(se.len + 1);
                         memcpy(name, se.string, se.len);

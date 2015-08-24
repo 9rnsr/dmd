@@ -219,7 +219,7 @@ public:
         {
             semantic(null);
             // Determine the instance size of base class first.
-            if (ClassDeclaration cd = isClassDeclaration())
+            if (auto cd = isClassDeclaration())
                 cd.baseClass.size(loc);
         }
         if (sizeok != SIZEOKdone && members)
@@ -452,7 +452,7 @@ public:
             }
             else if (isStructDeclaration())
             {
-                if (TemplateInstance ti = ad.parent.isTemplateInstance())
+                if (auto ti = ad.parent.isTemplateInstance())
                 {
                     enclosing = ti.enclosing;
                 }

@@ -100,7 +100,7 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
                      */
                     e.error("forward reference to type %s", t.toChars());
                 }
-                else if (Type tx = reliesOnTident(t))
+                else if (auto tx = reliesOnTident(t))
                     e.error("forward reference to type %s", tx.toChars());
                 //printf("type %p ty %d deco %p\n", type, type->ty, type->deco);
                 //type = type->semantic(loc, sc);
@@ -935,7 +935,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             t = t.toBasetype();
             if (e.type.ty == Tpointer && e.type.nextOf().ty == Tfunction && (t.ty == Tpointer || t.ty == Tdelegate) && t.nextOf().ty == Tfunction)
             {
-                if (FuncDeclaration f = e.var.isFuncDeclaration())
+                if (auto f = e.var.isFuncDeclaration())
                 {
                     f = f.overloadExactMatch(t.nextOf());
                     if (f)
@@ -1057,7 +1057,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
              */
             Type tb = t.toBasetype();
             MOD mod = tb.mod;
-            if (Type ti = getIndirection(t))
+            if (auto ti = getIndirection(t))
                 mod = ti.mod;
             static if (LOG)
             {
@@ -1190,7 +1190,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                                     if (_init.isVoidInitializer())
                                     {
                                     }
-                                    else if (ExpInitializer ei = _init.isExpInitializer())
+                                    else if (auto ei = _init.isExpInitializer())
                                     {
                                         Type tb = v.type.toBasetype();
                                         if (implicitMod(ei.exp, tb, mod) == MATCHnomatch)
@@ -1373,7 +1373,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             // Arithmetic types (== valueable basic types)
             const(bool) tob_isA = (tob.isintegral() || tob.isfloating());
             const(bool) t1b_isA = (t1b.isintegral() || t1b.isfloating());
-            if (AggregateDeclaration t1ad = isAggregate(t1b))
+            if (auto t1ad = isAggregate(t1b))
             {
                 AggregateDeclaration toad = isAggregate(tob);
                 if (t1ad != toad && t1ad.aliasthis)

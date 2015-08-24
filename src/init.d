@@ -268,7 +268,7 @@ public:
             bool errors = false;
             for (size_t fieldi = 0, i = 0; i < field.dim; i++)
             {
-                if (Identifier id = field[i])
+                if (auto id = field[i])
                 {
                     Dsymbol s = sd.search(loc, id);
                     if (!s)

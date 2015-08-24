@@ -358,7 +358,7 @@ public:
     final Module getModule()
     {
         //printf("Dsymbol::getModule()\n");
-        if (TemplateInstance ti = isInstantiated())
+        if (auto ti = isInstantiated())
             return ti.tempdecl.getModule();
         Dsymbol s = this;
         while (s)
@@ -378,7 +378,7 @@ public:
     final Module getAccessModule()
     {
         //printf("Dsymbol::getAccessModule()\n");
-        if (TemplateInstance ti = isInstantiated())
+        if (auto ti = isInstantiated())
             return ti.tempdecl.getAccessModule();
         Dsymbol s = this;
         while (s)
@@ -647,7 +647,7 @@ public:
         //printf("Dsymbol::searchX(this=%p,%s, ident='%s')\n", this, toChars(), ident->toChars());
         Dsymbol s = toAlias();
         Dsymbol sm;
-        if (Declaration d = s.isDeclaration())
+        if (auto d = s.isDeclaration())
         {
             if (d.inuse)
             {
@@ -946,11 +946,11 @@ public:
         Dsymbol s = parent;
         for (; s; s = s.toParent())
         {
-            if (TemplateInstance ti = s.isTemplateInstance())
+            if (auto ti = s.isTemplateInstance())
             {
                 return false;
             }
-            if (Module m = s.isModule())
+            if (auto m = s.isModule())
             {
                 if (!m.isRoot())
                     return true;
@@ -1375,7 +1375,7 @@ public:
             os = new OverloadSet(s.ident);
             os.parent = this;
         }
-        if (OverloadSet os2 = s.isOverloadSet())
+        if (auto os2 = s.isOverloadSet())
         {
             // Merge the cross-module overload set 'os2' into 'os'
             if (os.a.dim == 0)
@@ -1557,9 +1557,9 @@ public:
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
-            if (AttribDeclaration a = s.isAttribDeclaration())
+            if (auto a = s.isAttribDeclaration())
                 result = _foreach(sc, a.include(sc, null), dg, ctx, &n);
-            else if (TemplateMixin tm = s.isTemplateMixin())
+            else if (auto tm = s.isTemplateMixin())
                 result = _foreach(sc, tm.members, dg, ctx, &n);
             else if (s.isTemplateInstance())
             {
@@ -1787,7 +1787,7 @@ public:
                     s = s.toAlias();
                     Expression e = null;
                     // Check for multi-dimensional opDollar(dim) template.
-                    if (TemplateDeclaration td = s.isTemplateDeclaration())
+                    if (auto td = s.isTemplateDeclaration())
                     {
                         dinteger_t dim = 0;
                         if (exp.op == TOKarray)

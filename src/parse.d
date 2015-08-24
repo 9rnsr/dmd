@@ -2245,7 +2245,7 @@ public:
             if (stc & STCstatic)
                 error(loc, "constructor cannot be static");
         }
-        else if (StorageClass ss = stc & (STCshared | STCstatic)) // this()
+        else if (auto ss = stc & (STCshared | STCstatic)) // this()
         {
             if (ss == STCstatic)
                 error(loc, "use 'static this()' to declare a static constructor");
@@ -2290,7 +2290,7 @@ public:
         check(TOKlparen);
         check(TOKrparen);
         stc = parsePostfix(stc, &udas);
-        if (StorageClass ss = stc & (STCshared | STCstatic))
+        if (auto ss = stc & (STCshared | STCstatic))
         {
             if (ss == STCstatic)
                 error(loc, "use 'static ~this()' to declare a static destructor");
@@ -2329,7 +2329,7 @@ public:
             error(loc, "use 'shared static this()' to declare a shared static constructor");
         else if (stc & STCstatic)
             appendStorageClass(stc, STCstatic); // complaint for the redundancy
-        else if (StorageClass modStc = stc & STC_TYPECTOR)
+        else if (auto modStc = stc & STC_TYPECTOR)
         {
             OutBuffer buf;
             stcToBuffer(&buf, modStc);
@@ -2363,7 +2363,7 @@ public:
             error(loc, "use 'shared static ~this()' to declare a shared static destructor");
         else if (stc & STCstatic)
             appendStorageClass(stc, STCstatic); // complaint for the redundancy
-        else if (StorageClass modStc = stc & STC_TYPECTOR)
+        else if (auto modStc = stc & STC_TYPECTOR)
         {
             OutBuffer buf;
             stcToBuffer(&buf, modStc);
@@ -2399,9 +2399,9 @@ public:
         check(TOKlparen);
         check(TOKrparen);
         stc = parsePostfix(stc & ~STC_TYPECTOR, null) | stc;
-        if (StorageClass ss = stc & (STCshared | STCstatic))
+        if (auto ss = stc & (STCshared | STCstatic))
             appendStorageClass(stc, ss); // complaint for the redundancy
-        else if (StorageClass modStc = stc & STC_TYPECTOR)
+        else if (auto modStc = stc & STC_TYPECTOR)
         {
             OutBuffer buf;
             stcToBuffer(&buf, modStc);
@@ -2432,9 +2432,9 @@ public:
         check(TOKlparen);
         check(TOKrparen);
         stc = parsePostfix(stc & ~STC_TYPECTOR, &udas) | stc;
-        if (StorageClass ss = stc & (STCshared | STCstatic))
+        if (auto ss = stc & (STCshared | STCstatic))
             appendStorageClass(stc, ss); // complaint for the redundancy
-        else if (StorageClass modStc = stc & STC_TYPECTOR)
+        else if (auto modStc = stc & STC_TYPECTOR)
         {
             OutBuffer buf;
             stcToBuffer(&buf, modStc);

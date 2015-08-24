@@ -325,11 +325,11 @@ extern (C++) static Dsymbol getEponymousMember(TemplateDeclaration td)
 {
     if (!td.onemember)
         return null;
-    if (AggregateDeclaration ad = td.onemember.isAggregateDeclaration())
+    if (auto ad = td.onemember.isAggregateDeclaration())
         return ad;
-    if (FuncDeclaration fd = td.onemember.isFuncDeclaration())
+    if (auto fd = td.onemember.isFuncDeclaration())
         return fd;
-    if (VarDeclaration vd = td.onemember.isVarDeclaration())
+    if (auto vd = td.onemember.isVarDeclaration())
         return td.constraint ? null : vd;
     return null;
 }
@@ -836,7 +836,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                 buf.writestring(ddoc_decl_dd_s);
                 {
                     dc.writeSections(sc, &dc.a, buf);
-                    if (ScopeDsymbol sds = dc.a[0].isScopeDsymbol())
+                    if (auto sds = dc.a[0].isScopeDsymbol())
                         emitMemberComments(sds, buf, sc);
                 }
                 buf.writestring(ddoc_decl_dd_e);
@@ -855,7 +855,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
             //printf("Declaration::emitComment(%p '%s'), comment = '%s'\n", d, d->toChars(), d->comment);
             //printf("type = %p\n", d->type);
             const(char)* com = d.comment;
-            if (TemplateDeclaration td = getEponymousParent(d))
+            if (auto td = getEponymousParent(d))
             {
                 if (isDitto(td.comment))
                     com = td.comment;
@@ -880,7 +880,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
         {
             //printf("AggregateDeclaration::emitComment() '%s'\n", ad->toChars());
             const(char)* com = ad.comment;
-            if (TemplateDeclaration td = getEponymousParent(ad))
+            if (auto td = getEponymousParent(ad))
             {
                 if (isDitto(td.comment))
                     com = td.comment;
@@ -906,7 +906,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                 return;
             if (!td.comment)
                 return;
-            if (Dsymbol ss = getEponymousMember(td))
+            if (auto ss = getEponymousMember(td))
             {
                 ss.accept(this);
                 return;
@@ -1034,7 +1034,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
         {
             if (s.isDeprecated())
                 buf.writestring("deprecated ");
-            if (Declaration d = s.isDeclaration())
+            if (auto d = s.isDeclaration())
             {
                 emitProtection(buf, d.protection);
                 if (d.isStatic())
@@ -1115,15 +1115,15 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
                 buf.writestring("deprecated ");
             emitProtection(buf, ad.protection);
             buf.printf("alias %s = ", ad.toChars());
-            if (Dsymbol s = ad.aliassym) // ident alias
+            if (auto s = ad.aliassym) // ident alias
             {
                 prettyPrintDsymbol(s, ad.parent);
             }
-            else if (Type type = ad.getType()) // type alias
+            else if (auto type = ad.getType()) // type alias
             {
                 if (type.ty == Tclass || type.ty == Tstruct || type.ty == Tenum)
                 {
-                    if (Dsymbol s = type.toDsymbol(null)) // elaborate type
+                    if (auto s = type.toDsymbol(null)) // elaborate type
                         prettyPrintDsymbol(s, ad.parent);
                     else
                         buf.writestring(type.toChars());
@@ -1203,7 +1203,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
             {
                 emitProtection(buf, sd.protection);
             }
-            if (TemplateDeclaration td = getEponymousParent(sd))
+            if (auto td = getEponymousParent(sd))
             {
                 toDocBuffer(td, buf, sc);
             }
@@ -1223,7 +1223,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
             {
                 emitProtection(buf, cd.protection);
             }
-            if (TemplateDeclaration td = getEponymousParent(cd))
+            if (auto td = getEponymousParent(cd))
             {
                 toDocBuffer(td, buf, sc);
             }
@@ -1614,7 +1614,7 @@ struct DocComment
         assert(a.dim);
         //printf("DocComment::writeSections()\n");
         Loc loc = (*a)[0].loc;
-        if (Module m = (*a)[0].isModule())
+        if (auto m = (*a)[0].isModule())
         {
             if (m.md)
                 loc = m.md.loc;
@@ -1643,7 +1643,7 @@ struct DocComment
         for (size_t i = 0; i < a.dim; i++)
         {
             Dsymbol s = (*a)[i];
-            if (Dsymbol td = getEponymousParent(s))
+            if (auto td = getEponymousParent(s))
                 s = td;
             for (UnitTestDeclaration utd = s.ddocUnittest; utd; utd = utd.ddocUnittest)
             {

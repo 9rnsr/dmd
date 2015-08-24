@@ -299,7 +299,7 @@ extern (C++) bool checkEscapeRef(Scope* sc, Expression e, bool gag)
                 if (v.storage_class & STCref && v.storage_class & (STCforeach | STCtemp) && v._init)
                 {
                     // (ref v = ex; ex)
-                    if (ExpInitializer ez = v._init.isExpInitializer())
+                    if (auto ez = v._init.isExpInitializer())
                     {
                         assert(ez.exp && ez.exp.op == TOKconstruct);
                         Expression ex = (cast(ConstructExp)ez.exp).e2;

@@ -1217,7 +1217,7 @@ public:
         if (exp && exp.op == TOKdeclaration)
         {
             Dsymbol d = (cast(DeclarationExp)exp).declaration;
-            if (TemplateMixin tm = d.isTemplateMixin())
+            if (auto tm = d.isTemplateMixin())
             {
                 Expression e = exp.semantic(sc);
                 if (e.op == TOKerror || tm.errors)
@@ -1934,7 +1934,7 @@ public:
             s = s.semantic(sc);
             if (!s.isErrorStatement())
             {
-                if (LabelStatement ls = checkLabeledLoop(sc, this))
+                if (auto ls = checkLabeledLoop(sc, this))
                     ls.gotoTarget = this;
                 relatedLabeled = s;
             }
@@ -2086,7 +2086,7 @@ public:
             size_t foreachParamCount = 0;
             if (sapplyOld)
             {
-                if (FuncDeclaration fd = sapplyOld.isFuncDeclaration())
+                if (auto fd = sapplyOld.isFuncDeclaration())
                 {
                     int fvarargs; // ignored (opApply shouldn't take variadics)
                     Parameters* fparameters = fd.getParameters(&fvarargs);
@@ -2270,7 +2270,7 @@ public:
                 statements.push(s);
             }
             s = new UnrolledLoopStatement(loc, statements);
-            if (LabelStatement ls = checkLabeledLoop(sc, this))
+            if (auto ls = checkLabeledLoop(sc, this))
                 ls.gotoTarget = s;
             if (te && te.e0)
                 s = new CompoundStatement(loc, new ExpStatement(te.e0.loc, te.e0), s);
@@ -2465,7 +2465,7 @@ public:
                 }
                 _body = new CompoundStatement(loc, ds, _body);
                 s = new ForStatement(loc, forinit, cond, increment, _body, endloc);
-                if (LabelStatement ls = checkLabeledLoop(sc, this))
+                if (auto ls = checkLabeledLoop(sc, this))
                     ls.gotoTarget = s;
                 s = s.semantic(sc);
                 break;
@@ -2561,7 +2561,7 @@ public:
                     vd.storage_class |= STCtemp | STCctfe | STCref | STCforeach;
                     makeargs = new ExpStatement(loc, vd);
                     Declaration d = sfront.isDeclaration();
-                    if (FuncDeclaration f = d.isFuncDeclaration())
+                    if (auto f = d.isFuncDeclaration())
                     {
                         if (!f.functionSemantic())
                             goto Lrangeerr;
@@ -2609,7 +2609,7 @@ public:
                 }
                 forbody = new CompoundStatement(loc, makeargs, this._body);
                 s = new ForStatement(loc, _init, condition, increment, forbody, endloc);
-                if (LabelStatement ls = checkLabeledLoop(sc, this))
+                if (auto ls = checkLabeledLoop(sc, this))
                     ls.gotoTarget = s;
                 version (none)
                 {
@@ -3176,7 +3176,7 @@ public:
             }
         }
         auto s = new ForStatement(loc, forinit, cond, increment, _body, endloc);
-        if (LabelStatement ls = checkLabeledLoop(sc, this))
+        if (auto ls = checkLabeledLoop(sc, this))
             ls.gotoTarget = s;
         return s.semantic(sc);
     }
@@ -3260,7 +3260,7 @@ public:
         }
         condition = checkGC(sc, condition);
         // Convert to boolean after declaring prm so this works:
-        //  if (S prm = S()) {}
+        //  if (auto prm = S()) {}
         // where S is a struct that defines opCast!bool.
         condition = condition.toBoolean(sc);
         // If we can short-circuit evaluate the if statement, don't do the
@@ -3808,7 +3808,7 @@ public:
             }
             else
                 exp = exp.ctfeInterpret();
-            if (StringExp se = exp.toStringExp())
+            if (auto se = exp.toStringExp())
                 exp = se;
             else if (exp.op != TOKint64 && exp.op != TOKerror)
             {

@@ -220,7 +220,7 @@ extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
     for (Dsymbol s = sc.parent; s; s = s.toParent2())
     {
         //printf("\ts = %s %s, toParent2() = %p\n", s->kind(), s->toChars(), s->toParent2());
-        if (AggregateDeclaration ad2 = s.isAggregateDeclaration())
+        if (auto ad2 = s.isAggregateDeclaration())
         {
             //printf("\t    ad2 = %s\n", ad2->toChars());
             if (ad2 == ad)
@@ -230,7 +230,7 @@ extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
             else
                 return true;
         }
-        if (FuncDeclaration f = s.isFuncDeclaration())
+        if (auto f = s.isFuncDeclaration())
         {
             if (f.isFuncLiteralDeclaration() && f.isNested())
                 continue;
@@ -434,7 +434,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
                 }
             }
         }
-        if (FuncDeclaration fd = s.isFuncDeclaration())
+        if (auto fd = s.isFuncDeclaration())
         {
             // Keep better diagnostic message for invalid property usage of functions
             assert(fd.type.ty == Tfunction);
@@ -668,7 +668,7 @@ extern (C++) Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
             if (s.isOverloadSet())
                 break;
             // selective/renamed imports also be picked up
-            if (AliasDeclaration ad = s.isAliasDeclaration())
+            if (auto ad = s.isAliasDeclaration())
             {
                 if (ad._import)
                     break;
@@ -772,7 +772,7 @@ extern (C++) Expression resolveUFCS(Scope* sc, CallExp ce)
         }
         else
         {
-            if (Expression ey = die.semanticY(sc, 1))
+            if (auto ey = die.semanticY(sc, 1))
             {
                 if (ey.op == TOKerror)
                     return ey;
@@ -794,7 +794,7 @@ extern (C++) Expression resolveUFCS(Scope* sc, CallExp ce)
     else if (ce.e1.op == TOKdotti)
     {
         DotTemplateInstanceExp dti = cast(DotTemplateInstanceExp)ce.e1;
-        if (Expression ey = dti.semanticY(sc, 1))
+        if (auto ey = dti.semanticY(sc, 1))
         {
             ce.e1 = ey;
             return null;
@@ -970,7 +970,7 @@ extern (C++) TupleDeclaration isAliasThisTuple(Expression e)
         return null;
     Type t = e.type.toBasetype();
 Lagain:
-    if (Dsymbol s = t.toDsymbol(null))
+    if (auto s = t.toDsymbol(null))
     {
         AggregateDeclaration ad = s.isAggregateDeclaration();
         if (ad)
@@ -982,7 +982,7 @@ Lagain:
                 if (td && td.isexp)
                     return td;
             }
-            if (Type att = t.aliasthisOf())
+            if (auto att = t.aliasthisOf())
             {
                 t = att;
                 goto Lagain;
@@ -1465,7 +1465,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
             if (!(p.storageClass & STClazy && p.type.ty == Tvoid))
             {
                 bool isRef = (p.storageClass & (STCref | STCout)) != 0;
-                if (ubyte wm = arg.type.deduceWild(p.type, isRef))
+                if (auto wm = arg.type.deduceWild(p.type, isRef))
                 {
                     if (wildmatch)
                         wildmatch = MODmerge(wildmatch, wm);
@@ -1493,7 +1493,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
              * }
              */
             FuncDeclaration f;
-            if (AggregateDeclaration ad = fd.isThis())
+            if (auto ad = fd.isThis())
             {
                 f = ad.toParent2().isFuncDeclaration();
                 goto Linoutnest;
@@ -2832,7 +2832,7 @@ public:
              * i() can modify hx and gx but not fx
              */
             Dsymbol vparent = v.toParent2();
-            if (FuncDeclaration fdp = vparent.isFuncDeclaration())
+            if (auto fdp = vparent.isFuncDeclaration())
             {
                 if (!sc.func.isPureBypassingInference() && fdp.setImpure())
                 {
@@ -2844,7 +2844,7 @@ public:
             {
                 if (s == vparent)
                     break;
-                if (AggregateDeclaration ad = s.isAggregateDeclaration())
+                if (auto ad = s.isAggregateDeclaration())
                 {
                     if (ad.isNested())
                         continue;
@@ -3723,7 +3723,7 @@ public:
             if (s != olds && !s.isFuncDeclaration())
                 checkDeprecated(sc, s);
         }
-        if (VarDeclaration v = s.isVarDeclaration())
+        if (auto v = s.isVarDeclaration())
         {
             /* Bugzilla 12023: forward reference should be resolved
              * before 's->needThis()' is called.
@@ -3745,11 +3745,11 @@ public:
                 return de.semantic(sc);
             }
         }
-        if (EnumMember em = s.isEnumMember())
+        if (auto em = s.isEnumMember())
         {
             return em.getVarExp(loc, sc);
         }
-        if (VarDeclaration v = s.isVarDeclaration())
+        if (auto v = s.isVarDeclaration())
         {
             //printf("Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
             if (!type)
@@ -3793,13 +3793,13 @@ public:
             e = e.semantic(sc);
             return e.deref();
         }
-        if (FuncLiteralDeclaration fld = s.isFuncLiteralDeclaration())
+        if (auto fld = s.isFuncLiteralDeclaration())
         {
             //printf("'%s' is a function literal\n", fld->toChars());
             e = new FuncExp(loc, fld);
             return e.semantic(sc);
         }
-        if (FuncDeclaration f = s.isFuncDeclaration())
+        if (auto f = s.isFuncDeclaration())
         {
             f = f.toAliasFunc();
             if (!f.functionSemantic())
@@ -3814,12 +3814,12 @@ public:
             fd.type = f.type;
             return new VarExp(loc, fd, hasOverloads);
         }
-        if (OverloadSet o = s.isOverloadSet())
+        if (auto o = s.isOverloadSet())
         {
             //printf("'%s' is an overload set\n", o->toChars());
             return new OverExp(loc, o);
         }
-        if (Import imp = s.isImport())
+        if (auto imp = s.isImport())
         {
             if (!imp.pkg)
             {
@@ -3829,33 +3829,33 @@ public:
             auto ie = new ScopeExp(loc, imp.pkg);
             return ie.semantic(sc);
         }
-        if (Package pkg = s.isPackage())
+        if (auto pkg = s.isPackage())
         {
             auto ie = new ScopeExp(loc, pkg);
             return ie.semantic(sc);
         }
-        if (Module mod = s.isModule())
+        if (auto mod = s.isModule())
         {
             auto ie = new ScopeExp(loc, mod);
             return ie.semantic(sc);
         }
-        if (Nspace ns = s.isNspace())
+        if (auto ns = s.isNspace())
         {
             auto ie = new ScopeExp(loc, ns);
             return ie.semantic(sc);
         }
-        if (Type t = s.getType())
+        if (auto t = s.getType())
         {
             auto te = new TypeExp(loc, t);
             return te.semantic(sc);
         }
-        if (TupleDeclaration tup = s.isTupleDeclaration())
+        if (auto tup = s.isTupleDeclaration())
         {
             e = new TupleExp(loc, tup);
             e = e.semantic(sc);
             return e;
         }
-        if (TemplateInstance ti = s.isTemplateInstance())
+        if (auto ti = s.isTemplateInstance())
         {
             ti.semantic(sc);
             if (!ti.inst || ti.errors)
@@ -3867,7 +3867,7 @@ public:
             e = e.semantic(sc);
             return e;
         }
-        if (TemplateDeclaration td = s.isTemplateDeclaration())
+        if (auto td = s.isTemplateDeclaration())
         {
             Dsymbol p = td.toParent2();
             FuncDeclaration fdthis = hasThis(sc);
@@ -4496,7 +4496,7 @@ public:
         for (size_t i = 0; i < tup.objects.dim; i++)
         {
             RootObject o = (*tup.objects)[i];
-            if (Dsymbol s = getDsymbol(o))
+            if (auto s = getDsymbol(o))
             {
                 /* If tuple element represents a symbol, translate to DsymbolExp
                  * to supply implicit 'this' if needed later.
@@ -5179,7 +5179,7 @@ public:
             }
             if (ti.needsTypeInference(sc))
             {
-                if (TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration())
+                if (auto td = ti.tempdecl.isTemplateDeclaration())
                 {
                     Dsymbol p = td.toParent2();
                     FuncDeclaration fdthis = hasThis(sc);
@@ -5190,7 +5190,7 @@ public:
                         return e.semantic(sc);
                     }
                 }
-                else if (OverloadSet os = ti.tempdecl.isOverloadSet())
+                else if (auto os = ti.tempdecl.isOverloadSet())
                 {
                     FuncDeclaration fdthis = hasThis(sc);
                     AggregateDeclaration ad = os.parent.isAggregateDeclaration();
@@ -5480,7 +5480,7 @@ public:
                             error("outer function context of %s is needed to 'new' nested class %s", fdn.toPrettyChars(), cd.toPrettyChars());
                             goto Lerr;
                         }
-                        else if (FuncLiteralDeclaration fld = sp.isFuncLiteralDeclaration())
+                        else if (auto fld = sp.isFuncLiteralDeclaration())
                         {
                             fld.tok = TOKdelegate;
                         }
@@ -5793,12 +5793,12 @@ public:
         //var->semantic(sc);
         if (!type)
             type = var.type.pointerTo();
-        if (VarDeclaration v = var.isVarDeclaration())
+        if (auto v = var.isVarDeclaration())
         {
             if (v.checkNestedReference(sc, loc))
                 return new ErrorExp();
         }
-        else if (FuncDeclaration f = var.isFuncDeclaration())
+        else if (auto f = var.isFuncDeclaration())
         {
             if (f.checkNestedReference(sc, loc))
                 return new ErrorExp();
@@ -5856,7 +5856,7 @@ public:
         {
             printf("VarExp::semantic(%s)\n", toChars());
         }
-        if (FuncDeclaration fd = var.isFuncDeclaration())
+        if (auto fd = var.isFuncDeclaration())
         {
             //printf("L%d fd = %s\n", __LINE__, f->toChars());
             if (!fd.functionSemantic())
@@ -5871,7 +5871,7 @@ public:
          * variables as alias template parameters.
          */
         //checkAccess(loc, sc, NULL, var);
-        if (VarDeclaration vd = var.isVarDeclaration())
+        if (auto vd = var.isVarDeclaration())
         {
             hasOverloads = 0;
             if (vd.checkNestedReference(sc, loc))
@@ -5880,12 +5880,12 @@ public:
             // the purity violation error is redundant.
             //checkPurity(sc, vd);
         }
-        else if (FuncDeclaration fd = var.isFuncDeclaration())
+        else if (auto fd = var.isFuncDeclaration())
         {
             if (fd.checkNestedReference(sc, loc))
                 return new ErrorExp();
         }
-        else if (OverDeclaration od = var.isOverDeclaration())
+        else if (auto od = var.isOverDeclaration())
         {
             type = Type.tvoid; // ambiguous type?
         }
@@ -6020,7 +6020,7 @@ public:
             else
                 s = "__funcliteral";
             DsymbolTable symtab;
-            if (FuncDeclaration func = sc.parent.isFuncDeclaration())
+            if (auto func = sc.parent.isFuncDeclaration())
             {
                 if (func.localsymtab is null)
                 {
@@ -7068,7 +7068,7 @@ public:
 
     final Expression binSemanticProp(Scope* sc)
     {
-        if (Expression ex = binSemantic(sc))
+        if (auto ex = binSemantic(sc))
             return ex;
         Expression e1x = resolveProperties(sc, e1);
         Expression e2x = resolveProperties(sc, e2);
@@ -7348,7 +7348,7 @@ public:
                 // T[] op= T
                 e2 = e2.castTo(sc, e1.type.nextOf());
             }
-            else if (Expression ex = typeCombine(this, sc))
+            else if (auto ex = typeCombine(this, sc))
                 return ex;
             type = e1.type;
             return arrayOp(this, sc);
@@ -7368,7 +7368,7 @@ public:
             return new ErrorExp();
         if ((op == TOKaddass || op == TOKminass) && e1.type.toBasetype().ty == Tpointer && e2.type.toBasetype().isintegral())
             return scaleFactor(this, sc);
-        if (Expression ex = typeCombine(this, sc))
+        if (auto ex = typeCombine(this, sc))
             return ex;
         if (arith && checkArithmeticBin())
             return new ErrorExp();
@@ -7591,7 +7591,7 @@ public:
         {
             printf("AssertExp::semantic('%s')\n", toChars());
         }
-        if (Expression ex = unaSemantic(sc))
+        if (auto ex = unaSemantic(sc))
             return ex;
         e1 = resolveProperties(sc, e1);
         // BUG: see if we can do compile time elimination of the Assert
@@ -7686,7 +7686,7 @@ public:
     Expression semanticX(Scope* sc)
     {
         //printf("DotIdExp::semanticX(this = %p, '%s')\n", this, toChars());
-        if (Expression ex = unaSemantic(sc))
+        if (auto ex = unaSemantic(sc))
             return ex;
         if (ident == Id._mangleof)
         {
@@ -7714,7 +7714,7 @@ public:
             L1:
                 {
                     assert(ds);
-                    if (FuncDeclaration f = ds.isFuncDeclaration())
+                    if (auto f = ds.isFuncDeclaration())
                     {
                         if (!f.type.deco)
                         {
@@ -7795,7 +7795,7 @@ public:
          */
         if ((e1.op == TOKthis || e1.op == TOKsuper) && !hasThis(sc))
         {
-            if (AggregateDeclaration ad = sc.getStructClassScope())
+            if (auto ad = sc.getStructClassScope())
             {
                 if (e1.op == TOKthis)
                 {
@@ -7839,7 +7839,7 @@ public:
                 /* Check for access before resolving aliases because public
                  * aliases to private symbols are public.
                  */
-                if (Declaration d = s.isDeclaration())
+                if (auto d = s.isDeclaration())
                     checkAccess(loc, sc, null, d);
                 s = s.toAlias();
                 checkDeprecated(sc, s);
@@ -7901,7 +7901,7 @@ public:
                     }
                     return e;
                 }
-                if (OverDeclaration od = s.isOverDeclaration())
+                if (auto od = s.isOverDeclaration())
                 {
                     e = new VarExp(loc, od, 1);
                     if (eleft)
@@ -8029,7 +8029,7 @@ public:
 
     Expression semantic(Scope* sc)
     {
-        if (Expression ex = unaSemantic(sc))
+        if (auto ex = unaSemantic(sc))
             return ex;
         return this;
     }
@@ -8123,7 +8123,7 @@ public:
         e1 = e1.semantic(sc);
         e1 = e1.addDtorHook(sc);
         Type t1 = e1.type;
-        if (FuncDeclaration fd = var.isFuncDeclaration())
+        if (auto fd = var.isFuncDeclaration())
         {
             // for functions, do checks after overload resolution
             if (!fd.functionSemantic())
@@ -8141,7 +8141,7 @@ public:
             type = fd.type;
             assert(type);
         }
-        else if (OverDeclaration od = var.isOverDeclaration())
+        else if (auto od = var.isOverDeclaration())
         {
             type = Type.tvoid; // ambiguous type?
         }
@@ -8159,7 +8159,7 @@ public:
             type = type.addMod(t1.mod);
             Dsymbol vparent = var.toParent();
             AggregateDeclaration ad = vparent ? vparent.isAggregateDeclaration() : null;
-            if (Expression e1x = getRightThis(loc, sc, ad, e1, var, 1))
+            if (auto e1x = getRightThis(loc, sc, ad, e1, var, 1))
                 e1 = e1x;
             else
             {
@@ -8347,7 +8347,7 @@ public:
         if (e.op == TOKdotvar)
         {
             DotVarExp dve = cast(DotVarExp)e;
-            if (FuncDeclaration fd = dve.var.isFuncDeclaration())
+            if (auto fd = dve.var.isFuncDeclaration())
             {
                 TemplateDeclaration td = fd.findTemplateDeclRoot();
                 if (td)
@@ -8356,7 +8356,7 @@ public:
                     e = e.semantic(sc);
                 }
             }
-            else if (OverDeclaration od = dve.var.isOverDeclaration())
+            else if (auto od = dve.var.isOverDeclaration())
             {
                 e1 = dve.e1; // pull semantic() result
                 if (!findTempDecl(sc))
@@ -8385,7 +8385,7 @@ public:
         else if (e.op == TOKvar)
         {
             VarExp ve = cast(VarExp)e;
-            if (FuncDeclaration fd = ve.var.isFuncDeclaration())
+            if (auto fd = ve.var.isFuncDeclaration())
             {
                 TemplateDeclaration td = fd.findTemplateDeclRoot();
                 if (td)
@@ -8394,7 +8394,7 @@ public:
                     e = e.semantic(sc);
                 }
             }
-            else if (OverDeclaration od = ve.var.isOverDeclaration())
+            else if (auto od = ve.var.isOverDeclaration())
             {
                 ti.tempdecl = od;
                 e = new ScopeExp(loc, ti);
@@ -8578,7 +8578,7 @@ public:
         {
             printf("DotTypeExp::semantic('%s')\n", toChars());
         }
-        if (Expression ex = unaSemantic(sc))
+        if (auto ex = unaSemantic(sc))
             return ex;
         return this;
     }
@@ -8711,7 +8711,7 @@ public:
             if (e1.op == TOKerror)
                 return e1;
         }
-        if (Expression ex = resolveUFCS(sc, this))
+        if (auto ex = resolveUFCS(sc, this))
             return ex;
         /* This recognizes:
          *  foo!(tiargs)(funcargs)
@@ -8742,9 +8742,9 @@ public:
                      */
                     tiargs = ti.tiargs;
                     assert(ti.tempdecl);
-                    if (TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration())
+                    if (auto td = ti.tempdecl.isTemplateDeclaration())
                         e1 = new TemplateExp(loc, td);
-                    else if (OverDeclaration od = ti.tempdecl.isOverDeclaration())
+                    else if (auto od = ti.tempdecl.isOverDeclaration())
                         e1 = new VarExp(loc, od);
                     else
                         e1 = new OverExp(loc, ti.tempdecl.isOverloadSet());
@@ -8780,9 +8780,9 @@ public:
                      */
                     tiargs = ti.tiargs;
                     assert(ti.tempdecl);
-                    if (TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration())
+                    if (auto td = ti.tempdecl.isTemplateDeclaration())
                         e1 = new DotTemplateExp(loc, se.e1, td);
-                    else if (OverDeclaration od = ti.tempdecl.isOverDeclaration())
+                    else if (auto od = ti.tempdecl.isOverDeclaration())
                     {
                         e1 = new DotVarExp(loc, se.e1, od);
                     }
@@ -8928,15 +8928,15 @@ public:
                     if (sd.size(loc) > Target.ptrsize * 4 && !t1.needsNested())
                         sle.sinit = toInitializer(sd);
                     Expression e = sle;
-                    if (CtorDeclaration cf = sd.ctor.isCtorDeclaration())
+                    if (auto cf = sd.ctor.isCtorDeclaration())
                     {
                         e = new DotVarExp(loc, e, cf, 1);
                     }
-                    else if (TemplateDeclaration td = sd.ctor.isTemplateDeclaration())
+                    else if (auto td = sd.ctor.isTemplateDeclaration())
                     {
                         e = new DotTemplateExp(loc, e, td);
                     }
-                    else if (OverloadSet os = sd.ctor.isOverloadSet())
+                    else if (auto os = sd.ctor.isOverloadSet())
                     {
                         e = new DotExp(loc, e, new OverExp(loc, os));
                     }
@@ -9532,7 +9532,7 @@ public:
         }
         if (type)
             return this;
-        if (Expression ex = unaSemantic(sc))
+        if (auto ex = unaSemantic(sc))
             return ex;
         int wasCond = e1.op == TOKquestion;
         if (e1.op == TOKdotti)
@@ -9919,7 +9919,7 @@ public:
         if (type)
             return this;
         // Note there is no operator overload
-        if (Expression ex = unaSemantic(sc))
+        if (auto ex = unaSemantic(sc))
             return ex;
         e1 = resolveProperties(sc, e1);
         e1 = e1.toBoolean(sc);
@@ -9953,7 +9953,7 @@ public:
         if (type)
             return this;
         // Note there is no operator overload
-        if (Expression ex = unaSemantic(sc))
+        if (auto ex = unaSemantic(sc))
             return ex;
         e1 = resolveProperties(sc, e1);
         e1 = e1.toBoolean(sc);
@@ -9980,7 +9980,7 @@ public:
 
     Expression semantic(Scope* sc)
     {
-        if (Expression ex = unaSemantic(sc))
+        if (auto ex = unaSemantic(sc))
             return ex;
         e1 = resolveProperties(sc, e1);
         e1 = e1.modifiableLvalue(sc, null);
@@ -10123,7 +10123,7 @@ public:
         //static int x; assert(++x < 10);
         if (type)
             return this;
-        if (Expression ex = unaSemantic(sc))
+        if (auto ex = unaSemantic(sc))
             return ex;
         Expression e1x = resolveProperties(sc, e1);
         if (e1x.op == TOKerror)
@@ -10157,7 +10157,7 @@ public:
         }
         if (!to.equals(e1.type) && mod == cast(ubyte)~0)
         {
-            if (Expression e = op_overload(sc))
+            if (auto e = op_overload(sc))
                 return e.implicitCastTo(sc, to);
         }
         Type t1b = e1.type.toBasetype();
@@ -10330,7 +10330,7 @@ public:
         if (type)
             return this;
     Lagain:
-        if (Expression ex = unaSemantic(sc))
+        if (auto ex = unaSemantic(sc))
             return ex;
         e1 = resolveProperties(sc, e1);
         if (e1.op == TOKtype && e1.type.ty != Ttuple)
@@ -10632,7 +10632,7 @@ public:
         }
         if (type)
             return this;
-        if (Expression ex = unaSemantic(sc))
+        if (auto ex = unaSemantic(sc))
             return ex;
         e1 = resolveProperties(sc, e1);
         type = Type.tsize_t;
@@ -10713,7 +10713,7 @@ public:
         {
             printf("ArrayExp::semantic('%s')\n", toChars());
         }
-        if (Expression ex = unaSemantic(sc))
+        if (auto ex = unaSemantic(sc))
             return ex;
         Expression e1x = resolveProperties(sc, e1);
         if (e1x.op == TOKerror)
@@ -10828,7 +10828,7 @@ public:
     {
         if (type)
             return this;
-        if (Expression ex = binSemanticProp(sc))
+        if (auto ex = binSemanticProp(sc))
             return ex;
         e1 = e1.addDtorHook(sc);
         type = e2.type;
@@ -11279,7 +11279,7 @@ public:
         }
         if (type)
             return this;
-        if (Expression ex = binSemantic(sc))
+        if (auto ex = binSemantic(sc))
             return ex;
         Expression e1x = resolveProperties(sc, e1);
         if (e1x.op == TOKerror)
@@ -11582,7 +11582,7 @@ public:
              * or:
              *      f() = value
              */
-            if (Expression e = resolvePropertiesX(sc, e1x, e2))
+            if (auto e = resolvePropertiesX(sc, e1x, e2))
                 return e;
             if (e1x.checkRightThis(sc))
                 return new ErrorExp();
@@ -12447,7 +12447,7 @@ public:
                 // T[] ^^= T
                 e2 = e2.castTo(sc, e1.type.nextOf());
             }
-            else if (Expression ex = typeCombine(this, sc))
+            else if (auto ex = typeCombine(this, sc))
                 return ex;
             // Check element types are arithmetic
             Type tb1 = e1.type.nextOf().toBasetype();
@@ -12641,7 +12641,7 @@ public:
         }
         if (type)
             return this;
-        if (Expression ex = binSemanticProp(sc))
+        if (auto ex = binSemanticProp(sc))
             return ex;
         Expression e = op_overload(sc);
         if (e)
@@ -12667,7 +12667,7 @@ public:
         {
             return incompatibleTypes();
         }
-        if (Expression ex = typeCombine(this, sc))
+        if (auto ex = typeCombine(this, sc))
             return ex;
         Type tb = type.toBasetype();
         if (tb.ty == Tarray || tb.ty == Tsarray)
@@ -12730,7 +12730,7 @@ public:
         }
         if (type)
             return this;
-        if (Expression ex = binSemanticProp(sc))
+        if (auto ex = binSemanticProp(sc))
             return ex;
         Expression e = op_overload(sc);
         if (e)
@@ -12756,7 +12756,7 @@ public:
                 // Replace (ptr - ptr) with (ptr - ptr) / stride
                 d_int64 stride;
                 // make sure pointer types are compatible
-                if (Expression ex = typeCombine(this, sc))
+                if (auto ex = typeCombine(this, sc))
                     return ex;
                 type = Type.tptrdiff_t;
                 stride = t2.nextOf().size();
@@ -12785,7 +12785,7 @@ public:
             error("can't subtract pointer from %s", e1.type.toChars());
             return new ErrorExp();
         }
-        if (Expression ex = typeCombine(this, sc))
+        if (auto ex = typeCombine(this, sc))
             return ex;
         Type tb = type.toBasetype();
         if (tb.ty == Tarray || tb.ty == Tsarray)
@@ -12846,7 +12846,7 @@ public:
         //printf("CatExp::semantic() %s\n", toChars());
         if (type)
             return this;
-        if (Expression ex = binSemanticProp(sc))
+        if (auto ex = binSemanticProp(sc))
             return ex;
         Expression e = op_overload(sc);
         if (e)
@@ -12951,7 +12951,7 @@ public:
             else
                 e2 = e2.castTo(sc, t2);
         }
-        if (Expression ex = typeCombine(this, sc))
+        if (auto ex = typeCombine(this, sc))
             return ex;
         type = type.toHeadMutable();
         Type tb = type.toBasetype();
@@ -12961,7 +12961,7 @@ public:
         {
             type = type.nextOf().toHeadMutable().arrayOf();
         }
-        if (Type tbn = tb.nextOf())
+        if (auto tbn = tb.nextOf())
         {
             if (checkPostblit(sc, tbn))
                 return new ErrorExp();
@@ -13015,12 +13015,12 @@ public:
         }
         if (type)
             return this;
-        if (Expression ex = binSemanticProp(sc))
+        if (auto ex = binSemanticProp(sc))
             return ex;
         Expression e = op_overload(sc);
         if (e)
             return e;
-        if (Expression ex = typeCombine(this, sc))
+        if (auto ex = typeCombine(this, sc))
             return ex;
         Type tb = type.toBasetype();
         if (tb.ty == Tarray || tb.ty == Tsarray)
@@ -13106,12 +13106,12 @@ public:
     {
         if (type)
             return this;
-        if (Expression ex = binSemanticProp(sc))
+        if (auto ex = binSemanticProp(sc))
             return ex;
         Expression e = op_overload(sc);
         if (e)
             return e;
-        if (Expression ex = typeCombine(this, sc))
+        if (auto ex = typeCombine(this, sc))
             return ex;
         Type tb = type.toBasetype();
         if (tb.ty == Tarray || tb.ty == Tsarray)
@@ -13198,12 +13198,12 @@ public:
     {
         if (type)
             return this;
-        if (Expression ex = binSemanticProp(sc))
+        if (auto ex = binSemanticProp(sc))
             return ex;
         Expression e = op_overload(sc);
         if (e)
             return e;
-        if (Expression ex = typeCombine(this, sc))
+        if (auto ex = typeCombine(this, sc))
             return ex;
         Type tb = type.toBasetype();
         if (tb.ty == Tarray || tb.ty == Tsarray)
@@ -13253,12 +13253,12 @@ public:
         if (type)
             return this;
         //printf("PowExp::semantic() %s\n", toChars());
-        if (Expression ex = binSemanticProp(sc))
+        if (auto ex = binSemanticProp(sc))
             return ex;
         Expression e = op_overload(sc);
         if (e)
             return e;
-        if (Expression ex = typeCombine(this, sc))
+        if (auto ex = typeCombine(this, sc))
             return ex;
         Type tb = type.toBasetype();
         if (tb.ty == Tarray || tb.ty == Tsarray)
@@ -13313,7 +13313,7 @@ public:
             //fatal();
             // Leave handling of PowExp to the backend, or throw
             // an error gracefully if no backend support exists.
-            if (Expression ex = typeCombine(this, sc))
+            if (auto ex = typeCombine(this, sc))
                 return ex;
             return this;
         }
@@ -13371,7 +13371,7 @@ public:
         //printf("ShlExp::semantic(), type = %p\n", type);
         if (type)
             return this;
-        if (Expression ex = binSemanticProp(sc))
+        if (auto ex = binSemanticProp(sc))
             return ex;
         Expression e = op_overload(sc);
         if (e)
@@ -13407,7 +13407,7 @@ public:
     {
         if (type)
             return this;
-        if (Expression ex = binSemanticProp(sc))
+        if (auto ex = binSemanticProp(sc))
             return ex;
         Expression e = op_overload(sc);
         if (e)
@@ -13443,7 +13443,7 @@ public:
     {
         if (type)
             return this;
-        if (Expression ex = binSemanticProp(sc))
+        if (auto ex = binSemanticProp(sc))
             return ex;
         Expression e = op_overload(sc);
         if (e)
@@ -13479,7 +13479,7 @@ public:
     {
         if (type)
             return this;
-        if (Expression ex = binSemanticProp(sc))
+        if (auto ex = binSemanticProp(sc))
             return ex;
         Expression e = op_overload(sc);
         if (e)
@@ -13489,7 +13489,7 @@ public:
             type = e1.type;
             return this;
         }
-        if (Expression ex = typeCombine(this, sc))
+        if (auto ex = typeCombine(this, sc))
             return ex;
         Type tb = type.toBasetype();
         if (tb.ty == Tarray || tb.ty == Tsarray)
@@ -13525,7 +13525,7 @@ public:
     {
         if (type)
             return this;
-        if (Expression ex = binSemanticProp(sc))
+        if (auto ex = binSemanticProp(sc))
             return ex;
         Expression e = op_overload(sc);
         if (e)
@@ -13535,7 +13535,7 @@ public:
             type = e1.type;
             return this;
         }
-        if (Expression ex = typeCombine(this, sc))
+        if (auto ex = typeCombine(this, sc))
             return ex;
         Type tb = type.toBasetype();
         if (tb.ty == Tarray || tb.ty == Tsarray)
@@ -13571,7 +13571,7 @@ public:
     {
         if (type)
             return this;
-        if (Expression ex = binSemanticProp(sc))
+        if (auto ex = binSemanticProp(sc))
             return ex;
         Expression e = op_overload(sc);
         if (e)
@@ -13581,7 +13581,7 @@ public:
             type = e1.type;
             return this;
         }
-        if (Expression ex = typeCombine(this, sc))
+        if (auto ex = typeCombine(this, sc))
             return ex;
         Type tb = type.toBasetype();
         if (tb.ty == Tarray || tb.ty == Tsarray)
@@ -13741,7 +13741,7 @@ public:
         }
         if (type)
             return this;
-        if (Expression ex = binSemanticProp(sc))
+        if (auto ex = binSemanticProp(sc))
             return ex;
         Type t1 = e1.type.toBasetype();
         Type t2 = e2.type.toBasetype();
@@ -13765,7 +13765,7 @@ public:
             }
             return e;
         }
-        if (Expression ex = typeCombine(this, sc))
+        if (auto ex = typeCombine(this, sc))
             return ex;
         type = Type.tbool;
         // Special handling for array comparisons
@@ -13889,7 +13889,7 @@ public:
     {
         if (type)
             return this;
-        if (Expression ex = binSemanticProp(sc))
+        if (auto ex = binSemanticProp(sc))
             return ex;
         Expression e = op_overload(sc);
         if (e)
@@ -13938,7 +13938,7 @@ public:
 
     Expression semantic(Scope* sc)
     {
-        if (Expression ex = binSemantic(sc))
+        if (auto ex = binSemantic(sc))
             return ex;
         return this;
     }
@@ -13965,7 +13965,7 @@ public:
         //printf("EqualExp::semantic('%s')\n", toChars());
         if (type)
             return this;
-        if (Expression ex = binSemanticProp(sc))
+        if (auto ex = binSemanticProp(sc))
             return ex;
         if (e1.op == TOKtype || e2.op == TOKtype)
             return incompatibleTypes();
@@ -14091,7 +14091,7 @@ public:
             e = combine(combine(tup1.e0, tup2.e0), e);
             return e.semantic(sc);
         }
-        if (Expression ex = typeCombine(this, sc))
+        if (auto ex = typeCombine(this, sc))
             return ex;
         type = Type.tbool;
         // Special handling for array comparisons
@@ -14131,10 +14131,10 @@ public:
     {
         if (type)
             return this;
-        if (Expression ex = binSemanticProp(sc))
+        if (auto ex = binSemanticProp(sc))
             return ex;
         type = Type.tbool;
-        if (Expression ex = typeCombine(this, sc))
+        if (auto ex = typeCombine(this, sc))
             return ex;
         if (e1.type != e2.type && e1.type.isfloating() && e2.type.isfloating())
         {
@@ -14218,7 +14218,7 @@ public:
             type = t1;
         else
         {
-            if (Expression ex = typeCombine(this, sc))
+            if (auto ex = typeCombine(this, sc))
                 return ex;
             switch (e1.type.toBasetype().ty)
             {

@@ -61,14 +61,14 @@ extern (C++) bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, 
         {
             if (s == sparent) // hit!
                 break;
-            if (FuncDeclaration fd = s.isFuncDeclaration())
+            if (auto fd = s.isFuncDeclaration())
             {
                 if (!fd.isThis() && !fd.isNested())
                     break;
-                if (FuncLiteralDeclaration fld = fd.isFuncLiteralDeclaration())
+                if (auto fld = fd.isFuncLiteralDeclaration())
                     fld.tok = TOKdelegate;
             }
-            if (AggregateDeclaration ad2 = s.isAggregateDeclaration())
+            if (auto ad2 = s.isAggregateDeclaration())
             {
                 if (ad2.storage_class & STCstatic)
                     break;
@@ -501,7 +501,7 @@ public:
         for (size_t i = 0; i < objects.dim; i++)
         {
             RootObject o = (*objects)[i];
-            if (Dsymbol s = isDsymbol(o))
+            if (auto s = isDsymbol(o))
             {
                 s = s.toAlias2();
                 (*objects)[i] = s;
@@ -692,7 +692,7 @@ public:
         {
             Dsymbol savedovernext = overnext;
             Dsymbol sa = s.toAlias();
-            if (FuncDeclaration fd = sa.isFuncDeclaration())
+            if (auto fd = sa.isFuncDeclaration())
             {
                 if (overnext)
                 {
@@ -704,7 +704,7 @@ public:
                     s.parent = sc.parent;
                 }
             }
-            else if (TemplateDeclaration td = sa.isTemplateDeclaration())
+            else if (auto td = sa.isTemplateDeclaration())
             {
                 if (overnext)
                 {
@@ -716,7 +716,7 @@ public:
                     s.parent = sc.parent;
                 }
             }
-            else if (OverDeclaration od = sa.isOverDeclaration())
+            else if (auto od = sa.isOverDeclaration())
             {
                 if (overnext)
                 {
@@ -728,7 +728,7 @@ public:
                     s.parent = sc.parent;
                 }
             }
-            else if (OverloadSet os = sa.isOverloadSet())
+            else if (auto os = sa.isOverloadSet())
             {
                 if (overnext)
                 {
@@ -766,13 +766,13 @@ public:
         if (aliassym) // see test/test56.d
         {
             Dsymbol sa = aliassym.toAlias();
-            if (FuncDeclaration fd = sa.isFuncDeclaration())
+            if (auto fd = sa.isFuncDeclaration())
             {
                 auto fa = new FuncAliasDeclaration(fd);
                 aliassym = fa;
                 return fa.overloadInsert(s);
             }
-            if (TemplateDeclaration td = sa.isTemplateDeclaration())
+            if (auto td = sa.isTemplateDeclaration())
             {
                 auto od = new OverDeclaration(td);
                 aliassym = od;
@@ -910,7 +910,7 @@ public:
         this.hasOverloads = hasOverloads;
         if (hasOverloads)
         {
-            if (OverDeclaration od = aliassym.isOverDeclaration())
+            if (auto od = aliassym.isOverDeclaration())
                 this.hasOverloads = od.hasOverloads;
         }
         else
@@ -937,7 +937,7 @@ public:
         if (!s)
             return false;
         OverDeclaration od1 = this;
-        if (OverDeclaration od2 = s.isOverDeclaration())
+        if (auto od2 = s.isOverDeclaration())
         {
             return od1.aliassym.equals(od2.aliassym) && od1.hasOverloads == od2.hasOverloads;
         }
@@ -945,11 +945,11 @@ public:
         {
             if (hasOverloads)
                 return true;
-            if (FuncDeclaration fd = s.isFuncDeclaration())
+            if (auto fd = s.isFuncDeclaration())
             {
                 return fd.isUnique() !is null;
             }
-            if (TemplateDeclaration td = s.isTemplateDeclaration())
+            if (auto td = s.isTemplateDeclaration())
             {
                 return td.overnext is null;
             }
@@ -1385,7 +1385,7 @@ public:
             storage_class |= STCshared;
         else if (type.isWild())
             storage_class |= STCwild;
-        if (StorageClass stc = storage_class & (STCsynchronized | STCoverride | STCabstract | STCfinal))
+        if (auto stc = storage_class & (STCsynchronized | STCoverride | STCabstract | STCfinal))
         {
             if (stc == STCfinal)
                 error("cannot be final, perhaps you meant const?");
@@ -2239,7 +2239,7 @@ public:
                     for (Dsymbol s = fdthis; s && s != fdv; s = s.toParent2())
                     {
                         // function literal has reference to enclosing scope is delegate
-                        if (FuncLiteralDeclaration fld = s.isFuncLiteralDeclaration())
+                        if (auto fld = s.isFuncLiteralDeclaration())
                         {
                             fld.tok = TOKdelegate;
                         }

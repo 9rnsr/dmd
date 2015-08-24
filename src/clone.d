@@ -177,7 +177,7 @@ Lneed:
  */
 extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
 {
-    if (FuncDeclaration f = hasIdentityOpAssign(sd, sc))
+    if (auto f = hasIdentityOpAssign(sd, sc))
     {
         sd.hasIdentityAssign = true;
         return f;
@@ -435,9 +435,9 @@ extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
     if (!needOpEquals(sd))
         return null; // bitwise comparison would work
     //printf("StructDeclaration::buildXopEquals() %s\n", sd->toChars());
-    if (Dsymbol eq = search_function(sd, Id.eq))
+    if (auto eq = search_function(sd, Id.eq))
     {
-        if (FuncDeclaration fd = eq.isFuncDeclaration())
+        if (auto fd = eq.isFuncDeclaration())
         {
             TypeFunction tfeqptr;
             {
@@ -504,9 +504,9 @@ extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
 extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
 {
     //printf("StructDeclaration::buildXopCmp() %s\n", toChars());
-    if (Dsymbol cmp = search_function(sd, Id.cmp))
+    if (auto cmp = search_function(sd, Id.cmp))
     {
-        if (FuncDeclaration fd = cmp.isFuncDeclaration())
+        if (auto fd = cmp.isFuncDeclaration())
         {
             TypeFunction tfcmpptr;
             {
@@ -666,7 +666,7 @@ Lneed:
  */
 extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
 {
-    if (Dsymbol s = search_function(sd, Id.tohash))
+    if (auto s = search_function(sd, Id.tohash))
     {
         static __gshared TypeFunction tftohash;
         if (!tftohash)
@@ -675,7 +675,7 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
             tftohash.mod = MODconst;
             tftohash = cast(TypeFunction)tftohash.merge();
         }
-        if (FuncDeclaration fd = s.isFuncDeclaration())
+        if (auto fd = s.isFuncDeclaration())
         {
             fd = fd.overloadExactMatch(tftohash);
             if (fd)

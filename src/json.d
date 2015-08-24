@@ -407,7 +407,7 @@ public:
         }
         if (s.prot().kind != PROTpublic) // TODO: How about package(names)?
             property("protection", protectionToChars(s.prot().kind));
-        if (EnumMember em = s.isEnumMember())
+        if (auto em = s.isEnumMember())
         {
             if (em.origValue)
                 property("value", em.origValue.toChars());

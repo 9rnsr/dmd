@@ -43,7 +43,7 @@ extern (C++) Prot getAccess(AggregateDeclaration ad, Dsymbol smember)
     {
         access_ret = smember.prot();
     }
-    if (ClassDeclaration cd = ad.isClassDeclaration())
+    if (auto cd = ad.isClassDeclaration())
     {
         for (size_t i = 0; i < cd.baseclasses.dim; i++)
         {
@@ -96,7 +96,7 @@ extern (C++) static bool isAccessible(Dsymbol smember, Dsymbol sfunc, AggregateD
     {
         if (smember.toParent() == dthis)
             return true;
-        if (ClassDeclaration cdthis = dthis.isClassDeclaration())
+        if (auto cdthis = dthis.isClassDeclaration())
         {
             for (size_t i = 0; i < cdthis.baseclasses.dim; i++)
             {
@@ -113,7 +113,7 @@ extern (C++) static bool isAccessible(Dsymbol smember, Dsymbol sfunc, AggregateD
     {
         if (smember.toParent() != dthis)
         {
-            if (ClassDeclaration cdthis = dthis.isClassDeclaration())
+            if (auto cdthis = dthis.isClassDeclaration())
             {
                 for (size_t i = 0; i < cdthis.baseclasses.dim; i++)
                 {
@@ -241,7 +241,7 @@ extern (C++) bool hasPackageAccess(Scope* sc, Dsymbol s)
         // no explicit package for protection, inferring most qualified one
         for (; s; s = s.parent)
         {
-            if (Module m = s.isModule())
+            if (auto m = s.isModule())
             {
                 DsymbolTable dst = Package.resolve(m.md ? m.md.packages : null, null, null);
                 assert(dst);

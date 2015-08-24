@@ -887,7 +887,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 VarDeclaration v = (cast(VarExp)e.e1).var.isVarDeclaration();
                 if (v && (v.storage_class & STCstatic) && (v.storage_class & STCimmutable) && v._init)
                 {
-                    if (Expression ci = v.getConstInitializer())
+                    if (auto ci = v.getConstInitializer())
                         e.e1 = ci;
                 }
             }
@@ -985,7 +985,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 {
                     // Convert slice of string literal into dynamic array
                     Type t = e.e1.type.toBasetype();
-                    if (Type tn = t.nextOf())
+                    if (auto tn = t.nextOf())
                         ret = e.e1.castTo(null, tn.arrayOf());
                 }
             }

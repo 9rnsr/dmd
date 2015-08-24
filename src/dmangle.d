@@ -321,7 +321,7 @@ public:
         assert(sthis.ident);
         const(char)* id = sthis.ident.toChars();
         toBuffer(id, sthis);
-        if (FuncDeclaration fd = sthis.isFuncDeclaration())
+        if (auto fd = sthis.isFuncDeclaration())
         {
             mangleFunc(fd, false);
         }
@@ -336,7 +336,7 @@ public:
     void mangleParent(Dsymbol s)
     {
         Dsymbol p;
-        if (TemplateInstance ti = s.isTemplateInstance())
+        if (auto ti = s.isTemplateInstance())
             p = ti.isTemplateMixin() ? ti.parent : ti.tempdecl.parent;
         else
             p = s.parent;
@@ -347,7 +347,7 @@ public:
             {
                 const(char)* id = p.ident.toChars();
                 toBuffer(id, s);
-                if (FuncDeclaration f = p.isFuncDeclaration())
+                if (auto f = p.isFuncDeclaration())
                     mangleFunc(f, true);
             }
             else
@@ -492,7 +492,7 @@ public:
             visit(cast(Dsymbol)od);
             return;
         }
-        if (FuncDeclaration fd = od.aliassym.isFuncDeclaration())
+        if (auto fd = od.aliassym.isFuncDeclaration())
         {
             if (!od.hasOverloads || fd.isUnique())
             {
@@ -500,7 +500,7 @@ public:
                 return;
             }
         }
-        if (TemplateDeclaration td = od.aliassym.isTemplateDeclaration())
+        if (auto td = od.aliassym.isTemplateDeclaration())
         {
             if (!od.hasOverloads || td.overnext is null)
             {

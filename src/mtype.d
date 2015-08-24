@@ -1099,7 +1099,7 @@ public:
         {
             if (mod & modsarr)
             {
-                if (int res = fp(param, MODtoChars(modsarr)))
+                if (auto res = fp(param, MODtoChars(modsarr)))
                     return res;
             }
         }
@@ -2324,7 +2324,7 @@ public:
     {
         //printf("+Type::substWildTo this = %s, mod = x%x\n", toChars(), mod);
         Type t;
-        if (Type tn = nextOf())
+        if (auto tn = nextOf())
         {
             // substitution has no effect on function pointer type.
             if (ty == Tpointer && tn.ty == Tfunction)
@@ -4579,7 +4579,7 @@ public:
             auto exps = new Expressions();
             exps.setDim(1);
             (*exps)[0] = dim;
-            if (Dsymbol s = getDsymbol(*pe))
+            if (auto s = getDsymbol(*pe))
                 *pe = new DsymbolExp(loc, s, 1);
             *pe = new ArrayExp(loc, *pe, exps);
         }
@@ -4915,7 +4915,7 @@ public:
         if (*pe)
         {
             // It's really a slice expression
-            if (Dsymbol s = getDsymbol(*pe))
+            if (auto s = getDsymbol(*pe))
                 *pe = new DsymbolExp(loc, s, 1);
             *pe = new SliceExp(loc, *pe, null, null);
         }
@@ -6975,7 +6975,7 @@ public:
                 //printf("\t3: s = %p %s %s, sm = %p\n", s, s->kind(), s->toChars(), sm);
                 if (intypeid && !t && sm && sm.needThis())
                     goto L3;
-                if (VarDeclaration v = s.isVarDeclaration())
+                if (auto v = s.isVarDeclaration())
                 {
                     if (v.storage_class & (STCconst | STCimmutable | STCmanifest) || v.type.isConst() || v.type.isImmutable())
                     {
@@ -7042,7 +7042,7 @@ public:
             L2:
                 s = sm.toAlias();
             }
-            if (VarDeclaration v = s.isVarDeclaration())
+            if (auto v = s.isVarDeclaration())
             {
                 /* This is mostly same with DsymbolExp::semantic(), but we cannot use it
                  * because some variables used in type context need to prevent lowering
@@ -7074,13 +7074,13 @@ public:
             }
             version (none)
             {
-                if (FuncDeclaration fd = s.isFuncDeclaration())
+                if (auto fd = s.isFuncDeclaration())
                 {
                     *pe = new DsymbolExp(loc, fd, 1);
                     return;
                 }
             }
-            if (EnumMember em = s.isEnumMember())
+            if (auto em = s.isEnumMember())
             {
                 // It's not a type, it's an expression
                 *pe = em.getVarExp(loc, sc);
@@ -7091,7 +7091,7 @@ public:
             if (!t)
             {
                 // If the symbol is an import, try looking inside the import
-                if (Import si = s.isImport())
+                if (auto si = s.isImport())
                 {
                     s = si.search(loc, s.ident);
                     if (s && s != si)
@@ -7543,7 +7543,7 @@ public:
             *pt = t;
         else
         {
-            if (Dsymbol s = t.toDsymbol(sc))
+            if (auto s = t.toDsymbol(sc))
                 resolveHelper(loc, sc, s, null, pe, pt, ps, intypeid);
             else
             {
@@ -7671,7 +7671,7 @@ public:
             *pt = t;
         else
         {
-            if (Dsymbol s = t.toDsymbol(sc))
+            if (auto s = t.toDsymbol(sc))
                 resolveHelper(loc, sc, s, null, pe, pt, ps, intypeid);
             else
             {
@@ -7982,7 +7982,7 @@ public:
             /* It's:
              *    Struct.d
              */
-            if (TupleDeclaration tup = d.isTupleDeclaration())
+            if (auto tup = d.isTupleDeclaration())
             {
                 e = new TupleExp(e.loc, tup);
                 e = e.semantic(sc);
@@ -8652,11 +8652,11 @@ public:
                     return Type.getProperty(e.loc, ident, 0);
                 return new DotTypeExp(e.loc, e, sym);
             }
-            if (ClassDeclaration cbase = sym.searchBase(e.loc, ident))
+            if (auto cbase = sym.searchBase(e.loc, ident))
             {
                 if (e.op == TOKtype)
                     return Type.getProperty(e.loc, ident, 0);
-                if (InterfaceDeclaration ifbase = cbase.isInterfaceDeclaration())
+                if (auto ifbase = cbase.isInterfaceDeclaration())
                     e = new CastExp(e.loc, e, ifbase.type);
                 else
                     e = new DotTypeExp(e.loc, e, cbase);
@@ -8841,7 +8841,7 @@ public:
             TemplateInstance tiparent = d.isInstantiated();
             if (tiparent && tiparent.errors)
                 return new ErrorExp();
-            if (TupleDeclaration tup = d.isTupleDeclaration())
+            if (auto tup = d.isTupleDeclaration())
             {
                 e = new TupleExp(e.loc, tup);
                 e = e.semantic(sc);
@@ -9307,7 +9307,7 @@ public:
         if (*pe)
         {
             // It's really a slice expression
-            if (Dsymbol s = getDsymbol(*pe))
+            if (auto s = getDsymbol(*pe))
                 *pe = new DsymbolExp(loc, s, 1);
             *pe = new SliceExp(loc, *pe, lwr, upr);
         }

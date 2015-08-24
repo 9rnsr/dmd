@@ -1460,7 +1460,7 @@ else static if (TARGET_WINDOS)
                 buf.writestring("?1");
                 return;
             }
-            if (TemplateInstance ti = sym.isTemplateInstance())
+            if (auto ti = sym.isTemplateInstance())
             {
                 scope VisualCPPMangler tmp = new VisualCPPMangler((flags & IS_DMC) ? true : false);
                 tmp.buf.writeByte('?');

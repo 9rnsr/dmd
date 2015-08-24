@@ -306,7 +306,7 @@ extern (C++) hash_t arrayObjectHash(Objects* oa1)
         /* Must follow the logic of match()
          */
         RootObject o1 = (*oa1)[j];
-        if (Type t1 = isType(o1))
+        if (auto t1 = isType(o1))
             hash += cast(size_t)t1.deco;
         else
         {
@@ -327,7 +327,7 @@ extern (C++) hash_t arrayObjectHash(Objects* oa1)
                     s1 = fa1.toAliasFunc();
                 hash += cast(size_t)cast(void*)s1.getIdent() + cast(size_t)cast(void*)s1.parent;
             }
-            else if (Tuple u1 = isTuple(o1))
+            else if (auto u1 = isTuple(o1))
                 hash += arrayObjectHash(&u1.objects);
         }
     }
@@ -338,9 +338,9 @@ extern (C++) RootObject objectSyntaxCopy(RootObject o)
 {
     if (!o)
         return null;
-    if (Type t = isType(o))
+    if (auto t = isType(o))
         return t.syntaxCopy();
-    if (Expression e = isExpression(o))
+    if (auto e = isExpression(o))
         return e.syntaxCopy();
     return o;
 }
@@ -527,12 +527,12 @@ public:
                 // Skip cases like: X(T : T)
                 if (i == j)
                     continue;
-                if (TemplateTypeParameter ttp = (*parameters)[j].isTemplateTypeParameter())
+                if (auto ttp = (*parameters)[j].isTemplateTypeParameter())
                 {
                     if (reliesOnTident(ttp.specType, &tparams))
                         tp.dependent = true;
                 }
-                else if (TemplateAliasParameter tap = (*parameters)[j].isTemplateAliasParameter())
+                else if (auto tap = (*parameters)[j].isTemplateAliasParameter())
                 {
                     if (reliesOnTident(tap.specType, &tparams) || reliesOnTident(isType(tap.specAlias), &tparams))
                     {
@@ -1286,7 +1286,7 @@ public:
                                 goto Lnomatch;
                             Type tt;
                             MATCH m;
-                            if (ubyte wm = deduceWildHelper(farg.type, &tt, tid))
+                            if (auto wm = deduceWildHelper(farg.type, &tt, tid))
                             {
                                 wildmatch |= wm;
                                 m = MATCHconst;
@@ -1491,7 +1491,7 @@ public:
                             else if (farg.op == TOKslice)
                             {
                                 SliceExp se = cast(SliceExp)farg;
-                                if (Type tsa = toStaticArrayType(se))
+                                if (auto tsa = toStaticArrayType(se))
                                     argtype = tsa;
                             }
                         }
@@ -1910,7 +1910,7 @@ public:
                     break;
                 t = (cast(TypeNext)t).next;
             }
-            if (Dsymbol s = t.toDsymbol(null))
+            if (auto s = t.toDsymbol(null))
             {
                 if (s.isDeprecated())
                     d.storage_class |= STCdeprecated;
@@ -2254,9 +2254,9 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
         {
             if (!s.errors)
             {
-                if (FuncDeclaration fd = s.isFuncDeclaration())
+                if (auto fd = s.isFuncDeclaration())
                     return (cast(ParamDeduce*)param).fp(fd);
-                if (TemplateDeclaration td = s.isTemplateDeclaration())
+                if (auto td = s.isTemplateDeclaration())
                     return (cast(ParamDeduce*)param).fp(td);
             }
             return 0;
@@ -2409,7 +2409,7 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
                     return 0;
                 Dsymbol s = ti.inst.toAlias();
                 FuncDeclaration fd;
-                if (TemplateDeclaration tdx = s.isTemplateDeclaration())
+                if (auto tdx = s.isTemplateDeclaration())
                 {
                     Objects dedtypesX; // empty tiargs
                     // Bugzilla 11553: Check for recursive instantiation of tdx.
@@ -2649,7 +2649,7 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
         assert(tf.ty == Tfunction);
         if (!tf.callMatch(p.tthis_best, fargs))
             goto Lnomatch;
-        if (FuncLiteralDeclaration fld = m.lastf.isFuncLiteralDeclaration())
+        if (auto fld = m.lastf.isFuncLiteralDeclaration())
         {
             if ((sc.flags & SCOPEconstraint) || sc.intypeof)
             {
@@ -3079,7 +3079,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                             //printf("[%d] s = %s %s, s2 = %s %s\n", j, s->kind(), s->toChars(), s2->kind(), s2->toChars());
                             if (s != s2)
                             {
-                                if (Type tx = s2.getType())
+                                if (auto tx = s2.getType())
                                 {
                                     if (s != tx.toDsymbol(sc))
                                         goto Lnomatch;
@@ -3123,7 +3123,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                     goto Lnomatch;
                 Type at = cast(Type)(*dedtypes)[i];
                 Type tt;
-                if (ubyte wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
+                if (auto wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
                 {
                     // type vs (none)
                     if (!at)
@@ -3166,7 +3166,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                     }
                     goto Lnomatch;
                 }
-                else if (MATCH m = deduceTypeHelper(t, &tt, tparam))
+                else if (auto m = deduceTypeHelper(t, &tt, tparam))
                 {
                     // type vs (none)
                     if (!at)
@@ -3217,7 +3217,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             }
             if (t.ty != tparam.ty)
             {
-                if (Dsymbol sym = t.toDsymbol(sc))
+                if (auto sym = t.toDsymbol(sc))
                 {
                     if (sym.isforwardRef() && !tparam.deco)
                         goto Lnomatch;
@@ -3563,7 +3563,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                         if (tx)
                         {
                             s = tx.toDsymbol(sc);
-                            if (TemplateInstance ti = s ? s.parent.isTemplateInstance() : null)
+                            if (auto ti = s ? s.parent.isTemplateInstance() : null)
                             {
                                 // Bugzilla 14290: Try to match with ti->tempecl,
                                 // only when ti is an enclosing instance.
@@ -4028,12 +4028,12 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             }
             Type at = cast(Type)(*dedtypes)[i];
             Type tt;
-            if (ubyte wx = deduceWildHelper(e.type, &tt, tparam))
+            if (auto wx = deduceWildHelper(e.type, &tt, tparam))
             {
                 *wm |= wx;
                 result = MATCHconst;
             }
-            else if (MATCH m = deduceTypeHelper(e.type, &tt, tparam))
+            else if (auto m = deduceTypeHelper(e.type, &tt, tparam))
             {
                 result = m;
             }
@@ -4275,7 +4275,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             if (e.type.ty == Tarray && (tparam.ty == Tsarray || tparam.ty == Taarray && (taai = (cast(TypeAArray)tparam).index).ty == Tident && (cast(TypeIdentifier)taai).idents.dim == 0))
             {
                 // Consider compile-time known boundaries
-                if (Type tsa = toStaticArrayType(e))
+                if (auto tsa = toStaticArrayType(e))
                 {
                     tsa.accept(this);
                     return;
@@ -4291,7 +4291,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
     }
 
     scope DeduceType v = new DeduceType(sc, tparam, parameters, dedtypes, wm, inferStart);
-    if (Type t = isType(o))
+    if (auto t = isType(o))
         t.accept(v);
     else
     {
@@ -5196,11 +5196,11 @@ public:
         (*dedtypes)[i] = sa;
         if (psparam)
         {
-            if (Dsymbol s = isDsymbol(sa))
+            if (auto s = isDsymbol(sa))
             {
                 *psparam = new AliasDeclaration(loc, ident, s);
             }
-            else if (Type t = isType(sa))
+            else if (auto t = isType(sa))
             {
                 *psparam = new AliasDeclaration(loc, ident, t);
             }
@@ -5324,7 +5324,7 @@ public:
          */
         assert(i + 1 == dedtypes.dim); // must be the last one
         Tuple ovar;
-        if (Tuple u = isTuple((*dedtypes)[i]))
+        if (auto u = isTuple((*dedtypes)[i]))
         {
             // It has already been deduced
             ovar = u;
@@ -5717,7 +5717,7 @@ public:
                 continue;
             Type t = isType((*tiargs)[i]);
             assert(t);
-            if (StorageClass stc = ModToStc(t.mod))
+            if (auto stc = ModToStc(t.mod))
             {
                 //printf("t = %s, stc = x%llx\n", t->toChars(), stc);
                 auto s = new Dsymbols();
@@ -6345,7 +6345,7 @@ public:
                 // for that function.
                 // If the enclosing is also an instantiated function,
                 // we have to rely on the ancestor's needsCodegen() result.
-                if (TemplateInstance ti = enclosing.isInstantiated())
+                if (auto ti = enclosing.isInstantiated())
                     return ti.needsCodegen();
                 // Bugzilla 13415: If and only if the enclosing scope needs codegen,
                 // this nested templates would also need code generation.
@@ -6544,7 +6544,7 @@ public:
                 for (size_t i = 0; i < os.a.dim; i++)
                 {
                     Dsymbol s2 = os.a[i];
-                    if (FuncDeclaration f = s2.isFuncDeclaration())
+                    if (auto f = s2.isFuncDeclaration())
                         s2 = f.findTemplateDeclRoot();
                     else
                         s2 = s2.isTemplateDeclaration();
@@ -6572,7 +6572,7 @@ public:
             }
             /* It should be a TemplateDeclaration, not some other symbol
              */
-            if (FuncDeclaration f = s.isFuncDeclaration())
+            if (auto f = s.isFuncDeclaration())
                 tempdecl = f.findTemplateDeclRoot();
             else
                 tempdecl = s.isTemplateDeclaration();
@@ -6811,7 +6811,7 @@ public:
                     j--;
                     continue;
                 }
-                if (FuncAliasDeclaration fa = sa.isFuncAliasDeclaration())
+                if (auto fa = sa.isFuncAliasDeclaration())
                 {
                     FuncDeclaration f = fa.toAliasFunc();
                     if (!fa.hasOverloads && f.isUnique())
@@ -7112,7 +7112,7 @@ public:
                 FuncDeclaration fd;
                 if (!td.onemember)
                     return 0;
-                if (TemplateDeclaration td2 = td.onemember.isTemplateDeclaration())
+                if (auto td2 = td.onemember.isTemplateDeclaration())
                 {
                     if (!td2.onemember || !td2.onemember.isFuncDeclaration())
                         return 0;
@@ -7533,7 +7533,7 @@ extern (C++) void unSpeculative(Scope* sc, RootObject o)
 {
     if (!o)
         return;
-    if (Tuple tup = isTuple(o))
+    if (auto tup = isTuple(o))
     {
         for (size_t i = 0; i < tup.objects.dim; i++)
         {
@@ -7547,9 +7547,9 @@ extern (C++) void unSpeculative(Scope* sc, RootObject o)
     Declaration d = s.isDeclaration();
     if (d)
     {
-        if (VarDeclaration vd = d.isVarDeclaration())
+        if (auto vd = d.isVarDeclaration())
             o = vd.type;
-        else if (AliasDeclaration ad = d.isAliasDeclaration())
+        else if (auto ad = d.isAliasDeclaration())
         {
             o = ad.getType();
             if (!o)
@@ -7561,7 +7561,7 @@ extern (C++) void unSpeculative(Scope* sc, RootObject o)
         if (!s)
             return;
     }
-    if (TemplateInstance ti = s.isTemplateInstance())
+    if (auto ti = s.isTemplateInstance())
     {
         // If the instance is already non-speculative,
         // or it is leaked to the speculative scope.
@@ -7573,7 +7573,7 @@ extern (C++) void unSpeculative(Scope* sc, RootObject o)
             ti.tinst = sc.tinst;
         unSpeculative(sc, ti.tempdecl);
     }
-    if (TemplateInstance ti = s.isInstantiated())
+    if (auto ti = s.isInstantiated())
         unSpeculative(sc, ti);
 }
 
@@ -7708,7 +7708,7 @@ public:
              */
             const(char)* s = "__mixin";
             DsymbolTable symtab;
-            if (FuncDeclaration func = sc.parent.isFuncDeclaration())
+            if (auto func = sc.parent.isFuncDeclaration())
             {
                 symtab = func.localsymtab;
                 if (symtab)

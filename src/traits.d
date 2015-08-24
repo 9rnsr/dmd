@@ -808,7 +808,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         Dsymbol s = getDsymbol(o);
         if (s)
         {
-            if (FuncDeclaration fd = s.isFuncDeclaration()) // Bugzilla 8943
+            if (auto fd = s.isFuncDeclaration()) // Bugzilla 8943
                 s = fd.toAliasFunc();
             if (!s.isImport()) // Bugzilla 8922
                 s = s.toParent();
@@ -818,9 +818,9 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             e.error("argument %s has no parent", o.toChars());
             goto Lfalse;
         }
-        if (FuncDeclaration f = s.isFuncDeclaration())
+        if (auto f = s.isFuncDeclaration())
         {
-            if (TemplateDeclaration td = getFuncTemplateDecl(f))
+            if (auto td = getFuncTemplateDecl(f))
             {
                 if (td.overroot) // if not start of overloaded list of TemplateDeclaration's
                     td = td.overroot; // then get the start
@@ -828,7 +828,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 ex = ex.semantic(sc);
                 return ex;
             }
-            if (FuncLiteralDeclaration fld = f.isFuncLiteralDeclaration())
+            if (auto fld = f.isFuncLiteralDeclaration())
             {
                 // Directly translate to VarExp instead of FuncExp
                 Expression ex = new VarExp(e.loc, fld, 1);
@@ -870,9 +870,9 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             ex = new DsymbolExp(e.loc, sym);
             ex = new DotIdExp(e.loc, ex, id);
         }
-        else if (Type t = isType(o))
+        else if (auto t = isType(o))
             ex = typeDotIdExp(e.loc, t, id);
-        else if (Expression ex2 = isExpression(o))
+        else if (auto ex2 = isExpression(o))
             ex = new DotIdExp(e.loc, ex2, id);
         else
         {
@@ -1025,9 +1025,9 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         TypeFunction tf = null;
         if (s)
         {
-            if (FuncDeclaration f = s.isFuncDeclaration())
+            if (auto f = s.isFuncDeclaration())
                 t = f.type;
-            else if (VarDeclaration v = s.isVarDeclaration())
+            else if (auto v = s.isVarDeclaration())
                 t = v.type;
         }
         if (t)
@@ -1063,7 +1063,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             e.error("argument has no members");
             goto Lfalse;
         }
-        if (Import imp = s.isImport())
+        if (auto imp = s.isImport())
         {
             // Bugzilla 9692
             s = imp.mod;

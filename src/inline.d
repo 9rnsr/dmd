@@ -753,7 +753,7 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
                 while (s != fdv)
                 {
                     FuncDeclaration f = s.isFuncDeclaration();
-                    if (AggregateDeclaration ad = s.isThis())
+                    if (auto ad = s.isThis())
                     {
                         assert(ad.vthis);
                         result = new DotVarExp(e.loc, result, ad.vthis);
@@ -805,7 +805,7 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
         void visit(DeclarationExp e)
         {
             //printf("DeclarationExp::doInline(%s)\n", e->toChars());
-            if (VarDeclaration vd = e.declaration.isVarDeclaration())
+            if (auto vd = e.declaration.isVarDeclaration())
             {
                 version (none)
                 {
@@ -879,7 +879,7 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
         {
             //printf("TypeidExp::doInline(): %s\n", e->toChars());
             TypeidExp te = cast(TypeidExp)e.copy();
-            if (Expression ex = isExpression(te.obj))
+            if (auto ex = isExpression(te.obj))
             {
                 te.obj = doInline(ex, ids);
             }
@@ -1286,7 +1286,7 @@ public:
             }
             else if (vd._init)
             {
-                if (ExpInitializer ie = vd._init.isExpInitializer())
+                if (auto ie = vd._init.isExpInitializer())
                 {
                     Expression e = ie.exp;
                     inlineScan(&e);

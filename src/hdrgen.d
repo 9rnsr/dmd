@@ -155,7 +155,7 @@ public:
             {
                 Dsymbol d = (cast(DeclarationExp)ds.exp).declaration;
                 assert(d.isDeclaration());
-                if (VarDeclaration v = d.isVarDeclaration())
+                if (auto v = d.isVarDeclaration())
                     visitVarDecl(v, anywritten);
                 else
                     d.accept(this);
@@ -307,7 +307,7 @@ public:
     void visit(IfStatement s)
     {
         buf.writestring("if (");
-        if (Parameter p = s.prm)
+        if (auto p = s.prm)
         {
             StorageClass stc = p.storageClass;
             if (!p.type && !stc)
@@ -1341,7 +1341,7 @@ public:
         Dsymbol onemember = (*d.members)[0];
         if (onemember.ident != d.ident)
             return false;
-        if (FuncDeclaration fd = onemember.isFuncDeclaration())
+        if (auto fd = onemember.isFuncDeclaration())
         {
             assert(fd.type);
             if (stcToBuffer(buf, fd.storage_class))
@@ -1353,7 +1353,7 @@ public:
             hgs.tpltMember--;
             return true;
         }
-        if (AggregateDeclaration ad = onemember.isAggregateDeclaration())
+        if (auto ad = onemember.isAggregateDeclaration())
         {
             buf.writestring(ad.kind());
             buf.writeByte(' ');
@@ -1381,7 +1381,7 @@ public:
             hgs.tpltMember--;
             return true;
         }
-        if (VarDeclaration vd = onemember.isVarDeclaration())
+        if (auto vd = onemember.isVarDeclaration())
         {
             if (d.constraint)
                 return false;
@@ -1467,7 +1467,7 @@ public:
         if (ti.tiargs.dim == 1)
         {
             RootObject oarg = (*ti.tiargs)[0];
-            if (Type t = isType(oarg))
+            if (auto t = isType(oarg))
             {
                 if (t.equals(Type.tstring) || t.equals(Type.twstring) || t.equals(Type.tdstring) || t.mod == 0 && (t.isTypeBasic() || t.ty == Tident && (cast(TypeIdentifier)t).idents.dim == 0))
                 {
@@ -1475,7 +1475,7 @@ public:
                     return;
                 }
             }
-            else if (Expression e = isExpression(oarg))
+            else if (auto e = isExpression(oarg))
             {
                 if (e.op == TOKint64 || e.op == TOKfloat64 || e.op == TOKnull || e.op == TOKstring || e.op == TOKthis)
                 {
@@ -1508,23 +1508,23 @@ public:
          * (see Bugzilla 7375).
          * Perhaps it would be better to demangle what genIdent() does.
          */
-        if (Type t = isType(oarg))
+        if (auto t = isType(oarg))
         {
             //printf("\tt: %s ty = %d\n", t->toChars(), t->ty);
             typeToBuffer(t, null);
         }
-        else if (Expression e = isExpression(oarg))
+        else if (auto e = isExpression(oarg))
         {
             if (e.op == TOKvar)
                 e = e.optimize(WANTvalue); // added to fix Bugzilla 7375
             e.accept(this);
         }
-        else if (Dsymbol s = isDsymbol(oarg))
+        else if (auto s = isDsymbol(oarg))
         {
             const(char)* p = s.ident ? s.ident.toChars() : s.toChars();
             buf.writestring(p);
         }
-        else if (Tuple v = isTuple(oarg))
+        else if (auto v = isTuple(oarg))
         {
             Objects* args = &v.objects;
             for (size_t i = 0; i < args.dim; i++)
@@ -1938,12 +1938,12 @@ public:
         {
             if (i)
                 buf.writestring(", ");
-            if (Identifier id = si.field[i])
+            if (auto id = si.field[i])
             {
                 buf.writestring(id.toChars());
                 buf.writeByte(':');
             }
-            if (Initializer iz = si.value[i])
+            if (auto iz = si.value[i])
                 iz.accept(this);
         }
         buf.writeByte('}');
@@ -1956,12 +1956,12 @@ public:
         {
             if (i)
                 buf.writestring(", ");
-            if (Expression ex = ai.index[i])
+            if (auto ex = ai.index[i])
             {
                 ex.accept(this);
                 buf.writeByte(':');
             }
-            if (Initializer iz = ai.value[i])
+            if (auto iz = ai.value[i])
                 iz.accept(this);
         }
         buf.writeByte(']');
@@ -1984,7 +1984,7 @@ public:
         {
             if (i)
                 buf.writestring(", ");
-            if (Expression e = (*expressions)[i])
+            if (auto e = (*expressions)[i])
                 expToBuffer(e, PREC_assign);
         }
     }

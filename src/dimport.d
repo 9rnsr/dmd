@@ -144,7 +144,7 @@ public:
                 {
                     .error(loc, "%s %s conflicts with %s", s.kind(), s.toPrettyChars(), id.toChars());
                 }
-                else if (Package p = s.isPackage())
+                else if (auto p = s.isPackage())
                 {
                     if (p.isPkgMod == PKGunknown)
                     {
@@ -203,7 +203,7 @@ public:
                 if (mod.md && mod.md.isdeprecated)
                 {
                     Expression msg = mod.md.msg;
-                    if (StringExp se = msg ? msg.toStringExp() : null)
+                    if (auto se = msg ? msg.toStringExp() : null)
                         mod.deprecation(loc, "is deprecated - %s", se.string);
                     else
                         mod.deprecation(loc, "is deprecated");

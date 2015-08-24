@@ -129,7 +129,7 @@ extern (C++) Expression resolveAliasThis(Scope* sc, Expression e)
         {
             if (e.op == TOKvar)
             {
-                if (FuncDeclaration f = (cast(VarExp)e).var.isFuncDeclaration())
+                if (auto f = (cast(VarExp)e).var.isFuncDeclaration())
                 {
                     // Bugzilla 13009: Support better match for the overloaded alias this.
                     Type t;

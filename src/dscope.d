@@ -454,7 +454,7 @@ struct Scope
                 assert(sc != sc.enclosing);
                 if (!sc.scopesym)
                     continue;
-                if (Dsymbol s = sc.scopesym.isModule())
+                if (auto s = sc.scopesym.isModule())
                 {
                     //printf("\tfound %s.%s\n", s->parent ? s->parent->toChars() : "", s->toChars());
                     if (pscopesym)
@@ -470,7 +470,7 @@ struct Scope
             if (!sc.scopesym)
                 continue;
             //printf("\tlooking in scopesym '%s', kind = '%s'\n", sc->scopesym->toChars(), sc->scopesym->kind());
-            if (Dsymbol s = sc.scopesym.search(loc, ident, flags))
+            if (auto s = sc.scopesym.search(loc, ident, flags))
             {
                 if (ident == Id.length && sc.scopesym.isArrayScopeSymbol() && sc.enclosing && sc.enclosing.search(loc, ident, null, flags))
                 {
@@ -494,15 +494,15 @@ struct Scope
 
     extern (C++) Dsymbol insert(Dsymbol s)
     {
-        if (VarDeclaration vd = s.isVarDeclaration())
+        if (auto vd = s.isVarDeclaration())
         {
             if (lastVar)
                 vd.lastVar = lastVar;
             lastVar = vd;
         }
-        else if (WithScopeSymbol ss = s.isWithScopeSymbol())
+        else if (auto ss = s.isWithScopeSymbol())
         {
-            if (VarDeclaration vd = ss.withstate.wthis)
+            if (auto vd = ss.withstate.wthis)
             {
                 if (lastVar)
                     vd.lastVar = lastVar;

@@ -2162,7 +2162,7 @@ public:
     static Expression getVarExp(Loc loc, InterState* istate, Declaration d, CtfeGoal goal)
     {
         Expression e = CTFEExp.cantexp;
-        if (VarDeclaration v = d.isVarDeclaration())
+        if (auto v = d.isVarDeclaration())
         {
             /* Magic variable __ctfe always returns true when interpreting
              */
@@ -2269,7 +2269,7 @@ public:
             if (!e)
                 e = CTFEExp.cantexp;
         }
-        else if (SymbolDeclaration s = d.isSymbolDeclaration())
+        else if (auto s = d.isSymbolDeclaration())
         {
             // Struct static initializers, for example
             e = s.dsym.type.defaultInitLiteral(loc);
@@ -2353,9 +2353,9 @@ public:
             printf("%s DeclarationExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
         Dsymbol s = e.declaration;
-        if (VarDeclaration v = s.isVarDeclaration())
+        if (auto v = s.isVarDeclaration())
         {
-            if (TupleDeclaration td = v.toAlias().isTupleDeclaration())
+            if (auto td = v.toAlias().isTupleDeclaration())
             {
                 result = null;
                 // Reserve stack space for all tuple members
@@ -2374,7 +2374,7 @@ public:
                     if (v2._init)
                     {
                         Expression einit;
-                        if (ExpInitializer ie = v2._init.isExpInitializer())
+                        if (auto ie = v2._init.isExpInitializer())
                         {
                             einit = interpret(ie.exp, istate, goal);
                             if (exceptionOrCant(einit))
@@ -2405,7 +2405,7 @@ public:
                 ctfeStack.push(v);
             if (v._init)
             {
-                if (ExpInitializer ie = v._init.isExpInitializer())
+                if (auto ie = v._init.isExpInitializer())
                 {
                     result = interpret(ie.exp, istate, goal);
                 }
@@ -2466,12 +2466,12 @@ public:
         {
             printf("%s TypeidExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
-        if (Type t = isType(e.obj))
+        if (auto t = isType(e.obj))
         {
             result = e;
             return;
         }
-        if (Expression ex = isExpression(e.obj))
+        if (auto ex = isExpression(e.obj))
         {
             result = interpret(ex, istate);
             if (exceptionOrCant(ex))
@@ -3641,7 +3641,7 @@ public:
         assert(result);
         /* Assignment to a CTFE reference.
          */
-        if (Expression ex = assignToLvalue(e, e1, newval))
+        if (auto ex = assignToLvalue(e, e1, newval))
             result = ex;
         return;
     }
@@ -3792,11 +3792,11 @@ public:
                 // Bugzilla 9245
                 if (e.e2.isLvalue())
                 {
-                    if (Expression ex = evaluatePostblit(istate, newelem))
+                    if (auto ex = evaluatePostblit(istate, newelem))
                         return ex;
                 }
                 // Bugzilla 13661
-                if (Expression ex = evaluateDtor(istate, oldelem))
+                if (auto ex = evaluateDtor(istate, oldelem))
                     return ex;
                 (*oldelems)[i] = newelem;
             }
@@ -3809,7 +3809,7 @@ public:
             if (t1b.ty == Tsarray && e.op == TOKconstruct && e.e2.isLvalue())
             {
                 // Bugzilla 9245
-                if (Expression ex = evaluatePostblit(istate, newval))
+                if (auto ex = evaluatePostblit(istate, newval))
                     return ex;
             }
             oldval = newval;
@@ -4047,10 +4047,10 @@ public:
                             newelem.type = elemtype;
                             if (needsPostblit)
                             {
-                                if (Expression x = evaluatePostblit(istate, newelem))
+                                if (auto x = evaluatePostblit(istate, newelem))
                                     return x;
                             }
-                            if (Expression x = evaluateDtor(istate, oldelem))
+                            if (auto x = evaluateDtor(istate, oldelem))
                                 return x;
                             (*oldelems)[lowerbound + i] = newelem;
                         }
@@ -4066,10 +4066,10 @@ public:
                             newelem.type = elemtype;
                             if (needsPostblit)
                             {
-                                if (Expression x = evaluatePostblit(istate, newelem))
+                                if (auto x = evaluatePostblit(istate, newelem))
                                     return x;
                             }
-                            if (Expression x = evaluateDtor(istate, oldelem))
+                            if (auto x = evaluateDtor(istate, oldelem))
                                 return x;
                             (*oldelems)[lowerbound + i] = newelem;
                         }
@@ -4153,7 +4153,7 @@ public:
                         if (!directblk && (*w)[k].op == TOKarrayliteral)
                         {
                             // Multidimensional array block assign
-                            if (Expression ex = assignTo(cast(ArrayLiteralExp)(*w)[k]))
+                            if (auto ex = assignTo(cast(ArrayLiteralExp)(*w)[k]))
                                 return ex;
                         }
                         else if (refCopy)
@@ -4171,13 +4171,13 @@ public:
                             assignInPlace(oldelem, newval);
                             if (needsPostblit)
                             {
-                                if (Expression ex = evaluatePostblit(istate, oldelem))
+                                if (auto ex = evaluatePostblit(istate, oldelem))
                                     return ex;
                             }
                             if (needsDtor)
                             {
                                 // Bugzilla 14860
-                                if (Expression ex = evaluateDtor(istate, tmpelem))
+                                if (auto ex = evaluateDtor(istate, tmpelem))
                                     return ex;
                             }
                         }
@@ -4197,7 +4197,7 @@ public:
             rb.refCopy = wantRef || cow;
             rb.needsPostblit = sd && sd.postblit && e.op != TOKblit && e.e2.isLvalue();
             rb.needsDtor = sd && sd.dtor && e.op == TOKassign;
-            if (Expression ex = rb.assignTo(existingAE, lowerbound, upperbound))
+            if (auto ex = rb.assignTo(existingAE, lowerbound, upperbound))
                 return ex;
             if (goal == ctfeNeedNothing)
                 return null; // avoid creating an unused literal
@@ -5676,7 +5676,7 @@ public:
         Expression ex = interpret(e.e1, istate);
         if (exceptionOrCant(ex))
             return;
-        if (FuncDeclaration f = e.var.isFuncDeclaration())
+        if (auto f = e.var.isFuncDeclaration())
         {
             if (ex == e.e1)
                 result = e; // optimize: reuse this CTFE reference
@@ -5879,7 +5879,7 @@ extern (C++) Expression scrubReturnValue(Loc loc, Expression e)
         {
             int old = se.stageflags;
             se.stageflags |= stageScrub;
-            if (Expression ex = scrubArray(loc, se.elements, true))
+            if (auto ex = scrubArray(loc, se.elements, true))
                 return ex;
             se.stageflags = old;
         }
@@ -5898,7 +5898,7 @@ extern (C++) Expression scrubReturnValue(Loc loc, Expression e)
         {
             int old = se.stageflags;
             se.stageflags |= stageScrub;
-            if (Expression ex = scrubArray(loc, se.elements, true))
+            if (auto ex = scrubArray(loc, se.elements, true))
                 return ex;
             se.stageflags = old;
         }
@@ -5910,16 +5910,16 @@ extern (C++) Expression scrubReturnValue(Loc loc, Expression e)
     if (e.op == TOKarrayliteral)
     {
         (cast(ArrayLiteralExp)e).ownedByCtfe = OWNEDcode;
-        if (Expression ex = scrubArray(loc, (cast(ArrayLiteralExp)e).elements))
+        if (auto ex = scrubArray(loc, (cast(ArrayLiteralExp)e).elements))
             return ex;
     }
     if (e.op == TOKassocarrayliteral)
     {
         AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)e;
         aae.ownedByCtfe = OWNEDcode;
-        if (Expression ex = scrubArray(loc, aae.keys))
+        if (auto ex = scrubArray(loc, aae.keys))
             return ex;
-        if (Expression ex = scrubArray(loc, aae.values))
+        if (auto ex = scrubArray(loc, aae.values))
             return ex;
         aae.type = toBuiltinAAType(aae.type);
     }
@@ -5982,7 +5982,7 @@ extern (C++) Expression scrubCacheValue(Loc loc, Expression e)
         {
             int old = sle.stageflags;
             sle.stageflags |= stageScrub;
-            if (Expression ex = scrubArrayCache(loc, sle.elements))
+            if (auto ex = scrubArrayCache(loc, sle.elements))
                 return ex;
             sle.stageflags = old;
         }
@@ -5995,7 +5995,7 @@ extern (C++) Expression scrubCacheValue(Loc loc, Expression e)
         {
             int old = sle.stageflags;
             sle.stageflags |= stageScrub;
-            if (Expression ex = scrubArrayCache(loc, sle.elements))
+            if (auto ex = scrubArrayCache(loc, sle.elements))
                 return ex;
             sle.stageflags = old;
         }
@@ -6007,16 +6007,16 @@ extern (C++) Expression scrubCacheValue(Loc loc, Expression e)
     if (e.op == TOKarrayliteral)
     {
         (cast(ArrayLiteralExp)e).ownedByCtfe = OWNEDcache;
-        if (Expression ex = scrubArrayCache(loc, (cast(ArrayLiteralExp)e).elements))
+        if (auto ex = scrubArrayCache(loc, (cast(ArrayLiteralExp)e).elements))
             return ex;
     }
     if (e.op == TOKassocarrayliteral)
     {
         AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)e;
         aae.ownedByCtfe = OWNEDcache;
-        if (Expression ex = scrubArrayCache(loc, aae.keys))
+        if (auto ex = scrubArrayCache(loc, aae.keys))
             return ex;
-        if (Expression ex = scrubArrayCache(loc, aae.values))
+        if (auto ex = scrubArrayCache(loc, aae.values))
             return ex;
     }
     return e;
@@ -6110,9 +6110,9 @@ extern (C++) Expression interpret_dup(InterState* istate, Expression earg)
     AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)copyLiteral(earg).copy();
     for (size_t i = 0; i < aae.keys.dim; i++)
     {
-        if (Expression e = evaluatePostblit(istate, (*aae.keys)[i]))
+        if (auto e = evaluatePostblit(istate, (*aae.keys)[i]))
             return e;
-        if (Expression e = evaluatePostblit(istate, (*aae.values)[i]))
+        if (auto e = evaluatePostblit(istate, (*aae.values)[i]))
             return e;
     }
     aae.type = earg.type.mutableOf(); // repaint type from const(int[int]) to const(int)[int]
