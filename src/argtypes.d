@@ -189,8 +189,8 @@ extern (C++) TypeTuple toArgTypes(Type t)
             }
             if (!t2)
                 return t1;
-            uint sz1 = cast(uint)t1.size(Loc());
-            uint sz2 = cast(uint)t2.size(Loc());
+            auto sz1 = cast(uint)t1.size(Loc());
+            auto sz2 = cast(uint)t2.size(Loc());
             if (t1.ty != t2.ty && (t1.ty == Tfloat80 || t2.ty == Tfloat80))
                 return null;
             // [float,float] => [cfloat]
@@ -243,7 +243,7 @@ extern (C++) TypeTuple toArgTypes(Type t)
             if (global.params.is64bit && !global.params.isLP64)
             {
                 // For AMD64 ILP32 ABI, D arrays fit into a single integer register.
-                uint offset = cast(uint)Type.tsize_t.size(Loc());
+                auto offset = cast(uint)Type.tsize_t.size(Loc());
                 auto t = argtypemerge(Type.tsize_t, Type.tvoidptr, offset);
                 if (t)
                 {
@@ -262,7 +262,7 @@ extern (C++) TypeTuple toArgTypes(Type t)
             if (global.params.is64bit && !global.params.isLP64)
             {
                 // For AMD64 ILP32 ABI, delegates fit into a single integer register.
-                uint offset = cast(uint)Type.tsize_t.size(Loc());
+                auto offset = cast(uint)Type.tsize_t.size(Loc());
                 auto t = argtypemerge(Type.tsize_t, Type.tvoidptr, offset);
                 if (t)
                 {

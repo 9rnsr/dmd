@@ -695,7 +695,7 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
             {
                 if (e.var == ids.from[i])
                 {
-                    SymOffExp se = cast(SymOffExp)e.copy();
+                    auto se = cast(SymOffExp)e.copy();
                     se.var = cast(Declaration)ids.to[i];
                     result = se;
                     return;
@@ -711,7 +711,7 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
             {
                 if (e.var == ids.from[i])
                 {
-                    VarExp ve = cast(VarExp)e.copy();
+                    auto ve = cast(VarExp)e.copy();
                     ve.var = cast(Declaration)ids.to[i];
                     result = ve;
                     return;
@@ -863,7 +863,7 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
                             vto._init = new ExpInitializer(ei.loc, doInline(ei, ids));
                         }
                     }
-                    DeclarationExp de = cast(DeclarationExp)e.copy();
+                    auto de = cast(DeclarationExp)e.copy();
                     de.declaration = vto;
                     result = de;
                     return;
@@ -891,7 +891,7 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
         void visit(NewExp e)
         {
             //printf("NewExp::doInline(): %s\n", e->toChars());
-            NewExp ne = cast(NewExp)e.copy();
+            auto ne = cast(NewExp)e.copy();
             if (e.thisexp)
                 ne.thisexp = doInline(e.thisexp, ids);
             ne.newargs = arrayExpressiondoInline(e.newargs);
@@ -901,14 +901,14 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
 
         void visit(UnaExp e)
         {
-            UnaExp ue = cast(UnaExp)e.copy();
+            auto ue = cast(UnaExp)e.copy();
             ue.e1 = doInline(e.e1, ids);
             result = ue;
         }
 
         void visit(AssertExp e)
         {
-            AssertExp ae = cast(AssertExp)e.copy();
+            auto ae = cast(AssertExp)e.copy();
             ae.e1 = doInline(e.e1, ids);
             if (e.msg)
                 ae.msg = doInline(e.msg, ids);
@@ -917,7 +917,7 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
 
         void visit(BinExp e)
         {
-            BinExp be = cast(BinExp)e.copy();
+            auto be = cast(BinExp)e.copy();
             be.e1 = doInline(e.e1, ids);
             be.e2 = doInline(e.e2, ids);
             result = be;
@@ -925,7 +925,7 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
 
         void visit(CallExp e)
         {
-            CallExp ce = cast(CallExp)e.copy();
+            auto ce = cast(CallExp)e.copy();
             ce.e1 = doInline(e.e1, ids);
             ce.arguments = arrayExpressiondoInline(e.arguments);
             result = ce;
@@ -933,7 +933,7 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
 
         void visit(IndexExp e)
         {
-            IndexExp are = cast(IndexExp)e.copy();
+            auto are = cast(IndexExp)e.copy();
             are.e1 = doInline(e.e1, ids);
             if (e.lengthVar)
             {
@@ -960,7 +960,7 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
 
         void visit(SliceExp e)
         {
-            SliceExp are = cast(SliceExp)e.copy();
+            auto are = cast(SliceExp)e.copy();
             are.e1 = doInline(e.e1, ids);
             if (e.lengthVar)
             {
@@ -990,7 +990,7 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
 
         void visit(TupleExp e)
         {
-            TupleExp ce = cast(TupleExp)e.copy();
+            auto ce = cast(TupleExp)e.copy();
             if (e.e0)
                 ce.e0 = doInline(e.e0, ids);
             ce.exps = arrayExpressiondoInline(e.exps);
@@ -999,14 +999,14 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
 
         void visit(ArrayLiteralExp e)
         {
-            ArrayLiteralExp ce = cast(ArrayLiteralExp)e.copy();
+            auto ce = cast(ArrayLiteralExp)e.copy();
             ce.elements = arrayExpressiondoInline(e.elements);
             result = ce;
         }
 
         void visit(AssocArrayLiteralExp e)
         {
-            AssocArrayLiteralExp ce = cast(AssocArrayLiteralExp)e.copy();
+            auto ce = cast(AssocArrayLiteralExp)e.copy();
             ce.keys = arrayExpressiondoInline(e.keys);
             ce.values = arrayExpressiondoInline(e.values);
             result = ce;
@@ -1019,7 +1019,7 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
                 result = e.inlinecopy;
                 return;
             }
-            StructLiteralExp ce = cast(StructLiteralExp)e.copy();
+            auto ce = cast(StructLiteralExp)e.copy();
             e.inlinecopy = ce;
             ce.elements = arrayExpressiondoInline(e.elements);
             e.inlinecopy = null;
@@ -1028,7 +1028,7 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
 
         void visit(ArrayExp e)
         {
-            ArrayExp ce = cast(ArrayExp)e.copy();
+            auto ce = cast(ArrayExp)e.copy();
             ce.e1 = doInline(e.e1, ids);
             ce.arguments = arrayExpressiondoInline(e.arguments);
             result = ce;
@@ -1036,7 +1036,7 @@ extern (C++) Expression doInline(Expression e, InlineDoState* ids)
 
         void visit(CondExp e)
         {
-            CondExp ce = cast(CondExp)e.copy();
+            auto ce = cast(CondExp)e.copy();
             ce.econd = doInline(e.econd, ids);
             ce.e1 = doInline(e.e1, ids);
             ce.e2 = doInline(e.e2, ids);
@@ -1088,10 +1088,10 @@ public:
              */
             if (s.exp && s.exp.op == TOKcall)
             {
-                CallExp ce = cast(CallExp)s.exp;
+                auto ce = cast(CallExp)s.exp;
                 if (ce.e1.op == TOKvar)
                 {
-                    VarExp ve = cast(VarExp)ce.e1;
+                    auto ve = cast(VarExp)ce.e1;
                     auto fd = ve.var.isFuncDeclaration();
                     if (fd && fd != parent && canInline(fd, 0, 0, 1))
                     {
@@ -1279,7 +1279,7 @@ public:
             {
                 for (size_t i = 0; i < td.objects.dim; i++)
                 {
-                    DsymbolExp se = cast(DsymbolExp)(*td.objects)[i];
+                    auto se = cast(DsymbolExp)(*td.objects)[i];
                     assert(se.op == TOKdsymbol);
                     scanVar(se.s); // TODO
                 }
@@ -1332,7 +1332,7 @@ public:
     {
         if (e.op == TOKconstruct && e.e2.op == TOKcall)
         {
-            CallExp ce = cast(CallExp)e.e2;
+            auto ce = cast(CallExp)e.e2;
             if (ce.f && ce.f.nrvo_can && ce.f.nrvo_var) // NRVO
             {
                 if (e.e1.op == TOKvar)
@@ -1376,7 +1376,7 @@ public:
         arrayInlineScan(e.arguments);
         if (e.e1.op == TOKvar)
         {
-            VarExp ve = cast(VarExp)e.e1;
+            auto ve = cast(VarExp)e.e1;
             auto fd = ve.var.isFuncDeclaration();
             if (fd && fd != parent && canInline(fd, 0, 0, 0))
             {
@@ -1391,7 +1391,7 @@ public:
         }
         else if (e.e1.op == TOKdotvar)
         {
-            DotVarExp dve = cast(DotVarExp)e.e1;
+            auto dve = cast(DotVarExp)e.e1;
             auto fd = dve.var.isFuncDeclaration();
             if (fd && fd != parent && canInline(fd, 1, 0, 0))
             {
@@ -1957,7 +1957,7 @@ extern (C++) Expression inlineCopy(Expression e, Scope* sc)
     //return e->copy();
     if (e.op == TOKdelegate)
     {
-        DelegateExp de = cast(DelegateExp)e;
+        auto de = cast(DelegateExp)e;
         if (de.func.isNested())
         {
             /* See Bugzilla 4820

@@ -421,7 +421,7 @@ extern (C++) bool checkEscapeRef(Scope* sc, Expression e, bool gag)
                 // If 'this' is returned by ref, check it too
                 if (tf.isreturn && e.e1.op == TOKdotvar && t1.ty == Tfunction)
                 {
-                    DotVarExp dve = cast(DotVarExp)e.e1;
+                    auto dve = cast(DotVarExp)e.e1;
                     dve.e1.accept(this);
                 }
             }

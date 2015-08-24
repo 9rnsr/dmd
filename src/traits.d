@@ -916,13 +916,13 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             FuncDeclaration f;
             if (ex.op == TOKvar)
             {
-                VarExp ve = cast(VarExp)ex;
+                auto ve = cast(VarExp)ex;
                 f = ve.var.isFuncDeclaration();
                 ex = null;
             }
             else if (ex.op == TOKdotvar)
             {
-                DotVarExp dve = cast(DotVarExp)ex;
+                auto dve = cast(DotVarExp)ex;
                 f = dve.var.isFuncDeclaration();
                 if (dve.e1.op == TOKdottype || dve.e1.op == TOKthis)
                     ex = null;

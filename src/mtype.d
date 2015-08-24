@@ -2147,7 +2147,7 @@ public:
             pflag = &(cast(TypeClass)tb).att;
         else
             return false;
-        AliasThisRec flag = cast(AliasThisRec)(*pflag & RECtypeMask);
+        auto flag = cast(AliasThisRec)(*pflag & RECtypeMask);
         if (flag == RECfwdref)
         {
             auto att = aliasthisOf();
@@ -2470,7 +2470,7 @@ public:
             e = defaultInitLiteral(loc);
             if (tb.ty == Tstruct && tb.needsNested())
             {
-                StructLiteralExp se = cast(StructLiteralExp)e;
+                auto se = cast(StructLiteralExp)e;
                 se.sinit = toInitializer(se.sd);
             }
         }
@@ -2535,12 +2535,12 @@ public:
             ex = (cast(CommaExp)ex).e2;
         if (ex.op == TOKdotvar)
         {
-            DotVarExp dv = cast(DotVarExp)ex;
+            auto dv = cast(DotVarExp)ex;
             v = dv.var.isVarDeclaration();
         }
         else if (ex.op == TOKvar)
         {
-            VarExp ve = cast(VarExp)ex;
+            auto ve = cast(VarExp)ex;
             v = ve.var.isVarDeclaration();
         }
         if (v)
@@ -2559,7 +2559,7 @@ public:
                 e = defaultInitLiteral(e.loc);
                 if (tb.ty == Tstruct && tb.needsNested())
                 {
-                    StructLiteralExp se = cast(StructLiteralExp)e;
+                    auto se = cast(StructLiteralExp)e;
                     se.sinit = toInitializer(se.sd);
                 }
                 goto Lreturn;
@@ -4119,7 +4119,7 @@ public:
             return terror;
         }
         auto t = cast(TypeSArray)basetype;
-        int sz = cast(int)t.size(loc);
+        auto sz = cast(int)t.size(loc);
         switch (Target.checkVectorType(sz, t.nextOf()))
         {
         case 0:
@@ -4775,7 +4775,7 @@ public:
         {
             printf("TypeSArray::defaultInitLiteral() '%s'\n", toChars());
         }
-        size_t d = cast(size_t)dim.toInteger();
+        auto d = cast(size_t)dim.toInteger();
         Expression elementinit;
         if (next.ty == Tvoid)
             elementinit = tuns8.defaultInitLiteral(loc);
@@ -4953,7 +4953,7 @@ public:
         {
             if (e.op == TOKstring)
             {
-                StringExp se = cast(StringExp)e;
+                auto se = cast(StringExp)e;
                 return new IntegerExp(se.loc, se.len, Type.tsize_t);
             }
             if (e.op == TOKnull)
@@ -5956,7 +5956,7 @@ public:
                     e = _init.toExpression();
                     if (e.op == TOKfunction) // see Bugzilla 4820
                     {
-                        FuncExp fe = cast(FuncExp)e;
+                        auto fe = cast(FuncExp)e;
                         // Replace function literal with a function symbol,
                         // since default arg expression must be copied when used
                         // and copying the literal itself is wrong.
@@ -6769,7 +6769,7 @@ public:
             RootObject id = t.idents[i];
             if (id.dyncast() == DYNCAST_DSYMBOL)
             {
-                TemplateInstance ti = cast(TemplateInstance)id;
+                auto ti = cast(TemplateInstance)id;
                 ti = cast(TemplateInstance)ti.syntaxCopy(null);
                 id = ti;
             }
@@ -7864,12 +7864,12 @@ public:
         }
         if (e.op == TOKdotexp)
         {
-            DotExp de = cast(DotExp)e;
+            auto de = cast(DotExp)e;
             if (de.e1.op == TOKimport)
             {
                 assert(0); // cannot find a case where this happens; leave
                 // assert in until we do
-                ScopeExp se = cast(ScopeExp)de.e1;
+                auto se = cast(ScopeExp)de.e1;
                 s = se.sds.search(e.loc, ident);
                 e = de.e1;
                 goto L1;
@@ -8576,10 +8576,10 @@ public:
         }
         if (e.op == TOKdotexp)
         {
-            DotExp de = cast(DotExp)e;
+            auto de = cast(DotExp)e;
             if (de.e1.op == TOKimport)
             {
-                ScopeExp se = cast(ScopeExp)de.e1;
+                auto se = cast(ScopeExp)de.e1;
                 s = se.sds.search(e.loc, ident);
                 e = de.e1;
                 goto L1;
@@ -9292,7 +9292,7 @@ public:
         transitive();
         auto args = new Parameters();
         args.reserve(cast(size_t)(i2 - i1));
-        for (size_t i = cast(size_t)i1; i < cast(size_t)i2; i++)
+        for (auto i = cast(size_t)i1; i < cast(size_t)i2; i++)
         {
             Parameter arg = (*tt.arguments)[i];
             args.push(arg);

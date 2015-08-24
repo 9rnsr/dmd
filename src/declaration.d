@@ -521,7 +521,7 @@ public:
                 auto e = cast(Expression)o;
                 if (e.op == TOKdsymbol)
                 {
-                    DsymbolExp ve = cast(DsymbolExp)e;
+                    auto ve = cast(DsymbolExp)e;
                     auto d = ve.s.isDeclaration();
                     if (d && d.needThis())
                     {
@@ -1259,7 +1259,7 @@ public:
                     }
                     if (e.op == TOKtuple)
                     {
-                        TupleExp te = cast(TupleExp)e;
+                        auto te = cast(TupleExp)e;
                         if (iexps.dim - 1 + te.exps.dim > nelems)
                             goto Lnomatch;
                         iexps.remove(pos);
@@ -1313,7 +1313,7 @@ public:
         Lnomatch:
             if (ie && ie.op == TOKtuple)
             {
-                TupleExp te = cast(TupleExp)ie;
+                auto te = cast(TupleExp)ie;
                 size_t tedim = te.exps.dim;
                 if (tedim != nelems)
                 {
@@ -1337,7 +1337,7 @@ public:
                     Expression einit = ie;
                     if (ie.op == TOKtuple)
                     {
-                        TupleExp te = cast(TupleExp)ie;
+                        auto te = cast(TupleExp)ie;
                         einit = (*te.exps)[i];
                         if (i == 0)
                             einit = Expression.combine(te.e0, einit);
@@ -1622,7 +1622,7 @@ public:
                         if (ex.op == TOKnew)
                         {
                             // See if initializer is a NewExp that can be allocated on the stack
-                            NewExp ne = cast(NewExp)ex;
+                            auto ne = cast(NewExp)ex;
                             if (!(ne.newargs && ne.newargs.dim > 1) && type.toBasetype().ty == Tclass)
                             {
                                 ne.onstack = 1;
@@ -1753,7 +1753,7 @@ public:
                 assert(o.dyncast() == DYNCAST_EXPRESSION);
                 auto e = cast(Expression)o;
                 assert(e.op == TOKdsymbol);
-                DsymbolExp se = cast(DsymbolExp)e;
+                auto se = cast(DsymbolExp)e;
                 se.s.setFieldOffset(ad, poffset, isunion);
             }
             return;
@@ -1817,7 +1817,7 @@ public:
         ad.fields.push(this);
         if (t.ty == Terror)
             return;
-        uint memsize = cast(uint)t.size(loc); // size of member
+        auto memsize = cast(uint)t.size(loc); // size of member
         uint memalignsize = Target.fieldalign(t); // size of member for alignment purposes
         offset = AggregateDeclaration.placeField(poffset, memsize, memalignsize, alignment, &ad.structsize, &ad.alignsize, isunion);
         //printf("\t%s: memalignsize = %d\n", toChars(), memalignsize);

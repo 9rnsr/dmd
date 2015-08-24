@@ -123,7 +123,7 @@ public:
     static Identifier idPool(const(char)* s, size_t len)
     {
         StringValue* sv = stringtable.update(s, len);
-        Identifier id = cast(Identifier)sv.ptrvalue;
+        auto id = cast(Identifier)sv.ptrvalue;
         if (!id)
         {
             id = new Identifier(sv.toDchars(), TOKidentifier);

@@ -609,7 +609,7 @@ public:
              */
             if (e.op == TOKstring && tb.ty == Tsarray)
             {
-                StringExp se = cast(StringExp)e;
+                auto se = cast(StringExp)e;
                 auto typeb = se.type.toBasetype();
                 TY tynto = tb.nextOf().ty;
                 if (!se.committed && (typeb.ty == Tarray || typeb.ty == Tsarray) && (tynto == Tchar || tynto == Twchar || tynto == Tdchar) && se.length(cast(int)tb.nextOf().size()) < (cast(TypeSArray)tb).dim.toInteger())

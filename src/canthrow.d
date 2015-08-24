@@ -221,10 +221,10 @@ extern (C++) bool Dsymbol_canThrow(Dsymbol s, FuncDeclaration func, bool mustNot
             RootObject o = (*td.objects)[i];
             if (o.dyncast() == DYNCAST_EXPRESSION)
             {
-                Expression eo = cast(Expression)o;
+                auto eo = cast(Expression)o;
                 if (eo.op == TOKdsymbol)
                 {
-                    DsymbolExp se = cast(DsymbolExp)eo;
+                    auto se = cast(DsymbolExp)eo;
                     if (Dsymbol_canThrow(se.s, func, mustNotThrow))
                         return true;
                 }

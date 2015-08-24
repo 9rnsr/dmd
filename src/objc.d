@@ -172,7 +172,7 @@ extern (C++) void objc_FuncDeclaration_semantic_setSelector(FuncDeclaration fd, 
             assert(e.type);
             if (e.type.ty != Tstruct)
                 continue;
-            StructLiteralExp literal = cast(StructLiteralExp)e;
+            auto literal = cast(StructLiteralExp)e;
             assert(literal.sd);
             if (!objc_isUdaSelector(literal.sd))
                 continue;

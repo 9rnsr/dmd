@@ -1239,7 +1239,7 @@ public:
         {
             for (size_t i = 0; i < aimports.dim; i++)
             {
-                Module mi = cast(Module)aimports.data[i];
+                auto mi = cast(Module)aimports.data[i];
                 printf("\t[%d] %s\n", i, mi.toChars());
             }
         }

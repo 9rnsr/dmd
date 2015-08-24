@@ -154,7 +154,7 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
             e = cast(SliceExp)result;
             if (e.e1.op == TOKarrayliteral)
             {
-                ArrayLiteralExp ale = cast(ArrayLiteralExp)e.e1;
+                auto ale = cast(ArrayLiteralExp)e.e1;
                 auto tb = t.toBasetype();
                 Type tx;
                 if (tb.ty == Tsarray)
@@ -556,13 +556,13 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                                 }
                                 return;
                             }
-                            int szto = cast(int)t.nextOf().size();
+                            auto szto = cast(int)t.nextOf().size();
                             if (tynto == Tchar || tynto == Twchar || tynto == Tdchar)
                             {
                                 if (e.committed && tynto != tyn)
                                     return;
                                 size_t fromlen = e.length(szto);
-                                size_t tolen = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
+                                auto tolen = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
                                 if (tolen < fromlen)
                                     return;
                                 if (tolen != fromlen)
@@ -581,13 +581,13 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                         else if (e.type.ty == Tarray)
                         {
                             TY tynto = t.nextOf().ty;
-                            int sznto = cast(int)t.nextOf().size();
+                            auto sznto = cast(int)t.nextOf().size();
                             if (tynto == Tchar || tynto == Twchar || tynto == Tdchar)
                             {
                                 if (e.committed && tynto != tyn)
                                     return;
                                 size_t fromlen = e.length(sznto);
-                                size_t tolen = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
+                                auto tolen = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
                                 if (tolen < fromlen)
                                     return;
                                 if (tolen != fromlen)
@@ -834,7 +834,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             {
                 /* Treat 'this' as just another function argument
                  */
-                DotVarExp dve = cast(DotVarExp)e.e1;
+                auto dve = cast(DotVarExp)e.e1;
                 auto targ = dve.e1.type;
                 if (targ.constConv(targ.castMod(mod)) == MATCHnomatch)
                     return;
@@ -888,7 +888,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             t = t.toBasetype();
             if (e.e1.op == TOKoverloadset && (t.ty == Tpointer || t.ty == Tdelegate) && t.nextOf().ty == Tfunction)
             {
-                OverExp eo = cast(OverExp)e.e1;
+                auto eo = cast(OverExp)e.e1;
                 FuncDeclaration f = null;
                 for (size_t i = 0; i < eo.vars.a.dim; i++)
                 {
@@ -1292,7 +1292,7 @@ extern (C++) Type toStaticArrayType(SliceExp e)
         Expression upr = e.upr.optimize(WANTvalue);
         if (lwr.isConst() && upr.isConst())
         {
-            size_t len = cast(size_t)(upr.toUInteger() - lwr.toUInteger());
+            auto len = cast(size_t)(upr.toUInteger() - lwr.toUInteger());
             return e.type.toBasetype().nextOf().sarrayOf(len);
         }
     }
@@ -1560,7 +1560,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             visit(cast(Expression)e);
             if (result.op == TOKnull)
             {
-                NullExp ex = cast(NullExp)result;
+                auto ex = cast(NullExp)result;
                 ex.committed = 1;
                 return;
             }
@@ -1794,7 +1794,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             // See if need to truncate or extend the literal
             if (tb.ty == Tsarray)
             {
-                size_t dim2 = cast(size_t)(cast(TypeSArray)tb).dim.toInteger();
+                auto dim2 = cast(size_t)(cast(TypeSArray)tb).dim.toInteger();
                 //printf("dim from = %d, to = %d\n", (int)se->len, (int)dim2);
                 // Changing dimensions
                 if (dim2 != se.len)
@@ -1833,7 +1833,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 // Look for pointers to functions where the functions are overloaded.
                 if (e.e1.op == TOKoverloadset && (t.ty == Tpointer || t.ty == Tdelegate) && t.nextOf().ty == Tfunction)
                 {
-                    OverExp eo = cast(OverExp)e.e1;
+                    auto eo = cast(OverExp)e.e1;
                     FuncDeclaration f = null;
                     for (size_t i = 0; i < eo.vars.a.dim; i++)
                     {
@@ -1865,7 +1865,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 }
                 if (e.type.ty == Tpointer && e.type.nextOf().ty == Tfunction && tb.ty == Tpointer && tb.nextOf().ty == Tfunction && e.e1.op == TOKvar)
                 {
-                    VarExp ve = cast(VarExp)e.e1;
+                    auto ve = cast(VarExp)e.e1;
                     auto f = ve.var.isFuncDeclaration();
                     if (f)
                     {
@@ -1893,7 +1893,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 result = e;
                 return;
             }
-            TupleExp te = cast(TupleExp)e.copy();
+            auto te = cast(TupleExp)e.copy();
             te.e0 = e.e0 ? e.e0.copy() : null;
             te.exps = cast(Expressions*)e.exps.copy();
             for (size_t i = 0; i < te.exps.dim; i++)
@@ -2007,7 +2007,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             auto tb = t.toBasetype();
             if (tb.ty == Taarray && typeb.ty == Taarray && tb.nextOf().toBasetype().ty != Tvoid)
             {
-                AssocArrayLiteralExp ae = cast(AssocArrayLiteralExp)e.copy();
+                auto ae = cast(AssocArrayLiteralExp)e.copy();
                 ae.keys = e.keys.copy();
                 ae.values = e.values.copy();
                 assert(e.keys.dim == e.values.dim);
@@ -2476,11 +2476,11 @@ extern (C++) bool typeMerge(Scope* sc, TOK op, Type* pt, Expression* pe1, Expres
 Lagain:
     t1b = t1.toBasetype();
     t2b = t2.toBasetype();
-    TY ty = cast(TY)impcnvResult[t1b.ty][t2b.ty];
+    auto ty = cast(TY)impcnvResult[t1b.ty][t2b.ty];
     if (ty != Terror)
     {
-        TY ty1 = cast(TY)impcnvType1[t1b.ty][t2b.ty];
-        TY ty2 = cast(TY)impcnvType2[t1b.ty][t2b.ty];
+        auto ty1 = cast(TY)impcnvType1[t1b.ty][t2b.ty];
+        auto ty2 = cast(TY)impcnvType2[t1b.ty][t2b.ty];
         if (t1b.ty == ty1) // if no promotions
         {
             if (t1.equals(t2))

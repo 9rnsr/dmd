@@ -166,7 +166,7 @@ extern (C++) bool lambdaHasSideEffect(Expression e)
         return true;
     case TOKcall:
         {
-            CallExp ce = cast(CallExp)e;
+            auto ce = cast(CallExp)e;
             /* Calling a function or delegate that is pure nothrow
              * has no side effects.
              */
@@ -185,7 +185,7 @@ extern (C++) bool lambdaHasSideEffect(Expression e)
         }
     case TOKcast:
         {
-            CastExp ce = cast(CastExp)e;
+            auto ce = cast(CastExp)e;
             /* if:
              *  cast(classtype)func()  // because it may throw
              */
@@ -211,7 +211,7 @@ extern (C++) void discardValue(Expression e)
     {
     case TOKcast:
         {
-            CastExp ce = cast(CastExp)e;
+            auto ce = cast(CastExp)e;
             if (ce.to.equals(Type.tvoid))
             {
                 /*
@@ -238,7 +238,7 @@ extern (C++) void discardValue(Expression e)
         /* Issue 3882: */
         if (global.params.warnings && !global.gag)
         {
-            CallExp ce = cast(CallExp)e;
+            auto ce = cast(CallExp)e;
             if (e.type.ty == Tvoid)
             {
                 /* Don't complain about calling void-returning functions with no side-effect,
@@ -276,19 +276,19 @@ extern (C++) void discardValue(Expression e)
         return;
     case TOKandand:
         {
-            AndAndExp aae = cast(AndAndExp)e;
+            auto aae = cast(AndAndExp)e;
             discardValue(aae.e2);
             return;
         }
     case TOKoror:
         {
-            OrOrExp ooe = cast(OrOrExp)e;
+            auto ooe = cast(OrOrExp)e;
             discardValue(ooe.e2);
             return;
         }
     case TOKquestion:
         {
-            CondExp ce = cast(CondExp)e;
+            auto ce = cast(CondExp)e;
             /* Bugzilla 6178 & 14089: Either CondExp::e1 or e2 may have
              * redundant expression to make those types common. For example:
              *
@@ -316,7 +316,7 @@ extern (C++) void discardValue(Expression e)
         }
     case TOKcomma:
         {
-            CommaExp ce = cast(CommaExp)e;
+            auto ce = cast(CommaExp)e;
             /* Check for compiler-generated code of the form  auto __tmp, e, __tmp;
              * In such cases, only check e for side effect (it's OK for __tmp to have
              * no side effect).

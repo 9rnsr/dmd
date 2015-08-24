@@ -2179,7 +2179,7 @@ public:
         scan(&tok);
         if (tok.value == TOKint32v || tok.value == TOKint64v)
         {
-            int lin = cast(int)(tok.uns64value - 1);
+            auto lin = cast(int)(tok.uns64value - 1);
             if (lin != tok.uns64value - 1)
                 error("line number %lld out of range", cast(ulong)tok.uns64value);
             else

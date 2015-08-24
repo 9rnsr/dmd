@@ -467,7 +467,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
 
         static int paramsCppMangleDg(void* ctx, size_t n, Parameter fparam)
         {
-            CppMangleVisitor mangler = cast(CppMangleVisitor)ctx;
+            auto mangler = cast(CppMangleVisitor)ctx;
             auto t = fparam.type.merge2();
             if (fparam.storageClass & (STCout | STCref))
                 t = t.referenceTo();
@@ -1784,7 +1784,7 @@ else static if (TARGET_WINDOS)
 
         static int mangleParameterDg(void* ctx, size_t n, Parameter p)
         {
-            VisualCPPMangler mangler = cast(VisualCPPMangler)ctx;
+            auto mangler = cast(VisualCPPMangler)ctx;
             auto t = p.type;
             if (p.storageClass & (STCout | STCref))
             {

@@ -101,12 +101,12 @@ extern (C++) bool isArrayOpValid(Expression e)
         }
         if (isBinArrayOp(e.op) || isBinAssignArrayOp(e.op) || e.op == TOKassign)
         {
-            BinExp be = cast(BinExp)e;
+            auto be = cast(BinExp)e;
             return isArrayOpValid(be.e1) && isArrayOpValid(be.e2);
         }
         if (e.op == TOKconstruct)
         {
-            BinExp be = cast(BinExp)e;
+            auto be = cast(BinExp)e;
             return be.e1.op == TOKslice && isArrayOpValid(be.e2);
         }
         if (e.op == TOKcall)
@@ -540,7 +540,7 @@ extern (C++) Expression buildArrayLoop(Expression e, Parameters* fparams)
             {
                 /* Evaluate assign expressions left to right
                  */
-                BinExp be = cast(BinExp)e.copy();
+                auto be = cast(BinExp)e.copy();
                 be.e1 = buildArrayLoop(be.e1);
                 be.e2 = buildArrayLoop(be.e2);
                 be.type = null;

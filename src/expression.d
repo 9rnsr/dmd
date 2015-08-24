@@ -254,7 +254,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
     Type tthis;
     if (e1.op == TOKdotexp)
     {
-        DotExp de = cast(DotExp)e1;
+        auto de = cast(DotExp)e1;
         if (de.e2.op == TOKoverloadset)
         {
             tiargs = null;
@@ -329,7 +329,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
     }
     else if (e1.op == TOKdotti)
     {
-        DotTemplateInstanceExp dti = cast(DotTemplateInstanceExp)e1;
+        auto dti = cast(DotTemplateInstanceExp)e1;
         if (!dti.findTempDecl(sc))
             goto Leprop;
         if (!dti.ti.semanticTiargs(sc))
@@ -343,7 +343,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
     }
     else if (e1.op == TOKdottd)
     {
-        DotTemplateExp dte = cast(DotTemplateExp)e1;
+        auto dte = cast(DotTemplateExp)e1;
         s = dte.td;
         tiargs = null;
         tthis = dte.e1.type;
@@ -381,7 +381,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
     }
     else if (e1.op == TOKdotvar && e1.type && e1.type.toBasetype().ty == Tfunction)
     {
-        DotVarExp dve = cast(DotVarExp)e1;
+        auto dve = cast(DotVarExp)e1;
         s = dve.var.isFuncDeclaration();
         tiargs = null;
         tthis = dve.e1.type;
@@ -452,7 +452,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
     }
     if (e1.op == TOKvar)
     {
-        VarExp ve = cast(VarExp)e1;
+        auto ve = cast(VarExp)e1;
         auto v = ve.var.isVarDeclaration();
         if (v && ve.checkPurity(sc, v))
             return new ErrorExp();
@@ -465,7 +465,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
          */
         if (e1.op == TOKvar)
         {
-            VarExp ve = cast(VarExp)e1;
+            auto ve = cast(VarExp)e1;
             if (ve.var.storage_class & STClazy)
             {
                 Expression e = new CallExp(loc, e1);
@@ -524,7 +524,7 @@ extern (C++) bool checkPropertyCall(Expression e, Expression emsg)
         e = (cast(CommaExp)e).e2;
     if (e.op == TOKcall)
     {
-        CallExp ce = cast(CallExp)e;
+        auto ce = cast(CallExp)e;
         TypeFunction tf;
         if (ce.f)
         {
@@ -565,7 +565,7 @@ extern (C++) Expression resolvePropertiesOnly(Scope* sc, Expression e1)
     TemplateDeclaration td;
     if (e1.op == TOKdotexp)
     {
-        DotExp de = cast(DotExp)e1;
+        auto de = cast(DotExp)e1;
         if (de.e2.op == TOKoverloadset)
         {
             os = (cast(OverExp)de.e2).vars;
@@ -598,7 +598,7 @@ extern (C++) Expression resolvePropertiesOnly(Scope* sc, Expression e1)
     }
     else if (e1.op == TOKdotti)
     {
-        DotTemplateInstanceExp dti = cast(DotTemplateInstanceExp)e1;
+        auto dti = cast(DotTemplateInstanceExp)e1;
         if (dti.ti.tempdecl && (td = dti.ti.tempdecl.isTemplateDeclaration()) !is null)
             goto Ltd;
     }
@@ -635,7 +635,7 @@ extern (C++) Expression resolvePropertiesOnly(Scope* sc, Expression e1)
     }
     else if (e1.op == TOKdotvar && e1.type.ty == Tfunction)
     {
-        DotVarExp dve = cast(DotVarExp)e1;
+        auto dve = cast(DotVarExp)e1;
         fd = dve.var.isFuncDeclaration();
         goto Lfd;
     }
@@ -695,7 +695,7 @@ extern (C++) Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
     }
     if (ue.op == TOKdotti)
     {
-        DotTemplateInstanceExp dti = cast(DotTemplateInstanceExp)ue;
+        auto dti = cast(DotTemplateInstanceExp)ue;
         auto ti = new TemplateInstance(loc, s.ident);
         ti.tiargs = dti.ti.tiargs; // for better diagnostic message
         if (!ti.updateTempDecl(sc, s))
@@ -727,7 +727,7 @@ extern (C++) Expression resolveUFCS(Scope* sc, CallExp ce)
     Expression e;
     if (ce.e1.op == TOKdot)
     {
-        DotIdExp die = cast(DotIdExp)ce.e1;
+        auto die = cast(DotIdExp)ce.e1;
         Identifier ident = die.ident;
         Expression ex = die.semanticX(sc);
         if (ex != die)
@@ -793,7 +793,7 @@ extern (C++) Expression resolveUFCS(Scope* sc, CallExp ce)
     }
     else if (ce.e1.op == TOKdotti)
     {
-        DotTemplateInstanceExp dti = cast(DotTemplateInstanceExp)ce.e1;
+        auto dti = cast(DotTemplateInstanceExp)ce.e1;
         if (auto ey = dti.semanticY(sc, 1))
         {
             ce.e1 = ey;
@@ -822,7 +822,7 @@ extern (C++) Expression resolveUFCSProperties(Scope* sc, Expression e1, Expressi
     Expression e;
     if (e1.op == TOKdot)
     {
-        DotIdExp die = cast(DotIdExp)e1;
+        auto die = cast(DotIdExp)e1;
         eleft = die.e1;
         e = searchUFCS(sc, die, die.ident);
     }
@@ -949,7 +949,7 @@ extern (C++) void expandTuples(Expressions* exps)
             // Inline expand all the tuples
             while (arg.op == TOKtuple)
             {
-                TupleExp te = cast(TupleExp)arg;
+                auto te = cast(TupleExp)arg;
                 exps.remove(i); // remove arg
                 exps.insert(i, te.exps); // replace with tuple contents
                 if (i == exps.dim)
@@ -1008,7 +1008,7 @@ extern (C++) int expandAliasThisTuples(Expressions* exps, size_t starti = 0)
                 Expression e = isExpression((*td.objects)[i]);
                 assert(e);
                 assert(e.op == TOKdsymbol);
-                DsymbolExp se = cast(DsymbolExp)e;
+                auto se = cast(DsymbolExp)e;
                 auto d = se.s.isDeclaration();
                 assert(d);
                 e = new DotVarExp(exp.loc, exp, d);
@@ -1190,19 +1190,19 @@ extern (C++) Expression valueNoDtor(Expression e)
          * and make sure the destructor is not called on _ctmp
          * BUG: if e is a CommaExp, we should go down the right side.
          */
-        CallExp ce = cast(CallExp)e;
+        auto ce = cast(CallExp)e;
         if (ce.e1.op == TOKdotvar)
         {
-            DotVarExp dve = cast(DotVarExp)ce.e1;
+            auto dve = cast(DotVarExp)ce.e1;
             if (dve.var.isCtorDeclaration())
             {
                 // It's a constructor call
                 if (dve.e1.op == TOKcomma)
                 {
-                    CommaExp comma = cast(CommaExp)dve.e1;
+                    auto comma = cast(CommaExp)dve.e1;
                     if (comma.e2.op == TOKvar)
                     {
-                        VarExp ve = cast(VarExp)comma.e2;
+                        auto ve = cast(VarExp)comma.e2;
                         auto ctmp = ve.var.isVarDeclaration();
                         if (ctmp)
                         {
@@ -1586,7 +1586,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                     /* Function literals can only appear once, so if this
                      * appearance was scoped, there cannot be any others.
                      */
-                    FuncExp fe = cast(FuncExp)a;
+                    auto fe = cast(FuncExp)a;
                     fe.fd.tookAddressOf = 0;
                 }
                 else if (a.op == TOKdelegate)
@@ -1595,10 +1595,10 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                      * this doesn't count as taking the address of it.
                      * We only worry about 'escaping' references to the function.
                      */
-                    DelegateExp de = cast(DelegateExp)a;
+                    auto de = cast(DelegateExp)a;
                     if (de.e1.op == TOKvar)
                     {
-                        VarExp ve = cast(VarExp)de.e1;
+                        auto ve = cast(VarExp)de.e1;
                         auto f = ve.var.isFuncDeclaration();
                         if (f)
                         {
@@ -1670,7 +1670,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
             // Give error for overloaded function addresses
             if (arg.op == TOKsymoff)
             {
-                SymOffExp se = cast(SymOffExp)arg;
+                auto se = cast(SymOffExp)arg;
                 if (se.hasOverloads && !se.var.isFuncDeclaration().isUnique())
                 {
                     arg.error("function %s is overloaded", arg.toChars());
@@ -2172,7 +2172,7 @@ extern (C++) Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
         sc = sc.pop();
         if (e.op == TOKinterval)
         {
-            IntervalExp ie = cast(IntervalExp)e;
+            auto ie = cast(IntervalExp)e;
             auto tiargs = new Objects();
             Expression edim = new IntegerExp(ae.loc, i, Type.tsize_t);
             edim = edim.semantic(sc);
@@ -2444,7 +2444,7 @@ public:
             *pe0 = null;
             return e;
         }
-        CommaExp ce = cast(CommaExp)e;
+        auto ce = cast(CommaExp)e;
         if (ce.e2.op != TOKcomma)
         {
             *pe0 = ce.e1;
@@ -2983,7 +2983,7 @@ public:
             return true;
         if (op == TOKvar && type.ty != Terror)
         {
-            VarExp ve = cast(VarExp)this;
+            auto ve = cast(VarExp)this;
             if (isNeedThisScope(sc, ve.var))
             {
                 //printf("checkRightThis sc->intypeof = %d, ad = %p, func = %p, fdthis = %p\n",
@@ -3204,7 +3204,7 @@ public:
             return true;
         if ((cast(Expression)o).op == TOKint64)
         {
-            IntegerExp ne = cast(IntegerExp)o;
+            auto ne = cast(IntegerExp)o;
             if (type.toHeadMutable().equals(ne.type.toHeadMutable()) && value == ne.value)
             {
                 return true;
@@ -3378,7 +3378,7 @@ public:
             return true;
         if ((cast(Expression)o).op == TOKfloat64)
         {
-            RealExp ne = cast(RealExp)o;
+            auto ne = cast(RealExp)o;
             if (type.toHeadMutable().equals(ne.type.toHeadMutable()) && RealEquals(value, ne.value))
             {
                 return true;
@@ -3452,7 +3452,7 @@ public:
             return true;
         if ((cast(Expression)o).op == TOKcomplex80)
         {
-            ComplexExp ne = cast(ComplexExp)o;
+            auto ne = cast(ComplexExp)o;
             if (type.toHeadMutable().equals(ne.type.toHeadMutable()) && RealEquals(creall(value), creall(ne.value)) && RealEquals(cimagl(value), cimagl(ne.value)))
             {
                 return true;
@@ -4350,7 +4350,7 @@ public:
             Expression e = castTo(sc, Type.tchar.arrayOf());
             e = e.optimize(WANTvalue);
             assert(e.op == TOKstring);
-            StringExp se = cast(StringExp)e;
+            auto se = cast(StringExp)e;
             assert(se.sz == 1);
             return se;
         }
@@ -4361,7 +4361,7 @@ public:
     {
         //printf("StringExp::compare()\n");
         // Used to sort case statement expressions so we can do an efficient lookup
-        StringExp se2 = cast(StringExp)obj;
+        auto se2 = cast(StringExp)obj;
         // This is a kludge so isExpression() in template.c will return 5
         // for StringExp's.
         if (!se2)
@@ -4533,7 +4533,7 @@ public:
             return true;
         if ((cast(Expression)o).op == TOKtuple)
         {
-            TupleExp te = cast(TupleExp)o;
+            auto te = cast(TupleExp)o;
             if (exps.dim != te.exps.dim)
                 return false;
             if (e0 && !e0.equals(te.e0) || !e0 && te.e0)
@@ -4625,7 +4625,7 @@ public:
             return true;
         if (o && o.dyncast() == DYNCAST_EXPRESSION && (cast(Expression)o).op == TOKarrayliteral)
         {
-            ArrayLiteralExp ae = cast(ArrayLiteralExp)o;
+            auto ae = cast(ArrayLiteralExp)o;
             if (elements.dim != ae.elements.dim)
                 return false;
             if (elements.dim == 0 && !type.equals(ae.type))
@@ -4761,7 +4761,7 @@ public:
             return true;
         if (o && o.dyncast() == DYNCAST_EXPRESSION && (cast(Expression)o).op == TOKassocarrayliteral)
         {
-            AssocArrayLiteralExp ae = cast(AssocArrayLiteralExp)o;
+            auto ae = cast(AssocArrayLiteralExp)o;
             if (keys.dim != ae.keys.dim)
                 return false;
             size_t count = 0;
@@ -4902,7 +4902,7 @@ public:
             return true;
         if (o && o.dyncast() == DYNCAST_EXPRESSION && (cast(Expression)o).op == TOKstructliteral)
         {
-            StructLiteralExp se = cast(StructLiteralExp)o;
+            auto se = cast(StructLiteralExp)o;
             if (!type.equals(se.type))
                 return false;
             if (elements.dim != se.elements.dim)
@@ -4987,7 +4987,7 @@ public:
                 if (e.type.castMod(0) != type.castMod(0) && type.ty == Tsarray)
                 {
                     auto tsa = cast(TypeSArray)type;
-                    size_t length = cast(size_t)tsa.dim.toInteger();
+                    auto length = cast(size_t)tsa.dim.toInteger();
                     auto z = new Expressions();
                     z.setDim(length);
                     for (size_t q = 0; q < length; ++q)
@@ -5002,7 +5002,7 @@ public:
                 }
                 if (sinit && e.op == TOKstructliteral && e.type.needsNested())
                 {
-                    StructLiteralExp se = cast(StructLiteralExp)e;
+                    auto se = cast(StructLiteralExp)e;
                     se.sinit = toInitializer(se.sd);
                 }
             }
@@ -5841,7 +5841,7 @@ public:
             return true;
         if ((cast(Expression)o).op == TOKvar)
         {
-            VarExp ne = cast(VarExp)o;
+            auto ne = cast(VarExp)o;
             if (type.toHeadMutable().equals(ne.type.toHeadMutable()) && var == ne.var)
             {
                 return true;
@@ -6043,7 +6043,7 @@ public:
                 symtab = sds.symtab;
             }
             assert(symtab);
-            int num = cast(int)dmd_aaLen(symtab.tab) + 1;
+            auto num = cast(int)dmd_aaLen(symtab.tab) + 1;
             Identifier id = Identifier.generateId(s, num);
             fd.ident = id;
             if (td)
@@ -7255,7 +7255,7 @@ public:
         BinExp be = this;
         if (be.e1.op != TOKindex)
             return be;
-        IndexExp ie = cast(IndexExp)be.e1;
+        auto ie = cast(IndexExp)be.e1;
         if (ie.e1.type.toBasetype().ty != Taarray)
             return be;
         /* Fix evaluation order of setting AA element. (Bugzilla 3825)
@@ -7708,7 +7708,7 @@ public:
                 goto L1;
             case TOKtemplate:
                 {
-                    TemplateExp te = cast(TemplateExp)e1;
+                    auto te = cast(TemplateExp)e1;
                     ds = te.fd ? cast(Dsymbol)te.fd : te.td;
                 }
             L1:
@@ -7747,7 +7747,7 @@ public:
         {
             /* 'distribute' the .offsetof to each of the tuple elements.
              */
-            TupleExp te = cast(TupleExp)e1;
+            auto te = cast(TupleExp)e1;
             auto exps = new Expressions();
             exps.setDim(te.exps.dim);
             for (size_t i = 0; i < exps.dim; i++)
@@ -7764,7 +7764,7 @@ public:
         }
         if (e1.op == TOKtuple && ident == Id.length)
         {
-            TupleExp te = cast(TupleExp)e1;
+            auto te = cast(TupleExp)e1;
             // Don't evaluate te->e0 in runtime
             Expression e = new IntegerExp(loc, te.exps.dim, Type.tsize_t);
             return e;
@@ -7816,7 +7816,7 @@ public:
         Expression eright;
         if (e1.op == TOKdotexp)
         {
-            DotExp de = cast(DotExp)e1;
+            auto de = cast(DotExp)e1;
             eleft = de.e1;
             eright = de.e2;
         }
@@ -7828,7 +7828,7 @@ public:
         auto t1b = e1.type.toBasetype();
         if (eright.op == TOKimport) // also used for template alias's
         {
-            ScopeExp ie = cast(ScopeExp)eright;
+            auto ie = cast(ScopeExp)eright;
             /* Disable access to another module's private imports.
              * The check for 'is sds our current module' is because
              * the current module should have access to its own imports.
@@ -8346,7 +8346,7 @@ public:
             return e;
         if (e.op == TOKdotvar)
         {
-            DotVarExp dve = cast(DotVarExp)e;
+            auto dve = cast(DotVarExp)e;
             if (auto fd = dve.var.isFuncDeclaration())
             {
                 TemplateDeclaration td = fd.findTemplateDeclRoot();
@@ -8384,7 +8384,7 @@ public:
         }
         else if (e.op == TOKvar)
         {
-            VarExp ve = cast(VarExp)e;
+            auto ve = cast(VarExp)e;
             if (auto fd = ve.var.isFuncDeclaration())
             {
                 TemplateDeclaration td = fd.findTemplateDeclRoot();
@@ -8404,7 +8404,7 @@ public:
         }
         if (e.op == TOKdottd)
         {
-            DotTemplateExp dte = cast(DotTemplateExp)e;
+            auto dte = cast(DotTemplateExp)e;
             e1 = dte.e1; // pull semantic() result
             ti.tempdecl = dte.td;
             if (!ti.semanticTiargs(sc))
@@ -8435,7 +8435,7 @@ public:
         }
         else if (e.op == TOKimport)
         {
-            ScopeExp se = cast(ScopeExp)e;
+            auto se = cast(ScopeExp)e;
             TemplateDeclaration td = se.sds.isTemplateDeclaration();
             if (!td)
             {
@@ -8449,7 +8449,7 @@ public:
         }
         else if (e.op == TOKdotexp)
         {
-            DotExp de = cast(DotExp)e;
+            auto de = cast(DotExp)e;
             e1 = de.e1; // pull semantic() result
             if (de.e2.op == TOKoverloadset)
             {
@@ -8480,13 +8480,13 @@ public:
             if (de.e2.op == TOKimport)
             {
                 // This should *really* be moved to ScopeExp::semantic()
-                ScopeExp se = cast(ScopeExp)de.e2;
+                auto se = cast(ScopeExp)de.e2;
                 de.e2 = new DsymbolExp(loc, se.sds);
                 de.e2 = de.e2.semantic(sc);
             }
             if (de.e2.op == TOKtemplate)
             {
-                TemplateExp te = cast(TemplateExp)de.e2;
+                auto te = cast(TemplateExp)de.e2;
                 e = new DotTemplateExp(loc, de.e1, te.td);
             }
             else
@@ -8498,7 +8498,7 @@ public:
         }
         else if (e.op == TOKoverloadset)
         {
-            OverExp oe = cast(OverExp)e;
+            auto oe = cast(OverExp)e;
             ti.tempdecl = oe.vars;
             e = new ScopeExp(loc, ti);
             e = e.semantic(sc);
@@ -8686,7 +8686,7 @@ public:
         {
             /* Rewrite (a,b)(args) as (a,(b(args)))
              */
-            CommaExp ce = cast(CommaExp)e1;
+            auto ce = cast(CommaExp)e1;
             e1 = ce.e2;
             e1.type = ce.type;
             ce.e2 = this;
@@ -8695,7 +8695,7 @@ public:
         }
         if (e1.op == TOKdelegate)
         {
-            DelegateExp de = cast(DelegateExp)e1;
+            auto de = cast(DelegateExp)e1;
             e1 = new DotVarExp(de.loc, de.e1, de.func);
             return semantic(sc);
         }
@@ -8706,7 +8706,7 @@ public:
                 return new ErrorExp();
             }
             // Run e1 semantic even if arguments have any errors
-            FuncExp fe = cast(FuncExp)e1;
+            auto fe = cast(FuncExp)e1;
             e1 = fe.semantic(sc, arguments);
             if (e1.op == TOKerror)
                 return e1;
@@ -8718,7 +8718,7 @@ public:
          */
         if (e1.op == TOKimport && !e1.type)
         {
-            ScopeExp se = cast(ScopeExp)e1;
+            auto se = cast(ScopeExp)e1;
             TemplateInstance ti = se.sds.isTemplateInstance();
             if (ti)
             {
@@ -8764,7 +8764,7 @@ public:
     Ldotti:
         if (e1.op == TOKdotti && !e1.type)
         {
-            DotTemplateInstanceExp se = cast(DotTemplateInstanceExp)e1;
+            auto se = cast(DotTemplateInstanceExp)e1;
             TemplateInstance ti = se.ti;
             {
                 /* Attempt to instantiate ti. If that works, go with it.
@@ -8809,7 +8809,7 @@ public:
         {
             if (e1.op == TOKdot)
             {
-                DotIdExp die = cast(DotIdExp)e1;
+                auto die = cast(DotIdExp)e1;
                 e1 = die.semantic(sc);
                 /* Look for e1 having been rewritten to expr.opDispatch!(string)
                  * We handle such earlier, so go back.
@@ -8838,7 +8838,7 @@ public:
              */
             if (e1.op == TOKvar)
             {
-                VarExp ve = cast(VarExp)e1;
+                auto ve = cast(VarExp)e1;
                 if (ve.var.storage_class & STClazy)
                 {
                     // lazy paramaters can be called without violating purity and safety
@@ -8856,19 +8856,19 @@ public:
             if (e1.op == TOKimport)
             {
                 // Perhaps this should be moved to ScopeExp::semantic()
-                ScopeExp se = cast(ScopeExp)e1;
+                auto se = cast(ScopeExp)e1;
                 e1 = new DsymbolExp(loc, se.sds);
                 e1 = e1.semantic(sc);
             }
             else if (e1.op == TOKsymoff && (cast(SymOffExp)e1).hasOverloads)
             {
-                SymOffExp se = cast(SymOffExp)e1;
+                auto se = cast(SymOffExp)e1;
                 e1 = new VarExp(se.loc, se.var, 1);
                 e1 = e1.semantic(sc);
             }
             else if (e1.op == TOKdotexp)
             {
-                DotExp de = cast(DotExp)e1;
+                auto de = cast(DotExp)e1;
                 if (de.e2.op == TOKoverloadset)
                 {
                     ethis = de.e1;
@@ -8878,13 +8878,13 @@ public:
                 if (de.e2.op == TOKimport)
                 {
                     // This should *really* be moved to ScopeExp::semantic()
-                    ScopeExp se = cast(ScopeExp)de.e2;
+                    auto se = cast(ScopeExp)de.e2;
                     de.e2 = new DsymbolExp(loc, se.sds);
                     de.e2 = de.e2.semantic(sc);
                 }
                 if (de.e2.op == TOKtemplate)
                 {
-                    TemplateExp te = cast(TemplateExp)de.e2;
+                    auto te = cast(TemplateExp)de.e2;
                     e1 = new DotTemplateExp(loc, de.e1, te.td);
                 }
             }
@@ -9002,7 +9002,7 @@ public:
         }
         if (e1.op == TOKdotvar && t1.ty == Tfunction || e1.op == TOKdottd)
         {
-            UnaExp ue = cast(UnaExp)e1;
+            auto ue = cast(UnaExp)e1;
             Expression ue1 = ue.e1;
             Expression ue1old = ue1; // need for 'right this' check
             VarDeclaration v;
@@ -9192,7 +9192,7 @@ public:
         }
         else if (e1.op == TOKoverloadset)
         {
-            OverExp eo = cast(OverExp)e1;
+            auto eo = cast(OverExp)e1;
             FuncDeclaration f = null;
             Dsymbol s = null;
             for (size_t i = 0; i < eo.vars.a.dim; i++)
@@ -9266,7 +9266,7 @@ public:
             }
             else if (e1.op == TOKdotvar && (cast(DotVarExp)e1).var.isOverDeclaration())
             {
-                DotVarExp dve = cast(DotVarExp)e1;
+                auto dve = cast(DotVarExp)e1;
                 f = resolveFuncCall(loc, sc, dve.var, tiargs, dve.e1.type, arguments, 2);
                 if (!f)
                     return new ErrorExp();
@@ -9369,7 +9369,7 @@ public:
         else if (e1.op == TOKvar)
         {
             // Do overload resolution
-            VarExp ve = cast(VarExp)e1;
+            auto ve = cast(VarExp)e1;
             f = ve.var.isFuncDeclaration();
             assert(f);
             tiargs = null;
@@ -9537,7 +9537,7 @@ public:
         int wasCond = e1.op == TOKquestion;
         if (e1.op == TOKdotti)
         {
-            DotTemplateInstanceExp dti = cast(DotTemplateInstanceExp)e1;
+            auto dti = cast(DotTemplateInstanceExp)e1;
             TemplateInstance ti = dti.ti;
             {
                 //assert(ti->needsTypeInference(sc));
@@ -9589,7 +9589,7 @@ public:
              */
             if (e1.op == TOKvar)
             {
-                VarExp ve = cast(VarExp)e1;
+                auto ve = cast(VarExp)e1;
                 auto d = ve.var;
                 error("forward reference to %s %s", d.kind(), d.toChars());
             }
@@ -9601,7 +9601,7 @@ public:
         // See if this should really be a delegate
         if (e1.op == TOKdotvar)
         {
-            DotVarExp dve = cast(DotVarExp)e1;
+            auto dve = cast(DotVarExp)e1;
             auto f = dve.var.isFuncDeclaration();
             if (f)
             {
@@ -9619,7 +9619,7 @@ public:
         }
         else if (e1.op == TOKvar)
         {
-            VarExp ve = cast(VarExp)e1;
+            auto ve = cast(VarExp)e1;
             auto v = ve.var.isVarDeclaration();
             if (v)
             {
@@ -9682,9 +9682,9 @@ public:
              * need to do safety checks
              */
             assert(e1.op == TOKstar);
-            PtrExp pe = cast(PtrExp)e1;
+            auto pe = cast(PtrExp)e1;
             assert(pe.e1.op == TOKquestion);
-            CondExp ce = cast(CondExp)pe.e1;
+            auto ce = cast(CondExp)pe.e1;
             assert(ce.e1.op == TOKaddress);
             assert(ce.e2.op == TOKaddress);
             // Re-run semantic on the address expressions only
@@ -9756,12 +9756,12 @@ public:
     {
         if (e1.op == TOKsymoff)
         {
-            SymOffExp se = cast(SymOffExp)e1;
+            auto se = cast(SymOffExp)e1;
             return se.var.checkModify(loc, sc, type, null, flag);
         }
         else if (e1.op == TOKaddress)
         {
-            AddrExp ae = cast(AddrExp)e1;
+            auto ae = cast(AddrExp)e1;
             return ae.e1.checkModifiable(sc, flag);
         }
         return 1;
@@ -10360,7 +10360,7 @@ public:
             if (e1.op == TOKslice)
             {
                 // Convert e[][] to e[]
-                SliceExp se = cast(SliceExp)e1;
+                auto se = cast(SliceExp)e1;
                 if (!se.lwr && !se.upr)
                     return se;
             }
@@ -10513,8 +10513,8 @@ public:
                 error("string slice [%llu .. %llu] is out of bounds", i1, i2);
                 return new ErrorExp();
             }
-            size_t j1 = cast(size_t)i1;
-            size_t j2 = cast(size_t)i2;
+            auto j1 = cast(size_t)i1;
+            auto j2 = cast(size_t)i2;
             Expression e;
             if (e1.op == TOKtuple)
             {
@@ -10652,7 +10652,7 @@ public:
     {
         Expression e;
         assert(exp.e1.op == TOKarraylength);
-        ArrayLengthExp ale = cast(ArrayLengthExp)exp.e1;
+        auto ale = cast(ArrayLengthExp)exp.e1;
         if (ale.e1.op == TOKvar)
         {
             e = opAssignToOp(exp.loc, exp.op, ale, exp.e2);
@@ -10730,7 +10730,7 @@ public:
             }
             else if (arguments.dim == 1 && (*arguments)[0].op == TOKinterval)
             {
-                IntervalExp ie = cast(IntervalExp)(*arguments)[0];
+                auto ie = cast(IntervalExp)(*arguments)[0];
                 e = new SliceExp(loc, e1, ie.lwr, ie.upr);
             }
             else if (arguments.dim == 1)
@@ -10793,7 +10793,7 @@ public:
         e2 = e2.semantic(sc);
         if (e2.op == TOKimport)
         {
-            ScopeExp se = cast(ScopeExp)e2;
+            auto se = cast(ScopeExp)e2;
             TemplateDeclaration td = se.sds.isTemplateDeclaration();
             if (td)
             {
@@ -11083,7 +11083,7 @@ public:
             sc = sc.endCTFE();
         if (e2.op == TOKtuple)
         {
-            TupleExp te = cast(TupleExp)e2;
+            auto te = cast(TupleExp)e2;
             if (te.exps && te.exps.dim == 1)
                 e2 = Expression.combine(te.e0, (*te.exps)[0]); // bug 4444 fix
         }
@@ -11425,7 +11425,7 @@ public:
          */
         if (e1.op == TOKarray)
         {
-            ArrayExp ae = cast(ArrayExp)e1;
+            auto ae = cast(ArrayExp)e1;
             ae.e1 = ae.e1.semantic(sc);
             ae.e1 = resolveProperties(sc, ae.e1);
             auto t1 = ae.e1.type.toBasetype();
@@ -11461,7 +11461,7 @@ public:
                 // No opIndexAssign found yet, but there might be an alias this to try.
                 if (ad.aliasthis && t1 != ae.att1)
                 {
-                    ArrayExp aex = cast(ArrayExp)ae.copy();
+                    auto aex = cast(ArrayExp)ae.copy();
                     if (!aex.att1 && t1.checkAliasThisRec())
                         aex.att1 = t1;
                     aex.e1 = new DotIdExp(loc, ae.e1, ad.aliasthis.ident);
@@ -11483,7 +11483,7 @@ public:
                 if (ae.arguments.dim == 1 && (*ae.arguments)[0].op == TOKinterval)
                 {
                     // a[lwr..upr] = e2
-                    IntervalExp ie = cast(IntervalExp)(*ae.arguments)[0];
+                    auto ie = cast(IntervalExp)(*ae.arguments)[0];
                     auto se = new SliceExp(ae.loc, ae.e1, ie.lwr, ie.upr);
                     se.att1 = ae.att1;
                     this.e1 = se;
@@ -11497,7 +11497,7 @@ public:
          */
         if (e1.op == TOKslice)
         {
-            SliceExp ae = cast(SliceExp)e1;
+            auto ae = cast(SliceExp)e1;
             ae.e1 = ae.e1.semantic(sc);
             ae.e1 = resolveProperties(sc, ae.e1);
             auto t1 = ae.e1.type.toBasetype();
@@ -11527,7 +11527,7 @@ public:
                 // No opSliceAssign found yet, but there might be an alias this to try.
                 if (ad.aliasthis && t1 != ae.att1)
                 {
-                    SliceExp aex = cast(SliceExp)ae.copy();
+                    auto aex = cast(SliceExp)ae.copy();
                     if (!aex.att1 && t1.checkAliasThisRec())
                         aex.att1 = t1;
                     aex.e1 = new DotIdExp(loc, ae.e1, ad.aliasthis.ident);
@@ -11551,7 +11551,7 @@ public:
              */
             if (e1x.op == TOKdotti)
             {
-                DotTemplateInstanceExp dti = cast(DotTemplateInstanceExp)e1x;
+                auto dti = cast(DotTemplateInstanceExp)e1x;
                 Expression e = dti.semanticY(sc, 1);
                 if (!e)
                     return resolveUFCSProperties(sc, e1x, e2);
@@ -11559,7 +11559,7 @@ public:
             }
             else if (e1x.op == TOKdot)
             {
-                DotIdExp die = cast(DotIdExp)e1x;
+                auto die = cast(DotIdExp)e1x;
                 Expression e = die.semanticY(sc, 1);
                 if (e && isDotOpDispatch(e))
                 {
@@ -11611,8 +11611,8 @@ public:
         Ltupleassign:
             if (e1.op == TOKtuple && e2x.op == TOKtuple)
             {
-                TupleExp tup1 = cast(TupleExp)e1;
-                TupleExp tup2 = cast(TupleExp)e2x;
+                auto tup1 = cast(TupleExp)e1;
+                auto tup2 = cast(TupleExp)e2x;
                 size_t dim = tup1.exps.dim;
                 Expression e = null;
                 if (dim != tup2.exps.dim)
@@ -11749,9 +11749,9 @@ public:
                          * We need to copy constructor call expression,
                          * because it may be used in other place.
                          */
-                        DotVarExp dvx = cast(DotVarExp)dve.copy();
+                        auto dvx = cast(DotVarExp)dve.copy();
                         dvx.e1 = e1x;
-                        CallExp cx = cast(CallExp)ce.copy();
+                        auto cx = cast(CallExp)ce.copy();
                         cx.e1 = dvx;
                         Expression e = new CommaExp(loc, ae, cx);
                         e = e.semantic(sc);
@@ -11766,7 +11766,7 @@ public:
                             /* Rewrite as:
                              *  a ? e1 = b : e1 = c;
                              */
-                            CondExp econd = cast(CondExp)e2x;
+                            auto econd = cast(CondExp)e2x;
                             Expression ea1 = new ConstructExp(econd.e1.loc, e1x, econd.e1);
                             Expression ea2 = new ConstructExp(econd.e1.loc, e1x, econd.e2);
                             Expression e = new CondExp(loc, econd.econd, ea1, ea2);
@@ -11866,7 +11866,7 @@ public:
                      *          ? __aatmp[__aakey].opAssign(__aaval)
                      *          : ConstructExp(__aatmp[__aakey], __aaval));
                      */
-                    IndexExp ie = cast(IndexExp)e1x;
+                    auto ie = cast(IndexExp)e1x;
                     auto t2 = e2x.type.toBasetype();
                     Expression e0 = null;
                     Expression ea = ie.e1;
@@ -11898,7 +11898,7 @@ public:
                     }
                     if (e0)
                         e0 = e0.semantic(sc);
-                    AssignExp ae = cast(AssignExp)copy();
+                    auto ae = cast(AssignExp)copy();
                     ae.e1 = new IndexExp(loc, ea, ek);
                     ae.e1 = ae.e1.semantic(sc);
                     ae.e1 = ae.e1.optimize(WANTvalue);
@@ -12005,7 +12005,7 @@ public:
                     uinteger_t dim2 = dim1;
                     if (e2x.op == TOKarrayliteral)
                     {
-                        ArrayLiteralExp ale = cast(ArrayLiteralExp)e2x;
+                        auto ale = cast(ArrayLiteralExp)e2x;
                         dim2 = ale.elements ? ale.elements.dim : 0;
                     }
                     else if (e2x.op == TOKslice)
@@ -12052,7 +12052,7 @@ public:
         if (e1.op == TOKarraylength)
         {
             // e1 is not an lvalue, but we let code generator handle it
-            ArrayLengthExp ale = cast(ArrayLengthExp)e1;
+            auto ale = cast(ArrayLengthExp)e1;
             Expression ale1x = ale.e1;
             ale1x = ale1x.modifiableLvalue(sc, e1);
             if (ale1x.op == TOKerror)
@@ -12071,7 +12071,7 @@ public:
                 return new ErrorExp();
             }
             // For conditional operator, both branches need conversion.
-            SliceExp se = cast(SliceExp)e1;
+            auto se = cast(SliceExp)e1;
             while (se.e1.op == TOKslice)
                 se = cast(SliceExp)se.e1;
             if (se.e1.op == TOKquestion && se.e1.type.toBasetype().ty == Tsarray)
@@ -12121,7 +12121,7 @@ public:
             /* If assigned elements number is known at compile time,
              * check the mismatch.
              */
-            SliceExp se1 = cast(SliceExp)e1;
+            auto se1 = cast(SliceExp)e1;
             auto tsa1 = cast(TypeSArray)toStaticArrayType(se1);
             TypeSArray tsa2 = null;
             if (e2x.op == TOKarrayliteral)
@@ -12567,7 +12567,7 @@ public:
             return e;
         if (e1.op == TOKslice)
         {
-            SliceExp se = cast(SliceExp)e1;
+            auto se = cast(SliceExp)e1;
             if (se.e1.type.toBasetype().ty == Tsarray)
             {
                 error("cannot append to static array %s", se.e1.type.toChars());
@@ -13975,12 +13975,12 @@ public:
          */
         if (e1.op == TOKaddress && e2.op == TOKaddress)
         {
-            AddrExp ae1 = cast(AddrExp)e1;
-            AddrExp ae2 = cast(AddrExp)e2;
+            auto ae1 = cast(AddrExp)e1;
+            auto ae2 = cast(AddrExp)e2;
             if (ae1.e1.op == TOKvar && ae2.e1.op == TOKvar)
             {
-                VarExp ve1 = cast(VarExp)ae1.e1;
-                VarExp ve2 = cast(VarExp)ae2.e1;
+                auto ve1 = cast(VarExp)ae1.e1;
+                auto ve2 = cast(VarExp)ae2.e1;
                 if (ve1.var == ve2.var)
                 {
                     // They are the same, result is 'true' for ==, 'false' for !=
@@ -14058,8 +14058,8 @@ public:
         // check tuple equality before typeCombine
         if (e1.op == TOKtuple && e2.op == TOKtuple)
         {
-            TupleExp tup1 = cast(TupleExp)e1;
-            TupleExp tup2 = cast(TupleExp)e2;
+            auto tup1 = cast(TupleExp)e1;
+            auto tup2 = cast(TupleExp)e2;
             size_t dim = tup1.exps.dim;
             e = null;
             if (dim != tup2.exps.dim)

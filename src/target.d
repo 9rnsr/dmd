@@ -302,7 +302,7 @@ struct Target
 extern (C++) static void encodeInteger(Expression e, ubyte* buffer)
 {
     dinteger_t value = e.toInteger();
-    int size = cast(int)e.type.size();
+    auto size = cast(int)e.type.size();
     for (int p = 0; p < size; p++)
     {
         int offset = p; // Would be (size - 1) - p; on BigEndian
@@ -315,7 +315,7 @@ extern (C++) static void encodeInteger(Expression e, ubyte* buffer)
 extern (C++) static Expression decodeInteger(Loc loc, Type type, ubyte* buffer)
 {
     dinteger_t value = 0;
-    int size = cast(int)type.size();
+    auto size = cast(int)type.size();
     for (int p = 0; p < size; p++)
     {
         int offset = p; // Would be (size - 1) - p; on BigEndian

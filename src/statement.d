@@ -1138,7 +1138,7 @@ public:
                 // See if this should be rewritten as a TemplateMixin
                 if (exp.op == TOKdeclaration)
                 {
-                    DeclarationExp de = cast(DeclarationExp)exp;
+                    auto de = cast(DeclarationExp)exp;
                     Dsymbol s = de.declaration;
                     printf("s: %s %s\n", s.kind(), s.toChars());
                     auto v = s.isVarDeclaration();
@@ -1171,7 +1171,7 @@ public:
         {
             if (exp.op == TOKdeclaration)
             {
-                DeclarationExp de = cast(DeclarationExp)exp;
+                auto de = cast(DeclarationExp)exp;
                 auto v = de.declaration.isVarDeclaration();
                 if (v && !v.noscope && !v.isDataseg())
                 {
@@ -2206,7 +2206,7 @@ public:
                         ds = (cast(ScopeExp)e).sds;
                     else if (e.op == TOKfunction)
                     {
-                        FuncExp fe = cast(FuncExp)e;
+                        auto fe = cast(FuncExp)e;
                         ds = fe.td ? cast(Dsymbol)fe.td : fe.fd;
                     }
                     if (ds)
@@ -2394,7 +2394,7 @@ public:
                 VarDeclaration tmp;
                 if (aggr.op == TOKarrayliteral && !((*parameters)[dim - 1].storageClass & STCref))
                 {
-                    ArrayLiteralExp ale = cast(ArrayLiteralExp)aggr;
+                    auto ale = cast(ArrayLiteralExp)aggr;
                     size_t edim = ale.elements ? ale.elements.dim : 0;
                     aggr.type = tab.nextOf().sarrayOf(edim);
                     // for (T[edim] tmp = a, ...)
@@ -2721,7 +2721,7 @@ public:
                 // Resolve any forward referenced goto's
                 for (size_t i = 0; i < gotos.dim; i++)
                 {
-                    GotoStatement gs = cast(GotoStatement)(*gotos)[i].statement;
+                    auto gs = cast(GotoStatement)(*gotos)[i].statement;
                     if (!gs.label.statement)
                     {
                         // 'Promote' it to this scope, and replace with a return
@@ -2789,7 +2789,7 @@ public:
                     }
                     auto exps = new Expressions();
                     exps.push(aggr);
-                    size_t keysize = cast(size_t)taa.index.size();
+                    auto keysize = cast(size_t)taa.index.size();
                     keysize = (keysize + (cast(size_t)Target.ptrsize - 1)) & ~(cast(size_t)Target.ptrsize - 1);
                     // paint delegate argument to the type runtime expects
                     if (!fldeTy[i].equals(flde.type))
@@ -3789,7 +3789,7 @@ public:
              */
             if (exp.op == TOKvar)
             {
-                VarExp ve = cast(VarExp)exp;
+                auto ve = cast(VarExp)exp;
                 auto v = ve.var.isVarDeclaration();
                 auto t = exp.type.toBasetype();
                 if (v && (t.isintegral() || t.ty == Tclass))
@@ -3862,7 +3862,7 @@ public:
     int compare(RootObject obj)
     {
         // Sort cases so we can do an efficient lookup
-        CaseStatement cs2 = cast(CaseStatement)obj;
+        auto cs2 = cast(CaseStatement)obj;
         return exp.compare(cs2.exp);
     }
 
@@ -4311,7 +4311,7 @@ public:
             // handle NRVO
             if (fd.nrvo_can && exp.op == TOKvar)
             {
-                VarExp ve = cast(VarExp)exp;
+                auto ve = cast(VarExp)exp;
                 auto v = ve.var.isVarDeclaration();
                 if (tf.isref)
                 {

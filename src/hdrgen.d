@@ -923,7 +923,7 @@ public:
             if (id.dyncast() == DYNCAST_DSYMBOL)
             {
                 buf.writeByte('.');
-                TemplateInstance ti = cast(TemplateInstance)id;
+                auto ti = cast(TemplateInstance)id;
                 ti.accept(this);
             }
             else if (id.dyncast() == DYNCAST_EXPRESSION)

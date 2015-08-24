@@ -474,7 +474,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
             //printf("UnaExp::op_overload() (%s)\n", e->toChars());
             if (e.e1.op == TOKarray)
             {
-                ArrayExp ae = cast(ArrayExp)e.e1;
+                auto ae = cast(ArrayExp)e.e1;
                 ae.e1 = ae.e1.semantic(sc);
                 ae.e1 = resolveProperties(sc, ae.e1);
                 AggregateDeclaration ad = isAggregate(ae.e1.type);
@@ -516,7 +516,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                          */
                         Expression e1 = ae.copy();
                         (cast(ArrayExp)e1).e1 = new DotIdExp(e.loc, ae.e1, ad.aliasthis.ident);
-                        UnaExp ue = cast(UnaExp)e.copy();
+                        auto ue = cast(UnaExp)e.copy();
                         if (!ue.att1 && ae.e1.type.checkAliasThisRec())
                             ue.att1 = ae.e1.type;
                         ue.e1 = e1;
@@ -539,7 +539,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     if (ae.arguments.dim == 1 && (*ae.arguments)[0].op == TOKinterval)
                     {
                         // op(a[lwr..upr])
-                        IntervalExp ie = cast(IntervalExp)(*ae.arguments)[0];
+                        auto ie = cast(IntervalExp)(*ae.arguments)[0];
                         auto se = new SliceExp(ae.loc, ae.e1, ie.lwr, ie.upr);
                         se.att1 = ae.att1;
                         e.e1 = se;
@@ -551,7 +551,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
             }
             else if (e.e1.op == TOKslice)
             {
-                SliceExp se = cast(SliceExp)e.e1;
+                auto se = cast(SliceExp)e.e1;
                 se.e1 = se.e1.semantic(sc);
                 se.e1 = resolveProperties(sc, se.e1);
                 AggregateDeclaration ad = isAggregate(se.e1.type);
@@ -593,7 +593,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                          */
                         Expression e1 = se.copy();
                         (cast(SliceExp)e1).e1 = new DotIdExp(e.loc, se.e1, ad.aliasthis.ident);
-                        UnaExp ue = cast(UnaExp)e.copy();
+                        auto ue = cast(UnaExp)e.copy();
                         if (!ue.att1 && se.e1.type.checkAliasThisRec())
                             ue.att1 = se.e1.type;
                         ue.e1 = e1;
@@ -624,7 +624,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                                  *    e1.fd(arguments)
                                  */
                                 result = new DotIdExp(e.loc, e.e1, fd.ident);
-                                ArrayExp ae = cast(ArrayExp)e;
+                                auto ae = cast(ArrayExp)e;
                                 result = new CallExp(e.loc, result, ae.arguments);
                                 result = result.semantic(sc);
                                 return;
@@ -658,7 +658,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                      */
                     //printf("att una %s e1 = %s\n", Token::toChars(op), this->e1->type->toChars());
                     Expression e1 = new DotIdExp(e.loc, e.e1, ad.aliasthis.ident);
-                    UnaExp ue = cast(UnaExp)e.copy();
+                    auto ue = cast(UnaExp)e.copy();
                     if (!ue.att1 && e.e1.type.checkAliasThisRec())
                         ue.att1 = e.e1.type;
                     ue.e1 = e1;
@@ -717,7 +717,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         result = new SliceExp(ae.loc, ae.e1, null, null);
                     else
                     {
-                        IntervalExp ie = cast(IntervalExp)(*ae.arguments)[0];
+                        auto ie = cast(IntervalExp)(*ae.arguments)[0];
                         result = new SliceExp(ae.loc, ae.e1, ie.lwr, ie.upr);
                     }
                     result = result.semantic(sc);
@@ -732,7 +732,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                      */
                     //printf("att arr e1 = %s\n", this->e1->type->toChars());
                     Expression e1 = new DotIdExp(ae.loc, ae.e1, ad.aliasthis.ident);
-                    UnaExp ue = cast(UnaExp)ae.copy();
+                    auto ue = cast(UnaExp)ae.copy();
                     if (!ue.att1 && ae.e1.type.checkAliasThisRec())
                         ue.att1 = ae.e1.type;
                     ue.e1 = e1;
@@ -1064,7 +1064,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     return;
                 //printf("att bin e1 = %s\n", this->e1->type->toChars());
                 Expression e1 = new DotIdExp(e.loc, e.e1, ad1.aliasthis.ident);
-                BinExp be = cast(BinExp)e.copy();
+                auto be = cast(BinExp)e.copy();
                 if (!be.att1 && e.e1.type.checkAliasThisRec())
                     be.att1 = e.e1.type;
                 be.e1 = e1;
@@ -1084,7 +1084,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     return;
                 //printf("att bin e2 = %s\n", e->e2->type->toChars());
                 Expression e2 = new DotIdExp(e.loc, e.e2, ad2.aliasthis.ident);
-                BinExp be = cast(BinExp)e.copy();
+                auto be = cast(BinExp)e.copy();
                 if (!be.att2 && e.e2.type.checkAliasThisRec())
                     be.att2 = e.e2.type;
                 be.e2 = e2;
@@ -1151,7 +1151,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
             //printf("BinAssignExp::op_overload() (%s)\n", e->toChars());
             if (e.e1.op == TOKarray)
             {
-                ArrayExp ae = cast(ArrayExp)e.e1;
+                auto ae = cast(ArrayExp)e.e1;
                 ae.e1 = ae.e1.semantic(sc);
                 ae.e1 = resolveProperties(sc, ae.e1);
                 AggregateDeclaration ad = isAggregate(ae.e1.type);
@@ -1201,7 +1201,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                          */
                         Expression e1 = ae.copy();
                         (cast(ArrayExp)e1).e1 = new DotIdExp(e.loc, ae.e1, ad.aliasthis.ident);
-                        BinExp be = cast(BinExp)e.copy();
+                        auto be = cast(BinExp)e.copy();
                         if (!be.att1 && ae.e1.type.checkAliasThisRec())
                             be.att1 = ae.e1.type;
                         be.e1 = e1;
@@ -1224,7 +1224,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     if (ae.arguments.dim == 1 && (*ae.arguments)[0].op == TOKinterval)
                     {
                         // a[lwr..upr] op= e2
-                        IntervalExp ie = cast(IntervalExp)(*ae.arguments)[0];
+                        auto ie = cast(IntervalExp)(*ae.arguments)[0];
                         auto se = new SliceExp(ae.loc, ae.e1, ie.lwr, ie.upr);
                         se.att1 = ae.att1;
                         e.e1 = se;
@@ -1236,7 +1236,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
             }
             else if (e.e1.op == TOKslice)
             {
-                SliceExp se = cast(SliceExp)e.e1;
+                auto se = cast(SliceExp)e.e1;
                 se.e1 = se.e1.semantic(sc);
                 se.e1 = resolveProperties(sc, se.e1);
                 AggregateDeclaration ad = isAggregate(se.e1.type);
@@ -1279,7 +1279,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                          */
                         Expression e1 = se.copy();
                         (cast(SliceExp)e1).e1 = new DotIdExp(e.loc, se.e1, ad.aliasthis.ident);
-                        BinExp be = cast(BinExp)e.copy();
+                        auto be = cast(BinExp)e.copy();
                         if (!be.att1 && se.e1.type.checkAliasThisRec())
                             be.att1 = se.e1.type;
                         be.e1 = e1;
@@ -1379,7 +1379,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     return;
                 //printf("att %s e1 = %s\n", Token::toChars(e->op), e->e1->type->toChars());
                 Expression e1 = new DotIdExp(e.loc, e.e1, ad1.aliasthis.ident);
-                BinExp be = cast(BinExp)e.copy();
+                auto be = cast(BinExp)e.copy();
                 if (!be.att1 && e.e1.type.checkAliasThisRec())
                     be.att1 = e.e1.type;
                 be.e1 = e1;
@@ -1397,7 +1397,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     return;
                 //printf("att %s e2 = %s\n", Token::toChars(e->op), e->e2->type->toChars());
                 Expression e2 = new DotIdExp(e.loc, e.e2, ad2.aliasthis.ident);
-                BinExp be = cast(BinExp)e.copy();
+                auto be = cast(BinExp)e.copy();
                 if (!be.att2 && e.e2.type.checkAliasThisRec())
                     be.att2 = e.e2.type;
                 be.e2 = e2;
@@ -1549,7 +1549,7 @@ extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
             return null;
         //printf("att cmp_bin e1 = %s\n", e->e1->type->toChars());
         Expression e1 = new DotIdExp(e.loc, e.e1, ad1.aliasthis.ident);
-        BinExp be = cast(BinExp)e.copy();
+        auto be = cast(BinExp)e.copy();
         if (!be.att1 && e.e1.type.checkAliasThisRec())
             be.att1 = e.e1.type;
         be.e1 = e1;
@@ -1565,7 +1565,7 @@ extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
             return null;
         //printf("att cmp_bin e2 = %s\n", e->e2->type->toChars());
         Expression e2 = new DotIdExp(e.loc, e.e2, ad2.aliasthis.ident);
-        BinExp be = cast(BinExp)e.copy();
+        auto be = cast(BinExp)e.copy();
         if (!be.att2 && e.e2.type.checkAliasThisRec())
             be.att2 = e.e2.type;
         be.e2 = e2;

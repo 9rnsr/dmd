@@ -316,7 +316,7 @@ extern (C++) hash_t arrayObjectHash(Objects* oa1)
             {
                 if (e1.op == TOKint64)
                 {
-                    IntegerExp ne = cast(IntegerExp)e1;
+                    auto ne = cast(IntegerExp)e1;
                     hash += cast(size_t)ne.getInteger();
                 }
             }
@@ -1480,17 +1480,17 @@ public:
                         {
                             if (farg.op == TOKstring)
                             {
-                                StringExp se = cast(StringExp)farg;
+                                auto se = cast(StringExp)farg;
                                 argtype = se.type.nextOf().sarrayOf(se.len);
                             }
                             else if (farg.op == TOKarrayliteral)
                             {
-                                ArrayLiteralExp ae = cast(ArrayLiteralExp)farg;
+                                auto ae = cast(ArrayLiteralExp)farg;
                                 argtype = ae.type.nextOf().sarrayOf(ae.elements.dim);
                             }
                             else if (farg.op == TOKslice)
                             {
-                                SliceExp se = cast(SliceExp)farg;
+                                auto se = cast(SliceExp)farg;
                                 if (auto tsa = toStaticArrayType(se))
                                     argtype = tsa;
                             }
@@ -2498,8 +2498,8 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
                 ti.parent = td.parent; // Maybe calculating valid 'enclosing' is unnecessary.
                 auto fd = f;
                 int x = td.deduceFunctionTemplateMatch(ti, sc, fd, tthis, fargs);
-                MATCH mta = cast(MATCH)(x >> 4);
-                MATCH mfa = cast(MATCH)(x & 0xF);
+                auto mta = cast(MATCH)(x >> 4);
+                auto mfa = cast(MATCH)(x & 0xF);
                 //printf("match:t/f = %d/%d\n", mta, mfa);
                 if (!fd || mfa == MATCHnomatch)
                     continue;
@@ -3109,7 +3109,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                     }
                     if (tp.isTemplateAliasParameter())
                     {
-                        Dsymbol s2 = cast(Dsymbol)(*dedtypes)[i];
+                        auto s2 = cast(Dsymbol)(*dedtypes)[i];
                         if (!s2 || s == s2)
                         {
                             (*dedtypes)[i] = s;
@@ -6252,7 +6252,7 @@ public:
 
     final int compare(RootObject o)
     {
-        TemplateInstance ti = cast(TemplateInstance)o;
+        auto ti = cast(TemplateInstance)o;
         //printf("this = %p, ti = %p\n", this, ti);
         assert(tdtypes.dim == ti.tdtypes.dim);
         // Nesting must match
@@ -6488,7 +6488,7 @@ public:
                 TemplateDeclaration td = s.isTemplateDeclaration();
                 if (!td)
                     return 0;
-                TemplateInstance ti = cast(TemplateInstance)param;
+                auto ti = cast(TemplateInstance)param;
                 if (td.semanticRun == PASSinit)
                 {
                     if (td._scope)
@@ -6726,7 +6726,7 @@ public:
                 if (ea.op == TOKtuple)
                 {
                     // Expand tuple
-                    TupleExp te = cast(TupleExp)ea;
+                    auto te = cast(TupleExp)ea;
                     size_t dim = te.exps.dim;
                     tiargs.remove(j);
                     if (dim)
@@ -6756,7 +6756,7 @@ public:
                 }
                 if (ea.op == TOKfunction)
                 {
-                    FuncExp fe = cast(FuncExp)ea;
+                    auto fe = cast(FuncExp)ea;
                     /* A function literal, that is passed to template and
                      * already semanticed as function pointer, never requires
                      * outer frame. So convert it to global function is valid.
@@ -7722,7 +7722,7 @@ public:
                 symtab = sc.parent.isScopeDsymbol().symtab;
             L1:
                 assert(symtab);
-                int num = cast(int)dmd_aaLen(symtab.tab) + 1;
+                auto num = cast(int)dmd_aaLen(symtab.tab) + 1;
                 ident = Identifier.generateId(s, num);
                 symtab.insert(this);
             }
@@ -7783,7 +7783,7 @@ public:
         symtab = new DsymbolTable();
         for (Scope* sce = sc; 1; sce = sce.enclosing)
         {
-            ScopeDsymbol sds = cast(ScopeDsymbol)sce.scopesym;
+            auto sds = cast(ScopeDsymbol)sce.scopesym;
             if (sds)
             {
                 sds.importScope(this, Prot(PROTpublic));
@@ -8040,7 +8040,7 @@ public:
                 TemplateDeclaration td = s.isTemplateDeclaration();
                 if (!td)
                     return 0;
-                TemplateMixin tm = cast(TemplateMixin)param;
+                auto tm = cast(TemplateMixin)param;
                 if (td.semanticRun == PASSinit)
                 {
                     if (td._scope)

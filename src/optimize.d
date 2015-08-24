@@ -65,7 +65,7 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
                 }
                 if (ei.op == TOKconstruct || ei.op == TOKblit)
                 {
-                    AssignExp ae = cast(AssignExp)ei;
+                    auto ae = cast(AssignExp)ei;
                     ei = ae.e2;
                     if (ei.isConst() == 1)
                     {
@@ -144,7 +144,7 @@ extern (C++) Expression fromConstInitializer(int result, Expression e1)
     Expression e = e1;
     if (e1.op == TOKvar)
     {
-        VarExp ve = cast(VarExp)e1;
+        auto ve = cast(VarExp)e1;
         auto v = ve.var.isVarDeclaration();
         e = expandVar(result, v);
         if (e)
@@ -357,7 +357,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
              */
             if (e.e1.op == TOKcomma)
             {
-                CommaExp ce = cast(CommaExp)e.e1;
+                auto ce = cast(CommaExp)e.e1;
                 auto ae = new AddrExp(e.loc, ce.e2);
                 ae.type = e.type;
                 ret = new CommaExp(ce.loc, ce.e1, ae);
@@ -382,7 +382,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
             if (e.e1.op == TOKvar)
             {
-                VarExp ve = cast(VarExp)e.e1;
+                auto ve = cast(VarExp)e.e1;
                 if (!ve.var.isOut() && !ve.var.isRef() && !ve.var.isImportedSymbol())
                 {
                     ret = new SymOffExp(e.loc, ve.var, 0, ve.hasOverloads);
@@ -393,11 +393,11 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (e.e1.op == TOKindex)
             {
                 // Convert &array[n] to &array+n
-                IndexExp ae = cast(IndexExp)e.e1;
+                auto ae = cast(IndexExp)e.e1;
                 if (ae.e2.op == TOKint64 && ae.e1.op == TOKvar)
                 {
                     sinteger_t index = ae.e2.toInteger();
-                    VarExp ve = cast(VarExp)ae.e1;
+                    auto ve = cast(VarExp)ae.e1;
                     if (ve.type.ty == Tsarray && !ve.var.isImportedSymbol())
                     {
                         auto ts = cast(TypeSArray)ve.type;
@@ -447,12 +447,12 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
             if (e.e1.op == TOKsymoff)
             {
-                SymOffExp se = cast(SymOffExp)e.e1;
+                auto se = cast(SymOffExp)e.e1;
                 auto v = se.var.isVarDeclaration();
                 Expression ex = expandVar(result, v);
                 if (ex && ex.op == TOKstructliteral)
                 {
-                    StructLiteralExp sle = cast(StructLiteralExp)ex;
+                    auto sle = cast(StructLiteralExp)ex;
                     ex = sle.getField(e.type, cast(uint)se.offset);
                     if (ex && !CTFEExp.isCantExp(ex))
                     {
@@ -472,13 +472,13 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             Expression ex = e.e1;
             if (ex.op == TOKvar)
             {
-                VarExp ve = cast(VarExp)ex;
+                auto ve = cast(VarExp)ex;
                 auto v = ve.var.isVarDeclaration();
                 ex = expandVar(result, v);
             }
             if (ex && ex.op == TOKstructliteral)
             {
-                StructLiteralExp sle = cast(StructLiteralExp)ex;
+                auto sle = cast(StructLiteralExp)ex;
                 auto vf = e.var.isVarDeclaration();
                 if (vf && !vf.overlapped)
                 {
@@ -1116,7 +1116,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (e.e1.op == TOKcat)
             {
                 // Bugzilla 12798: optimize ((expr ~ str1) ~ str2)
-                CatExp ce1 = cast(CatExp)e.e1;
+                auto ce1 = cast(CatExp)e.e1;
                 scope CatExp cex = new CatExp(e.loc, ce1.e2, e.e2);
                 cex.type = e.type;
                 Expression ex = cex.optimize(result);
@@ -1129,13 +1129,13 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             // optimize "str"[] -> "str"
             if (e.e1.op == TOKslice)
             {
-                SliceExp se1 = cast(SliceExp)e.e1;
+                auto se1 = cast(SliceExp)e.e1;
                 if (se1.e1.op == TOKstring && !se1.lwr)
                     e.e1 = se1.e1;
             }
             if (e.e2.op == TOKslice)
             {
-                SliceExp se2 = cast(SliceExp)e.e2;
+                auto se2 = cast(SliceExp)e.e2;
                 if (se2.e1.op == TOKstring && !se2.lwr)
                     e.e2 = se2.e1;
             }

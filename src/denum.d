@@ -165,7 +165,7 @@ public:
              */
             if (memtype.ty == Tenum)
             {
-                EnumDeclaration sym = cast(EnumDeclaration)memtype.toDsymbol(sc);
+                auto sym = cast(EnumDeclaration)memtype.toDsymbol(sc);
                 if (!sym.memtype || !sym.members || !sym.symtab || sym._scope)
                 {
                     // memtype is forward referenced, so try again later

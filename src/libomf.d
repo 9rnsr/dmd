@@ -483,7 +483,7 @@ private:
         for (size_t i = 0; i < objmodules.dim; i++)
         {
             OmfObjModule* om = objmodules[i];
-            uint page = cast(uint)(libbuf.offset / g_page_size);
+            auto page = cast(uint)(libbuf.offset / g_page_size);
             assert(page <= 0xFFFF);
             om.page = cast(ushort)page;
             // Write out the object module om
@@ -495,7 +495,7 @@ private:
                 libbuf.fill0(g_page_size - n);
         }
         // File offset of start of dictionary
-        uint offset = cast(uint)libbuf.offset;
+        auto offset = cast(uint)libbuf.offset;
         // Write dictionary header, then round it to a BUCKETPAGE boundary
         ushort size = (BUCKETPAGE - (cast(short)offset + 3)) & (BUCKETPAGE - 1);
         libbuf.writeByte(0xF1);
