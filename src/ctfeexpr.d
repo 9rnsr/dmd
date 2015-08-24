@@ -342,7 +342,7 @@ extern (C++) UnionExp copyLiteral(Expression e)
     {
         ArrayLiteralExp ae = cast(ArrayLiteralExp)e;
         emplaceExp!(ArrayLiteralExp)(&ue, e.loc, copyLiteralArray(ae.elements));
-        ArrayLiteralExp r = cast(ArrayLiteralExp)ue.exp();
+        auto r = cast(ArrayLiteralExp)ue.exp();
         r.type = e.type;
         r.ownedByCtfe = OWNEDctfe;
         return ue;
@@ -351,7 +351,7 @@ extern (C++) UnionExp copyLiteral(Expression e)
     {
         AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)e;
         emplaceExp!(AssocArrayLiteralExp)(&ue, e.loc, copyLiteralArray(aae.keys), copyLiteralArray(aae.values));
-        AssocArrayLiteralExp r = cast(AssocArrayLiteralExp)ue.exp();
+        auto r = cast(AssocArrayLiteralExp)ue.exp();
         r.type = e.type;
         r.ownedByCtfe = OWNEDctfe;
         return ue;
@@ -387,7 +387,7 @@ extern (C++) UnionExp copyLiteral(Expression e)
             (*newelems)[i] = m;
         }
         emplaceExp!(StructLiteralExp)(&ue, e.loc, se.sd, newelems, se.stype);
-        StructLiteralExp r = cast(StructLiteralExp)ue.exp();
+        auto r = cast(StructLiteralExp)ue.exp();
         r.type = e.type;
         r.ownedByCtfe = OWNEDctfe;
         r.origin = (cast(StructLiteralExp)e).origin;
@@ -432,7 +432,7 @@ extern (C++) UnionExp copyLiteral(Expression e)
             }
             ue = Slice(se.type, se.e1, se.lwr, se.upr);
             assert(ue.exp().op == TOKarrayliteral);
-            ArrayLiteralExp r = cast(ArrayLiteralExp)ue.exp();
+            auto r = cast(ArrayLiteralExp)ue.exp();
             r.elements = copyLiteralArray(r.elements);
             r.ownedByCtfe = OWNEDctfe;
             return ue;

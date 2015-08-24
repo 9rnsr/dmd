@@ -372,7 +372,7 @@ private:
         for (size_t i = 0; i < objmodules.dim; i++)
         {
             OmfObjModule* om = objmodules[i];
-            ushort n = cast(ushort)strlen(om.name);
+            auto n = cast(ushort)strlen(om.name);
             if (n > 255)
             {
                 entry[0] = 0xFF;
@@ -399,7 +399,7 @@ private:
         for (size_t i = 0; i < objsymbols.dim; i++)
         {
             OmfObjSymbol* os = objsymbols[i];
-            ushort n = cast(ushort)strlen(os.name);
+            auto n = cast(ushort)strlen(os.name);
             if (n > 255)
             {
                 entry[0] = 0xFF;

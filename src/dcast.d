@@ -2541,7 +2541,7 @@ Lagain:
             TypeFunction tf2 = cast(TypeFunction)t2n;
             tf1.purityLevel();
             tf2.purityLevel();
-            TypeFunction d = cast(TypeFunction)tf1.syntaxCopy();
+            auto d = cast(TypeFunction)tf1.syntaxCopy();
             if (tf1.purity != tf2.purity)
                 d.purity = PUREimpure;
             assert(d.purity != PUREfwdref);

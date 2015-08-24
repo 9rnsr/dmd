@@ -962,7 +962,7 @@ public:
             TemplateParameter tp = (*parameters)[i];
             if (tp.dependent)
                 break;
-            RootObject p = cast(RootObject)tp.dummyArg();
+            auto p = cast(RootObject)tp.dummyArg();
             if (!p)
                 break;
             ti.tiargs.push(p);
@@ -1623,7 +1623,7 @@ public:
                                 TemplateValueParameter tvp = tprm.isTemplateValueParameter();
                                 if (!tvp)
                                     goto Lnomatch;
-                                Expression e = cast(Expression)(*dedtypes)[i];
+                                auto e = cast(Expression)(*dedtypes)[i];
                                 if (e)
                                 {
                                     if (!dim.equals(e))
@@ -1632,7 +1632,7 @@ public:
                                 else
                                 {
                                     Type vt = tvp.valType.semantic(Loc(), sc);
-                                    MATCH m = cast(MATCH)dim.implicitConvTo(vt);
+                                    auto m = cast(MATCH)dim.implicitConvTo(vt);
                                     if (m <= MATCHnomatch)
                                         goto Lnomatch;
                                     (*dedtypes)[i] = dim;
@@ -3648,7 +3648,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                                 o = t.tempinst.tdtypes[i + k];
                             vt.objects[k] = o;
                         }
-                        Tuple v = cast(Tuple)(*dedtypes)[j];
+                        auto v = cast(Tuple)(*dedtypes)[j];
                         if (v)
                         {
                             if (!match(v, vt))
@@ -4668,7 +4668,7 @@ public:
                 m = m2;
             if ((*dedtypes)[i])
             {
-                Type t = cast(Type)(*dedtypes)[i];
+                auto t = cast(Type)(*dedtypes)[i];
                 if (dependent && !t.equals(ta)) // Bugzilla 14357
                     goto Lnomatch;
                 /* This is a self-dependent parameter. For example:
@@ -4684,7 +4684,7 @@ public:
             if ((*dedtypes)[i])
             {
                 // Must match already deduced type
-                Type t = cast(Type)(*dedtypes)[i];
+                auto t = cast(Type)(*dedtypes)[i];
                 if (!t.equals(ta))
                 {
                     //printf("t = %s ta = %s\n", t->toChars(), ta->toChars());
@@ -4949,7 +4949,7 @@ public:
             if ((*dedtypes)[i])
             {
                 // Must match already deduced value
-                Expression e = cast(Expression)(*dedtypes)[i];
+                auto e = cast(Expression)(*dedtypes)[i];
                 if (!ei || !ei.equals(e))
                     goto Lnomatch;
             }
@@ -5682,7 +5682,7 @@ public:
                 while (s && !s.isModule())
                     s = s.toParent2();
                 assert(s);
-                Module m = cast(Module)s;
+                auto m = cast(Module)s;
                 if (!m.isRoot())
                     m = m.importedFrom;
                 //printf("\t2: adding to module %s instead of module %s\n", m->toChars(), sc->module->toChars());

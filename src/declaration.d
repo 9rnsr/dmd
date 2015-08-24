@@ -518,7 +518,7 @@ public:
             RootObject o = (*objects)[i];
             if (o.dyncast() == DYNCAST_EXPRESSION)
             {
-                Expression e = cast(Expression)o;
+                auto e = cast(Expression)o;
                 if (e.op == TOKdsymbol)
                 {
                     DsymbolExp ve = cast(DsymbolExp)e;
@@ -1751,7 +1751,7 @@ public:
             {
                 RootObject o = (*v2.objects)[i];
                 assert(o.dyncast() == DYNCAST_EXPRESSION);
-                Expression e = cast(Expression)o;
+                auto e = cast(Expression)o;
                 assert(e.op == TOKdsymbol);
                 DsymbolExp se = cast(DsymbolExp)e;
                 se.s.setFieldOffset(ad, poffset, isunion);

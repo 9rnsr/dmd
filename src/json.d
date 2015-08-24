@@ -78,7 +78,7 @@ public:
     {
         for (; *s; s++)
         {
-            char c = cast(char)*s;
+            auto c = cast(char)*s;
             switch (c)
             {
             case '\n':

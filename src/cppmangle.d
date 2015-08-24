@@ -120,7 +120,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 bool is_var_arg = false;
                 for (size_t i = 0; i < ti.tiargs.dim; i++)
                 {
-                    RootObject o = cast(RootObject)(*ti.tiargs)[i];
+                    auto o = cast(RootObject)(*ti.tiargs)[i];
                     TemplateParameter tp = null;
                     TemplateValueParameter tv = null;
                     TemplateTupleParameter tt = null;

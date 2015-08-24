@@ -3328,14 +3328,14 @@ public:
                             if (t.ty == Tsarray)
                             {
                                 // The index expression is an Expression.
-                                TypeSArray a = cast(TypeSArray)t;
+                                auto a = cast(TypeSArray)t;
                                 dimStack.push(a.dim.syntaxCopy());
                                 t = a.next.syntaxCopy();
                             }
                             else if (t.ty == Taarray)
                             {
                                 // The index expression is a Type. It will be interpreted as an expression at semantic time.
-                                TypeAArray a = cast(TypeAArray)t;
+                                auto a = cast(TypeAArray)t;
                                 dimStack.push(a.index.syntaxCopy());
                                 t = a.next.syntaxCopy();
                             }

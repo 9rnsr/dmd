@@ -6252,7 +6252,7 @@ extern (C++) Expression foreachApplyUtf(InterState* istate, Expression str, Expr
                     {
                         Expression r = (*ale.elements)[indx];
                         assert(r.op == TOKint64);
-                        char x = cast(char)(cast(IntegerExp)r).getInteger();
+                        auto x = cast(char)(cast(IntegerExp)r).getInteger();
                         if ((x & 0xC0) != 0x80)
                             break;
                         ++buflen;
@@ -6277,7 +6277,7 @@ extern (C++) Expression foreachApplyUtf(InterState* istate, Expression str, Expr
                     buflen = 1;
                     Expression r = (*ale.elements)[indx];
                     assert(r.op == TOKint64);
-                    ushort x = cast(ushort)(cast(IntegerExp)r).getInteger();
+                    auto x = cast(ushort)(cast(IntegerExp)r).getInteger();
                     if (indx > 0 && x >= 0xDC00 && x <= 0xDFFF)
                     {
                         --indx;

@@ -619,7 +619,7 @@ public:
 
     final Type copy()
     {
-        Type t = cast(Type)mem.xmalloc(sizeTy[ty]);
+        auto t = cast(Type)mem.xmalloc(sizeTy[ty]);
         memcpy(cast(void*)t, cast(void*)this, sizeTy[ty]);
         return t;
     }
@@ -634,7 +634,7 @@ public:
 
     bool equals(RootObject o)
     {
-        Type t = cast(Type)o;
+        auto t = cast(Type)o;
         //printf("Type::equals(%s, %s)\n", toChars(), t->toChars());
         // deco strings are unique
         // and semantic() has been run
@@ -1236,7 +1236,7 @@ public:
     final Type nullAttributes()
     {
         uint sz = sizeTy[ty];
-        Type t = cast(Type)mem.xmalloc(sz);
+        auto t = cast(Type)mem.xmalloc(sz);
         memcpy(cast(void*)t, cast(void*)this, sz);
         // t->mod = NULL;  // leave mod unchanged
         t.deco = null;
@@ -2988,7 +2988,7 @@ public:
             assert(cto.mod == MODconst);
             return cto;
         }
-        TypeNext t = cast(TypeNext)Type.makeConst();
+        auto t = cast(TypeNext)Type.makeConst();
         if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
         {
             if (next.isShared())
@@ -3018,7 +3018,7 @@ public:
             assert(ito.isImmutable());
             return ito;
         }
-        TypeNext t = cast(TypeNext)Type.makeImmutable();
+        auto t = cast(TypeNext)Type.makeImmutable();
         if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
         {
             t.next = next.immutableOf();
@@ -3034,7 +3034,7 @@ public:
             assert(sto.mod == MODshared);
             return sto;
         }
-        TypeNext t = cast(TypeNext)Type.makeShared();
+        auto t = cast(TypeNext)Type.makeShared();
         if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
         {
             if (next.isWild())
@@ -3064,7 +3064,7 @@ public:
             assert(scto.mod == (MODshared | MODconst));
             return scto;
         }
-        TypeNext t = cast(TypeNext)Type.makeSharedConst();
+        auto t = cast(TypeNext)Type.makeSharedConst();
         if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
         {
             if (next.isWild())
@@ -3084,7 +3084,7 @@ public:
             assert(wto.mod == MODwild);
             return wto;
         }
-        TypeNext t = cast(TypeNext)Type.makeWild();
+        auto t = cast(TypeNext)Type.makeWild();
         if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
         {
             if (next.isShared())
@@ -3114,7 +3114,7 @@ public:
             assert(wcto.mod == MODwildconst);
             return wcto;
         }
-        TypeNext t = cast(TypeNext)Type.makeWildConst();
+        auto t = cast(TypeNext)Type.makeWildConst();
         if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
         {
             if (next.isShared())
@@ -3134,7 +3134,7 @@ public:
             assert(swto.isSharedWild());
             return swto;
         }
-        TypeNext t = cast(TypeNext)Type.makeSharedWild();
+        auto t = cast(TypeNext)Type.makeSharedWild();
         if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
         {
             if (next.isConst())
@@ -3154,7 +3154,7 @@ public:
             assert(swcto.mod == (MODshared | MODwildconst));
             return swcto;
         }
-        TypeNext t = cast(TypeNext)Type.makeSharedWildConst();
+        auto t = cast(TypeNext)Type.makeSharedWildConst();
         if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
         {
             t.next = next.sharedWildConstOf();
@@ -3166,7 +3166,7 @@ public:
     final Type makeMutable()
     {
         //printf("TypeNext::makeMutable() %p, %s\n", this, toChars());
-        TypeNext t = cast(TypeNext)Type.makeMutable();
+        auto t = cast(TypeNext)Type.makeMutable();
         if (ty == Tsarray)
         {
             t.next = next.mutableOf();
@@ -4118,7 +4118,7 @@ public:
             error(loc, "T in __vector(T) must be a static array, not %s", basetype.toChars());
             return terror;
         }
-        TypeSArray t = cast(TypeSArray)basetype;
+        auto t = cast(TypeSArray)basetype;
         int sz = cast(int)t.size(loc);
         switch (Target.checkVectorType(sz, t.nextOf()))
         {
@@ -4243,7 +4243,7 @@ public:
     TypeBasic elementType()
     {
         assert(basetype.ty == Tsarray);
-        TypeSArray t = cast(TypeSArray)basetype;
+        auto t = cast(TypeSArray)basetype;
         TypeBasic tb = t.nextOf().isTypeBasic();
         assert(tb);
         return tb;
@@ -4613,7 +4613,7 @@ public:
                 }
                 if (o.dyncast() == DYNCAST_EXPRESSION)
                 {
-                    Expression e = cast(Expression)o;
+                    auto e = cast(Expression)o;
                     if (e.op == TOKdsymbol)
                     {
                         *ps = (cast(DsymbolExp)e).s;
@@ -5803,7 +5803,7 @@ public:
             tf.parameters = parameters.copy();
             for (size_t i = 0; i < parameters.dim; i++)
             {
-                Parameter p = cast(Parameter)mem.xmalloc(__traits(classInstanceSize, Parameter));
+                auto p = cast(Parameter)mem.xmalloc(__traits(classInstanceSize, Parameter));
                 memcpy(cast(void*)p, cast(void*)(*parameters)[i], __traits(classInstanceSize, Parameter));
                 (*tf.parameters)[i] = p;
             }
@@ -6196,7 +6196,7 @@ public:
 
     Type addStorageClass(StorageClass stc)
     {
-        TypeFunction t = cast(TypeFunction)Type.addStorageClass(stc);
+        auto t = cast(TypeFunction)Type.addStorageClass(stc);
         if ((stc & STCpure && !t.purity) || (stc & STCnothrow && !t.isnothrow) || (stc & STCnogc && !t.isnogc) || (stc & STCsafe && t.trust < TRUSTtrusted))
         {
             // Klunky to change these
@@ -6775,7 +6775,7 @@ public:
             }
             else if (id.dyncast() == DYNCAST_EXPRESSION)
             {
-                Expression e = cast(Expression)id;
+                auto e = cast(Expression)id;
                 e = e.syntaxCopy();
                 id = e;
             }
@@ -9166,7 +9166,7 @@ public:
 
     bool equals(RootObject o)
     {
-        Type t = cast(Type)o;
+        auto t = cast(Type)o;
         //printf("TypeTuple::equals(%s, %s)\n", toChars(), t->toChars());
         if (this == t)
             return true;

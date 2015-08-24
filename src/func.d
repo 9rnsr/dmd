@@ -543,7 +543,7 @@ public:
     Dsymbol syntaxCopy(Dsymbol s)
     {
         //printf("FuncDeclaration::syntaxCopy('%s')\n", toChars());
-        FuncDeclaration f = s ? cast(FuncDeclaration)s : new FuncDeclaration(loc, endloc, ident, storage_class, type.syntaxCopy());
+        auto f = s ? cast(FuncDeclaration)s : new FuncDeclaration(loc, endloc, ident, storage_class, type.syntaxCopy());
         f.outId = outId;
         f.frequire = frequire ? frequire.syntaxCopy() : null;
         f.fensure = fensure ? fensure.syntaxCopy() : null;
@@ -1356,7 +1356,7 @@ public:
         semantic3Errors = false;
         if (!type || type.ty != Tfunction)
             return;
-        TypeFunction f = cast(TypeFunction)type;
+        auto f = cast(TypeFunction)type;
         if (!inferRetType && f.next.ty == Terror)
             return;
         if (!fbody && inferRetType && !f.next)
@@ -1534,7 +1534,7 @@ public:
                     // never used, so ignore
                     if (fparam.type.ty == Ttuple)
                     {
-                        TypeTuple t = cast(TypeTuple)fparam.type;
+                        auto t = cast(TypeTuple)fparam.type;
                         size_t dim = Parameter.dim(t.arguments);
                         auto exps = new Objects();
                         exps.setDim(dim);
@@ -2773,7 +2773,7 @@ public:
                 e = p.type.defaultInitLiteral(Loc());
             args[u] = e;
         }
-        MATCH m = cast(MATCH)tg.callMatch(null, &args, 1);
+        auto m = cast(MATCH)tg.callMatch(null, &args, 1);
         if (m > MATCHnomatch)
         {
             /* A variadic parameter list is less specialized than a

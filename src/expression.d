@@ -932,7 +932,7 @@ extern (C++) void expandTuples(Expressions* exps)
             // Look for tuple with 0 members
             if (arg.op == TOKtype)
             {
-                TypeExp e = cast(TypeExp)arg;
+                auto e = cast(TypeExp)arg;
                 if (e.type.toBasetype().ty == Ttuple)
                 {
                     TypeTuple tt = cast(TypeTuple)e.type.toBasetype();
@@ -4103,7 +4103,7 @@ public:
     {
         if (o && o.dyncast() == DYNCAST_EXPRESSION)
         {
-            Expression e = cast(Expression)o;
+            auto e = cast(Expression)o;
             if (e.op == TOKnull && type.equals(e.type))
             {
                 return true;
@@ -4201,7 +4201,7 @@ public:
         //printf("StringExp::equals('%s') %s\n", o->toChars(), toChars());
         if (o && o.dyncast() == DYNCAST_EXPRESSION)
         {
-            Expression e = cast(Expression)o;
+            auto e = cast(Expression)o;
             if (e.op == TOKstring)
             {
                 return compare(o) == 0;
@@ -4506,12 +4506,12 @@ public:
             }
             else if (o.dyncast() == DYNCAST_EXPRESSION)
             {
-                Expression e = cast(Expression)o;
+                auto e = cast(Expression)o;
                 this.exps.push(e);
             }
             else if (o.dyncast() == DYNCAST_TYPE)
             {
-                Type t = cast(Type)o;
+                auto t = cast(Type)o;
                 Expression e = new TypeExp(loc, t);
                 this.exps.push(e);
             }
@@ -6976,7 +6976,7 @@ public:
 
     Expression syntaxCopy()
     {
-        UnaExp e = cast(UnaExp)copy();
+        auto e = cast(UnaExp)copy();
         e.type = null;
         e.e1 = e.e1.syntaxCopy();
         return e;
@@ -7036,7 +7036,7 @@ public:
 
     Expression syntaxCopy()
     {
-        BinExp e = cast(BinExp)copy();
+        auto e = cast(BinExp)copy();
         e.type = null;
         e.e1 = e.e1.syntaxCopy();
         e.e2 = e.e2.syntaxCopy();
@@ -14269,7 +14269,7 @@ public:
     Expression toLvalue(Scope* sc, Expression ex)
     {
         // convert (econd ? e1 : e2) to *(econd ? &e1 : &e2)
-        CondExp e = cast(CondExp)copy();
+        auto e = cast(CondExp)copy();
         e.e1 = e1.toLvalue(sc, null).addressOf();
         e.e2 = e2.toLvalue(sc, null).addressOf();
         e.type = type.pointerTo();

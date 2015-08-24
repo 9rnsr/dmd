@@ -330,7 +330,7 @@ extern (C++) bool scanOmfLib(void* pctx, void function(void* pctx, char* name, v
                     base = null;
                 }
                 // Round up to next page
-                uint t = cast(uint)(pnext - cast(ubyte*)buf);
+                auto t = cast(uint)(pnext - cast(ubyte*)buf);
                 t = (t + pagesize - 1) & ~cast(uint)(pagesize - 1);
                 pnext = cast(ubyte*)buf + t;
                 break;
@@ -369,7 +369,7 @@ extern (C++) void writeOMFObj(OutBuffer* buf, const(void)* base, uint length, co
         assert(len <= 0xFF - 2);
         memcpy(4 + header.ptr, name, len);
         // Compute and store record checksum
-        uint n = cast(uint)(len + 4);
+        auto n = cast(uint)(len + 4);
         ubyte checksum = 0;
         ubyte* p = header.ptr;
         while (n--)

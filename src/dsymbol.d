@@ -264,7 +264,7 @@ public:
     {
         if (this == o)
             return true;
-        Dsymbol s = cast(Dsymbol)o;
+        auto s = cast(Dsymbol)o;
         // Overload sets don't have an ident
         if (s && ident && s.ident && ident.equals(s.ident))
             return true;
@@ -1187,7 +1187,7 @@ extern (C++) void* symbol_search_fp(void* arg, const(char)* seed, int* cost)
     if (!id)
         return null;
     *cost = 0;
-    Dsymbol s = cast(Dsymbol)arg;
+    auto s = cast(Dsymbol)arg;
     Module.clearCache();
     return cast(void*)s.search(Loc(), id, IgnoreErrors);
 }

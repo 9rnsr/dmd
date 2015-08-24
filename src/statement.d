@@ -293,7 +293,7 @@ public:
                     }
                     if (s.exp.op == TOKassert)
                     {
-                        AssertExp a = cast(AssertExp)s.exp;
+                        auto a = cast(AssertExp)s.exp;
                         if (a.e1.isBool(false)) // if it's an assert(0)
                         {
                             result = BEhalt;
