@@ -26,6 +26,8 @@ import ddmd.mtype;
 import ddmd.root.outbuffer;
 import ddmd.visitor;
 
+/********************************* Import ****************************/
+
 extern (C++) final class Import : Dsymbol
 {
 public:
@@ -43,7 +45,6 @@ public:
     Package pkg; // leftmost package/module
     AliasDeclarations aliasdecls; // corresponding AliasDeclarations for alias=name pairs
 
-    /********************************* Import ****************************/
     extern (D) this(Loc loc, Identifiers* packages, Identifier id, Identifier aliasId, int isstatic)
     {
         super(null);
@@ -191,6 +192,32 @@ public:
         if (!pkg)
             pkg = mod;
         //printf("-Import::load('%s'), pkg = %p\n", toChars(), pkg);
+    }
+
+    /*****************************
+     * Add import to sd's symbol table.
+     */
+    void addMember(Scope* sc, ScopeDsymbol sd)
+    {
+        if (names.dim == 0)
+            return Dsymbol.addMember(sc, sd);
+        if (aliasId)
+            Dsymbol.addMember(sc, sd);
+        /* Instead of adding the import to sd's symbol table,
+         * add each of the alias=name pairs
+         */
+        for (size_t i = 0; i < names.dim; i++)
+        {
+            Identifier name = names[i];
+            Identifier _alias = aliases[i];
+            if (!_alias)
+                _alias = name;
+            auto tname = new TypeIdentifier(loc, name);
+            auto ad = new AliasDeclaration(loc, _alias, tname);
+            ad._import = this;
+            ad.addMember(sc, sd);
+            aliasdecls.push(ad);
+        }
     }
 
     void importAll(Scope* sc)
@@ -381,32 +408,6 @@ public:
         if (aliasId)
             return mod;
         return this;
-    }
-
-    /*****************************
-     * Add import to sd's symbol table.
-     */
-    void addMember(Scope* sc, ScopeDsymbol sd)
-    {
-        if (names.dim == 0)
-            return Dsymbol.addMember(sc, sd);
-        if (aliasId)
-            Dsymbol.addMember(sc, sd);
-        /* Instead of adding the import to sd's symbol table,
-         * add each of the alias=name pairs
-         */
-        for (size_t i = 0; i < names.dim; i++)
-        {
-            Identifier name = names[i];
-            Identifier _alias = aliases[i];
-            if (!_alias)
-                _alias = name;
-            auto tname = new TypeIdentifier(loc, name);
-            auto ad = new AliasDeclaration(loc, _alias, tname);
-            ad._import = this;
-            ad.addMember(sc, sd);
-            aliasdecls.push(ad);
-        }
     }
 
     Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)

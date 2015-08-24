@@ -37,13 +37,13 @@ import ddmd.tokens;
 import ddmd.utf;
 import ddmd.visitor;
 
-/**************************************************************/
+/********************************* AttribDeclaration ****************************/
+
 extern (C++) class AttribDeclaration : Dsymbol
 {
 public:
     Dsymbols* decl; // array of Dsymbol's
 
-    /********************************* AttribDeclaration ****************************/
     final extern (D) this(Dsymbols* decl)
     {
         super();
@@ -79,10 +79,17 @@ public:
      * If the returned scope != sc, the caller should pop
      * the scope after it used.
      */
-    final static Scope* createNewScope(Scope* sc, StorageClass stc, LINK linkage, Prot protection, int explicitProtection, structalign_t structalign, PINLINE inlining)
+    final static Scope* createNewScope(Scope* sc, StorageClass stc, LINK linkage,
+        Prot protection, int explicitProtection, structalign_t structalign,
+        PINLINE inlining)
     {
         Scope* sc2 = sc;
-        if (stc != sc.stc || linkage != sc.linkage || !protection.isSubsetOf(sc.protection) || explicitProtection != sc.explicitProtection || structalign != sc.structalign || inlining != sc.inlining)
+        if (stc != sc.stc ||
+            linkage != sc.linkage ||
+            !protection.isSubsetOf(sc.protection) ||
+            explicitProtection != sc.explicitProtection ||
+            structalign != sc.structalign ||
+            inlining != sc.inlining)
         {
             // create new one for changes
             sc2 = sc.copy();
@@ -316,12 +323,13 @@ public:
     }
 }
 
+/************************* StorageClassDeclaration ****************************/
+
 extern (C++) class StorageClassDeclaration : AttribDeclaration
 {
 public:
     StorageClass stc;
 
-    /************************* StorageClassDeclaration ****************************/
     final extern (D) this(StorageClass stc, Dsymbols* decl)
     {
         super(decl);
@@ -388,12 +396,13 @@ public:
     }
 }
 
+/********************************* DeprecatedDeclaration ****************************/
+
 extern (C++) final class DeprecatedDeclaration : StorageClassDeclaration
 {
 public:
     Expression msg;
 
-    /********************************* DeprecatedDeclaration ****************************/
     extern (D) this(Expression msg, Dsymbols* decl)
     {
         super(STCdeprecated, decl);
@@ -427,12 +436,13 @@ public:
     }
 }
 
+/********************************* LinkDeclaration ****************************/
+
 extern (C++) final class LinkDeclaration : AttribDeclaration
 {
 public:
     LINK linkage;
 
-    /********************************* LinkDeclaration ****************************/
     extern (D) this(LINK p, Dsymbols* decl)
     {
         super(decl);
@@ -462,13 +472,14 @@ public:
     }
 }
 
+/********************************* ProtDeclaration ****************************/
+
 extern (C++) final class ProtDeclaration : AttribDeclaration
 {
 public:
     Prot protection;
     Identifiers* pkg_identifiers;
 
-    /********************************* ProtDeclaration ****************************/
     /**
      * Params:
      *  loc = source location of attribute token
@@ -555,12 +566,13 @@ public:
     }
 }
 
+/********************************* AlignDeclaration ****************************/
+
 extern (C++) final class AlignDeclaration : AttribDeclaration
 {
 public:
     uint salign;
 
-    /********************************* AlignDeclaration ****************************/
     extern (D) this(uint sa, Dsymbols* decl)
     {
         super(decl);
@@ -584,6 +596,8 @@ public:
     }
 }
 
+/********************************* AnonDeclaration ****************************/
+
 extern (C++) final class AnonDeclaration : AttribDeclaration
 {
 public:
@@ -591,7 +605,6 @@ public:
     structalign_t alignment;
     int sem; // 1 if successful semantic()
 
-    /********************************* AnonDeclaration ****************************/
     extern (D) this(Loc loc, bool isunion, Dsymbols* decl)
     {
         super(decl);
@@ -705,12 +718,13 @@ public:
     }
 }
 
+/********************************* PragmaDeclaration ****************************/
+
 extern (C++) final class PragmaDeclaration : AttribDeclaration
 {
 public:
     Expressions* args; // array of Expression's
 
-    /********************************* PragmaDeclaration ****************************/
     extern (D) this(Loc loc, Identifier ident, Expressions* args, Dsymbols* decl)
     {
         super(decl);
@@ -724,6 +738,40 @@ public:
         //printf("PragmaDeclaration::syntaxCopy(%s)\n", toChars());
         assert(!s);
         return new PragmaDeclaration(loc, ident, Expression.arraySyntaxCopy(args), Dsymbol.arraySyntaxCopy(decl));
+    }
+
+    Scope* newScope(Scope* sc)
+    {
+        if (ident == Id.Pinline)
+        {
+            PINLINE inlining = PINLINEdefault;
+            if (!args || args.dim == 0)
+                inlining = PINLINEdefault;
+            else if (args.dim != 1)
+            {
+                error("one boolean expression expected for pragma(inline), not %d", args.dim);
+                args.setDim(1);
+                (*args)[0] = new ErrorExp();
+            }
+            else
+            {
+                Expression e = (*args)[0];
+                if (e.op != TOKint64 || !e.type.equals(Type.tbool))
+                {
+                    if (e.op != TOKerror)
+                    {
+                        error("pragma(inline, true or false) expected, not %s", e.toChars());
+                        (*args)[0] = new ErrorExp();
+                    }
+                }
+                else if (e.isBool(true))
+                    inlining = PINLINEalways;
+                else if (e.isBool(false))
+                    inlining = PINLINEnever;
+            }
+            return createNewScope(sc, sc.stc, sc.linkage, sc.protection, sc.explicitProtection, sc.structalign, inlining);
+        }
+        return sc;
     }
 
     void semantic(Scope* sc)
@@ -964,40 +1012,6 @@ public:
         }
     }
 
-    Scope* newScope(Scope* sc)
-    {
-        if (ident == Id.Pinline)
-        {
-            PINLINE inlining = PINLINEdefault;
-            if (!args || args.dim == 0)
-                inlining = PINLINEdefault;
-            else if (args.dim != 1)
-            {
-                error("one boolean expression expected for pragma(inline), not %d", args.dim);
-                args.setDim(1);
-                (*args)[0] = new ErrorExp();
-            }
-            else
-            {
-                Expression e = (*args)[0];
-                if (e.op != TOKint64 || !e.type.equals(Type.tbool))
-                {
-                    if (e.op != TOKerror)
-                    {
-                        error("pragma(inline, true or false) expected, not %s", e.toChars());
-                        (*args)[0] = new ErrorExp();
-                    }
-                }
-                else if (e.isBool(true))
-                    inlining = PINLINEalways;
-                else if (e.isBool(false))
-                    inlining = PINLINEnever;
-            }
-            return createNewScope(sc, sc.stc, sc.linkage, sc.protection, sc.explicitProtection, sc.structalign, inlining);
-        }
-        return sc;
-    }
-
     const(char)* kind()
     {
         return "pragma";
@@ -1009,13 +1023,14 @@ public:
     }
 }
 
+/********************************* ConditionalDeclaration ****************************/
+
 extern (C++) class ConditionalDeclaration : AttribDeclaration
 {
 public:
     Condition condition;
     Dsymbols* elsedecl; // array of Dsymbol's for else block
 
-    /********************************* ConditionalDeclaration ****************************/
     final extern (D) this(Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
     {
         super(decl);
@@ -1027,7 +1042,10 @@ public:
     Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new ConditionalDeclaration(condition.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl), Dsymbol.arraySyntaxCopy(elsedecl));
+        return new ConditionalDeclaration(
+            condition.syntaxCopy(),
+            Dsymbol.arraySyntaxCopy(decl),
+            Dsymbol.arraySyntaxCopy(elsedecl));
     }
 
     final bool oneMember(Dsymbol* ps, Identifier ident)
@@ -1040,7 +1058,8 @@ public:
         }
         else
         {
-            bool res = (Dsymbol.oneMembers(decl, ps, ident) && *ps is null && Dsymbol.oneMembers(elsedecl, ps, ident) && *ps is null);
+            bool res = (Dsymbol.oneMembers(    decl, ps, ident) && *ps is null &&
+                        Dsymbol.oneMembers(elsedecl, ps, ident) && *ps is null);
             *ps = null;
             return res;
         }
@@ -1100,13 +1119,14 @@ public:
     }
 }
 
+/***************************** StaticIfDeclaration ****************************/
+
 extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
 {
 public:
     ScopeDsymbol scopesym;
     int addisdone;
 
-    /***************************** StaticIfDeclaration ****************************/
     extern (D) this(Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
     {
         super(condition, decl, elsedecl);
@@ -1118,7 +1138,10 @@ public:
     Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new StaticIfDeclaration(condition.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl), Dsymbol.arraySyntaxCopy(elsedecl));
+        return new StaticIfDeclaration(
+            condition.syntaxCopy(),
+            Dsymbol.arraySyntaxCopy(decl),
+            Dsymbol.arraySyntaxCopy(elsedecl));
     }
 
     /****************************************
@@ -1202,7 +1225,10 @@ public:
     }
 }
 
-// Mixin declarations
+/***************************** CompileDeclaration *****************************/
+
+// These are mixin declarations, like mixin("int x");
+
 extern (C++) final class CompileDeclaration : AttribDeclaration
 {
 public:
@@ -1210,8 +1236,6 @@ public:
     ScopeDsymbol scopesym;
     int compiled;
 
-    /***************************** CompileDeclaration *****************************/
-    // These are mixin declarations, like mixin("int x");
     extern (D) this(Loc loc, Expression exp)
     {
         super(null);
@@ -1301,16 +1325,17 @@ public:
     }
 }
 
+/***************************** UserAttributeDeclaration *****************************/
 /**
  * User defined attributes look like:
  *      @(args, ...)
  */
+
 extern (C++) final class UserAttributeDeclaration : AttribDeclaration
 {
 public:
     Expressions* atts;
 
-    /***************************** UserAttributeDeclaration *****************************/
     extern (D) this(Expressions* atts, Dsymbols* decl)
     {
         super(decl);
@@ -1322,7 +1347,9 @@ public:
     {
         //printf("UserAttributeDeclaration::syntaxCopy('%s')\n", toChars());
         assert(!s);
-        return new UserAttributeDeclaration(Expression.arraySyntaxCopy(this.atts), Dsymbol.arraySyntaxCopy(decl));
+        return new UserAttributeDeclaration(
+            Expression.arraySyntaxCopy(this.atts),
+            Dsymbol.arraySyntaxCopy(decl));
     }
 
     Scope* newScope(Scope* sc)

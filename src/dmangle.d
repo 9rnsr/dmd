@@ -139,6 +139,7 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
+
     /**************************************************
      * Type mangling
      */
@@ -315,6 +316,7 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
+
     void mangleDecl(Declaration sthis)
     {
         mangleParent(sthis);
@@ -596,6 +598,7 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
+
     void visit(Expression e)
     {
         e.error("expression %s is not a valid template value argument", e.toChars());
@@ -768,6 +771,7 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
+
     void paramsToDecoBuffer(Parameters* parameters)
     {
         //printf("Parameter::paramsToDecoBuffer()\n");
