@@ -34,7 +34,7 @@ public:
     Condition(Loc loc);
 
     virtual Condition *syntaxCopy() = 0;
-    virtual int include(Scope *sc, ScopeDsymbol *sds) = 0;
+    virtual int include(Scope *sc) = 0;
     virtual DebugCondition *isDebugCondition() { return NULL; }
     virtual void accept(Visitor *v) { v->visit(this); }
 };
@@ -60,7 +60,7 @@ public:
 
     DebugCondition(Module *mod, unsigned level, Identifier *ident);
 
-    int include(Scope *sc, ScopeDsymbol *sds);
+    int include(Scope *sc);
     DebugCondition *isDebugCondition() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -80,7 +80,7 @@ public:
 
     VersionCondition(Module *mod, unsigned level, Identifier *ident);
 
-    int include(Scope *sc, ScopeDsymbol *sds);
+    int include(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -92,7 +92,7 @@ public:
 
     StaticIfCondition(Loc loc, Expression *exp);
     Condition *syntaxCopy();
-    int include(Scope *sc, ScopeDsymbol *sds);
+    int include(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 

@@ -43,7 +43,7 @@ public:
 
     abstract Condition syntaxCopy();
 
-    abstract int include(Scope* sc, ScopeDsymbol sds);
+    abstract int include(Scope* sc);
 
     DebugCondition isDebugCondition()
     {
@@ -106,7 +106,7 @@ public:
         super(mod, level, ident);
     }
 
-    override int include(Scope* sc, ScopeDsymbol sds)
+    override int include(Scope* sc)
     {
         //printf("DebugCondition::include() level = %d, debuglevel = %d\n", level, global.params.debuglevel);
         if (inc == 0)
@@ -288,7 +288,7 @@ public:
         super(mod, level, ident);
     }
 
-    override int include(Scope* sc, ScopeDsymbol sds)
+    override int include(Scope* sc)
     {
         //printf("VersionCondition::include() level = %d, versionlevel = %d\n", level, global.params.versionlevel);
         //if (ident) printf("\tident = '%s'\n", ident->toChars());
@@ -345,15 +345,11 @@ public:
         return new StaticIfCondition(loc, exp.syntaxCopy());
     }
 
-    override int include(Scope* sc, ScopeDsymbol sds)
+    override int include(Scope* sc)
     {
         version (none)
         {
-            printf("StaticIfCondition::include(sc = %p, sds = %p) this=%p inc = %d\n", sc, sds, this, inc);
-            if (sds)
-            {
-                printf("\ts = '%s', kind = %s\n", sds.toChars(), sds.kind());
-            }
+            printf("StaticIfCondition::include(sc = %p) this = %p inc = %d\n", sc, this, inc);
         }
         if (inc == 0)
         {
@@ -370,7 +366,6 @@ public:
             }
             ++nest;
             sc = sc.push(sc.scopesym);
-            sc.sds = sds; // sds gets any addMember()
             //sc->speculative = true;       // TODO: static if (is(T U)) { /* U is available */ }
             sc.flags |= SCOPEcondition;
             sc = sc.startCTFE();

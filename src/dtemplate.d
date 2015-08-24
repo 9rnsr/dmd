@@ -5748,6 +5748,7 @@ public:
             error("template instantiation %s forward references template declaration %s", toChars(), tempdecl.toChars());
             return;
         }
+
         static if (LOG)
         {
             printf("\tcreate scope for template parameters '%s'\n", toChars());
@@ -5758,15 +5759,28 @@ public:
         _scope.tinst = this;
         _scope.minst = minst;
         //scope->stc = 0;
+
         // Declare each template parameter as an alias for the argument type
         Scope* paramscope = _scope.push();
         paramscope.stc = 0;
         paramscope.protection = Prot(PROTpublic); // Bugzilla 14169: template parameters should be public
         declareParameters(paramscope);
         paramscope.pop();
-        // Add members of template instance to template instance symbol table
-        //    parent = scope->scopesym;
+
         symtab = new DsymbolTable();
+
+        // Do semantic() analysis on template instance members
+        static if (LOG)
+        {
+            printf("\tdo semantic() on template instance members '%s'\n", toChars());
+        }
+        Scope* sc2 = _scope.push(this);
+        //printf("enclosing = %d, sc->parent = %s\n", enclosing, sc->parent->toChars());
+        sc2.parent = this;
+        sc2.tinst = this;
+        sc2.minst = minst;
+
+        // Add members of template instance to template instance symbol table
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
@@ -5774,12 +5788,13 @@ public:
             {
                 printf("\t[%d] adding member '%s' %p kind %s to '%s'\n", i, s.toChars(), s, s.kind(), this.toChars());
             }
-            s.addMember(_scope, this);
+            s.addMember(sc2, this);
         }
         static if (LOG)
         {
             printf("adding members done\n");
         }
+
         /* See if there is only one member of template instance, and that
          * member has the same name as the template instance.
          * If so, this template instance becomes an alias for that member.
@@ -5795,6 +5810,7 @@ public:
                 aliasdecl = s;
             }
         }
+
         /* If function template declaration
          */
         if (fargs && aliasdecl)
@@ -5810,19 +5826,11 @@ public:
                     tf.fargs = fargs;
             }
         }
-        // Do semantic() analysis on template instance members
-        static if (LOG)
-        {
-            printf("\tdo semantic() on template instance members '%s'\n", toChars());
-        }
-        Scope* sc2;
-        sc2 = _scope.push(this);
-        //printf("enclosing = %d, sc->parent = %s\n", enclosing, sc->parent->toChars());
-        sc2.parent = this;
-        sc2.tinst = this;
-        sc2.minst = minst;
+
         tryExpandMembers(sc2);
+
         semanticRun = PASSsemanticdone;
+
         /* ConditionalDeclaration may introduce eponymous declaration,
          * so we should find it once again after semantic.
          */
@@ -7593,11 +7601,6 @@ public:
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
-            s.setScope(sc2);
-        }
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
             s.importAll(sc2);
         }
         for (size_t i = 0; i < members.dim; i++)
@@ -7922,11 +7925,14 @@ public:
         Lcontinue:
             continue;
         }
+
         // Copy the syntax trees from the TemplateDeclaration
         members = Dsymbol.arraySyntaxCopy(tempdecl.members);
         if (!members)
             return;
+
         symtab = new DsymbolTable();
+
         for (Scope* sce = sc; 1; sce = sce.enclosing)
         {
             ScopeDsymbol sds = cast(ScopeDsymbol)sce.scopesym;
@@ -7936,26 +7942,23 @@ public:
                 break;
             }
         }
+
         static if (LOG)
         {
             printf("\tcreate scope for template parameters '%s'\n", toChars());
         }
         Scope* scy = sc.push(this);
         scy.parent = this;
+
         argsym = new ScopeDsymbol();
         argsym.parent = scy.parent;
         Scope* argscope = scy.push(argsym);
+
         uint errorsave = global.errors;
+
         // Declare each template parameter as an alias for the argument type
         declareParameters(argscope);
-        // Add members to enclosing scope, as well as this scope
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
-            s.addMember(argscope, this);
-            //printf("sc->parent = %p, sc->scopesym = %p\n", sc->parent, sc->scopesym);
-            //printf("s->parent = %s\n", s->parent->toChars());
-        }
+
         // Do semantic() analysis on template instance members
         static if (LOG)
         {
@@ -7963,6 +7966,7 @@ public:
         }
         Scope* sc2 = argscope.push(this);
         //size_t deferred_dim = Module::deferred.dim;
+
         static __gshared int nest;
         //printf("%d\n", nest);
         if (++nest > 500)
@@ -7971,42 +7975,52 @@ public:
             error("recursive expansion");
             fatal();
         }
+
+        // Add members to enclosing scope, as well as this scope
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
-            s.setScope(sc2);
+            s.addMember(sc2, this);
         }
+
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
             s.importAll(sc2);
         }
+
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
             s.semantic(sc2);
         }
+
         nest--;
+
         /* In DeclDefs scope, TemplateMixin does not have to handle deferred symbols.
          * Because the members would already call Module::addDeferredSemantic() for themselves.
          * See Struct, Class, Interface, and EnumDeclaration::semantic().
          */
         //if (!sc->func && Module::deferred.dim > deferred_dim) {}
+
         AggregateDeclaration ad = toParent().isAggregateDeclaration();
         if (sc.func && !ad)
         {
             semantic2(sc2);
             semantic3(sc2);
         }
+
         // Give additional context info if error occurred during instantiation
         if (global.errors != errorsave)
         {
             error("error instantiating");
             errors = true;
         }
+
         sc2.pop();
         argscope.pop();
         scy.pop();
+
         static if (LOG)
         {
             printf("-TemplateMixin::semantic('%s', this=%p)\n", toChars(), this);

@@ -196,6 +196,34 @@ public:
         //printf("-Import::load('%s'), pkg = %p\n", toChars(), pkg);
     }
 
+    /*****************************
+     * Add import to sds's symbol table.
+     */
+    override void addMember(Scope* sc, ScopeDsymbol sds)
+    {
+        if (names.dim == 0)
+            return Dsymbol.addMember(sc, sds);
+        if (aliasId)
+            Dsymbol.addMember(sc, sds);
+        else
+            Dsymbol.setScope(sc);
+        /* Instead of adding the import to sds's symbol table,
+         * add each of the alias=name pairs
+         */
+        for (size_t i = 0; i < names.dim; i++)
+        {
+            Identifier name = names[i];
+            Identifier _alias = aliases[i];
+            if (!_alias)
+                _alias = name;
+            auto tname = new TypeIdentifier(loc, name);
+            auto ad = new AliasDeclaration(loc, _alias, tname);
+            ad._import = this;
+            ad.addMember(sc, sds);
+            aliasdecls.push(ad);
+        }
+    }
+
     override void importAll(Scope* sc)
     {
         if (!mod)
@@ -384,32 +412,6 @@ public:
         if (aliasId)
             return mod;
         return this;
-    }
-
-    /*****************************
-     * Add import to sd's symbol table.
-     */
-    override void addMember(Scope* sc, ScopeDsymbol sd)
-    {
-        if (names.dim == 0)
-            return Dsymbol.addMember(sc, sd);
-        if (aliasId)
-            Dsymbol.addMember(sc, sd);
-        /* Instead of adding the import to sd's symbol table,
-         * add each of the alias=name pairs
-         */
-        for (size_t i = 0; i < names.dim; i++)
-        {
-            Identifier name = names[i];
-            Identifier _alias = aliases[i];
-            if (!_alias)
-                _alias = name;
-            auto tname = new TypeIdentifier(loc, name);
-            auto ad = new AliasDeclaration(loc, _alias, tname);
-            ad._import = this;
-            ad.addMember(sc, sd);
-            aliasdecls.push(ad);
-        }
     }
 
     override Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)

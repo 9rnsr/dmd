@@ -102,13 +102,8 @@ public:
             }
         }
         added = true;
-    }
 
-    override void setScope(Scope* sc)
-    {
-        if (semanticRun > PASSinit)
-            return;
-        ScopeDsymbol.setScope(sc);
+        setScope(sc);
     }
 
     override void semantic(Scope* sc)
@@ -230,16 +225,18 @@ public:
         sce = sce.startCTFE();
         sce.setNoFree(); // needed for getMaxMinValue()
 
-        /* Each enum member gets the sce scope
-         */
-        for (size_t i = 0; i < members.dim; i++)
+        if (added)
         {
-            EnumMember em = (*members)[i].isEnumMember();
-            if (em)
-                em._scope = sce;
+            /* Each enum member gets the sce scope
+             */
+            for (size_t i = 0; i < members.dim; i++)
+            {
+                EnumMember em = (*members)[i].isEnumMember();
+                if (em)
+                    em.setScope(sce);
+            }
         }
-
-        if (!added)
+        else
         {
             /* addMember() is not called when the EnumDeclaration appears as a function statement,
              * so we have to do what addMember() does and install the enum members in the right symbol
@@ -274,7 +271,7 @@ public:
                 if (em)
                 {
                     em.ed = this;
-                    em.addMember(sc, scopesym);
+                    em.addMember(sce, scopesym);
                 }
             }
         }
@@ -283,7 +280,7 @@ public:
         {
             EnumMember em = (*members)[i].isEnumMember();
             if (em)
-                em.semantic(em._scope);
+                em.semantic(sce);
         }
         //printf("defaultval = %lld\n", defaultval);
 

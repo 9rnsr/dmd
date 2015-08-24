@@ -1074,12 +1074,12 @@ extern (C++) Statement toStatement(Dsymbol s)
 
         override void visit(ConditionalDeclaration d)
         {
-            result = visitMembers(d.loc, d.include(null, null));
+            result = visitMembers(d.loc, d.include(null));
         }
 
         override void visit(CompileDeclaration d)
         {
-            result = visitMembers(d.loc, d.include(null, null));
+            result = visitMembers(d.loc, d.include(null));
         }
     }
 
@@ -3324,7 +3324,7 @@ public:
         // If we can short-circuit evaluate the if statement, don't do the
         // semantic analysis of the skipped code.
         // This feature allows a limited form of conditional compilation.
-        if (condition.include(sc, null))
+        if (condition.include(sc))
         {
             DebugCondition dc = condition.isDebugCondition();
             if (dc)
@@ -3350,7 +3350,7 @@ public:
     {
         Statement s;
         //printf("ConditionalStatement::flatten()\n");
-        if (condition.include(sc, null))
+        if (condition.include(sc))
         {
             DebugCondition dc = condition.isDebugCondition();
             if (dc)

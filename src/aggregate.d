@@ -113,13 +113,6 @@ public:
         sizeok = SIZEOKnone; // size not determined yet
     }
 
-    override final void setScope(Scope* sc)
-    {
-        if (sizeok == SIZEOKdone)
-            return;
-        ScopeDsymbol.setScope(sc);
-    }
-
     override final void semantic2(Scope* sc)
     {
         //printf("AggregateDeclaration::semantic2(%s) type = %s, errors = %d\n", toChars(), type->toChars(), errors);
