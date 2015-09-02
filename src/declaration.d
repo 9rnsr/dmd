@@ -2220,18 +2220,43 @@ public:
             return false;
 
         // The current function
-        FuncDeclaration fdthis = sc.parent.isFuncDeclaration();
+        auto fdthis = sc.parent.isFuncDeclaration();
         if (!fdthis)
             return false; // out of function scope
 
-        Dsymbol p = toParent2();
+        auto p = toParent2();
 
         // Function literals from fdthis to p must be delegates
         checkNestedRef(fdthis, p);
 
         // The function that this variable is in
-        FuncDeclaration fdv = p.isFuncDeclaration();
+        auto fdv = p.isFuncDeclaration();
         if (!fdv || fdv == fdthis)
+            return false;
+
+        //printf("\tfdv = %s\n", fdv.toChars());
+        //printf("\tfdthis = %s\n", fdthis.toChars());
+        int lv = fdthis.getLevel(loc, sc, fdv);
+        if (lv == -2)
+            return true; // error
+
+        //printf("fdthis is %s\n", fdthis.toChars());
+        //printf("var %s in function %s is nested ref\n", toChars(), fdv.toChars());
+        // __dollar creates problems because it isn't a real variable Bugzilla 3326
+        if (ident == Id.dollar)
+        {
+            .error(loc, "cannnot use $ inside a function literal");
+            return true;
+        }
+
+        // An access from a CT-only scope need not capture the enclosing frames.
+        if (sc.intypeof || (sc.flags & SCOPEcompile))
+            return false;
+
+        /* __require and __ensure will always get called directly,
+         * so they never make outer functions closure.
+         */
+        if (fdthis.ident == Id.require || fdthis.ident == Id.ensure)
             return false;
 
         // Add fdthis to nestedrefs[] if not already there
@@ -2246,18 +2271,6 @@ public:
                 break;
         }
 
-        /* __require and __ensure will always get called directly,
-         * so they never make outer functions closure.
-         */
-        if (fdthis.ident == Id.require || fdthis.ident == Id.ensure)
-            return false;
-
-        //printf("\tfdv = %s\n", fdv.toChars());
-        //printf("\tfdthis = %s\n", fdthis.toChars());
-        int lv = fdthis.getLevel(loc, sc, fdv);
-        if (lv == -2)
-            return true; // error
-
         // Add this to fdv.closureVars[] if not already there
         for (size_t i = 0; 1; i++)
         {
@@ -2271,14 +2284,6 @@ public:
                 break;
         }
 
-        //printf("fdthis is %s\n", fdthis.toChars());
-        //printf("var %s in function %s is nested ref\n", toChars(), fdv.toChars());
-        // __dollar creates problems because it isn't a real variable Bugzilla 3326
-        if (ident == Id.dollar)
-        {
-            .error(loc, "cannnot use $ inside a function literal");
-            return true;
-        }
         if (ident == Id.withSym) // Bugzilla 1759
         {
             ExpInitializer ez = _init.isExpInitializer();
