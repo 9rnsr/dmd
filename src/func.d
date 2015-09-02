@@ -3300,11 +3300,11 @@ public:
             return false;
 
         // The current function
-        FuncDeclaration fdthis = sc.parent.isFuncDeclaration();
+        auto fdthis = sc.parent.isFuncDeclaration();
         if (!fdthis)
             return false; // out of function scope
 
-        Dsymbol p = toParent2();
+        auto p = toParent2();
 
         // Function literals from fdthis to p must be delegates
         checkNestedRef(fdthis, p);
@@ -3312,32 +3312,13 @@ public:
         if (isNested())
         {
             // The function that this function is in
-            FuncDeclaration fdv = p.isFuncDeclaration();
+            auto fdv = p.isFuncDeclaration();
             if (!fdv)
                 return false;
             if (fdv == fdthis)
                 return false;
-
-            //printf("this = %s in [%s]\n", this.toChars(), this.loc.toChars());
-            //printf("fdv  = %s in [%s]\n", fdv .toChars(), fdv .loc.toChars());
-            //printf("fdthis = %s in [%s]\n", fdthis.toChars(), fdthis.loc.toChars());
-
-            // Add this function to the list of those which called us
-            if (fdthis != this)
-            {
-                bool found = false;
-                for (size_t i = 0; i < siblingCallers.dim; ++i)
-                {
-                    if (siblingCallers[i] == fdthis)
-                        found = true;
-                }
-                if (!found)
-                {
-                    //printf("\tadding sibling %s\n", fdthis.toPrettyChars());
-                    if (!sc.intypeof && !(sc.flags & SCOPEcompile))
-                        siblingCallers.push(fdthis);
-                }
-            }
+            if (fdthis == this)
+                return false;
 
             int lv = fdthis.getLevel(loc, sc, fdv);
             if (lv == -2)
@@ -3347,6 +3328,27 @@ public:
             if (lv == 0)
                 return false; // same level call
             // Uplevel call
+
+            // An access from a CT-only scope need not capture the enclosing frames.
+            if (sc.intypeof || (sc.flags & SCOPEcompile))
+                return false;
+
+            //printf("this = %s in [%s]\n", this.toChars(), this.loc.toChars());
+            //printf("fdv  = %s in [%s]\n", fdv .toChars(), fdv .loc.toChars());
+            //printf("fdthis = %s in [%s]\n", fdthis.toChars(), fdthis.loc.toChars());
+
+            // Add this function to the list of those which called us
+            for (size_t i = 0; 1; i++)
+            {
+                if (i == siblingCallers.dim)
+                {
+                    //printf("\tadding sibling %s\n", fdthis.toPrettyChars());
+                    siblingCallers.push(fdthis);
+                    break;
+                }
+                if (siblingCallers[i] == fdthis)
+                    break;
+            }
         }
         return false;
     }
