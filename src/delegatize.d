@@ -27,23 +27,30 @@ extern (C++) Expression toDelegate(Expression e, Type t, Scope* sc)
 {
     //printf("Expression::toDelegate(t = %s) %s\n", t->toChars(), e->toChars());
     Loc loc = e.loc;
+
     auto tf = new TypeFunction(null, t, 0, LINKd);
     if (t.hasWild())
         tf.mod = MODwild;
     auto fld = new FuncLiteralDeclaration(loc, loc, tf, TOKdelegate, null);
+
+    fld.parent = sc.parent;
+
     sc = sc.push();
     sc.parent = fld; // set current function to be the delegate
     lambdaSetParent(e, sc);
     bool r = lambdaCheckForNestedRef(e, sc);
     sc = sc.pop();
+
     if (r)
         return new ErrorExp();
+
     Statement s;
     if (t.ty == Tvoid)
         s = new ExpStatement(loc, e);
     else
         s = new ReturnStatement(loc, e);
     fld.fbody = s;
+
     e = new FuncExp(loc, fld);
     e = e.semantic(sc);
     return e;

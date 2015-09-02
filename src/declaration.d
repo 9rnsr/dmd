@@ -2254,12 +2254,9 @@ public:
 
         //printf("\tfdv = %s\n", fdv.toChars());
         //printf("\tfdthis = %s\n", fdthis.toChars());
-        if (loc.filename)
-        {
-            int lv = fdthis.getLevel(loc, sc, fdv);
-            if (lv == -2) // error
-                return true;
-        }
+        int lv = fdthis.getLevel(loc, sc, fdv);
+        if (lv == -2)
+            return true; // error
 
         // Add this to fdv.closureVars[] if not already there
         for (size_t i = 0; 1; i++)
