@@ -171,43 +171,45 @@ L1:
 extern (C++) FuncDeclaration hasThis(Scope* sc)
 {
     //printf("hasThis()\n");
-    Dsymbol p = sc.parent;
-    while (p && p.isTemplateMixin())
-        p = p.parent;
-    FuncDeclaration fdthis = p ? p.isFuncDeclaration() : null;
+    if (!sc.parent)
+        return null;
+    Dsymbol p = sc.parent.pastMixin();
+    FuncDeclaration fdthis = p.isFuncDeclaration();
     //printf("fdthis = %p, '%s'\n", fdthis, fdthis ? fdthis->toChars() : "");
+
     // Go upwards until we find the enclosing member function
     FuncDeclaration fd = fdthis;
     while (1)
     {
         if (!fd)
-        {
             goto Lno;
-        }
         if (!fd.isNested())
             break;
-        Dsymbol parent = fd.parent;
+
+        p = fd.parent;
         while (1)
         {
-            if (!parent)
+            if (!p)
                 goto Lno;
-            TemplateInstance ti = parent.isTemplateInstance();
+            TemplateInstance ti = p.isTemplateInstance();
             if (ti)
-                parent = ti.parent;
+                p = ti.parent;
             else
                 break;
         }
-        fd = parent.isFuncDeclaration();
+        fd = p.isFuncDeclaration();
     }
     if (!fd.isThis())
     {
         //printf("test '%s'\n", fd->toChars());
-        goto Lno;
+        assert(fd.vthis);
     }
-    assert(fd.vthis);
+    else
+    {
+    Lno:
+        fd = null;  // don't have 'this' available
+    }
     return fd;
-Lno:
-    return null; // don't have 'this' available
 }
 
 extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
