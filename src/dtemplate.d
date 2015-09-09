@@ -1499,11 +1499,10 @@ public:
                 if (farg.op == TOKerror || farg.type.ty == Terror)
                     return MATCHnomatch;
             Lretry:
-                version (none)
-                {
-                    printf("\tfarg->type   = %s\n", farg.type.toChars());
-                    printf("\tfparam->type = %s\n", prmtype.toChars());
-                }
+            /+
+                printf("\tfarg.type   = %s\n", farg.type.toChars());
+                printf("\tfparam.type = %s\n", prmtype.toChars());
+            // +/
                 Type argtype = farg.type;
 
                 if (!(fparam.storageClass & STClazy) && argtype.ty == Tvoid && farg.op != TOKfunction)
@@ -1511,7 +1510,7 @@ public:
 
                 // Bugzilla 12876: optimize arugument to allow CT-known length matching
                 farg = farg.optimize(WANTvalue, (fparam.storageClass & (STCref | STCout)) != 0);
-                //printf("farg = %s %s\n", farg->type->toChars(), farg->toChars());
+                printf("\tfarg = %s %s\n", farg.type.toChars(), farg.toChars());
 
                 RootObject oarg = farg;
                 if ((fparam.storageClass & STCref) && (!(fparam.storageClass & STCauto) || farg.isLvalue()))
@@ -1572,7 +1571,7 @@ public:
 
                 uint wm = 0;
                 MATCH m = deduceType(oarg, paramscope, prmtype, parameters, dedtypes, &wm, inferStart);
-                //printf("\tL%d deduceType m = %d, wm = x%x, wildmatch = x%x\n", __LINE__, m, wm, wildmatch);
+                printf("\tL%d deduceType m = %d, wm = x%x, wildmatch = x%x\n", __LINE__, m, wm, wildmatch);
                 wildmatch |= wm;
 
                 /* If no match, see if the argument can be matched by using
@@ -4068,7 +4067,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
 
         void visit(Expression e)
         {
-            //printf("Expression::deduceType(e = %s)\n", e->toChars());
+            printf("Expression::deduceType(e = %s) tparam = %s\n", e.toChars(), tparam.toChars());
             size_t i = templateParameterLookup(tparam, parameters);
             if (i == IDX_NOTFOUND || (cast(TypeIdentifier)tparam).idents.dim > 0)
             {
@@ -4081,9 +4080,11 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                 e.type.accept(this);
                 return;
             }
-            TemplateTypeParameter tp = (*parameters)[i].isTemplateTypeParameter();
+
+            auto tp = (*parameters)[i].isTemplateTypeParameter();
             if (!tp)
                 return; // nomatch
+
             if (e == emptyArrayElement)
             {
                 if ((*dedtypes)[i])
@@ -4097,6 +4098,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                     return;
                 }
             }
+
             Type at = cast(Type)(*dedtypes)[i];
             Type tt;
             if (ubyte wx = deduceWildHelper(e.type, &tt, tparam))
@@ -4110,25 +4112,35 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             }
             else
                 return; // nomatch
+
             // expression vs (none)
             if (!at)
             {
+                if (tp.matchConstraint(sc, tt) <= MATCHnomatch)
+                {
+                    result = MATCHnomatch;
+                    return;
+                }
                 (*dedtypes)[i] = new TypeDeduced(tt, e, tparam);
                 return;
             }
+
             TypeDeduced xt = null;
             if (at.ty == Tnone)
             {
                 xt = cast(TypeDeduced)at;
                 at = xt.tded;
             }
+
             // From previous matched expressions to current deduced type
             MATCH match1 = xt ? xt.matchAll(tt) : MATCHnomatch;
+
             // From current expresssion to previous deduced type
             Type pt = at.addMod(tparam.mod);
             if (*wm)
                 pt = pt.substWildTo(*wm);
             MATCH match2 = e.implicitConvTo(pt);
+
             if (match1 > MATCHnomatch && match2 > MATCHnomatch)
             {
                 if (at.implicitConvTo(tt) <= MATCHnomatch)
@@ -4163,6 +4175,9 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             }
             if (match1 > MATCHnomatch)
             {
+                if (tp.matchConstraint(sc, tt) <= MATCHnomatch)
+                    return;
+
                 // Prefer current match: tt
                 if (xt)
                     xt.update(tt, e, tparam);
@@ -4669,6 +4684,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
 public:
     Type specType; // type parameter: if !=NULL, this is the type specialization
     Type defaultType;
+    Dsymbol constraint;
 
     extern (C++) static __gshared Type tdummy = null;
 
@@ -4687,9 +4703,10 @@ public:
 
     TemplateParameter syntaxCopy()
     {
+//printf("TemplateTypeParameter.syntaxCopy [%s] '%s'\n", loc.toChars(), ident.toChars());
         return new TemplateTypeParameter(loc, ident,
-        specType ? specType.syntaxCopy() : null,
-        defaultType ? defaultType.syntaxCopy() : null);
+            specType ? specType.syntaxCopy() : null,
+            defaultType ? defaultType.syntaxCopy() : null);
     }
 
     final bool declareParameter(Scope* sc)
@@ -4702,10 +4719,30 @@ public:
 
     final bool semantic(Scope* sc, TemplateParameters* parameters)
     {
-        //printf("TemplateTypeParameter::semantic('%s')\n", ident->toChars());
+        //printf("TemplateTypeParameter::semantic('%s')\n", ident.toChars());
         if (specType && !reliesOnTident(specType, parameters))
         {
-            specType = specType.semantic(loc, sc);
+            //printf("%p [%s] TemplateTypeParameter::semantic('%s')\n", this, loc.toChars(), ident.toChars());
+            Expression ea;
+            Type ta;
+            Dsymbol sa;
+            specType.resolve(loc, sc, &ea, &ta, &sa);
+            if (ea)
+            {
+                error(loc, "%s is used as a type", specType.toChars());
+                ta = Type.terror;
+            }
+            if (sa)
+            {
+                ta = getType(sa);
+                if (!ta)
+                    constraint = sa;
+            }
+            specType = ta;
+
+            printf("specType = %s, constraint = %s\n",
+                specType ? specType.toChars() : null,
+                constraint ? constraint.toChars() : null);
         }
         version (none)
         {
@@ -4757,20 +4794,22 @@ public:
             size_t i, TemplateParameters* parameters, Objects* dedtypes,
             Declaration* psparam)
     {
-        //printf("TemplateTypeParameter::matchArg('%s')\n", ident->toChars());
+        //printf("%p [%s] TemplateTypeParameter::matchArg('%s')\n", this, loc.toChars(), ident.toChars());
         MATCH m = MATCHexact;
         Type ta = isType(oarg);
         if (!ta)
         {
-            //printf("%s %p %p %p\n", oarg->toChars(), isExpression(oarg), isDsymbol(oarg), isTuple(oarg));
+            //printf("%s %p %p %p\n", oarg.toChars(), isExpression(oarg), isDsymbol(oarg), isTuple(oarg));
             goto Lnomatch;
         }
-        //printf("ta is %s\n", ta->toChars());
+
+        //printf("ta is %s, specType = %p, consraint = %p\n", ta.toChars(), specType, constraint);
         if (specType)
         {
             if (!ta || ta == tdummy)
                 goto Lnomatch;
-            //printf("\tcalling deduceType(): ta is %s, specType is %s\n", ta->toChars(), specType->toChars());
+
+            //printf("\tcalling deduceType(): ta is %s, specType is %s\n", ta.toChars(), specType.toChars());
             MATCH m2 = deduceType(ta, sc, specType, parameters, dedtypes);
             if (m2 <= MATCHnomatch)
             {
@@ -4779,28 +4818,33 @@ public:
             }
             if (m2 < m)
                 m = m2;
+
             if ((*dedtypes)[i])
             {
                 Type t = cast(Type)(*dedtypes)[i];
                 if (dependent && !t.equals(ta)) // Bugzilla 14357
                     goto Lnomatch;
+
                 /* This is a self-dependent parameter. For example:
                  *  template X(T : T*) {}
                  *  template X(T : S!T, alias S) {}
                  */
-                //printf("t = %s ta = %s\n", t->toChars(), ta->toChars());
+                //printf("t = %s ta = %s\n", t.toChars(), ta.toChars());
                 ta = t;
             }
         }
         else
         {
+            if (matchConstraint(sc, ta) <= MATCHnomatch)
+                goto Lnomatch;
+
             if ((*dedtypes)[i])
             {
                 // Must match already deduced type
                 Type t = cast(Type)(*dedtypes)[i];
                 if (!t.equals(ta))
                 {
-                    //printf("t = %s ta = %s\n", t->toChars(), ta->toChars());
+                    //printf("t = %s ta = %s\n", t.toChars(), ta.toChars());
                     goto Lnomatch;
                 }
             }
@@ -4811,16 +4855,55 @@ public:
             }
         }
         (*dedtypes)[i] = ta;
+
         if (psparam)
             *psparam = new AliasDeclaration(loc, ident, ta);
+
         //printf("\tm = %d\n", m);
         return dependent ? MATCHexact : m;
+
     Lnomatch:
         if (psparam)
             *psparam = null;
         //printf("\tm = %d\n", MATCHnomatch);
         return MATCHnomatch;
     }
+
+    final MATCH matchConstraint(Scope *sc, Type ta)
+    {
+        if (!constraint)
+            return MATCHexact;
+
+        printf("ta is %s, consraint = %s %s\n", ta.toChars(), constraint.kind(), constraint.toChars());
+        auto ti = new TemplateInstance(loc, constraint.ident);
+        ti.tiargs = new Objects();
+        ti.tiargs.push(ta);
+
+        ti.semantic(sc);
+        if (!ti.inst)
+            return MATCHnomatch;
+        printf("\tL%d\n", __LINE__);
+
+        auto s = ti.inst.toAlias();
+        auto e = getValue(s);
+        e = e.ctfeInterpret();
+        printf("\tL%d e = %s\n", __LINE__, e.toChars());
+        if (e.isBool(true))
+        {
+            printf("\tL%d constraint ok\n", __LINE__);
+            return MATCHexact;
+        }
+        else
+        {
+            if (!e.isBool(false))
+            {
+                .error(loc, "%s %s is not constant or does not evaluate to a bool",
+                    constraint.kind(), constraint.toChars());
+            }
+            return MATCHnomatch;
+        }
+    }
+
 
     final void* dummyArg()
     {
@@ -5692,7 +5775,9 @@ public:
          * then run semantic on each argument (place results in tiargs[]),
          * last find most specialized template from overload list/set.
          */
-        if (!findTempDecl(sc, null) || !semanticTiargs(sc) || !findBestMatch(sc, fargs))
+        if (!findTempDecl(sc, null) ||
+            !semanticTiargs(sc) ||
+            !findBestMatch(sc, fargs))
         {
         Lerror:
             if (gagged)
@@ -7894,7 +7979,9 @@ public:
         /* Run semantic on each argument, place results in tiargs[],
          * then find best match template with tiargs
          */
-        if (!findTempDecl(sc) || !semanticTiargs(sc) || !findBestMatch(sc, null))
+        if (!findTempDecl(sc) ||
+            !semanticTiargs(sc) ||
+            !findBestMatch(sc, null))
         {
             if (semanticRun == PASSinit) // forward reference had occured
             {
