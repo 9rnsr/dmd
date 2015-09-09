@@ -1063,6 +1063,7 @@ public:
         paramscope.minst = sc.minst;
         paramscope.callsc = sc;
         paramscope.stc = 0;
+        scope(exit) paramscope.pop();
 
         TemplateTupleParameter tp = isVariadic();
         Tuple declaredTuple = null;
@@ -1090,7 +1091,7 @@ public:
             if (ntargs > n)
             {
                 if (!tp)
-                    goto Lnomatch;
+                    return MATCHnomatch;
 
                 /* The extra initial template arguments
                  * now form the tuple argument.
@@ -1119,13 +1120,13 @@ public:
                 MATCH m = (*parameters)[i].matchArg(instLoc, paramscope, dedargs, i, parameters, dedtypes, &sparam);
                 //printf("\tdeduceType m = %d\n", m);
                 if (m <= MATCHnomatch)
-                    goto Lnomatch;
+                    return MATCHnomatch;
                 if (m < matchTiargs)
                     matchTiargs = m;
 
                 sparam.semantic(paramscope);
                 if (!paramscope.insert(sparam))
-                    goto Lnomatch;
+                    return MATCHnomatch;
             }
             if (n < parameters.dim && !declaredTuple)
             {
@@ -1190,7 +1191,7 @@ public:
                         continue;
 
                     if (fvarargs) // variadic function doesn't
-                        goto Lnomatch;
+                        return MATCHnomatch;
 
                     // go with variadic template
                     goto L1;
@@ -1216,7 +1217,7 @@ public:
                     Type t = new TypeIdentifier(Loc(), ttp.ident);
                     MATCH m = deduceType(tthis, paramscope, t, parameters, dedtypes);
                     if (m <= MATCHnomatch)
-                        goto Lnomatch;
+                        return MATCHnomatch;
                     if (m < match)
                         match = m; // pick worst match
                 }
@@ -1252,7 +1253,7 @@ public:
                     mod = MODmerge(thismod, mod);
                 MATCH m = MODmethodConv(thismod, mod);
                 if (m <= MATCHnomatch)
-                    goto Lnomatch;
+                    return MATCHnomatch;
                 if (m < match)
                     match = m;
             }
@@ -1307,7 +1308,7 @@ public:
                     }
 
                     if (nfargs2 - argi < rem)
-                        goto Lnomatch;
+                        return MATCHnomatch;
                     declaredTuple.objects.setDim(nfargs2 - argi - rem);
                     for (size_t i = 0; i < declaredTuple.objects.dim; i++)
                     {
@@ -1315,9 +1316,9 @@ public:
 
                         // Check invalid arguments to detect errors early.
                         if (farg.op == TOKerror || farg.type.ty == Terror)
-                            goto Lnomatch;
+                            return MATCHnomatch;
                         if (!(fparam.storageClass & STClazy) && farg.type.ty == Tvoid)
-                            goto Lnomatch;
+                            return MATCHnomatch;
 
                         Type tt;
                         MATCH m;
@@ -1331,7 +1332,7 @@ public:
                             m = deduceTypeHelper(farg.type, &tt, tid);
                         }
                         if (m <= MATCHnomatch)
-                            goto Lnomatch;
+                            return MATCHnomatch;
                         if (m < match)
                             match = m;
 
@@ -1355,7 +1356,7 @@ public:
                     for (size_t i = 0; i < declaredTuple.objects.dim; i++)
                     {
                         if (!isType(declaredTuple.objects[i]))
-                            goto Lnomatch;
+                            return MATCHnomatch;
                     }
                 }
                 assert(declaredTuple);
@@ -1386,11 +1387,11 @@ public:
                         {
                             if (p.defaultArg)
                                 continue;
-                            goto Lnomatch;
+                            return MATCHnomatch;
                         }
                         farg = (*fargs)[argi];
                         if (!farg.implicitConvTo(p.type))
-                            goto Lnomatch;
+                            return MATCHnomatch;
                     }
                     continue;
                 }
@@ -1446,7 +1447,7 @@ public:
                                     MATCH m2 = tparam.matchArg(loc, paramscope, dedargs, i, parameters, dedtypes, null);
                                     //printf("m2 = %d\n", m2);
                                     if (m2 <= MATCHnomatch)
-                                        goto Lnomatch;
+                                        return MATCHnomatch;
                                     if (m2 < matchTiargs)
                                         matchTiargs = m2; // pick worst match
                                     if (!(*dedtypes)[i].equals(oded))
@@ -1502,7 +1503,7 @@ public:
             {
                 // Check invalid arguments to detect errors early.
                 if (farg.op == TOKerror || farg.type.ty == Terror)
-                    goto Lnomatch;
+                    return MATCHnomatch;
             Lretry:
                 version (none)
                 {
@@ -1512,7 +1513,7 @@ public:
                 Type argtype = farg.type;
 
                 if (!(fparam.storageClass & STClazy) && argtype.ty == Tvoid && farg.op != TOKfunction)
-                    goto Lnomatch;
+                    return MATCHnomatch;
 
                 // Bugzilla 12876: optimize arugument to allow CT-known length matching
                 farg = farg.optimize(WANTvalue, (fparam.storageClass & (STCref | STCout)) != 0);
@@ -1614,15 +1615,15 @@ public:
                             // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
                         }
                         else
-                            goto Lnomatch;
+                            return MATCHnomatch;
                     }
                 }
                 if (m > MATCHnomatch && (fparam.storageClass & STCout))
                 {
                     if (!farg.isLvalue())
-                        goto Lnomatch;
+                        return MATCHnomatch;
                     if (!farg.type.isMutable()) // Bugzilla 11916
-                        goto Lnomatch;
+                        return MATCHnomatch;
                 }
                 if (m == MATCHnomatch &&
                     (fparam.storageClass & STClazy) && prmtype.ty == Tvoid &&
@@ -1644,7 +1645,7 @@ public:
              * matches TypeFunction::callMatch()
              */
             if (!(fvarargs == 2 && parami + 1 == nfparams))
-                goto Lnomatch;
+                return MATCHnomatch;
 
             /* Check for match with function parameter T...
              */
@@ -1661,7 +1662,7 @@ public:
                         TypeSArray tsa = cast(TypeSArray)tb;
                         dinteger_t sz = tsa.dim.toInteger();
                         if (sz != nfargs - argi)
-                            goto Lnomatch;
+                            return MATCHnomatch;
                     }
                     else if (tb.ty == Taarray)
                     {
@@ -1676,12 +1677,12 @@ public:
                             Dsymbol s;
                             taa.index.resolve(instLoc, sc, &e, &t, &s);
                             if (!e)
-                                goto Lnomatch;
+                                return MATCHnomatch;
                             e = e.ctfeInterpret();
                             e = e.implicitCastTo(sc, Type.tsize_t);
                             e = e.optimize(WANTvalue);
                             if (!dim.equals(e))
-                                goto Lnomatch;
+                                return MATCHnomatch;
                         }
                         else
                         {
@@ -1689,19 +1690,19 @@ public:
                             TemplateParameter tprm = (*parameters)[i];
                             TemplateValueParameter tvp = tprm.isTemplateValueParameter();
                             if (!tvp)
-                                goto Lnomatch;
+                                return MATCHnomatch;
                             Expression e = cast(Expression)(*dedtypes)[i];
                             if (e)
                             {
                                 if (!dim.equals(e))
-                                    goto Lnomatch;
+                                    return MATCHnomatch;
                             }
                             else
                             {
                                 Type vt = tvp.valType.semantic(Loc(), sc);
                                 MATCH m = cast(MATCH)dim.implicitConvTo(vt);
                                 if (m <= MATCHnomatch)
-                                    goto Lnomatch;
+                                    return MATCHnomatch;
                                 (*dedtypes)[i] = dim;
                             }
                         }
@@ -1744,7 +1745,7 @@ public:
                             wildmatch |= wm;
                         }
                         if (m == MATCHnomatch)
-                            goto Lnomatch;
+                            return MATCHnomatch;
                         if (m < match)
                             match = m;
                     }
@@ -1755,13 +1756,13 @@ public:
                     goto Lmatch;
 
                 default:
-                    goto Lnomatch;
+                    return MATCHnomatch;
             }
             ++argi;
         }
         //printf("-> argi = %d, nfargs = %d, nfargs2 = %d\n", argi, nfargs, nfargs2);
         if (argi != nfargs2 && !fvarargs)
-            goto Lnomatch;
+            return MATCHnomatch;
         }
 
     Lmatch:
@@ -1803,7 +1804,7 @@ public:
                         MATCH m2 = tparam.matchArg(instLoc, paramscope, dedargs, i, parameters, dedtypes, null);
                         //printf("m2 = %d\n", m2);
                         if (m2 <= MATCHnomatch)
-                            goto Lnomatch;
+                            return MATCHnomatch;
                         if (m2 < matchTiargs)
                             matchTiargs = m2; // pick worst match
                         if (!(*dedtypes)[i].equals(oded))
@@ -1831,10 +1832,10 @@ public:
                             oded = cast(RootObject)new Tuple();
                         }
                         else
-                            goto Lnomatch;
+                            return MATCHnomatch;
                     }
                     if (isError(oded))
-                        goto Lerror;
+                        return MATCHnomatch;    // todo: for the future improvement
                     ntargs++;
 
                     /* At the template parameter T, the picked default template argument
@@ -1849,7 +1850,7 @@ public:
                         MATCH m2 = tparam.matchArg(instLoc, paramscope, dedargs, i, parameters, dedtypes, null);
                         //printf("m2 = %d\n", m2);
                         if (m2 <= MATCHnomatch)
-                            goto Lnomatch;
+                            return MATCHnomatch;
                         if (m2 < matchTiargs)
                             matchTiargs = m2; // pick worst match
                         if (!(*dedtypes)[i].equals(oded))
@@ -1888,13 +1889,13 @@ public:
             sc2 = sc2.pop();
             sc2 = sc2.pop();
             if (!fd)
-                goto Lnomatch;
+                return MATCHnomatch;
         }
         ti.tiargs = dedargs; // update to the normalized template arguments.
         if (constraint)
         {
             if (!evaluateConstraint(ti, sc, paramscope, dedargs, fd))
-                goto Lnomatch;
+                return MATCHnomatch;
         }
 
         version (none)
@@ -1906,20 +1907,8 @@ public:
             }
         }
 
-        paramscope.pop();
         //printf("\tmatch %d\n", match);
         return cast(MATCH)(match | (matchTiargs << 4));
-
-    Lnomatch:
-        paramscope.pop();
-        //printf("\tnomatch\n");
-        return MATCHnomatch;
-
-    Lerror:
-        // todo: for the future improvement
-        paramscope.pop();
-        //printf("\terror\n");
-        return MATCHnomatch;
     }
 
     /**************************************************
