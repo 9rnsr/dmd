@@ -1014,25 +1014,9 @@ public:
         TemplateInstance ti, Scope* sc,
         ref FuncDeclaration fd, Type tthis, Expressions* fargs)
     {
-        size_t nfparams;
-        size_t nfargs;
-        size_t ntargs; // array size of tiargs
-        size_t fptupindex = IDX_NOTFOUND;
-        MATCH match = MATCHexact;
-        MATCH matchTiargs = MATCHexact;
-        Parameters* fparameters; // function parameter list
-        int fvarargs; // function varargs
-        uint wildmatch = 0;
-        size_t inferStart = 0;
-
-        Loc instLoc = ti.loc;
-        Objects* tiargs = ti.tiargs;
-        auto dedargs = new Objects();
-        Objects* dedtypes = &ti.tdtypes; // for T:T*, the dedargs is the T*, dedtypes is the T
-
         version (none)
         {
-            printf("\nTemplateDeclaration::deduceFunctionTemplateMatch() %s\n", toChars());
+            printf("TemplateDeclaration::deduceFunctionTemplateMatch() %s\n", toChars());
             for (size_t i = 0; i < (fargs ? fargs.dim : 0); i++)
             {
                 Expression e = (*fargs)[i];
@@ -1046,9 +1030,17 @@ public:
 
         assert(_scope);
 
+        Loc instLoc = ti.loc;
+
+        MATCH match = MATCHexact;
+        MATCH matchTiargs = MATCHexact;
+        uint wildmatch = 0;
+
+        auto dedargs = new Objects();
         dedargs.setDim(parameters.dim);
         dedargs.zero();
 
+        auto dedtypes = &ti.tdtypes; // for T:T*, the dedargs is the T*, dedtypes is the T
         dedtypes.setDim(parameters.dim);
         dedtypes.zero();
 
@@ -1065,9 +1057,6 @@ public:
         paramscope.stc = 0;
         scope(exit) paramscope.pop();
 
-        TemplateTupleParameter tp = isVariadic();
-        Tuple declaredTuple = null;
-
         version (none)
         {
             for (size_t i = 0; i < dedargs.dim; i++)
@@ -1080,11 +1069,14 @@ public:
             }
         }
 
-        ntargs = 0;
+        auto tiargs = ti.tiargs;
+        size_t ntargs = tiargs ? tiargs.dim : 0;
+        size_t inferStart = 0;
+        auto tp = isVariadic();
+        Tuple declaredTuple = null;
         if (tiargs)
         {
             // Set initial template arguments
-            ntargs = tiargs.dim;
             size_t n = parameters.dim;
             if (tp)
                 n--;
@@ -1148,16 +1140,17 @@ public:
             }
         }
 
-        fparameters = fd.getParameters(&fvarargs);
-        nfparams = Parameter.dim(fparameters); // number of function parameters
-        nfargs = fargs ? fargs.dim : 0; // number of function arguments
-
         /* Check for match of function arguments with variadic template
          * parameter, such as:
          *
          * void foo(T, A...)(T t, A a);
          * void main() { foo(1,2,3); }
          */
+        int fvarargs;
+        auto fparameters = fd.getParameters(&fvarargs);
+        size_t nfparams = Parameter.dim(fparameters); // number of function parameters
+        size_t nfargs = fargs ? fargs.dim : 0; // number of function arguments
+        size_t fptupindex = IDX_NOTFOUND;
         if (tp) // if variadic
         {
             // TemplateTupleParameter always makes most lesser matching.
@@ -1260,9 +1253,10 @@ public:
         }
 
         // Loop through the function parameters
-        {
-        //printf("%s\n\tnfargs = %d, nfparams = %d, tuple_dim = %d\n", toChars(), nfargs, nfparams, declaredTuple ? declaredTuple->objects.dim : 0);
-        //printf("\ttp = %p, fptupindex = %d, found = %d, declaredTuple = %s\n", tp, fptupindex, fptupindex != IDX_NOTFOUND, declaredTuple ? declaredTuple->toChars() : NULL);
+        //printf("%s\n\tnfargs = %d, nfparams = %d, tuple_dim = %d\n", toChars(),
+        //    nfargs, nfparams, declaredTuple ? declaredTuple->objects.dim : 0);
+        //printf("\ttp = %p, fptupindex = %d, found = %d, declaredTuple = %s\n", tp, fptupindex,
+        //    fptupindex != IDX_NOTFOUND, declaredTuple ? declaredTuple->toChars() : NULL);
         size_t argi = 0;
         size_t nfargs2 = nfargs; // nfargs + supplied defaultArgs
         for (size_t parami = 0; parami < nfparams; parami++)
@@ -1763,7 +1757,6 @@ public:
         //printf("-> argi = %d, nfargs = %d, nfargs2 = %d\n", argi, nfargs, nfargs2);
         if (argi != nfargs2 && !fvarargs)
             return MATCHnomatch;
-        }
 
     Lmatch:
         for (size_t i = 0; i < dedtypes.dim; i++)
