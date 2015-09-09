@@ -4066,6 +4066,144 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             visit(cast(Type)t);
         }
 
+        bool matchWithConstraintParam(TypeInstance tp, Type t)
+        {
+            printf("tp = %s, arg type = %s\n", tp.toChars(), t.toChars());
+            printf("+tempdecl = %p\n", tp.tempinst.tempdecl);
+            TemplateDeclaration tempdecl;
+            if (tp.tempinst.tempdecl)
+            {
+                tempdecl = tp.tempinst.tempdecl.isTemplateDeclaration();
+            }
+            else
+            {
+                //printf("tp->tempinst->name = '%s'\n", tp->tempinst->name->toChars());
+                /* Handle case of:
+                 *  template Foo(T : sa!(T), alias sa)
+                 */
+                size_t i = templateIdentifierLookup(tp.tempinst.name, parameters);
+                if (i != IDX_NOTFOUND)
+                    return false;
+
+                /* Didn't find it as a parameter identifier. Try looking
+                 * it up and seeing if is an alias. See Bugzilla 1454
+                 */
+                auto tid = new TypeIdentifier(tp.loc, tp.tempinst.name);
+                Type tx;
+                Expression ex;
+                Dsymbol sx;
+                tid.resolve(tp.loc, sc, &ex, &tx, &sx);
+                if (tx)
+                {
+                    sx = tx.toDsymbol(sc);
+                    if (auto ti = sx ? sx.parent.isTemplateInstance() : null)
+                    {
+                        // Bugzilla 14290: Try to match with ti->tempecl,
+                        // only when ti is an enclosing instance.
+                        Dsymbol p = sc.parent;
+                        while (p && p != ti)
+                            p = p.parent;
+                        if (p)
+                            sx = ti.tempdecl;
+                    }
+                }
+                if (sx)
+                {
+                    sx = sx.toAlias();
+                    auto td = sx.isTemplateDeclaration();
+                    if (td)
+                    {
+                        if (td.overroot)
+                            td = td.overroot;
+                        tempdecl = td;
+                    }
+                }
+            }
+            if (!tempdecl)
+            {
+                result = MATCHnomatch;
+                return true;
+            }
+            tp.tempinst.tempdecl = tempdecl;    // save (ok?)
+
+            printf("-tempdecl = %s @ [%s]\n", tempdecl.toPrettyChars(), tempdecl.loc.toChars());
+
+            auto tiargs = tp.tempinst.tiargs;
+            if (!tiargs || tiargs.dim != 1)
+                return false;
+            printf("\tL%d\n", __LINE__);
+
+            Type tid = isType((*tiargs)[0]);
+            if (!tid)
+                return false;
+            printf("\tL%d\n", __LINE__);
+            size_t i = templateParameterLookup(tid, parameters);
+            if (i == IDX_NOTFOUND || (cast(TypeIdentifier)tid).idents.dim != 0)
+                return false;
+            printf("\tL%d tid = %s\n", __LINE__, tid.toChars());
+
+            result = MATCHnomatch;
+
+            tiargs = new Objects();
+            tiargs.push(t);
+            auto ti = new TemplateInstance(tp.loc, tempdecl, tiargs);
+
+            Objects dedtypes;
+            dedtypes.setDim(tempdecl.parameters.dim);
+            assert(tempdecl.semanticRun != PASSinit);
+
+            MATCH m = tempdecl.matchWithInstance(sc, ti, &dedtypes, null, 0);
+            printf("\tL%d\n", __LINE__);
+            if (m <= MATCHnomatch)
+                return true;
+            printf("\tL%d\n", __LINE__);
+            ti.semantic(sc);
+            if (!ti.inst)
+                return true;
+            printf("\tL%d\n", __LINE__);
+
+            auto s = ti.inst.toAlias();
+            auto e = getValue(s);
+            e = e.ctfeInterpret();
+            printf("\tL%d e = %s\n", __LINE__, e.toChars());
+            if (e.isBool(true))
+            {
+                // tid is satisfied constraint
+                result = deduceType(t, sc, tid, parameters, this.dedtypes, wm);
+                printf("\tL%d constraint ok, result = %d\n", __LINE__, result);
+            }
+            else if (e.isBool(false))
+            {
+            }
+            else
+            {
+                .error(tp.loc, "constraint %s is not constant or does not evaluate to a bool", tp.toChars());
+            }
+            return true;
+        }
+version (none)
+{
+enum bool isFoo(T) = is(T == int);
+
+void foo(T)(isFoo!T v)
+{
+    pragma(msg, T);
+    pragma(msg, typeof(v));
+}
+
+struct S
+{
+    int value;
+    alias value this;
+}
+
+void main()
+{
+    S s;
+    foo(s); // T is deduced to int, by the lowering foo(s.value)
+}
+}
+
         void visit(Expression e)
         {
             //printf("Expression::deduceType(e = %s)\n", e->toChars());
@@ -4077,6 +4215,11 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                     Type tn = (cast(TypeNext)tparam).next;
                     result = deduceType(emptyArrayElement, sc, tn, parameters, dedtypes, wm);
                     return;
+                }
+                if (tparam.ty == Tinstance)
+                {
+                    if (matchWithConstraintParam(cast(TypeInstance)tparam, e.type))
+                        return;
                 }
                 e.type.accept(this);
                 return;
