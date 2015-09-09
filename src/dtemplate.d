@@ -1010,7 +1010,9 @@ public:
      *          bit 0-3     Match template parameters by inferred template arguments
      *          bit 4-7     Match template parameters by initial template arguments
      */
-    MATCH deduceFunctionTemplateMatch(TemplateInstance ti, Scope* sc, ref FuncDeclaration fd, Type tthis, Expressions* fargs)
+    MATCH deduceFunctionTemplateMatch(
+        TemplateInstance ti, Scope* sc,
+        ref FuncDeclaration fd, Type tthis, Expressions* fargs)
     {
         size_t nfparams;
         size_t nfargs;
@@ -1022,10 +1024,12 @@ public:
         int fvarargs; // function varargs
         uint wildmatch = 0;
         size_t inferStart = 0;
+
         Loc instLoc = ti.loc;
         Objects* tiargs = ti.tiargs;
         auto dedargs = new Objects();
         Objects* dedtypes = &ti.tdtypes; // for T:T*, the dedargs is the T*, dedtypes is the T
+
         version (none)
         {
             printf("\nTemplateDeclaration::deduceFunctionTemplateMatch() %s\n", toChars());
@@ -1039,13 +1043,18 @@ public:
             if (tthis)
                 printf("tthis = %s\n", tthis.toChars());
         }
+
         assert(_scope);
+
         dedargs.setDim(parameters.dim);
         dedargs.zero();
+
         dedtypes.setDim(parameters.dim);
         dedtypes.zero();
+
         if (errors || fd.errors)
             return MATCHnomatch;
+
         // Set up scope for parameters
         auto paramsym = new ScopeDsymbol();
         paramsym.parent = _scope.parent; // should use hasnestedArgs and enclosing?
@@ -1054,8 +1063,10 @@ public:
         paramscope.minst = sc.minst;
         paramscope.callsc = sc;
         paramscope.stc = 0;
+
         TemplateTupleParameter tp = isVariadic();
         Tuple declaredTuple = null;
+
         version (none)
         {
             for (size_t i = 0; i < dedargs.dim; i++)
@@ -1067,6 +1078,7 @@ public:
                 printf("\n");
             }
         }
+
         ntargs = 0;
         if (tiargs)
         {
@@ -1079,12 +1091,14 @@ public:
             {
                 if (!tp)
                     goto Lnomatch;
+
                 /* The extra initial template arguments
                  * now form the tuple argument.
                  */
                 auto t = new Tuple();
                 assert(parameters.dim);
                 (*dedargs)[parameters.dim - 1] = t;
+
                 t.objects.setDim(ntargs - n);
                 for (size_t i = 0; i < t.objects.dim; i++)
                 {
@@ -1095,7 +1109,9 @@ public:
             }
             else
                 n = ntargs;
+
             memcpy(dedargs.tdata(), tiargs.tdata(), n * (*dedargs.tdata()).sizeof);
+
             for (size_t i = 0; i < n; i++)
             {
                 assert(i < parameters.dim);
@@ -1106,6 +1122,7 @@ public:
                     goto Lnomatch;
                 if (m < matchTiargs)
                     matchTiargs = m;
+
                 sparam.semantic(paramscope);
                 if (!paramscope.insert(sparam))
                     goto Lnomatch;
@@ -1129,9 +1146,11 @@ public:
                 printf("\n");
             }
         }
+
         fparameters = fd.getParameters(&fvarargs);
         nfparams = Parameter.dim(fparameters); // number of function parameters
         nfargs = fargs ? fargs.dim : 0; // number of function arguments
+
         /* Check for match of function arguments with variadic template
          * parameter, such as:
          *
@@ -1142,6 +1161,7 @@ public:
         {
             // TemplateTupleParameter always makes most lesser matching.
             matchTiargs = MATCHconvert;
+
             if (nfparams == 0 && nfargs != 0) // if no function parameters
             {
                 if (!declaredTuple)
@@ -1168,8 +1188,10 @@ public:
                     TypeIdentifier tid = cast(TypeIdentifier)fparam.type;
                     if (!tp.ident.equals(tid.ident) || tid.idents.dim)
                         continue;
+
                     if (fvarargs) // variadic function doesn't
                         goto Lnomatch;
+
                     // go with variadic template
                     goto L1;
                 }
@@ -1182,6 +1204,7 @@ public:
         if (tthis)
         {
             bool hasttp = false;
+
             // Match 'tthis' to any TemplateThisParameter's
             for (size_t i = 0; i < parameters.dim; i++)
             {
@@ -1189,6 +1212,7 @@ public:
                 if (ttp)
                 {
                     hasttp = true;
+
                     Type t = new TypeIdentifier(Loc(), ttp.ident);
                     MATCH m = deduceType(tthis, paramscope, t, parameters, dedtypes);
                     if (m <= MATCHnomatch)
@@ -1197,6 +1221,7 @@ public:
                         match = m; // pick worst match
                 }
             }
+
             // Match attributes of tthis against attributes of fd
             if (fd.type && !fd.isCtorDeclaration())
             {
@@ -1208,6 +1233,7 @@ public:
                 AggregateDeclaration ad = p.isAggregateDeclaration();
                 if (ad)
                     stc |= ad.storage_class;
+
                 ubyte mod = fd.type.mod;
                 if (stc & STCimmutable)
                     mod = MODimmutable;
@@ -1220,6 +1246,7 @@ public:
                     if (stc & STCwild)
                         mod |= MODwild;
                 }
+
                 ubyte thismod = tthis.mod;
                 if (hasttp)
                     mod = MODmerge(thismod, mod);
@@ -1230,470 +1257,513 @@ public:
                     match = m;
             }
         }
+
         // Loop through the function parameters
         {
-            //printf("%s\n\tnfargs = %d, nfparams = %d, tuple_dim = %d\n", toChars(), nfargs, nfparams, declaredTuple ? declaredTuple->objects.dim : 0);
-            //printf("\ttp = %p, fptupindex = %d, found = %d, declaredTuple = %s\n", tp, fptupindex, fptupindex != IDX_NOTFOUND, declaredTuple ? declaredTuple->toChars() : NULL);
-            size_t argi = 0;
-            size_t nfargs2 = nfargs; // nfargs + supplied defaultArgs
-            for (size_t parami = 0; parami < nfparams; parami++)
+        //printf("%s\n\tnfargs = %d, nfparams = %d, tuple_dim = %d\n", toChars(), nfargs, nfparams, declaredTuple ? declaredTuple->objects.dim : 0);
+        //printf("\ttp = %p, fptupindex = %d, found = %d, declaredTuple = %s\n", tp, fptupindex, fptupindex != IDX_NOTFOUND, declaredTuple ? declaredTuple->toChars() : NULL);
+        size_t argi = 0;
+        size_t nfargs2 = nfargs; // nfargs + supplied defaultArgs
+        for (size_t parami = 0; parami < nfparams; parami++)
+        {
+            Parameter fparam = Parameter.getNth(fparameters, parami);
+
+            // Apply function parameter storage classes to parameter types
+            Type prmtype = fparam.type.addStorageClass(fparam.storageClass);
+
+            Expression farg;
+
+            /* See function parameters which wound up
+             * as part of a template tuple parameter.
+             */
+            if (fptupindex != IDX_NOTFOUND && parami == fptupindex)
             {
-                Parameter fparam = Parameter.getNth(fparameters, parami);
-                // Apply function parameter storage classes to parameter types
-                Type prmtype = fparam.type.addStorageClass(fparam.storageClass);
-                Expression farg;
-                /* See function parameters which wound up
-                 * as part of a template tuple parameter.
-                 */
-                if (fptupindex != IDX_NOTFOUND && parami == fptupindex)
+                assert(prmtype.ty == Tident);
+                TypeIdentifier tid = cast(TypeIdentifier)prmtype;
+                if (!declaredTuple)
                 {
-                    assert(prmtype.ty == Tident);
-                    TypeIdentifier tid = cast(TypeIdentifier)prmtype;
-                    if (!declaredTuple)
+                    /* The types of the function arguments
+                     * now form the tuple argument.
+                     */
+                    declaredTuple = new Tuple();
+                    (*dedargs)[parameters.dim - 1] = declaredTuple;
+
+                    /* Count function parameters following a tuple parameter.
+                     * void foo(U, T...)(int y, T, U, int) {}  // rem == 2 (U, int)
+                     */
+                    size_t rem = 0;
+                    for (size_t j = parami + 1; j < nfparams; j++)
                     {
-                        /* The types of the function arguments
-                         * now form the tuple argument.
-                         */
-                        declaredTuple = new Tuple();
-                        (*dedargs)[parameters.dim - 1] = declaredTuple;
-                        /* Count function parameters following a tuple parameter.
-                         * void foo(U, T...)(int y, T, U, int) {}  // rem == 2 (U, int)
-                         */
-                        size_t rem = 0;
-                        for (size_t j = parami + 1; j < nfparams; j++)
+                        Parameter p = Parameter.getNth(fparameters, j);
+                        if (!reliesOnTident(p.type, parameters, inferStart))
                         {
-                            Parameter p = Parameter.getNth(fparameters, j);
-                            if (!reliesOnTident(p.type, parameters, inferStart))
-                            {
-                                Type pt = p.type.syntaxCopy().semantic(fd.loc, paramscope);
-                                rem += pt.ty == Ttuple ? (cast(TypeTuple)pt).arguments.dim : 1;
-                            }
-                            else
-                            {
-                                ++rem;
-                            }
+                            Type pt = p.type.syntaxCopy().semantic(fd.loc, paramscope);
+                            rem += pt.ty == Ttuple ? (cast(TypeTuple)pt).arguments.dim : 1;
                         }
-                        if (nfargs2 - argi < rem)
+                        else
+                        {
+                            ++rem;
+                        }
+                    }
+
+                    if (nfargs2 - argi < rem)
+                        goto Lnomatch;
+                    declaredTuple.objects.setDim(nfargs2 - argi - rem);
+                    for (size_t i = 0; i < declaredTuple.objects.dim; i++)
+                    {
+                        farg = (*fargs)[argi + i];
+
+                        // Check invalid arguments to detect errors early.
+                        if (farg.op == TOKerror || farg.type.ty == Terror)
                             goto Lnomatch;
-                        declaredTuple.objects.setDim(nfargs2 - argi - rem);
-                        for (size_t i = 0; i < declaredTuple.objects.dim; i++)
+                        if (!(fparam.storageClass & STClazy) && farg.type.ty == Tvoid)
+                            goto Lnomatch;
+
+                        Type tt;
+                        MATCH m;
+                        if (ubyte wm = deduceWildHelper(farg.type, &tt, tid))
                         {
-                            farg = (*fargs)[argi + i];
-                            // Check invalid arguments to detect errors early.
-                            if (farg.op == TOKerror || farg.type.ty == Terror)
-                                goto Lnomatch;
-                            if (!(fparam.storageClass & STClazy) && farg.type.ty == Tvoid)
-                                goto Lnomatch;
-                            Type tt;
-                            MATCH m;
-                            if (ubyte wm = deduceWildHelper(farg.type, &tt, tid))
-                            {
-                                wildmatch |= wm;
-                                m = MATCHconst;
-                            }
-                            else
-                            {
-                                m = deduceTypeHelper(farg.type, &tt, tid);
-                            }
-                            if (m <= MATCHnomatch)
-                                goto Lnomatch;
-                            if (m < match)
-                                match = m;
-                            /* Remove top const for dynamic array types and pointer types
-                             */
-                            if ((tt.ty == Tarray || tt.ty == Tpointer) && !tt.isMutable() && (!(fparam.storageClass & STCref) || (fparam.storageClass & STCauto) && !farg.isLvalue()))
-                            {
-                                tt = tt.mutableOf();
-                            }
-                            declaredTuple.objects[i] = tt;
+                            wildmatch |= wm;
+                            m = MATCHconst;
                         }
-                        declareParameter(paramscope, tp, declaredTuple);
-                    }
-                    else
-                    {
-                        // Bugzilla 6810: If declared tuple is not a type tuple,
-                        // it cannot be function parameter types.
-                        for (size_t i = 0; i < declaredTuple.objects.dim; i++)
+                        else
                         {
-                            if (!isType(declaredTuple.objects[i]))
-                                goto Lnomatch;
+                            m = deduceTypeHelper(farg.type, &tt, tid);
                         }
-                    }
-                    assert(declaredTuple);
-                    argi += declaredTuple.objects.dim;
-                    continue;
-                }
-                // If parameter type doesn't depend on inferred template parameters,
-                // semantic it to get actual type.
-                if (!reliesOnTident(prmtype, parameters, inferStart))
-                {
-                    // should copy prmtype to avoid affecting semantic result
-                    prmtype = prmtype.syntaxCopy().semantic(fd.loc, paramscope);
-                    if (prmtype.ty == Ttuple)
-                    {
-                        TypeTuple tt = cast(TypeTuple)prmtype;
-                        size_t tt_dim = tt.arguments.dim;
-                        for (size_t j = 0; j < tt_dim; j++, ++argi)
+                        if (m <= MATCHnomatch)
+                            goto Lnomatch;
+                        if (m < match)
+                            match = m;
+
+                        /* Remove top const for dynamic array types and pointer types
+                         */
+                        if ((tt.ty == Tarray || tt.ty == Tpointer) &&
+                            !tt.isMutable() &&
+                            (!(fparam.storageClass & STCref) ||
+                             (fparam.storageClass & STCauto) && !farg.isLvalue()))
                         {
-                            Parameter p = (*tt.arguments)[j];
-                            if (j == tt_dim - 1 && fvarargs == 2 && parami + 1 == nfparams && argi < nfargs)
-                            {
-                                prmtype = p.type;
-                                goto Lvarargs;
-                            }
-                            if (argi >= nfargs)
-                            {
-                                if (p.defaultArg)
-                                    continue;
-                                goto Lnomatch;
-                            }
-                            farg = (*fargs)[argi];
-                            if (!farg.implicitConvTo(p.type))
-                                goto Lnomatch;
+                            tt = tt.mutableOf();
                         }
-                        continue;
+                        declaredTuple.objects[i] = tt;
                     }
-                }
-                if (argi >= nfargs) // if not enough arguments
-                {
-                    if (!fparam.defaultArg)
-                        goto Lvarargs;
-                    /* Bugzilla 2803: Before the starting of type deduction from the function
-                     * default arguments, set the already deduced parameters into paramscope.
-                     * It's necessary to avoid breaking existing acceptable code. Cases:
-                     *
-                     * 1. Already deduced template parameters can appear in fparam->defaultArg:
-                     *  auto foo(A, B)(A a, B b = A.stringof);
-                     *  foo(1);
-                     *  // at fparam == 'B b = A.string', A is equivalent with the deduced type 'int'
-                     *
-                     * 2. If prmtype depends on default-specified template parameter, the
-                     * default type should be preferred.
-                     *  auto foo(N = size_t, R)(R r, N start = 0)
-                     *  foo([1,2,3]);
-                     *  // at fparam `N start = 0`, N should be 'size_t' before
-                     *  // the deduction result from fparam->defaultArg.
-                     */
-                    if (argi == nfargs)
-                    {
-                        for (size_t i = 0; i < dedtypes.dim; i++)
-                        {
-                            Type at = isType((*dedtypes)[i]);
-                            if (at && at.ty == Tnone)
-                            {
-                                TypeDeduced xt = cast(TypeDeduced)at;
-                                (*dedtypes)[i] = xt.tded; // 'unbox'
-                            }
-                        }
-                        for (size_t i = ntargs; i < dedargs.dim; i++)
-                        {
-                            TemplateParameter tparam = (*parameters)[i];
-                            RootObject oarg = (*dedargs)[i];
-                            RootObject oded = (*dedtypes)[i];
-                            if (!oarg)
-                            {
-                                if (oded)
-                                {
-                                    if (tparam.specialization() || !tparam.isTemplateTypeParameter())
-                                    {
-                                        /* The specialization can work as long as afterwards
-                                         * the oded == oarg
-                                         */
-                                        (*dedargs)[i] = oded;
-                                        MATCH m2 = tparam.matchArg(loc, paramscope, dedargs, i, parameters, dedtypes, null);
-                                        //printf("m2 = %d\n", m2);
-                                        if (m2 <= MATCHnomatch)
-                                            goto Lnomatch;
-                                        if (m2 < matchTiargs)
-                                            matchTiargs = m2; // pick worst match
-                                        if (!(*dedtypes)[i].equals(oded))
-                                            error("specialization not allowed for deduced parameter %s", tparam.ident.toChars());
-                                    }
-                                    else
-                                    {
-                                        if (MATCHconvert < matchTiargs)
-                                            matchTiargs = MATCHconvert;
-                                    }
-                                    (*dedargs)[i] = declareParameter(paramscope, tparam, oded);
-                                }
-                                else
-                                {
-                                    oded = tparam.defaultArg(loc, paramscope);
-                                    if (oded)
-                                        (*dedargs)[i] = declareParameter(paramscope, tparam, oded);
-                                }
-                            }
-                        }
-                    }
-                    nfargs2 = argi + 1;
-                    /* If prmtype does not depend on any template parameters:
-                     *
-                     *  auto foo(T)(T v, double x = 0);
-                     *  foo("str");
-                     *  // at fparam == 'double x = 0'
-                     *
-                     * or, if all template parameters in the prmtype are already deduced:
-                     *
-                     *  auto foo(R)(R range, ElementType!R sum = 0);
-                     *  foo([1,2,3]);
-                     *  // at fparam == 'ElementType!R sum = 0'
-                     *
-                     * Deducing prmtype from fparam->defaultArg is not necessary.
-                     */
-                    if (prmtype.deco || prmtype.syntaxCopy().trySemantic(loc, paramscope))
-                    {
-                        ++argi;
-                        continue;
-                    }
-                    // Deduce prmtype from the defaultArg.
-                    farg = fparam.defaultArg.syntaxCopy();
-                    farg = farg.semantic(paramscope);
-                    farg = resolveProperties(paramscope, farg);
+                    declareParameter(paramscope, tp, declaredTuple);
                 }
                 else
                 {
-                    farg = (*fargs)[argi];
+                    // Bugzilla 6810: If declared tuple is not a type tuple,
+                    // it cannot be function parameter types.
+                    for (size_t i = 0; i < declaredTuple.objects.dim; i++)
+                    {
+                        if (!isType(declaredTuple.objects[i]))
+                            goto Lnomatch;
+                    }
                 }
+                assert(declaredTuple);
+                argi += declaredTuple.objects.dim;
+                continue;
+            }
+
+            // If parameter type doesn't depend on inferred template parameters,
+            // semantic it to get actual type.
+            if (!reliesOnTident(prmtype, parameters, inferStart))
+            {
+                // should copy prmtype to avoid affecting semantic result
+                prmtype = prmtype.syntaxCopy().semantic(fd.loc, paramscope);
+
+                if (prmtype.ty == Ttuple)
                 {
-                    // Check invalid arguments to detect errors early.
-                    if (farg.op == TOKerror || farg.type.ty == Terror)
-                        goto Lnomatch;
-                Lretry:
-                    version (none)
+                    TypeTuple tt = cast(TypeTuple)prmtype;
+                    size_t tt_dim = tt.arguments.dim;
+                    for (size_t j = 0; j < tt_dim; j++, ++argi)
                     {
-                        printf("\tfarg->type   = %s\n", farg.type.toChars());
-                        printf("\tfparam->type = %s\n", prmtype.toChars());
-                    }
-                    Type argtype = farg.type;
-                    if (!(fparam.storageClass & STClazy) && argtype.ty == Tvoid && farg.op != TOKfunction)
-                        goto Lnomatch;
-                    // Bugzilla 12876: optimize arugument to allow CT-known length matching
-                    farg = farg.optimize(WANTvalue, (fparam.storageClass & (STCref | STCout)) != 0);
-                    //printf("farg = %s %s\n", farg->type->toChars(), farg->toChars());
-                    RootObject oarg = farg;
-                    if ((fparam.storageClass & STCref) && (!(fparam.storageClass & STCauto) || farg.isLvalue()))
-                    {
-                        /* Allow expressions that have CT-known boundaries and type [] to match with [dim]
-                         */
-                        Type taai;
-                        if (argtype.ty == Tarray && (prmtype.ty == Tsarray || prmtype.ty == Taarray && (taai = (cast(TypeAArray)prmtype).index).ty == Tident && (cast(TypeIdentifier)taai).idents.dim == 0))
+                        Parameter p = (*tt.arguments)[j];
+                        if (j == tt_dim - 1 && fvarargs == 2 && parami + 1 == nfparams && argi < nfargs)
                         {
-                            if (farg.op == TOKstring)
-                            {
-                                StringExp se = cast(StringExp)farg;
-                                argtype = se.type.nextOf().sarrayOf(se.len);
-                            }
-                            else if (farg.op == TOKarrayliteral)
-                            {
-                                ArrayLiteralExp ae = cast(ArrayLiteralExp)farg;
-                                argtype = ae.type.nextOf().sarrayOf(ae.elements.dim);
-                            }
-                            else if (farg.op == TOKslice)
-                            {
-                                SliceExp se = cast(SliceExp)farg;
-                                if (Type tsa = toStaticArrayType(se))
-                                    argtype = tsa;
-                            }
+                            prmtype = p.type;
+                            goto Lvarargs;
                         }
-                        oarg = argtype;
-                    }
-                    else if ((fparam.storageClass & STCout) == 0 && (argtype.ty == Tarray || argtype.ty == Tpointer) && templateParameterLookup(prmtype, parameters) != IDX_NOTFOUND && (cast(TypeIdentifier)prmtype).idents.dim == 0)
-                    {
-                        /* The farg passing to the prmtype always make a copy. Therefore,
-                         * we can shrink the set of the deduced type arguments for prmtype
-                         * by adjusting top-qualifier of the argtype.
-                         *
-                         *  prmtype         argtype     ta
-                         *  T            <- const(E)[]  const(E)[]
-                         *  T            <- const(E[])  const(E)[]
-                         *  qualifier(T) <- const(E)[]  const(E[])
-                         *  qualifier(T) <- const(E[])  const(E[])
-                         */
-                        Type ta = argtype.castMod(prmtype.mod ? argtype.nextOf().mod : 0);
-                        if (ta != argtype)
+                        if (argi >= nfargs)
                         {
-                            Expression ea = farg.copy();
-                            ea.type = ta;
-                            oarg = ea;
+                            if (p.defaultArg)
+                                continue;
+                            goto Lnomatch;
+                        }
+                        farg = (*fargs)[argi];
+                        if (!farg.implicitConvTo(p.type))
+                            goto Lnomatch;
+                    }
+                    continue;
+                }
+            }
+
+            if (argi >= nfargs) // if not enough arguments
+            {
+                if (!fparam.defaultArg)
+                    goto Lvarargs;
+
+                /* Bugzilla 2803: Before the starting of type deduction from the function
+                 * default arguments, set the already deduced parameters into paramscope.
+                 * It's necessary to avoid breaking existing acceptable code. Cases:
+                 *
+                 * 1. Already deduced template parameters can appear in fparam->defaultArg:
+                 *  auto foo(A, B)(A a, B b = A.stringof);
+                 *  foo(1);
+                 *  // at fparam == 'B b = A.string', A is equivalent with the deduced type 'int'
+                 *
+                 * 2. If prmtype depends on default-specified template parameter, the
+                 * default type should be preferred.
+                 *  auto foo(N = size_t, R)(R r, N start = 0)
+                 *  foo([1,2,3]);
+                 *  // at fparam `N start = 0`, N should be 'size_t' before
+                 *  // the deduction result from fparam->defaultArg.
+                 */
+                if (argi == nfargs)
+                {
+                    for (size_t i = 0; i < dedtypes.dim; i++)
+                    {
+                        Type at = isType((*dedtypes)[i]);
+                        if (at && at.ty == Tnone)
+                        {
+                            TypeDeduced xt = cast(TypeDeduced)at;
+                            (*dedtypes)[i] = xt.tded; // 'unbox'
                         }
                     }
-                    if (fvarargs == 2 && parami + 1 == nfparams && argi + 1 < nfargs)
-                        goto Lvarargs;
-                    uint wm = 0;
-                    MATCH m = deduceType(oarg, paramscope, prmtype, parameters, dedtypes, &wm, inferStart);
-                    //printf("\tL%d deduceType m = %d, wm = x%x, wildmatch = x%x\n", __LINE__, m, wm, wildmatch);
-                    wildmatch |= wm;
-                    /* If no match, see if the argument can be matched by using
-                     * implicit conversions.
-                     */
-                    if (m == MATCHnomatch && prmtype.deco)
-                        m = farg.implicitConvTo(prmtype);
-                    if (m == MATCHnomatch)
+                    for (size_t i = ntargs; i < dedargs.dim; i++)
                     {
-                        AggregateDeclaration ad = isAggregate(farg.type);
-                        if (ad && ad.aliasthis)
+                        TemplateParameter tparam = (*parameters)[i];
+                        RootObject oarg = (*dedargs)[i];
+                        RootObject oded = (*dedtypes)[i];
+                        if (!oarg)
                         {
-                            /* If a semantic error occurs while doing alias this,
-                             * eg purity(bug 7295), just regard it as not a match.
-                             */
-                            uint olderrors = global.startGagging();
-                            Expression e = resolveAliasThis(sc, farg);
-                            if (!global.endGagging(olderrors))
+                            if (oded)
                             {
-                                farg = e;
-                                goto Lretry;
-                            }
-                        }
-                    }
-                    if (m > MATCHnomatch && (fparam.storageClass & (STCref | STCauto)) == STCref)
-                    {
-                        if (!farg.isLvalue())
-                        {
-                            if ((farg.op == TOKstring || farg.op == TOKslice) && (prmtype.ty == Tsarray || prmtype.ty == Taarray))
-                            {
-                                // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
+                                if (tparam.specialization() || !tparam.isTemplateTypeParameter())
+                                {
+                                    /* The specialization can work as long as afterwards
+                                     * the oded == oarg
+                                     */
+                                    (*dedargs)[i] = oded;
+                                    MATCH m2 = tparam.matchArg(loc, paramscope, dedargs, i, parameters, dedtypes, null);
+                                    //printf("m2 = %d\n", m2);
+                                    if (m2 <= MATCHnomatch)
+                                        goto Lnomatch;
+                                    if (m2 < matchTiargs)
+                                        matchTiargs = m2; // pick worst match
+                                    if (!(*dedtypes)[i].equals(oded))
+                                        error("specialization not allowed for deduced parameter %s", tparam.ident.toChars());
+                                }
+                                else
+                                {
+                                    if (MATCHconvert < matchTiargs)
+                                        matchTiargs = MATCHconvert;
+                                }
+                                (*dedargs)[i] = declareParameter(paramscope, tparam, oded);
                             }
                             else
-                                goto Lnomatch;
+                            {
+                                oded = tparam.defaultArg(loc, paramscope);
+                                if (oded)
+                                    (*dedargs)[i] = declareParameter(paramscope, tparam, oded);
+                            }
                         }
-                    }
-                    if (m > MATCHnomatch && (fparam.storageClass & STCout))
-                    {
-                        if (!farg.isLvalue())
-                            goto Lnomatch;
-                        if (!farg.type.isMutable()) // Bugzilla 11916
-                            goto Lnomatch;
-                    }
-                    if (m == MATCHnomatch && (fparam.storageClass & STClazy) && prmtype.ty == Tvoid && farg.type.ty != Tvoid)
-                        m = MATCHconvert;
-                    if (m != MATCHnomatch)
-                    {
-                        if (m < match)
-                            match = m; // pick worst match
-                        argi++;
-                        continue;
                     }
                 }
-            Lvarargs:
-                /* The following code for variadic arguments closely
-                 * matches TypeFunction::callMatch()
+                nfargs2 = argi + 1;
+
+                /* If prmtype does not depend on any template parameters:
+                 *
+                 *  auto foo(T)(T v, double x = 0);
+                 *  foo("str");
+                 *  // at fparam == 'double x = 0'
+                 *
+                 * or, if all template parameters in the prmtype are already deduced:
+                 *
+                 *  auto foo(R)(R range, ElementType!R sum = 0);
+                 *  foo([1,2,3]);
+                 *  // at fparam == 'ElementType!R sum = 0'
+                 *
+                 * Deducing prmtype from fparam->defaultArg is not necessary.
                  */
-                if (!(fvarargs == 2 && parami + 1 == nfparams))
-                    goto Lnomatch;
-                /* Check for match with function parameter T...
-                 */
-                Type tb = prmtype.toBasetype();
-                switch (tb.ty)
+                if (prmtype.deco || prmtype.syntaxCopy().trySemantic(loc, paramscope))
                 {
-                    // 6764 fix - TypeAArray may be TypeSArray have not yet run semantic().
+                    ++argi;
+                    continue;
+                }
+
+                // Deduce prmtype from the defaultArg.
+                farg = fparam.defaultArg.syntaxCopy();
+                farg = farg.semantic(paramscope);
+                farg = resolveProperties(paramscope, farg);
+            }
+            else
+            {
+                farg = (*fargs)[argi];
+            }
+            {
+                // Check invalid arguments to detect errors early.
+                if (farg.op == TOKerror || farg.type.ty == Terror)
+                    goto Lnomatch;
+            Lretry:
+                version (none)
+                {
+                    printf("\tfarg->type   = %s\n", farg.type.toChars());
+                    printf("\tfparam->type = %s\n", prmtype.toChars());
+                }
+                Type argtype = farg.type;
+
+                if (!(fparam.storageClass & STClazy) && argtype.ty == Tvoid && farg.op != TOKfunction)
+                    goto Lnomatch;
+
+                // Bugzilla 12876: optimize arugument to allow CT-known length matching
+                farg = farg.optimize(WANTvalue, (fparam.storageClass & (STCref | STCout)) != 0);
+                //printf("farg = %s %s\n", farg->type->toChars(), farg->toChars());
+
+                RootObject oarg = farg;
+                if ((fparam.storageClass & STCref) && (!(fparam.storageClass & STCauto) || farg.isLvalue()))
+                {
+                    /* Allow expressions that have CT-known boundaries and type [] to match with [dim]
+                     */
+                    Type taai;
+                    if ( argtype.ty == Tarray &&
+                        (prmtype.ty == Tsarray ||
+                         prmtype.ty == Taarray && (taai = (cast(TypeAArray)prmtype).index).ty == Tident &&
+                                                  (cast(TypeIdentifier)taai).idents.dim == 0))
+                    {
+                        if (farg.op == TOKstring)
+                        {
+                            StringExp se = cast(StringExp)farg;
+                            argtype = se.type.nextOf().sarrayOf(se.len);
+                        }
+                        else if (farg.op == TOKarrayliteral)
+                        {
+                            ArrayLiteralExp ae = cast(ArrayLiteralExp)farg;
+                            argtype = ae.type.nextOf().sarrayOf(ae.elements.dim);
+                        }
+                        else if (farg.op == TOKslice)
+                        {
+                            SliceExp se = cast(SliceExp)farg;
+                            if (Type tsa = toStaticArrayType(se))
+                                argtype = tsa;
+                        }
+                    }
+                    oarg = argtype;
+                }
+                else if ((fparam.storageClass & STCout) == 0 &&
+                         (argtype.ty == Tarray || argtype.ty == Tpointer) &&
+                         templateParameterLookup(prmtype, parameters) != IDX_NOTFOUND &&
+                         (cast(TypeIdentifier)prmtype).idents.dim == 0)
+                {
+                    /* The farg passing to the prmtype always make a copy. Therefore,
+                     * we can shrink the set of the deduced type arguments for prmtype
+                     * by adjusting top-qualifier of the argtype.
+                     *
+                     *  prmtype         argtype     ta
+                     *  T            <- const(E)[]  const(E)[]
+                     *  T            <- const(E[])  const(E)[]
+                     *  qualifier(T) <- const(E)[]  const(E[])
+                     *  qualifier(T) <- const(E[])  const(E[])
+                     */
+                    Type ta = argtype.castMod(prmtype.mod ? argtype.nextOf().mod : 0);
+                    if (ta != argtype)
+                    {
+                        Expression ea = farg.copy();
+                        ea.type = ta;
+                        oarg = ea;
+                    }
+                }
+
+                if (fvarargs == 2 && parami + 1 == nfparams && argi + 1 < nfargs)
+                    goto Lvarargs;
+
+                uint wm = 0;
+                MATCH m = deduceType(oarg, paramscope, prmtype, parameters, dedtypes, &wm, inferStart);
+                //printf("\tL%d deduceType m = %d, wm = x%x, wildmatch = x%x\n", __LINE__, m, wm, wildmatch);
+                wildmatch |= wm;
+
+                /* If no match, see if the argument can be matched by using
+                 * implicit conversions.
+                 */
+                if (m == MATCHnomatch && prmtype.deco)
+                    m = farg.implicitConvTo(prmtype);
+
+                if (m == MATCHnomatch)
+                {
+                    AggregateDeclaration ad = isAggregate(farg.type);
+                    if (ad && ad.aliasthis)
+                    {
+                        /* If a semantic error occurs while doing alias this,
+                         * eg purity(bug 7295), just regard it as not a match.
+                         */
+                        uint olderrors = global.startGagging();
+                        Expression e = resolveAliasThis(sc, farg);
+                        if (!global.endGagging(olderrors))
+                        {
+                            farg = e;
+                            goto Lretry;
+                        }
+                    }
+                }
+
+                if (m > MATCHnomatch && (fparam.storageClass & (STCref | STCauto)) == STCref)
+                {
+                    if (!farg.isLvalue())
+                    {
+                        if ((farg.op == TOKstring || farg.op == TOKslice) &&
+                            (prmtype.ty == Tsarray || prmtype.ty == Taarray))
+                        {
+                            // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
+                        }
+                        else
+                            goto Lnomatch;
+                    }
+                }
+                if (m > MATCHnomatch && (fparam.storageClass & STCout))
+                {
+                    if (!farg.isLvalue())
+                        goto Lnomatch;
+                    if (!farg.type.isMutable()) // Bugzilla 11916
+                        goto Lnomatch;
+                }
+                if (m == MATCHnomatch &&
+                    (fparam.storageClass & STClazy) && prmtype.ty == Tvoid &&
+                    farg.type.ty != Tvoid)
+                {
+                    m = MATCHconvert;
+                }
+                if (m != MATCHnomatch)
+                {
+                    if (m < match)
+                        match = m; // pick worst match
+                    argi++;
+                    continue;
+                }
+            }
+
+        Lvarargs:
+            /* The following code for variadic arguments closely
+             * matches TypeFunction::callMatch()
+             */
+            if (!(fvarargs == 2 && parami + 1 == nfparams))
+                goto Lnomatch;
+
+            /* Check for match with function parameter T...
+             */
+            Type tb = prmtype.toBasetype();
+            switch (tb.ty)
+            {
+                // 6764 fix - TypeAArray may be TypeSArray have not yet run semantic().
                 case Tsarray:
                 case Taarray:
+                {
+                    // Perhaps we can do better with this, see TypeFunction::callMatch()
+                    if (tb.ty == Tsarray)
                     {
-                        // Perhaps we can do better with this, see TypeFunction::callMatch()
-                        if (tb.ty == Tsarray)
+                        TypeSArray tsa = cast(TypeSArray)tb;
+                        dinteger_t sz = tsa.dim.toInteger();
+                        if (sz != nfargs - argi)
+                            goto Lnomatch;
+                    }
+                    else if (tb.ty == Taarray)
+                    {
+                        TypeAArray taa = cast(TypeAArray)tb;
+                        Expression dim = new IntegerExp(instLoc, nfargs - argi, Type.tsize_t);
+
+                        size_t i = templateParameterLookup(taa.index, parameters);
+                        if (i == IDX_NOTFOUND)
                         {
-                            TypeSArray tsa = cast(TypeSArray)tb;
-                            dinteger_t sz = tsa.dim.toInteger();
-                            if (sz != nfargs - argi)
+                            Expression e;
+                            Type t;
+                            Dsymbol s;
+                            taa.index.resolve(instLoc, sc, &e, &t, &s);
+                            if (!e)
+                                goto Lnomatch;
+                            e = e.ctfeInterpret();
+                            e = e.implicitCastTo(sc, Type.tsize_t);
+                            e = e.optimize(WANTvalue);
+                            if (!dim.equals(e))
                                 goto Lnomatch;
                         }
-                        else if (tb.ty == Taarray)
+                        else
                         {
-                            TypeAArray taa = cast(TypeAArray)tb;
-                            Expression dim = new IntegerExp(instLoc, nfargs - argi, Type.tsize_t);
-                            size_t i = templateParameterLookup(taa.index, parameters);
-                            if (i == IDX_NOTFOUND)
+                            // This code matches code in TypeInstance::deduceType()
+                            TemplateParameter tprm = (*parameters)[i];
+                            TemplateValueParameter tvp = tprm.isTemplateValueParameter();
+                            if (!tvp)
+                                goto Lnomatch;
+                            Expression e = cast(Expression)(*dedtypes)[i];
+                            if (e)
                             {
-                                Expression e;
-                                Type t;
-                                Dsymbol s;
-                                taa.index.resolve(instLoc, sc, &e, &t, &s);
-                                if (!e)
-                                    goto Lnomatch;
-                                e = e.ctfeInterpret();
-                                e = e.implicitCastTo(sc, Type.tsize_t);
-                                e = e.optimize(WANTvalue);
                                 if (!dim.equals(e))
                                     goto Lnomatch;
                             }
                             else
                             {
-                                // This code matches code in TypeInstance::deduceType()
-                                TemplateParameter tprm = (*parameters)[i];
-                                TemplateValueParameter tvp = tprm.isTemplateValueParameter();
-                                if (!tvp)
+                                Type vt = tvp.valType.semantic(Loc(), sc);
+                                MATCH m = cast(MATCH)dim.implicitConvTo(vt);
+                                if (m <= MATCHnomatch)
                                     goto Lnomatch;
-                                Expression e = cast(Expression)(*dedtypes)[i];
-                                if (e)
-                                {
-                                    if (!dim.equals(e))
-                                        goto Lnomatch;
-                                }
-                                else
-                                {
-                                    Type vt = tvp.valType.semantic(Loc(), sc);
-                                    MATCH m = cast(MATCH)dim.implicitConvTo(vt);
-                                    if (m <= MATCHnomatch)
-                                        goto Lnomatch;
-                                    (*dedtypes)[i] = dim;
-                                }
+                                (*dedtypes)[i] = dim;
                             }
                         }
-                        /* fall through */
                     }
+                    goto case;
+                }
                 case Tarray:
+                {
+                    TypeArray ta = cast(TypeArray)tb;
+                    Type tret = fparam.isLazyArray();
+                    for (; argi < nfargs; argi++)
                     {
-                        TypeArray ta = cast(TypeArray)tb;
-                        Type tret = fparam.isLazyArray();
-                        for (; argi < nfargs; argi++)
+                        Expression arg = (*fargs)[argi];
+                        assert(arg);
+
+                        MATCH m;
+                        /* If lazy array of delegates,
+                         * convert arg(s) to delegate(s)
+                         */
+                        if (tret)
                         {
-                            Expression arg = (*fargs)[argi];
-                            assert(arg);
-                            MATCH m;
-                            /* If lazy array of delegates,
-                             * convert arg(s) to delegate(s)
-                             */
-                            if (tret)
+                            if (ta.next.equals(arg.type))
                             {
-                                if (ta.next.equals(arg.type))
-                                {
-                                    m = MATCHexact;
-                                }
-                                else
-                                {
-                                    m = arg.implicitConvTo(tret);
-                                    if (m == MATCHnomatch)
-                                    {
-                                        if (tret.toBasetype().ty == Tvoid)
-                                            m = MATCHconvert;
-                                    }
-                                }
+                                m = MATCHexact;
                             }
                             else
                             {
-                                uint wm = 0;
-                                m = deduceType(arg, paramscope, ta.next, parameters, dedtypes, &wm, inferStart);
-                                wildmatch |= wm;
+                                m = arg.implicitConvTo(tret);
+                                if (m == MATCHnomatch)
+                                {
+                                    if (tret.toBasetype().ty == Tvoid)
+                                        m = MATCHconvert;
+                                }
                             }
-                            if (m == MATCHnomatch)
-                                goto Lnomatch;
-                            if (m < match)
-                                match = m;
                         }
-                        goto Lmatch;
+                        else
+                        {
+                            uint wm = 0;
+                            m = deduceType(arg, paramscope, ta.next, parameters, dedtypes, &wm, inferStart);
+                            wildmatch |= wm;
+                        }
+                        if (m == MATCHnomatch)
+                            goto Lnomatch;
+                        if (m < match)
+                            match = m;
                     }
+                    goto Lmatch;
+                }
                 case Tclass:
                 case Tident:
                     goto Lmatch;
+
                 default:
                     goto Lnomatch;
-                }
-                ++argi;
             }
-            //printf("-> argi = %d, nfargs = %d, nfargs2 = %d\n", argi, nfargs, nfargs2);
-            if (argi != nfargs2 && !fvarargs)
-                goto Lnomatch;
+            ++argi;
         }
+        //printf("-> argi = %d, nfargs = %d, nfargs2 = %d\n", argi, nfargs, nfargs2);
+        if (argi != nfargs2 && !fvarargs)
+            goto Lnomatch;
+        }
+
     Lmatch:
         for (size_t i = 0; i < dedtypes.dim; i++)
         {
@@ -1753,7 +1823,9 @@ public:
                         // if tuple parameter and
                         // tuple parameter was not in function parameter list and
                         // we're one or more arguments short (i.e. no tuple argument)
-                        if (tparam == tp && fptupindex == IDX_NOTFOUND && ntargs <= dedargs.dim - 1)
+                        if (tparam == tp &&
+                            fptupindex == IDX_NOTFOUND &&
+                            ntargs <= dedargs.dim - 1)
                         {
                             // make tuple argument an empty tuple
                             oded = cast(RootObject)new Tuple();
@@ -1764,6 +1836,7 @@ public:
                     if (isError(oded))
                         goto Lerror;
                     ntargs++;
+
                     /* At the template parameter T, the picked default template argument
                      * X!int should be matched to T in order to deduce dependent
                      * template parameter A.
@@ -1784,6 +1857,7 @@ public:
                     }
                 }
                 oded = declareParameter(paramscope, tparam, oded);
+
                 /* Bugzilla 7469: Normalize ti->tiargs for the correct mangling of template instance.
                  */
                 Tuple va = isTuple(oded);
@@ -1798,6 +1872,7 @@ public:
                     (*dedargs)[i] = oded;
             }
         }
+
         // Partially instantiate function for constraint and fd->leastAsSpecialized()
         {
             assert(paramsym);
@@ -1807,7 +1882,9 @@ public:
             sc2.parent = ti;
             sc2.tinst = ti;
             sc2.minst = sc.minst;
+
             fd = doHeaderInstantiation(ti, sc2, fd, tthis, fargs);
+
             sc2 = sc2.pop();
             sc2 = sc2.pop();
             if (!fd)
@@ -1819,6 +1896,7 @@ public:
             if (!evaluateConstraint(ti, sc, paramscope, dedargs, fd))
                 goto Lnomatch;
         }
+
         version (none)
         {
             for (size_t i = 0; i < dedargs.dim; i++)
@@ -1827,13 +1905,16 @@ public:
                 printf("\tdedargs[%d] = %d, %s\n", i, o.dyncast(), o.toChars());
             }
         }
+
         paramscope.pop();
         //printf("\tmatch %d\n", match);
         return cast(MATCH)(match | (matchTiargs << 4));
+
     Lnomatch:
         paramscope.pop();
         //printf("\tnomatch\n");
         return MATCHnomatch;
+
     Lerror:
         // todo: for the future improvement
         paramscope.pop();
