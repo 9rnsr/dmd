@@ -2846,15 +2846,15 @@ extern (C++) MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
 
     switch (X(tparam.mod, t.mod))
     {
-    case X(0, 0):
-    case X(0, MODconst):
-    case X(0, MODwild):
-    case X(0, MODwildconst):
-    case X(0, MODshared):
-    case X(0, MODshared | MODconst):
-    case X(0, MODshared | MODwild):
-    case X(0, MODshared | MODwildconst):
-    case X(0, MODimmutable):
+        case X(0, 0):
+        case X(0, MODconst):
+        case X(0, MODwild):
+        case X(0, MODwildconst):
+        case X(0, MODshared):
+        case X(0, MODshared | MODconst):
+        case X(0, MODshared | MODwild):
+        case X(0, MODshared | MODwildconst):
+        case X(0, MODimmutable):
         // foo(U)                       T                       => T
         // foo(U)                       const(T)                => const(T)
         // foo(U)                       inout(T)                => inout(T)
@@ -2868,14 +2868,15 @@ extern (C++) MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
             *at = t;
             return MATCHexact;
         }
-    case X(MODconst, MODconst):
-    case X(MODwild, MODwild):
-    case X(MODwildconst, MODwildconst):
-    case X(MODshared, MODshared):
-    case X(MODshared | MODconst, MODshared | MODconst):
-    case X(MODshared | MODwild, MODshared | MODwild):
-    case X(MODshared | MODwildconst, MODshared | MODwildconst):
-    case X(MODimmutable, MODimmutable):
+
+        case X(MODconst, MODconst):
+        case X(MODwild, MODwild):
+        case X(MODwildconst, MODwildconst):
+        case X(MODshared, MODshared):
+        case X(MODshared | MODconst, MODshared | MODconst):
+        case X(MODshared | MODwild, MODshared | MODwild):
+        case X(MODshared | MODwildconst, MODshared | MODwildconst):
+        case X(MODimmutable, MODimmutable):
         // foo(const(U))                const(T)                => T
         // foo(inout(U))                inout(T)                => T
         // foo(inout(const(U)))         inout(const(T))         => T
@@ -2888,16 +2889,17 @@ extern (C++) MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
             *at = t.mutableOf().unSharedOf();
             return MATCHexact;
         }
-    case X(MODconst, 0):
-    case X(MODconst, MODwild):
-    case X(MODconst, MODwildconst):
-    case X(MODconst, MODshared | MODconst):
-    case X(MODconst, MODshared | MODwild):
-    case X(MODconst, MODshared | MODwildconst):
-    case X(MODconst, MODimmutable):
-    case X(MODwild, MODshared | MODwild):
-    case X(MODwildconst, MODshared | MODwildconst):
-    case X(MODshared | MODconst, MODimmutable):
+
+        case X(MODconst, 0):
+        case X(MODconst, MODwild):
+        case X(MODconst, MODwildconst):
+        case X(MODconst, MODshared | MODconst):
+        case X(MODconst, MODshared | MODwild):
+        case X(MODconst, MODshared | MODwildconst):
+        case X(MODconst, MODimmutable):
+        case X(MODwild, MODshared | MODwild):
+        case X(MODwildconst, MODshared | MODwildconst):
+        case X(MODshared | MODconst, MODimmutable):
         // foo(const(U))                T                       => T
         // foo(const(U))                inout(T)                => T
         // foo(const(U))                inout(const(T))         => T
@@ -2912,16 +2914,18 @@ extern (C++) MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
             *at = t.mutableOf();
             return MATCHconst;
         }
-    case X(MODconst, MODshared):
+
+        case X(MODconst, MODshared):
         // foo(const(U))                shared(T)               => shared(T)
         {
             *at = t;
             return MATCHconst;
         }
-    case X(MODshared, MODshared | MODconst):
-    case X(MODshared, MODshared | MODwild):
-    case X(MODshared, MODshared | MODwildconst):
-    case X(MODshared | MODconst, MODshared):
+
+        case X(MODshared, MODshared | MODconst):
+        case X(MODshared, MODshared | MODwild):
+        case X(MODshared, MODshared | MODwildconst):
+        case X(MODshared | MODconst, MODshared):
         // foo(shared(U))               shared(const(T))        => const(T)
         // foo(shared(U))               shared(inout(T))        => inout(T)
         // foo(shared(U))               shared(inout(const(T))) => inout(const(T))
@@ -2930,10 +2934,11 @@ extern (C++) MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
             *at = t.unSharedOf();
             return MATCHconst;
         }
-    case X(MODwildconst, MODimmutable):
-    case X(MODshared | MODconst, MODshared | MODwildconst):
-    case X(MODshared | MODwildconst, MODimmutable):
-    case X(MODshared | MODwildconst, MODshared | MODwild):
+
+        case X(MODwildconst, MODimmutable):
+        case X(MODshared | MODconst, MODshared | MODwildconst):
+        case X(MODshared | MODwildconst, MODimmutable):
+        case X(MODshared | MODwildconst, MODshared | MODwild):
         // foo(inout(const(U)))         immutable(T)            => T
         // foo(shared(const(U)))        shared(inout(const(T))) => T
         // foo(shared(inout(const(U)))) immutable(T)            => T
@@ -2942,56 +2947,58 @@ extern (C++) MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
             *at = t.unSharedOf().mutableOf();
             return MATCHconst;
         }
-    case X(MODshared | MODconst, MODshared | MODwild):
+
+        case X(MODshared | MODconst, MODshared | MODwild):
         // foo(shared(const(U)))        shared(inout(T))        => T
         {
             *at = t.unSharedOf().mutableOf();
             return MATCHconst;
         }
-    case X(MODwild, 0):
-    case X(MODwild, MODconst):
-    case X(MODwild, MODwildconst):
-    case X(MODwild, MODimmutable):
-    case X(MODwild, MODshared):
-    case X(MODwild, MODshared | MODconst):
-    case X(MODwild, MODshared | MODwildconst):
-    case X(MODwildconst, 0):
-    case X(MODwildconst, MODconst):
-    case X(MODwildconst, MODwild):
-    case X(MODwildconst, MODshared):
-    case X(MODwildconst, MODshared | MODconst):
-    case X(MODwildconst, MODshared | MODwild):
-    case X(MODshared, 0):
-    case X(MODshared, MODconst):
-    case X(MODshared, MODwild):
-    case X(MODshared, MODwildconst):
-    case X(MODshared, MODimmutable):
-    case X(MODshared | MODconst, 0):
-    case X(MODshared | MODconst, MODconst):
-    case X(MODshared | MODconst, MODwild):
-    case X(MODshared | MODconst, MODwildconst):
-    case X(MODshared | MODwild, 0):
-    case X(MODshared | MODwild, MODconst):
-    case X(MODshared | MODwild, MODwild):
-    case X(MODshared | MODwild, MODwildconst):
-    case X(MODshared | MODwild, MODimmutable):
-    case X(MODshared | MODwild, MODshared):
-    case X(MODshared | MODwild, MODshared | MODconst):
-    case X(MODshared | MODwild, MODshared | MODwildconst):
-    case X(MODshared | MODwildconst, 0):
-    case X(MODshared | MODwildconst, MODconst):
-    case X(MODshared | MODwildconst, MODwild):
-    case X(MODshared | MODwildconst, MODwildconst):
-    case X(MODshared | MODwildconst, MODshared):
-    case X(MODshared | MODwildconst, MODshared | MODconst):
-    case X(MODimmutable, 0):
-    case X(MODimmutable, MODconst):
-    case X(MODimmutable, MODwild):
-    case X(MODimmutable, MODwildconst):
-    case X(MODimmutable, MODshared):
-    case X(MODimmutable, MODshared | MODconst):
-    case X(MODimmutable, MODshared | MODwild):
-    case X(MODimmutable, MODshared | MODwildconst):
+
+        case X(MODwild, 0):
+        case X(MODwild, MODconst):
+        case X(MODwild, MODwildconst):
+        case X(MODwild, MODimmutable):
+        case X(MODwild, MODshared):
+        case X(MODwild, MODshared | MODconst):
+        case X(MODwild, MODshared | MODwildconst):
+        case X(MODwildconst, 0):
+        case X(MODwildconst, MODconst):
+        case X(MODwildconst, MODwild):
+        case X(MODwildconst, MODshared):
+        case X(MODwildconst, MODshared | MODconst):
+        case X(MODwildconst, MODshared | MODwild):
+        case X(MODshared, 0):
+        case X(MODshared, MODconst):
+        case X(MODshared, MODwild):
+        case X(MODshared, MODwildconst):
+        case X(MODshared, MODimmutable):
+        case X(MODshared | MODconst, 0):
+        case X(MODshared | MODconst, MODconst):
+        case X(MODshared | MODconst, MODwild):
+        case X(MODshared | MODconst, MODwildconst):
+        case X(MODshared | MODwild, 0):
+        case X(MODshared | MODwild, MODconst):
+        case X(MODshared | MODwild, MODwild):
+        case X(MODshared | MODwild, MODwildconst):
+        case X(MODshared | MODwild, MODimmutable):
+        case X(MODshared | MODwild, MODshared):
+        case X(MODshared | MODwild, MODshared | MODconst):
+        case X(MODshared | MODwild, MODshared | MODwildconst):
+        case X(MODshared | MODwildconst, 0):
+        case X(MODshared | MODwildconst, MODconst):
+        case X(MODshared | MODwildconst, MODwild):
+        case X(MODshared | MODwildconst, MODwildconst):
+        case X(MODshared | MODwildconst, MODshared):
+        case X(MODshared | MODwildconst, MODshared | MODconst):
+        case X(MODimmutable, 0):
+        case X(MODimmutable, MODconst):
+        case X(MODimmutable, MODwild):
+        case X(MODimmutable, MODwildconst):
+        case X(MODimmutable, MODshared):
+        case X(MODimmutable, MODshared | MODconst):
+        case X(MODimmutable, MODshared | MODwild):
+        case X(MODimmutable, MODshared | MODwildconst):
         // foo(inout(U))                T                       => nomatch
         // foo(inout(U))                const(T)                => nomatch
         // foo(inout(U))                inout(const(T))         => nomatch
@@ -3036,10 +3043,11 @@ extern (C++) MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
         // foo(immutable(U))            shared(const(T))        => nomatch
         // foo(immutable(U))            shared(inout(T))        => nomatch
         // foo(immutable(U))            shared(inout(const(T))) => nomatch
-        return MATCHnomatch;
-    default:
-        assert(0);
-        return MATCHnomatch; // silence compiler warning about missing return
+            return MATCHnomatch;
+
+        default:
+            assert(0);
+            return MATCHnomatch; // silence compiler warning about missing return
     }
 }
 
@@ -4217,7 +4225,10 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
         void visit(StringExp e)
         {
             Type taai;
-            if (e.type.ty == Tarray && (tparam.ty == Tsarray || tparam.ty == Taarray && (taai = (cast(TypeAArray)tparam).index).ty == Tident && (cast(TypeIdentifier)taai).idents.dim == 0))
+            if ( e.type.ty == Tarray &&
+                (tparam.ty == Tsarray ||
+                 tparam.ty == Taarray && (taai = (cast(TypeAArray)tparam).index).ty == Tident &&
+                                         (cast(TypeIdentifier)taai).idents.dim == 0))
             {
                 // Consider compile-time known boundaries
                 e.type.nextOf().sarrayOf(e.len).accept(this);
@@ -4228,7 +4239,9 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
 
         void visit(ArrayLiteralExp e)
         {
-            if ((!e.elements || !e.elements.dim) && e.type.toBasetype().nextOf().ty == Tvoid && tparam.ty == Tarray)
+            if ((!e.elements || !e.elements.dim) &&
+                e.type.toBasetype().nextOf().ty == Tvoid &&
+                tparam.ty == Tarray)
             {
                 // tparam:T[] <- e:[] (void[])
                 result = deduceEmptyArrayElement();
@@ -4249,7 +4262,10 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                 return;
             }
             Type taai;
-            if (e.type.ty == Tarray && (tparam.ty == Tsarray || tparam.ty == Taarray && (taai = (cast(TypeAArray)tparam).index).ty == Tident && (cast(TypeIdentifier)taai).idents.dim == 0))
+            if ( e.type.ty == Tarray &&
+                (tparam.ty == Tsarray ||
+                 tparam.ty == Taarray && (taai = (cast(TypeAArray)tparam).index).ty == Tident &&
+                                         (cast(TypeIdentifier)taai).idents.dim == 0))
             {
                 // Consider compile-time known boundaries
                 e.type.nextOf().sarrayOf(e.elements.dim).accept(this);
@@ -4355,7 +4371,10 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
         void visit(SliceExp e)
         {
             Type taai;
-            if (e.type.ty == Tarray && (tparam.ty == Tsarray || tparam.ty == Taarray && (taai = (cast(TypeAArray)tparam).index).ty == Tident && (cast(TypeIdentifier)taai).idents.dim == 0))
+            if ( e.type.ty == Tarray &&
+                (tparam.ty == Tsarray ||
+                 tparam.ty == Taarray && (taai = (cast(TypeAArray)tparam).index).ty == Tident &&
+                                         (cast(TypeIdentifier)taai).idents.dim == 0))
             {
                 // Consider compile-time known boundaries
                 if (Type tsa = toStaticArrayType(e))
@@ -4514,6 +4533,8 @@ extern (C++) Type reliesOnTident(Type t, TemplateParameters* tparams = null, siz
     return v.result;
 }
 
+/* ======================== TemplateParameter =============================== */
+
 /* For type-parameter:
  *  template Foo(ident)             // specType is set to NULL
  *  template Foo(ident : specType)
@@ -4530,6 +4551,7 @@ extern (C++) class TemplateParameter
 public:
     Loc loc;
     Identifier ident;
+
     /* True if this is a part of precedent parameter specialization pattern.
      *
      *  template A(T : X!TL, alias X, TL...) {}
@@ -4540,7 +4562,6 @@ public:
      */
     bool dependent;
 
-    /* ======================== TemplateParameter =============================== */
     final extern (D) this(Loc loc, Identifier ident)
     {
         this.loc = loc;
@@ -4597,7 +4618,9 @@ public:
      *      dedtypes[]      deduced arguments to template instance
      *      *psparam        set to symbol declared and initialized to dedtypes[i]
      */
-    MATCH matchArg(Loc instLoc, Scope* sc, Objects* tiargs, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
+    MATCH matchArg(Loc instLoc, Scope* sc, Objects* tiargs,
+            size_t i, TemplateParameters* parameters, Objects* dedtypes,
+            Declaration* psparam)
     {
         RootObject oarg;
         if (i < tiargs.dim)
@@ -4622,7 +4645,9 @@ public:
         return MATCHnomatch;
     }
 
-    abstract MATCH matchArg(Scope* sc, RootObject oarg, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam);
+    abstract MATCH matchArg(Scope* sc, RootObject oarg,
+            size_t i, TemplateParameters* parameters, Objects* dedtypes,
+            Declaration* psparam);
 
     /* Create dummy argument based on parameter.
      */
@@ -4634,6 +4659,8 @@ public:
     }
 }
 
+/* ======================== TemplateTypeParameter =========================== */
+
 /* Syntax:
  *  ident : specType = defaultType
  */
@@ -4642,8 +4669,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
 public:
     Type specType; // type parameter: if !=NULL, this is the type specialization
     Type defaultType;
-    /* ======================== TemplateTypeParameter =========================== */
-    // type-parameter
+
     extern (C++) static __gshared Type tdummy = null;
 
     final extern (D) this(Loc loc, Identifier ident, Type specType, Type defaultType)
@@ -4661,7 +4687,9 @@ public:
 
     TemplateParameter syntaxCopy()
     {
-        return new TemplateTypeParameter(loc, ident, specType ? specType.syntaxCopy() : null, defaultType ? defaultType.syntaxCopy() : null);
+        return new TemplateTypeParameter(loc, ident,
+        specType ? specType.syntaxCopy() : null,
+        defaultType ? defaultType.syntaxCopy() : null);
     }
 
     final bool declareParameter(Scope* sc)
@@ -4725,7 +4753,9 @@ public:
         return defaultType !is null;
     }
 
-    final MATCH matchArg(Scope* sc, RootObject oarg, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
+    final MATCH matchArg(Scope* sc, RootObject oarg,
+            size_t i, TemplateParameters* parameters, Objects* dedtypes,
+            Declaration* psparam)
     {
         //printf("TemplateTypeParameter::matchArg('%s')\n", ident->toChars());
         MATCH m = MATCHexact;
@@ -4811,14 +4841,14 @@ public:
     }
 }
 
+/* ======================== TemplateThisParameter =========================== */
+
 /* Syntax:
  *  this ident : specType = defaultType
  */
 extern (C++) final class TemplateThisParameter : TemplateTypeParameter
 {
 public:
-    /* ======================== TemplateThisParameter =========================== */
-    // this-parameter
     extern (D) this(Loc loc, Identifier ident, Type specType, Type defaultType)
     {
         super(loc, ident, specType, defaultType);
@@ -4831,7 +4861,9 @@ public:
 
     TemplateParameter syntaxCopy()
     {
-        return new TemplateThisParameter(loc, ident, specType ? specType.syntaxCopy() : null, defaultType ? defaultType.syntaxCopy() : null);
+        return new TemplateThisParameter(loc, ident,
+            specType ? specType.syntaxCopy() : null,
+            defaultType ? defaultType.syntaxCopy() : null);
     }
 
     void accept(Visitor v)
@@ -4839,6 +4871,8 @@ public:
         v.visit(this);
     }
 }
+
+/* ======================== TemplateValueParameter ========================== */
 
 /* Syntax:
  *  valType ident : specValue = defaultValue
@@ -4849,8 +4883,7 @@ public:
     Type valType;
     Expression specValue;
     Expression defaultValue;
-    /* ======================== TemplateValueParameter ========================== */
-    // value-parameter
+
     extern (C++) static __gshared AA* edummies = null;
 
     extern (D) this(Loc loc, Identifier ident, Type valType, Expression specValue, Expression defaultValue)
@@ -4869,7 +4902,10 @@ public:
 
     TemplateParameter syntaxCopy()
     {
-        return new TemplateValueParameter(loc, ident, valType.syntaxCopy(), specValue ? specValue.syntaxCopy() : null, defaultValue ? defaultValue.syntaxCopy() : null);
+        return new TemplateValueParameter(loc, ident,
+            valType.syntaxCopy(),
+            specValue ? specValue.syntaxCopy() : null,
+            defaultValue ? defaultValue.syntaxCopy() : null);
     }
 
     bool declareParameter(Scope* sc)
@@ -4946,7 +4982,9 @@ public:
         return defaultValue !is null;
     }
 
-    MATCH matchArg(Scope* sc, RootObject oarg, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
+    MATCH matchArg(Scope* sc, RootObject oarg,
+            size_t i, TemplateParameters* parameters, Objects* dedtypes,
+            Declaration* psparam)
     {
         //printf("TemplateValueParameter::matchArg('%s')\n", ident->toChars());
         MATCH m = MATCHexact;
@@ -5098,6 +5136,8 @@ extern (C++) RootObject aliasParameterSemantic(Loc loc, Scope* sc, RootObject o,
     return o;
 }
 
+/* ======================== TemplateAliasParameter ========================== */
+
 /* Syntax:
  *  specType ident : specAlias = defaultAlias
  */
@@ -5107,8 +5147,7 @@ public:
     Type specType;
     RootObject specAlias;
     RootObject defaultAlias;
-    /* ======================== TemplateAliasParameter ========================== */
-    // alias-parameter
+
     extern (C++) static __gshared Dsymbol sdummy = null;
 
     extern (D) this(Loc loc, Identifier ident, Type specType, RootObject specAlias, RootObject defaultAlias)
@@ -5127,7 +5166,10 @@ public:
 
     TemplateParameter syntaxCopy()
     {
-        return new TemplateAliasParameter(loc, ident, specType ? specType.syntaxCopy() : null, objectSyntaxCopy(specAlias), objectSyntaxCopy(defaultAlias));
+        return new TemplateAliasParameter(loc, ident,
+            specType ? specType.syntaxCopy() : null,
+            objectSyntaxCopy(specAlias),
+            objectSyntaxCopy(defaultAlias));
     }
 
     bool declareParameter(Scope* sc)
@@ -5187,7 +5229,9 @@ public:
         return defaultAlias !is null;
     }
 
-    MATCH matchArg(Scope* sc, RootObject oarg, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
+    MATCH matchArg(Scope* sc, RootObject oarg,
+            size_t i, TemplateParameters* parameters, Objects* dedtypes,
+            Declaration* psparam)
     {
         //printf("TemplateAliasParameter::matchArg('%s')\n", ident->toChars());
         MATCH m = MATCHexact;
@@ -5324,14 +5368,15 @@ public:
     }
 }
 
+/* ======================== TemplateTupleParameter ========================== */
+
 /* Syntax:
  *  ident ...
  */
 extern (C++) final class TemplateTupleParameter : TemplateParameter
 {
 public:
-    /* ======================== TemplateTupleParameter ========================== */
-    // variadic-parameter
+
     extern (D) this(Loc loc, Identifier ident)
     {
         super(loc, ident);
@@ -5400,7 +5445,9 @@ public:
         return false;
     }
 
-    MATCH matchArg(Loc instLoc, Scope* sc, Objects* tiargs, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
+    MATCH matchArg(Loc instLoc, Scope* sc, Objects* tiargs,
+            size_t i, TemplateParameters* parameters, Objects* dedtypes,
+            Declaration* psparam)
     {
         /* The rest of the actual arguments (tiargs[]) form the match
          * for the variadic parameter.
@@ -5429,7 +5476,9 @@ public:
         return matchArg(sc, ovar, i, parameters, dedtypes, psparam);
     }
 
-    MATCH matchArg(Scope* sc, RootObject oarg, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
+    MATCH matchArg(Scope* sc, RootObject oarg,
+            size_t i, TemplateParameters* parameters, Objects* dedtypes,
+            Declaration* psparam)
     {
         //printf("TemplateTupleParameter::matchArg('%s')\n", ident->toChars());
         Tuple ovar = isTuple(oarg);
