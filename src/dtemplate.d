@@ -501,14 +501,14 @@ public:
             TemplateParameter tp = (*parameters)[i];
             if (auto ttp = tp.isTemplateTypeParameter())
             {
-                //printf("[%s] ttp = %s, ttp.constraint = %p\n", ttp.loc.toChars(), ttp.ident.toChars(), ttp.constraint);
+                printf("[%s] ttp = %s, ttp.constraint = %p\n", ttp.loc.toChars(), ttp.ident.toChars(), ttp.constraint);
                 if (auto tc = isType(ttp.constraint))
                 {
                     Expression ea;
                     Type ta;
                     Dsymbol sa;
                     tc.resolve(ttp.loc, paramscope, &ea, &ta, &sa);
-                    //printf("\ttc = %s, e/t/s = %p %p %p\n", tc.toChars(), ea, ta, sa);
+                    printf("\ttc = %s, e/t/s = %p %p %p\n", tc.toChars(), ea, ta, sa);
                     if (ea)
                     {
                         error(ttp.loc, "%s is used as a type", tc.toChars());
@@ -4836,6 +4836,26 @@ void main()
     foo!"abc"();
 }
 // +/
+
+/+
+template Is(X)
+{
+    enum bool Is(T) = is(T : X);
+    //template Is(T)
+    //{
+    //    pragma(msg, T);
+    //    enum bool Is = is(T : X);
+    //}
+}
+
+interface I {}
+interface J : I {}
+//template Foo(I T) {}
+template Foo(Is!I T) {}
+class C {}
+alias F1 = Foo!J;	// ok
+//alias F2 = Foo!C;	// ng, C does not satisfy the constraint I (T is same or derived type of I)
+// +/
 }
     final MATCH matchConstraint(Scope *sc, Type ta)
     {
@@ -4851,23 +4871,32 @@ void main()
         Dsymbol sconstraint = isDsymbol(constraint);
         assert(sconstraint);
 
-        //printf("ta is %s, consraint = %s %s\n", ta.toChars(), sconstraint.kind(), sconstraint.toChars());
+        printf("ta is %s, consraint = %s %s\n", ta.toChars(), sconstraint.kind(), sconstraint.toChars());
         auto ti = new TemplateInstance(loc, sconstraint.ident);
         ti.tiargs = new Objects();
         ti.tiargs.push(ta);
 
+        if (!ti.updateTempDecl(sc, sconstraint) ||
+            !ti.semanticTiargs(sc) ||
+            !ti.findBestMatch(sc, null))
+        {
+            return MATCHnomatch;
+        }
+        ti.havetempdecl = true;
+
         ti.semantic(sc);
         if (!ti.inst)
             return MATCHnomatch;
-        //printf("\tL%d\n", __LINE__);
 
         auto s = ti.inst.toAlias();
+        printf("\tL%d s = %s %s\n", __LINE__, s.kind(), s.toChars());
         auto e = getValue(s);
+        printf("\tL%d e = %p\n", __LINE__, e);
         e = e.ctfeInterpret();
-        //printf("\tL%d e = %s\n", __LINE__, e.toChars());
+        printf("\tL%d e = %s\n", __LINE__, e.toChars());
         if (e.isBool(true))
         {
-            //printf("\tL%d constraint ok\n", __LINE__);
+            printf("\tL%d constraint ok\n", __LINE__);
             return MATCHexact;
         }
         else
