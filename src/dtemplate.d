@@ -4782,10 +4782,71 @@ public:
         return MATCHnomatch;
     }
 
+version (none)
+{
+import std.traits;
+alias SomeString = std.traits.isSomeString;
+
+void foo(SomeString R)(R r) { pragma(msg, "1: ", R); }
+void foo(    string R)() { pragma(msg, "2: ", R); }
+
+import std.range.primitives;
+alias InputRange = std.range.primitives.isInputRange;
+
+void foo(InputRange R)(R r) { pragma(msg, "3: ", R); }
+
+struct DirEntry
+{
+    string name();
+    alias name this;
+}
+
+void main()
+{
+    DirEntry de;
+    foo(de);
+
+    //foo!DirEntry(de);   // cannot match
+
+    foo!"abc"();
+}
+
+
+/+
+enum bool SomeString(T) = is(T == string);
+
+alias Value = int;
+
+void foo(SomeString R)(R r) { pragma(msg, "1: ", R); }
+void foo(    string R)() { pragma(msg, "2: ", R); }
+
+struct DirEntry
+{
+    string name();
+    alias name this;
+}
+
+void main()
+{
+    DirEntry de;
+    foo(de);
+
+    //foo!DirEntry(de);   // cannot match
+
+    foo!"abc"();
+}
+// +/
+}
     final MATCH matchConstraint(Scope *sc, Type ta)
     {
         if (!constraint)
             return MATCHexact;
+
+        if (ta == tdummy)
+        {
+            //printf("[%s] %s constraint - %s, ta == tdummy\n", loc.toChars(), ident.toChars(), constraint.toChars());
+            return MATCHexact;
+        }
 
         Dsymbol sconstraint = isDsymbol(constraint);
         assert(sconstraint);
