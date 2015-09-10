@@ -1451,6 +1451,150 @@ public:
         return null;
     }
 
+    // Get TemplateParameter
+    TemplateParameter parseTemplateParameter()
+    {
+        Token* t = peek(&token);
+
+        // First, look ahead to see if it is a TypeParameter or a ValueParameter
+        if (token.value == TOKalias)
+        {
+            // AliasParameter
+            nextToken();
+
+            Loc loc = token.loc; // todo
+            Identifier ident;
+            Type specType;
+
+            if (isDeclaration(&token, 2, TOKreserved, null))
+            {
+                specType = parseType(&ident);
+            }
+            else
+            {
+                if (token.value != TOKidentifier)
+                {
+                    error("identifier expected for template alias parameter");
+                    return null;
+                }
+                ident = token.ident;
+                nextToken();
+            }
+            RootObject spec = null;
+            if (token.value == TOKcolon) // : Type
+            {
+                nextToken();
+                if (isDeclaration(&token, 0, TOKreserved, null))
+                    spec = parseType();
+                else
+                    spec = parseCondExp();
+            }
+            RootObject def = null;
+            if (token.value == TOKassign) // = Type
+            {
+                nextToken();
+                if (isDeclaration(&token, 0, TOKreserved, null))
+                    def = parseType();
+                else
+                    def = parseCondExp();
+            }
+            return new TemplateAliasParameter(loc, ident, specType, spec, def);
+        }
+        else if (t.value == TOKcolon ||
+                 t.value == TOKassign ||
+                 t.value == TOKcomma ||
+                 t.value == TOKrparen)
+        {
+            // TypeParameter
+            if (token.value != TOKidentifier)
+            {
+                error("identifier expected for template type parameter");
+                return null;
+            }
+
+            Loc loc = token.loc;
+            Identifier ident = token.ident;
+            Type specType;
+            Type defaultType;
+
+            nextToken();
+            if (token.value == TOKcolon) // : Type
+            {
+                nextToken();
+                specType = parseType();
+            }
+            if (token.value == TOKassign) // = Type
+            {
+                nextToken();
+                defaultType = parseType();
+            }
+            return new TemplateTypeParameter(loc, ident, specType, defaultType);
+        }
+        else if (token.value == TOKidentifier && t.value == TOKdotdotdot)
+        {
+            // ident ...
+            Loc loc = token.loc;
+            Identifier ident = token.ident;
+
+            nextToken();
+            nextToken();
+            return new TemplateTupleParameter(loc, ident);
+        }
+        else if (token.value == TOKthis)
+        {
+            // ThisParameter
+            nextToken();
+            if (token.value != TOKidentifier)
+            {
+                error("identifier expected for template this parameter");
+                return null;
+            }
+            Loc loc = token.loc;
+            Identifier ident = token.ident;
+            Type specType;
+            Type defaultType;
+
+            nextToken();
+            if (token.value == TOKcolon)    // : Type
+            {
+                nextToken();
+                specType = parseType();
+            }
+            if (token.value == TOKassign)   // = Type
+            {
+                nextToken();
+                defaultType = parseType();
+            }
+            return new TemplateThisParameter(loc, ident, specType, defaultType);
+        }
+        else
+        {
+            // ValueParameter
+            Loc loc = token.loc; // todo
+            Identifier ident;
+            Type valType = parseType(&ident);
+            Expression specValue;
+            Expression defaultValue;
+
+            if (!ident)
+            {
+                error("identifier expected for template value parameter");
+                ident = new Identifier("error", TOKidentifier);
+            }
+            if (token.value == TOKcolon) // : CondExpression
+            {
+                nextToken();
+                specValue = parseCondExp();
+            }
+            if (token.value == TOKassign) // = CondExpression
+            {
+                nextToken();
+                defaultValue = parseDefaultInitExp();
+            }
+            return new TemplateValueParameter(loc, ident, valType, specValue, defaultValue);
+        }
+    }
+
     /******************************************
      * Parse template parameter list.
      * Input:
@@ -1469,142 +1613,19 @@ public:
         // Get array of TemplateParameters
         if (flag || token.value != TOKrparen)
         {
-            int isvariadic = 0;
+            bool isvariadic = false;
             while (token.value != TOKrparen)
             {
-                TemplateParameter tp;
-                Loc loc;
-                Identifier tp_ident = null;
-                Type tp_spectype = null;
-                Type tp_valtype = null;
-                Type tp_defaulttype = null;
-                Expression tp_specvalue = null;
-                Expression tp_defaultvalue = null;
-                Token* t;
-                // Get TemplateParameter
-                // First, look ahead to see if it is a TypeParameter or a ValueParameter
-                t = peek(&token);
-                if (token.value == TOKalias)
+                auto tp = parseTemplateParameter();
+                if (!tp)
+                    goto Lerr;
+                if (tp.isTemplateTupleParameter())
                 {
-                    // AliasParameter
-                    nextToken();
-                    loc = token.loc; // todo
-                    Type spectype = null;
-                    if (isDeclaration(&token, 2, TOKreserved, null))
-                    {
-                        spectype = parseType(&tp_ident);
-                    }
-                    else
-                    {
-                        if (token.value != TOKidentifier)
-                        {
-                            error("identifier expected for template alias parameter");
-                            goto Lerr;
-                        }
-                        tp_ident = token.ident;
-                        nextToken();
-                    }
-                    RootObject spec = null;
-                    if (token.value == TOKcolon) // : Type
-                    {
-                        nextToken();
-                        if (isDeclaration(&token, 0, TOKreserved, null))
-                            spec = parseType();
-                        else
-                            spec = parseCondExp();
-                    }
-                    RootObject def = null;
-                    if (token.value == TOKassign) // = Type
-                    {
-                        nextToken();
-                        if (isDeclaration(&token, 0, TOKreserved, null))
-                            def = parseType();
-                        else
-                            def = parseCondExp();
-                    }
-                    tp = new TemplateAliasParameter(loc, tp_ident, spectype, spec, def);
-                }
-                else if (t.value == TOKcolon || t.value == TOKassign || t.value == TOKcomma || t.value == TOKrparen)
-                {
-                    // TypeParameter
-                    if (token.value != TOKidentifier)
-                    {
-                        error("identifier expected for template type parameter");
-                        goto Lerr;
-                    }
-                    loc = token.loc;
-                    tp_ident = token.ident;
-                    nextToken();
-                    if (token.value == TOKcolon) // : Type
-                    {
-                        nextToken();
-                        tp_spectype = parseType();
-                    }
-                    if (token.value == TOKassign) // = Type
-                    {
-                        nextToken();
-                        tp_defaulttype = parseType();
-                    }
-                    tp = new TemplateTypeParameter(loc, tp_ident, tp_spectype, tp_defaulttype);
-                }
-                else if (token.value == TOKidentifier && t.value == TOKdotdotdot)
-                {
-                    // ident...
                     if (isvariadic)
                         error("variadic template parameter must be last");
-                    isvariadic = 1;
-                    loc = token.loc;
-                    tp_ident = token.ident;
-                    nextToken();
-                    nextToken();
-                    tp = new TemplateTupleParameter(loc, tp_ident);
+                    isvariadic = true;
                 }
-                else if (token.value == TOKthis)
-                {
-                    // ThisParameter
-                    nextToken();
-                    if (token.value != TOKidentifier)
-                    {
-                        error("identifier expected for template this parameter");
-                        goto Lerr;
-                    }
-                    loc = token.loc;
-                    tp_ident = token.ident;
-                    nextToken();
-                    if (token.value == TOKcolon) // : Type
-                    {
-                        nextToken();
-                        tp_spectype = parseType();
-                    }
-                    if (token.value == TOKassign) // = Type
-                    {
-                        nextToken();
-                        tp_defaulttype = parseType();
-                    }
-                    tp = new TemplateThisParameter(loc, tp_ident, tp_spectype, tp_defaulttype);
-                }
-                else
-                {
-                    // ValueParameter
-                    loc = token.loc; // todo
-                    tp_valtype = parseType(&tp_ident);
-                    if (!tp_ident)
-                    {
-                        error("identifier expected for template value parameter");
-                        tp_ident = new Identifier("error", TOKidentifier);
-                    }
-                    if (token.value == TOKcolon) // : CondExpression
-                    {
-                        nextToken();
-                        tp_specvalue = parseCondExp();
-                    }
-                    if (token.value == TOKassign) // = CondExpression
-                    {
-                        nextToken();
-                        tp_defaultvalue = parseDefaultInitExp();
-                    }
-                    tp = new TemplateValueParameter(loc, tp_ident, tp_valtype, tp_specvalue, tp_defaultvalue);
-                }
+
                 tpl.push(tp);
                 if (token.value != TOKcomma)
                     break;
