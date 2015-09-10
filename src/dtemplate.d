@@ -4856,6 +4856,23 @@ class C {}
 alias F1 = Foo!J;	// ok
 //alias F2 = Foo!C;	// ng, C does not satisfy the constraint I (T is same or derived type of I)
 // +/
+
+
+/+
+template InstanceOf(alias X)
+{
+    enum bool InstanceOf(T) = is(T == X!Args, Args...);
+}
+
+class C(T) {}
+alias Cint = C!int;
+alias Clong = C!long;
+//template Foo(C T) {}
+template Foo(InstanceOf!C T) {}
+alias F1 = Foo!(Cint);      // ok
+alias F2 = Foo!(Clong);     // ok
+alias F3 = Foo!(Object);    // ng, Object does not satisfy the constraint C (T is a type instantiated of C)
+// +/
 }
     final MATCH matchConstraint(Scope *sc, Type ta)
     {
