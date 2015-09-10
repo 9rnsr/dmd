@@ -499,13 +499,39 @@ public:
         for (size_t i = 0; i < parameters.dim; i++)
         {
             TemplateParameter tp = (*parameters)[i];
-            if (!tp.declareParameter(paramscope))
+            if (auto ttp = tp.isTemplateTypeParameter())
             {
-                error(tp.loc, "parameter '%s' multiply defined", tp.ident.toChars());
-                errors = true;
+                if (auto tc = isType(ttp.constraint))
+                {
+                    Expression ea;
+                    Type ta;
+                    Dsymbol sa;
+                    tc.resolve(ttp.loc, paramscope, &ea, &ta, &sa);
+                    if (ea)
+                    {
+                        error(ttp.loc, "%s is used as a type", tc.toChars());
+                        ta = Type.terror;
+                    }
+                    if (sa)
+                        ta = .getType(sa);
+                    if (sa)
+                        ttp.constraint = sa;
+                    else
+                    {
+                        auto specValue = ttp.specType ? ttp.specType.toExpression() : null;
+                        auto defaultValue = ttp.defaultType ? ttp.defaultType.toExpression() : null;
+                        tp = new TemplateValueParameter(ttp.loc, ttp.ident, ta, specValue, defaultValue);
+                        (*parameters)[i] = tp;
+                    }
+                }
             }
             if (!tp.semantic(paramscope, parameters))
             {
+                errors = true;
+            }
+            if (!tp.declareParameter(paramscope))
+            {
+                error(tp.loc, "parameter '%s' multiply defined", tp.ident.toChars());
                 errors = true;
             }
             if (i + 1 != parameters.dim && tp.isTemplateTupleParameter())
@@ -4042,6 +4068,11 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             // expression vs (none)
             if (!at)
             {
+                if (tp.matchConstraint(sc, tt) <= MATCHnomatch)
+                {
+                    result = MATCHnomatch;
+                    return;
+                }
                 (*dedtypes)[i] = new TypeDeduced(tt, e, tparam);
                 return;
             }
@@ -4092,6 +4123,9 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             }
             if (match1 > MATCHnomatch)
             {
+                if (tp.matchConstraint(sc, tt) <= MATCHnomatch)
+                    return;
+
                 // Prefer current match: tt
                 if (xt)
                     xt.update(tt, e, tparam);
@@ -4571,6 +4605,8 @@ public:
     }
 }
 
+/* ======================== TemplateTypeParameter =========================== */
+
 /* Syntax:
  *  ident : specType = defaultType
  */
@@ -4579,8 +4615,8 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
 public:
     Type specType; // type parameter: if !=NULL, this is the type specialization
     Type defaultType;
-    /* ======================== TemplateTypeParameter =========================== */
-    // type-parameter
+    RootObject constraint;
+
     extern (C++) static __gshared Type tdummy = null;
 
     final extern (D) this(Loc loc, Identifier ident, Type specType, Type defaultType)
@@ -4589,6 +4625,15 @@ public:
         this.ident = ident;
         this.specType = specType;
         this.defaultType = defaultType;
+    }
+
+    final extern (D) this(Loc loc, Identifier ident, Type constraint, Type specType, Type defaultType)
+    {
+        super(loc, ident);
+        this.ident = ident;
+        this.specType = specType;
+        this.defaultType = defaultType;
+        this.constraint = constraint;
     }
 
     final TemplateTypeParameter isTemplateTypeParameter()
@@ -4701,6 +4746,9 @@ public:
         }
         else
         {
+            if (matchConstraint(sc, ta) <= MATCHnomatch)
+                goto Lnomatch;
+
             if ((*dedtypes)[i])
             {
                 // Must match already deduced type
@@ -4727,6 +4775,44 @@ public:
             *psparam = null;
         //printf("\tm = %d\n", MATCHnomatch);
         return MATCHnomatch;
+    }
+
+    final MATCH matchConstraint(Scope *sc, Type ta)
+    {
+        if (!constraint)
+            return MATCHexact;
+
+        Dsymbol sconstraint = isDsymbol(constraint);
+        assert(sconstraint);
+
+        //printf("ta is %s, consraint = %s %s\n", ta.toChars(), sconstraint.kind(), sconstraint.toChars());
+        auto ti = new TemplateInstance(loc, sconstraint.ident);
+        ti.tiargs = new Objects();
+        ti.tiargs.push(ta);
+
+        ti.semantic(sc);
+        if (!ti.inst)
+            return MATCHnomatch;
+        //printf("\tL%d\n", __LINE__);
+
+        auto s = ti.inst.toAlias();
+        auto e = getValue(s);
+        e = e.ctfeInterpret();
+        //printf("\tL%d e = %s\n", __LINE__, e.toChars());
+        if (e.isBool(true))
+        {
+            //printf("\tL%d constraint ok\n", __LINE__);
+            return MATCHexact;
+        }
+        else
+        {
+            if (!e.isBool(false))
+            {
+                .error(loc, "%s %s is not constant or does not evaluate to a bool",
+                    sconstraint.kind(), sconstraint.toChars());
+            }
+            return MATCHnomatch;
+        }
     }
 
     final void* dummyArg()

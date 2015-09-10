@@ -1570,28 +1570,46 @@ public:
         else
         {
             // ValueParameter
+            // Constrainted TypeParameter
             Loc loc = token.loc; // todo
             Identifier ident;
             Type valType = parseType(&ident);
             Expression specValue;
             Expression defaultValue;
+            Type specType;
+            Type defaultType;
 
             if (!ident)
             {
                 error("identifier expected for template value parameter");
                 ident = new Identifier("error", TOKidentifier);
             }
-            if (token.value == TOKcolon) // : CondExpression
+            if (token.value == TOKcolon)    // : CondExpression
             {
                 nextToken();
-                specValue = parseCondExp();
+                if (isDeclaration(&token, 0, TOKreserved, null))
+                    specType = parseType();
+                else
+                    specValue = parseCondExp();
             }
-            if (token.value == TOKassign) // = CondExpression
+            if (token.value == TOKassign)   // = CondExpression
             {
                 nextToken();
-                defaultValue = parseDefaultInitExp();
+                if (isDeclaration(&token, 0, TOKreserved, null))
+                    defaultType = parseType();
+                else
+                    defaultValue = parseDefaultInitExp();
             }
-            return new TemplateValueParameter(loc, ident, valType, specValue, defaultValue);
+            if (specValue || defaultValue)
+            {
+                if (specType)
+                    specValue = specType.toExpression();
+                if (defaultType)
+                    defaultValue = defaultType.toExpression();
+                return new TemplateValueParameter(loc, ident, valType, specValue, defaultValue);
+            }
+            else
+                return new TemplateTypeParameter(loc, ident, valType, specType, defaultType);
         }
     }
 
