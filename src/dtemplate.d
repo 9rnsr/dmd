@@ -501,12 +501,14 @@ public:
             TemplateParameter tp = (*parameters)[i];
             if (auto ttp = tp.isTemplateTypeParameter())
             {
+                //printf("[%s] ttp = %s, ttp.constraint = %p\n", ttp.loc.toChars(), ttp.ident.toChars(), ttp.constraint);
                 if (auto tc = isType(ttp.constraint))
                 {
                     Expression ea;
                     Type ta;
                     Dsymbol sa;
                     tc.resolve(ttp.loc, paramscope, &ea, &ta, &sa);
+                    //printf("\ttc = %s, e/t/s = %p %p %p\n", tc.toChars(), ea, ta, sa);
                     if (ea)
                     {
                         error(ttp.loc, "%s is used as a type", tc.toChars());
@@ -4643,7 +4645,10 @@ public:
 
     TemplateParameter syntaxCopy()
     {
-        return new TemplateTypeParameter(loc, ident, specType ? specType.syntaxCopy() : null, defaultType ? defaultType.syntaxCopy() : null);
+        return new TemplateTypeParameter(loc, ident,
+            constraint ? (cast(Type)constraint).syntaxCopy() : null,
+            specType ? specType.syntaxCopy() : null,
+            defaultType ? defaultType.syntaxCopy() : null);
     }
 
     final bool declareParameter(Scope* sc)

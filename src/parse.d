@@ -1452,7 +1452,7 @@ public:
     }
 
     // Get TemplateParameter
-    TemplateParameter parseTemplateParameter()
+    TemplateParameter parseTemplateParameter(int flag)
     {
         Token* t = peek(&token);
 
@@ -1600,16 +1600,21 @@ public:
                 else
                     defaultValue = parseDefaultInitExp();
             }
-            if (specValue || defaultValue)
+            if (flag || specValue || defaultValue)
             {
                 if (specType)
                     specValue = specType.toExpression();
                 if (defaultType)
                     defaultValue = defaultType.toExpression();
+
+                //printf("parse [%s] valueParam %s\n", loc.toChars(), ident.toChars());
                 return new TemplateValueParameter(loc, ident, valType, specValue, defaultValue);
             }
             else
+            {
+                //printf("parse [%s] typeParam %s / constraint = %s\n", loc.toChars(), ident.toChars(), valType.toChars());
                 return new TemplateTypeParameter(loc, ident, valType, specType, defaultType);
+            }
         }
     }
 
@@ -1634,7 +1639,7 @@ public:
             bool isvariadic = false;
             while (token.value != TOKrparen)
             {
-                auto tp = parseTemplateParameter();
+                auto tp = parseTemplateParameter(flag);
                 if (!tp)
                     goto Lerr;
                 if (tp.isTemplateTupleParameter())
