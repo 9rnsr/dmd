@@ -4892,6 +4892,8 @@ alias F1 = Foo!J;	// ok
         printf("\tL%d s = %s %s\n", __LINE__, s.kind(), s.toChars());
         auto e = getValue(s);
         printf("\tL%d e = %p\n", __LINE__, e);
+        if (!e)
+            goto Lerr;
         e = e.ctfeInterpret();
         printf("\tL%d e = %s\n", __LINE__, e.toChars());
         if (e.isBool(true))
@@ -4903,6 +4905,7 @@ alias F1 = Foo!J;	// ok
         {
             if (!e.isBool(false))
             {
+            Lerr:
                 .error(loc, "%s %s is not constant or does not evaluate to a bool",
                     sconstraint.kind(), sconstraint.toChars());
             }
