@@ -583,6 +583,114 @@
     ],
     "constraint" : "T == string",
     "members" : []
+   },
+   {
+    "kind" : "template",
+    "line" : 115,
+    "char" : 11,
+    "name" : "InputRange",
+    "parameters" : [
+     {
+      "name" : "R",
+      "kind" : "type"
+     }
+    ],
+    "members" : [
+     {
+      "name" : "InputRange",
+      "kind" : "variable",
+      "line" : 115,
+      "char" : 11,
+      "storageClass" : [
+       "enum"
+      ],
+      "deco" : "b",
+      "init" : "true"
+     }
+    ]
+   },
+   {
+    "kind" : "template",
+    "line" : 116,
+    "char" : 11,
+    "name" : "IntValue",
+    "parameters" : [
+     {
+      "name" : "n",
+      "kind" : "value",
+      "deco" : "i"
+     }
+    ],
+    "members" : [
+     {
+      "name" : "IntValue",
+      "kind" : "variable",
+      "line" : 116,
+      "char" : 11,
+      "storageClass" : [
+       "enum"
+      ],
+      "deco" : "b",
+      "init" : "true"
+     }
+    ]
+   },
+   {
+    "kind" : "template",
+    "line" : 118,
+    "char" : 1,
+    "name" : "FooDIPxxa",
+    "parameters" : [
+     {
+      "name" : "R",
+      "kind" : "type",
+      "constraint" : "json.InputRange(R)"
+     }
+    ],
+    "members" : []
+   },
+   {
+    "kind" : "template",
+    "line" : 119,
+    "char" : 1,
+    "name" : "FooDIPxxb",
+    "parameters" : [
+     {
+      "name" : "v",
+      "kind" : "value",
+      "deco" : "i",
+      "constraint" : "json.IntValue(int n)"
+     }
+    ],
+    "members" : []
+   },
+   {
+    "kind" : "template",
+    "line" : 120,
+    "char" : 1,
+    "name" : "FooDIPxxc",
+    "parameters" : [
+     {
+      "name" : "v",
+      "kind" : "alias",
+      "constraint" : "json.IntValue(int n)"
+     }
+    ],
+    "members" : []
+   },
+   {
+    "kind" : "template",
+    "line" : 121,
+    "char" : 1,
+    "name" : "FooDIPxxd",
+    "parameters" : [
+     {
+      "name" : "A",
+      "kind" : "tuple",
+      "constraint" : "json.InputRange(R)"
+     }
+    ],
+    "members" : []
    }
   ]
  }

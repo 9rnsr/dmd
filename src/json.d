@@ -656,44 +656,42 @@ public:
         arrayStart();
         for (size_t i = 0; i < d.parameters.dim; i++)
         {
-            TemplateParameter s = (*d.parameters)[i];
+            auto tp = (*d.parameters)[i];
             objectStart();
-            property("name", s.ident.toChars());
-            TemplateTypeParameter type = s.isTemplateTypeParameter();
-            if (type)
+            property("name", tp.ident.toChars());
+            if (auto ttp = tp.isTemplateTypeParameter())
             {
-                if (s.isTemplateThisParameter())
+                if (tp.isTemplateThisParameter())
                     property("kind", "this");
                 else
                     property("kind", "type");
-                property("type", "deco", type.specType);
-                property("default", "defaultDeco", type.defaultType);
+                property("type", "deco", ttp.specType);
+                property("default", "defaultDeco", ttp.defaultType);
             }
-            TemplateValueParameter value = s.isTemplateValueParameter();
-            if (value)
+            if (auto tvp = tp.isTemplateValueParameter())
             {
                 property("kind", "value");
-                property("type", "deco", value.valType);
-                if (value.specValue)
-                    property("specValue", value.specValue.toChars());
-                if (value.defaultValue)
-                    property("defaultValue", value.defaultValue.toChars());
+                property("type", "deco", tvp.valType);
+                if (tvp.specValue)
+                    property("specValue", tvp.specValue.toChars());
+                if (tvp.defaultValue)
+                    property("defaultValue", tvp.defaultValue.toChars());
             }
-            TemplateAliasParameter _alias = s.isTemplateAliasParameter();
-            if (_alias)
+            if (auto tap = tp.isTemplateAliasParameter())
             {
                 property("kind", "alias");
-                property("type", "deco", _alias.specType);
-                if (_alias.specAlias)
-                    property("specAlias", _alias.specAlias.toChars());
-                if (_alias.defaultAlias)
-                    property("defaultAlias", _alias.defaultAlias.toChars());
+                property("type", "deco", tap.specType);
+                if (tap.specAlias)
+                    property("specAlias", tap.specAlias.toChars());
+                if (tap.defaultAlias)
+                    property("defaultAlias", tap.defaultAlias.toChars());
             }
-            TemplateTupleParameter tuple = s.isTemplateTupleParameter();
-            if (tuple)
+            if (tp.isTemplateTupleParameter())
             {
                 property("kind", "tuple");
             }
+            if (Dsymbol constraint = isDsymbol(tp.constraint))
+                property("constraint", constraint.toPrettyChars());
             objectEnd();
         }
         arrayEnd();

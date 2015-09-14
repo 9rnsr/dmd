@@ -496,24 +496,12 @@ public:
                 (*origParameters)[i] = tp.syntaxCopy();
             }
         }
-        for (size_t i = 0; i < parameters.dim; i++)
+
+        if (!semanticParameters(paramscope, parameters, true))
         {
-            TemplateParameter tp = (*parameters)[i];
-            if (!tp.declareParameter(paramscope))
-            {
-                error(tp.loc, "parameter '%s' multiply defined", tp.ident.toChars());
-                errors = true;
-            }
-            if (!tp.semantic(paramscope, parameters))
-            {
-                errors = true;
-            }
-            if (i + 1 != parameters.dim && tp.isTemplateTupleParameter())
-            {
-                error("template tuple parameter must be last one");
-                errors = true;
-            }
+            errors = true;
         }
+
         /* Calculate TemplateParameter::dependent
          */
         TemplateParameters tparams;
@@ -556,6 +544,29 @@ public:
         /* BUG: should check:
          *  o no virtual functions or non-static data members of classes
          */
+    }
+
+    static bool semanticParameters(Scope* sc, TemplateParameters *parameters, bool declParams = false)
+    {
+        bool errors = false;
+        foreach (i, tp; *parameters)
+        {
+            if (declParams && !tp.declareParameter(sc))
+            {
+                .error(tp.loc, "parameter '%s' multiply defined", tp.ident.toChars());
+                errors = true;
+            }
+            if (!tp.semantic(sc, parameters))
+            {
+                errors = true;
+            }
+            if (i + 1 != parameters.dim && tp.isTemplateTupleParameter())
+            {
+                .error(tp.loc, "template tuple parameter must be last one");
+                errors = true;
+            }
+        }
+        return !errors;
     }
 
     /**********************************
@@ -4042,6 +4053,11 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             // expression vs (none)
             if (!at)
             {
+                if (tp.matchConstraint(sc, tt) <= MATCHnomatch)
+                {
+                    result = MATCHnomatch;
+                    return;
+                }
                 (*dedtypes)[i] = new TypeDeduced(tt, e, tparam);
                 return;
             }
@@ -4092,6 +4108,9 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             }
             if (match1 > MATCHnomatch)
             {
+                if (tp.matchConstraint(sc, tt) <= MATCHnomatch)
+                    return;
+
                 // Prefer current match: tt
                 if (xt)
                     xt.update(tt, e, tparam);
@@ -4527,6 +4546,60 @@ public:
 
     abstract bool hasDefaultArg();
 
+    final MATCH matchConstraint(Scope *sc, RootObject oa)
+    {
+        if (!constraint)
+            return MATCHexact;
+
+        Dsymbol tempdecl = isDsymbol(constraint);
+        assert(tempdecl);
+
+        //printf("oa is %s, consraint = %s %s\n", oa.toChars(), tempdecl.kind(), tempdecl.toChars());
+        auto ti = new TemplateInstance(loc, tempdecl.ident);
+        ti.tiargs = new Objects();
+
+        if (Tuple tup = isTuple(oa))
+        {
+            ti.tiargs.reserve(tup.objects.dim);
+            foreach (o; tup.objects)
+                ti.tiargs.push(o);
+        }
+        else
+            ti.tiargs.push(oa);
+
+        if (!ti.updateTempDecl(sc, tempdecl) ||
+            !ti.semanticTiargs(sc) ||
+            !ti.findBestMatch(sc, null, false))
+        {
+            return MATCHnomatch;
+        }
+        ti.havetempdecl = true;
+
+        ti.semantic(sc);
+        if (!ti.inst)
+            return MATCHnomatch;
+
+        auto s = ti.inst.toAlias();
+        auto e = getValue(s);
+        if (!e)
+            goto Lerr;
+        e = e.ctfeInterpret();
+        if (e.isBool(true))
+        {
+            return MATCHexact;
+        }
+        else
+        {
+            if (!e.isBool(false))
+            {
+            Lerr:
+                .error(loc, "%s %s is not constant or does not evaluate to a bool",
+                    tempdecl.kind(), tempdecl.toChars());
+            }
+            return MATCHnomatch;
+        }
+    }
+
     /*******************************************
      * Match to a particular TemplateParameter.
      * Input:
@@ -4537,7 +4610,9 @@ public:
      *      dedtypes[]      deduced arguments to template instance
      *      *psparam        set to symbol declared and initialized to dedtypes[i]
      */
-    MATCH matchArg(Loc instLoc, Scope* sc, Objects* tiargs, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
+    MATCH matchArg(Loc instLoc, Scope* sc, Objects* tiargs,
+        size_t i, TemplateParameters* parameters, Objects* dedtypes,
+        Declaration* psparam)
     {
         RootObject oarg;
         if (i < tiargs.dim)
@@ -4562,7 +4637,9 @@ public:
         return MATCHnomatch;
     }
 
-    abstract MATCH matchArg(Scope* sc, RootObject oarg, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam);
+    abstract MATCH matchArg(Scope* sc, RootObject oarg,
+        size_t i, TemplateParameters* parameters, Objects* dedtypes,
+        Declaration* psparam);
 
     /* Create dummy argument based on parameter.
      */
@@ -4619,9 +4696,28 @@ public:
     final bool semantic(Scope* sc, TemplateParameters* parameters)
     {
         //printf("TemplateTypeParameter::semantic('%s')\n", ident->toChars());
+        bool errors = false;
+        if (Type tc = isType(constraint))
+        {
+            Expression ea;
+            Type ta;
+            Dsymbol sa;
+            tc.resolve(loc, sc, &ea, &ta, &sa);
+            if (ea)
+                sa = getDsymbol(ea);
+            if (!sa)
+            {
+                if (!ta || ta.ty != Terror)
+                    error(loc, "%s is not a symbol", tc.toChars());
+                errors |= true;
+            }
+            if (sa)
+                constraint = sa;
+        }
         if (specType && !reliesOnTident(specType, parameters))
         {
             specType = specType.semantic(loc, sc);
+            errors |= isError(specType);
         }
         version (none)
         {
@@ -4631,7 +4727,7 @@ public:
                 defaultType = defaultType.semantic(loc, sc);
             }
         }
-        return !(specType && isError(specType));
+        return !errors;
     }
 
     final void print(RootObject oarg, RootObject oded)
@@ -4669,7 +4765,9 @@ public:
         return defaultType !is null;
     }
 
-    final MATCH matchArg(Scope* sc, RootObject oarg, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
+    final MATCH matchArg(Scope* sc, RootObject oarg,
+        size_t i, TemplateParameters* parameters, Objects* dedtypes,
+        Declaration* psparam)
     {
         //printf("TemplateTypeParameter::matchArg('%s')\n", ident->toChars());
         MATCH m = MATCHexact;
@@ -4725,8 +4823,16 @@ public:
             }
         }
         (*dedtypes)[i] = ta;
+
+        if (constraint && ta != tdummy)
+        {
+            if (matchConstraint(sc, ta) <= MATCHnomatch)
+                goto Lnomatch;
+        }
+
         if (psparam)
             *psparam = new AliasDeclaration(loc, ident, ta);
+
         //printf("\tm = %d\n", m);
         return dependent ? MATCHexact : m;
     Lnomatch:
@@ -4831,7 +4937,26 @@ public:
 
     bool semantic(Scope* sc, TemplateParameters* parameters)
     {
+        bool errors = false;
+        if (Type tc = isType(constraint))
+        {
+            Expression ea;
+            Type ta;
+            Dsymbol sa;
+            tc.resolve(loc, sc, &ea, &ta, &sa);
+            if (ea)
+                sa = getDsymbol(ea);
+            if (!sa)
+            {
+                if (!ta || ta.ty != Terror)
+                    error(loc, "%s is not a symbol", tc.toChars());
+                errors |= true;
+            }
+            if (sa)
+                constraint = sa;
+        }
         valType = valType.semantic(loc, sc);
+        errors |= isError(valType);
         version (none)
         {
             // defer semantic analysis to arg match
@@ -4860,7 +4985,7 @@ public:
                 //e->toInteger();
             }
         }
-        return !isError(valType);
+        return !errors;
     }
 
     void print(RootObject oarg, RootObject oded)
@@ -4896,7 +5021,9 @@ public:
         return defaultValue !is null;
     }
 
-    MATCH matchArg(Scope* sc, RootObject oarg, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
+    MATCH matchArg(Scope* sc, RootObject oarg,
+        size_t i, TemplateParameters* parameters, Objects* dedtypes,
+        Declaration* psparam)
     {
         //printf("TemplateValueParameter::matchArg('%s')\n", ident->toChars());
         MATCH m = MATCHexact;
@@ -4940,6 +5067,7 @@ public:
             // Resolve const variables that we had skipped earlier
             ei = ei.ctfeInterpret();
         }
+
         //printf("\tvalType: %s, ty = %d\n", valType->toChars(), valType->ty);
         vt = valType.semantic(loc, sc);
         //printf("ei: %s, ei->type: %s\n", ei->toChars(), ei->type->toChars());
@@ -4955,6 +5083,7 @@ public:
             ei = ei.implicitCastTo(sc, vt);
             ei = ei.ctfeInterpret();
         }
+
         if (specValue)
         {
             if (!ei || cast(Expression)dmd_aaGetRvalue(edummies, cast(void*)ei.type) == ei)
@@ -4988,6 +5117,13 @@ public:
             }
         }
         (*dedtypes)[i] = ei;
+
+        if (constraint && cast(Expression)dmd_aaGetRvalue(edummies, cast(void*)ei.type) != ei)
+        {
+            if (matchConstraint(sc, ei) <= MATCHnomatch)
+                goto Lnomatch;
+        }
+
         if (psparam)
         {
             Initializer _init = new ExpInitializer(loc, ei);
@@ -5094,18 +5230,41 @@ public:
 
     bool semantic(Scope* sc, TemplateParameters* parameters)
     {
+        bool errors = false;
+        if (Type tc = isType(constraint))
+        {
+            Expression ea;
+            Type ta;
+            Dsymbol sa;
+            tc.resolve(loc, sc, &ea, &ta, &sa);
+            if (ea)
+                sa = getDsymbol(ea);
+            if (!sa)
+            {
+                if (!ta || ta.ty != Terror)
+                    error(loc, "%s is not a symbol", tc.toChars());
+                errors |= true;
+            }
+            if (sa)
+                constraint = sa;
+        }
         if (specType && !reliesOnTident(specType, parameters))
         {
             specType = specType.semantic(loc, sc);
+            errors |= isError(specType);
         }
-        specAlias = aliasParameterSemantic(loc, sc, specAlias, parameters);
+        if (specAlias)
+        {
+            specAlias = aliasParameterSemantic(loc, sc, specAlias, parameters);
+            errors |= isError(specAlias);
+        }
         version (none)
         {
             // Don't do semantic() until instantiation
             if (defaultAlias)
                 defaultAlias = defaultAlias.semantic(loc, sc);
         }
-        return !(specType && isError(specType)) && !(specAlias && isError(specAlias));
+        return !errors;
     }
 
     void print(RootObject oarg, RootObject oded)
@@ -5142,7 +5301,9 @@ public:
         return defaultAlias !is null;
     }
 
-    MATCH matchArg(Scope* sc, RootObject oarg, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
+    MATCH matchArg(Scope* sc, RootObject oarg,
+        size_t i, TemplateParameters* parameters, Objects* dedtypes,
+        Declaration* psparam)
     {
         //printf("TemplateAliasParameter::matchArg('%s')\n", ident->toChars());
         MATCH m = MATCHexact;
@@ -5232,6 +5393,13 @@ public:
                 goto Lnomatch;
         }
         (*dedtypes)[i] = sa;
+
+        if (constraint && oarg != TemplateTypeParameter.tdummy && oarg != sdummy)
+        {
+            if (matchConstraint(sc, oarg) <= MATCHnomatch)
+                goto Lnomatch;
+        }
+
         if (psparam)
         {
             if (Dsymbol s = isDsymbol(sa))
@@ -5312,7 +5480,25 @@ public:
 
     bool semantic(Scope* sc, TemplateParameters* parameters)
     {
-        return true;
+        bool errors = false;
+        if (Type tc = isType(constraint))
+        {
+            Expression ea;
+            Type ta;
+            Dsymbol sa;
+            tc.resolve(loc, sc, &ea, &ta, &sa);
+            if (ea)
+                sa = getDsymbol(ea);
+            if (!sa)
+            {
+                if (!ta || ta.ty != Terror)
+                    error(loc, "%s is not a symbol", tc.toChars());
+                errors |= true;
+            }
+            if (sa)
+                constraint = sa;
+        }
+        return !errors;
     }
 
     void print(RootObject oarg, RootObject oded)
@@ -5355,7 +5541,9 @@ public:
         return false;
     }
 
-    MATCH matchArg(Loc instLoc, Scope* sc, Objects* tiargs, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
+    MATCH matchArg(Loc instLoc, Scope* sc, Objects* tiargs,
+        size_t i, TemplateParameters* parameters, Objects* dedtypes,
+        Declaration* psparam)
     {
         /* The rest of the actual arguments (tiargs[]) form the match
          * for the variadic parameter.
@@ -5384,7 +5572,9 @@ public:
         return matchArg(sc, ovar, i, parameters, dedtypes, psparam);
     }
 
-    MATCH matchArg(Scope* sc, RootObject oarg, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
+    MATCH matchArg(Scope* sc, RootObject oarg,
+        size_t i, TemplateParameters* parameters, Objects* dedtypes,
+        Declaration* psparam)
     {
         //printf("TemplateTupleParameter::matchArg('%s')\n", ident->toChars());
         Tuple ovar = isTuple(oarg);
@@ -5398,7 +5588,15 @@ public:
             if (!match(tup, ovar))
                 return MATCHnomatch;
         }
+
+        if (constraint)
+        {
+            if (matchConstraint(sc, ovar) <= MATCHnomatch)
+                return MATCHnomatch;
+        }
+
         (*dedtypes)[i] = ovar;
+
         if (psparam)
             *psparam = new TupleDeclaration(loc, ident, &ovar.objects);
         return dependent ? MATCHexact : MATCHconvert;
@@ -6950,7 +7148,7 @@ public:
         return false;
     }
 
-    final bool findBestMatch(Scope* sc, Expressions* fargs)
+    final bool findBestMatch(Scope* sc, Expressions* fargs, bool printNoMatchError = true)
     {
         if (havetempdecl)
         {
@@ -7120,13 +7318,19 @@ public:
             TemplateDeclaration tdecl = tempdecl.isTemplateDeclaration();
             if (errs != global.errors)
                 errorSupplemental(loc, "while looking for match for %s", toChars());
-            else if (tdecl && !tdecl.overnext)
+            else if (printNoMatchError)
             {
                 // Only one template, so we can give better error message
-                error("does not match template declaration %s", tdecl.toChars());
+                if (tdecl && !tdecl.overnext)
+                {
+                    error("does not match template declaration %s", tdecl.toChars());
+                }
+                else
+                {
+                    .error(loc, "%s %s.%s does not match any template declaration",
+                        tempdecl.kind(), tempdecl.parent.toPrettyChars(), tempdecl.ident.toChars());
+                }
             }
-            else
-                .error(loc, "%s %s.%s does not match any template declaration", tempdecl.kind(), tempdecl.parent.toPrettyChars(), tempdecl.ident.toChars());
             return false;
         }
         /* The best match is td_last

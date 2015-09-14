@@ -6842,6 +6842,10 @@ public:
              */
             Identifier tid = id ? id : Identifier.generateId("__isexp_id");
             parameters.insert(0, new TemplateTypeParameter(loc, tid, null, null, null));
+
+            if (!TemplateDeclaration.semanticParameters(sc, parameters))
+                return new ErrorExp();
+
             Objects dedtypes;
             dedtypes.setDim(parameters.dim);
             dedtypes.zero();

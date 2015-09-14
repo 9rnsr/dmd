@@ -97,3 +97,17 @@ void foo11217()(inout int[] arr)
 {
 }
 void test13275();
+enum bool InputRange(R) = true;
+enum bool IntValue(int n) = true;
+template FooDIPxxa(R if InputRange)
+{
+}
+template FooDIPxxb(int v if IntValue)
+{
+}
+template FooDIPxxc(alias v if IntValue)
+{
+}
+template FooDIPxxd(A... if InputRange)
+{
+}

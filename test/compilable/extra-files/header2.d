@@ -139,3 +139,14 @@ void test13275()
     foreach (shared      (int) e; [1,2]) {}
     foreach (shared const(int) e; [1,2]) {}
 }
+
+// DIPxx
+
+enum bool InputRange(R) = true;
+enum bool IntValue(int n) = true;
+
+template FooDIPxxa(R if InputRange) {}
+template FooDIPxxb(int v if IntValue) {}
+template FooDIPxxc(alias v if IntValue) {}
+template FooDIPxxd(A... if InputRange) {}
+

@@ -2742,6 +2742,15 @@ public:
     void visit(TemplateTypeParameter tp)
     {
         buf.writestring(tp.ident.toChars());
+
+        if (tp.constraint)
+        {
+            buf.writestring(" if ");
+            if (auto c = isDsymbol(tp.constraint))
+                buf.writestring(c.ident.toChars());
+            else
+                typeToBuffer(cast(Type)tp.constraint, null);
+        }
         if (tp.specType)
         {
             buf.writestring(" : ");
@@ -2767,6 +2776,15 @@ public:
             typeToBuffer(tp.specType, tp.ident);
         else
             buf.writestring(tp.ident.toChars());
+
+        if (tp.constraint)
+        {
+            buf.writestring(" if ");
+            if (auto c = isDsymbol(tp.constraint))
+                buf.writestring(c.ident.toChars());
+            else
+                typeToBuffer(cast(Type)tp.constraint, null);
+        }
         if (tp.specAlias)
         {
             buf.writestring(" : ");
@@ -2782,6 +2800,15 @@ public:
     void visit(TemplateValueParameter tp)
     {
         typeToBuffer(tp.valType, tp.ident);
+
+        if (tp.constraint)
+        {
+            buf.writestring(" if ");
+            if (auto c = isDsymbol(tp.constraint))
+                buf.writestring(c.ident.toChars());
+            else
+                typeToBuffer(cast(Type)tp.constraint, null);
+        }
         if (tp.specValue)
         {
             buf.writestring(" : ");
@@ -2798,6 +2825,15 @@ public:
     {
         buf.writestring(tp.ident.toChars());
         buf.writestring("...");
+
+        if (tp.constraint)
+        {
+            buf.writestring(" if ");
+            if (auto c = isDsymbol(tp.constraint))
+                buf.writestring(c.ident.toChars());
+            else
+                typeToBuffer(cast(Type)tp.constraint, null);
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////
