@@ -549,15 +549,49 @@ public:
     static bool semanticParameters(Scope* sc, TemplateParameters *parameters, bool declParams = false)
     {
         bool errors = false;
-        foreach (i, tp; *parameters)
+        foreach (i, ref tp; *parameters)
         {
+            if (auto ttp = tp.isTemplateTypeParameter())
+            {
+                if (ttp.maybe)
+                {
+                    //printf("[%s] ttp = %s, ttp.constraint = %p\n", ttp.loc.toChars(), ttp.ident.toChars(), ttp.constraint);
+                    auto tc = isType(ttp.constraint);
+                    assert(tc);
+
+                    Expression ea;
+                    Type ta;
+                    Dsymbol sa;
+                    tc.resolve(ttp.loc, sc, &ea, &ta, &sa);
+                    //printf("\ttc = %s, e/t/s = %p %p %p\n", tc.toChars(), ea, ta, sa);
+                    if (ea)
+                    {
+                        .error(ttp.loc, "%s is used as a type", tc.toChars());
+                        ta = Type.terror;
+                    }
+                    if (sa)
+                        ta = .getType(sa);
+                    if (ta)
+                    {
+                        auto specValue = ttp.specType ? ttp.specType.toExpression() : null;
+                        auto defaultValue = ttp.defaultType ? ttp.defaultType.toExpression() : null;
+                        tp = new TemplateValueParameter(ttp.loc, ttp.ident, null, ta, specValue, defaultValue);
+                    }
+                    else
+                    {
+                        ttp.constraint = sa;
+                        ttp.maybe = false;
+                    }
+                }
+            }
+
+            if (!tp.semantic(sc, parameters))
+            {
+                errors = true;
+            }
             if (declParams && !tp.declareParameter(sc))
             {
                 .error(tp.loc, "parameter '%s' multiply defined", tp.ident.toChars());
-                errors = true;
-            }
-            if (!tp.semantic(sc, parameters))
-            {
                 errors = true;
             }
             if (i + 1 != parameters.dim && tp.isTemplateTupleParameter())
@@ -4660,6 +4694,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
 public:
     Type specType; // type parameter: if !=NULL, this is the type specialization
     Type defaultType;
+    bool maybe;
 
     extern (C++) static __gshared Type tdummy = null;
 
@@ -4679,10 +4714,12 @@ public:
 
     TemplateParameter syntaxCopy()
     {
-        return new TemplateTypeParameter(loc, ident,
+        auto tp = new TemplateTypeParameter(loc, ident,
             objectSyntaxCopy(constraint),
             specType ? specType.syntaxCopy() : null,
             defaultType ? defaultType.syntaxCopy() : null);
+        tp.maybe = maybe;
+        return tp;
     }
 
     final bool declareParameter(Scope* sc)

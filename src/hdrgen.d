@@ -2741,9 +2741,12 @@ public:
     ////////////////////////////////////////////////////////////////////////////
     void visit(TemplateTypeParameter tp)
     {
-        buf.writestring(tp.ident.toChars());
+        if (tp.constraint && tp.maybe)
+            typeToBuffer(cast(Type)tp.constraint, tp.ident);
+        else
+            buf.writestring(tp.ident.toChars());
 
-        if (tp.constraint)
+        if (tp.constraint && !tp.maybe)
         {
             buf.writestring(" if ");
             if (auto c = isDsymbol(tp.constraint))

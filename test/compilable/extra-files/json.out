@@ -691,6 +691,34 @@
      }
     ],
     "members" : []
+   },
+   {
+    "kind" : "template",
+    "line" : 122,
+    "char" : 1,
+    "name" : "FooDIPxxe",
+    "parameters" : [
+     {
+      "name" : "R",
+      "kind" : "type",
+      "constraint" : "json.InputRange(R)"
+     }
+    ],
+    "members" : []
+   },
+   {
+    "kind" : "template",
+    "line" : 123,
+    "char" : 1,
+    "name" : "FooDIPxxf",
+    "parameters" : [
+     {
+      "name" : "A",
+      "kind" : "tuple",
+      "constraint" : "json.InputRange(R)"
+     }
+    ],
+    "members" : []
    }
   ]
  }

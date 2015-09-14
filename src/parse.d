@@ -1600,7 +1600,16 @@ public:
                 ident = new Identifier("error", TOKidentifier);
             }
 
+            // Constraint ident ...
+            if (token.value == TOKdotdotdot)
+            {
+                nextToken();
+                return new TemplateTupleParameter(loc, ident, valType);
+            }
+
             Type constraint = null;
+            Type specType;
+            Type defaultType;
             Expression specValue;
             Expression defaultValue;
             if (token.value == TOKif)
@@ -1611,14 +1620,35 @@ public:
             if (token.value == TOKcolon)    // : CondExpression
             {
                 nextToken();
-                specValue = parseCondExp();
+                if (!constraint && isDeclaration(&token, 0, TOKreserved, null))
+                    specType = parseType();
+                else
+                    specValue = parseCondExp();
             }
             if (token.value == TOKassign)   // = CondExpression
             {
                 nextToken();
-                defaultValue = parseDefaultInitExp();
+                if (!constraint && specValue && isDeclaration(&token, 0, TOKreserved, null))
+                    defaultType = parseType();
+                else
+                    defaultValue = parseDefaultInitExp();
             }
-            return new TemplateValueParameter(loc, ident, constraint, valType, specValue, defaultValue);
+            if (constraint || specValue || defaultValue)
+            {
+                if (specType)
+                    specValue = specType.toExpression();
+                if (defaultType)
+                    defaultValue = defaultType.toExpression();
+
+                return new TemplateValueParameter(loc, ident, constraint, valType, specValue, defaultValue);
+            }
+            else
+            {
+                // maybe: Constraint ident
+                auto ttp = new TemplateTypeParameter(loc, ident, valType, specType, defaultType);
+                ttp.maybe = true;
+                return ttp;
+            }
         }
     }
 

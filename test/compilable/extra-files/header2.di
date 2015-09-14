@@ -111,3 +111,9 @@ template FooDIPxxc(alias v if IntValue)
 template FooDIPxxd(A... if InputRange)
 {
 }
+template FooDIPxxe(InputRange R)
+{
+}
+template FooDIPxxf(A... if InputRange)
+{
+}

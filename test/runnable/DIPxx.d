@@ -41,7 +41,20 @@ static assert(!__traits(compiles, FooTuple!(long, string)));
 
 // ----
 
+template FooType2(isInt T) {}
+static assert( __traits(compiles, FooType2!int));
+static assert(!__traits(compiles, FooType2!long));
+
+template FooTuple2(isSetOf!(int, string) T...) {}
+static assert( __traits(compiles, FooTuple2!(int,  string)));
+static assert( __traits(compiles, FooTuple2!(string,  int)));
+static assert(!__traits(compiles, FooTuple2!(int,    long)));
+static assert(!__traits(compiles, FooTuple2!(long, string)));
+
+// ----
+
 static assert(is(int : U, U if isInt));
+static assert(is(int : U, isInt U));
 
 /**********************************/
 
