@@ -1481,8 +1481,14 @@ public:
                 nextToken();
             }
 
+            Type constraint = null;
             RootObject spec = null;
             RootObject def = null;
+            if (token.value == TOKif)
+            {
+                nextToken();
+                constraint = parseType();
+            }
             if (token.value == TOKcolon)    // : [Type | CondExp]
             {
                 nextToken();
@@ -1499,9 +1505,10 @@ public:
                 else
                     def = parseCondExp();
             }
-            return new TemplateAliasParameter(loc, ident, specType, spec, def);
+            return new TemplateAliasParameter(loc, ident, constraint, specType, spec, def);
         }
-        else if (t.value == TOKcolon ||
+        else if (t.value == TOKif ||
+                 t.value == TOKcolon ||
                  t.value == TOKassign ||
                  t.value == TOKcomma ||
                  t.value == TOKrparen)
@@ -1517,8 +1524,14 @@ public:
             Identifier ident = token.ident;
             nextToken();
 
+            Type constraint = null;
             Type specType = null;
             Type defaultType = null;
+            if (token.value == TOKif)
+            {
+                nextToken();
+                constraint = parseType();
+            }
             if (token.value == TOKcolon)    // : Type
             {
                 nextToken();
@@ -1529,7 +1542,7 @@ public:
                 nextToken();
                 defaultType = parseType();
             }
-            return new TemplateTypeParameter(loc, ident, specType, defaultType);
+            return new TemplateTypeParameter(loc, ident, constraint, specType, defaultType);
         }
         else if (token.value == TOKidentifier && t.value == TOKdotdotdot)
         {
@@ -1539,7 +1552,14 @@ public:
 
             nextToken();
             nextToken();
-            return new TemplateTupleParameter(loc, ident);
+
+            Type constraint = null;
+            if (token.value == TOKif)
+            {
+                nextToken();
+                constraint = parseType();
+            }
+            return new TemplateTupleParameter(loc, ident, constraint);
         }
         else if (token.value == TOKthis)
         {
@@ -1580,8 +1600,14 @@ public:
                 ident = new Identifier("error", TOKidentifier);
             }
 
+            Type constraint = null;
             Expression specValue;
             Expression defaultValue;
+            if (token.value == TOKif)
+            {
+                nextToken();
+                constraint = parseType();
+            }
             if (token.value == TOKcolon)    // : CondExpression
             {
                 nextToken();
@@ -1592,7 +1618,7 @@ public:
                 nextToken();
                 defaultValue = parseDefaultInitExp();
             }
-            return new TemplateValueParameter(loc, ident, valType, specValue, defaultValue);
+            return new TemplateValueParameter(loc, ident, constraint, valType, specValue, defaultValue);
         }
     }
 
@@ -2694,14 +2720,17 @@ public:
                         if ((storageClass & STCscope) && (storageClass & (STCref | STCout)))
                             error("scope cannot be ref or out");
                         Token* t;
-                        if (tpl && token.value == TOKidentifier && (t = peek(&token), (t.value == TOKcomma || t.value == TOKrparen || t.value == TOKdotdotdot)))
+                        if (tpl && token.value == TOKidentifier &&
+                            (t = peek(&token), (t.value == TOKcomma ||
+                                                t.value == TOKrparen ||
+                                                t.value == TOKdotdotdot)))
                         {
                             Identifier id = Identifier.generateId("__T");
                             Loc loc = token.loc;
                             at = new TypeIdentifier(loc, id);
                             if (!*tpl)
                                 *tpl = new TemplateParameters();
-                            TemplateParameter tp = new TemplateTypeParameter(loc, id, null, null);
+                            TemplateParameter tp = new TemplateTypeParameter(loc, id, null, null, null);
                             (*tpl).push(tp);
                             ai = token.ident;
                             nextToken();
@@ -4285,7 +4314,7 @@ public:
                 Type t = new TypeIdentifier(loc, id);
                 parameters.push(new Parameter(0, t, token.ident, null));
                 tpl = new TemplateParameters();
-                TemplateParameter tp = new TemplateTypeParameter(loc, id, null, null);
+                TemplateParameter tp = new TemplateTypeParameter(loc, id, null, null, null);
                 tpl.push(tp);
                 nextToken();
                 break;

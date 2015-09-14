@@ -6841,7 +6841,7 @@ public:
              * is(targ id : tspec, tpl)
              */
             Identifier tid = id ? id : Identifier.generateId("__isexp_id");
-            parameters.insert(0, new TemplateTypeParameter(loc, tid, null, null));
+            parameters.insert(0, new TemplateTypeParameter(loc, tid, null, null, null));
             Objects dedtypes;
             dedtypes.setDim(parameters.dim);
             dedtypes.zero();

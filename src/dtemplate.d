@@ -4451,6 +4451,7 @@ extern (C++) Type reliesOnTident(Type t, TemplateParameters* tparams = null, siz
     return v.result;
 }
 
+/* ======================== TemplateParameter =============================== */
 /* For type-parameter:
  *  template Foo(ident)             // specType is set to NULL
  *  template Foo(ident : specType)
@@ -4467,6 +4468,8 @@ extern (C++) class TemplateParameter
 public:
     Loc loc;
     Identifier ident;
+    RootObject constraint;
+
     /* True if this is a part of precedent parameter specialization pattern.
      *
      *  template A(T : X!TL, alias X, TL...) {}
@@ -4477,11 +4480,11 @@ public:
      */
     bool dependent;
 
-    /* ======================== TemplateParameter =============================== */
-    final extern (D) this(Loc loc, Identifier ident)
+    final extern (D) this(Loc loc, Identifier ident, RootObject constraint)
     {
         this.loc = loc;
         this.ident = ident;
+        this.constraint = constraint;
         this.dependent = false;
     }
 
@@ -4571,6 +4574,7 @@ public:
     }
 }
 
+/* ======================== TemplateTypeParameter =========================== */
 /* Syntax:
  *  ident : specType = defaultType
  */
@@ -4579,13 +4583,13 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
 public:
     Type specType; // type parameter: if !=NULL, this is the type specialization
     Type defaultType;
-    /* ======================== TemplateTypeParameter =========================== */
-    // type-parameter
+
     extern (C++) static __gshared Type tdummy = null;
 
-    final extern (D) this(Loc loc, Identifier ident, Type specType, Type defaultType)
+    final extern (D) this(Loc loc, Identifier ident, RootObject constraint,
+        Type specType, Type defaultType)
     {
-        super(loc, ident);
+        super(loc, ident, constraint);
         this.ident = ident;
         this.specType = specType;
         this.defaultType = defaultType;
@@ -4598,7 +4602,10 @@ public:
 
     TemplateParameter syntaxCopy()
     {
-        return new TemplateTypeParameter(loc, ident, specType ? specType.syntaxCopy() : null, defaultType ? defaultType.syntaxCopy() : null);
+        return new TemplateTypeParameter(loc, ident,
+            objectSyntaxCopy(constraint),
+            specType ? specType.syntaxCopy() : null,
+            defaultType ? defaultType.syntaxCopy() : null);
     }
 
     final bool declareParameter(Scope* sc)
@@ -4748,17 +4755,16 @@ public:
     }
 }
 
+/* ======================== TemplateThisParameter =========================== */
 /* Syntax:
  *  this ident : specType = defaultType
  */
 extern (C++) final class TemplateThisParameter : TemplateTypeParameter
 {
 public:
-    /* ======================== TemplateThisParameter =========================== */
-    // this-parameter
     extern (D) this(Loc loc, Identifier ident, Type specType, Type defaultType)
     {
-        super(loc, ident, specType, defaultType);
+        super(loc, ident, null, specType, defaultType);
     }
 
     TemplateThisParameter isTemplateThisParameter()
@@ -4768,7 +4774,9 @@ public:
 
     TemplateParameter syntaxCopy()
     {
-        return new TemplateThisParameter(loc, ident, specType ? specType.syntaxCopy() : null, defaultType ? defaultType.syntaxCopy() : null);
+        return new TemplateThisParameter(loc, ident,
+            specType ? specType.syntaxCopy() : null,
+            defaultType ? defaultType.syntaxCopy() : null);
     }
 
     void accept(Visitor v)
@@ -4777,6 +4785,7 @@ public:
     }
 }
 
+/* ======================== TemplateValueParameter ========================== */
 /* Syntax:
  *  valType ident : specValue = defaultValue
  */
@@ -4786,13 +4795,13 @@ public:
     Type valType;
     Expression specValue;
     Expression defaultValue;
-    /* ======================== TemplateValueParameter ========================== */
-    // value-parameter
+
     extern (C++) static __gshared AA* edummies = null;
 
-    extern (D) this(Loc loc, Identifier ident, Type valType, Expression specValue, Expression defaultValue)
+    extern (D) this(Loc loc, Identifier ident, RootObject constraint,
+        Type valType, Expression specValue, Expression defaultValue)
     {
-        super(loc, ident);
+        super(loc, ident, constraint);
         this.ident = ident;
         this.valType = valType;
         this.specValue = specValue;
@@ -4806,7 +4815,11 @@ public:
 
     TemplateParameter syntaxCopy()
     {
-        return new TemplateValueParameter(loc, ident, valType.syntaxCopy(), specValue ? specValue.syntaxCopy() : null, defaultValue ? defaultValue.syntaxCopy() : null);
+        return new TemplateValueParameter(loc, ident,
+            objectSyntaxCopy(constraint),
+            valType.syntaxCopy(),
+            specValue ? specValue.syntaxCopy() : null,
+            defaultValue ? defaultValue.syntaxCopy() : null);
     }
 
     bool declareParameter(Scope* sc)
@@ -5035,6 +5048,7 @@ extern (C++) RootObject aliasParameterSemantic(Loc loc, Scope* sc, RootObject o,
     return o;
 }
 
+/* ======================== TemplateAliasParameter ========================== */
 /* Syntax:
  *  specType ident : specAlias = defaultAlias
  */
@@ -5044,13 +5058,13 @@ public:
     Type specType;
     RootObject specAlias;
     RootObject defaultAlias;
-    /* ======================== TemplateAliasParameter ========================== */
-    // alias-parameter
+
     extern (C++) static __gshared Dsymbol sdummy = null;
 
-    extern (D) this(Loc loc, Identifier ident, Type specType, RootObject specAlias, RootObject defaultAlias)
+    extern (D) this(Loc loc, Identifier ident, RootObject constraint,
+        Type specType, RootObject specAlias, RootObject defaultAlias)
     {
-        super(loc, ident);
+        super(loc, ident, constraint);
         this.ident = ident;
         this.specType = specType;
         this.specAlias = specAlias;
@@ -5064,7 +5078,11 @@ public:
 
     TemplateParameter syntaxCopy()
     {
-        return new TemplateAliasParameter(loc, ident, specType ? specType.syntaxCopy() : null, objectSyntaxCopy(specAlias), objectSyntaxCopy(defaultAlias));
+        return new TemplateAliasParameter(loc, ident,
+            objectSyntaxCopy(constraint),
+            specType ? specType.syntaxCopy() : null,
+            objectSyntaxCopy(specAlias),
+            objectSyntaxCopy(defaultAlias));
     }
 
     bool declareParameter(Scope* sc)
@@ -5261,17 +5279,16 @@ public:
     }
 }
 
+/* ======================== TemplateTupleParameter ========================== */
 /* Syntax:
  *  ident ...
  */
 extern (C++) final class TemplateTupleParameter : TemplateParameter
 {
 public:
-    /* ======================== TemplateTupleParameter ========================== */
-    // variadic-parameter
-    extern (D) this(Loc loc, Identifier ident)
+    extern (D) this(Loc loc, Identifier ident, RootObject constraint)
     {
-        super(loc, ident);
+        super(loc, ident, constraint);
         this.ident = ident;
     }
 
@@ -5282,7 +5299,8 @@ public:
 
     TemplateParameter syntaxCopy()
     {
-        return new TemplateTupleParameter(loc, ident);
+        return new TemplateTupleParameter(loc, ident,
+            objectSyntaxCopy(constraint));
     }
 
     bool declareParameter(Scope* sc)
