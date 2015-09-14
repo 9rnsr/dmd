@@ -837,7 +837,11 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         return (new DsymbolExp(e.loc, s)).semantic(sc);
     }
-    else if (e.ident == Id.hasMember || e.ident == Id.getMember || e.ident == Id.getOverloads || e.ident == Id.getVirtualMethods || e.ident == Id.getVirtualFunctions)
+    else if (e.ident == Id.hasMember ||
+             e.ident == Id.getMember ||
+             e.ident == Id.getOverloads ||
+             e.ident == Id.getVirtualMethods ||
+             e.ident == Id.getVirtualFunctions)
     {
         if (dim != 2)
             goto Ldimerror;
@@ -862,12 +866,17 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             return new ErrorExp();
         }
         Identifier id = Identifier.idPool(cast(char*)se.string);
+
         /* Prefer dsymbol, because it might need some runtime contexts.
          */
-        Dsymbol sym = getDsymbol(o);
-        if (sym)
+        if (Dsymbol s = getDsymbol(o))
         {
-            ex = new DsymbolExp(e.loc, sym);
+            if (e.ident == Id.hasMember)
+            {
+                if (auto sm = s.search(e.loc, id))
+                    goto Ltrue;
+            }
+            ex = new DsymbolExp(e.loc, s);
             ex = new DotIdExp(e.loc, ex, id);
         }
         else if (Type t = isType(o))
@@ -881,12 +890,6 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         if (e.ident == Id.hasMember)
         {
-            if (sym)
-            {
-                Dsymbol sm = sym.search(e.loc, id);
-                if (sm)
-                    goto Ltrue;
-            }
             /* Take any errors as meaning it wasn't found
              */
             Scope* sc2 = sc.push();
@@ -902,7 +905,9 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             ex = ex.semantic(sc);
             return ex;
         }
-        else if (e.ident == Id.getVirtualFunctions || e.ident == Id.getVirtualMethods || e.ident == Id.getOverloads)
+        else if (e.ident == Id.getVirtualFunctions ||
+                 e.ident == Id.getVirtualMethods ||
+                 e.ident == Id.getOverloads)
         {
             uint errors = global.errors;
             Expression eorig = ex;
@@ -1084,7 +1089,13 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             //printf("\t[%i] %s %s\n", i, sm->kind(), sm->toChars());
             if (sm.ident)
             {
-                if (sm.ident.string[0] == '_' && sm.ident.string[1] == '_' && sm.ident != Id.ctor && sm.ident != Id.dtor && sm.ident != Id.__xdtor && sm.ident != Id.postblit && sm.ident != Id.__xpostblit)
+                if (sm.ident.string[0] == '_' &&
+                    sm.ident.string[1] == '_' &&
+                    sm.ident != Id.ctor &&
+                    sm.ident != Id.dtor &&
+                    sm.ident != Id.__xdtor &&
+                    sm.ident != Id.postblit &&
+                    sm.ident != Id.__xpostblit)
                 {
                     return 0;
                 }
@@ -1093,6 +1104,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                     return 0;
                 }
                 //printf("\t%s\n", sm->ident->toChars());
+
                 /* Skip if already present in idents[]
                  */
                 for (size_t j = 0; j < idents.dim; j++)
