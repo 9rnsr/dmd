@@ -2582,65 +2582,82 @@ public:
     final Expression noMember(Scope* sc, Expression e, Identifier ident, int flag)
     {
         assert(ty == Tstruct || ty == Tclass);
-        AggregateDeclaration sym = toDsymbol(sc).isAggregateDeclaration();
-        assert(sym);
-        if (ident != Id.__sizeof && ident != Id.__xalignof && ident != Id._init && ident != Id._mangleof && ident != Id.stringof && ident != Id.offsetof)
+        auto ad = toDsymbol(sc).isAggregateDeclaration();
+        assert(ad);
+        if (ident == Id.__sizeof ||
+            ident == Id.__xalignof ||
+            ident == Id._init ||
+            ident == Id._mangleof ||
+            ident == Id.stringof ||
+            ident == Id.offsetof)
         {
-            /* Look for overloaded opDot() to see if we should forward request
-             * to it.
+            return Type.dotExp(sc, e, ident, flag);
+        }
+        if (ident == Id.ctor ||
+            ident == Id.dtor ||
+            ident == Id.__xdtor ||
+            ident == Id.postblit ||
+            ident == Id.__xpostblit)
+        {
+            return Type.dotExp(sc, e, ident, flag);
+        }
+
+        /* Look for overloaded opDot() to see if we should forward request
+         * to it.
+         */
+        if (auto fd = search_function(ad, Id.opDot))
+        {
+            /* Rewrite e.ident as:
+             *  e.opDot().ident
              */
-            Dsymbol fd = search_function(sym, Id.opDot);
-            if (fd)
-            {
-                /* Rewrite e.ident as:
-                 *  e.opDot().ident
-                 */
-                e = build_overload(e.loc, sc, e, null, fd);
-                e = new DotIdExp(e.loc, e, ident);
-                return e.semantic(sc);
-            }
-            /* Look for overloaded opDispatch to see if we should forward request
-             * to it.
+            e = build_overload(e.loc, sc, e, null, fd);
+            e = new DotIdExp(e.loc, e, ident);
+            return e.semantic(sc);
+        }
+
+        /* Look for overloaded opDispatch to see if we should forward request
+         * to it.
+         */
+        if (auto fd = search_function(ad, Id.opDispatch))
+        {
+            /* Rewrite e.ident as:
+             *  e.opDispatch!("ident")
              */
-            fd = search_function(sym, Id.opDispatch);
-            if (fd)
+            auto td = fd.isTemplateDeclaration();
+            if (!td)
             {
-                /* Rewrite e.ident as:
-                 *  e.opDispatch!("ident")
-                 */
-                TemplateDeclaration td = fd.isTemplateDeclaration();
-                if (!td)
-                {
-                    fd.error("must be a template opDispatch(string s), not a %s", fd.kind());
-                    return new ErrorExp();
-                }
-                auto se = new StringExp(e.loc, ident.toChars());
-                auto tiargs = new Objects();
-                tiargs.push(se);
-                auto dti = new DotTemplateInstanceExp(e.loc, e, Id.opDispatch, tiargs);
-                dti.ti.tempdecl = td;
-                /* opDispatch, which doesn't need IFTI,  may occur instantiate error.
-                 * It should be gagged if flag != 0.
-                 * e.g.
-                 *  tempalte opDispatch(name) if (isValid!name) { ... }
-                 */
-                uint errors = flag ? global.startGagging() : 0;
-                e = dti.semanticY(sc, 0);
-                if (flag && global.endGagging(errors))
-                    e = null;
-                return e;
+                fd.error("must be a template opDispatch(string s), not a %s", fd.kind());
+                return new ErrorExp();
             }
-            /* See if we should forward to the alias this.
+            auto se = new StringExp(e.loc, ident.toChars());
+
+            auto tiargs = new Objects();
+            tiargs.push(se);
+            auto dti = new DotTemplateInstanceExp(e.loc, e, Id.opDispatch, tiargs);
+            dti.ti.tempdecl = td;
+
+            /* opDispatch, which doesn't need IFTI,  may occur instantiate error.
+             * It should be gagged if flag != 0.
+             * e.g.
+             *  tempalte opDispatch(name) if (isValid!name) { ... }
              */
-            if (sym.aliasthis)
-            {
-                /* Rewrite e.ident as:
-                 *  e.aliasthis.ident
-                 */
-                e = resolveAliasThis(sc, e);
-                auto die = new DotIdExp(e.loc, e, ident);
-                return die.semanticY(sc, flag);
-            }
+            uint errors = flag ? global.startGagging() : 0;
+            e = dti.semanticY(sc, 0);
+            if (flag && global.endGagging(errors))
+                e = null;
+            return e;
+        }
+
+        /* See if we should forward to the alias this.
+         */
+        if (ad.aliasthis)
+        {
+            /* Rewrite e.ident as:
+             *  e.aliasthis.ident
+             */
+            e = resolveAliasThis(sc, e);
+            auto die = new DotIdExp(e.loc, e, ident);
+            return die.semanticY(sc, flag);
         }
         return Type.dotExp(sc, e, ident, flag);
     }
