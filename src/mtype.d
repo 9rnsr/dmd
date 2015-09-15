@@ -7518,12 +7518,13 @@ public:
             exp = exp.semantic(sc2);
             exp = resolvePropertiesOnly(sc2, exp);
             sc2.pop();
+
             if (exp.op == TOKtype)
             {
                 error(loc, "argument %s to typeof is not an expression", exp.toChars());
                 goto Lerr;
             }
-            else if (exp.op == TOKimport)
+            if (exp.op == TOKimport)
             {
                 ScopeDsymbol sds = (cast(ScopeExp)exp).sds;
                 if (sds.isPackage())
@@ -7532,6 +7533,13 @@ public:
                     goto Lerr;
                 }
             }
+            if (auto f = exp.op == TOKvar    ? (cast(   VarExp)exp).var.isFuncDeclaration()
+                       : exp.op == TOKdotvar ? (cast(DotVarExp)exp).var.isFuncDeclaration() : null)
+            {
+                if (f.checkForwardRef(loc))
+                    goto Lerr;
+            }
+
             t = exp.type;
             if (!t)
             {

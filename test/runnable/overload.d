@@ -1083,6 +1083,26 @@ void test14858()
 }
 
 /***************************************************/
+// 14965
+
+auto foo14965() { return foo14965(123); }
+int foo14965(int x) { return x; }
+
+class C
+{
+    auto foo() { return this.foo(123); }
+    int foo(int x) { return x; }
+}
+
+void test14965()
+{
+    assert(foo14965() == 123);
+
+    auto c = new C();
+    assert(c.foo() == 123);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -1117,6 +1137,7 @@ int main()
     test11916();
     test13783();
     test14858();
+    test14965();
 
     printf("Success\n");
     return 0;
