@@ -6505,29 +6505,12 @@ public:
             }
             if (pwithsym)
                 *pwithsym = scopesym.isWithScopeSymbol();
+
             /* We might have found an alias within a template when
              * we really want the template.
              */
-            TemplateInstance ti;
-            if (s.parent && (ti = s.parent.isTemplateInstance()) !is null)
-            {
-                if (ti.tempdecl && ti.tempdecl.ident == id)
-                {
-                    /* This is so that one can refer to the enclosing
-                     * template, even if it has the same name as a member
-                     * of the template, if it has a !(arguments)
-                     */
-                    TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration();
-                    assert(td);
-                    if (td.overroot) // if not start of overloaded list of TemplateDeclaration's
-                        td = td.overroot; // then get the start
-                    s = td;
-                }
-            }
             if (!updateTempDecl(sc, s))
-            {
                 return false;
-            }
         }
         assert(tempdecl);
 
@@ -6579,18 +6562,20 @@ public:
     {
         if (s)
         {
-            Identifier id = name;
+            auto id = name;
             auto sa = s.toAlias();
+            //printf("[%s] %s\n", loc.toChars(), toPrettyChars());
+            //printf("\ts  = %s %s\n", s.kind(), s.toChars());
+            //printf("\tsa = %s %s\n", sa.kind(), sa.toChars());
 
             /* If an OverloadSet, look for a unique member that is a template declaration
              */
-            OverloadSet os = sa.isOverloadSet();
-            if (os)
+            if (auto os = sa.isOverloadSet())
             {
                 sa = null;
                 for (size_t i = 0; i < os.a.dim; i++)
                 {
-                    Dsymbol s2 = os.a[i];
+                    auto s2 = os.a[i];
                     if (FuncDeclaration f = s2.isFuncDeclaration())
                         s2 = f.findTemplateDeclRoot();
                     else
@@ -6611,8 +6596,7 @@ public:
                     return false;
                 }
             }
-            OverDeclaration od = sa.isOverDeclaration();
-            if (od)
+            if (auto od = sa.isOverDeclaration())
             {
                 tempdecl = od; // TODO: more strict check
                 return true;
@@ -6620,39 +6604,45 @@ public:
 
             /* It should be a TemplateDeclaration, not some other symbol
              */
-            if (FuncDeclaration f = sa.isFuncDeclaration())
+            if (auto f = sa.isFuncDeclaration())
                 tempdecl = f.findTemplateDeclRoot();
             else
                 tempdecl = sa.isTemplateDeclaration();
             if (!tempdecl)
             {
-                if (sa.getType())
-                {
-                    Dsymbol s2 = sa.getType().toDsymbol(sc);
-                    if (!s2)
-                        goto Lerr;
-                    sa = s2;
-                }
+                //if (!sa->parent) printf("sa = %s %s\n", sa->kind(), sa->toChars());
+                if (!sa.parent)
+                    goto Lerr;
 
-                for (auto sx = sc.parent; sx != sa; sx = sx.parent)
+                // Check that 's' is an alias of user type.
+                if (auto t = s.getType())
+                {
+                    if (!t.toDsymbol(sc))
+                        goto Lerr;
+                }
+                // Check that 's' is lexically visible from the instance location.
+                for (auto sx = sc.parent; sx != s; )
                 {
                     if (sx.isModule())
                         goto Lerr;
+                    auto ti = sx.isTemplateInstance();
+                    sx = ti ? ti.tempdecl : sx.parent;
                 }
-                //if (!sa->parent) printf("sa = %s %s\n", sa->kind(), sa->toChars());
-                //assert(sa->parent);
+                //if (!s->parent) printf("s = %s %s\n", s->kind(), s->toChars());
 
-                TemplateInstance ti = sa.parent ? sa.parent.isTemplateInstance() : null;
-                if (ti && (ti.name == sa.ident || ti.toAlias().ident == sa.ident) && ti.tempdecl)
+                auto ti = s.parent.isTemplateInstance();
+                if (ti && ti.tempdecl &&
+                    (s.ident == ti.tempdecl.ident ||
+                     s.ident == ti.toAlias().ident))
                 {
                     /* This is so that one can refer to the enclosing
                      * template, even if it has the same name as a member
                      * of the template, if it has a !(arguments)
                      */
-                    TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration();
+                    auto td = ti.tempdecl.isTemplateDeclaration();
                     assert(td);
-                    if (td.overroot) // if not start of overloaded list of TemplateDeclaration's
-                        td = td.overroot; // then get the start
+                    if (td.overroot)        // if not start of overloaded list of TemplateDeclaration's
+                        td = td.overroot;   // then get the start
                     tempdecl = td;
                 }
                 else
@@ -6662,7 +6652,10 @@ public:
         return (tempdecl !is null);
 
     Lerr:
-        error("%s is not a template declaration, it is a %s", name.toChars(), sa.kind());
+        if (auto t = s.getType())
+            error("%s is not a template declaration, it is a %s", name.toChars(), t.kind());
+        else
+            error("%s is not a template declaration, it is a %s", name.toChars(), s.toAlias().kind());
         return false;
     }
 
