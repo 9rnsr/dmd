@@ -6563,10 +6563,36 @@ public:
         if (s)
         {
             auto id = name;
+            printf("[%s] %s\n", loc.toChars(), toPrettyChars());
+            printf("\ts  = %s %s\n", s.kind(), s.toChars());
+            //if (auto d = s.isDeclaration())
+            //{
+            //    if (d.inuse)
+            //    {
+            //        s = s.parent;
+            //        printf("\t-> = %s %s\n", s.kind(), s.toChars());
+            //    }
+            //}
+            if (s.parent)
+            {
+                auto ti = s.parent.isTemplateInstance();
+                if (ti && ti.tempdecl && ti.tempdecl.ident == id)
+                {
+                    /* This is so that one can refer to the enclosing
+                     * template, even if it has the same name as a member
+                     * of the template, if it has a !(arguments)
+                     */
+                    auto td = ti.tempdecl.isTemplateDeclaration();
+                    assert(td);
+                    if (td.overroot) // if not start of overloaded list of TemplateDeclaration's
+                        td = td.overroot; // then get the start
+                    s = td;
+                    printf("\t-> = %s %s\n", s.kind(), s.toChars());
+                }
+            }
+
             auto sa = s.toAlias();
-            //printf("[%s] %s\n", loc.toChars(), toPrettyChars());
-            //printf("\ts  = %s %s\n", s.kind(), s.toChars());
-            //printf("\tsa = %s %s\n", sa.kind(), sa.toChars());
+            printf("\tsa = %s %s\n", sa.kind(), sa.toChars());
 
             /* If an OverloadSet, look for a unique member that is a template declaration
              */
@@ -6604,18 +6630,19 @@ public:
 
             /* It should be a TemplateDeclaration, not some other symbol
              */
+                printf("\tL%d\n", __LINE__);
             if (auto f = sa.isFuncDeclaration())
                 tempdecl = f.findTemplateDeclRoot();
             else
                 tempdecl = sa.isTemplateDeclaration();
+                printf("\tL%d\n", __LINE__);
             if (!tempdecl)
             {
                 //if (!s->parent) printf("s = %s %s\n", s->kind(), s->toChars());
-                if (!s.parent)
+                if (!sa.parent)
                     goto Lerr;
 
                 // Check that 's' is an alias of user type.
-                printf("[%s] %s\n", loc.toChars(), toPrettyChars());
                 printf("\tL%d\n", __LINE__);
                 if (auto t = s.getType())
                 {
@@ -6630,7 +6657,7 @@ public:
                 printf("\tL%d\n", __LINE__);
                 //if (!s->parent) printf("s = %s %s\n", s->kind(), s->toChars());
 
-                auto ti = s.parent.isTemplateInstance();
+                auto ti = sa.parent.isTemplateInstance();
                 if (ti && ti.tempdecl &&
                     (s.ident == ti.tempdecl.ident ||
                      s.ident == ti.toAlias().ident))
