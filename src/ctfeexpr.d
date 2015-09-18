@@ -1599,6 +1599,7 @@ extern (C++) int ctfeRawCmp(Loc loc, Expression e1, Expression e2)
     {
         StructLiteralExp es1 = cast(StructLiteralExp)e1;
         StructLiteralExp es2 = cast(StructLiteralExp)e2;
+        //printf("ctfeEqual(es1 = %s, es2 = %s)\n", es1.toChars(), es2.toChars());
         // For structs, we only need to return 0 or 1 (< and > aren't legal).
         if (es1.sd != es2.sd)
             return 1;
@@ -2014,7 +2015,11 @@ extern (C++) void assignInPlace(Expression dest, Expression src)
     {
         Expression e = (*newelems)[i];
         Expression o = (*oldelems)[i];
-        if (e.op == TOKstructliteral)
+        if (!e)
+        {
+            (*oldelems)[i] = (*newelems)[i];
+        }
+        else if (e.op == TOKstructliteral)
         {
             assert(o.op == e.op);
             assignInPlace(o, e);

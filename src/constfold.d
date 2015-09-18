@@ -8,6 +8,7 @@
 
 module ddmd.constfold;
 
+import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.stdio;
 import ddmd.arraytypes;
@@ -691,7 +692,7 @@ extern (C++) UnionExp Equal(TOK op, Loc loc, Type type, Expression e1, Expressio
     int cmp = 0;
     real_t r1;
     real_t r2;
-    //printf("Equal(e1 = %s, e2 = %s)\n", e1->toChars(), e2->toChars());
+    //printf("Equal(e1 = %s, e2 = %s)\n", e1.toChars(), e2.toChars());
     assert(op == TOKequal || op == TOKnotequal);
     if (e1.op == TOKnull)
     {
@@ -842,8 +843,9 @@ extern (C++) UnionExp Equal(TOK op, Loc loc, Type type, Expression e1, Expressio
         }
         if (cmp && es1.type.needsNested())
         {
-            if ((es1.sinit !is null) != (es2.sinit !is null))
-                cmp = 0;
+            printf("Equal(e1 = %s, e2 = %s)\n", e1.toChars(), e2.toChars());
+            //if ((es1.sinit !is null) != (es2.sinit !is null))
+            //    cmp = 0;
         }
     }
     else if (e1.isConst() != 1 || e2.isConst() != 1)

@@ -1174,6 +1174,8 @@ public:
      */
     static bool stopPointersEscaping(Loc loc, Expression e)
     {
+        assert(e);
+        assert(e.type);
         if (!e.type.hasPointers())
             return true;
         if (isPointer(e.type))
@@ -1205,6 +1207,7 @@ public:
         if (e.op == TOKstructliteral)
         {
             StructLiteralExp se = cast(StructLiteralExp)e;
+            //printf("se.elements = %s\n", se.elements ? se.elements.toChars() : null);
             return stopPointersEscapingFromArray(loc, se.elements);
         }
         if (e.op == TOKarrayliteral)
@@ -1276,6 +1279,7 @@ public:
         if (exceptionOrCant(e))
             return;
         // Disallow returning pointers to stack-allocated variables (bug 7876)
+        //printf("[%s] ReturnStmt e = %s\n", s.loc.toChars(), e.toChars());
         if (!stopPointersEscaping(s.loc, e))
         {
             result = CTFEExp.cantexp;
@@ -2713,6 +2717,7 @@ public:
             result = e;
             return;
         }
+        assert(e.elements);
         size_t elemdim = e.elements ? e.elements.dim : 0;
         Expressions* expsx = null;
         for (size_t i = 0; i < e.sd.fields.dim; i++)
@@ -2728,8 +2733,37 @@ public:
                 if (i == e.sd.fields.dim - 1 && e.sd.isNested())
                 {
                     // Context field has not been filled
-                    ex = new NullExp(e.loc);
-                    ex.type = v.type;
+                    //ex = new NullExp(e.loc);
+                    //ex = voidInitLiteral(v.type, v).copy();
+                    //ex = new IntegerExp(e.loc, 1, Type.tsize_t);
+                    //ex.type = v.type;
+                    //ex = voidInitLiteral(v.type, v).copy();
+                    //if (i == 0)
+                    //{
+                    //    expsx = new Expressions();
+                    //    ++CtfeStatus.numArrayAllocs;
+                    //    expsx.setDim(e.sd.fields.dim);
+                    //    for (size_t j = 0; j < expsx.dim; j++)
+                    //    {
+                    //        (*expsx)[j] = null;
+                    //    }
+                    //}
+
+                    if (auto ad = e.sd.enclosing.isAggregateDeclaration())
+                    {
+                        //assert(0);
+                        ex = new AddrExp(e.loc, ctfeStack.getThis());
+                        ex.type = v.type;
+                    }
+                    if (auto fd = e.sd.enclosing.isFuncDeclaration())
+                    {
+                        //printf("fd = %s\n", fd.toPrettyChars());
+                        ex = new AddrExp(e.loc, new VarExp(e.loc, fd));
+                        ex.type = v.type;
+                        //ex = interpret(ex, istate);
+                    }
+
+                    goto L1;
                 }
             }
             else
@@ -2757,6 +2791,7 @@ public:
              */
             if (ex != exp)
             {
+        L1:
                 if (!expsx)
                 {
                     expsx = new Expressions();

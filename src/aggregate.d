@@ -450,6 +450,7 @@ public:
                             type.toChars(), vx.toChars());
                         errors = true;
                     }
+
                     /* Bugzilla 12509: Get the element of static array type.
                      */
                     Type telem = vx.type;

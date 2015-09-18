@@ -2450,13 +2450,7 @@ public:
         }
         else if (ident == Id._init)
         {
-            Type tb = toBasetype();
             e = defaultInitLiteral(loc);
-            if (tb.ty == Tstruct && tb.needsNested())
-            {
-                StructLiteralExp se = cast(StructLiteralExp)e;
-                se.sinit = toInitializer(se.sd);
-            }
         }
         else if (ident == Id._mangleof)
         {
@@ -2536,17 +2530,6 @@ public:
                     e = new IntegerExp(e.loc, v.offset, Type.tsize_t);
                     return e;
                 }
-            }
-            else if (ident == Id._init)
-            {
-                Type tb = toBasetype();
-                e = defaultInitLiteral(e.loc);
-                if (tb.ty == Tstruct && tb.needsNested())
-                {
-                    StructLiteralExp se = cast(StructLiteralExp)e;
-                    se.sinit = toInitializer(se.sd);
-                }
-                goto Lreturn;
             }
         }
         if (ident == Id.stringof)
@@ -4645,6 +4628,27 @@ public:
         }
     }
 
+    override Expression getProperty(Loc loc, Identifier ident, int flag)
+    {
+        if (ident == Id._init)
+        {
+            //printf("TypeSArray::getProperty(type = '%s', ident = '%s')\n", toChars(), ident.toChars());
+
+            size_t d = cast(size_t)dim.toInteger();
+            Expression einit = (next.ty == Tvoid ? tuns8 : next).getProperty(loc, Id._init, flag);
+            auto elems = new Expressions();
+            elems.setDim(d);
+            foreach (ref el; *elems)
+                el = einit;
+            auto ale = new ArrayLiteralExp(Loc(), elems);
+            //printf("[%s] .init e = %s\n", ale.loc.toChars(), ale.toChars());
+
+            ale.type = this;
+            return ale;
+        }
+        return Type.getProperty(loc, ident, flag);
+    }
+
     override Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
     {
         static if (LOGDOTEXP)
@@ -4766,18 +4770,15 @@ public:
             printf("TypeSArray::defaultInitLiteral() '%s'\n", toChars());
         }
         size_t d = cast(size_t)dim.toInteger();
-        Expression elementinit;
-        if (next.ty == Tvoid)
-            elementinit = tuns8.defaultInitLiteral(loc);
-        else
-            elementinit = next.defaultInitLiteral(loc);
-        auto elements = new Expressions();
-        elements.setDim(d);
-        for (size_t i = 0; i < d; i++)
-            (*elements)[i] = elementinit;
-        auto ae = new ArrayLiteralExp(Loc(), elements);
-        ae.type = this;
-        return ae;
+        auto telem = (next.ty == Tvoid ? tuns8 : next);
+        auto einit = telem.defaultInitLiteral(loc);
+        auto elems = new Expressions();
+        elems.setDim(d);
+        foreach (ref el; *elems)
+            el = einit;
+        auto ale = new ArrayLiteralExp(loc, elems);
+        ale.type = this;
+        return ale;
     }
 
     override Expression toExpression()
@@ -7860,6 +7861,39 @@ public:
         return sym;
     }
 
+    override Expression getProperty(Loc loc, Identifier ident, int flag)
+    {
+        //printf("TypeStruct::getProperty(type = '%s', ident = '%s')\n", toChars(), ident.toChars());
+        if (ident == Id._init)
+        {
+            sym.size(loc);
+            if (sym.sizeok != SIZEOKdone)
+                return new ErrorExp();
+
+            auto sle = new StructLiteralExp(loc, sym, null);
+            if (!sym.fill(loc, sle.elements, true))
+                return new ErrorExp();
+
+            /* Copy from the initializer symbol for larger symbols,
+             * otherwise the literals expressed as code get excessively large.
+             */
+            if (sym.isNested())
+            {
+                //se.sinit = toInitializer(se.sd);
+                assert(sle);
+                assert(sle.elements);
+                assert(sle.sd);
+                assert(sle.sd.vthis);
+                sle.elements.push(new NullExp(loc, sym.vthis.type));
+            }
+            //printf("[%s] .init e = %s\n", loc.toChars(), sle.toChars());
+
+            sle.type = this;
+            return sle;
+        }
+        return Type.getProperty(loc, ident, flag);
+    }
+
     override Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
     {
         Dsymbol s;
@@ -8127,43 +8161,13 @@ public:
         sym.size(loc);
         if (sym.sizeok != SIZEOKdone)
             return new ErrorExp();
-        auto structelems = new Expressions();
-        structelems.setDim(sym.fields.dim - sym.isNested());
-        uint offset = 0;
-        for (size_t j = 0; j < structelems.dim; j++)
-        {
-            VarDeclaration vd = sym.fields[j];
-            Expression e;
-            if (vd.inuse)
-            {
-                error(loc, "circular reference to '%s'", vd.toPrettyChars());
-                return new ErrorExp();
-            }
-            if (vd.offset < offset || vd.type.size() == 0)
-                e = null;
-            else if (vd._init)
-            {
-                if (vd._init.isVoidInitializer())
-                    e = null;
-                else
-                    e = vd.getConstInitializer(false);
-            }
-            else
-                e = vd.type.defaultInitLiteral(loc);
-            if (e && e.op == TOKerror)
-                return e;
-            if (e)
-                offset = vd.offset + cast(uint)vd.type.size();
-            (*structelems)[j] = e;
-        }
-        auto structinit = new StructLiteralExp(loc, cast(StructDeclaration)sym, structelems);
-        /* Copy from the initializer symbol for larger symbols,
-         * otherwise the literals expressed as code get excessively large.
-         */
-        if (size(loc) > Target.ptrsize * 4 && !needsNested())
-            structinit.sinit = toInitializer(sym);
-        structinit.type = this;
-        return structinit;
+
+        auto sle = new StructLiteralExp(loc, sym, null);
+        if (!sym.fill(loc, sle.elements, false))
+            return new ErrorExp();
+
+        sle.type = this;
+        return sle;
     }
 
     override bool isZeroInit(Loc loc)

@@ -1825,7 +1825,7 @@ elem *toElem(Expression *e, IRState *irs)
         void visit(AssertExp *ae)
         {
 
-            //printf("AssertExp::toElem() %s\n", toChars());
+            //printf("AssertExp::toElem() %s\n", ae->toChars());
             elem *e;
             if (global.params.useAssert)
             {
@@ -3493,12 +3493,6 @@ elem *toElem(Expression *e, IRState *irs)
                 DotVarExp *dve = (DotVarExp *)ce->e1;
 
                 fd = dve->var->isFuncDeclaration();
-
-                if (dve->e1->op == TOKstructliteral)
-                {
-                    StructLiteralExp *sle = (StructLiteralExp *)dve->e1;
-                    sle->sinit = NULL;          // don't modify initializer
-                }
 
                 ec = toElem(dve->e1, irs);
                 ectype = dve->e1->type->toBasetype();
@@ -5260,30 +5254,6 @@ elem *toElem(Expression *e, IRState *irs)
         {
             //printf("[%s] StructLiteralExp::toElem() %s\n", sle->loc.toChars(), sle->toChars());
 
-            if (sle->sinit)
-            {
-                elem *e = el_var(sle->sinit);
-                e->ET = Type_toCtype(sle->sd->type);
-                el_setLoc(e, sle->loc);
-
-                if (sle->sym)
-                {
-                    elem *ev = el_var(sle->sym);
-                    if (tybasic(ev->Ety) == TYnptr)
-                        ev = el_una(OPind, e->Ety, ev);
-                    ev->ET = e->ET;
-                    e = el_bin(OPstreq,e->Ety,ev,e);
-                    e->ET = ev->ET;
-
-                    //ev = el_var(sym);
-                    //ev->ET = e->ET;
-                    //e = el_combine(e, ev);
-                    el_setLoc(e, sle->loc);
-                }
-                result = e;
-                return;
-            }
-
             // struct symbol to initialize with the literal
             Symbol *stmp = sle->sym ? sle->sym : symbol_genauto(Type_toCtype(sle->sd->type));
 
@@ -5418,7 +5388,7 @@ elem *toElem(Expression *e, IRState *irs)
                         else
                         {
                             elem *edim = el_long(TYsize_t, t1b->size() / t2b->size());
-                            e1 = setArray(e1, edim, t2b, ep, irs, TOKconstruct);
+                            e1 = setArray(e1, edim, t2b, ep, irs, TOKblit/*construct*/);
                         }
                     }
                     else

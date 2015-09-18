@@ -9,7 +9,6 @@
 module ddmd.optimize;
 
 import core.stdc.stdio;
-
 import ddmd.constfold;
 import ddmd.ctfeexpr;
 import ddmd.dclass;

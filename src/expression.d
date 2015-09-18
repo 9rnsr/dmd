@@ -4818,7 +4818,6 @@ public:
     StructDeclaration sd; // which aggregate this is for
     Expressions* elements; // parallels sd->fields[] with NULL entries for fields to skip
     Type stype; // final type of result (can be different from sd's type)
-    Symbol* sinit; // if this is a defaultInitLiteral, this symbol contains the default initializer
     Symbol* sym; // back end symbol to initialize with literal
     size_t soffset; // offset from start of s
     int fillHoles = 1;                // fill alignment 'holes' with zero
@@ -4918,6 +4917,7 @@ public:
         if (checkFrameAccess(loc, sc, sd, elements.dim))
             return new ErrorExp();
         type = stype ? stype : sd.type;
+        //printf("[%s] sle = %s\n", loc.toChars(), toChars());
         return this;
     }
 
@@ -4959,11 +4959,6 @@ public:
                 {
                     e = e.copy();
                     e.type = type;
-                }
-                if (sinit && e.op == TOKstructliteral && e.type.needsNested())
-                {
-                    StructLiteralExp se = cast(StructLiteralExp)e;
-                    se.sinit = toInitializer(se.sd);
                 }
             }
         }
@@ -8875,11 +8870,6 @@ public:
                         return new ErrorExp();
                     // Bugzilla 14556: Set concrete type to avoid further redundant semantic().
                     sle.type = e1.type;
-
-                    /* Constructor takes a mutable object, so don't use
-                     * the immutable initializer symbol.
-                     */
-                    sle.sinit = null;
 
                     Expression e = sle;
                     if (CtorDeclaration cf = sd.ctor.isCtorDeclaration())

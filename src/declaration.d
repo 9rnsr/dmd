@@ -1514,6 +1514,7 @@ public:
                  */
                 checkFrameAccess(loc, sc, (cast(TypeStruct)tv.toBasetype()).sym);
                 Expression e = tv.defaultInitLiteral(loc);
+                //printf("[%s] varInit e = %s\n", loc.toChars(), e.toChars());
                 Expression e1 = new VarExp(loc, this);
                 e = new BlitExp(loc, e1, e);
                 e = e.semantic(sc);
