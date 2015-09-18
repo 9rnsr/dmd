@@ -6610,23 +6610,15 @@ public:
                 tempdecl = sa.isTemplateDeclaration();
             if (!tempdecl)
             {
-                //if (!sa->parent) printf("sa = %s %s\n", sa->kind(), sa->toChars());
-                if (!sa.parent)
+                //if (!s->parent) printf("s = %s %s\n", s->kind(), s->toChars());
+                if (!s.parent)
                     goto Lerr;
 
                 // Check that 's' is an alias of user type.
                 if (auto t = s.getType())
                 {
-                    if (!t.toDsymbol(sc))
+                    if (!isAggregate(t))
                         goto Lerr;
-                }
-                // Check that 's' is lexically visible from the instance location.
-                for (auto sx = sc.parent; sx != s; )
-                {
-                    if (sx.isModule())
-                        goto Lerr;
-                    auto ti = sx.isTemplateInstance();
-                    sx = ti ? ti.tempdecl : sx.parent;
                 }
                 //if (!s->parent) printf("s = %s %s\n", s->kind(), s->toChars());
 
@@ -6643,10 +6635,20 @@ public:
                     assert(td);
                     if (td.overroot)        // if not start of overloaded list of TemplateDeclaration's
                         td = td.overroot;   // then get the start
-                    tempdecl = td;
+                    sa = td;
                 }
                 else
                     goto Lerr;
+
+                // Check that 's' is lexically visible from the instance location.
+                for (auto sx = sc.parent; sx != sa; )
+                {
+                    if (sx.isModule())
+                        goto Lerr;
+                    ti = sx.isTemplateInstance();
+                    sx = ti ? ti.tempdecl : sx.parent;
+                }
+                tempdecl = sa;
             }
         }
         return (tempdecl !is null);
