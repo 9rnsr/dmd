@@ -6615,11 +6615,19 @@ public:
                     goto Lerr;
 
                 // Check that 's' is an alias of user type.
+                printf("[%s] %s\n", loc.toChars(), toPrettyChars());
+                printf("\tL%d\n", __LINE__);
                 if (auto t = s.getType())
                 {
+                printf("\tL%d s = %s %s, t = %d %s\n", __LINE__, s.kind(), s.toPrettyChars(), t.ty, t.toChars());
                     if (!isAggregate(t))
+                    {
+                printf("\tL%d\n", __LINE__);
                         goto Lerr;
+                    }
+                printf("\tL%d\n", __LINE__);
                 }
+                printf("\tL%d\n", __LINE__);
                 //if (!s->parent) printf("s = %s %s\n", s->kind(), s->toChars());
 
                 auto ti = s.parent.isTemplateInstance();
@@ -6627,6 +6635,7 @@ public:
                     (s.ident == ti.tempdecl.ident ||
                      s.ident == ti.toAlias().ident))
                 {
+                printf("\tL%d\n", __LINE__);
                     /* This is so that one can refer to the enclosing
                      * template, even if it has the same name as a member
                      * of the template, if it has a !(arguments)
@@ -6640,6 +6649,7 @@ public:
                 else
                     goto Lerr;
 
+                printf("\tL%d\n", __LINE__);
                 // Check that 's' is lexically visible from the instance location.
                 for (auto sx = sc.parent; sx != sa; )
                 {
@@ -6647,6 +6657,7 @@ public:
                         goto Lerr;
                     ti = sx.isTemplateInstance();
                     sx = ti ? ti.tempdecl : sx.parent;
+                printf("\tL%d\n", __LINE__);
                 }
                 tempdecl = sa;
             }
