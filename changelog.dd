@@ -50,14 +50,18 @@ $(LI $(LNAME2 template-name-from-inside-instance, Eponymous template name access
     {
         void instantiationFromInner()
         {
-            // OK
+            // 'Thing' refers the innere-most instantiated struct type 'Thing!T'.
             static assert(is(Thing == struct));
+
+            // OK. On the explicit instantiation form, the identifier 'Thing'
+            // is treated as the template, because it is inside the template.
             Thing!int t1;
 
-            // also OK
-            alias X = Thing;
-            static assert(is(X == struct));
-            X!int t2;
+            alias Alias = Thing;
+            static assert(is(Alias == struct));
+
+            // Also OK.
+            //Alias!int t2;
         }
     }
 
@@ -65,8 +69,9 @@ $(LI $(LNAME2 template-name-from-inside-instance, Eponymous template name access
     {
         void instantiationFromOuter()
         {
-            // NG, T (== Thing!float) is a struct type
-            // so cannot be instantiated with !(int)
+            // NG, T is an alias of struct type 'Thing!float',
+            // so it cannot be instantiated with !(int)
+            // from outside of 'Thing' template.
             T!int var;
         }
     }

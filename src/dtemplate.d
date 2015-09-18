@@ -6580,13 +6580,14 @@ public:
         if (s)
         {
             Identifier id = name;
-            s = s.toAlias();
+            auto sa = s.toAlias();
+
             /* If an OverloadSet, look for a unique member that is a template declaration
              */
-            OverloadSet os = s.isOverloadSet();
+            OverloadSet os = sa.isOverloadSet();
             if (os)
             {
-                s = null;
+                sa = null;
                 for (size_t i = 0; i < os.a.dim; i++)
                 {
                     Dsymbol s2 = os.a[i];
@@ -6596,52 +6597,53 @@ public:
                         s2 = s2.isTemplateDeclaration();
                     if (s2)
                     {
-                        if (s)
+                        if (sa)
                         {
                             tempdecl = os;
                             return true;
                         }
-                        s = s2;
+                        sa = s2;
                     }
                 }
-                if (!s)
+                if (!sa)
                 {
                     error("template '%s' is not defined", id.toChars());
                     return false;
                 }
             }
-            OverDeclaration od = s.isOverDeclaration();
+            OverDeclaration od = sa.isOverDeclaration();
             if (od)
             {
                 tempdecl = od; // TODO: more strict check
                 return true;
             }
+
             /* It should be a TemplateDeclaration, not some other symbol
              */
-            if (FuncDeclaration f = s.isFuncDeclaration())
+            if (FuncDeclaration f = sa.isFuncDeclaration())
                 tempdecl = f.findTemplateDeclRoot();
             else
-                tempdecl = s.isTemplateDeclaration();
+                tempdecl = sa.isTemplateDeclaration();
             if (!tempdecl)
             {
-                if (s.getType())
+                if (sa.getType())
                 {
-                    Dsymbol s2 = s.getType().toDsymbol(sc);
+                    Dsymbol s2 = sa.getType().toDsymbol(sc);
                     if (!s2)
                         goto Lerr;
-                    s = s2;
+                    sa = s2;
                 }
 
-                for (auto sx = sc.parent; sx != s; sx = sx.parent)
+                for (auto sx = sc.parent; sx != sa; sx = sx.parent)
                 {
                     if (sx.isModule())
                         goto Lerr;
                 }
-                //if (!s->parent) printf("s = %s %s\n", s->kind(), s->toChars());
-                //assert(s->parent);
+                //if (!sa->parent) printf("sa = %s %s\n", sa->kind(), sa->toChars());
+                //assert(sa->parent);
 
-                TemplateInstance ti = s.parent ? s.parent.isTemplateInstance() : null;
-                if (ti && (ti.name == s.ident || ti.toAlias().ident == s.ident) && ti.tempdecl)
+                TemplateInstance ti = sa.parent ? sa.parent.isTemplateInstance() : null;
+                if (ti && (ti.name == sa.ident || ti.toAlias().ident == sa.ident) && ti.tempdecl)
                 {
                     /* This is so that one can refer to the enclosing
                      * template, even if it has the same name as a member
@@ -6660,7 +6662,7 @@ public:
         return (tempdecl !is null);
 
     Lerr:
-        error("%s is not a template declaration, it is a %s", name.toChars(), s.kind());
+        error("%s is not a template declaration, it is a %s", name.toChars(), sa.kind());
         return false;
     }
 
