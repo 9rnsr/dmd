@@ -330,13 +330,30 @@ template Templ5988(alias T)
     alias T!int Templ5988;
 }
 
-class C5988a(T) { Templ5988!C5988a foo; }
-//Templ5988!C5988a foo5988a;    // Commented version
+class C5988a(T) { Templ5988!(.C5988a) foo; }
+//Templ5988!C5988a foo5988a;        // Commented version
 void test5988a() { C5988a!int a; }  // Was error, now works
 
-class C5988b(T) { Templ5988!C5988b foo; }
-Templ5988!C5988b foo5988b;      // Uncomment version
+class C5988b(T) { Templ5988!(.C5988b) foo; }
+Templ5988!C5988b foo5988b;          // Uncomment version
 void test5988b() { C5988b!int a; }  // Works
+
+class C5988c(T)
+{
+    void foo()
+    {
+        C5988c!long c;
+        // In here, 'C5988c' refers the instantiated class (not template),
+        // but C!long will be automatically translated to the instantiation
+        // of template 'C5988c'.
+
+        alias CX = C5988c;
+        static assert(is(CX == class));
+        CX!long cx;
+        // Also works if CX is an alias to the class type.
+    }
+}
+void test5988c() { C5988c!int c; }
 
 /**********************************/
 // 6404

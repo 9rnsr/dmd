@@ -6624,23 +6624,22 @@ public:
                 tempdecl = s.isTemplateDeclaration();
             if (!tempdecl)
             {
-                if (!s.parent && global.errors)
-                    return false;
-                if (!s.parent && s.getType())
+                if (s.getType())
                 {
                     Dsymbol s2 = s.getType().toDsymbol(sc);
                     if (!s2)
-                    {
-                        error("%s is not a template declaration, it is a %s", id.toChars(), s.kind());
-                        return false;
-                    }
+                        goto Lerr;
                     s = s2;
                 }
-                debug
+
+                for (auto sx = sc.parent; sx != s; sx = sx.parent)
                 {
-                    //if (!s->parent) printf("s = %s %s\n", s->kind(), s->toChars());
+                    if (sx.isModule())
+                        goto Lerr;
                 }
+                //if (!s->parent) printf("s = %s %s\n", s->kind(), s->toChars());
                 //assert(s->parent);
+
                 TemplateInstance ti = s.parent ? s.parent.isTemplateInstance() : null;
                 if (ti && (ti.name == s.ident || ti.toAlias().ident == s.ident) && ti.tempdecl)
                 {
@@ -6655,13 +6654,14 @@ public:
                     tempdecl = td;
                 }
                 else
-                {
-                    error("%s is not a template declaration, it is a %s", id.toChars(), s.kind());
-                    return false;
-                }
+                    goto Lerr;
             }
         }
         return (tempdecl !is null);
+
+    Lerr:
+        error("%s is not a template declaration, it is a %s", name.toChars(), s.kind());
+        return false;
     }
 
     /**********************************

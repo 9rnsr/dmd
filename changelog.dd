@@ -10,6 +10,10 @@ $(LI $(RELATIVE_LINK2 property-switch-deprecated, The $(TT -property) switch has
     been deprecated.))
 )
 
+$(BUGSTITLE Language Changes,
+$(LI $(RELATIVE_LINK2 template-name-from-inside-instance, Eponymous template name access from inside its instance.))
+)
+
 $(BUGSTITLE Compiler Changes,
 
 $(LI $(LNAME2 objective-c-support, Basic support for Objective-C.)
@@ -34,6 +38,45 @@ $(LI $(LNAME2 property-switch-deprecated, The $(TT -property) switch has
     $(P Since the behaviour of the $(TT -property) switch was not well-liked,
         it's been deprecated and made to have no effect when used.
     )
+)
+
+)
+
+$(BUGSTITLE Language Changes,
+$(LI $(LNAME2 template-name-from-inside-instance, Eponymous template name access from inside its instance.)
+
+    ---
+    struct Thing(T)
+    {
+        void instantiationFromInner()
+        {
+            // OK
+            static assert(is(Thing == struct));
+            Thing!int t1;
+
+            // also OK
+            alias X = Thing;
+            static assert(is(X == struct));
+            X!int t2;
+        }
+    }
+
+    template Stuff(alias T)
+    {
+        void instantiationFromOuter()
+        {
+            // NG, T (== Thing!float) is a struct type
+            // so cannot be instantiated with !(int)
+            T!int var;
+        }
+    }
+
+    void main()
+    {
+        alias T = Thing!float;
+        alias S = Stuff!(Thing!float);
+    }
+    ---
 )
 
 )
