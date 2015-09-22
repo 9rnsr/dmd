@@ -8163,13 +8163,57 @@ public:
         sym.size(loc);
         if (sym.sizeok != SIZEOKdone)
             return new ErrorExp();
-
+version (none)
+{
+        auto structelems = new Expressions();
+        structelems.setDim(sym.fields.dim - sym.isNested());
+        uint offset = 0;
+        for (size_t j = 0; j < structelems.dim; j++)
+        {
+            VarDeclaration vd = sym.fields[j];
+            Expression e;
+            if (vd.inuse)
+            {
+                error(loc, "circular reference to '%s'", vd.toPrettyChars());
+                return new ErrorExp();
+            }
+            if (vd.offset < offset || vd.type.size() == 0)
+                e = null;
+            else if (vd._init)
+            {
+                if (vd._init.isVoidInitializer())
+                    e = null;
+                else
+                    e = vd.getConstInitializer(false);
+            }
+            else
+                e = vd.type.defaultInitLiteral(loc);
+            if (e && e.op == TOKerror)
+                return e;
+            if (e)
+                offset = vd.offset + cast(uint)vd.type.size();
+            (*structelems)[j] = e;
+        }
+        auto structinit = new StructLiteralExp(loc, cast(StructDeclaration)sym, structelems);
+        /* Copy from the initializer symbol for larger symbols,
+         * otherwise the literals expressed as code get excessively large.
+         */
+//        if (size(loc) > Target.ptrsize * 4 && !needsNested())
+//            structinit.sinit = toInitializer(sym);
+        structinit.type = this;
+        printf("[%s] sle -> %s\n", loc.toChars(), structinit.toChars());
+        return structinit;
+}
+else
+{
         auto sle = new StructLiteralExp(loc, sym, null);
-        if (!sym.fill(loc, sle.elements, false))
+        if (!sym.fill(loc, sle.elements, true/*false*/))
             return new ErrorExp();
 
         sle.type = this;
+        printf("[%s] sle -> %s\n", loc.toChars(), sle.toChars());
         return sle;
+}
     }
 
     override bool isZeroInit(Loc loc)
