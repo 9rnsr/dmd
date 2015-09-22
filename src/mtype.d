@@ -8163,7 +8163,7 @@ public:
         sym.size(loc);
         if (sym.sizeok != SIZEOKdone)
             return new ErrorExp();
-version (none)
+version (all)
 {
         auto structelems = new Expressions();
         structelems.setDim(sym.fields.dim - sym.isNested());
@@ -8201,7 +8201,7 @@ version (none)
 //        if (size(loc) > Target.ptrsize * 4 && !needsNested())
 //            structinit.sinit = toInitializer(sym);
         structinit.type = this;
-        printf("[%s] sle -> %s\n", loc.toChars(), structinit.toChars());
+        //printf("[%s] sle -> %s\n", loc.toChars(), structinit.toChars());
         return structinit;
 }
 else
@@ -8211,7 +8211,7 @@ else
             return new ErrorExp();
 
         sle.type = this;
-        printf("[%s] sle -> %s\n", loc.toChars(), sle.toChars());
+        //printf("[%s] sle -> %s\n", loc.toChars(), sle.toChars());
         return sle;
 }
     }
