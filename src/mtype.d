@@ -4635,7 +4635,9 @@ public:
             //printf("TypeSArray::getProperty(type = '%s', ident = '%s')\n", toChars(), ident.toChars());
 
             size_t d = cast(size_t)dim.toInteger();
-            Expression einit = (next.ty == Tvoid ? tuns8 : next).getProperty(loc, Id._init, flag);
+            auto telem = (next.ty == Tvoid ? tuns8 : next);
+            //auto einit = telem.getProperty(loc, Id._init, flag);
+            auto einit = telem.defaultInitLiteral(loc);
             auto elems = new Expressions();
             elems.setDim(d);
             foreach (ref el; *elems)

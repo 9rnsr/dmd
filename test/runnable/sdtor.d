@@ -3679,20 +3679,20 @@ bool test13661()
 
     {
         S[2] a;
-/+
+
         a[0].x = 'a';
         a[1].x = 'b';
         a = a.init;
         assert(op == "ab");
         assert(a[0].x == 'x' && a[1].x == 'x');
-+/
+
         a[0].x = 'c';
         a[1].x = 'd';
         a = [S(), S()];   // equivalent a = a.init
-        assert(op == /*"ab"*/"cd");
+        assert(op == "abcd");
         assert(a[0].x == 'x' && a[1].x == 'x');
     }
-    assert(op == /*"ab"*/"cdxx");
+    assert(op == "abcdxx");
 
     return true;
 }
@@ -3853,13 +3853,13 @@ bool test14023()
     }
     assert(op == "AxByabba");
 
-    //op = null;
-    //{
-    //    S[3] sa = [S('a'), S('b'), S('c')];
-    //    test(sa[1..3]);
-    //    assert(op == "BxCx");
-    //}
-    //assert(op == "BxCxcba");
+    op = null;
+    {
+        S[3] sa = [S('a'), S('b'), S('c')];
+        test(sa[1..3]);
+        assert(op == "BxCx");
+    }
+    assert(op == "BxCxcba");
 
     return true;
 }
@@ -3955,20 +3955,16 @@ int test14815()
         ~this() { ++dtorCount; }
     }
 
-    S[2] makeRvalue() { return [S(), S()]; }
-
     S[2] sa1;
     sa1[0].x = 42;
-    //sa1 = (S[2]).init;      // S[2] <- rvalue
-    sa1 = makeRvalue();     // S[2] <- rvalue
+    sa1 = (S[2]).init;      // S[2] <- rvalue
     assert(sa1[0].x == 0);
     assert(dtorCount == 2);
 
     S[2] sa2;
     sa2[0].x = 42;
     S[] da2 = sa2[];
-    //da2[] = (S[2]).init[];  // S[] <- rvalue slice
-    da2[] = makeRvalue()[]; // S[] <- rvalue slice
+    da2[] = (S[2]).init[];  // S[] <- rvalue slice
     assert(sa2[0].x == 0);
     assert(dtorCount == 4);
 
