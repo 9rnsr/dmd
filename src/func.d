@@ -2124,6 +2124,7 @@ public:
             sc2.callSuper = 0;
             sc2.pop();
         }
+
         if (needsClosure())
         {
             if (setGC())
@@ -2131,6 +2132,7 @@ public:
             else
                 printGCUsage(loc, "using closure causes GC allocation");
         }
+
         /* If function survived being marked as impure, then it is pure
          */
         if (flags & FUNCFLAGpurityInprocess)
@@ -2155,9 +2157,11 @@ public:
             f.isnogc = true;
         }
         flags &= ~FUNCFLAGreturnInprocess;
+
         // reset deco to apply inference result to mangled name
         if (f != type)
             f.deco = null;
+
         // Do semantic type AFTER pure/nothrow inference.
         if (!f.deco && ident != Id.xopEquals && ident != Id.xopCmp)
         {
@@ -2167,6 +2171,7 @@ public:
             type = f.semantic(loc, sc);
             sc = sc.pop();
         }
+
         /* If this function had instantiated with gagging, error reproduction will be
          * done by TemplateInstance::semantic.
          * Otherwise, error gagging should be temporarily ungagged by functionSemantic3.

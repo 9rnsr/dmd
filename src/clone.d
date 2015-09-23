@@ -184,12 +184,15 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     }
     // Even if non-identity opAssign is defined, built-in identity opAssign
     // will be defined.
+
     if (!needOpAssign(sd))
         return null;
-    //printf("StructDeclaration::buildOpAssign() %s\n", sd->toChars());
+
+    //printf("StructDeclaration::buildOpAssign() %s\n", sd.toChars());
     StorageClass stc = STCsafe | STCnothrow | STCpure | STCnogc;
     Loc declLoc = sd.loc;
     Loc loc = Loc(); // internal code should have no loc to prevent coverage
+
     if (sd.dtor || sd.postblit)
     {
         if (!sd.type.isAssignable()) // Bugzilla 13044
@@ -208,14 +211,18 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
             Type tv = v.type.baseElemOf();
             if (tv.ty != Tstruct)
                 continue;
+
             StructDeclaration sdv = (cast(TypeStruct)tv).sym;
             stc = mergeFuncAttrs(stc, hasIdentityOpAssign(sdv, sc));
         }
     }
+
     auto fparams = new Parameters();
     fparams.push(new Parameter(STCnodtor, sd.type, Id.p, null));
     auto tf = new TypeFunction(fparams, sd.handleType(), 0, LINKd, stc | STCref);
+
     auto fop = new FuncDeclaration(declLoc, Loc(), Id.assign, stc, tf);
+
     Expression e = null;
     if (stc & STCdisable)
     {
@@ -274,23 +281,28 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
         fop.fbody = new CompoundStatement(loc, s1, s2);
         tf.isreturn = true;
     }
+
     sd.members.push(fop);
     fop.addMember(sc, sd);
-    sd.hasIdentityAssign = true; // temporary mark identity assignable
-    uint errors = global.startGagging(); // Do not report errors, even if the
+    sd.hasIdentityAssign = true;    // temporary mark identity assignable
+
+    auto oldErrors = global.startGagging(); // Do not report errors
     Scope* sc2 = sc.push();
     sc2.stc = 0;
     sc2.linkage = LINKd;
+
     fop.semantic(sc2);
     fop.semantic2(sc2);
     fop.semantic3(sc2);
+
     sc2.pop();
-    if (global.endGagging(errors)) // if errors happened
+    if (global.endGagging(oldErrors))       // if errors happened
     {
         // Disable generated opAssign, because some members forbid identity assignment.
         fop.storage_class |= STCdisable;
-        fop.fbody = null; // remove fbody which contains the error
+        fop.fbody = null;           // remove fbody which contains the error
     }
+
     //printf("-StructDeclaration::buildOpAssign() %s, errors = %d\n", sd->toChars(), (fop->storage_class & STCdisable) != 0);
     return fop;
 }
@@ -873,7 +885,7 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
  */
 extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
 {
-    //printf("AggregateDeclaration::buildDtor() %s\n", ad->toChars());
+    //printf("AggregateDeclaration::buildDtor() %s\n", ad.toChars());
     StorageClass stc = STCsafe | STCnothrow | STCpure | STCnogc;
     Loc declLoc = ad.dtors.dim ? ad.dtors[0].loc : ad.loc;
     Loc loc = Loc(); // internal code should have no loc to prevent coverage

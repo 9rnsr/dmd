@@ -121,7 +121,9 @@ public:
                     definedInModule = true;
                 }
                 else if (findCondition(global.params.debugids, ident))
+                {
                     inc = 1;
+                }
                 else
                 {
                     if (!mod.debugidsNot)
@@ -130,7 +132,9 @@ public:
                 }
             }
             else if (level <= global.params.debuglevel || level <= mod.debuglevel)
+            {
                 inc = 1;
+            }
             if (!definedInModule)
                 printDepsConditional(sc, this, "depsDebug ");
         }
@@ -369,27 +373,33 @@ public:
                                          : "error evaluating static if expression");
                 goto Lerror;
             }
+
             if (!sc)
             {
                 error(loc, "static if conditional cannot be at global scope");
                 inc = 2;
                 return 0;
             }
+
             ++nest;
             sc = sc.push(sc.scopesym);
             sc.sds = sds; // sds gets any addMember()
             //sc->speculative = true;       // TODO: static if (is(T U)) { /* U is available */ }
             sc.flags |= SCOPEcondition;
+
             sc = sc.startCTFE();
             Expression e = exp.semantic(sc);
             e = resolveProperties(sc, e);
             sc = sc.endCTFE();
+
             sc.pop();
             --nest;
+
             // Prevent repeated condition evaluation.
             // See: fail_compilation/fail7815.d
             if (inc != 0)
                 return (inc == 1);
+
             if (!e.type.isBoolean())
             {
                 if (e.type.toBasetype() != Type.terror)

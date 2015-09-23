@@ -237,6 +237,7 @@ public:
             return;
         uint dprogress_save = Module.dprogress;
         int errors = global.errors;
+
         Scope* scx = null;
         if (_scope)
         {
@@ -244,6 +245,7 @@ public:
             scx = _scope; // save so we don't make redundant copies
             _scope = null;
         }
+
         if (!parent)
         {
             assert(sc.parent && sc.func);
@@ -251,14 +253,17 @@ public:
         }
         assert(parent && !isAnonymous());
         type = type.semantic(loc, sc);
+
         if (type.ty == Tstruct && (cast(TypeStruct)type).sym != this)
         {
             TemplateInstance ti = (cast(TypeStruct)type).sym.isInstantiated();
             if (ti && isError(ti))
                 (cast(TypeStruct)type).sym = this;
         }
+
         // Ungag errors when not speculative
         Ungag ungag = ungagSpeculative();
+
         if (semanticRun == PASSinit)
         {
             protection = sc.protection;
@@ -276,6 +281,7 @@ public:
             return;
         }
         semanticRun = PASSsemantic;
+
         if (!members) // if opaque declaration
         {
             semanticRun = PASSsemanticdone;
@@ -283,6 +289,7 @@ public:
         }
         if (!symtab)
             symtab = new DsymbolTable();
+
         if (sizeok == SIZEOKnone) // if not already done the addMember step
         {
             for (size_t i = 0; i < members.dim; i++)
@@ -292,6 +299,7 @@ public:
                 s.addMember(sc, this);
             }
         }
+
         Scope* sc2 = sc.push(this);
         sc2.stc &= STCsafe | STCtrusted | STCsystem;
         sc2.parent = this;
@@ -301,9 +309,12 @@ public:
         sc2.explicitProtection = 0;
         sc2.structalign = STRUCTALIGN_DEFAULT;
         sc2.userAttribDecl = null;
+
         if (sizeok == SIZEOKdone)
             goto LafterSizeok;
+
         sizeok = SIZEOKnone;
+
         /* Set scope so if there are forward references, we still might be able to
          * resolve individual members like enums.
          */
@@ -313,17 +324,21 @@ public:
             //printf("struct: setScope %s %s\n", s->kind(), s->toChars());
             s.setScope(sc2);
         }
+
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
             s.importAll(sc2);
         }
+
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
             s.semantic(sc2);
         }
+
         finalizeSize(sc2);
+
         if (sizeok == SIZEOKfwd)
         {
             // semantic() failed because of forward references.
@@ -346,6 +361,7 @@ public:
         }
         Module.dprogress++;
         //printf("-StructDeclaration::semantic(this=%p, '%s')\n", this, toChars());
+
     LafterSizeok:
         // The additions of special member functions should have its own
         // sub-semantic analysis pass, and have to be deferred sometimes.
@@ -359,25 +375,32 @@ public:
             StructDeclaration sd = (cast(TypeStruct)tb).sym;
             if (sd.semanticRun >= PASSsemanticdone)
                 continue;
+
             sc2.pop();
+
             _scope = scx ? scx : sc.copy();
             _scope.setNoFree();
             _scope._module.addDeferredSemantic(this);
             //printf("\tdeferring %s\n", toChars());
             return;
         }
+
         /* Look for special member functions.
          */
         aggNew = cast(NewDeclaration)search(Loc(), Id.classNew);
         aggDelete = cast(DeleteDeclaration)search(Loc(), Id.classDelete);
         // this->ctor is already set in finalizeSize()
+
         dtor = buildDtor(this, sc2);
         postblit = buildPostBlit(this, sc2);
+
         buildOpAssign(this, sc2);
         buildOpEquals(this, sc2);
+
         xeq = buildXopEquals(this, sc2);
         xcmp = buildXopCmp(this, sc2);
         xhash = buildXtoHash(this, sc2);
+
         /* Even if the struct is merely imported and its semantic3 is not run,
          * the TypeInfo object would be speculatively stored in each object
          * files. To set correct function pointer, run semantic3 for xeq and xcmp.
@@ -388,7 +411,9 @@ public:
          * See semanticTypeInfo().
          */
         inv = buildInv(this, sc2);
+
         sc2.pop();
+
         if (ctor)
         {
             Dsymbol scall = search(Loc(), Id.call);
@@ -401,6 +426,7 @@ public:
                 FuncDeclaration fcall = resolveFuncCall(loc, sc, scall, null, null, null, 1);
                 sc = sc.pop();
                 global.endGagging(xerrors);
+
                 if (fcall && fcall.isStatic())
                 {
                     error(fcall.loc, "static opCall is hidden by constructors and can never be called");
@@ -410,6 +436,7 @@ public:
         }
         Module.dprogress++;
         semanticRun = PASSsemanticdone;
+
         TypeTuple tup = toArgTypes(type);
         size_t dim = tup.arguments.dim;
         if (dim >= 1)
@@ -419,6 +446,7 @@ public:
             if (dim == 2)
                 arg2type = (*tup.arguments)[1].type;
         }
+
         if (sc.func)
             semantic2(sc);
         if (global.errors != errors)
@@ -434,6 +462,7 @@ public:
             deferred.semantic2(sc);
             deferred.semantic3(sc);
         }
+
         version (none)
         {
             if (type.ty == Tstruct && (cast(TypeStruct)type).sym != this)
