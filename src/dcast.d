@@ -3262,26 +3262,26 @@ extern (C++) IntRange getIntRange(Expression e)
 
         override void visit(IntegerExp e)
         {
-            range = IntRange(SignExtendedNumber(e.getInteger()))._cast(e.type);
+            range = IntRange(SignExtendedNumber(e.getInteger())).castTo(e.type);
         }
 
         override void visit(CastExp e)
         {
-            range = getIntRange(e.e1)._cast(e.type);
+            range = getIntRange(e.e1).castTo(e.type);
         }
 
         override void visit(AddExp e)
         {
             IntRange ir1 = getIntRange(e.e1);
             IntRange ir2 = getIntRange(e.e2);
-            range = IntRange(ir1.imin + ir2.imin, ir1.imax + ir2.imax)._cast(e.type);
+            range = IntRange(ir1.imin + ir2.imin, ir1.imax + ir2.imax).castTo(e.type);
         }
 
         override void visit(MinExp e)
         {
             IntRange ir1 = getIntRange(e.e1);
             IntRange ir2 = getIntRange(e.e2);
-            range = IntRange(ir1.imin - ir2.imax, ir1.imax - ir2.imin)._cast(e.type);
+            range = IntRange(ir1.imin - ir2.imax, ir1.imax - ir2.imin).castTo(e.type);
         }
 
         override void visit(DivExp e)
@@ -3300,7 +3300,7 @@ extern (C++) IntRange getIntRange(Expression e)
             bdy[1] = ir1.imin / ir2.imax;
             bdy[2] = ir1.imax / ir2.imin;
             bdy[3] = ir1.imax / ir2.imax;
-            range = IntRange.fromNumbers4(bdy.ptr)._cast(e.type);
+            range = IntRange.fromNumbers4(bdy.ptr).castTo(e.type);
         }
 
         override void visit(MulExp e)
@@ -3313,7 +3313,7 @@ extern (C++) IntRange getIntRange(Expression e)
             bdy[1] = ir1.imin * ir2.imax;
             bdy[2] = ir1.imax * ir2.imin;
             bdy[3] = ir1.imax * ir2.imax;
-            range = IntRange.fromNumbers4(bdy.ptr)._cast(e.type);
+            range = IntRange.fromNumbers4(bdy.ptr).castTo(e.type);
         }
 
         override void visit(ModExp e)
@@ -3353,7 +3353,7 @@ extern (C++) IntRange getIntRange(Expression e)
             }
             else if (irNum.imax > irDen.imax)
                 irNum.imax = irDen.imax;
-            range = irNum._cast(e.type);
+            range = irNum.castTo(e.type);
         }
 
         override void visit(AndExp e)
@@ -3375,7 +3375,7 @@ extern (C++) IntRange getIntRange(Expression e)
             if (has1neg && has2neg)
                 result.unionOrAssign(unsignedBitwiseAnd(ir1neg, ir2neg), hasResult);
             assert(hasResult);
-            range = result._cast(e.type);
+            range = result.castTo(e.type);
         }
 
         override void visit(OrExp e)
@@ -3397,7 +3397,7 @@ extern (C++) IntRange getIntRange(Expression e)
             if (has1neg && has2neg)
                 result.unionOrAssign(unsignedBitwiseOr(ir1neg, ir2neg), hasResult);
             assert(hasResult);
-            range = result._cast(e.type);
+            range = result.castTo(e.type);
         }
 
         override void visit(XorExp e)
@@ -3419,7 +3419,7 @@ extern (C++) IntRange getIntRange(Expression e)
             if (has1neg && has2neg)
                 result.unionOrAssign(unsignedBitwiseXor(ir1neg, ir2neg), hasResult);
             assert(hasResult);
-            range = result._cast(e.type);
+            range = result.castTo(e.type);
         }
 
         override void visit(ShlExp e)
@@ -3430,7 +3430,7 @@ extern (C++) IntRange getIntRange(Expression e)
                 ir2 = IntRange(SignExtendedNumber(0), SignExtendedNumber(64));
             SignExtendedNumber lower = ir1.imin << (ir1.imin.negative ? ir2.imax : ir2.imin);
             SignExtendedNumber upper = ir1.imax << (ir1.imax.negative ? ir2.imin : ir2.imax);
-            range = IntRange(lower, upper)._cast(e.type);
+            range = IntRange(lower, upper).castTo(e.type);
         }
 
         override void visit(ShrExp e)
@@ -3441,7 +3441,7 @@ extern (C++) IntRange getIntRange(Expression e)
                 ir2 = IntRange(SignExtendedNumber(0), SignExtendedNumber(64));
             SignExtendedNumber lower = ir1.imin >> (ir1.imin.negative ? ir2.imin : ir2.imax);
             SignExtendedNumber upper = ir1.imax >> (ir1.imax.negative ? ir2.imax : ir2.imin);
-            range = IntRange(lower, upper)._cast(e.type);
+            range = IntRange(lower, upper).castTo(e.type);
         }
 
         override void visit(UshrExp e)
@@ -3450,12 +3450,12 @@ extern (C++) IntRange getIntRange(Expression e)
             IntRange ir2 = getIntRange(e.e2);
             if (ir2.imin.negative)
                 ir2 = IntRange(SignExtendedNumber(0), SignExtendedNumber(64));
-            range = IntRange(ir1.imin >> ir2.imax, ir1.imax >> ir2.imin)._cast(e.type);
+            range = IntRange(ir1.imin >> ir2.imax, ir1.imax >> ir2.imin).castTo(e.type);
         }
 
         override void visit(AssignExp e)
         {
-            range = getIntRange(e.e2)._cast(e.type);
+            range = getIntRange(e.e2).castTo(e.type);
         }
 
         override void visit(CondExp e)
@@ -3463,7 +3463,7 @@ extern (C++) IntRange getIntRange(Expression e)
             // No need to check e->econd; assume caller has called optimize()
             IntRange ir1 = getIntRange(e.e1);
             IntRange ir2 = getIntRange(e.e2);
-            range = ir1.unionWith(ir2)._cast(e.type);
+            range = ir1.unionWith(ir2).castTo(e.type);
         }
 
         override void visit(VarExp e)
@@ -3471,7 +3471,7 @@ extern (C++) IntRange getIntRange(Expression e)
             Expression ie;
             VarDeclaration vd = e.var.isVarDeclaration();
             if (vd && vd.range)
-                range = vd.range._cast(e.type);
+                range = vd.range.castTo(e.type);
             else if (vd && vd.initializer && !vd.type.isMutable() && (ie = vd.getConstInitializer()) !is null)
                 ie.accept(this);
             else
@@ -3486,13 +3486,13 @@ extern (C++) IntRange getIntRange(Expression e)
         override void visit(ComExp e)
         {
             IntRange ir = getIntRange(e.e1);
-            range = IntRange(SignExtendedNumber(~ir.imax.value, !ir.imax.negative), SignExtendedNumber(~ir.imin.value, !ir.imin.negative))._cast(e.type);
+            range = IntRange(SignExtendedNumber(~ir.imax.value, !ir.imax.negative), SignExtendedNumber(~ir.imin.value, !ir.imin.negative)).castTo(e.type);
         }
 
         override void visit(NegExp e)
         {
             IntRange ir = getIntRange(e.e1);
-            range = IntRange(-ir.imax, -ir.imin)._cast(e.type);
+            range = IntRange(-ir.imax, -ir.imin).castTo(e.type);
         }
     }
 

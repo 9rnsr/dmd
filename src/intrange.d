@@ -405,7 +405,7 @@ struct IntRange
         return this;
     }
 
-    IntRange _cast(Type type)
+    IntRange castTo(Type type)
     {
         if (!type.isintegral())
             return this;

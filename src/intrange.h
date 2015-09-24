@@ -125,7 +125,7 @@ struct IntRange
     IntRange& castDchar();
 
     /// Cast the integer range to a specific type.
-    IntRange& cast(Type *type);
+    IntRange& castTo(Type *type);
     /// Cast the integer range to a specific type, forcing it to be unsigned.
     IntRange& castUnsigned(Type *type);
 
