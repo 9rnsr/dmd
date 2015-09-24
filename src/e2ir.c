@@ -4931,11 +4931,11 @@ elem *toElem(Expression *e, IRState *irs)
                     Symbol *sp = toSymbol(s);
                     symbol_add(sp);
                     //printf("\tadding symbol '%s'\n", sp->Sident);
-                    if (vd->_init)
+                    if (vd->initializer)
                     {
                         ExpInitializer *ie;
 
-                        ie = vd->_init->isExpInitializer();
+                        ie = vd->initializer->isExpInitializer();
                         if (ie)
                             e = toElem(ie->exp, irs);
                     }

@@ -2403,9 +2403,9 @@ public:
                     key.storage_class |= STCtemp;
                 }
                 if (op == TOKforeach_reverse)
-                    key._init = new ExpInitializer(loc, tmp_length);
+                    key.initializer = new ExpInitializer(loc, tmp_length);
                 else
-                    key._init = new ExpInitializer(loc, new IntegerExp(loc, 0, key.type));
+                    key.initializer = new ExpInitializer(loc, new IntegerExp(loc, 0, key.type));
                 auto cs = new Statements();
                 if (vinit)
                     cs.push(new ExpStatement(loc, vinit));
@@ -2430,7 +2430,7 @@ public:
                     increment = new AddAssignExp(loc, new VarExp(loc, key), new IntegerExp(loc, 1, key.type));
                 }
                 // T value = tmp[key];
-                value._init = new ExpInitializer(loc, new IndexExp(loc, new VarExp(loc, tmp), new VarExp(loc, key)));
+                value.initializer = new ExpInitializer(loc, new IndexExp(loc, new VarExp(loc, tmp), new VarExp(loc, key)));
                 Statement ds = new ExpStatement(loc, value);
                 if (dim == 2)
                 {
@@ -4805,7 +4805,7 @@ public:
     override Statement semantic(Scope* sc)
     {
         ScopeDsymbol sym;
-        Initializer _init;
+        Initializer iz;
         //printf("WithStatement::semantic()\n");
         exp = exp.semantic(sc);
         exp = resolveProperties(sc, exp);
@@ -4843,8 +4843,8 @@ public:
             t = t.toBasetype();
             if (t.isClassHandle())
             {
-                _init = new ExpInitializer(loc, exp);
-                wthis = new VarDeclaration(loc, exp.type, Id.withSym, _init);
+                iz = new ExpInitializer(loc, exp);
+                wthis = new VarDeclaration(loc, exp.type, Id.withSym, iz);
                 wthis.semantic(sc);
                 sym = new WithScopeSymbol(this);
                 sym.parent = sc.scopesym;
@@ -4862,8 +4862,8 @@ public:
                      *   }
                      * }
                      */
-                    _init = new ExpInitializer(loc, exp);
-                    wthis = new VarDeclaration(loc, exp.type, Identifier.generateId("__withtmp"), _init);
+                    iz = new ExpInitializer(loc, exp);
+                    wthis = new VarDeclaration(loc, exp.type, Identifier.generateId("__withtmp"), iz);
                     wthis.storage_class |= STCtemp;
                     auto es = new ExpStatement(loc, wthis);
                     exp = new VarExp(loc, wthis);
@@ -4871,8 +4871,8 @@ public:
                     return ss.semantic(sc);
                 }
                 Expression e = exp.addressOf();
-                _init = new ExpInitializer(loc, e);
-                wthis = new VarDeclaration(loc, e.type, Id.withSym, _init);
+                iz = new ExpInitializer(loc, e);
+                wthis = new VarDeclaration(loc, e.type, Id.withSym, iz);
                 wthis.semantic(sc);
                 sym = new WithScopeSymbol(this);
                 // Need to set the scope to make use of resolveAliasThis

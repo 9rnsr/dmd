@@ -1656,7 +1656,7 @@ public:
                  */
                 auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
                 Expression e = new IntegerExp(Loc(), td.objects.dim, Type.tsize_t);
-                v._init = new ExpInitializer(Loc(), e);
+                v.initializer = new ExpInitializer(Loc(), e);
                 v.storage_class |= STCtemp | STCstatic | STCconst;
                 v.semantic(sc);
                 return v;
@@ -1667,7 +1667,7 @@ public:
                  */
                 auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
                 Expression e = new IntegerExp(Loc(), type.arguments.dim, Type.tsize_t);
-                v._init = new ExpInitializer(Loc(), e);
+                v.initializer = new ExpInitializer(Loc(), e);
                 v.storage_class |= STCtemp | STCstatic | STCconst;
                 v.semantic(sc);
                 return v;

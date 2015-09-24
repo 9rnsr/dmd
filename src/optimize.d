@@ -44,7 +44,7 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
         Type tb = v.type.toBasetype();
         if (v.storage_class & STCmanifest || v.type.toBasetype().isscalar() || ((result & WANTexpand) && (tb.ty != Tsarray && tb.ty != Tstruct)))
         {
-            if (v._init)
+            if (v.initializer)
             {
                 if (v.inuse)
                 {
@@ -60,7 +60,7 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
                 {
                     if (v.storage_class & STCmanifest)
                     {
-                        v.error("enum cannot be initialized with %s", v._init.toChars());
+                        v.error("enum cannot be initialized with %s", v.initializer.toChars());
                         goto Lerror;
                     }
                     goto L1;
@@ -873,7 +873,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (e.e1.op == TOKvar)
             {
                 VarDeclaration v = (cast(VarExp)e.e1).var.isVarDeclaration();
-                if (v && (v.storage_class & STCstatic) && (v.storage_class & STCimmutable) && v._init)
+                if (v && (v.storage_class & STCstatic) && (v.storage_class & STCimmutable) && v.initializer)
                 {
                     if (Expression ci = v.getConstInitializer())
                         e.e1 = ci;
@@ -928,7 +928,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
         {
             if (!lengthVar)
                 return;
-            if (lengthVar._init && !lengthVar._init.isVoidInitializer())
+            if (lengthVar.initializer && !lengthVar.initializer.isVoidInitializer())
                 return; // we have previously calculated the length
             size_t len;
             if (arr.op == TOKstring)
@@ -944,7 +944,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                     return; // we don't know the length yet
             }
             Expression dollar = new IntegerExp(Loc(), len, Type.tsize_t);
-            lengthVar._init = new ExpInitializer(Loc(), dollar);
+            lengthVar.initializer = new ExpInitializer(Loc(), dollar);
             lengthVar.storage_class |= STCstatic | STCconst;
         }
 

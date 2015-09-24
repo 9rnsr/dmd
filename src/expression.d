@@ -3735,7 +3735,7 @@ public:
                 .error(loc, "forward reference of %s %s", s.kind(), s.toChars());
                 return new ErrorExp();
             }
-            if ((v.storage_class & STCmanifest) && v._init)
+            if ((v.storage_class & STCmanifest) && v.initializer)
             {
                 // Detect recursive initializers.
                 // BUG: The check for speculative gagging is not correct
@@ -3747,11 +3747,11 @@ public:
                 if (v.declScope)
                 {
                     v.inuse++;
-                    v._init = v._init.semantic(v.declScope, v.type, INITinterpret);
+                    v.initializer = v.initializer.semantic(v.declScope, v.type, INITinterpret);
                     v.declScope = null;
                     v.inuse--;
                 }
-                e = v._init.toExpression(v.type);
+                e = v.initializer.toExpression(v.type);
                 if (!e)
                 {
                     .error(loc, "cannot make expression out of initializer for %s", v.toChars());
@@ -14362,9 +14362,9 @@ public:
                 VarDeclaration v = e.declaration.isVarDeclaration();
                 if (v && !v.noscope && !v.isDataseg())
                 {
-                    if (v._init)
+                    if (v.initializer)
                     {
-                        ExpInitializer ei = v._init.isExpInitializer();
+                        ExpInitializer ei = v.initializer.isExpInitializer();
                         if (ei)
                             ei.exp.accept(this);
                     }

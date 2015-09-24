@@ -681,16 +681,16 @@ public:
         /* Fill in any missing elements with the default initializer
          */
         {
-            Expression _init = null;
+            Expression einit = null;
             for (size_t i = 0; i < edim; i++)
             {
                 if (!(*elements)[i])
                 {
                     if (!type)
                         goto Lno;
-                    if (!_init)
-                        _init = (cast(TypeNext)t).next.defaultInit();
-                    (*elements)[i] = _init;
+                    if (!einit)
+                        einit = (cast(TypeNext)t).next.defaultInit();
+                    (*elements)[i] = einit;
                 }
             }
             for (size_t i = 0; i < edim; i++)

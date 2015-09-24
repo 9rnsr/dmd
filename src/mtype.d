@@ -8177,9 +8177,9 @@ public:
             }
             if (vd.offset < offset || vd.type.size() == 0)
                 e = null;
-            else if (vd._init)
+            else if (vd.initializer)
             {
-                if (vd._init.isVoidInitializer())
+                if (vd.initializer.isVoidInitializer())
                     e = null;
                 else
                     e = vd.getConstInitializer(false);

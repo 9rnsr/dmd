@@ -754,8 +754,8 @@ public:
     {
         objectStart();
         jsonProperties(d);
-        if (d._init)
-            property("init", d._init.toChars());
+        if (d.initializer)
+            property("init", d.initializer.toChars());
         if (d.isField())
             property("offset", d.offset);
         if (d.alignment && d.alignment != STRUCTALIGN_DEFAULT)

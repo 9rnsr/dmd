@@ -948,7 +948,7 @@ public:
             symbol_add(sp);
 
             // Perform initialization of with handle
-            ie = s->wthis->_init->isExpInitializer();
+            ie = s->wthis->initializer->isExpInitializer();
             assert(ie);
             ei = toElemDtor(ie->exp, irs);
             e = el_var(sp);

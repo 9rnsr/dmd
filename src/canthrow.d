@@ -191,9 +191,9 @@ extern (C++) bool Dsymbol_canThrow(Dsymbol s, FuncDeclaration func, bool mustNot
         }
         else
         {
-            if (vd._init)
+            if (vd.initializer)
             {
-                ExpInitializer ie = vd._init.isExpInitializer();
+                ExpInitializer ie = vd.initializer.isExpInitializer();
                 if (ie && canThrow(ie.exp, func, mustNotThrow))
                     return true;
             }

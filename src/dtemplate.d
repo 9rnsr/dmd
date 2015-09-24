@@ -1881,10 +1881,10 @@ public:
         else if (ea)
         {
             // tdtypes.data[i] always matches ea here
-            Initializer _init = new ExpInitializer(loc, ea);
+            Initializer iz = new ExpInitializer(loc, ea);
             TemplateValueParameter tvp = tp.isTemplateValueParameter();
             Type t = tvp ? tvp.valType : null;
-            v = new VarDeclaration(loc, t, tp.ident, _init);
+            v = new VarDeclaration(loc, t, tp.ident, iz);
             v.storage_class = STCmanifest | STCtemplateparameter;
             d = v;
         }
@@ -1929,7 +1929,7 @@ public:
         /* So the caller's o gets updated with the result of semantic() being run on o
          */
         if (v)
-            o = v._init.toExpression();
+            o = v.initializer.toExpression();
         return o;
     }
 
@@ -4973,8 +4973,8 @@ public:
         (*dedtypes)[i] = ei;
         if (psparam)
         {
-            Initializer _init = new ExpInitializer(loc, ei);
-            Declaration sparam = new VarDeclaration(loc, vt, ident, _init);
+            Initializer iz = new ExpInitializer(loc, ei);
+            Declaration sparam = new VarDeclaration(loc, vt, ident, iz);
             sparam.storage_class = STCmanifest;
             *psparam = sparam;
         }
@@ -5224,8 +5224,8 @@ public:
             {
                 assert(ea);
                 // Declare manifest constant
-                Initializer _init = new ExpInitializer(loc, ea);
-                auto v = new VarDeclaration(loc, null, ident, _init);
+                Initializer iz = new ExpInitializer(loc, ea);
+                auto v = new VarDeclaration(loc, null, ident, iz);
                 v.storage_class = STCmanifest;
                 v.semantic(sc);
                 *psparam = v;

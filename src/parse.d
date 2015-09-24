@@ -1102,8 +1102,8 @@ public:
                 tpl = parseTemplateParameterList();
             assert(token.value == TOKassign);
             nextToken(); // skip over '='
-            Initializer _init = parseInitializer();
-            auto v = new VarDeclaration(loc, null, ident, _init);
+            Initializer iz = parseInitializer();
+            auto v = new VarDeclaration(loc, null, ident, iz);
             v.storage_class = storageClass;
             Dsymbol s = v;
             if (tpl)
@@ -4016,7 +4016,7 @@ public:
             if (tok == TOKtypedef || tok == TOKalias)
             {
                 Declaration v;
-                Initializer _init = null;
+                Initializer iz = null;
                 /* Aliases can no longer have multiple declarators, storage classes,
                  * linkages, or auto declarations.
                  * These never made any sense, anyway.
@@ -4028,7 +4028,7 @@ public:
                 if (token.value == TOKassign)
                 {
                     nextToken();
-                    _init = parseInitializer();
+                    iz = parseInitializer();
                 }
                 if (tok == TOKtypedef)
                 {
@@ -4036,10 +4036,10 @@ public:
                 }
                 else
                 {
-                    if (_init)
+                    if (iz)
                     {
                         if (isThis)
-                            error("cannot use syntax 'alias this = %s', use 'alias %s this' instead", _init.toChars(), _init.toChars());
+                            error("cannot use syntax 'alias this = %s', use 'alias %s this' instead", iz.toChars(), iz.toChars());
                         else
                             error("alias cannot have initializer");
                     }
@@ -4133,18 +4133,18 @@ public:
             }
             else if (ident)
             {
-                Initializer _init = null;
+                Initializer iz = null;
                 if (token.value == TOKassign)
                 {
                     nextToken();
-                    _init = parseInitializer();
+                    iz = parseInitializer();
                 }
-                auto v = new VarDeclaration(loc, t, ident, _init);
+                auto v = new VarDeclaration(loc, t, ident, iz);
                 v.storage_class = storage_class;
                 if (pAttrs)
                     pAttrs.storageClass = STCundefined;
                 Dsymbol s = v;
-                if (tpl && _init)
+                if (tpl && iz)
                 {
                     auto a2 = new Dsymbols();
                     a2.push(s);

@@ -52,9 +52,9 @@ public:
     {
         // Note that, walkPostorder does not support DeclarationExp today.
         VarDeclaration v = e.declaration.isVarDeclaration();
-        if (v && !(v.storage_class & STCmanifest) && !v.isDataseg() && v._init)
+        if (v && !(v.storage_class & STCmanifest) && !v.isDataseg() && v.initializer)
         {
-            if (ExpInitializer ei = v._init.isExpInitializer())
+            if (ExpInitializer ei = v.initializer.isExpInitializer())
             {
                 doCond(ei.exp);
             }

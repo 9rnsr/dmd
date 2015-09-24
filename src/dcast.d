@@ -1189,13 +1189,13 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                             for (size_t i = 0; i < cd.fields.dim; i++)
                             {
                                 VarDeclaration v = cd.fields[i];
-                                Initializer _init = v._init;
-                                if (_init)
+                                Initializer iz = v.initializer;
+                                if (iz)
                                 {
-                                    if (_init.isVoidInitializer())
+                                    if (iz.isVoidInitializer())
                                     {
                                     }
-                                    else if (ExpInitializer ei = _init.isExpInitializer())
+                                    else if (ExpInitializer ei = iz.isExpInitializer())
                                     {
                                         Type tb = v.type.toBasetype();
                                         if (implicitMod(ei.exp, tb, mod) == MATCHnomatch)
@@ -3472,7 +3472,7 @@ extern (C++) IntRange getIntRange(Expression e)
             VarDeclaration vd = e.var.isVarDeclaration();
             if (vd && vd.range)
                 range = vd.range._cast(e.type);
-            else if (vd && vd._init && !vd.type.isMutable() && (ie = vd.getConstInitializer()) !is null)
+            else if (vd && vd.initializer && !vd.type.isMutable() && (ie = vd.getConstInitializer()) !is null)
                 ie.accept(this);
             else
                 visit(cast(Expression)e);

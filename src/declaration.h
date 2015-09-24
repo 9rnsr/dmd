@@ -242,7 +242,7 @@ public:
 class VarDeclaration : public Declaration
 {
 public:
-    Initializer *_init;
+    Initializer *initializer;
     unsigned offset;
     bool noscope;                // no auto semantics
     FuncDeclarations nestedrefs; // referenced by these lexically nested functions

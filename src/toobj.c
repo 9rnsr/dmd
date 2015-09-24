@@ -946,12 +946,12 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             } while (parent);
             s->Sfl = FLdata;
 
-            if (vd->_init)
+            if (vd->initializer)
             {
-                Initializer_toDt(vd->_init, &s->Sdt);
+                Initializer_toDt(vd->initializer, &s->Sdt);
 
                 // Look for static array that is block initialized
-                ExpInitializer *ie = vd->_init->isExpInitializer();
+                ExpInitializer *ie = vd->initializer->isExpInitializer();
 
                 Type *tb = vd->type->toBasetype();
                 if (tb->ty == Tsarray && ie &&

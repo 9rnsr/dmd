@@ -370,9 +370,9 @@ public:
                 return;
             }
             // Scan initializer (vd->init)
-            if (vd._init)
+            if (vd.initializer)
             {
-                ExpInitializer ie = vd._init.isExpInitializer();
+                ExpInitializer ie = vd.initializer.isExpInitializer();
                 if (ie)
                 {
                     expressionInlineCost(ie.exp);
@@ -890,36 +890,36 @@ Expression doInline(Expression e, InlineDoState* ids)
                         {
                             if (vd == ids.from[i])
                             {
-                                if (vd._init && !vd._init.isVoidInitializer())
+                                if (vd.initializer && !vd.initializer.isVoidInitializer())
                                 {
-                                    result = vd._init.toExpression();
+                                    result = vd.initializer.toExpression();
                                     assert(result);
                                     result = doInline(result, ids);
                                 }
                                 else
-                                    result = new IntegerExp(vd._init.loc, 0, Type.tint32);
+                                    result = new IntegerExp(vd.initializer.loc, 0, Type.tint32);
                                 return;
                             }
                         }
                     }
-                    auto vto = new VarDeclaration(vd.loc, vd.type, vd.ident, vd._init);
+                    auto vto = new VarDeclaration(vd.loc, vd.type, vd.ident, vd.initializer);
                     memcpy(cast(void*)vto, cast(void*)vd, __traits(classInstanceSize, VarDeclaration));
                     vto.parent = ids.parent;
                     vto.csym = null;
                     vto.isym = null;
                     ids.from.push(vd);
                     ids.to.push(vto);
-                    if (vd._init)
+                    if (vd.initializer)
                     {
-                        if (vd._init.isVoidInitializer())
+                        if (vd.initializer.isVoidInitializer())
                         {
-                            vto._init = new VoidInitializer(vd._init.loc);
+                            vto.initializer = new VoidInitializer(vd.initializer.loc);
                         }
                         else
                         {
-                            Expression ei = vd._init.toExpression();
+                            Expression ei = vd.initializer.toExpression();
                             assert(ei);
-                            vto._init = new ExpInitializer(ei.loc, doInline(ei, ids));
+                            vto.initializer = new ExpInitializer(ei.loc, doInline(ei, ids));
                         }
                     }
                     DeclarationExp de = cast(DeclarationExp)e.copy();
@@ -1048,18 +1048,18 @@ Expression doInline(Expression e, InlineDoState* ids)
             {
                 //printf("lengthVar\n");
                 VarDeclaration vd = e.lengthVar;
-                auto vto = new VarDeclaration(vd.loc, vd.type, vd.ident, vd._init);
+                auto vto = new VarDeclaration(vd.loc, vd.type, vd.ident, vd.initializer);
                 memcpy(cast(void*)vto, cast(void*)vd, __traits(classInstanceSize, VarDeclaration));
                 vto.parent = ids.parent;
                 vto.csym = null;
                 vto.isym = null;
                 ids.from.push(vd);
                 ids.to.push(vto);
-                if (vd._init && !vd._init.isVoidInitializer())
+                if (vd.initializer && !vd.initializer.isVoidInitializer())
                 {
-                    ExpInitializer ie = vd._init.isExpInitializer();
+                    ExpInitializer ie = vd.initializer.isExpInitializer();
                     assert(ie);
-                    vto._init = new ExpInitializer(ie.loc, doInline(ie.exp, ids));
+                    vto.initializer = new ExpInitializer(ie.loc, doInline(ie.exp, ids));
                 }
                 are.lengthVar = vto;
             }
@@ -1075,18 +1075,18 @@ Expression doInline(Expression e, InlineDoState* ids)
             {
                 //printf("lengthVar\n");
                 VarDeclaration vd = e.lengthVar;
-                auto vto = new VarDeclaration(vd.loc, vd.type, vd.ident, vd._init);
+                auto vto = new VarDeclaration(vd.loc, vd.type, vd.ident, vd.initializer);
                 memcpy(cast(void*)vto, cast(void*)vd, __traits(classInstanceSize, VarDeclaration));
                 vto.parent = ids.parent;
                 vto.csym = null;
                 vto.isym = null;
                 ids.from.push(vd);
                 ids.to.push(vto);
-                if (vd._init && !vd._init.isVoidInitializer())
+                if (vd.initializer && !vd.initializer.isVoidInitializer())
                 {
-                    ExpInitializer ie = vd._init.isExpInitializer();
+                    ExpInitializer ie = vd.initializer.isExpInitializer();
                     assert(ie);
-                    vto._init = new ExpInitializer(ie.loc, doInline(ie.exp, ids));
+                    vto.initializer = new ExpInitializer(ie.loc, doInline(ie.exp, ids));
                 }
                 are.lengthVar = vto;
             }
@@ -1398,13 +1398,13 @@ public:
                     scanVar(se.s); // TODO
                 }
             }
-            else if (vd._init)
+            else if (vd.initializer)
             {
-                if (ExpInitializer ie = vd._init.isExpInitializer())
+                if (ExpInitializer ie = vd.initializer.isExpInitializer())
                 {
                     Expression e = ie.exp;
                     inlineScan(&e);
-                    if (vd._init != ie) // DeclareExp with vd appears in e
+                    if (vd.initializer != ie) // DeclareExp with vd appears in e
                         return e;
                     ie.exp = e;
                 }

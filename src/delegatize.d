@@ -153,9 +153,9 @@ extern (C++) bool lambdaCheckForNestedRef(Expression e, Scope* sc)
                  * expression e does not have any nested references by
                  * checking the declaration initializer too.
                  */
-                if (v._init && v._init.isExpInitializer())
+                if (v.initializer && v.initializer.isExpInitializer())
                 {
-                    Expression ie = v._init.toExpression();
+                    Expression ie = v.initializer.toExpression();
                     result = lambdaCheckForNestedRef(ie, sc);
                 }
             }

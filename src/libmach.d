@@ -266,10 +266,10 @@ public:
              */
             static __gshared uid_t uid;
             static __gshared gid_t gid;
-            static __gshared int _init;
-            if (!_init)
+            static __gshared int initialized;
+            if (!initialized)
             {
-                _init = 1;
+                initialized = 1;
                 uid = getuid();
                 gid = getgid();
             }

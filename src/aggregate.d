@@ -300,7 +300,7 @@ public:
         {
             auto vd = fields[i];
             auto vx = vd;
-            if (vd._init && vd._init.isVoidInitializer())
+            if (vd.initializer && vd.initializer.isVoidInitializer())
                 vx = null;
 
             // Find overlapped fields with the hole [vd->offset .. vd->offset->size()].
@@ -334,10 +334,10 @@ public:
 
                 if (!vx)
                     continue;
-                if (v2._init && v2._init.isVoidInitializer())
+                if (v2.initializer && v2.initializer.isVoidInitializer())
                     continue;
 
-                if (vx._init && v2._init)
+                if (vx.initializer && v2.initializer)
                 {
                     .error(loc, "overlapping default initialization for field %s and %s", v2.toChars(), vd.toChars());
                     errors = true;
@@ -378,7 +378,7 @@ public:
 
             auto vd = fields[i];
             auto vx = vd;
-            if (vd._init && vd._init.isVoidInitializer())
+            if (vd.initializer && vd.initializer.isVoidInitializer())
                 vx = null;
 
             // Find overlapped fields with the hole [vd->offset .. vd->offset->size()].
@@ -396,7 +396,7 @@ public:
                     vx = null;
                     break;
                 }
-                if (v2._init && v2._init.isVoidInitializer())
+                if (v2.initializer && v2.initializer.isVoidInitializer())
                     continue;
 
                 version (all)
@@ -410,7 +410,7 @@ public:
                         vx = v2;
                         fieldi = j;
                     }
-                    else if (v2._init)
+                    else if (v2.initializer)
                     {
                         .error(loc, "overlapping initialization for field %s and %s", v2.toChars(), vd.toChars());
                         errors = true;
@@ -424,7 +424,7 @@ public:
                      * union U { int a; int b = 2; }
                      * U u;    // OK (u.b == 2)
                      */
-                    if (!vx || !vx._init && v2._init)
+                    if (!vx || !vx.initializer && v2.initializer)
                     {
                         vx = v2;
                         fieldi = j;
@@ -433,14 +433,14 @@ public:
                     {
                         // Both vx and v2 fills vd, but vx and v2 does not overlap
                     }
-                    else if (vx._init && v2._init)
+                    else if (vx.initializer && v2.initializer)
                     {
                         .error(loc, "overlapping default initialization for field %s and %s",
                             v2.toChars(), vd.toChars());
                         errors = true;
                     }
                     else
-                        assert(vx._init || !vx._init && !v2._init);
+                        assert(vx.initializer || !vx.initializer && !v2.initializer);
                 }
             }
             if (vx)
@@ -450,9 +450,9 @@ public:
                 {
                     e = null;
                 }
-                else if (vx._init)
+                else if (vx.initializer)
                 {
-                    assert(!vx._init.isVoidInitializer());
+                    assert(!vx.initializer.isVoidInitializer());
                     e = vx.getConstInitializer(false);
                 }
                 else

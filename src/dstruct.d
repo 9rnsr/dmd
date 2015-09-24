@@ -541,7 +541,7 @@ public:
             VarDeclaration vd = fields[i];
             if (!vd.isDataseg())
             {
-                if (vd._init)
+                if (vd.initializer)
                 {
                     // Should examine init to see if it is really all 0's
                     zeroInit = 0;

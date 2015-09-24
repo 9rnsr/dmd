@@ -196,7 +196,7 @@ public:
 
     extern (C++) void saveGlobalConstant(VarDeclaration v, Expression e)
     {
-        assert(v._init && (v.isConst() || v.isImmutable() || v.storage_class & STCmanifest) && !v.isCTFE());
+        assert(v.initializer && (v.isConst() || v.isImmutable() || v.storage_class & STCmanifest) && !v.isCTFE());
         v.ctfeAdrOnStack = cast(int)globalValues.dim;
         globalValues.push(e);
     }
@@ -306,9 +306,9 @@ struct CompiledCtfeFunction
                 else if (!(v.isDataseg() || v.storage_class & STCmanifest) || v.isCTFE())
                     ccf.onDeclaration(v);
                 Dsymbol s = v.toAlias();
-                if (s == v && !v.isStatic() && v._init)
+                if (s == v && !v.isStatic() && v.initializer)
                 {
-                    ExpInitializer ie = v._init.isExpInitializer();
+                    ExpInitializer ie = v.initializer.isExpInitializer();
                     if (ie)
                         ccf.onExpression(ie.exp);
                 }
@@ -2188,7 +2188,7 @@ public:
                 if (v.type.ty == Terror)
                     return CTFEExp.cantexp;
             }
-            if ((v.isConst() || v.isImmutable() || v.storage_class & STCmanifest) && !hasValue(v) && v._init && !v.isCTFE())
+            if ((v.isConst() || v.isImmutable() || v.storage_class & STCmanifest) && !hasValue(v) && v.initializer && !v.isCTFE())
             {
                 if (v.inuse)
                 {
@@ -2198,10 +2198,10 @@ public:
                 if (v.declScope)
                 {
                     v.inuse++;
-                    v._init = v._init.semantic(v.declScope, v.type, INITinterpret); // might not be run on aggregate members
+                    v.initializer = v.initializer.semantic(v.declScope, v.type, INITinterpret); // might not be run on aggregate members
                     v.inuse--;
                 }
-                e = v._init.toExpression(v.type);
+                e = v.initializer.toExpression(v.type);
                 if (!e)
                     return CTFEExp.cantexp;
                 assert(e.type);
@@ -2235,15 +2235,15 @@ public:
             }
             else if (v.isCTFE() && !hasValue(v))
             {
-                if (v._init && v.type.size() != 0)
+                if (v.initializer && v.type.size() != 0)
                 {
-                    if (v._init.isVoidInitializer())
+                    if (v.initializer.isVoidInitializer())
                     {
                         // var should have been initialized when it was created
                         error(loc, "CTFE internal error: trying to access uninitialized var");
                         assert(0);
                     }
-                    e = v._init.toExpression();
+                    e = v.initializer.toExpression();
                 }
                 else
                     e = v.type.defaultInitLiteral(e.loc);
@@ -2264,7 +2264,7 @@ public:
                 }
                 if (!e)
                 {
-                    assert(!(v._init && v._init.isVoidInitializer()));
+                    assert(!(v.initializer && v.initializer.isVoidInitializer()));
                     // CTFE initiated from inside a function
                     error(loc, "variable %s cannot be read at compile time", v.toChars());
                     return CTFEExp.cantexp;
@@ -2384,16 +2384,16 @@ public:
                     if (v2.isDataseg() && !v2.isCTFE())
                         continue;
                     ctfeStack.push(v2);
-                    if (v2._init)
+                    if (v2.initializer)
                     {
                         Expression einit;
-                        if (ExpInitializer ie = v2._init.isExpInitializer())
+                        if (ExpInitializer ie = v2.initializer.isExpInitializer())
                         {
                             einit = interpret(ie.exp, istate, goal);
                             if (exceptionOrCant(einit))
                                 return;
                         }
-                        else if (v2._init.isVoidInitializer())
+                        else if (v2.initializer.isVoidInitializer())
                         {
                             einit = voidInitLiteral(v2.type, v2).copy();
                         }
@@ -2416,13 +2416,13 @@ public:
             }
             if (!(v.isDataseg() || v.storage_class & STCmanifest) || v.isCTFE())
                 ctfeStack.push(v);
-            if (v._init)
+            if (v.initializer)
             {
-                if (ExpInitializer ie = v._init.isExpInitializer())
+                if (ExpInitializer ie = v.initializer.isExpInitializer())
                 {
                     result = interpret(ie.exp, istate, goal);
                 }
-                else if (v._init.isVoidInitializer())
+                else if (v.initializer.isVoidInitializer())
                 {
                     result = voidInitLiteral(v.type, v).copy();
                     // There is no AssignExp for void initializers,
@@ -2937,9 +2937,9 @@ public:
                         return;
                     }
                     Expression m;
-                    if (v._init)
+                    if (v.initializer)
                     {
-                        if (v._init.isVoidInitializer())
+                        if (v.initializer.isVoidInitializer())
                             m = voidInitLiteral(v.type, v).copy();
                         else
                             m = v.getConstInitializer(true);
@@ -4840,13 +4840,13 @@ public:
             VarExp ve = cast(VarExp)e.e2;
             VarDeclaration v = ve.var.isVarDeclaration();
             ctfeStack.push(v);
-            if (!v._init && !getValue(v))
+            if (!v.initializer && !getValue(v))
             {
                 setValue(v, copyLiteral(v.type.defaultInitLiteral(e.loc)).copy());
             }
             if (!getValue(v))
             {
-                Expression newval = v._init.toExpression();
+                Expression newval = v.initializer.toExpression();
                 // Bug 4027. Copy constructors are a weird case where the
                 // initializer is a void function (the variable is modified
                 // through a reference parameter instead).

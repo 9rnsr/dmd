@@ -1392,14 +1392,14 @@ public:
             buf.writeByte('(');
             visitTemplateParameters(hgs.ddoc ? d.origParameters : d.parameters);
             buf.writeByte(')');
-            if (vd._init)
+            if (vd.initializer)
             {
                 buf.writestring(" = ");
-                ExpInitializer ie = vd._init.isExpInitializer();
+                ExpInitializer ie = vd.initializer.isExpInitializer();
                 if (ie && (ie.exp.op == TOKconstruct || ie.exp.op == TOKblit))
                     (cast(AssignExp)ie.exp).e2.accept(this);
                 else
-                    vd._init.accept(this);
+                    vd.initializer.accept(this);
             }
             buf.writeByte(';');
             buf.writenl();
@@ -1714,14 +1714,14 @@ public:
             else
                 buf.writestring(v.ident.toChars());
         }
-        if (v._init)
+        if (v.initializer)
         {
             buf.writestring(" = ");
-            ExpInitializer ie = v._init.isExpInitializer();
+            ExpInitializer ie = v.initializer.isExpInitializer();
             if (ie && (ie.exp.op == TOKconstruct || ie.exp.op == TOKblit))
                 (cast(AssignExp)ie.exp).e2.accept(this);
             else
-                v._init.accept(this);
+                v.initializer.accept(this);
         }
     }
 

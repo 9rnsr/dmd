@@ -1002,7 +1002,7 @@ public:
 extern (C++) class VarDeclaration : Declaration
 {
 public:
-    Initializer _init;
+    Initializer initializer;
     uint offset;
     bool noscope;                   // no auto semantics
     FuncDeclarations nestedrefs;    // referenced by these lexically nested functions
@@ -1030,22 +1030,22 @@ public:
     Expression edtor;               // if !=null, does the destruction of the variable
     IntRange* range;                // if !=null, the variable is known to be within the range
 
-    final extern (D) this(Loc loc, Type type, Identifier id, Initializer _init)
+    final extern (D) this(Loc loc, Type type, Identifier id, Initializer iz)
     {
         super(id);
         //printf("VarDeclaration('%s')\n", id->toChars());
         assert(id);
         debug
         {
-            if (!type && !_init)
+            if (!type && !iz)
             {
                 printf("VarDeclaration('%s')\n", id.toChars());
                 //*(char*)0=0;
             }
         }
-        assert(type || _init);
+        assert(type || iz);
         this.type = type;
-        this._init = _init;
+        this.initializer = iz;
         this.loc = loc;
         ctfeAdrOnStack = -1;
     }
@@ -1054,7 +1054,7 @@ public:
     {
         //printf("VarDeclaration::syntaxCopy(%s)\n", toChars());
         assert(!s);
-        auto v = new VarDeclaration(loc, type ? type.syntaxCopy() : null, ident, _init ? _init.syntaxCopy() : null);
+        auto v = new VarDeclaration(loc, type ? type.syntaxCopy() : null, ident, initializer ? initializer.syntaxCopy() : null);
         v.storage_class = storage_class;
         return v;
     }
@@ -1086,7 +1086,7 @@ public:
          * override, abstract, and final.
          */
         storage_class |= (sc.stc & ~(STCsynchronized | STCoverride | STCabstract | STCfinal));
-        if (storage_class & STCextern && _init)
+        if (storage_class & STCextern && initializer)
             error("extern symbols cannot have initializers");
         userAttribDecl = sc.userAttribDecl;
         AggregateDeclaration ad = isThis();
@@ -1104,8 +1104,8 @@ public:
             if (needctfe)
                 sc = sc.startCTFE();
             //printf("inferring type for %s with init %s\n", toChars(), init->toChars());
-            _init = _init.inferType(sc);
-            type = _init.toExpression().type;
+            initializer = initializer.inferType(sc);
+            type = initializer.toExpression().type;
             if (needctfe)
                 sc = sc.endCTFE();
             inuse--;
@@ -1156,7 +1156,7 @@ public:
                 if (sc.func.setUnsafe())
                     error("__gshared not allowed in safe functions; use shared");
             }
-            if (_init && _init.isVoidInitializer() && type.hasPointers()) // get type size
+            if (initializer && initializer.isVoidInitializer() && type.hasPointers()) // get type size
             {
                 if (sc.func.setUnsafe())
                     error("void initializers for pointers not allowed in safe functions");
@@ -1169,7 +1169,7 @@ public:
         {
             if (inferred)
             {
-                error("type %s is inferred from initializer %s, and variables cannot be of type void", type.toChars(), _init.toChars());
+                error("type %s is inferred from initializer %s, and variables cannot be of type void", type.toChars(), initializer.toChars());
             }
             else
                 error("variables cannot be of type void");
@@ -1199,7 +1199,7 @@ public:
              */
             TypeTuple tt = cast(TypeTuple)tb;
             size_t nelems = Parameter.dim(tt.arguments);
-            Expression ie = (_init && !_init.isVoidInitializer()) ? _init.toExpression() : null;
+            Expression ie = (initializer && !initializer.isVoidInitializer()) ? initializer.toExpression() : null;
             if (ie)
                 ie = ie.semantic(sc);
             if (nelems > 0 && ie)
@@ -1274,7 +1274,7 @@ public:
                 }
                 if (iexps.dim < nelems)
                     goto Lnomatch;
-                ie = new TupleExp(_init.loc, iexps);
+                ie = new TupleExp(initializer.loc, iexps);
             }
         Lnomatch:
             if (ie && ie.op == TOKtuple)
@@ -1311,7 +1311,7 @@ public:
                     ti = new ExpInitializer(einit.loc, einit);
                 }
                 else
-                    ti = _init ? _init.syntaxCopy() : null;
+                    ti = initializer ? initializer.syntaxCopy() : null;
                 auto v = new VarDeclaration(loc, arg.type, id, ti);
                 v.storage_class |= STCtemp | storage_class;
                 if (arg.storageClass & STCparameter)
@@ -1371,7 +1371,7 @@ public:
             AggregateDeclaration aad = parent.isAggregateDeclaration();
             if (aad)
             {
-                if (global.params.vfield && storage_class & (STCconst | STCimmutable) && _init && !_init.isVoidInitializer())
+                if (global.params.vfield && storage_class & (STCconst | STCimmutable) && initializer && !initializer.isVoidInitializer())
                 {
                     const(char)* p = loc.toChars();
                     const(char)* s = (storage_class & STCimmutable) ? "immutable" : "const";
@@ -1380,7 +1380,7 @@ public:
                 storage_class |= STCfield;
                 if (tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)
                 {
-                    if (!isThisDeclaration() && !_init)
+                    if (!isThisDeclaration() && !initializer)
                         aad.noDefaultCtor = true;
                 }
             }
@@ -1446,7 +1446,7 @@ public:
         }
         if (!(storage_class & (STCctfe | STCref | STCresult)) && tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)
         {
-            if (!_init)
+            if (!initializer)
             {
                 if (isField())
                 {
@@ -1474,17 +1474,17 @@ public:
                     error("reference to scope class must be scope");
             }
         }
-        if (!_init && !fd)
+        if (!initializer && !fd)
         {
             // If not mutable, initializable by constructor only
             storage_class |= STCctorinit;
         }
-        if (_init)
+        if (initializer)
             storage_class |= STCinit; // remember we had an explicit initializer
         else if (storage_class & STCmanifest)
             error("manifest constants must have initializers");
         bool isBlit = false;
-        if (!_init && !sc.inunion && !(storage_class & (STCstatic | STCgshared | STCextern)) && fd && (!(storage_class & (STCfield | STCin | STCforeach | STCparameter | STCresult)) || (storage_class & STCout)) && type.size() != 0)
+        if (!initializer && !sc.inunion && !(storage_class & (STCstatic | STCgshared | STCextern)) && fd && (!(storage_class & (STCfield | STCin | STCforeach | STCparameter | STCresult)) || (storage_class & STCout)) && type.size() != 0)
         {
             // Provide a default initializer
             //printf("Providing default initializer for '%s'\n", toChars());
@@ -1502,7 +1502,7 @@ public:
                 Expression e1 = new VarExp(loc, this);
                 e = new BlitExp(loc, e1, e);
                 e = e.semantic(sc);
-                _init = new ExpInitializer(loc, e);
+                initializer = new ExpInitializer(loc, e);
                 goto Ldtor;
             }
             else if (type.ty == Tstruct && (cast(TypeStruct)type).sym.zeroInit == 1)
@@ -1518,7 +1518,7 @@ public:
                 e1 = new VarExp(loc, this);
                 e = new BlitExp(loc, e1, e);
                 e.type = e1.type; // don't type check this, it would fail
-                _init = new ExpInitializer(loc, e);
+                initializer = new ExpInitializer(loc, e);
                 goto Ldtor;
             }
             else if (type.baseElemOf().ty == Tvoid)
@@ -1527,16 +1527,16 @@ public:
             }
             else
             {
-                _init = getExpInitializer();
+                initializer = getExpInitializer();
             }
             // Default initializer is always a blit
             isBlit = true;
         }
-        if (_init)
+        if (initializer)
         {
             sc = sc.push();
             sc.stc &= ~(STC_TYPECTOR | STCpure | STCnothrow | STCnogc | STCref | STCdisable);
-            ExpInitializer ei = _init.isExpInitializer();
+            ExpInitializer ei = initializer.isExpInitializer();
             if (ei) // Bugzilla 13424: Preset the required type to fail in FuncLiteralDeclaration::semantic3
                 ei.exp = inferType(ei.exp, type);
             // If inside function, there is no semantic3() call
@@ -1544,30 +1544,30 @@ public:
             {
                 // If local variable, use AssignExp to handle all the various
                 // possibilities.
-                if (fd && !(storage_class & (STCmanifest | STCstatic | STCtls | STCgshared | STCextern)) && !_init.isVoidInitializer())
+                if (fd && !(storage_class & (STCmanifest | STCstatic | STCtls | STCgshared | STCextern)) && !initializer.isVoidInitializer())
                 {
                     //printf("fd = '%s', var = '%s'\n", fd->toChars(), toChars());
                     if (!ei)
                     {
-                        ArrayInitializer ai = _init.isArrayInitializer();
+                        ArrayInitializer ai = initializer.isArrayInitializer();
                         Expression e;
                         if (ai && tb.ty == Taarray)
                             e = ai.toAssocArrayLiteral();
                         else
-                            e = _init.toExpression();
+                            e = initializer.toExpression();
                         if (!e)
                         {
                             // Run semantic, but don't need to interpret
-                            _init = _init.semantic(sc, type, INITnointerpret);
-                            e = _init.toExpression();
+                            initializer = initializer.semantic(sc, type, INITnointerpret);
+                            e = initializer.toExpression();
                             if (!e)
                             {
                                 error("is not a static and cannot have static initializer");
                                 return;
                             }
                         }
-                        ei = new ExpInitializer(_init.loc, e);
-                        _init = ei;
+                        ei = new ExpInitializer(initializer.loc, e);
+                        initializer = ei;
                     }
                     Expression exp = ei.exp;
                     Expression e1 = new VarExp(loc, this);
@@ -1581,7 +1581,7 @@ public:
                     exp = exp.optimize(WANTvalue);
                     if (exp.op == TOKerror)
                     {
-                        _init = new ErrorInitializer();
+                        initializer = new ErrorInitializer();
                         ei = null;
                     }
                     else
@@ -1616,7 +1616,7 @@ public:
                 else
                 {
                     // Bugzilla 14166: Don't run CTFE for the temporary variables inside typeof
-                    _init = _init.semantic(sc, type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
+                    initializer = initializer.semantic(sc, type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
                 }
             }
             else if (parent.isAggregateDeclaration())
@@ -1675,11 +1675,11 @@ public:
                         }
                         ei.exp = exp;
                     }
-                    _init = _init.semantic(sc, type, INITinterpret);
+                    initializer = initializer.semantic(sc, type, INITinterpret);
                     inuse--;
                     if (global.errors > errors)
                     {
-                        _init = new ErrorInitializer();
+                        initializer = new ErrorInitializer();
                         type = Type.terror;
                     }
                 }
@@ -1804,7 +1804,7 @@ public:
             return;
         //printf("VarDeclaration::semantic2('%s')\n", toChars());
         // Inside unions, default to void initializers
-        if (!_init && sc.inunion && !toParent().isFuncDeclaration())
+        if (!initializer && sc.inunion && !toParent().isFuncDeclaration())
         {
             AggregateDeclaration aad = parent.isAggregateDeclaration();
             if (aad)
@@ -1814,25 +1814,25 @@ public:
                     int hasinit = 0;
                     for (size_t i = 1; i < aad.fields.dim; i++)
                     {
-                        if (aad.fields[i]._init && !aad.fields[i]._init.isVoidInitializer())
+                        if (aad.fields[i].initializer && !aad.fields[i].initializer.isVoidInitializer())
                         {
                             hasinit = 1;
                             break;
                         }
                     }
                     if (!hasinit)
-                        _init = new ExpInitializer(loc, type.defaultInitLiteral(loc));
+                        initializer = new ExpInitializer(loc, type.defaultInitLiteral(loc));
                 }
                 else
-                    _init = new VoidInitializer(loc);
+                    initializer = new VoidInitializer(loc);
             }
         }
-        if (_init && !toParent().isFuncDeclaration())
+        if (initializer && !toParent().isFuncDeclaration())
         {
             inuse++;
             version (none)
             {
-                ExpInitializer ei = _init.isExpInitializer();
+                ExpInitializer ei = initializer.isExpInitializer();
                 if (ei)
                 {
                     ei.exp.print();
@@ -1840,7 +1840,7 @@ public:
                 }
             }
             // Bugzilla 14166: Don't run CTFE for the temporary variables inside typeof
-            _init = _init.semantic(sc, type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
+            initializer = initializer.semantic(sc, type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
             inuse--;
         }
         if (storage_class & STCmanifest)
@@ -1853,7 +1853,7 @@ public:
                 }
                 else if (type.ty == Tpointer && type.nextOf().ty == Tstruct && type.nextOf().isMutable())
                 {
-                    ExpInitializer ei = _init.isExpInitializer();
+                    ExpInitializer ei = initializer.isExpInitializer();
                     if (ei.exp.op == TOKaddress && (cast(AddrExp)ei.exp).e1.op == TOKstructliteral)
                     {
                         error("is a pointer to mutable struct. Only pointers to const or immutable struct enum are allowed, not %s", type.toChars());
@@ -1862,15 +1862,15 @@ public:
             }
             else
             {
-                if (type.ty == Tclass && _init)
+                if (type.ty == Tclass && initializer)
                 {
-                    ExpInitializer ei = _init.isExpInitializer();
+                    ExpInitializer ei = initializer.isExpInitializer();
                     if (ei.exp.op == TOKclassreference)
                         error(": Unable to initialize enum with class or pointer to struct. Use static const variable instead.");
                 }
                 else if (type.ty == Tpointer && type.nextOf().ty == Tstruct)
                 {
-                    ExpInitializer ei = _init.isExpInitializer();
+                    ExpInitializer ei = initializer.isExpInitializer();
                     if (ei && ei.exp.op == TOKaddress && (cast(AddrExp)ei.exp).e1.op == TOKstructliteral)
                     {
                         error(": Unable to initialize enum with class or pointer to struct. Use static const variable instead.");
@@ -1878,17 +1878,17 @@ public:
                 }
             }
         }
-        else if (_init && isThreadlocal())
+        else if (initializer && isThreadlocal())
         {
             if ((type.ty == Tclass) && type.isMutable() && !type.isShared())
             {
-                ExpInitializer ei = _init.isExpInitializer();
+                ExpInitializer ei = initializer.isExpInitializer();
                 if (ei && ei.exp.op == TOKclassreference)
                     error("is mutable. Only const or immutable class thread local variable are allowed, not %s", type.toChars());
             }
             else if (type.ty == Tpointer && type.nextOf().ty == Tstruct && type.nextOf().isMutable() && !type.nextOf().isShared())
             {
-                ExpInitializer ei = _init.isExpInitializer();
+                ExpInitializer ei = initializer.isExpInitializer();
                 if (ei && ei.exp.op == TOKaddress && (cast(AddrExp)ei.exp).e1.op == TOKstructliteral)
                 {
                     error("is a pointer to mutable struct. Only pointers to const, immutable or shared struct thread local variable are allowed, not %s", type.toChars());
@@ -1933,7 +1933,7 @@ public:
 
     override final bool isImportedSymbol()
     {
-        if (protection.kind == PROTexport && !_init && (storage_class & STCstatic || parent.isModule()))
+        if (protection.kind == PROTexport && !initializer && (storage_class & STCstatic || parent.isModule()))
             return true;
         return false;
     }
@@ -2098,8 +2098,8 @@ public:
     final ExpInitializer getExpInitializer()
     {
         ExpInitializer ei;
-        if (_init)
-            ei = _init.isExpInitializer();
+        if (initializer)
+            ei = initializer.isExpInitializer();
         else
         {
             Expression e = type.defaultInit(loc);
@@ -2117,7 +2117,7 @@ public:
      */
     final Expression getConstInitializer(bool needFullType = true)
     {
-        assert(type && _init);
+        assert(type && initializer);
         // Ungag errors when not speculative
         uint oldgag = global.gag;
         if (global.gag)
@@ -2129,11 +2129,11 @@ public:
         if (declScope)
         {
             inuse++;
-            _init = _init.semantic(declScope, type, INITinterpret);
+            initializer = initializer.semantic(declScope, type, INITinterpret);
             declScope = null;
             inuse--;
         }
-        Expression e = _init.toExpression(needFullType ? type : null);
+        Expression e = initializer.toExpression(needFullType ? type : null);
         global.gag = oldgag;
         return e;
     }
@@ -2237,7 +2237,7 @@ public:
                     }
                     if (ident == Id.withSym) // Bugzilla 1759
                     {
-                        ExpInitializer ez = _init.isExpInitializer();
+                        ExpInitializer ez = initializer.isExpInitializer();
                         assert(ez);
                         Expression e = ez.exp;
                         if (e.op == TOKconstruct || e.op == TOKblit)

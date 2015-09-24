@@ -1914,8 +1914,8 @@ public:
                         VarDeclaration v = (*parameters)[i];
                         if (v.storage_class & STCout)
                         {
-                            assert(v._init);
-                            ExpInitializer ie = v._init.isExpInitializer();
+                            assert(v.initializer);
+                            ExpInitializer ie = v.initializer.isExpInitializer();
                             assert(ie);
                             if (ie.exp.op == TOKconstruct)
                                 ie.exp.op = TOKassign; // construction occured in parameter processing
@@ -1930,7 +1930,7 @@ public:
                     {
                         // Handled in FuncDeclaration::toObjFile
                         v_argptr = argptr;
-                        v_argptr._init = new VoidInitializer(loc);
+                        v_argptr.initializer = new VoidInitializer(loc);
                     }
                     else
                     {
@@ -2020,7 +2020,7 @@ public:
                     Expression e1 = new VarExp(Loc(), _arguments);
                     e = new ConstructExp(Loc(), e1, e);
                     e = e.semantic(sc2);
-                    _arguments._init = new ExpInitializer(Loc(), e);
+                    _arguments.initializer = new ExpInitializer(Loc(), e);
                     auto de = new DeclarationExp(Loc(), _arguments);
                     a.push(new ExpStatement(Loc(), de));
                 }

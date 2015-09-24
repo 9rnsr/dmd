@@ -475,7 +475,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
 
             VarDeclaration *v = e->var->isVarDeclaration();
             if (v && (v->isConst() || v->isImmutable()) &&
-                e->type->toBasetype()->ty != Tsarray && v->_init)
+                e->type->toBasetype()->ty != Tsarray && v->initializer)
             {
                 if (v->inuse)
                 {
@@ -483,7 +483,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                     return;
                 }
                 v->inuse++;
-                pdt = Initializer_toDt(v->_init, pdt);
+                pdt = Initializer_toDt(v->initializer, pdt);
                 v->inuse--;
                 return;
             }
@@ -632,7 +632,7 @@ dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt,
 
     for (size_t i = 0; i < ad->fields.dim; i++)
     {
-        if (ad->fields[i]->_init && ad->fields[i]->_init->isVoidInitializer())
+        if (ad->fields[i]->initializer && ad->fields[i]->initializer->isVoidInitializer())
             continue;
 
         VarDeclaration *vd = NULL;
@@ -642,7 +642,7 @@ dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt,
             VarDeclaration *v2 = ad->fields[j];
             if (v2->offset < offset)
                 continue;
-            if (v2->_init && v2->_init->isVoidInitializer())
+            if (v2->initializer && v2->initializer->isVoidInitializer())
                 continue;
             // find the nearest field
             if (!vd || v2->offset < vd->offset)
@@ -660,7 +660,7 @@ dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt,
             pdt = dtnzeros(pdt, vd->offset - offset);
 
         dt_t *dt = NULL;
-        if (Initializer *init = vd->_init)
+        if (Initializer *init = vd->initializer)
         {
             //printf("\t\t%s has initializer %s\n", vd->toChars(), init->toChars());
             if (init->isVoidInitializer())
