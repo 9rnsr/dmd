@@ -46,7 +46,7 @@ private:
     size_t count;
 
 public:
-    void _init(d_size_t size = 0);
+    void initialize(d_size_t size = 0);
     void reset(d_size_t size = 0);
     ~StringTable();
 

@@ -26,7 +26,7 @@ struct ObjcSelector
     size_t stringlen;
     size_t paramCount;
 
-    extern (C++) static void _init();
+    extern (C++) static void initialize();
 
     // MARK: ObjcSelector
     extern (D) this(const(char)* sv, size_t len, size_t pcount)

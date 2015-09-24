@@ -866,9 +866,9 @@ public:
         return 'M'; // name mangling prefix for functions needing 'this'
     }
 
-    final static void _init()
+    final static void initialize()
     {
-        stringtable._init(14000);
+        stringtable.initialize(14000);
         // Set basic types
         static __gshared TY* basetab =
         [

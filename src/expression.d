@@ -2259,7 +2259,7 @@ public:
         this.size = cast(ubyte)size;
     }
 
-    final static void _init()
+    final static void initialize()
     {
         CTFEExp.cantexp = new CTFEExp(TOKcantexp);
         CTFEExp.voidexp = new CTFEExp(TOKvoidexp);

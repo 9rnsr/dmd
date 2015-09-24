@@ -110,7 +110,7 @@ private:
     size_t count;
 
 public:
-    extern (C++) void _init(size_t size = 0)
+    extern (C++) void initialize(size_t size = 0)
     {
         size = nextpow2(cast(size_t)(size / loadFactor));
         if (size < 32)
@@ -130,7 +130,7 @@ public:
         mem.xfree(pools);
         table = null;
         pools = null;
-        _init(size);
+        initialize(size);
     }
 
     extern (C++) ~this()

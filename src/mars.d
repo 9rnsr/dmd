@@ -260,7 +260,7 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
     {
         bool setdefaultlib = false;
     }
-    global._init();
+    global.initialize();
     debug
     {
         printf("DMD %s DEBUG\n", global._version);
@@ -405,7 +405,7 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
     const(char)* inifilepath = FileName.path(global.inifilename);
     Strings sections;
     StringTable environment;
-    environment._init(7);
+    environment.initialize(7);
     /* Read the [Environment] section, so we can later
      * pick up any DFLAGS settings.
      */
@@ -1192,11 +1192,11 @@ Language changes listed by -transition=id:
     objc_tryMain_dObjc();
     // Initialization
     Lexer.initLexer();
-    Type._init();
+    Type.initialize();
     Id.initialize();
-    Module._init();
-    Target._init();
-    Expression._init();
+    Module.initialize();
+    Target.initialize();
+    Expression.initialize();
     objc_tryMain_init();
     builtin_init();
     initTraitsStringTable();

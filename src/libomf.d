@@ -54,7 +54,7 @@ public:
 
     extern (D) this()
     {
-        tab._init(14000);
+        tab.initialize(14000);
     }
 
     /***********************************

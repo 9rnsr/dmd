@@ -205,7 +205,7 @@ struct Global
      */
     void increaseErrorCount();
 
-    void init();
+    void initialize();
 };
 
 extern Global global;

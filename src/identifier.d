@@ -144,6 +144,6 @@ public:
 
     static void initTable()
     {
-        stringtable._init(28000);
+        stringtable.initialize(28000);
     }
 }

@@ -130,7 +130,7 @@ public:
     unsigned char parens;       // if this is a parenthesized expression
 
     Expression(Loc loc, TOK op, int size);
-    static void init();
+    static void initialize();
     Expression *copy();
     virtual Expression *syntaxCopy();
     virtual Expression *semantic(Scope *sc);

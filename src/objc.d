@@ -36,9 +36,9 @@ struct ObjcSelector
     size_t stringlen;
     size_t paramCount;
 
-    extern (C++) static void _init()
+    extern (C++) static void initialize()
     {
-        stringtable._init();
+        stringtable.initialize();
     }
 
     extern (D) this(const(char)* sv, size_t len, size_t pcount)
@@ -222,5 +222,5 @@ extern (C++) void objc_tryMain_dObjc()
 extern (C++) void objc_tryMain_init()
 {
     objc_initSymbols();
-    ObjcSelector._init();
+    ObjcSelector.initialize();
 }

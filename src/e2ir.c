@@ -911,7 +911,7 @@ void clearStringTab()
     else
     {
         stringTab = new StringTable();
-        stringTab->_init(1000);
+        stringTab->initialize(1000);
     }
 }
 

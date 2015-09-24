@@ -79,7 +79,7 @@ StringTable *objc_smethVarRefTable = NULL;
 static StringTable *initStringTable(StringTable *stringtable)
 {
     stringtable = new StringTable();
-    stringtable->_init();
+    stringtable->initialize();
 
     return stringtable;
 }

@@ -30,7 +30,7 @@ struct Target
     extern (C++) static __gshared int c_long_doublesize;    // size of a C 'long double'
     extern (C++) static __gshared int classinfosize;        // size of 'ClassInfo'
 
-    extern (C++) static void _init()
+    extern (C++) static void initialize()
     {
         // These have default values for 32 bit code, they get
         // adjusted for 64 bit code.

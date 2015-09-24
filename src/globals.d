@@ -246,7 +246,7 @@ struct Global
         ++errors;
     }
 
-    extern (C++) void _init()
+    extern (C++) void initialize()
     {
         inifilename = null;
         mars_ext = "d";

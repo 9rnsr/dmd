@@ -241,7 +241,7 @@ public:
     char *toChars();
     char *toPrettyChars(bool QualifyTypes = false);
     static char needThisPrefix();
-    static void init();
+    static void initialize();
 
     #define SIZE_INVALID (~(d_uns64)0)
     d_uns64 size();

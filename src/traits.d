@@ -294,7 +294,7 @@ extern (C++) __gshared StringTable traitsStringTable;
 
 extern (C++) void initTraitsStringTable()
 {
-    traitsStringTable._init(40);
+    traitsStringTable.initialize(40);
     for (size_t idx = 0;; idx++)
     {
         const(char)* s = traits[idx];

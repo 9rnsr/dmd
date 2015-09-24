@@ -263,7 +263,7 @@ public:
     extern (C++) static __gshared Dsymbols deferred3;   // deferred Dsymbol's needing semantic3() run on them
     extern (C++) static __gshared uint dprogress;       // progress resolving the deferred list
 
-    static void _init()
+    static void initialize()
     {
         modules = new DsymbolTable();
     }
