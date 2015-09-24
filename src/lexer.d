@@ -403,7 +403,7 @@ public:
                             uint major = 0;
                             uint minor = 0;
                             bool point = false;
-                            for (const(char)* p = global._version + 1; 1; p++)
+                            for (const(char)* p = global.verstr + 1; 1; p++)
                             {
                                 c = *p;
                                 if (isdigit(cast(char)c))

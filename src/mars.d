@@ -101,7 +101,7 @@ extern (C++) void ensurePathToNameExists(Loc loc, const(char)* name)
 
 extern (C++) static void logo()
 {
-    printf("DMD%llu D Compiler %s\n%s %s\n", cast(ulong)size_t.sizeof * 8, global._version, global.copyright, global.written);
+    printf("DMD%llu D Compiler %s\n%s %s\n", cast(ulong)size_t.sizeof * 8, global.verstr, global.copyright, global.written);
 }
 
 extern (C++) static void usage()
@@ -263,7 +263,7 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
     global.initialize();
     debug
     {
-        printf("DMD %s DEBUG\n", global._version);
+        printf("DMD %s DEBUG\n", global.verstr);
         fflush(stdout); // avoid interleaving with stderr output when redirecting
     }
     unittests();
@@ -1203,7 +1203,7 @@ Language changes listed by -transition=id:
     if (global.params.verbose)
     {
         fprintf(global.stdmsg, "binary    %s\n", global.params.argv0);
-        fprintf(global.stdmsg, "version   %s\n", global._version);
+        fprintf(global.stdmsg, "version   %s\n", global.verstr);
         fprintf(global.stdmsg, "config    %s\n", global.inifilename ? global.inifilename : "(none)");
     }
     //printf("%d source files\n",files.dim);

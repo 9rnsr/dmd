@@ -201,7 +201,7 @@ struct Global
     Array!(const(char)*)* path;     // Array of char*'s which form the import lookup path
     Array!(const(char)*)* filePath; // Array of char*'s which form the file import lookup path
 
-    const(char)* _version;
+    const(char)* verstr;
 
     Compiler compiler;
     Param params;
@@ -310,7 +310,7 @@ struct Global
         }
         copyright = "Copyright (c) 1999-2015 by Digital Mars";
         written = "written by Walter Bright";
-        _version = ('v' ~ stripRight(import("verstr.h"))[1 .. $ - 1] ~ '\0').ptr;
+        verstr = ('v' ~ stripRight(import("verstr.h"))[1 .. $ - 1] ~ '\0').ptr;
         compiler.vendor = "Digital Mars D";
         stdmsg = stdout;
         main_d = "__main.d";
