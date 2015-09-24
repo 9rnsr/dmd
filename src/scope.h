@@ -73,7 +73,7 @@ struct Scope
 {
     Scope *enclosing;           // enclosing Scope
 
-    Module *module;             // Root module
+    Module *currentModule;      // The root of lexical scopes
     ScopeDsymbol *scopesym;     // current symbol
     ScopeDsymbol *sds;          // if in static if, and declaring new symbols,
                                 // sds gets the addMember()

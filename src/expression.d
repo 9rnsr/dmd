@@ -5762,7 +5762,7 @@ public:
         sc = sc.pop();
         if (!cd.errors && sc.intypeof && !sc.parent.inNonRoot())
         {
-            ScopeDsymbol sds = sc.tinst ? cast(ScopeDsymbol)sc.tinst : sc._module;
+            ScopeDsymbol sds = sc.tinst ? cast(ScopeDsymbol)sc.tinst : sc.currentModule;
             sds.members.push(cd);
         }
         Expression n = new NewExp(loc, thisexp, newargs, cd.type, arguments);
@@ -7497,7 +7497,7 @@ public:
         }
         se = se.toUTF8(sc);
         uint errors = global.errors;
-        scope Parser p = new Parser(loc, sc._module, cast(char*)se.string, se.len, 0);
+        scope Parser p = new Parser(loc, sc.currentModule, cast(char*)se.string, se.len, 0);
         p.nextToken();
         //printf("p.loc.linnum = %d\n", p.loc.linnum);
         Expression e = p.parseExpression();
@@ -7877,7 +7877,7 @@ public:
              * The check for 'is sds our current module' is because
              * the current module should have access to its own imports.
              */
-            Dsymbol s = ie.sds.search(loc, ident, (ie.sds.isModule() && ie.sds != sc._module) ? IgnorePrivateMembers : IgnoreNone);
+            Dsymbol s = ie.sds.search(loc, ident, (ie.sds.isModule() && ie.sds != sc.currentModule) ? IgnorePrivateMembers : IgnoreNone);
             if (s)
             {
                 /* Check for access before resolving aliases because public
@@ -14447,7 +14447,7 @@ public:
     override Expression resolveLoc(Loc loc, Scope* sc)
     {
         //printf("FileInitExp::resolve() %s\n", toChars());
-        const(char)* s = loc.filename ? loc.filename : sc._module.ident.toChars();
+        const(char)* s = loc.filename ? loc.filename : sc.currentModule.ident.toChars();
         Expression e = new StringExp(loc, cast(char*)s);
         e = e.semantic(sc);
         e = e.castTo(sc, type);
@@ -14510,9 +14510,9 @@ public:
     {
         const(char)* s;
         if (sc.callsc)
-            s = sc.callsc._module.toPrettyChars();
+            s = sc.callsc.currentModule.toPrettyChars();
         else
-            s = sc._module.toPrettyChars();
+            s = sc.currentModule.toPrettyChars();
         Expression e = new StringExp(loc, cast(char*)s);
         e = e.semantic(sc);
         e = e.castTo(sc, type);

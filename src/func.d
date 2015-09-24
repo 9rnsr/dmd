@@ -1268,7 +1268,7 @@ public:
         if (global.params.verbose && !printedMain)
         {
             const(char)* type = isMain() ? "main" : isWinMain() ? "winmain" : isDllMain() ? "dllmain" : cast(const(char)*)null;
-            Module mod = sc._module;
+            Module mod = sc.currentModule;
             if (type && mod)
             {
                 printedMain = true;
@@ -1276,7 +1276,7 @@ public:
                 fprintf(global.stdmsg, "entry     %-10s\t%s\n", type, name);
             }
         }
-        if (fbody && isMain() && sc._module.isRoot())
+        if (fbody && isMain() && sc.currentModule.isRoot())
             genCmain(sc);
         assert(type.ty != Terror || errors);
     }
@@ -4747,7 +4747,7 @@ public:
         // We're going to need ModuleInfo
         Module m = getModule();
         if (!m)
-            m = sc._module;
+            m = sc.currentModule;
         if (m)
         {
             m.needmoduleinfo = 1;
@@ -4896,7 +4896,7 @@ public:
         // We're going to need ModuleInfo
         Module m = getModule();
         if (!m)
-            m = sc._module;
+            m = sc.currentModule;
         if (m)
         {
             m.needmoduleinfo = 1;
@@ -5113,7 +5113,7 @@ public:
             // (This doesn't make sense to me?)
             Module m = getModule();
             if (!m)
-                m = sc._module;
+                m = sc.currentModule;
             if (m)
             {
                 //printf("module3 %s needs moduleinfo\n", m->toChars());

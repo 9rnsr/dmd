@@ -291,7 +291,7 @@ extern (C++) bool checkEscapeRef(Scope* sc, Expression e, bool gag)
                             }
                         }
                     }
-                    else if (sc._module && sc._module.isRoot())
+                    else if (sc.currentModule && sc.currentModule.isRoot())
                     {
                         //printf("escaping reference to local ref variable %s\n", v->toChars());
                         //printf("storage class = x%llx\n", v->storage_class);

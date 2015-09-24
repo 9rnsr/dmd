@@ -526,9 +526,9 @@ public:
             protection.pkg = tmp ? tmp.isPackage() : null;
             pkg_identifiers = null;
         }
-        if (protection.kind == PROTpackage && protection.pkg && sc._module)
+        if (protection.kind == PROTpackage && protection.pkg && sc.currentModule)
         {
-            Module m = sc._module;
+            Module m = sc.currentModule;
             Package pkg = m.parent ? m.parent.isPackage() : null;
             if (!pkg || !protection.pkg.isAncestorPackageOf(pkg))
                 error("does not bind to one of ancestor packages of module '%s'", m.toPrettyChars(true));
@@ -1258,7 +1258,7 @@ public:
             {
                 se = se.toUTF8(sc);
                 uint errors = global.errors;
-                scope Parser p = new Parser(loc, sc._module, cast(char*)se.string, se.len, 0);
+                scope Parser p = new Parser(loc, sc.currentModule, cast(char*)se.string, se.len, 0);
                 p.nextToken();
                 decl = p.parseDeclDefs(0);
                 if (p.token.value != TOKeof)

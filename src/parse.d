@@ -235,9 +235,9 @@ public:
      * Input:
      *      loc     location in source file of mixin
      */
-    extern (D) this(Loc loc, Module _module, const(char)* base, size_t length, int doDocComment)
+    extern (D) this(Loc loc, Module mod, const(char)* base, size_t length, int doDocComment)
     {
-        super(_module ? _module.srcfile.toChars() : null, base, 0, length, doDocComment, 0);
+        super(mod ? mod.srcfile.toChars() : null, base, 0, length, doDocComment, 0);
         //printf("Parser::Parser()\n");
         scanloc = loc;
         if (loc.filename)
@@ -249,16 +249,16 @@ public:
             sprintf(filename, "%s-mixin-%d", loc.filename, cast(int)loc.linnum);
             scanloc.filename = filename;
         }
-        mod = _module;
+        this.mod = mod;
         linkage = LINKd;
         //nextToken();              // start up the scanner
     }
 
-    extern (D) this(Module _module, const(char)* base, size_t length, int doDocComment)
+    extern (D) this(Module mod, const(char)* base, size_t length, int doDocComment)
     {
-        super(_module ? _module.srcfile.toChars() : null, base, 0, length, doDocComment, 0);
+        super(mod ? mod.srcfile.toChars() : null, base, 0, length, doDocComment, 0);
         //printf("Parser::Parser()\n");
-        mod = _module;
+        this.mod = mod;
         linkage = LINKd;
         //nextToken();              // start up the scanner
     }

@@ -128,7 +128,7 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
             if (!sc) // inline may request TypeInfo.
             {
                 Scope scx;
-                scx._module = sd.getModule();
+                scx.currentModule = sd.getModule();
                 getTypeInfoType(t, &scx);
             }
             else
@@ -339,7 +339,7 @@ public:
             sc2.pop();
             _scope = scx ? scx : sc.copy();
             _scope.setNoFree();
-            _scope._module.addDeferredSemantic(this);
+            _scope.currentModule.addDeferredSemantic(this);
             Module.dprogress = dprogress_save;
             //printf("\tdeferring %s\n", toChars());
             return;
@@ -362,7 +362,7 @@ public:
             sc2.pop();
             _scope = scx ? scx : sc.copy();
             _scope.setNoFree();
-            _scope._module.addDeferredSemantic(this);
+            _scope.currentModule.addDeferredSemantic(this);
             //printf("\tdeferring %s\n", toChars());
             return;
         }

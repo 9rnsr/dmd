@@ -1315,7 +1315,7 @@ public:
             {
                 se = se.toUTF8(sc);
                 uint errors = global.errors;
-                scope Parser p = new Parser(loc, sc._module, cast(char*)se.string, se.len, 0);
+                scope Parser p = new Parser(loc, sc.currentModule, cast(char*)se.string, se.len, 0);
                 p.nextToken();
                 while (p.token.value != TOKeof)
                 {

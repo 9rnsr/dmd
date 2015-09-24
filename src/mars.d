@@ -247,7 +247,7 @@ extern (C++) void genCmain(Scope* sc)
     m.semantic3();
     global.params.verbose = v;
     entrypoint = m;
-    rootHasMain = sc._module;
+    rootHasMain = sc.currentModule;
 }
 
 extern (C++) int tryMain(size_t argc, const(char)** argv)

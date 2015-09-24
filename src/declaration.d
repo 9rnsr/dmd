@@ -1698,7 +1698,7 @@ public:
         if (edtor)
         {
             if (sc.func && storage_class & (STCstatic | STCgshared))
-                edtor = edtor.semantic(sc._module._scope);
+                edtor = edtor.semantic(sc.currentModule._scope);
             else
                 edtor = edtor.semantic(sc);
             version (none)

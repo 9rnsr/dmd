@@ -460,13 +460,13 @@ public:
         {
             printf("TemplateDeclaration::semantic(this = %p, id = '%s')\n", this, ident.toChars());
             printf("sc->stc = %llx\n", sc.stc);
-            printf("sc->module = %s\n", sc._module.toChars());
+            printf("sc->module = %s\n", sc.currentModule.toChars());
         }
         if (semanticRun != PASSinit)
             return; // semantic() already run
         semanticRun = PASSsemantic;
         // Remember templates defined in module object that we need to know about
-        if (sc._module && sc._module.ident == Id.object)
+        if (sc.currentModule && sc.currentModule.ident == Id.object)
         {
             if (ident == Id.RTInfo)
                 Type.rtinfo = this;
@@ -5500,7 +5500,7 @@ public:
             printf("Scope\n");
             for (Scope* scx = sc; scx; scx = scx.enclosing)
             {
-                printf("\t%s parent %s\n", scx._module ? scx._module.toChars() : "null", scx.parent ? scx.parent.toChars() : "null");
+                printf("\t%s parent %s\n", scx.currentModule ? scx.currentModule.toChars() : "null", scx.parent ? scx.parent.toChars() : "null");
             }
         }
         static if (LOG)
@@ -7555,7 +7555,7 @@ public:
             //printf("test3: enclosing = %d, s->parent = %s\n", enclosing, s->parent->toChars());
             s.semantic(sc2);
             //printf("test4: enclosing = %d, s->parent = %s\n", enclosing, s->parent->toChars());
-            sc2._module.runDeferredSemantic();
+            sc2.currentModule.runDeferredSemantic();
         }
     }
 
@@ -7771,7 +7771,7 @@ public:
                     //printf("forward reference - deferring\n");
                     _scope = scx ? scx : sc.copy();
                     _scope.setNoFree();
-                    _scope._module.addDeferredSemantic(this);
+                    _scope.currentModule.addDeferredSemantic(this);
                 }
                 return;
             }

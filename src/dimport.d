@@ -190,7 +190,7 @@ public:
             }
         }
         if (mod && !mod.importedFrom)
-            mod.importedFrom = sc ? sc._module.importedFrom : Module.rootModule;
+            mod.importedFrom = sc ? sc.currentModule.importedFrom : Module.rootModule;
         if (!pkg)
             pkg = mod;
         //printf("-Import::load('%s'), pkg = %p\n", toChars(), pkg);
@@ -241,7 +241,7 @@ public:
         {
             // Modules need a list of each imported module
             //printf("%s imports %s\n", sc->module->toChars(), mod->toChars());
-            sc._module.aimports.push(mod);
+            sc.currentModule.aimports.push(mod);
             if (!isstatic && !aliasId && !names.dim)
             {
                 if (sc.explicitProtection)
@@ -259,7 +259,7 @@ public:
             if (mod.needmoduleinfo)
             {
                 //printf("module4 %s because of %s\n", sc->module->toChars(), mod->toChars());
-                sc._module.needmoduleinfo = 1;
+                sc.currentModule.needmoduleinfo = 1;
             }
             sc = sc.push(mod);
             /* BUG: Protection checks can't be enabled yet. The issue is
@@ -295,7 +295,7 @@ public:
         }
         // object self-imports itself, so skip that (Bugzilla 7547)
         // don't list pseudo modules __entrypoint.d, __main.d (Bugzilla 11117, 11164)
-        if (global.params.moduleDeps !is null && !(id == Id.object && sc._module.ident == Id.object) && sc._module.ident != Id.entrypoint && strcmp(sc._module.ident.string, "__main") != 0)
+        if (global.params.moduleDeps !is null && !(id == Id.object && sc.currentModule.ident == Id.object) && sc.currentModule.ident != Id.entrypoint && strcmp(sc.currentModule.ident.string, "__main") != 0)
         {
             /* The grammar of the file is:
              *      ImportDeclaration
@@ -374,7 +374,7 @@ public:
             if (mod.needmoduleinfo)
             {
                 //printf("module5 %s because of %s\n", sc->module->toChars(), mod->toChars());
-                sc._module.needmoduleinfo = 1;
+                sc.currentModule.needmoduleinfo = 1;
             }
         }
     }

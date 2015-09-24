@@ -192,8 +192,8 @@ extern (C++) bool objc_isUdaSelector(StructDeclaration sd)
 {
     if (sd.ident != Id.udaSelector || !sd.parent)
         return false;
-    Module _module = sd.parent.isModule();
-    return _module && _module.isCoreModule(Id.attribute);
+    Module mod = sd.parent.isModule();
+    return mod && mod.isCoreModule(Id.attribute);
 }
 
 extern (C++) void objc_FuncDeclaration_semantic_validateSelector(FuncDeclaration fd)

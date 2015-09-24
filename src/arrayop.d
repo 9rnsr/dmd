@@ -59,9 +59,9 @@ extern (C++) FuncDeclaration buildArrayOp(Identifier ident, BinExp exp, Scope* s
     fd.protection = Prot(PROTpublic);
     fd.linkage = LINKc;
     fd.isArrayOp = 1;
-    sc._module.importedFrom.members.push(fd);
+    sc.currentModule.importedFrom.members.push(fd);
     sc = sc.push();
-    sc.parent = sc._module.importedFrom;
+    sc.parent = sc.currentModule.importedFrom;
     sc.stc = 0;
     sc.linkage = LINKc;
     fd.semantic(sc);

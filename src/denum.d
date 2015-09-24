@@ -164,7 +164,7 @@ public:
                     // memtype is forward referenced, so try again later
                     _scope = scx ? scx : sc.copy();
                     _scope.setNoFree();
-                    _scope._module.addDeferredSemantic(this);
+                    _scope.currentModule.addDeferredSemantic(this);
                     Module.dprogress = dprogress_save;
                     //printf("\tdeferring %s\n", toChars());
                     semanticRun = PASSinit;

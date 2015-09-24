@@ -143,7 +143,7 @@ struct Scope
 {
     Scope* enclosing = null;        // enclosing Scope
 
-    Module _module = null;          // Root module
+    Module currentModule = null;    // The root of lexical scopes
     ScopeDsymbol scopesym = null;   // current symbol
     ScopeDsymbol sds = null;        // if in static if, and declaring new symbols,
                                     // sds gets the addMember()
@@ -219,7 +219,7 @@ struct Scope
         return new Scope();
     }
 
-    extern (C++) static Scope* createGlobal(Module _module)
+    extern (C++) static Scope* createGlobal(Module mod)
     {
         Scope* sc = Scope.alloc();
         memset(sc, 0, Scope.sizeof);
@@ -227,20 +227,20 @@ struct Scope
         sc.linkage = LINKd;
         sc.inlining = PINLINEdefault;
         sc.protection = Prot(PROTpublic);
-        sc._module = _module;
+        sc.currentModule = mod;
         sc.tinst = null;
-        sc.minst = _module;
+        sc.minst = mod;
         sc.scopesym = new ScopeDsymbol();
         sc.scopesym.symtab = new DsymbolTable();
         // Add top level package as member of this global scope
-        Dsymbol m = _module;
+        Dsymbol m = mod;
         while (m.parent)
             m = m.parent;
         m.addMember(null, sc.scopesym);
         m.parent = null; // got changed by addMember()
         // Create the module scope underneath the global scope
-        sc = sc.push(_module);
-        sc.parent = _module;
+        sc = sc.push(mod);
+        sc.parent = mod;
         return sc;
     }
 
@@ -442,7 +442,7 @@ struct Scope
     extern (C++) Module instantiatingModule()
     {
         // TODO: in speculative context, returning 'module' is correct?
-        return minst ? minst : _module;
+        return minst ? minst : currentModule;
     }
 
     extern (C++) Dsymbol search(Loc loc, Identifier ident, Dsymbol* pscopesym, int flags = IgnoreNone)
@@ -584,7 +584,7 @@ struct Scope
 
     extern (D) this(ref Scope sc)
     {
-        this._module = sc._module;
+        this.currentModule = sc.currentModule;
         this.scopesym = sc.scopesym;
         this.sds = sc.sds;
         this.enclosing = sc.enclosing;

@@ -514,7 +514,7 @@ public:
                 {
                     //printf("\ttry later, forward reference of base class %s\n", tc->sym->toChars());
                     if (tc.sym._scope)
-                        tc.sym._scope._module.addDeferredSemantic(tc.sym);
+                        tc.sym._scope.currentModule.addDeferredSemantic(tc.sym);
                     baseok = BASEOKnone;
                 }
             L7:
@@ -560,7 +560,7 @@ public:
                 {
                     //printf("\ttry later, forward reference of base %s\n", tc->sym->toChars());
                     if (tc.sym._scope)
-                        tc.sym._scope._module.addDeferredSemantic(tc.sym);
+                        tc.sym._scope.currentModule.addDeferredSemantic(tc.sym);
                     baseok = BASEOKnone;
                 }
                 i++;
@@ -570,7 +570,7 @@ public:
                 // Forward referencee of one or more bases, try again later
                 _scope = scx ? scx : sc.copy();
                 _scope.setNoFree();
-                _scope._module.addDeferredSemantic(this);
+                _scope.currentModule.addDeferredSemantic(this);
                 //printf("\tL%d semantic('%s') failed due to forward references\n", __LINE__, toChars());
                 return;
             }
@@ -682,8 +682,8 @@ public:
                 _scope = scx ? scx : sc.copy();
                 _scope.setNoFree();
                 if (tc.sym._scope)
-                    tc.sym._scope._module.addDeferredSemantic(tc.sym);
-                _scope._module.addDeferredSemantic(this);
+                    tc.sym._scope.currentModule.addDeferredSemantic(tc.sym);
+                _scope.currentModule.addDeferredSemantic(this);
                 //printf("\tL%d semantic('%s') failed due to forward references\n", __LINE__, toChars());
                 return;
             }
@@ -781,7 +781,7 @@ public:
             sc2.pop();
             _scope = scx ? scx : sc.copy();
             _scope.setNoFree();
-            _scope._module.addDeferredSemantic(this);
+            _scope.currentModule.addDeferredSemantic(this);
             Module.dprogress = dprogress_save;
             //printf("\tsemantic('%s') failed due to forward references\n", toChars());
             return;
@@ -1457,7 +1457,7 @@ public:
                 {
                     //printf("\ttry later, forward reference of base %s\n", tc->sym->toChars());
                     if (tc.sym._scope)
-                        tc.sym._scope._module.addDeferredSemantic(tc.sym);
+                        tc.sym._scope.currentModule.addDeferredSemantic(tc.sym);
                     baseok = BASEOKnone;
                 }
                 i++;
@@ -1467,7 +1467,7 @@ public:
                 // Forward referencee of one or more bases, try again later
                 _scope = scx ? scx : sc.copy();
                 _scope.setNoFree();
-                _scope._module.addDeferredSemantic(this);
+                _scope.currentModule.addDeferredSemantic(this);
                 return;
             }
             baseok = BASEOKdone;
@@ -1505,8 +1505,8 @@ public:
                 _scope = scx ? scx : sc.copy();
                 _scope.setNoFree();
                 if (tc.sym._scope)
-                    tc.sym._scope._module.addDeferredSemantic(tc.sym);
-                _scope._module.addDeferredSemantic(this);
+                    tc.sym._scope.currentModule.addDeferredSemantic(tc.sym);
+                _scope.currentModule.addDeferredSemantic(this);
                 return;
             }
         }

@@ -846,7 +846,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
             if (s)
             {
                 DocComment* dc = DocComment.parse(sc, s, com);
-                dc.pmacrotable = &sc._module.macrotable;
+                dc.pmacrotable = &sc.currentModule.macrotable;
                 sc.lastdc = dc;
             }
         }
@@ -2013,7 +2013,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 // inserted lazily at the close quote, meaning the rest of the
                 // text is already OK.
             }
-            if (!sc._module.isDocFile && !inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
+            if (!sc.currentModule.isDocFile && !inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
             {
                 static __gshared const(char)* blankline = "$(DDOC_BLANKLINE)\n";
                 i = buf.insert(i, blankline, strlen(blankline));
@@ -2027,7 +2027,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 if (inCode)
                     break;
                 char* p = cast(char*)&buf.data[i];
-                const(char)* se = sc._module.escapetable.escapeChar('<');
+                const(char)* se = sc.currentModule.escapetable.escapeChar('<');
                 if (se && strcmp(se, "&lt;") == 0)
                 {
                     // Generating HTML
@@ -2087,7 +2087,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 if (inCode)
                     break;
                 // Replace '>' with '&gt;' character entity
-                const(char)* se = sc._module.escapetable.escapeChar('>');
+                const(char)* se = sc.currentModule.escapetable.escapeChar('>');
                 if (se)
                 {
                     size_t len = strlen(se);
@@ -2107,7 +2107,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     break;
                 // already a character entity
                 // Replace '&' with '&amp;' character entity
-                const(char)* se = sc._module.escapetable.escapeChar('&');
+                const(char)* se = sc.currentModule.escapetable.escapeChar('&');
                 if (se)
                 {
                     size_t len = strlen(se);
@@ -2243,7 +2243,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             break;
         default:
             leadingBlank = 0;
-            if (sc._module.isDocFile || inCode)
+            if (sc.currentModule.isDocFile || inCode)
                 break;
             char* start = cast(char*)buf.data + i;
             if (isIdStart(start))
@@ -2316,7 +2316,7 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     for (size_t i = offset; i < buf.offset; i++)
     {
         char c = buf.data[i];
-        const(char)* se = sc._module.escapetable.escapeChar(c);
+        const(char)* se = sc.currentModule.escapetable.escapeChar(c);
         if (se)
         {
             size_t len = strlen(se);
@@ -2355,7 +2355,7 @@ extern (C++) void highlightCode3(Scope* sc, OutBuffer* buf, const(char)* p, cons
 {
     for (; p < pend; p++)
     {
-        const(char)* s = sc._module.escapetable.escapeChar(*p);
+        const(char)* s = sc.currentModule.escapetable.escapeChar(*p);
         if (s)
             buf.writestring(s);
         else

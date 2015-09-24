@@ -156,7 +156,7 @@ extern (C++) bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymb
     if (smemberparent == ad)
     {
         access = smember.prot();
-        result = access.kind >= PROTpublic || hasPrivateAccess(ad, f) || isFriendOf(ad, cdscope) || (access.kind == PROTpackage && hasPackageAccess(sc, smember)) || ad.getAccessModule() == sc._module;
+        result = access.kind >= PROTpublic || hasPrivateAccess(ad, f) || isFriendOf(ad, cdscope) || (access.kind == PROTpackage && hasPackageAccess(sc, smember)) || ad.getAccessModule() == sc.currentModule;
         static if (LOG)
         {
             printf("result1 = %d\n", result);
@@ -265,7 +265,7 @@ extern (C++) bool hasPackageAccess(Scope* sc, Dsymbol s)
     }
     if (pkg)
     {
-        if (pkg == sc._module.parent)
+        if (pkg == sc.currentModule.parent)
         {
             static if (LOG)
             {
@@ -273,7 +273,7 @@ extern (C++) bool hasPackageAccess(Scope* sc, Dsymbol s)
             }
             return true;
         }
-        if (pkg.isPackageMod() == sc._module)
+        if (pkg.isPackageMod() == sc.currentModule)
         {
             static if (LOG)
             {
@@ -281,7 +281,7 @@ extern (C++) bool hasPackageAccess(Scope* sc, Dsymbol s)
             }
             return true;
         }
-        Dsymbol ancestor = sc._module.parent;
+        Dsymbol ancestor = sc.currentModule.parent;
         for (; ancestor; ancestor = ancestor.parent)
         {
             if (ancestor == pkg)
@@ -384,9 +384,9 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
     }
     if (!e)
     {
-        if (d.prot().kind == PROTprivate && d.getAccessModule() != sc._module || d.prot().kind == PROTpackage && !hasPackageAccess(sc, d))
+        if (d.prot().kind == PROTprivate && d.getAccessModule() != sc.currentModule || d.prot().kind == PROTpackage && !hasPackageAccess(sc, d))
         {
-            error(loc, "%s %s is not accessible from module %s", d.kind(), d.toPrettyChars(), sc._module.toChars());
+            error(loc, "%s %s is not accessible from module %s", d.kind(), d.toPrettyChars(), sc.currentModule.toChars());
             return true;
         }
     }
