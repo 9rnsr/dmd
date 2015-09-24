@@ -100,26 +100,26 @@ public:
             // Add modifiers
             switch (t.mod)
             {
-            case 0:
-                assert(0);
-            case MODconst:
-            case MODwild:
-            case MODwildconst:
-                t.ctype.Tty |= mTYconst;
-                break;
-            case MODshared:
-                t.ctype.Tty |= mTYshared;
-                break;
-            case MODshared | MODconst:
-            case MODshared | MODwild:
-            case MODshared | MODwildconst:
-                t.ctype.Tty |= mTYshared | mTYconst;
-                break;
-            case MODimmutable:
-                t.ctype.Tty |= mTYimmutable;
-                break;
-            default:
-                assert(0);
+                case 0:
+                    assert(0);
+                case MODconst:
+                case MODwild:
+                case MODwildconst:
+                    t.ctype.Tty |= mTYconst;
+                    break;
+                case MODshared:
+                    t.ctype.Tty |= mTYshared;
+                    break;
+                case MODshared | MODconst:
+                case MODshared | MODwild:
+                case MODshared | MODwildconst:
+                    t.ctype.Tty |= mTYshared | mTYconst;
+                    break;
+                case MODimmutable:
+                    t.ctype.Tty |= mTYimmutable;
+                    break;
+                default:
+                    assert(0);
             }
         }
         else
@@ -164,26 +164,26 @@ public:
             // Add modifiers
             switch (t.mod)
             {
-            case 0:
-                assert(0);
-            case MODconst:
-            case MODwild:
-            case MODwildconst:
-                t.ctype.Tty |= mTYconst;
-                break;
-            case MODshared:
-                t.ctype.Tty |= mTYshared;
-                break;
-            case MODshared | MODconst:
-            case MODshared | MODwild:
-            case MODshared | MODwildconst:
-                t.ctype.Tty |= mTYshared | mTYconst;
-                break;
-            case MODimmutable:
-                t.ctype.Tty |= mTYimmutable;
-                break;
-            default:
-                assert(0);
+                case 0:
+                    assert(0);
+                case MODconst:
+                case MODwild:
+                case MODwildconst:
+                    t.ctype.Tty |= mTYconst;
+                    break;
+                case MODshared:
+                    t.ctype.Tty |= mTYshared;
+                    break;
+                case MODshared | MODconst:
+                case MODshared | MODwild:
+                case MODshared | MODwildconst:
+                    t.ctype.Tty |= mTYshared | mTYconst;
+                    break;
+                case MODimmutable:
+                    t.ctype.Tty |= mTYimmutable;
+                    break;
+                default:
+                    assert(0);
             }
         }
         else if (!t.sym.memtype)

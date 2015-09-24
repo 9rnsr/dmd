@@ -98,34 +98,34 @@ extern (C++) void MODtoDecoBuffer(OutBuffer* buf, MOD mod)
 {
     switch (mod)
     {
-    case 0:
-        break;
-    case MODconst:
-        buf.writeByte('x');
-        break;
-    case MODimmutable:
-        buf.writeByte('y');
-        break;
-    case MODshared:
-        buf.writeByte('O');
-        break;
-    case MODshared | MODconst:
-        buf.writestring("Ox");
-        break;
-    case MODwild:
-        buf.writestring("Ng");
-        break;
-    case MODwildconst:
-        buf.writestring("Ngx");
-        break;
-    case MODshared | MODwild:
-        buf.writestring("ONg");
-        break;
-    case MODshared | MODwildconst:
-        buf.writestring("ONgx");
-        break;
-    default:
-        assert(0);
+        case 0:
+            break;
+        case MODconst:
+            buf.writeByte('x');
+            break;
+        case MODimmutable:
+            buf.writeByte('y');
+            break;
+        case MODshared:
+            buf.writeByte('O');
+            break;
+        case MODshared | MODconst:
+            buf.writestring("Ox");
+            break;
+        case MODwild:
+            buf.writestring("Ng");
+            break;
+        case MODwildconst:
+            buf.writestring("Ngx");
+            break;
+        case MODshared | MODwild:
+            buf.writestring("ONg");
+            break;
+        case MODshared | MODwildconst:
+            buf.writestring("ONgx");
+            break;
+        default:
+            assert(0);
     }
 }
 
@@ -214,26 +214,26 @@ public:
         ubyte mc;
         switch (t.linkage)
         {
-        case LINKd:
-            mc = 'F';
-            break;
-        case LINKc:
-            mc = 'U';
-            break;
-        case LINKwindows:
-            mc = 'W';
-            break;
-        case LINKpascal:
-            mc = 'V';
-            break;
-        case LINKcpp:
-            mc = 'R';
-            break;
-        case LINKobjc:
-            mc = 'Y';
-            break;
-        default:
-            assert(0);
+            case LINKd:
+                mc = 'F';
+                break;
+            case LINKc:
+                mc = 'U';
+                break;
+            case LINKwindows:
+                mc = 'W';
+                break;
+            case LINKpascal:
+                mc = 'V';
+                break;
+            case LINKcpp:
+                mc = 'R';
+                break;
+            case LINKobjc:
+                mc = 'Y';
+                break;
+            default:
+                assert(0);
         }
         buf.writeByte(mc);
         if (ta.purity || ta.isnothrow || ta.isnogc || ta.isproperty || ta.isref || ta.trust || ta.isreturn)
@@ -252,14 +252,14 @@ public:
                 buf.writestring("Nj");
             switch (ta.trust)
             {
-            case TRUSTtrusted:
-                buf.writestring("Ne");
-                break;
-            case TRUSTsafe:
-                buf.writestring("Nf");
-                break;
-            default:
-                break;
+                case TRUSTtrusted:
+                    buf.writestring("Ne");
+                    break;
+                case TRUSTsafe:
+                    buf.writestring("Nf");
+                    break;
+                default:
+                    break;
             }
         }
         // Write argument types
@@ -403,24 +403,24 @@ public:
         {
             switch (d.linkage)
             {
-            case LINKd:
-                break;
-            case LINKc:
-            case LINKwindows:
-            case LINKpascal:
-            case LINKobjc:
-                buf.writestring(d.ident.toChars());
-                return;
-            case LINKcpp:
-                buf.writestring(toCppMangle(d));
-                return;
-            case LINKdefault:
-                d.error("forward declaration");
-                buf.writestring(d.ident.toChars());
-                return;
-            default:
-                fprintf(stderr, "'%s', linkage = %d\n", d.toChars(), d.linkage);
-                assert(0);
+                case LINKd:
+                    break;
+                case LINKc:
+                case LINKwindows:
+                case LINKpascal:
+                case LINKobjc:
+                    buf.writestring(d.ident.toChars());
+                    return;
+                case LINKcpp:
+                    buf.writestring(toCppMangle(d));
+                    return;
+                case LINKdefault:
+                    d.error("forward declaration");
+                    buf.writestring(d.ident.toChars());
+                    return;
+                default:
+                    fprintf(stderr, "'%s', linkage = %d\n", d.toChars(), d.linkage);
+                    assert(0);
             }
         }
         buf.writestring("_D");
@@ -643,20 +643,20 @@ public:
                 char c = buffer[i];
                 switch (c)
                 {
-                case '-':
-                    buf.writeByte('N');
-                    break;
-                case '+':
-                case 'X':
-                case '.':
-                    break;
-                case '0':
-                    if (i < 2)
+                    case '-':
+                        buf.writeByte('N');
                         break;
-                    // skip leading 0X
-                default:
-                    buf.writeByte(c);
-                    break;
+                    case '+':
+                    case 'X':
+                    case '.':
+                        break;
+                    case '0':
+                        if (i < 2)
+                            break;
+                        // skip leading 0X
+                    default:
+                        buf.writeByte(c);
+                        break;
                 }
             }
         }
@@ -685,40 +685,40 @@ public:
          */
         switch (e.sz)
         {
-        case 1:
-            m = 'a';
-            q = cast(char*)e.string;
-            qlen = e.len;
-            break;
-        case 2:
-            m = 'w';
-            for (size_t u = 0; u < e.len;)
-            {
-                uint c;
-                const(char)* p = utf_decodeWchar(cast(ushort*)e.string, e.len, &u, &c);
-                if (p)
-                    e.error("%s", p);
-                else
-                    tmp.writeUTF8(c);
-            }
-            q = cast(char*)tmp.data;
-            qlen = tmp.offset;
-            break;
-        case 4:
-            m = 'd';
-            for (size_t u = 0; u < e.len; u++)
-            {
-                uint c = (cast(uint*)e.string)[u];
-                if (!utf_isValidDchar(c))
-                    e.error("invalid UCS-32 char \\U%08x", c);
-                else
-                    tmp.writeUTF8(c);
-            }
-            q = cast(char*)tmp.data;
-            qlen = tmp.offset;
-            break;
-        default:
-            assert(0);
+            case 1:
+                m = 'a';
+                q = cast(char*)e.string;
+                qlen = e.len;
+                break;
+            case 2:
+                m = 'w';
+                for (size_t u = 0; u < e.len;)
+                {
+                    uint c;
+                    const(char)* p = utf_decodeWchar(cast(ushort*)e.string, e.len, &u, &c);
+                    if (p)
+                        e.error("%s", p);
+                    else
+                        tmp.writeUTF8(c);
+                }
+                q = cast(char*)tmp.data;
+                qlen = tmp.offset;
+                break;
+            case 4:
+                m = 'd';
+                for (size_t u = 0; u < e.len; u++)
+                {
+                    uint c = (cast(uint*)e.string)[u];
+                    if (!utf_isValidDchar(c))
+                        e.error("invalid UCS-32 char \\U%08x", c);
+                    else
+                        tmp.writeUTF8(c);
+                }
+                q = cast(char*)tmp.data;
+                qlen = tmp.offset;
+                break;
+            default:
+                assert(0);
         }
         buf.reserve(1 + 11 + 2 * qlen);
         buf.writeByte(m);
@@ -790,24 +790,24 @@ public:
             buf.writestring("Nk");
         switch (p.storageClass & (STCin | STCout | STCref | STClazy))
         {
-        case 0:
-        case STCin:
-            break;
-        case STCout:
-            buf.writeByte('J');
-            break;
-        case STCref:
-            buf.writeByte('K');
-            break;
-        case STClazy:
-            buf.writeByte('L');
-            break;
-        default:
-            debug
-            {
-                printf("storageClass = x%llx\n", p.storageClass & (STCin | STCout | STCref | STClazy));
-            }
-            assert(0);
+            case 0:
+            case STCin:
+                break;
+            case STCout:
+                buf.writeByte('J');
+                break;
+            case STCref:
+                buf.writeByte('K');
+                break;
+            case STClazy:
+                buf.writeByte('L');
+                break;
+            default:
+                debug
+                {
+                    printf("storageClass = x%llx\n", p.storageClass & (STCin | STCout | STCref | STClazy));
+                }
+                assert(0);
         }
         visitWithMask(p.type, 0);
     }

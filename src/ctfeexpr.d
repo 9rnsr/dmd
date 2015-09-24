@@ -228,18 +228,18 @@ public:
     {
         switch (op)
         {
-        case TOKcantexp:
-            return cast(char*)"<cant>";
-        case TOKvoidexp:
-            return cast(char*)"<void>";
-        case TOKbreak:
-            return cast(char*)"<break>";
-        case TOKcontinue:
-            return cast(char*)"<continue>";
-        case TOKgoto:
-            return cast(char*)"<goto>";
-        default:
-            assert(0);
+            case TOKcantexp:
+                return cast(char*)"<cant>";
+            case TOKvoidexp:
+                return cast(char*)"<void>";
+            case TOKbreak:
+                return cast(char*)"<break>";
+            case TOKcontinue:
+                return cast(char*)"<continue>";
+            case TOKgoto:
+                return cast(char*)"<goto>";
+            default:
+                assert(0);
         }
     }
 
@@ -275,31 +275,31 @@ extern (C++) bool needToCopyLiteral(Expression expr)
     {
         switch (expr.op)
         {
-        case TOKarrayliteral:
-            return (cast(ArrayLiteralExp)expr).ownedByCtfe == OWNEDcode;
-        case TOKassocarrayliteral:
-            return (cast(AssocArrayLiteralExp)expr).ownedByCtfe == OWNEDcode;
-        case TOKstructliteral:
-            return (cast(StructLiteralExp)expr).ownedByCtfe == OWNEDcode;
-        case TOKstring:
-        case TOKthis:
-        case TOKvar:
-            return false;
-        case TOKassign:
-            return false;
-        case TOKindex:
-        case TOKdotvar:
-        case TOKslice:
-        case TOKcast:
-            expr = (cast(UnaExp)expr).e1;
-            continue;
-        case TOKcat:
-            return needToCopyLiteral((cast(BinExp)expr).e1) || needToCopyLiteral((cast(BinExp)expr).e2);
-        case TOKcatass:
-            expr = (cast(BinExp)expr).e2;
-            continue;
-        default:
-            return false;
+            case TOKarrayliteral:
+                return (cast(ArrayLiteralExp)expr).ownedByCtfe == OWNEDcode;
+            case TOKassocarrayliteral:
+                return (cast(AssocArrayLiteralExp)expr).ownedByCtfe == OWNEDcode;
+            case TOKstructliteral:
+                return (cast(StructLiteralExp)expr).ownedByCtfe == OWNEDcode;
+            case TOKstring:
+            case TOKthis:
+            case TOKvar:
+                return false;
+            case TOKassign:
+                return false;
+            case TOKindex:
+            case TOKdotvar:
+            case TOKslice:
+            case TOKcast:
+                expr = (cast(UnaExp)expr).e1;
+                continue;
+            case TOKcat:
+                return needToCopyLiteral((cast(BinExp)expr).e1) || needToCopyLiteral((cast(BinExp)expr).e2);
+            case TOKcatass:
+                expr = (cast(BinExp)expr).e2;
+                continue;
+            default:
+                return false;
         }
     }
 }
@@ -615,17 +615,17 @@ extern (C++) StringExp createBlockDuplicatedStringLiteral(Loc loc, Type type, ui
     {
         switch (sz)
         {
-        case 1:
-            s[elemi] = cast(char)value;
-            break;
-        case 2:
-            (cast(ushort*)s)[elemi] = cast(ushort)value;
-            break;
-        case 4:
-            (cast(uint*)s)[elemi] = value;
-            break;
-        default:
-            assert(0);
+            case 1:
+                s[elemi] = cast(char)value;
+                break;
+            case 2:
+                (cast(ushort*)s)[elemi] = cast(ushort)value;
+                break;
+            case 4:
+                (cast(uint*)s)[elemi] = value;
+                break;
+            default:
+                assert(0);
         }
     }
     auto se = new StringExp(loc, s, dim);
@@ -914,28 +914,28 @@ extern (C++) int comparePointers(Loc loc, TOK op, Type type, Expression agg1, di
         int n;
         switch (op)
         {
-        case TOKlt:
-            n = (ofs1 < ofs2);
-            break;
-        case TOKle:
-            n = (ofs1 <= ofs2);
-            break;
-        case TOKgt:
-            n = (ofs1 > ofs2);
-            break;
-        case TOKge:
-            n = (ofs1 >= ofs2);
-            break;
-        case TOKidentity:
-        case TOKequal:
-            n = (ofs1 == ofs2);
-            break;
-        case TOKnotidentity:
-        case TOKnotequal:
-            n = (ofs1 != ofs2);
-            break;
-        default:
-            assert(0);
+            case TOKlt:
+                n = (ofs1 < ofs2);
+                break;
+            case TOKle:
+                n = (ofs1 <= ofs2);
+                break;
+            case TOKgt:
+                n = (ofs1 > ofs2);
+                break;
+            case TOKge:
+                n = (ofs1 >= ofs2);
+                break;
+            case TOKidentity:
+            case TOKequal:
+                n = (ofs1 == ofs2);
+                break;
+            case TOKnotidentity:
+            case TOKnotequal:
+                n = (ofs1 != ofs2);
+                break;
+            default:
+                assert(0);
         }
         return n;
     }
@@ -946,42 +946,42 @@ extern (C++) int comparePointers(Loc loc, TOK op, Type type, Expression agg1, di
     {
         switch (op)
         {
-        case TOKlt:
-            cmp = null1 && !null2;
-            break;
-        case TOKgt:
-            cmp = !null1 && null2;
-            break;
-        case TOKle:
-            cmp = null1;
-            break;
-        case TOKge:
-            cmp = null2;
-            break;
-        case TOKidentity:
-        case TOKequal:
-        case TOKnotidentity:
-            // 'cmp' gets inverted below
-        case TOKnotequal:
-            cmp = (null1 == null2);
-            break;
-        default:
-            assert(0);
+            case TOKlt:
+                cmp = null1 && !null2;
+                break;
+            case TOKgt:
+                cmp = !null1 && null2;
+                break;
+            case TOKle:
+                cmp = null1;
+                break;
+            case TOKge:
+                cmp = null2;
+                break;
+            case TOKidentity:
+            case TOKequal:
+            case TOKnotidentity:
+                // 'cmp' gets inverted below
+            case TOKnotequal:
+                cmp = (null1 == null2);
+                break;
+            default:
+                assert(0);
         }
     }
     else
     {
         switch (op)
         {
-        case TOKidentity:
-        case TOKequal:
-        case TOKnotidentity:
-            // 'cmp' gets inverted below
-        case TOKnotequal:
-            cmp = 0;
-            break;
-        default:
-            return -1; // memory blocks are different
+            case TOKidentity:
+            case TOKequal:
+            case TOKnotidentity:
+                // 'cmp' gets inverted below
+            case TOKnotequal:
+                cmp = 0;
+                break;
+            default:
+                return -1; // memory blocks are different
         }
     }
     if (op == TOKnotidentity || op == TOKnotequal)
@@ -1014,14 +1014,14 @@ extern (C++) void intUnary(TOK op, IntegerExp e)
 {
     switch (op)
     {
-    case TOKneg:
-        e.setInteger(-e.getInteger());
-        break;
-    case TOKtilde:
-        e.setInteger(~e.getInteger());
-        break;
-    default:
-        assert(0);
+        case TOKneg:
+            e.setInteger(-e.getInteger());
+            break;
+        case TOKtilde:
+            e.setInteger(~e.getInteger());
+            break;
+        default:
+            assert(0);
     }
 }
 
@@ -1032,25 +1032,25 @@ extern (C++) void intBinary(TOK op, IntegerExp dest, Type type, IntegerExp e1, I
     dinteger_t result;
     switch (op)
     {
-    case TOKand:
-        result = e1.getInteger() & e2.getInteger();
-        break;
-    case TOKor:
-        result = e1.getInteger() | e2.getInteger();
-        break;
-    case TOKxor:
-        result = e1.getInteger() ^ e2.getInteger();
-        break;
-    case TOKadd:
-        result = e1.getInteger() + e2.getInteger();
-        break;
-    case TOKmin:
-        result = e1.getInteger() - e2.getInteger();
-        break;
-    case TOKmul:
-        result = e1.getInteger() * e2.getInteger();
-        break;
-    case TOKdiv:
+        case TOKand:
+            result = e1.getInteger() & e2.getInteger();
+            break;
+        case TOKor:
+            result = e1.getInteger() | e2.getInteger();
+            break;
+        case TOKxor:
+            result = e1.getInteger() ^ e2.getInteger();
+            break;
+        case TOKadd:
+            result = e1.getInteger() + e2.getInteger();
+            break;
+        case TOKmin:
+            result = e1.getInteger() - e2.getInteger();
+            break;
+        case TOKmul:
+            result = e1.getInteger() * e2.getInteger();
+            break;
+        case TOKdiv:
         {
             sinteger_t n1 = e1.getInteger();
             sinteger_t n2 = e2.getInteger();
@@ -1065,7 +1065,7 @@ extern (C++) void intBinary(TOK op, IntegerExp dest, Type type, IntegerExp e1, I
                 result = n1 / n2;
             break;
         }
-    case TOKmod:
+        case TOKmod:
         {
             sinteger_t n1 = e1.getInteger();
             sinteger_t n2 = e2.getInteger();
@@ -1094,7 +1094,7 @@ extern (C++) void intBinary(TOK op, IntegerExp dest, Type type, IntegerExp e1, I
                 result = n1 % n2;
             break;
         }
-    case TOKpow:
+        case TOKpow:
         {
             dinteger_t n = e2.getInteger();
             if (!e2.type.isunsigned() && cast(sinteger_t)n < 0)
@@ -1113,10 +1113,10 @@ extern (C++) void intBinary(TOK op, IntegerExp dest, Type type, IntegerExp e1, I
             }
             break;
         }
-    case TOKshl:
-        result = e1.getInteger() << e2.getInteger();
-        break;
-    case TOKshr:
+        case TOKshl:
+            result = e1.getInteger() << e2.getInteger();
+            break;
+        case TOKshr:
         {
             dinteger_t value = e1.getInteger();
             dinteger_t dcount = e2.getInteger();
@@ -1156,7 +1156,7 @@ extern (C++) void intBinary(TOK op, IntegerExp dest, Type type, IntegerExp e1, I
             }
             break;
         }
-    case TOKushr:
+        case TOKushr:
         {
             dinteger_t value = e1.getInteger();
             dinteger_t dcount = e2.getInteger();
@@ -1190,16 +1190,16 @@ extern (C++) void intBinary(TOK op, IntegerExp dest, Type type, IntegerExp e1, I
             }
             break;
         }
-    case TOKequal:
-    case TOKidentity:
-        result = (e1.getInteger() == e2.getInteger());
-        break;
-    case TOKnotequal:
-    case TOKnotidentity:
-        result = (e1.getInteger() != e2.getInteger());
-        break;
-    default:
-        assert(0);
+        case TOKequal:
+        case TOKidentity:
+            result = (e1.getInteger() == e2.getInteger());
+            break;
+        case TOKnotequal:
+        case TOKnotidentity:
+            result = (e1.getInteger() != e2.getInteger());
+            break;
+        default:
+            assert(0);
     }
     dest.setInteger(result);
     dest.type = type;
@@ -1232,44 +1232,44 @@ extern (C++) int intUnsignedCmp(TOK op, dinteger_t n1, dinteger_t n2)
     int n;
     switch (op)
     {
-    case TOKlt:
-        n = n1 < n2;
-        break;
-    case TOKle:
-        n = n1 <= n2;
-        break;
-    case TOKgt:
-        n = n1 > n2;
-        break;
-    case TOKge:
-        n = n1 >= n2;
-        break;
-    case TOKleg:
-        n = 1;
-        break;
-    case TOKlg:
-        n = n1 != n2;
-        break;
-    case TOKunord:
-        n = 0;
-        break;
-    case TOKue:
-        n = n1 == n2;
-        break;
-    case TOKug:
-        n = n1 > n2;
-        break;
-    case TOKuge:
-        n = n1 >= n2;
-        break;
-    case TOKul:
-        n = n1 < n2;
-        break;
-    case TOKule:
-        n = n1 <= n2;
-        break;
-    default:
-        assert(0);
+        case TOKlt:
+            n = n1 < n2;
+            break;
+        case TOKle:
+            n = n1 <= n2;
+            break;
+        case TOKgt:
+            n = n1 > n2;
+            break;
+        case TOKge:
+            n = n1 >= n2;
+            break;
+        case TOKleg:
+            n = 1;
+            break;
+        case TOKlg:
+            n = n1 != n2;
+            break;
+        case TOKunord:
+            n = 0;
+            break;
+        case TOKue:
+            n = n1 == n2;
+            break;
+        case TOKug:
+            n = n1 > n2;
+            break;
+        case TOKuge:
+            n = n1 >= n2;
+            break;
+        case TOKul:
+            n = n1 < n2;
+            break;
+        case TOKule:
+            n = n1 <= n2;
+            break;
+        default:
+            assert(0);
     }
     return n;
 }
@@ -1280,44 +1280,44 @@ extern (C++) int intSignedCmp(TOK op, sinteger_t n1, sinteger_t n2)
     int n;
     switch (op)
     {
-    case TOKlt:
-        n = n1 < n2;
-        break;
-    case TOKle:
-        n = n1 <= n2;
-        break;
-    case TOKgt:
-        n = n1 > n2;
-        break;
-    case TOKge:
-        n = n1 >= n2;
-        break;
-    case TOKleg:
-        n = 1;
-        break;
-    case TOKlg:
-        n = n1 != n2;
-        break;
-    case TOKunord:
-        n = 0;
-        break;
-    case TOKue:
-        n = n1 == n2;
-        break;
-    case TOKug:
-        n = n1 > n2;
-        break;
-    case TOKuge:
-        n = n1 >= n2;
-        break;
-    case TOKul:
-        n = n1 < n2;
-        break;
-    case TOKule:
-        n = n1 <= n2;
-        break;
-    default:
-        assert(0);
+        case TOKlt:
+            n = n1 < n2;
+            break;
+        case TOKle:
+            n = n1 <= n2;
+            break;
+        case TOKgt:
+            n = n1 > n2;
+            break;
+        case TOKge:
+            n = n1 >= n2;
+            break;
+        case TOKleg:
+            n = 1;
+            break;
+        case TOKlg:
+            n = n1 != n2;
+            break;
+        case TOKunord:
+            n = 0;
+            break;
+        case TOKue:
+            n = n1 == n2;
+            break;
+        case TOKug:
+            n = n1 > n2;
+            break;
+        case TOKuge:
+            n = n1 >= n2;
+            break;
+        case TOKul:
+            n = n1 < n2;
+            break;
+        case TOKule:
+            n = n1 <= n2;
+            break;
+        default:
+            assert(0);
     }
     return n;
 }
@@ -1331,88 +1331,88 @@ extern (C++) int realCmp(TOK op, real_t r1, real_t r2)
     {
         switch (op)
         {
-        case TOKlt:
-            n = 0;
-            break;
-        case TOKle:
-            n = 0;
-            break;
-        case TOKgt:
-            n = 0;
-            break;
-        case TOKge:
-            n = 0;
-            break;
-        case TOKleg:
-            n = 0;
-            break;
-        case TOKlg:
-            n = 0;
-            break;
-        case TOKunord:
-            n = 1;
-            break;
-        case TOKue:
-            n = 1;
-            break;
-        case TOKug:
-            n = 1;
-            break;
-        case TOKuge:
-            n = 1;
-            break;
-        case TOKul:
-            n = 1;
-            break;
-        case TOKule:
-            n = 1;
-            break;
-        default:
-            assert(0);
+            case TOKlt:
+                n = 0;
+                break;
+            case TOKle:
+                n = 0;
+                break;
+            case TOKgt:
+                n = 0;
+                break;
+            case TOKge:
+                n = 0;
+                break;
+            case TOKleg:
+                n = 0;
+                break;
+            case TOKlg:
+                n = 0;
+                break;
+            case TOKunord:
+                n = 1;
+                break;
+            case TOKue:
+                n = 1;
+                break;
+            case TOKug:
+                n = 1;
+                break;
+            case TOKuge:
+                n = 1;
+                break;
+            case TOKul:
+                n = 1;
+                break;
+            case TOKule:
+                n = 1;
+                break;
+            default:
+                assert(0);
         }
     }
     else
     {
         switch (op)
         {
-        case TOKlt:
-            n = r1 < r2;
-            break;
-        case TOKle:
-            n = r1 <= r2;
-            break;
-        case TOKgt:
-            n = r1 > r2;
-            break;
-        case TOKge:
-            n = r1 >= r2;
-            break;
-        case TOKleg:
-            n = 1;
-            break;
-        case TOKlg:
-            n = r1 != r2;
-            break;
-        case TOKunord:
-            n = 0;
-            break;
-        case TOKue:
-            n = r1 == r2;
-            break;
-        case TOKug:
-            n = r1 > r2;
-            break;
-        case TOKuge:
-            n = r1 >= r2;
-            break;
-        case TOKul:
-            n = r1 < r2;
-            break;
-        case TOKule:
-            n = r1 <= r2;
-            break;
-        default:
-            assert(0);
+            case TOKlt:
+                n = r1 < r2;
+                break;
+            case TOKle:
+                n = r1 <= r2;
+                break;
+            case TOKgt:
+                n = r1 > r2;
+                break;
+            case TOKge:
+                n = r1 >= r2;
+                break;
+            case TOKleg:
+                n = 1;
+                break;
+            case TOKlg:
+                n = r1 != r2;
+                break;
+            case TOKunord:
+                n = 0;
+                break;
+            case TOKue:
+                n = r1 == r2;
+                break;
+            case TOKug:
+                n = r1 > r2;
+                break;
+            case TOKuge:
+                n = r1 >= r2;
+                break;
+            case TOKul:
+                n = r1 < r2;
+                break;
+            case TOKule:
+                n = r1 <= r2;
+                break;
+            default:
+                assert(0);
         }
     }
     return n;
@@ -1727,44 +1727,44 @@ extern (C++) int ctfeCmp(Loc loc, TOK op, Expression e1, Expression e2)
         int cmp = ctfeRawCmp(loc, e1, e2);
         switch (op)
         {
-        case TOKlt:
-            n = cmp < 0;
-            break;
-        case TOKle:
-            n = cmp <= 0;
-            break;
-        case TOKgt:
-            n = cmp > 0;
-            break;
-        case TOKge:
-            n = cmp >= 0;
-            break;
-        case TOKleg:
-            n = 1;
-            break;
-        case TOKlg:
-            n = cmp != 0;
-            break;
-        case TOKunord:
-            n = 0;
-            break;
-        case TOKue:
-            n = cmp == 0;
-            break;
-        case TOKug:
-            n = cmp > 0;
-            break;
-        case TOKuge:
-            n = cmp >= 0;
-            break;
-        case TOKul:
-            n = cmp < 0;
-            break;
-        case TOKule:
-            n = cmp <= 0;
-            break;
-        default:
-            assert(0);
+            case TOKlt:
+                n = cmp < 0;
+                break;
+            case TOKle:
+                n = cmp <= 0;
+                break;
+            case TOKgt:
+                n = cmp > 0;
+                break;
+            case TOKge:
+                n = cmp >= 0;
+                break;
+            case TOKleg:
+                n = 1;
+                break;
+            case TOKlg:
+                n = cmp != 0;
+                break;
+            case TOKunord:
+                n = 0;
+                break;
+            case TOKue:
+                n = cmp == 0;
+                break;
+            case TOKug:
+                n = cmp > 0;
+                break;
+            case TOKuge:
+                n = cmp >= 0;
+                break;
+            case TOKul:
+                n = cmp < 0;
+                break;
+            case TOKule:
+                n = cmp <= 0;
+                break;
+            default:
+                assert(0);
         }
     }
     else if (t1.isreal())
@@ -2125,17 +2125,17 @@ extern (C++) UnionExp changeArrayLiteralLength(Loc loc, TypeArray arrayType, Exp
         {
             switch (oldse.sz)
             {
-            case 1:
-                (cast(char*)s)[cast(size_t)(indxlo + elemi)] = cast(char)defaultValue;
-                break;
-            case 2:
-                (cast(utf16_t*)s)[cast(size_t)(indxlo + elemi)] = cast(utf16_t)defaultValue;
-                break;
-            case 4:
-                (cast(utf32_t*)s)[cast(size_t)(indxlo + elemi)] = cast(utf32_t)defaultValue;
-                break;
-            default:
-                assert(0);
+                case 1:
+                    (cast(char*)s)[cast(size_t)(indxlo + elemi)] = cast(char)defaultValue;
+                    break;
+                case 2:
+                    (cast(utf16_t*)s)[cast(size_t)(indxlo + elemi)] = cast(utf16_t)defaultValue;
+                    break;
+                case 4:
+                    (cast(utf32_t*)s)[cast(size_t)(indxlo + elemi)] = cast(utf32_t)defaultValue;
+                    break;
+                default:
+                    assert(0);
             }
         }
         emplaceExp!(StringExp)(&ue, loc, s, newlen);

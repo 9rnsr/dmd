@@ -621,14 +621,14 @@ Language changes listed by -transition=id:
                         // Bugzilla issue number
                         switch (num)
                         {
-                        case 3449:
-                            global.params.vfield = true;
-                            break;
-                        case 14488:
-                            global.params.vcomplex = true;
-                            break;
-                        default:
-                            goto Lerror;
+                            case 3449:
+                                global.params.vfield = true;
+                                break;
+                            case 14488:
+                                global.params.vcomplex = true;
+                                break;
+                            default:
+                                goto Lerror;
                         }
                     }
                     else if (Lexer.isValidIdentifier(p + 12))
@@ -636,36 +636,36 @@ Language changes listed by -transition=id:
                         const(char)* ident = p + 12;
                         switch (strlen(ident))
                         {
-                        case 3:
-                            if (strcmp(ident, "all") == 0)
-                            {
-                                global.params.vtls = true;
-                                global.params.vfield = true;
-                                global.params.vcomplex = true;
-                                break;
-                            }
-                            if (strcmp(ident, "tls") == 0)
-                            {
-                                global.params.vtls = true;
-                                break;
-                            }
-                            goto Lerror;
-                        case 5:
-                            if (strcmp(ident, "field") == 0)
-                            {
-                                global.params.vfield = true;
-                                break;
-                            }
-                            goto Lerror;
-                        case 7:
-                            if (strcmp(ident, "complex") == 0)
-                            {
-                                global.params.vcomplex = true;
-                                break;
-                            }
-                            goto Lerror;
-                        default:
-                            goto Lerror;
+                            case 3:
+                                if (strcmp(ident, "all") == 0)
+                                {
+                                    global.params.vtls = true;
+                                    global.params.vfield = true;
+                                    global.params.vcomplex = true;
+                                    break;
+                                }
+                                if (strcmp(ident, "tls") == 0)
+                                {
+                                    global.params.vtls = true;
+                                    break;
+                                }
+                                goto Lerror;
+                            case 5:
+                                if (strcmp(ident, "field") == 0)
+                                {
+                                    global.params.vfield = true;
+                                    break;
+                                }
+                                goto Lerror;
+                            case 7:
+                                if (strcmp(ident, "complex") == 0)
+                                {
+                                    global.params.vcomplex = true;
+                                    break;
+                                }
+                                goto Lerror;
+                            default:
+                                goto Lerror;
                         }
                     }
                     else
@@ -685,39 +685,39 @@ Language changes listed by -transition=id:
                 const(char)* path;
                 switch (p[2])
                 {
-                case '-':
-                    global.params.obj = false;
-                    break;
-                case 'd':
-                    if (!p[3])
-                        goto Lnoarg;
-                    path = p + 3;
-                    version (Windows)
-                    {
-                        path = toWinPath(path);
-                    }
-                    global.params.objdir = path;
-                    break;
-                case 'f':
-                    if (!p[3])
-                        goto Lnoarg;
-                    path = p + 3;
-                    version (Windows)
-                    {
-                        path = toWinPath(path);
-                    }
-                    global.params.objname = path;
-                    break;
-                case 'p':
-                    if (p[3])
+                    case '-':
+                        global.params.obj = false;
+                        break;
+                    case 'd':
+                        if (!p[3])
+                            goto Lnoarg;
+                        path = p + 3;
+                        version (Windows)
+                        {
+                            path = toWinPath(path);
+                        }
+                        global.params.objdir = path;
+                        break;
+                    case 'f':
+                        if (!p[3])
+                            goto Lnoarg;
+                        path = p + 3;
+                        version (Windows)
+                        {
+                            path = toWinPath(path);
+                        }
+                        global.params.objname = path;
+                        break;
+                    case 'p':
+                        if (p[3])
+                            goto Lerror;
+                        global.params.preservePaths = true;
+                        break;
+                    case 0:
+                        error(Loc(), "-o no longer supported, use -of or -od");
+                        break;
+                    default:
                         goto Lerror;
-                    global.params.preservePaths = true;
-                    break;
-                case 0:
-                    error(Loc(), "-o no longer supported, use -of or -od");
-                    break;
-                default:
-                    goto Lerror;
                 }
             }
             else if (p[1] == 'D')
@@ -725,20 +725,20 @@ Language changes listed by -transition=id:
                 global.params.doDocComments = true;
                 switch (p[2])
                 {
-                case 'd':
-                    if (!p[3])
-                        goto Lnoarg;
-                    global.params.docdir = p + 3;
-                    break;
-                case 'f':
-                    if (!p[3])
-                        goto Lnoarg;
-                    global.params.docname = p + 3;
-                    break;
-                case 0:
-                    break;
-                default:
-                    goto Lerror;
+                    case 'd':
+                        if (!p[3])
+                            goto Lnoarg;
+                        global.params.docdir = p + 3;
+                        break;
+                    case 'f':
+                        if (!p[3])
+                            goto Lnoarg;
+                        global.params.docname = p + 3;
+                        break;
+                    case 0:
+                        break;
+                    default:
+                        goto Lerror;
                 }
             }
             else if (p[1] == 'H')
@@ -746,20 +746,20 @@ Language changes listed by -transition=id:
                 global.params.doHdrGeneration = true;
                 switch (p[2])
                 {
-                case 'd':
-                    if (!p[3])
-                        goto Lnoarg;
-                    global.params.hdrdir = p + 3;
-                    break;
-                case 'f':
-                    if (!p[3])
-                        goto Lnoarg;
-                    global.params.hdrname = p + 3;
-                    break;
-                case 0:
-                    break;
-                default:
-                    goto Lerror;
+                    case 'd':
+                        if (!p[3])
+                            goto Lnoarg;
+                        global.params.hdrdir = p + 3;
+                        break;
+                    case 'f':
+                        if (!p[3])
+                            goto Lnoarg;
+                        global.params.hdrname = p + 3;
+                        break;
+                    case 0:
+                        break;
+                    default:
+                        goto Lerror;
                 }
             }
             else if (p[1] == 'X')
@@ -767,15 +767,15 @@ Language changes listed by -transition=id:
                 global.params.doJsonGeneration = true;
                 switch (p[2])
                 {
-                case 'f':
-                    if (!p[3])
-                        goto Lnoarg;
-                    global.params.jsonfilename = p + 3;
-                    break;
-                case 0:
-                    break;
-                default:
-                    goto Lerror;
+                    case 'f':
+                        if (!p[3])
+                            goto Lnoarg;
+                        global.params.jsonfilename = p + 3;
+                        break;
+                    case 0:
+                        break;
+                    default:
+                        goto Lerror;
                 }
             }
             else if (strcmp(p + 1, "ignore") == 0)
@@ -1713,58 +1713,58 @@ extern (C++) void getenv_setargv(const(char)* envvalue, Strings* args)
     {
         switch (*env)
         {
-        case ' ':
-        case '\t':
-            env++;
-            break;
-        case 0:
-            return;
-        default:
-            args.push(env); // append
-            p = env;
-            slash = 0;
-            instring = 0;
-            c = 0;
-            while (1)
-            {
-                c = *env++;
-                switch (c)
-                {
-                case '"':
-                    p -= (slash >> 1);
-                    if (slash & 1)
-                    {
-                        p--;
-                        goto Laddc;
-                    }
-                    instring ^= 1;
-                    slash = 0;
-                    continue;
-                case ' ':
-                case '\t':
-                    if (instring)
-                        goto Laddc;
-                    *p = 0;
-                    //if (wildcard)
-                    //wildcardexpand();     // not implemented
-                    break;
-                case '\\':
-                    slash++;
-                    *p++ = c;
-                    continue;
-                case 0:
-                    *p = 0;
-                    //if (wildcard)
-                    //wildcardexpand();     // not implemented
-                    return;
-                default:
-                Laddc:
-                    slash = 0;
-                    *p++ = c;
-                    continue;
-                }
+            case ' ':
+            case '\t':
+                env++;
                 break;
-            }
+            case 0:
+                return;
+            default:
+                args.push(env); // append
+                p = env;
+                slash = 0;
+                instring = 0;
+                c = 0;
+                while (1)
+                {
+                    c = *env++;
+                    switch (c)
+                    {
+                        case '"':
+                            p -= (slash >> 1);
+                            if (slash & 1)
+                            {
+                                p--;
+                                goto Laddc;
+                            }
+                            instring ^= 1;
+                            slash = 0;
+                            continue;
+                        case ' ':
+                        case '\t':
+                            if (instring)
+                                goto Laddc;
+                            *p = 0;
+                            //if (wildcard)
+                            //wildcardexpand();     // not implemented
+                            break;
+                        case '\\':
+                            slash++;
+                            *p++ = c;
+                            continue;
+                        case 0:
+                            *p = 0;
+                            //if (wildcard)
+                            //wildcardexpand();     // not implemented
+                            return;
+                        default:
+                        Laddc:
+                            slash = 0;
+                            *p++ = c;
+                            continue;
+                    }
+                    break;
+                }
         }
     }
 }
@@ -1775,15 +1775,15 @@ extern (C++) void escapePath(OutBuffer* buf, const(char)* fname)
     {
         switch (*fname)
         {
-        case 0:
-            return;
-        case '(':
-        case ')':
-        case '\\':
-            buf.writeByte('\\');
-        default:
-            buf.writeByte(*fname);
-            break;
+            case 0:
+                return;
+            case '(':
+            case ')':
+            case '\\':
+                buf.writeByte('\\');
+            default:
+                buf.writeByte(*fname);
+                break;
         }
         fname++;
     }

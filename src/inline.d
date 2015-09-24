@@ -1708,33 +1708,33 @@ bool canInline(FuncDeclaration fd, int hasthis, int hdrscan, int statementsToo)
     }
     switch (statementsToo ? fd.inlineStatusStmt : fd.inlineStatusExp)
     {
-    case ILSyes:
-        static if (CANINLINE_LOG)
-        {
-            printf("\t1: yes %s\n", fd.toChars());
-        }
-        return true;
-    case ILSno:
-        static if (CANINLINE_LOG)
-        {
-            printf("\t1: no %s\n", fd.toChars());
-        }
-        return false;
-    case ILSuninitialized:
-        break;
-    default:
-        assert(0);
+        case ILSyes:
+            static if (CANINLINE_LOG)
+            {
+                printf("\t1: yes %s\n", fd.toChars());
+            }
+            return true;
+        case ILSno:
+            static if (CANINLINE_LOG)
+            {
+                printf("\t1: no %s\n", fd.toChars());
+            }
+            return false;
+        case ILSuninitialized:
+            break;
+        default:
+            assert(0);
     }
     switch (fd.inlining)
     {
-    case PINLINEdefault:
-        break;
-    case PINLINEalways:
-        break;
-    case PINLINEnever:
-        return false;
-    default:
-        assert(0);
+        case PINLINEdefault:
+            break;
+        case PINLINEalways:
+            break;
+        case PINLINEnever:
+            return false;
+        default:
+            assert(0);
     }
     if (fd.type)
     {

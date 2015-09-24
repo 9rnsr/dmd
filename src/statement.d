@@ -2277,8 +2277,8 @@ public:
         sc.noctor++;
         switch (tab.ty)
         {
-        case Tarray:
-        case Tsarray:
+            case Tarray:
+            case Tsarray:
             {
                 if (checkForArgTypes())
                     return this;
@@ -2462,24 +2462,24 @@ public:
                 s = s.semantic(sc);
                 break;
             }
-        case Taarray:
-            if (op == TOKforeach_reverse)
-                warning("cannot use foreach_reverse with an associative array");
-            if (checkForArgTypes())
-                return this;
-            taa = cast(TypeAArray)tab;
-            if (dim < 1 || dim > 2)
-            {
-                error("only one or two arguments for associative array foreach");
-                goto Lerror2;
-            }
-            goto Lapply;
-        case Tclass:
-        case Tstruct:
-            /* Prefer using opApply, if it exists
-             */
-            if (sapply)
+            case Taarray:
+                if (op == TOKforeach_reverse)
+                    warning("cannot use foreach_reverse with an associative array");
+                if (checkForArgTypes())
+                    return this;
+                taa = cast(TypeAArray)tab;
+                if (dim < 1 || dim > 2)
+                {
+                    error("only one or two arguments for associative array foreach");
+                    goto Lerror2;
+                }
                 goto Lapply;
+            case Tclass:
+            case Tstruct:
+                /* Prefer using opApply, if it exists
+                 */
+                if (sapply)
+                    goto Lapply;
             {
                 /* Look for range iteration, i.e. the properties
                  * .empty, .popFront, .popBack, .front and .back
@@ -2616,10 +2616,10 @@ public:
                 error("cannot infer argument types");
                 goto Lerror2;
             }
-        case Tdelegate:
-            if (op == TOKforeach_reverse)
-                deprecation("cannot use foreach_reverse with a delegate");
-        Lapply:
+            case Tdelegate:
+                if (op == TOKforeach_reverse)
+                    deprecation("cannot use foreach_reverse with a delegate");
+            Lapply:
             {
                 if (checkForArgTypes())
                 {
@@ -2924,13 +2924,13 @@ public:
                 s = s.semantic(sc);
                 break;
             }
-        case Terror:
-        Lerror2:
-            s = new ErrorStatement();
-            break;
-        default:
-            error("foreach: %s is not an aggregate type", aggr.type.toChars());
-            goto Lerror2;
+            case Terror:
+            Lerror2:
+                s = new ErrorStatement();
+                break;
+            default:
+                error("foreach: %s is not an aggregate type", aggr.type.toChars());
+                goto Lerror2;
         }
         sc.noctor--;
         sc.pop();
@@ -5214,13 +5214,13 @@ public:
         Statement s = new PeelStatement(statement);
         switch (tok)
         {
-        case TOKon_scope_exit:
-            *sfinally = s;
-            break;
-        case TOKon_scope_failure:
-            *sexception = s;
-            break;
-        case TOKon_scope_success:
+            case TOKon_scope_exit:
+                *sfinally = s;
+                break;
+            case TOKon_scope_failure:
+                *sexception = s;
+                break;
+            case TOKon_scope_success:
             {
                 /* Create:
                  *  sentry:   bool x = false;
@@ -5240,8 +5240,8 @@ public:
                 *sfinally = new IfStatement(Loc(), null, e, s, null);
                 break;
             }
-        default:
-            assert(0);
+            default:
+                assert(0);
         }
         return null;
     }

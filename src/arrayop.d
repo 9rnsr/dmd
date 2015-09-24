@@ -285,35 +285,35 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
             const(char)* s;
             switch (e.op)
             {
-            case TOKaddass:
-                s = "Addass";
-                break;
-            case TOKminass:
-                s = "Subass";
-                break;
-            case TOKmulass:
-                s = "Mulass";
-                break;
-            case TOKdivass:
-                s = "Divass";
-                break;
-            case TOKmodass:
-                s = "Modass";
-                break;
-            case TOKxorass:
-                s = "Xorass";
-                break;
-            case TOKandass:
-                s = "Andass";
-                break;
-            case TOKorass:
-                s = "Orass";
-                break;
-            case TOKpowass:
-                s = "Powass";
-                break;
-            default:
-                assert(0);
+                case TOKaddass:
+                    s = "Addass";
+                    break;
+                case TOKminass:
+                    s = "Subass";
+                    break;
+                case TOKmulass:
+                    s = "Mulass";
+                    break;
+                case TOKdivass:
+                    s = "Divass";
+                    break;
+                case TOKmodass:
+                    s = "Modass";
+                    break;
+                case TOKxorass:
+                    s = "Xorass";
+                    break;
+                case TOKandass:
+                    s = "Andass";
+                    break;
+                case TOKorass:
+                    s = "Orass";
+                    break;
+                case TOKpowass:
+                    s = "Powass";
+                    break;
+                default:
+                    assert(0);
             }
             buf.writestring(s);
         }
@@ -337,35 +337,35 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
             const(char)* s = null;
             switch (e.op)
             {
-            case TOKadd:
-                s = "Add";
-                break;
-            case TOKmin:
-                s = "Sub";
-                break;
-            case TOKmul:
-                s = "Mul";
-                break;
-            case TOKdiv:
-                s = "Div";
-                break;
-            case TOKmod:
-                s = "Mod";
-                break;
-            case TOKxor:
-                s = "Xor";
-                break;
-            case TOKand:
-                s = "And";
-                break;
-            case TOKor:
-                s = "Or";
-                break;
-            case TOKpow:
-                s = "Pow";
-                break;
-            default:
-                break;
+                case TOKadd:
+                    s = "Add";
+                    break;
+                case TOKmin:
+                    s = "Sub";
+                    break;
+                case TOKmul:
+                    s = "Mul";
+                    break;
+                case TOKdiv:
+                    s = "Div";
+                    break;
+                case TOKmod:
+                    s = "Mod";
+                    break;
+                case TOKxor:
+                    s = "Xor";
+                    break;
+                case TOKand:
+                    s = "And";
+                    break;
+                case TOKor:
+                    s = "Or";
+                    break;
+                case TOKpow:
+                    s = "Pow";
+                    break;
+                default:
+                    break;
             }
             if (s)
             {
@@ -485,35 +485,35 @@ extern (C++) Expression buildArrayLoop(Expression e, Parameters* fparams)
             param.storageClass = 0;
             switch (e.op)
             {
-            case TOKaddass:
-                result = new AddAssignExp(e.loc, ex1, ex2);
-                return;
-            case TOKminass:
-                result = new MinAssignExp(e.loc, ex1, ex2);
-                return;
-            case TOKmulass:
-                result = new MulAssignExp(e.loc, ex1, ex2);
-                return;
-            case TOKdivass:
-                result = new DivAssignExp(e.loc, ex1, ex2);
-                return;
-            case TOKmodass:
-                result = new ModAssignExp(e.loc, ex1, ex2);
-                return;
-            case TOKxorass:
-                result = new XorAssignExp(e.loc, ex1, ex2);
-                return;
-            case TOKandass:
-                result = new AndAssignExp(e.loc, ex1, ex2);
-                return;
-            case TOKorass:
-                result = new OrAssignExp(e.loc, ex1, ex2);
-                return;
-            case TOKpowass:
-                result = new PowAssignExp(e.loc, ex1, ex2);
-                return;
-            default:
-                assert(0);
+                case TOKaddass:
+                    result = new AddAssignExp(e.loc, ex1, ex2);
+                    return;
+                case TOKminass:
+                    result = new MinAssignExp(e.loc, ex1, ex2);
+                    return;
+                case TOKmulass:
+                    result = new MulAssignExp(e.loc, ex1, ex2);
+                    return;
+                case TOKdivass:
+                    result = new DivAssignExp(e.loc, ex1, ex2);
+                    return;
+                case TOKmodass:
+                    result = new ModAssignExp(e.loc, ex1, ex2);
+                    return;
+                case TOKxorass:
+                    result = new XorAssignExp(e.loc, ex1, ex2);
+                    return;
+                case TOKandass:
+                    result = new AndAssignExp(e.loc, ex1, ex2);
+                    return;
+                case TOKorass:
+                    result = new OrAssignExp(e.loc, ex1, ex2);
+                    return;
+                case TOKpowass:
+                    result = new PowAssignExp(e.loc, ex1, ex2);
+                    return;
+                default:
+                    assert(0);
             }
         }
 
@@ -567,11 +567,11 @@ extern (C++) bool isUnaArrayOp(TOK op)
 {
     switch (op)
     {
-    case TOKneg:
-    case TOKtilde:
-        return true;
-    default:
-        break;
+        case TOKneg:
+        case TOKtilde:
+            return true;
+        default:
+            break;
     }
     return false;
 }
@@ -583,18 +583,18 @@ extern (C++) bool isBinArrayOp(TOK op)
 {
     switch (op)
     {
-    case TOKadd:
-    case TOKmin:
-    case TOKmul:
-    case TOKdiv:
-    case TOKmod:
-    case TOKxor:
-    case TOKand:
-    case TOKor:
-    case TOKpow:
-        return true;
-    default:
-        break;
+        case TOKadd:
+        case TOKmin:
+        case TOKmul:
+        case TOKdiv:
+        case TOKmod:
+        case TOKxor:
+        case TOKand:
+        case TOKor:
+        case TOKpow:
+            return true;
+        default:
+            break;
     }
     return false;
 }
@@ -606,18 +606,18 @@ extern (C++) bool isBinAssignArrayOp(TOK op)
 {
     switch (op)
     {
-    case TOKaddass:
-    case TOKminass:
-    case TOKmulass:
-    case TOKdivass:
-    case TOKmodass:
-    case TOKxorass:
-    case TOKandass:
-    case TOKorass:
-    case TOKpowass:
-        return true;
-    default:
-        break;
+        case TOKaddass:
+        case TOKminass:
+        case TOKmulass:
+        case TOKdivass:
+        case TOKmodass:
+        case TOKxorass:
+        case TOKandass:
+        case TOKorass:
+        case TOKpowass:
+            return true;
+        default:
+            break;
     }
     return false;
 }

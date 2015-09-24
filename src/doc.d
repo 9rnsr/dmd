@@ -64,18 +64,18 @@ struct Escape
             const(char)* s;
             switch (c)
             {
-            case '<':
-                s = "&lt;";
-                break;
-            case '>':
-                s = "&gt;";
-                break;
-            case '&':
-                s = "&amp;";
-                break;
-            default:
-                s = null;
-                break;
+                case '<':
+                    s = "&lt;";
+                    break;
+                case '>':
+                    s = "&gt;";
+                    break;
+                case '&':
+                    s = "&amp;";
+                    break;
+                default:
+                    s = null;
+                    break;
             }
             return s;
         }
@@ -175,20 +175,20 @@ public:
             {
                 switch (*p)
                 {
-                case ' ':
-                case '\t':
-                    p++;
-                    continue;
-                case '\n':
-                    p++;
-                    goto Lcont;
-                default:
-                    if (isIdStart(p) || isCVariadicArg(p, pend - p))
-                        break;
-                    if (namelen)
-                        goto Ltext;
-                    // continuation of prev macro
-                    goto Lskipline;
+                    case ' ':
+                    case '\t':
+                        p++;
+                        continue;
+                    case '\n':
+                        p++;
+                        goto Lcont;
+                    default:
+                        if (isIdStart(p) || isCVariadicArg(p, pend - p))
+                            break;
+                        if (namelen)
+                            goto Ltext;
+                        // continuation of prev macro
+                        goto Lskipline;
                 }
                 break;
             }
@@ -513,23 +513,23 @@ extern (C++) void escapeDdocString(OutBuffer* buf, size_t start)
         char c = buf.data[u];
         switch (c)
         {
-        case '$':
-            buf.remove(u, 1);
-            buf.insert(u, cast(const(char)*)"$(DOLLAR)", 9);
-            u += 8;
-            break;
-        case '(':
-            buf.remove(u, 1); //remove the (
-            buf.insert(u, cast(const(char)*)"$(LPAREN)", 9); //insert this instead
-            u += 8; //skip over newly inserted macro
-            break;
-        case ')':
-            buf.remove(u, 1); //remove the )
-            buf.insert(u, cast(const(char)*)"$(RPAREN)", 9); //insert this instead
-            u += 8; //skip over newly inserted macro
-            break;
-        default:
-            break;
+            case '$':
+                buf.remove(u, 1);
+                buf.insert(u, cast(const(char)*)"$(DOLLAR)", 9);
+                u += 8;
+                break;
+            case '(':
+                buf.remove(u, 1); //remove the (
+                buf.insert(u, cast(const(char)*)"$(LPAREN)", 9); //insert this instead
+                u += 8; //skip over newly inserted macro
+                break;
+            case ')':
+                buf.remove(u, 1); //remove the )
+                buf.insert(u, cast(const(char)*)"$(RPAREN)", 9); //insert this instead
+                u += 8; //skip over newly inserted macro
+                break;
+            default:
+                break;
         }
     }
 }
@@ -548,32 +548,32 @@ extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
         char c = buf.data[u];
         switch (c)
         {
-        case '(':
-            par_open++;
-            break;
-        case ')':
-            if (par_open == 0)
-            {
-                //stray ')'
-                warning(loc, "Ddoc: Stray ')'. This may cause incorrect Ddoc output. Use $(RPAREN) instead for unpaired right parentheses.");
-                buf.remove(u, 1); //remove the )
-                buf.insert(u, cast(const(char)*)"$(RPAREN)", 9); //insert this instead
-                u += 8; //skip over newly inserted macro
-            }
-            else
-                par_open--;
-            break;
-            version (none)
-            {
-                // For this to work, loc must be set to the beginning of the passed
-                // text which is currently not possible
-                // (loc is set to the Loc of the Dsymbol)
-            case '\n':
-                loc.linnum++;
+            case '(':
+                par_open++;
                 break;
-            }
-        default:
-            break;
+            case ')':
+                if (par_open == 0)
+                {
+                    //stray ')'
+                    warning(loc, "Ddoc: Stray ')'. This may cause incorrect Ddoc output. Use $(RPAREN) instead for unpaired right parentheses.");
+                    buf.remove(u, 1); //remove the )
+                    buf.insert(u, cast(const(char)*)"$(RPAREN)", 9); //insert this instead
+                    u += 8; //skip over newly inserted macro
+                }
+                else
+                    par_open--;
+                break;
+                version (none)
+                {
+                    // For this to work, loc must be set to the beginning of the passed
+                    // text which is currently not possible
+                    // (loc is set to the Loc of the Dsymbol)
+                case '\n':
+                    loc.linnum++;
+                    break;
+                }
+            default:
+                break;
         }
     }
     if (par_open) // if any unmatched lparens
@@ -585,22 +585,22 @@ extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
             char c = buf.data[u];
             switch (c)
             {
-            case ')':
-                par_open++;
-                break;
-            case '(':
-                if (par_open == 0)
-                {
-                    //stray '('
-                    warning(loc, "Ddoc: Stray '('. This may cause incorrect Ddoc output. Use $(LPAREN) instead for unpaired left parentheses.");
-                    buf.remove(u, 1); //remove the (
-                    buf.insert(u, cast(const(char)*)"$(LPAREN)", 9); //insert this instead
-                }
-                else
-                    par_open--;
-                break;
-            default:
-                break;
+                case ')':
+                    par_open++;
+                    break;
+                case '(':
+                    if (par_open == 0)
+                    {
+                        //stray '('
+                        warning(loc, "Ddoc: Stray '('. This may cause incorrect Ddoc output. Use $(LPAREN) instead for unpaired left parentheses.");
+                        buf.remove(u, 1); //remove the (
+                        buf.insert(u, cast(const(char)*)"$(LPAREN)", 9); //insert this instead
+                    }
+                    else
+                        par_open--;
+                    break;
+                default:
+                    break;
             }
         }
     }
@@ -1351,21 +1351,21 @@ struct DocComment
                     goto Ldone;
                 switch (*p)
                 {
-                case ' ':
-                case '\t':
-                    p++;
-                    continue;
-                case '\r':
-                case '\n':
-                    p++;
-                    goto Lcont;
-                default:
-                    if (isIdStart(p))
-                        break;
-                    if (namelen)
-                        goto Ltext;
-                    // continuation of prev macro
-                    goto Lskipline;
+                    case ' ':
+                    case '\t':
+                        p++;
+                        continue;
+                    case '\r':
+                    case '\n':
+                        p++;
+                        goto Lcont;
+                    default:
+                        if (isIdStart(p))
+                            break;
+                        if (namelen)
+                            goto Ltext;
+                        // continuation of prev macro
+                        goto Lskipline;
                 }
                 break;
             }
@@ -1725,12 +1725,12 @@ extern (C++) const(char)* skipwhitespace(const(char)* p)
     {
         switch (*p)
         {
-        case ' ':
-        case '\t':
-        case '\n':
-            continue;
-        default:
-            break;
+            case ' ':
+            case '\t':
+            case '\n':
+                continue;
+            default:
+                break;
         }
         break;
     }
@@ -1996,32 +1996,32 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     Lcont:
         switch (c)
         {
-        case ' ':
-        case '\t':
-            break;
-        case '\n':
-            if (inBacktick)
-            {
-                // `inline code` is only valid if contained on a single line
-                // otherwise, the backticks should be output literally.
-                //
-                // This lets things like `output from the linker' display
-                // unmolested while keeping the feature consistent with GitHub.
-                inBacktick = false;
-                inCode = false; // the backtick also assumes we're in code
-                // Nothing else is necessary since the DDOC_BACKQUOTED macro is
-                // inserted lazily at the close quote, meaning the rest of the
-                // text is already OK.
-            }
-            if (!sc._module.isDocFile && !inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
-            {
-                static __gshared const(char)* blankline = "$(DDOC_BLANKLINE)\n";
-                i = buf.insert(i, blankline, strlen(blankline));
-            }
-            leadingBlank = 1;
-            iLineStart = i + 1;
-            break;
-        case '<':
+            case ' ':
+            case '\t':
+                break;
+            case '\n':
+                if (inBacktick)
+                {
+                    // `inline code` is only valid if contained on a single line
+                    // otherwise, the backticks should be output literally.
+                    //
+                    // This lets things like `output from the linker' display
+                    // unmolested while keeping the feature consistent with GitHub.
+                    inBacktick = false;
+                    inCode = false; // the backtick also assumes we're in code
+                    // Nothing else is necessary since the DDOC_BACKQUOTED macro is
+                    // inserted lazily at the close quote, meaning the rest of the
+                    // text is already OK.
+                }
+                if (!sc._module.isDocFile && !inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
+                {
+                    static __gshared const(char)* blankline = "$(DDOC_BLANKLINE)\n";
+                    i = buf.insert(i, blankline, strlen(blankline));
+                }
+                leadingBlank = 1;
+                iLineStart = i + 1;
+                break;
+            case '<':
             {
                 leadingBlank = 0;
                 if (inCode)
@@ -2081,7 +2081,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 }
                 break;
             }
-        case '>':
+            case '>':
             {
                 leadingBlank = 0;
                 if (inCode)
@@ -2097,7 +2097,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 }
                 break;
             }
-        case '&':
+            case '&':
             {
                 leadingBlank = 0;
                 if (inCode)
@@ -2117,7 +2117,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 }
                 break;
             }
-        case '`':
+            case '`':
             {
                 if (inBacktick)
                 {
@@ -2147,146 +2147,146 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 iCodeStart = i;
                 break;
             }
-        case '-':
-            /* A line beginning with --- delimits a code section.
-             * inCode tells us if it is start or end of a code section.
-             */
-            if (leadingBlank)
-            {
-                size_t istart = i;
-                size_t eollen = 0;
-                leadingBlank = 0;
-                while (1)
+            case '-':
+                /* A line beginning with --- delimits a code section.
+                 * inCode tells us if it is start or end of a code section.
+                 */
+                if (leadingBlank)
                 {
-                    ++i;
-                    if (i >= buf.offset)
-                        break;
-                    c = buf.data[i];
-                    if (c == '\n')
+                    size_t istart = i;
+                    size_t eollen = 0;
+                    leadingBlank = 0;
+                    while (1)
                     {
-                        eollen = 1;
-                        break;
-                    }
-                    if (c == '\r')
-                    {
-                        eollen = 1;
-                        if (i + 1 >= buf.offset)
+                        ++i;
+                        if (i >= buf.offset)
                             break;
-                        if (buf.data[i + 1] == '\n')
+                        c = buf.data[i];
+                        if (c == '\n')
                         {
-                            eollen = 2;
+                            eollen = 1;
                             break;
                         }
+                        if (c == '\r')
+                        {
+                            eollen = 1;
+                            if (i + 1 >= buf.offset)
+                                break;
+                            if (buf.data[i + 1] == '\n')
+                            {
+                                eollen = 2;
+                                break;
+                            }
+                        }
+                        // BUG: handle UTF PS and LS too
+                        if (c != '-')
+                            goto Lcont;
                     }
-                    // BUG: handle UTF PS and LS too
-                    if (c != '-')
+                    if (i - istart < 3)
                         goto Lcont;
-                }
-                if (i - istart < 3)
-                    goto Lcont;
-                // We have the start/end of a code section
-                // Remove the entire --- line, including blanks and \n
-                buf.remove(iLineStart, i - iLineStart + eollen);
-                i = iLineStart;
-                if (inCode && (i <= iCodeStart))
-                {
-                    // Empty code section, just remove it completely.
-                    inCode = 0;
-                    break;
-                }
-                if (inCode)
-                {
-                    inCode = 0;
-                    // The code section is from iCodeStart to i
-                    OutBuffer codebuf;
-                    codebuf.write(buf.data + iCodeStart, i - iCodeStart);
-                    codebuf.writeByte(0);
-                    // Remove leading indentations from all lines
-                    bool lineStart = true;
-                    char* endp = cast(char*)codebuf.data + codebuf.offset;
-                    for (char* p = cast(char*)codebuf.data; p < endp;)
+                    // We have the start/end of a code section
+                    // Remove the entire --- line, including blanks and \n
+                    buf.remove(iLineStart, i - iLineStart + eollen);
+                    i = iLineStart;
+                    if (inCode && (i <= iCodeStart))
                     {
-                        if (lineStart)
-                        {
-                            size_t j = codeIndent;
-                            char* q = p;
-                            while (j-- > 0 && q < endp && isIndentWS(q))
-                                ++q;
-                            codebuf.remove(p - cast(char*)codebuf.data, q - p);
-                            assert(cast(char*)codebuf.data <= p);
-                            assert(p < cast(char*)codebuf.data + codebuf.offset);
-                            lineStart = false;
-                            endp = cast(char*)codebuf.data + codebuf.offset; // update
-                            continue;
-                        }
-                        if (*p == '\n')
-                            lineStart = true;
-                        ++p;
-                    }
-                    highlightCode2(sc, a, &codebuf, 0);
-                    buf.remove(iCodeStart, i - iCodeStart);
-                    i = buf.insert(iCodeStart, codebuf.data, codebuf.offset);
-                    i = buf.insert(i, cast(const(char)*)")\n", 2);
-                    i -= 2; // in next loop, c should be '\n'
-                }
-                else
-                {
-                    static __gshared const(char)* d_code = "$(D_CODE ";
-                    inCode = 1;
-                    codeIndent = istart - iLineStart; // save indent count
-                    i = buf.insert(i, d_code, strlen(d_code));
-                    iCodeStart = i;
-                    i--; // place i on >
-                    leadingBlank = true;
-                }
-            }
-            break;
-        default:
-            leadingBlank = 0;
-            if (sc._module.isDocFile || inCode)
-                break;
-            char* start = cast(char*)buf.data + i;
-            if (isIdStart(start))
-            {
-                size_t j = skippastident(buf, i);
-                if (i < j)
-                {
-                    size_t k = skippastURL(buf, i);
-                    if (i < k)
-                    {
-                        i = k - 1;
+                        // Empty code section, just remove it completely.
+                        inCode = 0;
                         break;
                     }
+                    if (inCode)
+                    {
+                        inCode = 0;
+                        // The code section is from iCodeStart to i
+                        OutBuffer codebuf;
+                        codebuf.write(buf.data + iCodeStart, i - iCodeStart);
+                        codebuf.writeByte(0);
+                        // Remove leading indentations from all lines
+                        bool lineStart = true;
+                        char* endp = cast(char*)codebuf.data + codebuf.offset;
+                        for (char* p = cast(char*)codebuf.data; p < endp;)
+                        {
+                            if (lineStart)
+                            {
+                                size_t j = codeIndent;
+                                char* q = p;
+                                while (j-- > 0 && q < endp && isIndentWS(q))
+                                    ++q;
+                                codebuf.remove(p - cast(char*)codebuf.data, q - p);
+                                assert(cast(char*)codebuf.data <= p);
+                                assert(p < cast(char*)codebuf.data + codebuf.offset);
+                                lineStart = false;
+                                endp = cast(char*)codebuf.data + codebuf.offset; // update
+                                continue;
+                            }
+                            if (*p == '\n')
+                                lineStart = true;
+                            ++p;
+                        }
+                        highlightCode2(sc, a, &codebuf, 0);
+                        buf.remove(iCodeStart, i - iCodeStart);
+                        i = buf.insert(iCodeStart, codebuf.data, codebuf.offset);
+                        i = buf.insert(i, cast(const(char)*)")\n", 2);
+                        i -= 2; // in next loop, c should be '\n'
+                    }
+                    else
+                    {
+                        static __gshared const(char)* d_code = "$(D_CODE ";
+                        inCode = 1;
+                        codeIndent = istart - iLineStart; // save indent count
+                        i = buf.insert(i, d_code, strlen(d_code));
+                        iCodeStart = i;
+                        i--; // place i on >
+                        leadingBlank = true;
+                    }
                 }
-                else
+                break;
+            default:
+                leadingBlank = 0;
+                if (sc._module.isDocFile || inCode)
                     break;
-                size_t len = j - i;
-                // leading '_' means no highlight unless it's a reserved symbol name
-                if (c == '_' && (i == 0 || !isdigit(*(start - 1))) && (i == buf.size - 1 || !isReservedName(start, len)))
+                char* start = cast(char*)buf.data + i;
+                if (isIdStart(start))
                 {
-                    buf.remove(i, 1);
+                    size_t j = skippastident(buf, i);
+                    if (i < j)
+                    {
+                        size_t k = skippastURL(buf, i);
+                        if (i < k)
+                        {
+                            i = k - 1;
+                            break;
+                        }
+                    }
+                    else
+                        break;
+                    size_t len = j - i;
+                    // leading '_' means no highlight unless it's a reserved symbol name
+                    if (c == '_' && (i == 0 || !isdigit(*(start - 1))) && (i == buf.size - 1 || !isReservedName(start, len)))
+                    {
+                        buf.remove(i, 1);
+                        i = j - 1;
+                        break;
+                    }
+                    if (isIdentifier(a, start, len))
+                    {
+                        i = buf.bracket(i, "$(DDOC_PSYMBOL ", j, ")") - 1;
+                        break;
+                    }
+                    if (isKeyword(start, len))
+                    {
+                        i = buf.bracket(i, "$(DDOC_KEYWORD ", j, ")") - 1;
+                        break;
+                    }
+                    if (isFunctionParameter(a, start, len))
+                    {
+                        //printf("highlighting arg '%s', i = %d, j = %d\n", arg->ident->toChars(), i, j);
+                        i = buf.bracket(i, "$(DDOC_PARAM ", j, ")") - 1;
+                        break;
+                    }
                     i = j - 1;
-                    break;
                 }
-                if (isIdentifier(a, start, len))
-                {
-                    i = buf.bracket(i, "$(DDOC_PSYMBOL ", j, ")") - 1;
-                    break;
-                }
-                if (isKeyword(start, len))
-                {
-                    i = buf.bracket(i, "$(DDOC_KEYWORD ", j, ")") - 1;
-                    break;
-                }
-                if (isFunctionParameter(a, start, len))
-                {
-                    //printf("highlighting arg '%s', i = %d, j = %d\n", arg->ident->toChars(), i, j);
-                    i = buf.bracket(i, "$(DDOC_PARAM ", j, ")") - 1;
-                    break;
-                }
-                i = j - 1;
-            }
-            break;
+                break;
         }
     }
     if (inCode)
@@ -2382,7 +2382,7 @@ extern (C++) void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t 
         const(char)* highlight = null;
         switch (tok.value)
         {
-        case TOKidentifier:
+            case TOKidentifier:
             {
                 if (!sc)
                     break;
@@ -2400,16 +2400,16 @@ extern (C++) void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t 
                 }
                 break;
             }
-        case TOKcomment:
-            highlight = "$(D_COMMENT ";
-            break;
-        case TOKstring:
-            highlight = "$(D_STRING ";
-            break;
-        default:
-            if (tok.isKeyword())
-                highlight = "$(D_KEYWORD ";
-            break;
+            case TOKcomment:
+                highlight = "$(D_COMMENT ";
+                break;
+            case TOKstring:
+                highlight = "$(D_STRING ";
+                break;
+            default:
+                if (tok.isKeyword())
+                    highlight = "$(D_KEYWORD ";
+                break;
         }
         if (highlight)
         {

@@ -90,25 +90,25 @@ struct FileName
         {
             switch (*e)
             {
-            case '.':
-                return e + 1;
-                version (Posix)
-                {
+                case '.':
+                    return e + 1;
+            version (Posix)
+            {
                 case '/':
                     break;
-                }
-                version (Windows)
-                {
+            }
+            version (Windows)
+            {
                 case '\\':
                 case ':':
                 case '/':
                     break;
-                }
-            default:
-                if (e == str)
-                    break;
-                e--;
-                continue;
+            }
+                default:
+                    if (e == str)
+                        break;
+                    e--;
+                    continue;
             }
             return null;
         }
@@ -147,13 +147,13 @@ struct FileName
         {
             switch (*e)
             {
-                version (Posix)
-                {
+            version (Posix)
+            {
                 case '/':
                     return e + 1;
-                }
-                version (Windows)
-                {
+            }
+            version (Windows)
+            {
                 case '/':
                 case '\\':
                     return e + 1;
@@ -165,12 +165,12 @@ struct FileName
                      */
                     if (e == str + 1 || e == str + len - 1)
                         return e + 1;
-                }
-            default:
-                if (e == str)
-                    break;
-                e--;
-                continue;
+            }
+                default:
+                    if (e == str)
+                        break;
+                    e--;
+                    continue;
             }
             return e;
         }
@@ -310,56 +310,56 @@ struct FileName
                     c = *p;
                     switch (c)
                     {
-                    case '"':
-                        instring ^= 1; // toggle inside/outside of string
-                        continue;
-                        version (OSX)
-                        {
+                        case '"':
+                            instring ^= 1; // toggle inside/outside of string
+                            continue;
+                    version (OSX)
+                    {
                         case ',':
-                        }
-                        version (Windows)
-                        {
+                    }
+                    version (Windows)
+                    {
                         case ';':
-                        }
-                        version (Posix)
-                        {
+                    }
+                    version (Posix)
+                    {
                         case ':':
-                        }
-                        p++;
-                        break;
-                        // note that ; cannot appear as part
-                        // of a path, quotes won't protect it
-                    case 0x1A:
-                        // ^Z means end of file
-                    case 0:
-                        break;
-                    case '\r':
-                        continue;
-                        // ignore carriage returns
-                        version (Posix)
-                        {
+                    }
+                            p++;
+                            break;
+                            // note that ; cannot appear as part
+                            // of a path, quotes won't protect it
+                        case 0x1A:
+                            // ^Z means end of file
+                        case 0:
+                            break;
+                        case '\r':
+                            continue;
+                            // ignore carriage returns
+                    version (Posix)
+                    {
                         case '~':
-                            {
-                                char* home = getenv("HOME");
-                                if (home)
-                                    buf.writestring(home);
-                                else
-                                    buf.writestring("~");
-                                continue;
-                            }
-                        }
-                        version (none)
                         {
+                            char* home = getenv("HOME");
+                            if (home)
+                                buf.writestring(home);
+                            else
+                                buf.writestring("~");
+                            continue;
+                        }
+                    }
+                    version (none)
+                    {
                         case ' ':
                         case '\t':
                             // tabs in filenames?
                             if (!instring) // if not in string
                                 break;
                             // treat as end of path
-                        }
-                    default:
-                        buf.writeByte(c);
-                        continue;
+                    }
+                        default:
+                            buf.writeByte(c);
+                            continue;
                     }
                     break;
                 }

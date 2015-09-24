@@ -42,15 +42,15 @@ extern (C++) static uint32_t calcHash(const(char)* key, size_t len)
     // Handle the last few bytes of the input array
     switch (len & 3)
     {
-    case 3:
-        h ^= data[2] << 16;
-    case 2:
-        h ^= data[1] << 8;
-    case 1:
-        h ^= data[0];
-        h *= m;
-    default:
-        break;
+        case 3:
+            h ^= data[2] << 16;
+        case 2:
+            h ^= data[1] << 8;
+        case 1:
+            h ^= data[0];
+            h *= m;
+        default:
+            break;
     }
     // Do a few final mixes of the hash to ensure the last few
     // bytes are well-incorporated.

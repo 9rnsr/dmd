@@ -841,9 +841,8 @@ public:
             if (!flag)
                 sparam.semantic(paramscope);
             if (!paramscope.insert(sparam)) // TODO: This check can make more early
-                goto Lnomatch;
-            // in TemplateDeclaration::semantic, and
-            // then we don't need to make sparam if flags == 0
+                goto Lnomatch;              // in TemplateDeclaration::semantic, and
+                                            // then we don't need to make sparam if flags == 0
         }
         if (!flag)
         {
@@ -1236,467 +1235,467 @@ public:
         }
         // Loop through the function parameters
         {
-            //printf("%s\n\tnfargs = %d, nfparams = %d, tuple_dim = %d\n", toChars(), nfargs, nfparams, declaredTuple ? declaredTuple->objects.dim : 0);
-            //printf("\ttp = %p, fptupindex = %d, found = %d, declaredTuple = %s\n", tp, fptupindex, fptupindex != IDX_NOTFOUND, declaredTuple ? declaredTuple->toChars() : NULL);
-            size_t argi = 0;
-            size_t nfargs2 = nfargs; // nfargs + supplied defaultArgs
-            for (size_t parami = 0; parami < nfparams; parami++)
+        //printf("%s\n\tnfargs = %d, nfparams = %d, tuple_dim = %d\n", toChars(), nfargs, nfparams, declaredTuple ? declaredTuple->objects.dim : 0);
+        //printf("\ttp = %p, fptupindex = %d, found = %d, declaredTuple = %s\n", tp, fptupindex, fptupindex != IDX_NOTFOUND, declaredTuple ? declaredTuple->toChars() : NULL);
+        size_t argi = 0;
+        size_t nfargs2 = nfargs; // nfargs + supplied defaultArgs
+        for (size_t parami = 0; parami < nfparams; parami++)
+        {
+            Parameter fparam = Parameter.getNth(fparameters, parami);
+            // Apply function parameter storage classes to parameter types
+            Type prmtype = fparam.type.addStorageClass(fparam.storageClass);
+            Expression farg;
+            /* See function parameters which wound up
+             * as part of a template tuple parameter.
+             */
+            if (fptupindex != IDX_NOTFOUND && parami == fptupindex)
             {
-                Parameter fparam = Parameter.getNth(fparameters, parami);
-                // Apply function parameter storage classes to parameter types
-                Type prmtype = fparam.type.addStorageClass(fparam.storageClass);
-                Expression farg;
-                /* See function parameters which wound up
-                 * as part of a template tuple parameter.
-                 */
-                if (fptupindex != IDX_NOTFOUND && parami == fptupindex)
+                assert(prmtype.ty == Tident);
+                TypeIdentifier tid = cast(TypeIdentifier)prmtype;
+                if (!declaredTuple)
                 {
-                    assert(prmtype.ty == Tident);
-                    TypeIdentifier tid = cast(TypeIdentifier)prmtype;
-                    if (!declaredTuple)
+                    /* The types of the function arguments
+                     * now form the tuple argument.
+                     */
+                    declaredTuple = new Tuple();
+                    (*dedargs)[parameters.dim - 1] = declaredTuple;
+                    /* Count function parameters following a tuple parameter.
+                     * void foo(U, T...)(int y, T, U, int) {}  // rem == 2 (U, int)
+                     */
+                    size_t rem = 0;
+                    for (size_t j = parami + 1; j < nfparams; j++)
                     {
-                        /* The types of the function arguments
-                         * now form the tuple argument.
-                         */
-                        declaredTuple = new Tuple();
-                        (*dedargs)[parameters.dim - 1] = declaredTuple;
-                        /* Count function parameters following a tuple parameter.
-                         * void foo(U, T...)(int y, T, U, int) {}  // rem == 2 (U, int)
-                         */
-                        size_t rem = 0;
-                        for (size_t j = parami + 1; j < nfparams; j++)
+                        Parameter p = Parameter.getNth(fparameters, j);
+                        if (!reliesOnTident(p.type, parameters, inferStart))
                         {
-                            Parameter p = Parameter.getNth(fparameters, j);
-                            if (!reliesOnTident(p.type, parameters, inferStart))
-                            {
-                                Type pt = p.type.syntaxCopy().semantic(fd.loc, paramscope);
-                                rem += pt.ty == Ttuple ? (cast(TypeTuple)pt).arguments.dim : 1;
-                            }
-                            else
-                            {
-                                ++rem;
-                            }
+                            Type pt = p.type.syntaxCopy().semantic(fd.loc, paramscope);
+                            rem += pt.ty == Ttuple ? (cast(TypeTuple)pt).arguments.dim : 1;
                         }
-                        if (nfargs2 - argi < rem)
+                        else
+                        {
+                            ++rem;
+                        }
+                    }
+                    if (nfargs2 - argi < rem)
+                        goto Lnomatch;
+                    declaredTuple.objects.setDim(nfargs2 - argi - rem);
+                    for (size_t i = 0; i < declaredTuple.objects.dim; i++)
+                    {
+                        farg = (*fargs)[argi + i];
+                        // Check invalid arguments to detect errors early.
+                        if (farg.op == TOKerror || farg.type.ty == Terror)
                             goto Lnomatch;
-                        declaredTuple.objects.setDim(nfargs2 - argi - rem);
-                        for (size_t i = 0; i < declaredTuple.objects.dim; i++)
+                        if (!(fparam.storageClass & STClazy) && farg.type.ty == Tvoid)
+                            goto Lnomatch;
+                        Type tt;
+                        MATCH m;
+                        if (ubyte wm = deduceWildHelper(farg.type, &tt, tid))
                         {
-                            farg = (*fargs)[argi + i];
-                            // Check invalid arguments to detect errors early.
-                            if (farg.op == TOKerror || farg.type.ty == Terror)
-                                goto Lnomatch;
-                            if (!(fparam.storageClass & STClazy) && farg.type.ty == Tvoid)
-                                goto Lnomatch;
-                            Type tt;
-                            MATCH m;
-                            if (ubyte wm = deduceWildHelper(farg.type, &tt, tid))
-                            {
-                                wildmatch |= wm;
-                                m = MATCHconst;
-                            }
-                            else
-                            {
-                                m = deduceTypeHelper(farg.type, &tt, tid);
-                            }
-                            if (m <= MATCHnomatch)
-                                goto Lnomatch;
-                            if (m < match)
-                                match = m;
-                            /* Remove top const for dynamic array types and pointer types
-                             */
-                            if ((tt.ty == Tarray || tt.ty == Tpointer) && !tt.isMutable() && (!(fparam.storageClass & STCref) || (fparam.storageClass & STCauto) && !farg.isLvalue()))
-                            {
-                                tt = tt.mutableOf();
-                            }
-                            declaredTuple.objects[i] = tt;
+                            wildmatch |= wm;
+                            m = MATCHconst;
                         }
-                        declareParameter(paramscope, tp, declaredTuple);
-                    }
-                    else
-                    {
-                        // Bugzilla 6810: If declared tuple is not a type tuple,
-                        // it cannot be function parameter types.
-                        for (size_t i = 0; i < declaredTuple.objects.dim; i++)
+                        else
                         {
-                            if (!isType(declaredTuple.objects[i]))
-                                goto Lnomatch;
+                            m = deduceTypeHelper(farg.type, &tt, tid);
                         }
-                    }
-                    assert(declaredTuple);
-                    argi += declaredTuple.objects.dim;
-                    continue;
-                }
-                // If parameter type doesn't depend on inferred template parameters,
-                // semantic it to get actual type.
-                if (!reliesOnTident(prmtype, parameters, inferStart))
-                {
-                    // should copy prmtype to avoid affecting semantic result
-                    prmtype = prmtype.syntaxCopy().semantic(fd.loc, paramscope);
-                    if (prmtype.ty == Ttuple)
-                    {
-                        TypeTuple tt = cast(TypeTuple)prmtype;
-                        size_t tt_dim = tt.arguments.dim;
-                        for (size_t j = 0; j < tt_dim; j++, ++argi)
+                        if (m <= MATCHnomatch)
+                            goto Lnomatch;
+                        if (m < match)
+                            match = m;
+                        /* Remove top const for dynamic array types and pointer types
+                         */
+                        if ((tt.ty == Tarray || tt.ty == Tpointer) && !tt.isMutable() && (!(fparam.storageClass & STCref) || (fparam.storageClass & STCauto) && !farg.isLvalue()))
                         {
-                            Parameter p = (*tt.arguments)[j];
-                            if (j == tt_dim - 1 && fvarargs == 2 && parami + 1 == nfparams && argi < nfargs)
-                            {
-                                prmtype = p.type;
-                                goto Lvarargs;
-                            }
-                            if (argi >= nfargs)
-                            {
-                                if (p.defaultArg)
-                                    continue;
-                                goto Lnomatch;
-                            }
-                            farg = (*fargs)[argi];
-                            if (!farg.implicitConvTo(p.type))
-                                goto Lnomatch;
+                            tt = tt.mutableOf();
                         }
-                        continue;
+                        declaredTuple.objects[i] = tt;
                     }
-                }
-                if (argi >= nfargs) // if not enough arguments
-                {
-                    if (!fparam.defaultArg)
-                        goto Lvarargs;
-                    /* Bugzilla 2803: Before the starting of type deduction from the function
-                     * default arguments, set the already deduced parameters into paramscope.
-                     * It's necessary to avoid breaking existing acceptable code. Cases:
-                     *
-                     * 1. Already deduced template parameters can appear in fparam->defaultArg:
-                     *  auto foo(A, B)(A a, B b = A.stringof);
-                     *  foo(1);
-                     *  // at fparam == 'B b = A.string', A is equivalent with the deduced type 'int'
-                     *
-                     * 2. If prmtype depends on default-specified template parameter, the
-                     * default type should be preferred.
-                     *  auto foo(N = size_t, R)(R r, N start = 0)
-                     *  foo([1,2,3]);
-                     *  // at fparam `N start = 0`, N should be 'size_t' before
-                     *  // the deduction result from fparam->defaultArg.
-                     */
-                    if (argi == nfargs)
-                    {
-                        for (size_t i = 0; i < dedtypes.dim; i++)
-                        {
-                            Type at = isType((*dedtypes)[i]);
-                            if (at && at.ty == Tnone)
-                            {
-                                TypeDeduced xt = cast(TypeDeduced)at;
-                                (*dedtypes)[i] = xt.tded; // 'unbox'
-                            }
-                        }
-                        for (size_t i = ntargs; i < dedargs.dim; i++)
-                        {
-                            TemplateParameter tparam = (*parameters)[i];
-                            RootObject oarg = (*dedargs)[i];
-                            RootObject oded = (*dedtypes)[i];
-                            if (!oarg)
-                            {
-                                if (oded)
-                                {
-                                    if (tparam.specialization() || !tparam.isTemplateTypeParameter())
-                                    {
-                                        /* The specialization can work as long as afterwards
-                                         * the oded == oarg
-                                         */
-                                        (*dedargs)[i] = oded;
-                                        MATCH m2 = tparam.matchArg(loc, paramscope, dedargs, i, parameters, dedtypes, null);
-                                        //printf("m2 = %d\n", m2);
-                                        if (m2 <= MATCHnomatch)
-                                            goto Lnomatch;
-                                        if (m2 < matchTiargs)
-                                            matchTiargs = m2; // pick worst match
-                                        if (!(*dedtypes)[i].equals(oded))
-                                            error("specialization not allowed for deduced parameter %s", tparam.ident.toChars());
-                                    }
-                                    else
-                                    {
-                                        if (MATCHconvert < matchTiargs)
-                                            matchTiargs = MATCHconvert;
-                                    }
-                                    (*dedargs)[i] = declareParameter(paramscope, tparam, oded);
-                                }
-                                else
-                                {
-                                    oded = tparam.defaultArg(loc, paramscope);
-                                    if (oded)
-                                        (*dedargs)[i] = declareParameter(paramscope, tparam, oded);
-                                }
-                            }
-                        }
-                    }
-                    nfargs2 = argi + 1;
-                    /* If prmtype does not depend on any template parameters:
-                     *
-                     *  auto foo(T)(T v, double x = 0);
-                     *  foo("str");
-                     *  // at fparam == 'double x = 0'
-                     *
-                     * or, if all template parameters in the prmtype are already deduced:
-                     *
-                     *  auto foo(R)(R range, ElementType!R sum = 0);
-                     *  foo([1,2,3]);
-                     *  // at fparam == 'ElementType!R sum = 0'
-                     *
-                     * Deducing prmtype from fparam->defaultArg is not necessary.
-                     */
-                    if (prmtype.deco || prmtype.syntaxCopy().trySemantic(loc, paramscope))
-                    {
-                        ++argi;
-                        continue;
-                    }
-                    // Deduce prmtype from the defaultArg.
-                    farg = fparam.defaultArg.syntaxCopy();
-                    farg = farg.semantic(paramscope);
-                    farg = resolveProperties(paramscope, farg);
+                    declareParameter(paramscope, tp, declaredTuple);
                 }
                 else
                 {
-                    farg = (*fargs)[argi];
+                    // Bugzilla 6810: If declared tuple is not a type tuple,
+                    // it cannot be function parameter types.
+                    for (size_t i = 0; i < declaredTuple.objects.dim; i++)
+                    {
+                        if (!isType(declaredTuple.objects[i]))
+                            goto Lnomatch;
+                    }
                 }
+                assert(declaredTuple);
+                argi += declaredTuple.objects.dim;
+                continue;
+            }
+            // If parameter type doesn't depend on inferred template parameters,
+            // semantic it to get actual type.
+            if (!reliesOnTident(prmtype, parameters, inferStart))
+            {
+                // should copy prmtype to avoid affecting semantic result
+                prmtype = prmtype.syntaxCopy().semantic(fd.loc, paramscope);
+                if (prmtype.ty == Ttuple)
                 {
-                    // Check invalid arguments to detect errors early.
-                    if (farg.op == TOKerror || farg.type.ty == Terror)
-                        goto Lnomatch;
-                Lretry:
-                    version (none)
+                    TypeTuple tt = cast(TypeTuple)prmtype;
+                    size_t tt_dim = tt.arguments.dim;
+                    for (size_t j = 0; j < tt_dim; j++, ++argi)
                     {
-                        printf("\tfarg->type   = %s\n", farg.type.toChars());
-                        printf("\tfparam->type = %s\n", prmtype.toChars());
-                    }
-                    Type argtype = farg.type;
-                    if (!(fparam.storageClass & STClazy) && argtype.ty == Tvoid && farg.op != TOKfunction)
-                        goto Lnomatch;
-                    // Bugzilla 12876: optimize arugument to allow CT-known length matching
-                    farg = farg.optimize(WANTvalue, (fparam.storageClass & (STCref | STCout)) != 0);
-                    //printf("farg = %s %s\n", farg->type->toChars(), farg->toChars());
-                    RootObject oarg = farg;
-                    if ((fparam.storageClass & STCref) && (!(fparam.storageClass & STCauto) || farg.isLvalue()))
-                    {
-                        /* Allow expressions that have CT-known boundaries and type [] to match with [dim]
-                         */
-                        Type taai;
-                        if (argtype.ty == Tarray && (prmtype.ty == Tsarray || prmtype.ty == Taarray && (taai = (cast(TypeAArray)prmtype).index).ty == Tident && (cast(TypeIdentifier)taai).idents.dim == 0))
+                        Parameter p = (*tt.arguments)[j];
+                        if (j == tt_dim - 1 && fvarargs == 2 && parami + 1 == nfparams && argi < nfargs)
                         {
-                            if (farg.op == TOKstring)
-                            {
-                                StringExp se = cast(StringExp)farg;
-                                argtype = se.type.nextOf().sarrayOf(se.len);
-                            }
-                            else if (farg.op == TOKarrayliteral)
-                            {
-                                ArrayLiteralExp ae = cast(ArrayLiteralExp)farg;
-                                argtype = ae.type.nextOf().sarrayOf(ae.elements.dim);
-                            }
-                            else if (farg.op == TOKslice)
-                            {
-                                SliceExp se = cast(SliceExp)farg;
-                                if (Type tsa = toStaticArrayType(se))
-                                    argtype = tsa;
-                            }
+                            prmtype = p.type;
+                            goto Lvarargs;
                         }
-                        oarg = argtype;
-                    }
-                    else if ((fparam.storageClass & STCout) == 0 && (argtype.ty == Tarray || argtype.ty == Tpointer) && templateParameterLookup(prmtype, parameters) != IDX_NOTFOUND && (cast(TypeIdentifier)prmtype).idents.dim == 0)
-                    {
-                        /* The farg passing to the prmtype always make a copy. Therefore,
-                         * we can shrink the set of the deduced type arguments for prmtype
-                         * by adjusting top-qualifier of the argtype.
-                         *
-                         *  prmtype         argtype     ta
-                         *  T            <- const(E)[]  const(E)[]
-                         *  T            <- const(E[])  const(E)[]
-                         *  qualifier(T) <- const(E)[]  const(E[])
-                         *  qualifier(T) <- const(E[])  const(E[])
-                         */
-                        Type ta = argtype.castMod(prmtype.mod ? argtype.nextOf().mod : 0);
-                        if (ta != argtype)
+                        if (argi >= nfargs)
                         {
-                            Expression ea = farg.copy();
-                            ea.type = ta;
-                            oarg = ea;
+                            if (p.defaultArg)
+                                continue;
+                            goto Lnomatch;
+                        }
+                        farg = (*fargs)[argi];
+                        if (!farg.implicitConvTo(p.type))
+                            goto Lnomatch;
+                    }
+                    continue;
+                }
+            }
+            if (argi >= nfargs) // if not enough arguments
+            {
+                if (!fparam.defaultArg)
+                    goto Lvarargs;
+                /* Bugzilla 2803: Before the starting of type deduction from the function
+                 * default arguments, set the already deduced parameters into paramscope.
+                 * It's necessary to avoid breaking existing acceptable code. Cases:
+                 *
+                 * 1. Already deduced template parameters can appear in fparam->defaultArg:
+                 *  auto foo(A, B)(A a, B b = A.stringof);
+                 *  foo(1);
+                 *  // at fparam == 'B b = A.string', A is equivalent with the deduced type 'int'
+                 *
+                 * 2. If prmtype depends on default-specified template parameter, the
+                 * default type should be preferred.
+                 *  auto foo(N = size_t, R)(R r, N start = 0)
+                 *  foo([1,2,3]);
+                 *  // at fparam `N start = 0`, N should be 'size_t' before
+                 *  // the deduction result from fparam->defaultArg.
+                 */
+                if (argi == nfargs)
+                {
+                    for (size_t i = 0; i < dedtypes.dim; i++)
+                    {
+                        Type at = isType((*dedtypes)[i]);
+                        if (at && at.ty == Tnone)
+                        {
+                            TypeDeduced xt = cast(TypeDeduced)at;
+                            (*dedtypes)[i] = xt.tded; // 'unbox'
                         }
                     }
-                    if (fvarargs == 2 && parami + 1 == nfparams && argi + 1 < nfargs)
-                        goto Lvarargs;
-                    uint wm = 0;
-                    MATCH m = deduceType(oarg, paramscope, prmtype, parameters, dedtypes, &wm, inferStart);
-                    //printf("\tL%d deduceType m = %d, wm = x%x, wildmatch = x%x\n", __LINE__, m, wm, wildmatch);
-                    wildmatch |= wm;
-                    /* If no match, see if the argument can be matched by using
-                     * implicit conversions.
-                     */
-                    if (m == MATCHnomatch && prmtype.deco)
-                        m = farg.implicitConvTo(prmtype);
-                    if (m == MATCHnomatch)
+                    for (size_t i = ntargs; i < dedargs.dim; i++)
                     {
-                        AggregateDeclaration ad = isAggregate(farg.type);
-                        if (ad && ad.aliasthis)
+                        TemplateParameter tparam = (*parameters)[i];
+                        RootObject oarg = (*dedargs)[i];
+                        RootObject oded = (*dedtypes)[i];
+                        if (!oarg)
                         {
-                            /* If a semantic error occurs while doing alias this,
-                             * eg purity(bug 7295), just regard it as not a match.
-                             */
-                            uint olderrors = global.startGagging();
-                            Expression e = resolveAliasThis(sc, farg);
-                            if (!global.endGagging(olderrors))
+                            if (oded)
                             {
-                                farg = e;
-                                goto Lretry;
-                            }
-                        }
-                    }
-                    if (m > MATCHnomatch && (fparam.storageClass & (STCref | STCauto)) == STCref)
-                    {
-                        if (!farg.isLvalue())
-                        {
-                            if ((farg.op == TOKstring || farg.op == TOKslice) && (prmtype.ty == Tsarray || prmtype.ty == Taarray))
-                            {
-                                // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
+                                if (tparam.specialization() || !tparam.isTemplateTypeParameter())
+                                {
+                                    /* The specialization can work as long as afterwards
+                                     * the oded == oarg
+                                     */
+                                    (*dedargs)[i] = oded;
+                                    MATCH m2 = tparam.matchArg(loc, paramscope, dedargs, i, parameters, dedtypes, null);
+                                    //printf("m2 = %d\n", m2);
+                                    if (m2 <= MATCHnomatch)
+                                        goto Lnomatch;
+                                    if (m2 < matchTiargs)
+                                        matchTiargs = m2; // pick worst match
+                                    if (!(*dedtypes)[i].equals(oded))
+                                        error("specialization not allowed for deduced parameter %s", tparam.ident.toChars());
+                                }
+                                else
+                                {
+                                    if (MATCHconvert < matchTiargs)
+                                        matchTiargs = MATCHconvert;
+                                }
+                                (*dedargs)[i] = declareParameter(paramscope, tparam, oded);
                             }
                             else
-                                goto Lnomatch;
+                            {
+                                oded = tparam.defaultArg(loc, paramscope);
+                                if (oded)
+                                    (*dedargs)[i] = declareParameter(paramscope, tparam, oded);
+                            }
                         }
-                    }
-                    if (m > MATCHnomatch && (fparam.storageClass & STCout))
-                    {
-                        if (!farg.isLvalue())
-                            goto Lnomatch;
-                        if (!farg.type.isMutable()) // Bugzilla 11916
-                            goto Lnomatch;
-                    }
-                    if (m == MATCHnomatch && (fparam.storageClass & STClazy) && prmtype.ty == Tvoid && farg.type.ty != Tvoid)
-                        m = MATCHconvert;
-                    if (m != MATCHnomatch)
-                    {
-                        if (m < match)
-                            match = m; // pick worst match
-                        argi++;
-                        continue;
                     }
                 }
-            Lvarargs:
-                /* The following code for variadic arguments closely
-                 * matches TypeFunction::callMatch()
+                nfargs2 = argi + 1;
+                /* If prmtype does not depend on any template parameters:
+                 *
+                 *  auto foo(T)(T v, double x = 0);
+                 *  foo("str");
+                 *  // at fparam == 'double x = 0'
+                 *
+                 * or, if all template parameters in the prmtype are already deduced:
+                 *
+                 *  auto foo(R)(R range, ElementType!R sum = 0);
+                 *  foo([1,2,3]);
+                 *  // at fparam == 'ElementType!R sum = 0'
+                 *
+                 * Deducing prmtype from fparam->defaultArg is not necessary.
                  */
-                if (!(fvarargs == 2 && parami + 1 == nfparams))
-                    goto Lnomatch;
-                /* Check for match with function parameter T...
-                 */
-                Type tb = prmtype.toBasetype();
-                switch (tb.ty)
+                if (prmtype.deco || prmtype.syntaxCopy().trySemantic(loc, paramscope))
                 {
-                    // 6764 fix - TypeAArray may be TypeSArray have not yet run semantic().
+                    ++argi;
+                    continue;
+                }
+                // Deduce prmtype from the defaultArg.
+                farg = fparam.defaultArg.syntaxCopy();
+                farg = farg.semantic(paramscope);
+                farg = resolveProperties(paramscope, farg);
+            }
+            else
+            {
+                farg = (*fargs)[argi];
+            }
+            {
+                // Check invalid arguments to detect errors early.
+                if (farg.op == TOKerror || farg.type.ty == Terror)
+                    goto Lnomatch;
+            Lretry:
+                version (none)
+                {
+                    printf("\tfarg->type   = %s\n", farg.type.toChars());
+                    printf("\tfparam->type = %s\n", prmtype.toChars());
+                }
+                Type argtype = farg.type;
+                if (!(fparam.storageClass & STClazy) && argtype.ty == Tvoid && farg.op != TOKfunction)
+                    goto Lnomatch;
+                // Bugzilla 12876: optimize arugument to allow CT-known length matching
+                farg = farg.optimize(WANTvalue, (fparam.storageClass & (STCref | STCout)) != 0);
+                //printf("farg = %s %s\n", farg->type->toChars(), farg->toChars());
+                RootObject oarg = farg;
+                if ((fparam.storageClass & STCref) && (!(fparam.storageClass & STCauto) || farg.isLvalue()))
+                {
+                    /* Allow expressions that have CT-known boundaries and type [] to match with [dim]
+                     */
+                    Type taai;
+                    if (argtype.ty == Tarray && (prmtype.ty == Tsarray || prmtype.ty == Taarray && (taai = (cast(TypeAArray)prmtype).index).ty == Tident && (cast(TypeIdentifier)taai).idents.dim == 0))
+                    {
+                        if (farg.op == TOKstring)
+                        {
+                            StringExp se = cast(StringExp)farg;
+                            argtype = se.type.nextOf().sarrayOf(se.len);
+                        }
+                        else if (farg.op == TOKarrayliteral)
+                        {
+                            ArrayLiteralExp ae = cast(ArrayLiteralExp)farg;
+                            argtype = ae.type.nextOf().sarrayOf(ae.elements.dim);
+                        }
+                        else if (farg.op == TOKslice)
+                        {
+                            SliceExp se = cast(SliceExp)farg;
+                            if (Type tsa = toStaticArrayType(se))
+                                argtype = tsa;
+                        }
+                    }
+                    oarg = argtype;
+                }
+                else if ((fparam.storageClass & STCout) == 0 && (argtype.ty == Tarray || argtype.ty == Tpointer) && templateParameterLookup(prmtype, parameters) != IDX_NOTFOUND && (cast(TypeIdentifier)prmtype).idents.dim == 0)
+                {
+                    /* The farg passing to the prmtype always make a copy. Therefore,
+                     * we can shrink the set of the deduced type arguments for prmtype
+                     * by adjusting top-qualifier of the argtype.
+                     *
+                     *  prmtype         argtype     ta
+                     *  T            <- const(E)[]  const(E)[]
+                     *  T            <- const(E[])  const(E)[]
+                     *  qualifier(T) <- const(E)[]  const(E[])
+                     *  qualifier(T) <- const(E[])  const(E[])
+                     */
+                    Type ta = argtype.castMod(prmtype.mod ? argtype.nextOf().mod : 0);
+                    if (ta != argtype)
+                    {
+                        Expression ea = farg.copy();
+                        ea.type = ta;
+                        oarg = ea;
+                    }
+                }
+                if (fvarargs == 2 && parami + 1 == nfparams && argi + 1 < nfargs)
+                    goto Lvarargs;
+                uint wm = 0;
+                MATCH m = deduceType(oarg, paramscope, prmtype, parameters, dedtypes, &wm, inferStart);
+                //printf("\tL%d deduceType m = %d, wm = x%x, wildmatch = x%x\n", __LINE__, m, wm, wildmatch);
+                wildmatch |= wm;
+                /* If no match, see if the argument can be matched by using
+                 * implicit conversions.
+                 */
+                if (m == MATCHnomatch && prmtype.deco)
+                    m = farg.implicitConvTo(prmtype);
+                if (m == MATCHnomatch)
+                {
+                    AggregateDeclaration ad = isAggregate(farg.type);
+                    if (ad && ad.aliasthis)
+                    {
+                        /* If a semantic error occurs while doing alias this,
+                         * eg purity(bug 7295), just regard it as not a match.
+                         */
+                        uint olderrors = global.startGagging();
+                        Expression e = resolveAliasThis(sc, farg);
+                        if (!global.endGagging(olderrors))
+                        {
+                            farg = e;
+                            goto Lretry;
+                        }
+                    }
+                }
+                if (m > MATCHnomatch && (fparam.storageClass & (STCref | STCauto)) == STCref)
+                {
+                    if (!farg.isLvalue())
+                    {
+                        if ((farg.op == TOKstring || farg.op == TOKslice) && (prmtype.ty == Tsarray || prmtype.ty == Taarray))
+                        {
+                            // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
+                        }
+                        else
+                            goto Lnomatch;
+                    }
+                }
+                if (m > MATCHnomatch && (fparam.storageClass & STCout))
+                {
+                    if (!farg.isLvalue())
+                        goto Lnomatch;
+                    if (!farg.type.isMutable()) // Bugzilla 11916
+                        goto Lnomatch;
+                }
+                if (m == MATCHnomatch && (fparam.storageClass & STClazy) && prmtype.ty == Tvoid && farg.type.ty != Tvoid)
+                    m = MATCHconvert;
+                if (m != MATCHnomatch)
+                {
+                    if (m < match)
+                        match = m; // pick worst match
+                    argi++;
+                    continue;
+                }
+            }
+        Lvarargs:
+            /* The following code for variadic arguments closely
+             * matches TypeFunction::callMatch()
+             */
+            if (!(fvarargs == 2 && parami + 1 == nfparams))
+                goto Lnomatch;
+            /* Check for match with function parameter T...
+             */
+            Type tb = prmtype.toBasetype();
+            switch (tb.ty)
+            {
+                // 6764 fix - TypeAArray may be TypeSArray have not yet run semantic().
                 case Tsarray:
                 case Taarray:
+                {
+                    // Perhaps we can do better with this, see TypeFunction::callMatch()
+                    if (tb.ty == Tsarray)
                     {
-                        // Perhaps we can do better with this, see TypeFunction::callMatch()
-                        if (tb.ty == Tsarray)
+                        TypeSArray tsa = cast(TypeSArray)tb;
+                        dinteger_t sz = tsa.dim.toInteger();
+                        if (sz != nfargs - argi)
+                            goto Lnomatch;
+                    }
+                    else if (tb.ty == Taarray)
+                    {
+                        TypeAArray taa = cast(TypeAArray)tb;
+                        Expression dim = new IntegerExp(instLoc, nfargs - argi, Type.tsize_t);
+                        size_t i = templateParameterLookup(taa.index, parameters);
+                        if (i == IDX_NOTFOUND)
                         {
-                            TypeSArray tsa = cast(TypeSArray)tb;
-                            dinteger_t sz = tsa.dim.toInteger();
-                            if (sz != nfargs - argi)
+                            Expression e;
+                            Type t;
+                            Dsymbol s;
+                            taa.index.resolve(instLoc, sc, &e, &t, &s);
+                            if (!e)
+                                goto Lnomatch;
+                            e = e.ctfeInterpret();
+                            e = e.implicitCastTo(sc, Type.tsize_t);
+                            e = e.optimize(WANTvalue);
+                            if (!dim.equals(e))
                                 goto Lnomatch;
                         }
-                        else if (tb.ty == Taarray)
+                        else
                         {
-                            TypeAArray taa = cast(TypeAArray)tb;
-                            Expression dim = new IntegerExp(instLoc, nfargs - argi, Type.tsize_t);
-                            size_t i = templateParameterLookup(taa.index, parameters);
-                            if (i == IDX_NOTFOUND)
+                            // This code matches code in TypeInstance::deduceType()
+                            TemplateParameter tprm = (*parameters)[i];
+                            TemplateValueParameter tvp = tprm.isTemplateValueParameter();
+                            if (!tvp)
+                                goto Lnomatch;
+                            Expression e = cast(Expression)(*dedtypes)[i];
+                            if (e)
                             {
-                                Expression e;
-                                Type t;
-                                Dsymbol s;
-                                taa.index.resolve(instLoc, sc, &e, &t, &s);
-                                if (!e)
-                                    goto Lnomatch;
-                                e = e.ctfeInterpret();
-                                e = e.implicitCastTo(sc, Type.tsize_t);
-                                e = e.optimize(WANTvalue);
                                 if (!dim.equals(e))
                                     goto Lnomatch;
                             }
                             else
                             {
-                                // This code matches code in TypeInstance::deduceType()
-                                TemplateParameter tprm = (*parameters)[i];
-                                TemplateValueParameter tvp = tprm.isTemplateValueParameter();
-                                if (!tvp)
+                                Type vt = tvp.valType.semantic(Loc(), sc);
+                                MATCH m = cast(MATCH)dim.implicitConvTo(vt);
+                                if (m <= MATCHnomatch)
                                     goto Lnomatch;
-                                Expression e = cast(Expression)(*dedtypes)[i];
-                                if (e)
-                                {
-                                    if (!dim.equals(e))
-                                        goto Lnomatch;
-                                }
-                                else
-                                {
-                                    Type vt = tvp.valType.semantic(Loc(), sc);
-                                    MATCH m = cast(MATCH)dim.implicitConvTo(vt);
-                                    if (m <= MATCHnomatch)
-                                        goto Lnomatch;
-                                    (*dedtypes)[i] = dim;
-                                }
+                                (*dedtypes)[i] = dim;
                             }
                         }
-                        /* fall through */
                     }
+                    /* fall through */
+                }
                 case Tarray:
+                {
+                    TypeArray ta = cast(TypeArray)tb;
+                    Type tret = fparam.isLazyArray();
+                    for (; argi < nfargs; argi++)
                     {
-                        TypeArray ta = cast(TypeArray)tb;
-                        Type tret = fparam.isLazyArray();
-                        for (; argi < nfargs; argi++)
+                        Expression arg = (*fargs)[argi];
+                        assert(arg);
+                        MATCH m;
+                        /* If lazy array of delegates,
+                         * convert arg(s) to delegate(s)
+                         */
+                        if (tret)
                         {
-                            Expression arg = (*fargs)[argi];
-                            assert(arg);
-                            MATCH m;
-                            /* If lazy array of delegates,
-                             * convert arg(s) to delegate(s)
-                             */
-                            if (tret)
+                            if (ta.next.equals(arg.type))
                             {
-                                if (ta.next.equals(arg.type))
-                                {
-                                    m = MATCHexact;
-                                }
-                                else
-                                {
-                                    m = arg.implicitConvTo(tret);
-                                    if (m == MATCHnomatch)
-                                    {
-                                        if (tret.toBasetype().ty == Tvoid)
-                                            m = MATCHconvert;
-                                    }
-                                }
+                                m = MATCHexact;
                             }
                             else
                             {
-                                uint wm = 0;
-                                m = deduceType(arg, paramscope, ta.next, parameters, dedtypes, &wm, inferStart);
-                                wildmatch |= wm;
+                                m = arg.implicitConvTo(tret);
+                                if (m == MATCHnomatch)
+                                {
+                                    if (tret.toBasetype().ty == Tvoid)
+                                        m = MATCHconvert;
+                                }
                             }
-                            if (m == MATCHnomatch)
-                                goto Lnomatch;
-                            if (m < match)
-                                match = m;
                         }
-                        goto Lmatch;
+                        else
+                        {
+                            uint wm = 0;
+                            m = deduceType(arg, paramscope, ta.next, parameters, dedtypes, &wm, inferStart);
+                            wildmatch |= wm;
+                        }
+                        if (m == MATCHnomatch)
+                            goto Lnomatch;
+                        if (m < match)
+                            match = m;
                     }
+                    goto Lmatch;
+                }
                 case Tclass:
                 case Tident:
                     goto Lmatch;
                 default:
                     goto Lnomatch;
-                }
-                assert(0);
             }
-            //printf("-> argi = %d, nfargs = %d, nfargs2 = %d\n", argi, nfargs, nfargs2);
-            if (argi != nfargs2 && !fvarargs)
-                goto Lnomatch;
+            assert(0);
+        }
+        //printf("-> argi = %d, nfargs = %d, nfargs2 = %d\n", argi, nfargs, nfargs2);
+        if (argi != nfargs2 && !fvarargs)
+            goto Lnomatch;
         }
     Lmatch:
         for (size_t i = 0; i < dedtypes.dim; i++)
@@ -2725,29 +2724,27 @@ extern (C++) ubyte deduceWildHelper(Type t, Type* at, Type tparam)
     if ((tparam.mod & MODwild) == 0)
         return 0;
     *at = null;
-    auto X(T, U)(T U, U T)
-    {
-        return (U << 4) | T;
-    }
+
+    auto X(T, U)(T U, U T) { return (U << 4) | T; }
 
     switch (X(tparam.mod, t.mod))
     {
-    case X(MODwild, 0):
-    case X(MODwild, MODconst):
-    case X(MODwild, MODshared):
-    case X(MODwild, MODshared | MODconst):
-    case X(MODwild, MODimmutable):
-    case X(MODwildconst, 0):
-    case X(MODwildconst, MODconst):
-    case X(MODwildconst, MODshared):
-    case X(MODwildconst, MODshared | MODconst):
-    case X(MODwildconst, MODimmutable):
-    case X(MODshared | MODwild, MODshared):
-    case X(MODshared | MODwild, MODshared | MODconst):
-    case X(MODshared | MODwild, MODimmutable):
-    case X(MODshared | MODwildconst, MODshared):
-    case X(MODshared | MODwildconst, MODshared | MODconst):
-    case X(MODshared | MODwildconst, MODimmutable):
+        case X(MODwild, 0):
+        case X(MODwild, MODconst):
+        case X(MODwild, MODshared):
+        case X(MODwild, MODshared | MODconst):
+        case X(MODwild, MODimmutable):
+        case X(MODwildconst, 0):
+        case X(MODwildconst, MODconst):
+        case X(MODwildconst, MODshared):
+        case X(MODwildconst, MODshared | MODconst):
+        case X(MODwildconst, MODimmutable):
+        case X(MODshared | MODwild, MODshared):
+        case X(MODshared | MODwild, MODshared | MODconst):
+        case X(MODshared | MODwild, MODimmutable):
+        case X(MODshared | MODwildconst, MODshared):
+        case X(MODshared | MODwildconst, MODshared | MODconst):
+        case X(MODshared | MODwildconst, MODimmutable):
         {
             ubyte wm = (t.mod & ~MODshared);
             if (wm == 0)
@@ -2756,24 +2753,24 @@ extern (C++) ubyte deduceWildHelper(Type t, Type* at, Type tparam)
             *at = t.unqualify(m);
             return wm;
         }
-    case X(MODwild, MODwild):
-    case X(MODwild, MODwildconst):
-    case X(MODwild, MODshared | MODwild):
-    case X(MODwild, MODshared | MODwildconst):
-    case X(MODwildconst, MODwild):
-    case X(MODwildconst, MODwildconst):
-    case X(MODwildconst, MODshared | MODwild):
-    case X(MODwildconst, MODshared | MODwildconst):
-    case X(MODshared | MODwild, MODshared | MODwild):
-    case X(MODshared | MODwild, MODshared | MODwildconst):
-    case X(MODshared | MODwildconst, MODshared | MODwild):
-    case X(MODshared | MODwildconst, MODshared | MODwildconst):
+        case X(MODwild, MODwild):
+        case X(MODwild, MODwildconst):
+        case X(MODwild, MODshared | MODwild):
+        case X(MODwild, MODshared | MODwildconst):
+        case X(MODwildconst, MODwild):
+        case X(MODwildconst, MODwildconst):
+        case X(MODwildconst, MODshared | MODwild):
+        case X(MODwildconst, MODshared | MODwildconst):
+        case X(MODshared | MODwild, MODshared | MODwild):
+        case X(MODshared | MODwild, MODshared | MODwildconst):
+        case X(MODshared | MODwildconst, MODshared | MODwild):
+        case X(MODshared | MODwildconst, MODshared | MODwildconst):
         {
             *at = t.unqualify(tparam.mod & t.mod);
             return MODwild;
         }
-    default:
-        return 0;
+        default:
+            return 0;
     }
 }
 
@@ -2787,199 +2784,199 @@ extern (C++) MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
 
     switch (X(tparam.mod, t.mod))
     {
-    case X(0, 0):
-    case X(0, MODconst):
-    case X(0, MODwild):
-    case X(0, MODwildconst):
-    case X(0, MODshared):
-    case X(0, MODshared | MODconst):
-    case X(0, MODshared | MODwild):
-    case X(0, MODshared | MODwildconst):
-    case X(0, MODimmutable):
-        // foo(U)                       T                       => T
-        // foo(U)                       const(T)                => const(T)
-        // foo(U)                       inout(T)                => inout(T)
-        // foo(U)                       inout(const(T))         => inout(const(T))
-        // foo(U)                       shared(T)               => shared(T)
-        // foo(U)                       shared(const(T))        => shared(const(T))
-        // foo(U)                       shared(inout(T))        => shared(inout(T))
-        // foo(U)                       shared(inout(const(T))) => shared(inout(const(T)))
-        // foo(U)                       immutable(T)            => immutable(T)
+        case X(0, 0):
+        case X(0, MODconst):
+        case X(0, MODwild):
+        case X(0, MODwildconst):
+        case X(0, MODshared):
+        case X(0, MODshared | MODconst):
+        case X(0, MODshared | MODwild):
+        case X(0, MODshared | MODwildconst):
+        case X(0, MODimmutable):
+            // foo(U)                       T                       => T
+            // foo(U)                       const(T)                => const(T)
+            // foo(U)                       inout(T)                => inout(T)
+            // foo(U)                       inout(const(T))         => inout(const(T))
+            // foo(U)                       shared(T)               => shared(T)
+            // foo(U)                       shared(const(T))        => shared(const(T))
+            // foo(U)                       shared(inout(T))        => shared(inout(T))
+            // foo(U)                       shared(inout(const(T))) => shared(inout(const(T)))
+            // foo(U)                       immutable(T)            => immutable(T)
         {
             *at = t;
             return MATCHexact;
         }
-    case X(MODconst, MODconst):
-    case X(MODwild, MODwild):
-    case X(MODwildconst, MODwildconst):
-    case X(MODshared, MODshared):
-    case X(MODshared | MODconst, MODshared | MODconst):
-    case X(MODshared | MODwild, MODshared | MODwild):
-    case X(MODshared | MODwildconst, MODshared | MODwildconst):
-    case X(MODimmutable, MODimmutable):
-        // foo(const(U))                const(T)                => T
-        // foo(inout(U))                inout(T)                => T
-        // foo(inout(const(U)))         inout(const(T))         => T
-        // foo(shared(U))               shared(T)               => T
-        // foo(shared(const(U)))        shared(const(T))        => T
-        // foo(shared(inout(U)))        shared(inout(T))        => T
-        // foo(shared(inout(const(U)))) shared(inout(const(T))) => T
-        // foo(immutable(U))            immutable(T)            => T
+        case X(MODconst, MODconst):
+        case X(MODwild, MODwild):
+        case X(MODwildconst, MODwildconst):
+        case X(MODshared, MODshared):
+        case X(MODshared | MODconst, MODshared | MODconst):
+        case X(MODshared | MODwild, MODshared | MODwild):
+        case X(MODshared | MODwildconst, MODshared | MODwildconst):
+        case X(MODimmutable, MODimmutable):
+            // foo(const(U))                const(T)                => T
+            // foo(inout(U))                inout(T)                => T
+            // foo(inout(const(U)))         inout(const(T))         => T
+            // foo(shared(U))               shared(T)               => T
+            // foo(shared(const(U)))        shared(const(T))        => T
+            // foo(shared(inout(U)))        shared(inout(T))        => T
+            // foo(shared(inout(const(U)))) shared(inout(const(T))) => T
+            // foo(immutable(U))            immutable(T)            => T
         {
             *at = t.mutableOf().unSharedOf();
             return MATCHexact;
         }
-    case X(MODconst, 0):
-    case X(MODconst, MODwild):
-    case X(MODconst, MODwildconst):
-    case X(MODconst, MODshared | MODconst):
-    case X(MODconst, MODshared | MODwild):
-    case X(MODconst, MODshared | MODwildconst):
-    case X(MODconst, MODimmutable):
-    case X(MODwild, MODshared | MODwild):
-    case X(MODwildconst, MODshared | MODwildconst):
-    case X(MODshared | MODconst, MODimmutable):
-        // foo(const(U))                T                       => T
-        // foo(const(U))                inout(T)                => T
-        // foo(const(U))                inout(const(T))         => T
-        // foo(const(U))                shared(const(T))        => shared(T)
-        // foo(const(U))                shared(inout(T))        => shared(T)
-        // foo(const(U))                shared(inout(const(T))) => shared(T)
-        // foo(const(U))                immutable(T)            => T
-        // foo(inout(U))                shared(inout(T))        => shared(T)
-        // foo(inout(const(U)))         shared(inout(const(T))) => shared(T)
-        // foo(shared(const(U)))        immutable(T)            => T
+        case X(MODconst, 0):
+        case X(MODconst, MODwild):
+        case X(MODconst, MODwildconst):
+        case X(MODconst, MODshared | MODconst):
+        case X(MODconst, MODshared | MODwild):
+        case X(MODconst, MODshared | MODwildconst):
+        case X(MODconst, MODimmutable):
+        case X(MODwild, MODshared | MODwild):
+        case X(MODwildconst, MODshared | MODwildconst):
+        case X(MODshared | MODconst, MODimmutable):
+            // foo(const(U))                T                       => T
+            // foo(const(U))                inout(T)                => T
+            // foo(const(U))                inout(const(T))         => T
+            // foo(const(U))                shared(const(T))        => shared(T)
+            // foo(const(U))                shared(inout(T))        => shared(T)
+            // foo(const(U))                shared(inout(const(T))) => shared(T)
+            // foo(const(U))                immutable(T)            => T
+            // foo(inout(U))                shared(inout(T))        => shared(T)
+            // foo(inout(const(U)))         shared(inout(const(T))) => shared(T)
+            // foo(shared(const(U)))        immutable(T)            => T
         {
             *at = t.mutableOf();
             return MATCHconst;
         }
-    case X(MODconst, MODshared):
-        // foo(const(U))                shared(T)               => shared(T)
+        case X(MODconst, MODshared):
+            // foo(const(U))                shared(T)               => shared(T)
         {
             *at = t;
             return MATCHconst;
         }
-    case X(MODshared, MODshared | MODconst):
-    case X(MODshared, MODshared | MODwild):
-    case X(MODshared, MODshared | MODwildconst):
-    case X(MODshared | MODconst, MODshared):
-        // foo(shared(U))               shared(const(T))        => const(T)
-        // foo(shared(U))               shared(inout(T))        => inout(T)
-        // foo(shared(U))               shared(inout(const(T))) => inout(const(T))
-        // foo(shared(const(U)))        shared(T)               => T
+        case X(MODshared, MODshared | MODconst):
+        case X(MODshared, MODshared | MODwild):
+        case X(MODshared, MODshared | MODwildconst):
+        case X(MODshared | MODconst, MODshared):
+            // foo(shared(U))               shared(const(T))        => const(T)
+            // foo(shared(U))               shared(inout(T))        => inout(T)
+            // foo(shared(U))               shared(inout(const(T))) => inout(const(T))
+            // foo(shared(const(U)))        shared(T)               => T
         {
             *at = t.unSharedOf();
             return MATCHconst;
         }
-    case X(MODwildconst, MODimmutable):
-    case X(MODshared | MODconst, MODshared | MODwildconst):
-    case X(MODshared | MODwildconst, MODimmutable):
-    case X(MODshared | MODwildconst, MODshared | MODwild):
-        // foo(inout(const(U)))         immutable(T)            => T
-        // foo(shared(const(U)))        shared(inout(const(T))) => T
-        // foo(shared(inout(const(U)))) immutable(T)            => T
-        // foo(shared(inout(const(U)))) shared(inout(T))        => T
+        case X(MODwildconst, MODimmutable):
+        case X(MODshared | MODconst, MODshared | MODwildconst):
+        case X(MODshared | MODwildconst, MODimmutable):
+        case X(MODshared | MODwildconst, MODshared | MODwild):
+            // foo(inout(const(U)))         immutable(T)            => T
+            // foo(shared(const(U)))        shared(inout(const(T))) => T
+            // foo(shared(inout(const(U)))) immutable(T)            => T
+            // foo(shared(inout(const(U)))) shared(inout(T))        => T
         {
             *at = t.unSharedOf().mutableOf();
             return MATCHconst;
         }
-    case X(MODshared | MODconst, MODshared | MODwild):
-        // foo(shared(const(U)))        shared(inout(T))        => T
+        case X(MODshared | MODconst, MODshared | MODwild):
+            // foo(shared(const(U)))        shared(inout(T))        => T
         {
             *at = t.unSharedOf().mutableOf();
             return MATCHconst;
         }
-    case X(MODwild, 0):
-    case X(MODwild, MODconst):
-    case X(MODwild, MODwildconst):
-    case X(MODwild, MODimmutable):
-    case X(MODwild, MODshared):
-    case X(MODwild, MODshared | MODconst):
-    case X(MODwild, MODshared | MODwildconst):
-    case X(MODwildconst, 0):
-    case X(MODwildconst, MODconst):
-    case X(MODwildconst, MODwild):
-    case X(MODwildconst, MODshared):
-    case X(MODwildconst, MODshared | MODconst):
-    case X(MODwildconst, MODshared | MODwild):
-    case X(MODshared, 0):
-    case X(MODshared, MODconst):
-    case X(MODshared, MODwild):
-    case X(MODshared, MODwildconst):
-    case X(MODshared, MODimmutable):
-    case X(MODshared | MODconst, 0):
-    case X(MODshared | MODconst, MODconst):
-    case X(MODshared | MODconst, MODwild):
-    case X(MODshared | MODconst, MODwildconst):
-    case X(MODshared | MODwild, 0):
-    case X(MODshared | MODwild, MODconst):
-    case X(MODshared | MODwild, MODwild):
-    case X(MODshared | MODwild, MODwildconst):
-    case X(MODshared | MODwild, MODimmutable):
-    case X(MODshared | MODwild, MODshared):
-    case X(MODshared | MODwild, MODshared | MODconst):
-    case X(MODshared | MODwild, MODshared | MODwildconst):
-    case X(MODshared | MODwildconst, 0):
-    case X(MODshared | MODwildconst, MODconst):
-    case X(MODshared | MODwildconst, MODwild):
-    case X(MODshared | MODwildconst, MODwildconst):
-    case X(MODshared | MODwildconst, MODshared):
-    case X(MODshared | MODwildconst, MODshared | MODconst):
-    case X(MODimmutable, 0):
-    case X(MODimmutable, MODconst):
-    case X(MODimmutable, MODwild):
-    case X(MODimmutable, MODwildconst):
-    case X(MODimmutable, MODshared):
-    case X(MODimmutable, MODshared | MODconst):
-    case X(MODimmutable, MODshared | MODwild):
-    case X(MODimmutable, MODshared | MODwildconst):
-        // foo(inout(U))                T                       => nomatch
-        // foo(inout(U))                const(T)                => nomatch
-        // foo(inout(U))                inout(const(T))         => nomatch
-        // foo(inout(U))                immutable(T)            => nomatch
-        // foo(inout(U))                shared(T)               => nomatch
-        // foo(inout(U))                shared(const(T))        => nomatch
-        // foo(inout(U))                shared(inout(const(T))) => nomatch
-        // foo(inout(const(U)))         T                       => nomatch
-        // foo(inout(const(U)))         const(T)                => nomatch
-        // foo(inout(const(U)))         inout(T)                => nomatch
-        // foo(inout(const(U)))         shared(T)               => nomatch
-        // foo(inout(const(U)))         shared(const(T))        => nomatch
-        // foo(inout(const(U)))         shared(inout(T))        => nomatch
-        // foo(shared(U))               T                       => nomatch
-        // foo(shared(U))               const(T)                => nomatch
-        // foo(shared(U))               inout(T)                => nomatch
-        // foo(shared(U))               inout(const(T))         => nomatch
-        // foo(shared(U))               immutable(T)            => nomatch
-        // foo(shared(const(U)))        T                       => nomatch
-        // foo(shared(const(U)))        const(T)                => nomatch
-        // foo(shared(const(U)))        inout(T)                => nomatch
-        // foo(shared(const(U)))        inout(const(T))         => nomatch
-        // foo(shared(inout(U)))        T                       => nomatch
-        // foo(shared(inout(U)))        const(T)                => nomatch
-        // foo(shared(inout(U)))        inout(T)                => nomatch
-        // foo(shared(inout(U)))        inout(const(T))         => nomatch
-        // foo(shared(inout(U)))        immutable(T)            => nomatch
-        // foo(shared(inout(U)))        shared(T)               => nomatch
-        // foo(shared(inout(U)))        shared(const(T))        => nomatch
-        // foo(shared(inout(U)))        shared(inout(const(T))) => nomatch
-        // foo(shared(inout(const(U)))) T                       => nomatch
-        // foo(shared(inout(const(U)))) const(T)                => nomatch
-        // foo(shared(inout(const(U)))) inout(T)                => nomatch
-        // foo(shared(inout(const(U)))) inout(const(T))         => nomatch
-        // foo(shared(inout(const(U)))) shared(T)               => nomatch
-        // foo(shared(inout(const(U)))) shared(const(T))        => nomatch
-        // foo(immutable(U))            T                       => nomatch
-        // foo(immutable(U))            const(T)                => nomatch
-        // foo(immutable(U))            inout(T)                => nomatch
-        // foo(immutable(U))            inout(const(T))         => nomatch
-        // foo(immutable(U))            shared(T)               => nomatch
-        // foo(immutable(U))            shared(const(T))        => nomatch
-        // foo(immutable(U))            shared(inout(T))        => nomatch
-        // foo(immutable(U))            shared(inout(const(T))) => nomatch
-        return MATCHnomatch;
-    default:
-        assert(0);
+        case X(MODwild, 0):
+        case X(MODwild, MODconst):
+        case X(MODwild, MODwildconst):
+        case X(MODwild, MODimmutable):
+        case X(MODwild, MODshared):
+        case X(MODwild, MODshared | MODconst):
+        case X(MODwild, MODshared | MODwildconst):
+        case X(MODwildconst, 0):
+        case X(MODwildconst, MODconst):
+        case X(MODwildconst, MODwild):
+        case X(MODwildconst, MODshared):
+        case X(MODwildconst, MODshared | MODconst):
+        case X(MODwildconst, MODshared | MODwild):
+        case X(MODshared, 0):
+        case X(MODshared, MODconst):
+        case X(MODshared, MODwild):
+        case X(MODshared, MODwildconst):
+        case X(MODshared, MODimmutable):
+        case X(MODshared | MODconst, 0):
+        case X(MODshared | MODconst, MODconst):
+        case X(MODshared | MODconst, MODwild):
+        case X(MODshared | MODconst, MODwildconst):
+        case X(MODshared | MODwild, 0):
+        case X(MODshared | MODwild, MODconst):
+        case X(MODshared | MODwild, MODwild):
+        case X(MODshared | MODwild, MODwildconst):
+        case X(MODshared | MODwild, MODimmutable):
+        case X(MODshared | MODwild, MODshared):
+        case X(MODshared | MODwild, MODshared | MODconst):
+        case X(MODshared | MODwild, MODshared | MODwildconst):
+        case X(MODshared | MODwildconst, 0):
+        case X(MODshared | MODwildconst, MODconst):
+        case X(MODshared | MODwildconst, MODwild):
+        case X(MODshared | MODwildconst, MODwildconst):
+        case X(MODshared | MODwildconst, MODshared):
+        case X(MODshared | MODwildconst, MODshared | MODconst):
+        case X(MODimmutable, 0):
+        case X(MODimmutable, MODconst):
+        case X(MODimmutable, MODwild):
+        case X(MODimmutable, MODwildconst):
+        case X(MODimmutable, MODshared):
+        case X(MODimmutable, MODshared | MODconst):
+        case X(MODimmutable, MODshared | MODwild):
+        case X(MODimmutable, MODshared | MODwildconst):
+            // foo(inout(U))                T                       => nomatch
+            // foo(inout(U))                const(T)                => nomatch
+            // foo(inout(U))                inout(const(T))         => nomatch
+            // foo(inout(U))                immutable(T)            => nomatch
+            // foo(inout(U))                shared(T)               => nomatch
+            // foo(inout(U))                shared(const(T))        => nomatch
+            // foo(inout(U))                shared(inout(const(T))) => nomatch
+            // foo(inout(const(U)))         T                       => nomatch
+            // foo(inout(const(U)))         const(T)                => nomatch
+            // foo(inout(const(U)))         inout(T)                => nomatch
+            // foo(inout(const(U)))         shared(T)               => nomatch
+            // foo(inout(const(U)))         shared(const(T))        => nomatch
+            // foo(inout(const(U)))         shared(inout(T))        => nomatch
+            // foo(shared(U))               T                       => nomatch
+            // foo(shared(U))               const(T)                => nomatch
+            // foo(shared(U))               inout(T)                => nomatch
+            // foo(shared(U))               inout(const(T))         => nomatch
+            // foo(shared(U))               immutable(T)            => nomatch
+            // foo(shared(const(U)))        T                       => nomatch
+            // foo(shared(const(U)))        const(T)                => nomatch
+            // foo(shared(const(U)))        inout(T)                => nomatch
+            // foo(shared(const(U)))        inout(const(T))         => nomatch
+            // foo(shared(inout(U)))        T                       => nomatch
+            // foo(shared(inout(U)))        const(T)                => nomatch
+            // foo(shared(inout(U)))        inout(T)                => nomatch
+            // foo(shared(inout(U)))        inout(const(T))         => nomatch
+            // foo(shared(inout(U)))        immutable(T)            => nomatch
+            // foo(shared(inout(U)))        shared(T)               => nomatch
+            // foo(shared(inout(U)))        shared(const(T))        => nomatch
+            // foo(shared(inout(U)))        shared(inout(const(T))) => nomatch
+            // foo(shared(inout(const(U)))) T                       => nomatch
+            // foo(shared(inout(const(U)))) const(T)                => nomatch
+            // foo(shared(inout(const(U)))) inout(T)                => nomatch
+            // foo(shared(inout(const(U)))) inout(const(T))         => nomatch
+            // foo(shared(inout(const(U)))) shared(T)               => nomatch
+            // foo(shared(inout(const(U)))) shared(const(T))        => nomatch
+            // foo(immutable(U))            T                       => nomatch
+            // foo(immutable(U))            const(T)                => nomatch
+            // foo(immutable(U))            inout(T)                => nomatch
+            // foo(immutable(U))            inout(const(T))         => nomatch
+            // foo(immutable(U))            shared(T)               => nomatch
+            // foo(immutable(U))            shared(const(T))        => nomatch
+            // foo(immutable(U))            shared(inout(T))        => nomatch
+            // foo(immutable(U))            shared(inout(const(T))) => nomatch
+            return MATCHnomatch;
+        default:
+            assert(0);
     }
 }
 
@@ -5806,25 +5803,25 @@ public:
          * or semantic3() yet.
          */
         {
-            bool found_deferred_ad = false;
-            for (size_t i = 0; i < Module.deferred.dim; i++)
+        bool found_deferred_ad = false;
+        for (size_t i = 0; i < Module.deferred.dim; i++)
+        {
+            Dsymbol sd = Module.deferred[i];
+            AggregateDeclaration ad = sd.isAggregateDeclaration();
+            if (ad && ad.parent && ad.parent.isTemplateInstance())
             {
-                Dsymbol sd = Module.deferred[i];
-                AggregateDeclaration ad = sd.isAggregateDeclaration();
-                if (ad && ad.parent && ad.parent.isTemplateInstance())
+                //printf("deferred template aggregate: %s %s\n",
+                //        sd->parent->toChars(), sd->toChars());
+                found_deferred_ad = true;
+                if (ad.parent == this)
                 {
-                    //printf("deferred template aggregate: %s %s\n",
-                    //        sd->parent->toChars(), sd->toChars());
-                    found_deferred_ad = true;
-                    if (ad.parent == this)
-                    {
-                        ad.deferred = this;
-                        break;
-                    }
+                    ad.deferred = this;
+                    break;
                 }
             }
-            if (found_deferred_ad || Module.deferred.dim)
-                goto Laftersemantic;
+        }
+        if (found_deferred_ad || Module.deferred.dim)
+            goto Laftersemantic;
         }
         /* The problem is when to parse the initializer for a variable.
          * Perhaps VarDeclaration::semantic() should do it like it does
