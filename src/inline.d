@@ -212,8 +212,8 @@ public:
     override void visit(ForStatement s)
     {
         cost += STATEMENT_COST;
-        if (s._init)
-            s._init.accept(this);
+        if (s.sinit)
+            s.sinit.accept(this);
         if (s.condition)
             s.condition.accept(this);
         if (s.increment)
@@ -526,11 +526,11 @@ Statement inlineAsStatement(Statement s, InlineDoState* ids)
         override void visit(ForStatement s)
         {
             //printf("ForStatement::inlineAsStatement()\n");
-            Statement _init = s._init ? inlineAsStatement(s._init, ids) : null;
+            Statement sinit = s.sinit ? inlineAsStatement(s.sinit, ids) : null;
             Expression condition = s.condition ? doInline(s.condition, ids) : null;
             Expression increment = s.increment ? doInline(s.increment, ids) : null;
             Statement _body = s._body ? inlineAsStatement(s._body, ids) : null;
-            result = new ForStatement(s.loc, _init, condition, increment, _body, s.endloc);
+            result = new ForStatement(s.loc, sinit, condition, increment, _body, s.endloc);
         }
 
         override void visit(ThrowStatement s)
@@ -1251,7 +1251,7 @@ public:
 
     override void visit(ForStatement s)
     {
-        inlineScan(&s._init);
+        inlineScan(&s.sinit);
         inlineScan(&s.condition);
         inlineScan(&s.increment);
         inlineScan(&s._body);

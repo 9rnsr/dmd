@@ -4737,21 +4737,21 @@ public:
             }
         case TOKfor:
             {
-                Statement _init;
+                Statement sinit;
                 Expression condition;
                 Expression increment;
                 nextToken();
                 check(TOKlparen);
                 if (token.value == TOKsemicolon)
                 {
-                    _init = null;
+                    sinit = null;
                     nextToken();
                 }
                 else
                 {
                     Loc lookingForElseSave = lookingForElse;
                     lookingForElse = Loc();
-                    _init = parseStatement(0);
+                    sinit = parseStatement(0);
                     lookingForElse = lookingForElseSave;
                 }
                 if (token.value == TOKsemicolon)
@@ -4776,7 +4776,7 @@ public:
                 }
                 Loc endloc;
                 Statement _body = parseStatement(PSscope, null, &endloc);
-                s = new ForStatement(loc, _init, condition, increment, _body, endloc);
+                s = new ForStatement(loc, sinit, condition, increment, _body, endloc);
                 break;
             }
         case TOKforeach:

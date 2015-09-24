@@ -219,10 +219,10 @@ public:
     override void visit(ForStatement s)
     {
         buf.writestring("for (");
-        if (s._init)
+        if (s.sinit)
         {
             hgs.forStmtInit++;
-            s._init.accept(this);
+            s.sinit.accept(this);
             hgs.forStmtInit--;
         }
         else

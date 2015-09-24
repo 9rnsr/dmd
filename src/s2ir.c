@@ -281,8 +281,8 @@ public:
         mystate.breakBlock = block_calloc(blx);
         mystate.contBlock = block_calloc(blx);
 
-        if (s->_init)
-            Statement_toIR(s->_init, &mystate);
+        if (s->sinit)
+            Statement_toIR(s->sinit, &mystate);
         block *bpre = blx->curblock;
         block_next(blx,BCgoto,NULL);
         block *bcond = blx->curblock;

@@ -275,7 +275,7 @@ public:
 class ForStatement : public Statement
 {
 public:
-    Statement *_init;
+    Statement *sinit;
     Expression *condition;
     Expression *increment;
     Statement *_body;

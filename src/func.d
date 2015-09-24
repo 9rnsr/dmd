@@ -166,8 +166,8 @@ public:
 
     override void visit(ForStatement s)
     {
-        if (s._init)
-            visitStmt(s._init);
+        if (s.sinit)
+            visitStmt(s.sinit);
         if (s._body)
             visitStmt(s._body);
     }

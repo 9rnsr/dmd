@@ -89,7 +89,7 @@ public:
 
     override void visit(ForStatement s)
     {
-        doCond(s._init) || doCond(s._body) || applyTo(s);
+        doCond(s.sinit) || doCond(s._body) || applyTo(s);
     }
 
     override void visit(ForeachStatement s)

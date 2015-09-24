@@ -450,8 +450,8 @@ public:
         {
             printf("%s ForStatement::ctfeCompile\n", s.loc.toChars());
         }
-        if (s._init)
-            ctfeCompile(s._init);
+        if (s.sinit)
+            ctfeCompile(s.sinit);
         if (s.condition)
             ccf.onExpression(s.condition);
         if (s.increment)
@@ -1424,7 +1424,7 @@ public:
         }
         if (istate.start == s)
             istate.start = null;
-        Expression ei = interpret(s._init, istate);
+        Expression ei = interpret(s.sinit, istate);
         if (exceptionOrCant(ei))
             return;
         assert(!ei); // s->init never returns from function, or jumps out from it

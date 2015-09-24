@@ -412,9 +412,9 @@ public:
             override void visit(ForStatement s)
             {
                 result = BEfallthru;
-                if (s._init)
+                if (s.sinit)
                 {
-                    result = s._init.blockExit(func, mustNotThrow);
+                    result = s.sinit.blockExit(func, mustNotThrow);
                     if (!(result & BEfallthru))
                         return;
                 }
@@ -1875,7 +1875,7 @@ public:
 extern (C++) final class ForStatement : Statement
 {
 public:
-    Statement _init;
+    Statement sinit;
     Expression condition;
     Expression increment;
     Statement _body;
@@ -1886,10 +1886,10 @@ public:
     // treat that label as referring to this loop.
     Statement relatedLabeled;
 
-    extern (D) this(Loc loc, Statement _init, Expression condition, Expression increment, Statement _body, Loc endloc)
+    extern (D) this(Loc loc, Statement sinit, Expression condition, Expression increment, Statement _body, Loc endloc)
     {
         super(loc);
-        this._init = _init;
+        this.sinit = sinit;
         this.condition = condition;
         this.increment = increment;
         this._body = _body;
@@ -1898,13 +1898,13 @@ public:
 
     override Statement syntaxCopy()
     {
-        return new ForStatement(loc, _init ? _init.syntaxCopy() : null, condition ? condition.syntaxCopy() : null, increment ? increment.syntaxCopy() : null, _body.syntaxCopy(), endloc);
+        return new ForStatement(loc, sinit ? sinit.syntaxCopy() : null, condition ? condition.syntaxCopy() : null, increment ? increment.syntaxCopy() : null, _body.syntaxCopy(), endloc);
     }
 
     override Statement semantic(Scope* sc)
     {
         //printf("ForStatement::semantic %s\n", toChars());
-        if (_init)
+        if (sinit)
         {
             /* Rewrite:
              *  for (auto v1 = i1, v2 = i2; condition; increment) { ... }
@@ -1920,7 +1920,7 @@ public:
              *  } finally { v1.~this(); }
              */
             auto ainit = new Statements();
-            ainit.push(_init), _init = null;
+            ainit.push(sinit), sinit = null;
             ainit.push(this);
             Statement s = new CompoundStatement(loc, ainit);
             s = new ScopeStatement(loc, s);
@@ -1933,7 +1933,7 @@ public:
             }
             return s;
         }
-        assert(_init is null);
+        assert(sinit is null);
         auto sym = new ScopeDsymbol();
         sym.parent = sc.scopesym;
         sc = sc.push(sym);
@@ -2509,20 +2509,20 @@ public:
                 /* Generate a temporary __r and initialize it with the aggregate.
                  */
                 VarDeclaration r;
-                Statement _init;
+                Statement sinit;
                 if (vinit && aggr.op == TOKvar && (cast(VarExp)aggr).var == vinit)
                 {
                     r = vinit;
-                    _init = new ExpStatement(loc, vinit);
+                    sinit = new ExpStatement(loc, vinit);
                 }
                 else
                 {
                     Identifier rid = Identifier.generateId("__r");
                     r = new VarDeclaration(loc, null, rid, new ExpInitializer(loc, aggr));
                     r.storage_class |= STCtemp;
-                    _init = new ExpStatement(loc, r);
+                    sinit = new ExpStatement(loc, r);
                     if (vinit)
-                        _init = new CompoundStatement(loc, new ExpStatement(loc, vinit), _init);
+                        sinit = new CompoundStatement(loc, new ExpStatement(loc, vinit), sinit);
                 }
                 // !__r.empty
                 Expression e = new VarExp(loc, r);
@@ -2600,12 +2600,12 @@ public:
                     }
                 }
                 forbody = new CompoundStatement(loc, makeargs, this._body);
-                s = new ForStatement(loc, _init, condition, increment, forbody, endloc);
+                s = new ForStatement(loc, sinit, condition, increment, forbody, endloc);
                 if (LabelStatement ls = checkLabeledLoop(sc, this))
                     ls.gotoTarget = s;
                 version (none)
                 {
-                    printf("init: %s\n", _init.toChars());
+                    printf("init: %s\n", sinit.toChars());
                     printf("condition: %s\n", condition.toChars());
                     printf("increment: %s\n", increment.toChars());
                     printf("body: %s\n", forbody.toChars());
