@@ -733,7 +733,7 @@ public:
             if (p.errors)
                 ++global.errors;
         }
-        if (srcfile._ref == 0)
+        if (srcfile.isref == 0)
             .free(srcfile.buffer);
         srcfile.buffer = null;
         srcfile.len = 0;

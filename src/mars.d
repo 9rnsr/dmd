@@ -1369,7 +1369,7 @@ Language changes listed by -transition=id:
             {
                 static __gshared const(char)* buf = "int main(){return 0;}";
                 m.srcfile.setbuffer(cast(void*)buf, buf.sizeof);
-                m.srcfile._ref = 1;
+                m.srcfile.isref = 1;
                 break;
             }
         }
@@ -1593,7 +1593,7 @@ Language changes listed by -transition=id:
             ensurePathToNameExists(Loc(), jsonfilename);
             auto jsonfile = new File(jsonfilename);
             jsonfile.setbuffer(buf.data, buf.offset);
-            jsonfile._ref = 1;
+            jsonfile.isref = 1;
             writeFile(Loc(), jsonfile);
         }
     }

@@ -17,14 +17,14 @@ version (Windows) alias WIN32_FIND_DATAA = WIN32_FIND_DATA;
  */
 struct File
 {
-    int _ref; // != 0 if this is a reference to someone else's buffer
+    int isref; // != 0 if this is a reference to someone else's buffer
     ubyte* buffer; // data for our file
     size_t len; // amount of data in buffer[]
     FileName* name; // name of our file
 
     extern (D) this(const(char)* n)
     {
-        _ref = 0;
+        isref = 0;
         buffer = null;
         len = 0;
         name = new FileName(n);
@@ -37,7 +37,7 @@ struct File
 
     extern (D) this(const(FileName)* n)
     {
-        _ref = 0;
+        isref = 0;
         buffer = null;
         len = 0;
         name = cast(FileName*)n;
@@ -47,11 +47,11 @@ struct File
     {
         if (buffer)
         {
-            if (_ref == 0)
+            if (isref == 0)
                 mem.xfree(buffer);
             version (Windows)
             {
-                if (_ref == 2)
+                if (isref == 2)
                     UnmapViewOfFile(buffer);
             }
         }
@@ -81,9 +81,9 @@ struct File
                 //printf("\topen error, errno = %d\n",errno);
                 goto err1;
             }
-            if (!_ref)
+            if (!isref)
                 .free(buffer);
-            _ref = 0; // we own the buffer now
+            isref = 0; // we own the buffer now
             //printf("\tfile opened\n");
             if (fstat(fd, &buf))
             {
@@ -130,9 +130,9 @@ struct File
             HANDLE h = CreateFileA(name, GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, null);
             if (h == INVALID_HANDLE_VALUE)
                 goto err1;
-            if (!_ref)
+            if (!isref)
                 .free(buffer);
-            _ref = 0;
+            isref = 0;
             size = GetFileSize(h, null);
             buffer = cast(ubyte*).malloc(size + 2);
             if (!buffer)

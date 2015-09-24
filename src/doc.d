@@ -468,7 +468,7 @@ extern (C++) void gendocfile(Module m)
         // Transfer image to file
         assert(m.docfile);
         m.docfile.setbuffer(buf.data, buf.offset);
-        m.docfile._ref = 1;
+        m.docfile.isref = 1;
         ensurePathToNameExists(Loc(), m.docfile.toChars());
         writeFile(m.loc, m.docfile);
     }
@@ -493,7 +493,7 @@ extern (C++) void gendocfile(Module m)
         }
         // Transfer image to file
         m.docfile.setbuffer(buf2.data, buf2.offset);
-        m.docfile._ref = 1;
+        m.docfile.isref = 1;
         ensurePathToNameExists(Loc(), m.docfile.toChars());
         writeFile(m.loc, m.docfile);
     }

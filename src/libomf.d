@@ -100,7 +100,7 @@ public:
             readFile(Loc(), file);
             buf = file.buffer;
             buflen = file.len;
-            file._ref = 1;
+            file.isref = 1;
         }
         uint g_page_size;
         ubyte* pstart = cast(ubyte*)buf;

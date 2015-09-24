@@ -281,7 +281,7 @@ extern (C++) int runLINK()
                 lnkfilename = FileName.forceExt(global.params.exefile, "lnk");
                 auto flnk = File(lnkfilename);
                 flnk.setbuffer(p, plen);
-                flnk._ref = 1;
+                flnk.isref = 1;
                 if (flnk.write())
                     error(Loc(), "error writing file %s", lnkfilename);
                 if (strlen(lnkfilename) < plen)
@@ -421,7 +421,7 @@ extern (C++) int runLINK()
                 lnkfilename = FileName.forceExt(global.params.exefile, "lnk");
                 auto flnk = File(lnkfilename);
                 flnk.setbuffer(p, plen);
-                flnk._ref = 1;
+                flnk.isref = 1;
                 if (flnk.write())
                     error(Loc(), "error writing file %s", lnkfilename);
                 if (strlen(lnkfilename) < plen)

@@ -67,7 +67,7 @@ extern (C++) bool response_expand(Strings* args)
             auto f = File(cp);
             if (f.read())
                 goto noexpand;
-            f._ref = 1;
+            f.isref = 1;
             buffer = cast(char*)f.buffer;
             bufend = buffer + f.len;
         }

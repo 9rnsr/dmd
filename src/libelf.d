@@ -101,7 +101,7 @@ public:
             readFile(Loc(), file);
             buf = file.buffer;
             buflen = file.len;
-            file._ref = 1;
+            file.isref = 1;
             fromfile = 1;
         }
         int reason = 0;

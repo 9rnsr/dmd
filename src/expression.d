@@ -7595,7 +7595,7 @@ public:
             }
             else
             {
-                f._ref = 1;
+                f.isref = 1;
                 se = new StringExp(loc, f.buffer, f.len);
             }
         }

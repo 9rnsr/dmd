@@ -24,7 +24,7 @@ struct FileName;
 
 struct File
 {
-    int ref;                    // != 0 if this is a reference to someone else's buffer
+    int isref;                  // != 0 if this is a reference to someone else's buffer
     unsigned char *buffer;      // data for our file
     size_t len;                 // amount of data in buffer[]
 
