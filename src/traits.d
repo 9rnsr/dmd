@@ -573,7 +573,10 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     {
         printf("TraitsExp::semantic() %s\n", e.toChars());
     }
-    if (e.ident != Id.compiles && e.ident != Id.isSame && e.ident != Id.identifier && e.ident != Id.getProtection)
+    if (e.ident != Id.compiles &&
+        e.ident != Id.isSame &&
+        e.ident != Id.identifier &&
+        e.ident != Id.getProtection)
     {
         if (!TemplateInstance.semanticTiargs(e.loc, sc, e.args, 1))
             return new ErrorExp();
@@ -799,7 +802,11 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         return DsymbolExp.resolve(e.loc, sc, s, false);
     }
-    else if (e.ident == Id.hasMember || e.ident == Id.getMember || e.ident == Id.getOverloads || e.ident == Id.getVirtualMethods || e.ident == Id.getVirtualFunctions)
+    else if (e.ident == Id.hasMember ||
+             e.ident == Id.getMember ||
+             e.ident == Id.getOverloads ||
+             e.ident == Id.getVirtualMethods ||
+             e.ident == Id.getVirtualFunctions)
     {
         if (dim != 2)
             goto Ldimerror;

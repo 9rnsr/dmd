@@ -6253,7 +6253,8 @@ public:
 
     /** For each active attribute (ref/const/nogc/etc) call fp with a void* for the
      work param and a string representation of the attribute. */
-    int attributesApply(void* param, int function(void*, const(char)*) fp, TRUSTformat trustFormat = TRUSTformatDefault)
+    int attributesApply(void* param, int function(void*, const(char)*) fp,
+        TRUSTformat trustFormat = TRUSTformatDefault)
     {
         int res = 0;
         if (purity)

@@ -314,8 +314,14 @@ public:
             }
             else if (level <= global.params.versionlevel || level <= mod.versionlevel)
                 inc = 1;
-            if (!definedInModule && (!ident || (!isPredefined(ident.toChars()) && ident != Identifier.idPool(Token.toChars(TOKunittest)) && ident != Identifier.idPool(Token.toChars(TOKassert)))))
+            if (!definedInModule &&
+                (!ident ||
+                 (!isPredefined(ident.toChars()) &&
+                  ident != Identifier.idPool(Token.toChars(TOKunittest)) &&
+                  ident != Identifier.idPool(Token.toChars(TOKassert)))))
+            {
                 printDepsConditional(sc, this, "depsVersion ");
+            }
         }
         return (inc == 1);
     }
@@ -359,7 +365,8 @@ public:
         {
             if (exp.op == TOKerror || nest > 100)
             {
-                error(loc, (nest > 1000) ? "unresolvable circular static if expression" : "error evaluating static if expression");
+                error(loc, (nest > 1000) ? "unresolvable circular static if expression"
+                                         : "error evaluating static if expression");
                 goto Lerror;
             }
             if (!sc)

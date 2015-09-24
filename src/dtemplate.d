@@ -451,7 +451,9 @@ public:
             for (size_t i = 0; i < p.dim; i++)
                 (*p)[i] = (*parameters)[i].syntaxCopy();
         }
-        return new TemplateDeclaration(loc, ident, p, constraint ? constraint.syntaxCopy() : null, Dsymbol.arraySyntaxCopy(members), ismixin, literal);
+        return new TemplateDeclaration(loc, ident, p,
+            constraint ? constraint.syntaxCopy() : null,
+            Dsymbol.arraySyntaxCopy(members), ismixin, literal);
     }
 
     override void semantic(Scope* sc)
@@ -2997,7 +2999,8 @@ extern (C++) __gshared Expression emptyArrayElement = null;
  * Output:
  *      dedtypes = [ int ]      // Array of Expression/Type's
  */
-extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* parameters, Objects* dedtypes, uint* wm = null, size_t inferStart = 0)
+extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* parameters,
+    Objects* dedtypes, uint* wm = null, size_t inferStart = 0)
 {
     extern (C++) final class DeduceType : Visitor
     {
@@ -5552,7 +5555,9 @@ public:
          * then run semantic on each argument (place results in tiargs[]),
          * last find most specialized template from overload list/set.
          */
-        if (!findTempDecl(sc, null) || !semanticTiargs(sc) || !findBestMatch(sc, fargs))
+        if (!findTempDecl(sc, null) ||
+            !semanticTiargs(sc) ||
+            !findBestMatch(sc, fargs))
         {
         Lerror:
             if (gagged)
@@ -7752,7 +7757,9 @@ public:
         /* Run semantic on each argument, place results in tiargs[],
          * then find best match template with tiargs
          */
-        if (!findTempDecl(sc) || !semanticTiargs(sc) || !findBestMatch(sc, null))
+        if (!findTempDecl(sc) ||
+            !semanticTiargs(sc) ||
+            !findBestMatch(sc, null))
         {
             if (semanticRun == PASSinit) // forward reference had occured
             {
