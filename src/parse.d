@@ -4700,8 +4700,8 @@ public:
                 Expression condition = parseExpression();
                 check(TOKrparen);
                 Loc endloc;
-                Statement _body = parseStatement(PSscope, null, &endloc);
-                s = new WhileStatement(loc, condition, _body, endloc);
+                Statement sbody = parseStatement(PSscope, null, &endloc);
+                s = new WhileStatement(loc, condition, sbody, endloc);
                 break;
             }
         case TOKsemicolon:
@@ -4717,12 +4717,12 @@ public:
             break;
         case TOKdo:
             {
-                Statement _body;
+                Statement sbody;
                 Expression condition;
                 nextToken();
                 Loc lookingForElseSave = lookingForElse;
                 lookingForElse = Loc();
-                _body = parseStatement(PSscope);
+                sbody = parseStatement(PSscope);
                 lookingForElse = lookingForElseSave;
                 check(TOKwhile);
                 check(TOKlparen);
@@ -4732,7 +4732,7 @@ public:
                     nextToken();
                 else
                     error("terminating ';' required after do-while statement");
-                s = new DoStatement(loc, _body, condition);
+                s = new DoStatement(loc, sbody, condition);
                 break;
             }
         case TOKfor:
@@ -4775,8 +4775,8 @@ public:
                     check(TOKrparen);
                 }
                 Loc endloc;
-                Statement _body = parseStatement(PSscope, null, &endloc);
-                s = new ForStatement(loc, sinit, condition, increment, _body, endloc);
+                Statement sbody = parseStatement(PSscope, null, &endloc);
+                s = new ForStatement(loc, sinit, condition, increment, sbody, endloc);
                 break;
             }
         case TOKforeach:
@@ -4867,15 +4867,15 @@ public:
                     Expression upr = parseExpression();
                     check(TOKrparen);
                     Loc endloc;
-                    Statement _body = parseStatement(0, null, &endloc);
-                    s = new ForeachRangeStatement(loc, op, p, aggr, upr, _body, endloc);
+                    Statement sbody = parseStatement(0, null, &endloc);
+                    s = new ForeachRangeStatement(loc, op, p, aggr, upr, sbody, endloc);
                 }
                 else
                 {
                     check(TOKrparen);
                     Loc endloc;
-                    Statement _body = parseStatement(0, null, &endloc);
-                    s = new ForeachStatement(loc, op, parameters, aggr, _body, endloc);
+                    Statement sbody = parseStatement(0, null, &endloc);
+                    s = new ForeachStatement(loc, op, parameters, aggr, sbody, endloc);
                 }
                 break;
             }
@@ -5046,7 +5046,7 @@ public:
             {
                 Identifier ident;
                 Expressions* args = null;
-                Statement _body;
+                Statement sbody;
                 nextToken();
                 check(TOKlparen);
                 if (token.value != TOKidentifier)
@@ -5063,11 +5063,11 @@ public:
                 if (token.value == TOKsemicolon)
                 {
                     nextToken();
-                    _body = null;
+                    sbody = null;
                 }
                 else
-                    _body = parseStatement(PSsemi);
-                s = new PragmaStatement(loc, ident, args, _body);
+                    sbody = parseStatement(PSsemi);
+                s = new PragmaStatement(loc, ident, args, sbody);
                 break;
             }
         case TOKswitch:
@@ -5079,8 +5079,8 @@ public:
                 check(TOKlparen);
                 Expression condition = parseExpression();
                 check(TOKrparen);
-                Statement _body = parseStatement(PSscope);
-                s = new SwitchStatement(loc, condition, _body, isfinal);
+                Statement sbody = parseStatement(PSscope);
+                s = new SwitchStatement(loc, condition, sbody, isfinal);
                 break;
             }
         case TOKcase:
@@ -5233,7 +5233,7 @@ public:
         case TOKsynchronized:
             {
                 Expression exp;
-                Statement _body;
+                Statement sbody;
                 Token* t = peek(&token);
                 if (skipAttributes(t, &t) && t.value == TOKclass)
                     goto Ldeclaration;
@@ -5246,31 +5246,31 @@ public:
                 }
                 else
                     exp = null;
-                _body = parseStatement(PSscope);
-                s = new SynchronizedStatement(loc, exp, _body);
+                sbody = parseStatement(PSscope);
+                s = new SynchronizedStatement(loc, exp, sbody);
                 break;
             }
         case TOKwith:
             {
                 Expression exp;
-                Statement _body;
+                Statement sbody;
                 nextToken();
                 check(TOKlparen);
                 exp = parseExpression();
                 check(TOKrparen);
-                _body = parseStatement(PSscope);
-                s = new WithStatement(loc, exp, _body);
+                sbody = parseStatement(PSscope);
+                s = new WithStatement(loc, exp, sbody);
                 break;
             }
         case TOKtry:
             {
-                Statement _body;
+                Statement sbody;
                 Catches* catches = null;
                 Statement finalbody = null;
                 nextToken();
                 Loc lookingForElseSave = lookingForElse;
                 lookingForElse = Loc();
-                _body = parseStatement(PSscope);
+                sbody = parseStatement(PSscope);
                 lookingForElse = lookingForElseSave;
                 while (token.value == TOKcatch)
                 {
@@ -5303,13 +5303,13 @@ public:
                     nextToken();
                     finalbody = parseStatement(0);
                 }
-                s = _body;
+                s = sbody;
                 if (!catches && !finalbody)
                     error("catch or finally expected following try");
                 else
                 {
                     if (catches)
-                        s = new TryCatchStatement(loc, _body, catches);
+                        s = new TryCatchStatement(loc, sbody, catches);
                     if (finalbody)
                         s = new TryFinallyStatement(loc, s, finalbody);
                 }

@@ -154,34 +154,34 @@ public:
 
     override void visit(WhileStatement s)
     {
-        if (s._body)
-            visitStmt(s._body);
+        if (s.sbody)
+            visitStmt(s.sbody);
     }
 
     override void visit(DoStatement s)
     {
-        if (s._body)
-            visitStmt(s._body);
+        if (s.sbody)
+            visitStmt(s.sbody);
     }
 
     override void visit(ForStatement s)
     {
         if (s.sinit)
             visitStmt(s.sinit);
-        if (s._body)
-            visitStmt(s._body);
+        if (s.sbody)
+            visitStmt(s.sbody);
     }
 
     override void visit(ForeachStatement s)
     {
-        if (s._body)
-            visitStmt(s._body);
+        if (s.sbody)
+            visitStmt(s.sbody);
     }
 
     override void visit(ForeachRangeStatement s)
     {
-        if (s._body)
-            visitStmt(s._body);
+        if (s.sbody)
+            visitStmt(s.sbody);
     }
 
     override void visit(IfStatement s)
@@ -206,8 +206,8 @@ public:
 
     override void visit(SwitchStatement s)
     {
-        if (s._body)
-            visitStmt(s._body);
+        if (s.sbody)
+            visitStmt(s.sbody);
     }
 
     override void visit(CaseStatement s)
@@ -254,20 +254,20 @@ public:
 
     override void visit(SynchronizedStatement s)
     {
-        if (s._body)
-            visitStmt(s._body);
+        if (s.sbody)
+            visitStmt(s.sbody);
     }
 
     override void visit(WithStatement s)
     {
-        if (s._body)
-            visitStmt(s._body);
+        if (s.sbody)
+            visitStmt(s.sbody);
     }
 
     override void visit(TryCatchStatement s)
     {
-        if (s._body)
-            visitStmt(s._body);
+        if (s.sbody)
+            visitStmt(s.sbody);
         if (s.catches && s.catches.dim)
         {
             for (size_t i = 0; i < s.catches.dim; i++)
@@ -281,8 +281,8 @@ public:
 
     override void visit(TryFinallyStatement s)
     {
-        if (s._body)
-            visitStmt(s._body);
+        if (s.sbody)
+            visitStmt(s.sbody);
         if (s.finalbody)
             visitStmt(s.finalbody);
     }
@@ -379,7 +379,7 @@ public:
             ctch.internalCatch = true;
             ctch.semantic(sc); // Run semantic to resolve identifier '__o'
             catches.push(ctch);
-            Statement s2 = new TryCatchStatement(Loc(), s._body, catches);
+            Statement s2 = new TryCatchStatement(Loc(), s.sbody, catches);
             replaceCurrent(s2);
             s2.accept(this);
         }

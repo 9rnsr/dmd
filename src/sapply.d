@@ -79,27 +79,27 @@ public:
 
     override void visit(WhileStatement s)
     {
-        doCond(s._body) || applyTo(s);
+        doCond(s.sbody) || applyTo(s);
     }
 
     override void visit(DoStatement s)
     {
-        doCond(s._body) || applyTo(s);
+        doCond(s.sbody) || applyTo(s);
     }
 
     override void visit(ForStatement s)
     {
-        doCond(s.sinit) || doCond(s._body) || applyTo(s);
+        doCond(s.sinit) || doCond(s.sbody) || applyTo(s);
     }
 
     override void visit(ForeachStatement s)
     {
-        doCond(s._body) || applyTo(s);
+        doCond(s.sbody) || applyTo(s);
     }
 
     override void visit(ForeachRangeStatement s)
     {
-        doCond(s._body) || applyTo(s);
+        doCond(s.sbody) || applyTo(s);
     }
 
     override void visit(IfStatement s)
@@ -109,12 +109,12 @@ public:
 
     override void visit(PragmaStatement s)
     {
-        doCond(s._body) || applyTo(s);
+        doCond(s.sbody) || applyTo(s);
     }
 
     override void visit(SwitchStatement s)
     {
-        doCond(s._body) || applyTo(s);
+        doCond(s.sbody) || applyTo(s);
     }
 
     override void visit(CaseStatement s)
@@ -129,17 +129,17 @@ public:
 
     override void visit(SynchronizedStatement s)
     {
-        doCond(s._body) || applyTo(s);
+        doCond(s.sbody) || applyTo(s);
     }
 
     override void visit(WithStatement s)
     {
-        doCond(s._body) || applyTo(s);
+        doCond(s.sbody) || applyTo(s);
     }
 
     override void visit(TryCatchStatement s)
     {
-        if (doCond(s._body))
+        if (doCond(s.sbody))
             return;
         for (size_t i = 0; i < s.catches.dim; i++)
             if (doCond((*s.catches)[i].handler))
@@ -149,7 +149,7 @@ public:
 
     override void visit(TryFinallyStatement s)
     {
-        doCond(s._body) || doCond(s.finalbody) || applyTo(s);
+        doCond(s.sbody) || doCond(s.finalbody) || applyTo(s);
     }
 
     override void visit(OnScopeStatement s)

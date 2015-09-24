@@ -218,8 +218,8 @@ public:
             s.condition.accept(this);
         if (s.increment)
             s.increment.accept(this);
-        if (s._body)
-            s._body.accept(this);
+        if (s.sbody)
+            s.sbody.accept(this);
         //printf("ForStatement: inlineCost = %d\n", cost);
     }
 
@@ -529,8 +529,8 @@ Statement inlineAsStatement(Statement s, InlineDoState* ids)
             Statement sinit = s.sinit ? inlineAsStatement(s.sinit, ids) : null;
             Expression condition = s.condition ? doInline(s.condition, ids) : null;
             Expression increment = s.increment ? doInline(s.increment, ids) : null;
-            Statement _body = s._body ? inlineAsStatement(s._body, ids) : null;
-            result = new ForStatement(s.loc, sinit, condition, increment, _body, s.endloc);
+            Statement sbody = s.sbody ? inlineAsStatement(s.sbody, ids) : null;
+            result = new ForStatement(s.loc, sinit, condition, increment, sbody, s.endloc);
         }
 
         override void visit(ThrowStatement s)
@@ -1240,12 +1240,12 @@ public:
     override void visit(WhileStatement s)
     {
         inlineScan(&s.condition);
-        inlineScan(&s._body);
+        inlineScan(&s.sbody);
     }
 
     override void visit(DoStatement s)
     {
-        inlineScan(&s._body);
+        inlineScan(&s.sbody);
         inlineScan(&s.condition);
     }
 
@@ -1254,20 +1254,20 @@ public:
         inlineScan(&s.sinit);
         inlineScan(&s.condition);
         inlineScan(&s.increment);
-        inlineScan(&s._body);
+        inlineScan(&s.sbody);
     }
 
     override void visit(ForeachStatement s)
     {
         inlineScan(&s.aggr);
-        inlineScan(&s._body);
+        inlineScan(&s.sbody);
     }
 
     override void visit(ForeachRangeStatement s)
     {
         inlineScan(&s.lwr);
         inlineScan(&s.upr);
-        inlineScan(&s._body);
+        inlineScan(&s.sbody);
     }
 
     override void visit(IfStatement s)
@@ -1281,7 +1281,7 @@ public:
     {
         //printf("SwitchStatement::inlineScan()\n");
         inlineScan(&s.condition);
-        inlineScan(&s._body);
+        inlineScan(&s.sbody);
         Statement sdefault = s.sdefault;
         inlineScan(&sdefault);
         s.sdefault = cast(DefaultStatement)sdefault;
@@ -1317,18 +1317,18 @@ public:
     override void visit(SynchronizedStatement s)
     {
         inlineScan(&s.exp);
-        inlineScan(&s._body);
+        inlineScan(&s.sbody);
     }
 
     override void visit(WithStatement s)
     {
         inlineScan(&s.exp);
-        inlineScan(&s._body);
+        inlineScan(&s.sbody);
     }
 
     override void visit(TryCatchStatement s)
     {
-        inlineScan(&s._body);
+        inlineScan(&s.sbody);
         if (s.catches)
         {
             for (size_t i = 0; i < s.catches.dim; i++)
@@ -1341,7 +1341,7 @@ public:
 
     override void visit(TryFinallyStatement s)
     {
-        inlineScan(&s._body);
+        inlineScan(&s.sbody);
         inlineScan(&s.finalbody);
     }
 

@@ -386,9 +386,9 @@ public:
 
             override void visit(DoStatement s)
             {
-                if (s._body)
+                if (s.sbody)
                 {
-                    result = s._body.blockExit(func, mustNotThrow);
+                    result = s.sbody.blockExit(func, mustNotThrow);
                     if (result == BEbreak)
                     {
                         result = BEfallthru;
@@ -429,9 +429,9 @@ public:
                 }
                 else
                     result &= ~BEfallthru; // the body must do the exiting
-                if (s._body)
+                if (s.sbody)
                 {
-                    int r = s._body.blockExit(func, mustNotThrow);
+                    int r = s.sbody.blockExit(func, mustNotThrow);
                     if (r & (BEbreak | BEgoto))
                         result |= BEfallthru;
                     result |= r & ~(BEfallthru | BEbreak | BEcontinue);
@@ -445,8 +445,8 @@ public:
                 result = BEfallthru;
                 if (canThrow(s.aggr, func, mustNotThrow))
                     result |= BEthrow;
-                if (s._body)
-                    result |= s._body.blockExit(func, mustNotThrow) & ~(BEbreak | BEcontinue);
+                if (s.sbody)
+                    result |= s.sbody.blockExit(func, mustNotThrow) & ~(BEbreak | BEcontinue);
             }
 
             override void visit(ForeachRangeStatement s)
@@ -511,9 +511,9 @@ public:
                 result = BEnone;
                 if (canThrow(s.condition, func, mustNotThrow))
                     result |= BEthrow;
-                if (s._body)
+                if (s.sbody)
                 {
-                    result |= s._body.blockExit(func, mustNotThrow);
+                    result |= s.sbody.blockExit(func, mustNotThrow);
                     if (result & BEbreak)
                     {
                         result |= BEfallthru;
@@ -570,7 +570,7 @@ public:
 
             override void visit(SynchronizedStatement s)
             {
-                result = s._body ? s._body.blockExit(func, mustNotThrow) : BEfallthru;
+                result = s.sbody ? s.sbody.blockExit(func, mustNotThrow) : BEfallthru;
             }
 
             override void visit(WithStatement s)
@@ -578,16 +578,16 @@ public:
                 result = BEnone;
                 if (canThrow(s.exp, func, mustNotThrow))
                     result = BEthrow;
-                if (s._body)
-                    result |= s._body.blockExit(func, mustNotThrow);
+                if (s.sbody)
+                    result |= s.sbody.blockExit(func, mustNotThrow);
                 else
                     result |= BEfallthru;
             }
 
             override void visit(TryCatchStatement s)
             {
-                assert(s._body);
-                result = s._body.blockExit(func, false);
+                assert(s.sbody);
+                result = s.sbody.blockExit(func, false);
                 int catchresult = 0;
                 foreach (c; *s.catches)
                 {
@@ -619,7 +619,7 @@ public:
                 if (mustNotThrow && (result & BEthrow))
                 {
                     // now explain why this is nothrow
-                    s._body.blockExit(func, mustNotThrow);
+                    s.sbody.blockExit(func, mustNotThrow);
                 }
                 result |= catchresult;
             }
@@ -627,8 +627,8 @@ public:
             override void visit(TryFinallyStatement s)
             {
                 result = BEfallthru;
-                if (s._body)
-                    result = s._body.blockExit(func, false);
+                if (s.sbody)
+                    result = s.sbody.blockExit(func, false);
                 // check finally body as well, it may throw (bug #4082)
                 int finalresult = BEfallthru;
                 if (s.finalbody)
@@ -641,8 +641,8 @@ public:
                 if (mustNotThrow)
                 {
                     // now explain why this is nothrow
-                    if (s._body && (result & BEthrow))
-                        s._body.blockExit(func, mustNotThrow);
+                    if (s.sbody && (result & BEthrow))
+                        s.sbody.blockExit(func, mustNotThrow);
                     if (s.finalbody && (finalresult & BEthrow))
                         s.finalbody.blockExit(func, mustNotThrow);
                 }
@@ -1455,8 +1455,8 @@ public:
                             {
                                 a.push((*statements)[j]);
                             }
-                            Statement _body = new CompoundStatement(Loc(), a);
-                            _body = new ScopeStatement(Loc(), _body);
+                            Statement sbody = new CompoundStatement(Loc(), a);
+                            sbody = new ScopeStatement(Loc(), sbody);
                             Identifier id = Identifier.generateId("__o");
                             Statement handler = new PeelStatement(sexception);
                             if (sexception.blockExit(sc.func, false) & BEfallthru)
@@ -1469,7 +1469,7 @@ public:
                             auto ctch = new Catch(Loc(), null, id, handler);
                             ctch.internalCatch = true;
                             catches.push(ctch);
-                            s = new TryCatchStatement(Loc(), _body, catches);
+                            s = new TryCatchStatement(Loc(), sbody, catches);
                             if (sfinally)
                                 s = new TryFinallyStatement(Loc(), s, sfinally);
                             s = s.semantic(sc);
@@ -1496,8 +1496,8 @@ public:
                             {
                                 a.push((*statements)[j]);
                             }
-                            Statement _body = new CompoundStatement(Loc(), a);
-                            s = new TryFinallyStatement(Loc(), _body, sfinally);
+                            Statement sbody = new CompoundStatement(Loc(), a);
+                            s = new TryFinallyStatement(Loc(), sbody, sfinally);
                             s = s.semantic(sc);
                             statements.setDim(i + 1);
                             statements.push(s);
@@ -1775,27 +1775,27 @@ extern (C++) final class WhileStatement : Statement
 {
 public:
     Expression condition;
-    Statement _body;
+    Statement sbody;
     Loc endloc;             // location of closing curly bracket
 
     extern (D) this(Loc loc, Expression c, Statement b, Loc endloc)
     {
         super(loc);
         condition = c;
-        _body = b;
+        sbody = b;
         this.endloc = endloc;
     }
 
     override Statement syntaxCopy()
     {
-        return new WhileStatement(loc, condition.syntaxCopy(), _body ? _body.syntaxCopy() : null, endloc);
+        return new WhileStatement(loc, condition.syntaxCopy(), sbody ? sbody.syntaxCopy() : null, endloc);
     }
 
     override Statement semantic(Scope* sc)
     {
         /* Rewrite as a for(;condition;) loop
          */
-        Statement s = new ForStatement(loc, null, condition, null, _body, endloc);
+        Statement s = new ForStatement(loc, null, condition, null, sbody, endloc);
         s = s.semantic(sc);
         return s;
     }
@@ -1821,26 +1821,26 @@ public:
 extern (C++) final class DoStatement : Statement
 {
 public:
-    Statement _body;
+    Statement sbody;
     Expression condition;
 
     extern (D) this(Loc loc, Statement b, Expression c)
     {
         super(loc);
-        _body = b;
+        sbody = b;
         condition = c;
     }
 
     override Statement syntaxCopy()
     {
-        return new DoStatement(loc, _body ? _body.syntaxCopy() : null, condition.syntaxCopy());
+        return new DoStatement(loc, sbody ? sbody.syntaxCopy() : null, condition.syntaxCopy());
     }
 
     override Statement semantic(Scope* sc)
     {
         sc.noctor++;
-        if (_body)
-            _body = _body.semanticScope(sc, this, this);
+        if (sbody)
+            sbody = sbody.semanticScope(sc, this, this);
         sc.noctor--;
         condition = condition.semantic(sc);
         condition = resolveProperties(sc, condition);
@@ -1849,8 +1849,8 @@ public:
         condition = condition.toBoolean(sc);
         if (condition.op == TOKerror)
             return new ErrorStatement();
-        if (_body && _body.isErrorStatement())
-            return _body;
+        if (sbody && sbody.isErrorStatement())
+            return sbody;
         return this;
     }
 
@@ -1878,7 +1878,7 @@ public:
     Statement sinit;
     Expression condition;
     Expression increment;
-    Statement _body;
+    Statement sbody;
     Loc endloc;             // location of closing curly bracket
 
     // When wrapped in try/finally clauses, this points to the outermost one,
@@ -1886,19 +1886,19 @@ public:
     // treat that label as referring to this loop.
     Statement relatedLabeled;
 
-    extern (D) this(Loc loc, Statement sinit, Expression condition, Expression increment, Statement _body, Loc endloc)
+    extern (D) this(Loc loc, Statement sinit, Expression condition, Expression increment, Statement sbody, Loc endloc)
     {
         super(loc);
         this.sinit = sinit;
         this.condition = condition;
         this.increment = increment;
-        this._body = _body;
+        this.sbody = sbody;
         this.endloc = endloc;
     }
 
     override Statement syntaxCopy()
     {
-        return new ForStatement(loc, sinit ? sinit.syntaxCopy() : null, condition ? condition.syntaxCopy() : null, increment ? increment.syntaxCopy() : null, _body.syntaxCopy(), endloc);
+        return new ForStatement(loc, sinit ? sinit.syntaxCopy() : null, condition ? condition.syntaxCopy() : null, increment ? increment.syntaxCopy() : null, sbody.syntaxCopy(), endloc);
     }
 
     override Statement semantic(Scope* sc)
@@ -1955,11 +1955,11 @@ public:
         }
         sc.sbreak = this;
         sc.scontinue = this;
-        if (_body)
-            _body = _body.semanticNoScope(sc);
+        if (sbody)
+            sbody = sbody.semanticNoScope(sc);
         sc.noctor--;
         sc.pop();
-        if (condition && condition.op == TOKerror || increment && increment.op == TOKerror || _body && _body.isErrorStatement())
+        if (condition && condition.op == TOKerror || increment && increment.op == TOKerror || sbody && sbody.isErrorStatement())
             return new ErrorStatement();
         return this;
     }
@@ -2001,7 +2001,7 @@ public:
     TOK op;                     // TOKforeach or TOKforeach_reverse
     Parameters* parameters;     // array of Parameter*'s
     Expression aggr;
-    Statement _body;
+    Statement sbody;
     Loc endloc;                 // location of closing curly bracket
 
     VarDeclaration key;
@@ -2012,19 +2012,19 @@ public:
     Statements* cases;          // put breaks, continues, gotos and returns here
     ScopeStatements* gotos;     // forward referenced goto's go here
 
-    extern (D) this(Loc loc, TOK op, Parameters* parameters, Expression aggr, Statement _body, Loc endloc)
+    extern (D) this(Loc loc, TOK op, Parameters* parameters, Expression aggr, Statement sbody, Loc endloc)
     {
         super(loc);
         this.op = op;
         this.parameters = parameters;
         this.aggr = aggr;
-        this._body = _body;
+        this.sbody = sbody;
         this.endloc = endloc;
     }
 
     override Statement syntaxCopy()
     {
-        return new ForeachStatement(loc, op, Parameter.arraySyntaxCopy(parameters), aggr.syntaxCopy(), _body ? _body.syntaxCopy() : null, endloc);
+        return new ForeachStatement(loc, op, Parameter.arraySyntaxCopy(parameters), aggr.syntaxCopy(), sbody ? sbody.syntaxCopy() : null, endloc);
     }
 
     override Statement semantic(Scope* sc)
@@ -2256,7 +2256,7 @@ public:
                     }
                 }
                 st.push(new ExpStatement(loc, var));
-                st.push(_body.syntaxCopy());
+                st.push(sbody.syntaxCopy());
                 s = new CompoundStatement(loc, st);
                 s = new ScopeStatement(loc, s);
                 statements.push(s);
@@ -2439,14 +2439,14 @@ public:
                     {
                         key.range = null;
                         auto v = new AliasDeclaration(loc, p.ident, key);
-                        _body = new CompoundStatement(loc, new ExpStatement(loc, v), _body);
+                        sbody = new CompoundStatement(loc, new ExpStatement(loc, v), sbody);
                     }
                     else
                     {
                         auto ei = new ExpInitializer(loc, new IdentifierExp(loc, key.ident));
                         auto v = new VarDeclaration(loc, p.type, p.ident, ei);
                         v.storage_class |= STCforeach | (p.storageClass & STCref);
-                        _body = new CompoundStatement(loc, new ExpStatement(loc, v), _body);
+                        sbody = new CompoundStatement(loc, new ExpStatement(loc, v), sbody);
                         if (key.range && !p.type.isMutable())
                         {
                             /* Limit the range of the key to the specified range
@@ -2455,8 +2455,8 @@ public:
                         }
                     }
                 }
-                _body = new CompoundStatement(loc, ds, _body);
-                s = new ForStatement(loc, forinit, cond, increment, _body, endloc);
+                sbody = new CompoundStatement(loc, ds, sbody);
+                s = new ForStatement(loc, forinit, cond, increment, sbody, endloc);
                 if (LabelStatement ls = checkLabeledLoop(sc, this))
                     ls.gotoTarget = s;
                 s = s.semantic(sc);
@@ -2599,7 +2599,7 @@ public:
                         makeargs = new CompoundStatement(loc, makeargs, new ExpStatement(loc, var));
                     }
                 }
-                forbody = new CompoundStatement(loc, makeargs, this._body);
+                forbody = new CompoundStatement(loc, makeargs, this.sbody);
                 s = new ForStatement(loc, sinit, condition, increment, forbody, endloc);
                 if (LabelStatement ls = checkLabeledLoop(sc, this))
                     ls.gotoTarget = s;
@@ -2623,7 +2623,7 @@ public:
             {
                 if (checkForArgTypes())
                 {
-                    _body = _body.semanticNoScope(sc);
+                    sbody = sbody.semanticNoScope(sc);
                     return this;
                 }
                 TypeFunction tfld = null;
@@ -2696,7 +2696,7 @@ public:
                         auto v = new VarDeclaration(Loc(), p.type, p.ident, ie);
                         v.storage_class |= STCtemp;
                         s = new ExpStatement(Loc(), v);
-                        _body = new CompoundStatement(loc, s, _body);
+                        sbody = new CompoundStatement(loc, s, sbody);
                     }
                     params.push(new Parameter(stc, p.type, id, null));
                 }
@@ -2706,7 +2706,7 @@ public:
                 cases = new Statements();
                 gotos = new ScopeStatements();
                 auto fld = new FuncLiteralDeclaration(loc, Loc(), tfld, TOKdelegate, this);
-                fld.fbody = _body;
+                fld.fbody = sbody;
                 Expression flde = new FuncExp(loc, fld);
                 flde = flde.semantic(sc);
                 fld.tookAddressOf = 0;
@@ -2977,25 +2977,25 @@ public:
     Parameter prm;          // loop index variable
     Expression lwr;
     Expression upr;
-    Statement _body;
+    Statement sbody;
     Loc endloc;             // location of closing curly bracket
 
     VarDeclaration key;
 
-    extern (D) this(Loc loc, TOK op, Parameter prm, Expression lwr, Expression upr, Statement _body, Loc endloc)
+    extern (D) this(Loc loc, TOK op, Parameter prm, Expression lwr, Expression upr, Statement sbody, Loc endloc)
     {
         super(loc);
         this.op = op;
         this.prm = prm;
         this.lwr = lwr;
         this.upr = upr;
-        this._body = _body;
+        this.sbody = sbody;
         this.endloc = endloc;
     }
 
     override Statement syntaxCopy()
     {
-        return new ForeachRangeStatement(loc, op, prm.syntaxCopy(), lwr.syntaxCopy(), upr.syntaxCopy(), _body ? _body.syntaxCopy() : null, endloc);
+        return new ForeachRangeStatement(loc, op, prm.syntaxCopy(), lwr.syntaxCopy(), upr.syntaxCopy(), sbody ? sbody.syntaxCopy() : null, endloc);
     }
 
     override Statement semantic(Scope* sc)
@@ -3143,14 +3143,14 @@ public:
         {
             key.range = null;
             auto v = new AliasDeclaration(loc, prm.ident, key);
-            _body = new CompoundStatement(loc, new ExpStatement(loc, v), _body);
+            sbody = new CompoundStatement(loc, new ExpStatement(loc, v), sbody);
         }
         else
         {
             ie = new ExpInitializer(loc, new CastExp(loc, new VarExp(loc, key), prm.type));
             auto v = new VarDeclaration(loc, prm.type, prm.ident, ie);
             v.storage_class |= STCtemp | STCforeach | (prm.storageClass & STCref);
-            _body = new CompoundStatement(loc, new ExpStatement(loc, v), _body);
+            sbody = new CompoundStatement(loc, new ExpStatement(loc, v), sbody);
             if (key.range && !prm.type.isMutable())
             {
                 /* Limit the range of the key to the specified range
@@ -3166,7 +3166,7 @@ public:
                 goto Lerror;
             }
         }
-        auto s = new ForStatement(loc, forinit, cond, increment, _body, endloc);
+        auto s = new ForStatement(loc, forinit, cond, increment, sbody, endloc);
         if (LabelStatement ls = checkLabeledLoop(sc, this))
             ls.gotoTarget = s;
         return s.semantic(sc);
@@ -3379,19 +3379,19 @@ extern (C++) final class PragmaStatement : Statement
 public:
     Identifier ident;
     Expressions* args;      // array of Expression's
-    Statement _body;
+    Statement sbody;
 
-    extern (D) this(Loc loc, Identifier ident, Expressions* args, Statement _body)
+    extern (D) this(Loc loc, Identifier ident, Expressions* args, Statement sbody)
     {
         super(loc);
         this.ident = ident;
         this.args = args;
-        this._body = _body;
+        this.sbody = sbody;
     }
 
     override Statement syntaxCopy()
     {
-        return new PragmaStatement(loc, ident, Expression.arraySyntaxCopy(args), _body ? _body.syntaxCopy() : null);
+        return new PragmaStatement(loc, ident, Expression.arraySyntaxCopy(args), sbody ? sbody.syntaxCopy() : null);
     }
 
     override Statement semantic(Scope* sc)
@@ -3489,11 +3489,11 @@ public:
                     error("function name expected for start address, not '%s'", e.toChars());
                     goto Lerror;
                 }
-                if (_body)
+                if (sbody)
                 {
-                    _body = _body.semantic(sc);
-                    if (_body.isErrorStatement())
-                        return _body;
+                    sbody = sbody.semantic(sc);
+                    if (sbody.isErrorStatement())
+                        return sbody;
                 }
                 return this;
             }
@@ -3534,11 +3534,11 @@ public:
             error("unrecognized pragma(%s)", ident.toChars());
             goto Lerror;
         }
-        if (_body)
+        if (sbody)
         {
-            _body = _body.semantic(sc);
+            sbody = sbody.semantic(sc);
         }
-        return _body;
+        return sbody;
     Lerror:
         return new ErrorStatement();
     }
@@ -3585,7 +3585,7 @@ extern (C++) final class SwitchStatement : Statement
 {
 public:
     Expression condition;
-    Statement _body;
+    Statement sbody;
     bool isFinal;
 
     DefaultStatement sdefault;
@@ -3599,13 +3599,13 @@ public:
     {
         super(loc);
         this.condition = c;
-        this._body = b;
+        this.sbody = b;
         this.isFinal = isFinal;
     }
 
     override Statement syntaxCopy()
     {
-        return new SwitchStatement(loc, condition.syntaxCopy(), _body.syntaxCopy(), isFinal);
+        return new SwitchStatement(loc, condition.syntaxCopy(), sbody.syntaxCopy(), isFinal);
     }
 
     override Statement semantic(Scope* sc)
@@ -3649,9 +3649,9 @@ public:
         sc.sw = this;
         cases = new CaseStatements();
         sc.noctor++; // BUG: should use Scope::mergeCallSuper() for each case instead
-        _body = _body.semantic(sc);
+        sbody = sbody.semantic(sc);
         sc.noctor--;
-        if (conditionError || _body.isErrorStatement())
+        if (conditionError || sbody.isErrorStatement())
             goto Lerror;
         // Resolve any goto case's with exp
         foreach (gcs; gotoCases)
@@ -3711,7 +3711,7 @@ public:
         if (!sc.sw.sdefault && (!isFinal || needswitcherror || global.params.useAssert))
         {
             hasNoDefault = 1;
-            if (!isFinal && !_body.isErrorStatement())
+            if (!isFinal && !sbody.isErrorStatement())
                 error("switch statement without a default; use 'final switch' or add 'default: assert(0);' or add 'default: break;'");
             // Generate runtime error if the default is hit
             auto a = new Statements();
@@ -3723,12 +3723,12 @@ public:
                 s = new ExpStatement(loc, new HaltExp(loc));
             a.reserve(2);
             sc.sw.sdefault = new DefaultStatement(loc, s);
-            a.push(_body);
-            if (_body.blockExit(sc.func, false) & BEfallthru)
+            a.push(sbody);
+            if (sbody.blockExit(sc.func, false) & BEfallthru)
                 a.push(new BreakStatement(Loc(), null));
             a.push(sc.sw.sdefault);
             cs = new CompoundStatement(loc, a);
-            _body = cs;
+            sbody = cs;
         }
         sc.pop();
         return this;
@@ -4644,18 +4644,18 @@ extern (C++) final class SynchronizedStatement : Statement
 {
 public:
     Expression exp;
-    Statement _body;
+    Statement sbody;
 
-    extern (D) this(Loc loc, Expression exp, Statement _body)
+    extern (D) this(Loc loc, Expression exp, Statement sbody)
     {
         super(loc);
         this.exp = exp;
-        this._body = _body;
+        this.sbody = sbody;
     }
 
     override Statement syntaxCopy()
     {
-        return new SynchronizedStatement(loc, exp ? exp.syntaxCopy() : null, _body ? _body.syntaxCopy() : null);
+        return new SynchronizedStatement(loc, exp ? exp.syntaxCopy() : null, sbody ? sbody.syntaxCopy() : null);
     }
 
     override Statement semantic(Scope* sc)
@@ -4713,7 +4713,7 @@ public:
                 e = new CallExp(loc, new VarExp(loc, fdexit), new VarExp(loc, tmp));
                 e.type = Type.tvoid; // do not run semantic on e
                 Statement s = new ExpStatement(loc, e);
-                s = new TryFinallyStatement(loc, _body, s);
+                s = new TryFinallyStatement(loc, sbody, s);
                 cs.push(s);
                 s = new CompoundStatement(loc, cs);
                 return s.semantic(sc);
@@ -4752,16 +4752,16 @@ public:
             e = new CallExp(loc, new VarExp(loc, fdexit), e);
             e.type = Type.tvoid; // do not run semantic on e
             Statement s = new ExpStatement(loc, e);
-            s = new TryFinallyStatement(loc, _body, s);
+            s = new TryFinallyStatement(loc, sbody, s);
             cs.push(s);
             s = new CompoundStatement(loc, cs);
             return s.semantic(sc);
         }
     Lbody:
-        if (_body)
-            _body = _body.semantic(sc);
-        if (_body && _body.isErrorStatement())
-            return _body;
+        if (sbody)
+            sbody = sbody.semantic(sc);
+        if (sbody && sbody.isErrorStatement())
+            return sbody;
         return this;
     }
 
@@ -4787,19 +4787,19 @@ extern (C++) final class WithStatement : Statement
 {
 public:
     Expression exp;
-    Statement _body;
+    Statement sbody;
     VarDeclaration wthis;
 
-    extern (D) this(Loc loc, Expression exp, Statement _body)
+    extern (D) this(Loc loc, Expression exp, Statement sbody)
     {
         super(loc);
         this.exp = exp;
-        this._body = _body;
+        this.sbody = sbody;
     }
 
     override Statement syntaxCopy()
     {
-        return new WithStatement(loc, exp.syntaxCopy(), _body ? _body.syntaxCopy() : null);
+        return new WithStatement(loc, exp.syntaxCopy(), sbody ? sbody.syntaxCopy() : null);
     }
 
     override Statement semantic(Scope* sc)
@@ -4885,15 +4885,15 @@ public:
                 return new ErrorStatement();
             }
         }
-        if (_body)
+        if (sbody)
         {
             sym.declScope = sc;
             sc = sc.push(sym);
             sc.insert(sym);
-            _body = _body.semantic(sc);
+            sbody = sbody.semantic(sc);
             sc.pop();
-            if (_body && _body.isErrorStatement())
-                return _body;
+            if (sbody && sbody.isErrorStatement())
+                return sbody;
         }
         return this;
     }
@@ -4909,13 +4909,13 @@ public:
 extern (C++) final class TryCatchStatement : Statement
 {
 public:
-    Statement _body;
+    Statement sbody;
     Catches* catches;
 
-    extern (D) this(Loc loc, Statement _body, Catches* catches)
+    extern (D) this(Loc loc, Statement sbody, Catches* catches)
     {
         super(loc);
-        this._body = _body;
+        this.sbody = sbody;
         this.catches = catches;
     }
 
@@ -4927,13 +4927,13 @@ public:
         {
             (*a)[i] = c.syntaxCopy();
         }
-        return new TryCatchStatement(loc, _body.syntaxCopy(), a);
+        return new TryCatchStatement(loc, sbody.syntaxCopy(), a);
     }
 
     override Statement semantic(Scope* sc)
     {
-        _body = _body.semanticScope(sc, null, null);
-        assert(_body);
+        sbody = sbody.semanticScope(sc, null, null);
+        assert(sbody);
         /* Even if body is empty, still do semantic analysis on catches
          */
         bool catchErrors = false;
@@ -4960,12 +4960,12 @@ public:
         }
         if (catchErrors)
             return new ErrorStatement();
-        if (_body.isErrorStatement())
-            return _body;
+        if (sbody.isErrorStatement())
+            return sbody;
         /* If the try body never throws, we can eliminate any catches
          * of recoverable exceptions.
          */
-        if (!(_body.blockExit(sc.func, false) & BEthrow) && ClassDeclaration.exception)
+        if (!(sbody.blockExit(sc.func, false) & BEthrow) && ClassDeclaration.exception)
         {
             foreach_reverse (i; 0 .. catches.dim)
             {
@@ -4980,7 +4980,7 @@ public:
             }
         }
         if (catches.dim == 0)
-            return _body.hasCode() ? _body : null;
+            return sbody.hasCode() ? sbody : null;
         return this;
     }
 
@@ -5088,43 +5088,43 @@ public:
 extern (C++) final class TryFinallyStatement : Statement
 {
 public:
-    Statement _body;
+    Statement sbody;
     Statement finalbody;
 
-    extern (D) this(Loc loc, Statement _body, Statement finalbody)
+    extern (D) this(Loc loc, Statement sbody, Statement finalbody)
     {
         super(loc);
-        this._body = _body;
+        this.sbody = sbody;
         this.finalbody = finalbody;
     }
 
-    static TryFinallyStatement create(Loc loc, Statement _body, Statement finalbody)
+    static TryFinallyStatement create(Loc loc, Statement sbody, Statement finalbody)
     {
-        return new TryFinallyStatement(loc, _body, finalbody);
+        return new TryFinallyStatement(loc, sbody, finalbody);
     }
 
     override Statement syntaxCopy()
     {
-        return new TryFinallyStatement(loc, _body.syntaxCopy(), finalbody.syntaxCopy());
+        return new TryFinallyStatement(loc, sbody.syntaxCopy(), finalbody.syntaxCopy());
     }
 
     override Statement semantic(Scope* sc)
     {
         //printf("TryFinallyStatement::semantic()\n");
-        _body = _body.semantic(sc);
+        sbody = sbody.semantic(sc);
         sc = sc.push();
         sc.tf = this;
         sc.sbreak = null;
         sc.scontinue = null; // no break or continue out of finally block
         finalbody = finalbody.semanticNoScope(sc);
         sc.pop();
-        if (!_body)
+        if (!sbody)
             return finalbody;
         if (!finalbody)
-            return _body;
-        if (_body.blockExit(sc.func, false) == BEfallthru)
+            return sbody;
+        if (sbody.blockExit(sc.func, false) == BEfallthru)
         {
-            Statement s = new CompoundStatement(loc, _body, finalbody);
+            Statement s = new CompoundStatement(loc, sbody, finalbody);
             return s;
         }
         return this;

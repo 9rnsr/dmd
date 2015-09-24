@@ -430,8 +430,8 @@ public:
             printf("%s DoStatement::ctfeCompile\n", s.loc.toChars());
         }
         ccf.onExpression(s.condition);
-        if (s._body)
-            ctfeCompile(s._body);
+        if (s.sbody)
+            ctfeCompile(s.sbody);
     }
 
     override void visit(WhileStatement s)
@@ -456,8 +456,8 @@ public:
             ccf.onExpression(s.condition);
         if (s.increment)
             ccf.onExpression(s.increment);
-        if (s._body)
-            ctfeCompile(s._body);
+        if (s.sbody)
+            ctfeCompile(s.sbody);
     }
 
     override void visit(ForeachStatement s)
@@ -483,8 +483,8 @@ public:
         {
             ccf.onExpression((*s.cases)[i].exp);
         }
-        if (s._body)
-            ctfeCompile(s._body);
+        if (s.sbody)
+            ctfeCompile(s.sbody);
     }
 
     override void visit(CaseStatement s)
@@ -572,8 +572,8 @@ public:
             ccf.onDeclaration(s.wthis);
             ccf.onExpression(s.exp);
         }
-        if (s._body)
-            ctfeCompile(s._body);
+        if (s.sbody)
+            ctfeCompile(s.sbody);
     }
 
     override void visit(TryCatchStatement s)
@@ -582,8 +582,8 @@ public:
         {
             printf("%s TryCatchStatement::ctfeCompile\n", s.loc.toChars());
         }
-        if (s._body)
-            ctfeCompile(s._body);
+        if (s.sbody)
+            ctfeCompile(s.sbody);
         for (size_t i = 0; i < s.catches.dim; i++)
         {
             Catch ca = (*s.catches)[i];
@@ -600,8 +600,8 @@ public:
         {
             printf("%s TryFinallyStatement::ctfeCompile\n", s.loc.toChars());
         }
-        if (s._body)
-            ctfeCompile(s._body);
+        if (s.sbody)
+            ctfeCompile(s.sbody);
         if (s.finalbody)
             ctfeCompile(s.finalbody);
     }
@@ -1370,7 +1370,7 @@ public:
             istate.start = null;
         while (1)
         {
-            Expression e = interpret(s._body, istate);
+            Expression e = interpret(s.sbody, istate);
             if (!e && istate.start) // goto target was not found
                 return;
             assert(!istate.start);
@@ -1439,7 +1439,7 @@ public:
                     break;
                 assert(isTrueBool(e));
             }
-            Expression e = interpret(s._body, istate);
+            Expression e = interpret(s.sbody, istate);
             if (!e && istate.start) // goto target was not found
                 return;
             assert(!istate.start);
@@ -1497,7 +1497,7 @@ public:
             istate.start = null;
         if (istate.start)
         {
-            Expression e = interpret(s._body, istate);
+            Expression e = interpret(s.sbody, istate);
             if (istate.start) // goto target was not found
                 return;
             if (exceptionOrCant(e))
@@ -1542,7 +1542,7 @@ public:
         /* Jump to scase
          */
         istate.start = scase;
-        Expression e = interpret(s._body, istate);
+        Expression e = interpret(s.sbody, istate);
         assert(!istate.start); // jump must not fail
         if (e && e.op == TOKbreak)
         {
@@ -1652,7 +1652,7 @@ public:
         if (istate.start)
         {
             Expression e = null;
-            e = interpret(s._body, istate);
+            e = interpret(s.sbody, istate);
             for (size_t i = 0; i < s.catches.dim; i++)
             {
                 if (e || !istate.start) // goto target was found
@@ -1663,7 +1663,7 @@ public:
             result = e;
             return;
         }
-        Expression e = interpret(s._body, istate);
+        Expression e = interpret(s.sbody, istate);
         // An exception was thrown
         if (e && e.op == TOKthrownexception)
         {
@@ -1748,13 +1748,13 @@ public:
         if (istate.start)
         {
             Expression e = null;
-            e = interpret(s._body, istate);
+            e = interpret(s.sbody, istate);
             // Jump into/out from finalbody is disabled in semantic analysis.
             // and jump inside will be handled by the ScopeStatement == finalbody.
             result = e;
             return;
         }
-        Expression ex = interpret(s._body, istate);
+        Expression ex = interpret(s.sbody, istate);
         if (CTFEExp.isCantExp(ex))
         {
             result = ex;
@@ -1767,7 +1767,7 @@ public:
             InterState istatex = *istate;
             istatex.start = istate.gotoTarget; // set starting statement
             istatex.gotoTarget = null;
-            Expression bex = interpret(s._body, &istatex);
+            Expression bex = interpret(s.sbody, &istatex);
             if (istatex.start)
             {
                 // The goto target is outside the current scope.
@@ -1833,13 +1833,13 @@ public:
             istate.start = null;
         if (istate.start)
         {
-            result = s._body ? interpret(s._body, istate) : null;
+            result = s.sbody ? interpret(s.sbody, istate) : null;
             return;
         }
         // If it is with(Enum) {...}, just execute the body.
         if (s.exp.op == TOKimport || s.exp.op == TOKtype)
         {
-            result = interpret(s._body, istate);
+            result = interpret(s.sbody, istate);
             return;
         }
         Expression e = interpret(s.exp, istate);
@@ -1852,7 +1852,7 @@ public:
         }
         ctfeStack.push(s.wthis);
         setValue(s.wthis, e);
-        e = interpret(s._body, istate);
+        e = interpret(s.sbody, istate);
         if (CTFEExp.isGotoExp(e))
         {
             /* This is an optimization that relies on the locality of the jump target.
@@ -1864,7 +1864,7 @@ public:
             InterState istatex = *istate;
             istatex.start = istate.gotoTarget; // set starting statement
             istatex.gotoTarget = null;
-            Expression ex = interpret(s._body, &istatex);
+            Expression ex = interpret(s.sbody, &istatex);
             if (!istatex.start)
             {
                 istate.gotoTarget = null;

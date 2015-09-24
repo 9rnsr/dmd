@@ -200,16 +200,16 @@ public:
         s.condition.accept(this);
         buf.writeByte(')');
         buf.writenl();
-        if (s._body)
-            s._body.accept(this);
+        if (s.sbody)
+            s.sbody.accept(this);
     }
 
     override void visit(DoStatement s)
     {
         buf.writestring("do");
         buf.writenl();
-        if (s._body)
-            s._body.accept(this);
+        if (s.sbody)
+            s.sbody.accept(this);
         buf.writestring("while (");
         s.condition.accept(this);
         buf.writestring(");");
@@ -243,7 +243,7 @@ public:
         buf.writeByte('{');
         buf.writenl();
         buf.level++;
-        s._body.accept(this);
+        s.sbody.accept(this);
         buf.level--;
         buf.writeByte('}');
         buf.writenl();
@@ -272,8 +272,8 @@ public:
         buf.writeByte('{');
         buf.writenl();
         buf.level++;
-        if (s._body)
-            s._body.accept(this);
+        if (s.sbody)
+            s.sbody.accept(this);
         buf.level--;
         buf.writeByte('}');
         buf.writenl();
@@ -296,8 +296,8 @@ public:
         buf.writeByte('{');
         buf.writenl();
         buf.level++;
-        if (s._body)
-            s._body.accept(this);
+        if (s.sbody)
+            s.sbody.accept(this);
         buf.level--;
         buf.writeByte('}');
         buf.writenl();
@@ -375,13 +375,13 @@ public:
             argsToBuffer(s.args);
         }
         buf.writeByte(')');
-        if (s._body)
+        if (s.sbody)
         {
             buf.writenl();
             buf.writeByte('{');
             buf.writenl();
             buf.level++;
-            s._body.accept(this);
+            s.sbody.accept(this);
             buf.level--;
             buf.writeByte('}');
             buf.writenl();
@@ -404,21 +404,21 @@ public:
         s.condition.accept(this);
         buf.writeByte(')');
         buf.writenl();
-        if (s._body)
+        if (s.sbody)
         {
-            if (!s._body.isScopeStatement())
+            if (!s.sbody.isScopeStatement())
             {
                 buf.writeByte('{');
                 buf.writenl();
                 buf.level++;
-                s._body.accept(this);
+                s.sbody.accept(this);
                 buf.level--;
                 buf.writeByte('}');
                 buf.writenl();
             }
             else
             {
-                s._body.accept(this);
+                s.sbody.accept(this);
             }
         }
     }
@@ -516,10 +516,10 @@ public:
             s.exp.accept(this);
             buf.writeByte(')');
         }
-        if (s._body)
+        if (s.sbody)
         {
             buf.writeByte(' ');
-            s._body.accept(this);
+            s.sbody.accept(this);
         }
     }
 
@@ -529,16 +529,16 @@ public:
         s.exp.accept(this);
         buf.writestring(")");
         buf.writenl();
-        if (s._body)
-            s._body.accept(this);
+        if (s.sbody)
+            s.sbody.accept(this);
     }
 
     override void visit(TryCatchStatement s)
     {
         buf.writestring("try");
         buf.writenl();
-        if (s._body)
-            s._body.accept(this);
+        if (s.sbody)
+            s.sbody.accept(this);
         for (size_t i = 0; i < s.catches.dim; i++)
         {
             Catch c = (*s.catches)[i];
@@ -553,7 +553,7 @@ public:
         buf.writeByte('{');
         buf.writenl();
         buf.level++;
-        s._body.accept(this);
+        s.sbody.accept(this);
         buf.level--;
         buf.writeByte('}');
         buf.writenl();
