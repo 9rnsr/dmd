@@ -653,7 +653,7 @@ extern (C++) Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
             // selective/renamed imports also be picked up
             if (AliasDeclaration ad = s.isAliasDeclaration())
             {
-                if (ad._import)
+                if (ad.ownerImport)
                     break;
             }
             // See only module scope symbols for UFCS target.

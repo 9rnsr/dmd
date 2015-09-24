@@ -406,7 +406,7 @@ public:
                 _alias = name;
             auto tname = new TypeIdentifier(loc, name);
             auto ad = new AliasDeclaration(loc, _alias, tname);
-            ad._import = this;
+            ad.ownerImport = this;
             ad.addMember(sc, sd);
             aliasdecls.push(ad);
         }

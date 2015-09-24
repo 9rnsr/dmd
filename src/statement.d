@@ -5716,7 +5716,7 @@ public:
                     _alias = name;
                 auto tname = new TypeIdentifier(s.loc, name);
                 auto ad = new AliasDeclaration(s.loc, _alias, tname);
-                ad._import = s;
+                ad.ownerImport = s;
                 s.aliasdecls.push(ad);
             }
             s.semantic(sc);

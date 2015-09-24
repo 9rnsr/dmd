@@ -525,7 +525,7 @@ extern (C++) final class AliasDeclaration : Declaration
 public:
     Dsymbol aliassym;
     Dsymbol overnext;   // next in overload list
-    Dsymbol _import;    // !=null if unresolved internal alias for selective import
+    Dsymbol ownerImport;    // !=null if unresolved internal alias for selective import
 
     extern (D) this(Loc loc, Identifier id, Type type)
     {
@@ -833,12 +833,12 @@ public:
         {
             // semantic is already done.
         }
-        else if (_import && _import.declScope)
+        else if (ownerImport && ownerImport.declScope)
         {
             /* If this is an internal alias for selective/renamed import,
              * resolve it under the correct scope.
              */
-            _import.semantic(null);
+            ownerImport.semantic(null);
         }
         else if (declScope)
             semantic(declScope);
