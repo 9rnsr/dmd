@@ -501,7 +501,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
         void argsCppMangle(Parameters* parameters, int varargs)
         {
             if (parameters)
-                Parameter._foreach(parameters, &paramsCppMangleDg, cast(void*)this);
+                Parameter.forEach(parameters, &paramsCppMangleDg, cast(void*)this);
             if (varargs)
                 buf.writestring("z");
             else if (!parameters || !parameters.dim)
@@ -1886,7 +1886,7 @@ else static if (TARGET_WINDOS)
             }
             else
             {
-                Parameter._foreach(type.parameters, &mangleParameterDg, cast(void*)tmp);
+                Parameter.forEach(type.parameters, &mangleParameterDg, cast(void*)tmp);
                 if (type.varargs == 1)
                 {
                     tmp.buf.writeByte('Z');

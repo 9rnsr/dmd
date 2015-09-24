@@ -1089,13 +1089,13 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 EnumDeclaration ed = sm.isEnumDeclaration();
                 if (ed)
                 {
-                    ScopeDsymbol._foreach(null, ed.members, &pushIdentsDg);
+                    ScopeDsymbol.forEach(null, ed.members, &pushIdentsDg);
                 }
             }
             return 0;
         }
 
-        ScopeDsymbol._foreach(sc, sds.members, &pushIdentsDg);
+        ScopeDsymbol.forEach(sc, sds.members, &pushIdentsDg);
         ClassDeclaration cd = sds.isClassDeclaration();
         if (cd && e.ident == Id.allMembers)
         {
@@ -1108,7 +1108,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 {
                     ClassDeclaration cb = (*cd.baseclasses)[i].sym;
                     assert(cb);
-                    ScopeDsymbol._foreach(null, cb.members, &pushIdentsDg);
+                    ScopeDsymbol.forEach(null, cb.members, &pushIdentsDg);
                     if (cb.baseclasses.dim)
                         pushBaseMembersDg(cb);
                 }

@@ -772,7 +772,7 @@ public:
     void paramsToDecoBuffer(Parameters* parameters)
     {
         //printf("Parameter::paramsToDecoBuffer()\n");
-        Parameter._foreach(parameters, &paramsToDecoBufferDg, cast(void*)this);
+        Parameter.forEach(parameters, &paramsToDecoBufferDg, cast(void*)this);
     }
 
     static int paramsToDecoBufferDg(void* ctx, size_t n, Parameter p)

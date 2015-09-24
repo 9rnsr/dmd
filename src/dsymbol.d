@@ -1475,7 +1475,7 @@ public:
             ++n;
             return 0;
         }
-        _foreach(null, members, &dimDg, &n);
+        forEach(null, members, &dimDg, &n);
         return n;
     }
 
@@ -1500,7 +1500,7 @@ public:
             return 0;
         }
 
-        int res = _foreach(null, members, &getNthSymbolDg);
+        int res = forEach(null, members, &getNthSymbolDg);
         return res ? sym : null;
     }
 
@@ -1516,7 +1516,7 @@ public:
      * Returns:
      *  last value returned by dg()
      */
-    extern (D) static int _foreach(Scope* sc, Dsymbols* members, scope ForeachDg dg, size_t* pn = null)
+    extern (D) static int forEach(Scope* sc, Dsymbols* members, scope ForeachDg dg, size_t* pn = null)
     {
         assert(dg);
         if (!members)
@@ -1527,9 +1527,9 @@ public:
         {
             Dsymbol s = (*members)[i];
             if (AttribDeclaration a = s.isAttribDeclaration())
-                result = _foreach(sc, a.include(sc, null), dg, &n);
+                result = forEach(sc, a.include(sc, null), dg, &n);
             else if (TemplateMixin tm = s.isTemplateMixin())
-                result = _foreach(sc, tm.members, dg, &n);
+                result = forEach(sc, tm.members, dg, &n);
             else if (s.isTemplateInstance())
             {
             }

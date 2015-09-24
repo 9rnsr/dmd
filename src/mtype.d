@@ -9607,20 +9607,20 @@ public:
     static int isTPL(Parameters* parameters)
     {
         //printf("Parameter::isTPL()\n");
-        return _foreach(parameters, &isTPLDg, null);
+        return forEach(parameters, &isTPLDg, null);
     }
 
     static size_t dim(Parameters* parameters)
     {
         size_t n = 0;
-        _foreach(parameters, &dimDg, &n);
+        forEach(parameters, &dimDg, &n);
         return n;
     }
 
     static Parameter getNth(Parameters* parameters, size_t nth, size_t* pn = null)
     {
         GetNthParamCtx ctx = GetNthParamCtx(nth, null);
-        int res = _foreach(parameters, &getNthParamDg, &ctx);
+        int res = forEach(parameters, &getNthParamDg, &ctx);
         return res ? ctx.param : null;
     }
 
@@ -9633,7 +9633,7 @@ public:
      * Use this function to avoid the O(N + N^2/2) complexity of
      * calculating dim and calling N times getNth.
      */
-    static int _foreach(Parameters* parameters, ForeachDg dg, void* ctx, size_t* pn = null)
+    static int forEach(Parameters* parameters, ForeachDg dg, void* ctx, size_t* pn = null)
     {
         assert(dg);
         if (!parameters)
@@ -9647,7 +9647,7 @@ public:
             if (t.ty == Ttuple)
             {
                 TypeTuple tu = cast(TypeTuple)t;
-                result = _foreach(tu.arguments, dg, ctx, &n);
+                result = forEach(tu.arguments, dg, ctx, &n);
             }
             else
                 result = dg(ctx, n++, p);
