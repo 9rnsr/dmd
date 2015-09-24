@@ -33,8 +33,8 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
     Expression e = null;
     if (!v)
         return e;
-    if (!v.originalType && v._scope) // semantic() not yet run
-        v.semantic(v._scope);
+    if (!v.originalType && v.declScope) // semantic() not yet run
+        v.semantic(v.declScope);
     if (v.isConst() || v.isImmutable() || v.storage_class & STCmanifest)
     {
         if (!v.type)

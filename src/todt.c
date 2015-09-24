@@ -672,8 +672,8 @@ dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt,
              * As a workaround for the issue 9057, have to resolve forward reference
              * in `init` before its use.
              */
-            if (vd->sem < Semantic2Done && vd->_scope)
-                vd->semantic2(vd->_scope);
+            if (vd->sem < Semantic2Done && vd->declScope)
+                vd->semantic2(vd->declScope);
 
             ExpInitializer *ei = init->isExpInitializer();
             Type *tb = vd->type->toBasetype();

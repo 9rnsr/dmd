@@ -547,10 +547,10 @@ public:
         semanticRun = PASSsemantic;
         parent = sc.parent;
         Dsymbol parent = toParent();
-        if (_scope)
+        if (declScope)
         {
-            sc = _scope;
-            _scope = null;
+            sc = declScope;
+            declScope = null;
         }
         uint dprogress_save = Module.dprogress;
         foverrides.setDim(0); // reset in case semantic() is being retried for this function
@@ -1262,8 +1262,8 @@ public:
         /* Save scope for possible later use (if we need the
          * function internals)
          */
-        _scope = sc.copy();
-        _scope.setNoFree();
+        declScope = sc.copy();
+        declScope.setNoFree();
         static __gshared bool printedMain = false; // semantic might run more than once
         if (global.params.verbose && !printedMain)
         {
@@ -2207,7 +2207,7 @@ public:
 
     final bool functionSemantic()
     {
-        if (!_scope)
+        if (!declScope)
             return true;
         if (!originalType) // semantic not yet run
         {
@@ -2216,7 +2216,7 @@ public:
             uint oldgag = global.gag;
             if (global.gag && !spec)
                 global.gag = 0;
-            semantic(_scope);
+            semantic(declScope);
             global.gag = oldgag;
             if (spec && global.errors != olderrs)
                 spec.errors = (global.errors - olderrs != 0);
@@ -2250,7 +2250,7 @@ public:
 
     final bool functionSemantic3()
     {
-        if (semanticRun < PASSsemantic3 && _scope)
+        if (semanticRun < PASSsemantic3 && declScope)
         {
             /* Forward reference - we need to run semantic3 on this function.
              * If errors are gagged, and it's not part of a template instance,
@@ -2261,7 +2261,7 @@ public:
             uint oldgag = global.gag;
             if (global.gag && !spec)
                 global.gag = 0;
-            semantic3(_scope);
+            semantic3(declScope);
             global.gag = oldgag;
             // If it is a speculatively-instantiated template, and errors occur,
             // we need to mark the template as having errors.
@@ -3553,8 +3553,8 @@ public:
              */
             if (fdv.fdrequire && fdv.fdrequire.semanticRun != PASSsemantic3done)
             {
-                assert(fdv._scope);
-                Scope* sc = fdv._scope.push();
+                assert(fdv.declScope);
+                Scope* sc = fdv.declScope.push();
                 sc.stc &= ~STCoverride;
                 fdv.semantic3(sc);
                 sc.pop();
@@ -3605,8 +3605,8 @@ public:
              */
             if (fdv.fdensure && fdv.fdensure.semanticRun != PASSsemantic3done)
             {
-                assert(fdv._scope);
-                Scope* sc = fdv._scope.push();
+                assert(fdv.declScope);
+                Scope* sc = fdv.declScope.push();
                 sc.stc &= ~STCoverride;
                 fdv.semantic3(sc);
                 sc.pop();
@@ -4413,10 +4413,10 @@ public:
         //printf("CtorDeclaration::semantic() %s\n", toChars());
         if (semanticRun >= PASSsemanticdone)
             return;
-        if (_scope)
+        if (declScope)
         {
-            sc = _scope;
-            _scope = null;
+            sc = declScope;
+            declScope = null;
         }
         parent = sc.parent;
         Dsymbol p = toParent2();
@@ -4520,10 +4520,10 @@ public:
         //printf("stc = x%llx\n", sc->stc);
         if (semanticRun >= PASSsemanticdone)
             return;
-        if (_scope)
+        if (declScope)
         {
-            sc = _scope;
-            _scope = null;
+            sc = declScope;
+            declScope = null;
         }
         parent = sc.parent;
         Dsymbol p = toParent2();
@@ -4605,10 +4605,10 @@ public:
         //printf("ident: %s, %s, %p, %p\n", ident->toChars(), Id::dtor->toChars(), ident, Id::dtor);
         if (semanticRun >= PASSsemanticdone)
             return;
-        if (_scope)
+        if (declScope)
         {
-            sc = _scope;
-            _scope = null;
+            sc = declScope;
+            declScope = null;
         }
         parent = sc.parent;
         Dsymbol p = toParent2();
@@ -4700,10 +4700,10 @@ public:
         //printf("StaticCtorDeclaration::semantic()\n");
         if (semanticRun >= PASSsemanticdone)
             return;
-        if (_scope)
+        if (declScope)
         {
-            sc = _scope;
-            _scope = null;
+            sc = declScope;
+            declScope = null;
         }
         parent = sc.parent;
         Dsymbol p = parent.pastMixin();
@@ -4847,10 +4847,10 @@ public:
     {
         if (semanticRun >= PASSsemanticdone)
             return;
-        if (_scope)
+        if (declScope)
         {
-            sc = _scope;
-            _scope = null;
+            sc = declScope;
+            declScope = null;
         }
         parent = sc.parent;
         Dsymbol p = parent.pastMixin();
@@ -4989,10 +4989,10 @@ public:
     {
         if (semanticRun >= PASSsemanticdone)
             return;
-        if (_scope)
+        if (declScope)
         {
-            sc = _scope;
-            _scope = null;
+            sc = declScope;
+            declScope = null;
         }
         parent = sc.parent;
         Dsymbol p = parent.pastMixin();
@@ -5081,10 +5081,10 @@ public:
     {
         if (semanticRun >= PASSsemanticdone)
             return;
-        if (_scope)
+        if (declScope)
         {
-            sc = _scope;
-            _scope = null;
+            sc = declScope;
+            declScope = null;
         }
         protection = sc.protection;
         parent = sc.parent;
@@ -5180,10 +5180,10 @@ public:
         //printf("NewDeclaration::semantic()\n");
         if (semanticRun >= PASSsemanticdone)
             return;
-        if (_scope)
+        if (declScope)
         {
-            sc = _scope;
-            _scope = null;
+            sc = declScope;
+            declScope = null;
         }
         parent = sc.parent;
         Dsymbol p = parent.pastMixin();
@@ -5270,10 +5270,10 @@ public:
         //printf("DeleteDeclaration::semantic()\n");
         if (semanticRun >= PASSsemanticdone)
             return;
-        if (_scope)
+        if (declScope)
         {
-            sc = _scope;
-            _scope = null;
+            sc = declScope;
+            declScope = null;
         }
         parent = sc.parent;
         Dsymbol p = parent.pastMixin();

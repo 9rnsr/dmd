@@ -765,7 +765,7 @@ public:
                     goto Lcovariant;
                 // If t1n is forward referenced:
                 ClassDeclaration cd = (cast(TypeClass)t1n).sym;
-                if (cd._scope)
+                if (cd.declScope)
                     cd.semantic(null);
                 if (!cd.isBaseInfoComplete())
                 {
@@ -2116,7 +2116,7 @@ public:
             TemplateDeclaration td = s.isTemplateDeclaration();
             if (td)
             {
-                assert(td._scope);
+                assert(td.declScope);
                 FuncDeclaration fd = resolveFuncCall(Loc(), null, td, null, this, null, 1);
                 if (fd && fd.errors)
                     return Type.terror;
@@ -5158,13 +5158,13 @@ public:
             /* AA's need typeid(index).equals() and getHash(). Issue error if not correctly set up.
              */
             StructDeclaration sd = (cast(TypeStruct)tbase).sym;
-            if (sd._scope)
+            if (sd.declScope)
                 sd.semantic(null);
             // duplicate a part of StructDeclaration::semanticTypeInfoMembers
-            if (sd.xeq && sd.xeq._scope && sd.xeq.semanticRun < PASSsemantic3done)
+            if (sd.xeq && sd.xeq.declScope && sd.xeq.semanticRun < PASSsemantic3done)
             {
                 uint errors = global.startGagging();
-                sd.xeq.semantic3(sd.xeq._scope);
+                sd.xeq.semantic3(sd.xeq.declScope);
                 if (global.endGagging(errors))
                     sd.xeq = sd.xerreq;
             }
@@ -5216,7 +5216,7 @@ public:
         else if (tbase.ty == Tclass && !(cast(TypeClass)tbase).sym.isInterfaceDeclaration())
         {
             ClassDeclaration cd = (cast(TypeClass)tbase).sym;
-            if (cd._scope)
+            if (cd.declScope)
                 cd.semantic(null);
             if (!ClassDeclaration.object)
             {
@@ -7093,7 +7093,7 @@ public:
                         *pe = new ErrorExp();
                         return;
                     }
-                    if (v.sem < SemanticDone && v._scope)
+                    if (v.sem < SemanticDone && v.declScope)
                         v.semantic(null);
                 }
                 assert(v.type); // Bugzilla 14642
@@ -7143,8 +7143,8 @@ public:
             {
                 if (reliesOnTident(t))
                 {
-                    if (s._scope)
-                        t = t.semantic(loc, s._scope);
+                    if (s.declScope)
+                        t = t.semantic(loc, s.declScope);
                     else
                     {
                         /* Attempt to find correct scope in which to evaluate t.
@@ -7971,7 +7971,7 @@ public:
     L1:
         if (!s)
         {
-            if (sym._scope) // it's a fwd ref, maybe we can resolve it
+            if (sym.declScope) // it's a fwd ref, maybe we can resolve it
             {
                 sym.semantic(null);
                 s = sym.search(e.loc, ident);
@@ -7990,9 +7990,9 @@ public:
                 e.error("circular reference to '%s'", v.toPrettyChars());
                 return new ErrorExp();
             }
-            if (v._scope)
+            if (v.declScope)
             {
-                v.semantic(v._scope);
+                v.semantic(v.declScope);
                 s = v.toAlias(); // Need this if 'v' is a tuple variable
                 v = s.isVarDeclaration();
             }
@@ -8091,8 +8091,8 @@ public:
                     return e;
                 }
             }
-            if (d.semanticRun == PASSinit && d._scope)
-                d.semantic(d._scope);
+            if (d.semanticRun == PASSinit && d.declScope)
+                d.semantic(d.declScope);
             checkAccess(e.loc, sc, e, d);
             auto ve = new VarExp(e.loc, d, 1);
             if (d.isVarDeclaration() && d.needThis())
@@ -8433,8 +8433,8 @@ public:
         // Bugzilla 14010
         if (ident == Id._mangleof)
             return getProperty(e.loc, ident, flag);
-        if (sym._scope)
-            sym.semantic(sym._scope);
+        if (sym.declScope)
+            sym.semantic(sym.declScope);
         if (!sym.members)
         {
             if (!flag)
@@ -8823,7 +8823,7 @@ public:
             }
             if (ident == Id.outer && sym.vthis)
             {
-                if (sym.vthis._scope)
+                if (sym.vthis.declScope)
                     sym.vthis.semantic(null);
                 ClassDeclaration cdp = sym.toParent2().isClassDeclaration();
                 auto de = new DotVarExp(e.loc, e, sym.vthis, 0);
@@ -8846,9 +8846,9 @@ public:
                 e.error("circular reference to '%s'", v.toPrettyChars());
                 return new ErrorExp();
             }
-            if (v._scope)
+            if (v.declScope)
             {
-                v.semantic(v._scope);
+                v.semantic(v.declScope);
                 s = v.toAlias(); // Need this if 'v' is a tuple variable
                 v = s.isVarDeclaration();
             }
@@ -9001,8 +9001,8 @@ public:
                 }
             }
             //printf("e = %s, d = %s\n", e->toChars(), d->toChars());
-            if (d.semanticRun == PASSinit && d._scope)
-                d.semantic(d._scope);
+            if (d.semanticRun == PASSinit && d.declScope)
+                d.semantic(d.declScope);
             checkAccess(e.loc, sc, e, d);
             auto ve = new VarExp(e.loc, d, 1);
             if (d.isVarDeclaration() && d.needThis())
@@ -9057,9 +9057,9 @@ public:
         if (cdto)
         {
             //printf("TypeClass::implicitConvTo(to = '%s') %s, isbase = %d %d\n", to->toChars(), toChars(), cdto->isBaseInfoComplete(), sym->isBaseInfoComplete());
-            if (cdto._scope && !cdto.isBaseInfoComplete())
+            if (cdto.declScope && !cdto.isBaseInfoComplete())
                 cdto.semantic(null);
-            if (sym._scope && !sym.isBaseInfoComplete())
+            if (sym.declScope && !sym.isBaseInfoComplete())
                 sym.semantic(null);
             if (cdto.isBaseOf(sym, null) && MODimplicitConv(mod, to.mod))
             {

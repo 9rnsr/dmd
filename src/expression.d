@@ -519,9 +519,9 @@ extern (C++) bool checkPropertyCall(Expression e, Expression emsg)
             tf = cast(TypeFunction)ce.f.type;
             /* If a forward reference to ce->f, try to resolve it
              */
-            if (!tf.deco && ce.f._scope)
+            if (!tf.deco && ce.f.declScope)
             {
-                ce.f.semantic(ce.f._scope);
+                ce.f.semantic(ce.f.declScope);
                 tf = cast(TypeFunction)ce.f.type;
             }
         }
@@ -572,7 +572,7 @@ extern (C++) Expression resolvePropertiesOnly(Scope* sc, Expression e1)
             }
             else if (td && td.onemember && (fd = td.onemember.isFuncDeclaration()) !is null)
             {
-                if ((cast(TypeFunction)fd.type).isproperty || (fd.storage_class2 & STCproperty) || (td._scope.stc & STCproperty))
+                if ((cast(TypeFunction)fd.type).isproperty || (fd.storage_class2 & STCproperty) || (td.declScope.stc & STCproperty))
                 {
                     return resolveProperties(sc, e1);
                 }
@@ -610,7 +610,7 @@ extern (C++) Expression resolvePropertiesOnly(Scope* sc, Expression e1)
         assert(td);
         if (td.onemember && (fd = td.onemember.isFuncDeclaration()) !is null)
         {
-            if ((cast(TypeFunction)fd.type).isproperty || (fd.storage_class2 & STCproperty) || (td._scope.stc & STCproperty))
+            if ((cast(TypeFunction)fd.type).isproperty || (fd.storage_class2 & STCproperty) || (td.declScope.stc & STCproperty))
             {
                 return resolveProperties(sc, e1);
             }
@@ -3703,9 +3703,9 @@ public:
             /* Bugzilla 12023: forward reference should be resolved
              * before 's->needThis()' is called.
              */
-            if ((!v.type || !v.type.deco) && v._scope)
+            if ((!v.type || !v.type.deco) && v.declScope)
             {
-                v.semantic(v._scope);
+                v.semantic(v.declScope);
                 s = v.toAlias(); // Need this if 'v' is a tuple variable
             }
             // Change the ancestor lambdas to delegate before hasThis(sc) call.
@@ -3744,11 +3744,11 @@ public:
                     .error(loc, "circular initialization of %s", v.toChars());
                     return new ErrorExp();
                 }
-                if (v._scope)
+                if (v.declScope)
                 {
                     v.inuse++;
-                    v._init = v._init.semantic(v._scope, v.type, INITinterpret);
-                    v._scope = null;
+                    v._init = v._init.semantic(v.declScope, v.type, INITinterpret);
+                    v.declScope = null;
                     v.inuse--;
                 }
                 e = v._init.toExpression(v.type);
@@ -3852,7 +3852,7 @@ public:
             Dsymbol p = td.toParent2();
             FuncDeclaration fdthis = hasThis(sc);
             AggregateDeclaration ad = p ? p.isAggregateDeclaration() : null;
-            if (fdthis && ad && isAggregate(fdthis.vthis.type) == ad && (td._scope.stc & STCstatic) == 0)
+            if (fdthis && ad && isAggregate(fdthis.vthis.type) == ad && (td.declScope.stc & STCstatic) == 0)
             {
                 e = new DotTemplateExp(loc, new ThisExp(loc), td);
             }
@@ -5217,7 +5217,7 @@ public:
                     Dsymbol p = td.toParent2();
                     FuncDeclaration fdthis = hasThis(sc);
                     AggregateDeclaration ad = p ? p.isAggregateDeclaration() : null;
-                    if (fdthis && ad && isAggregate(fdthis.vthis.type) == ad && (td._scope.stc & STCstatic) == 0)
+                    if (fdthis && ad && isAggregate(fdthis.vthis.type) == ad && (td.declScope.stc & STCstatic) == 0)
                     {
                         Expression e = new DotTemplateInstanceExp(loc, new ThisExp(loc), ti.name, ti.tiargs);
                         return e.semantic(sc);
@@ -6284,7 +6284,7 @@ public:
                 return MATCHnomatch;
             }
             // Parameter types inference from 'tof'
-            assert(td._scope);
+            assert(td.declScope);
             TypeFunction tf = cast(TypeFunction)fd.type;
             //printf("\ttof = %s\n", tof->toChars());
             //printf("\ttf  = %s\n", tf->toChars());
@@ -6316,7 +6316,7 @@ public:
             if (!tf.next && tof.next)
                 fd.treq = to;
             auto ti = new TemplateInstance(loc, td, tiargs);
-            Expression ex = (new ScopeExp(loc, ti)).semantic(td._scope);
+            Expression ex = (new ScopeExp(loc, ti)).semantic(td.declScope);
             // Reset inference target for the later re-semantic
             fd.treq = null;
             if (ex.op == TOKerror)
@@ -6800,8 +6800,8 @@ public:
                     ClassDeclaration cd = (cast(TypeClass)targ).sym;
                     auto args = new Parameters();
                     args.reserve(cd.baseclasses.dim);
-                    if (cd._scope && !cd.symtab)
-                        cd.semantic(cd._scope);
+                    if (cd.declScope && !cd.symtab)
+                        cd.semantic(cd.declScope);
                     for (size_t i = 0; i < cd.baseclasses.dim; i++)
                     {
                         BaseClass* b = (*cd.baseclasses)[i];

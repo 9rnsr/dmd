@@ -2182,9 +2182,9 @@ public:
              */
             if (v.ident == Id.ctfe)
                 return new IntegerExp(loc, 1, Type.tbool);
-            if (!v.originalType && v._scope) // semantic() not yet run
+            if (!v.originalType && v.declScope) // semantic() not yet run
             {
-                v.semantic(v._scope);
+                v.semantic(v.declScope);
                 if (v.type.ty == Terror)
                     return CTFEExp.cantexp;
             }
@@ -2195,10 +2195,10 @@ public:
                     error(loc, "circular initialization of %s", v.toChars());
                     return CTFEExp.cantexp;
                 }
-                if (v._scope)
+                if (v.declScope)
                 {
                     v.inuse++;
-                    v._init = v._init.semantic(v._scope, v.type, INITinterpret); // might not be run on aggregate members
+                    v._init = v._init.semantic(v.declScope, v.type, INITinterpret); // might not be run on aggregate members
                     v.inuse--;
                 }
                 e = v._init.toExpression(v.type);

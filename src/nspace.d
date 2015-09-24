@@ -50,10 +50,10 @@ public:
         {
             printf("+Nspace::semantic('%s')\n", toChars());
         }
-        if (_scope)
+        if (declScope)
         {
-            sc = _scope;
-            _scope = null;
+            sc = declScope;
+            declScope = null;
         }
         parent = sc.parent;
         if (members)
@@ -203,7 +203,7 @@ public:
     override void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
     {
         //printf("Nspace::setFieldOffset() %s\n", toChars());
-        if (_scope) // if fwd reference
+        if (declScope) // if fwd reference
             semantic(null); // try to resolve it
         if (members)
         {

@@ -125,9 +125,9 @@ public:
         //printf("AggregateDeclaration::semantic2(%s) type = %s, errors = %d\n", toChars(), type->toChars(), errors);
         if (!members)
             return;
-        if (_scope && sizeok == SIZEOKfwd) // Bugzilla 12531
+        if (declScope && sizeok == SIZEOKfwd) // Bugzilla 12531
             semantic(null);
-        if (_scope)
+        if (declScope)
         {
             error("has forward references");
             return;
@@ -186,7 +186,7 @@ public:
             tiargs.push(type);
             auto ti = new TemplateInstance(loc, Type.rtinfo, tiargs);
 
-            Scope* sc3 = ti.tempdecl._scope.startCTFE();
+            Scope* sc3 = ti.tempdecl.declScope.startCTFE();
             sc3.tinst = sc.tinst;
             sc3.minst = sc.minst;
             if (isDeprecated())
@@ -211,7 +211,7 @@ public:
         //printf("AggregateDeclaration::size() %s, scope = %p\n", toChars(), scope);
         if (loc.linnum == 0)
             loc = this.loc;
-        if (sizeok != SIZEOKdone && _scope)
+        if (sizeok != SIZEOKdone && declScope)
         {
             semantic(null);
             // Determine the instance size of base class first.
@@ -240,7 +240,7 @@ public:
                          */
                         if (v.storage_class & STCmanifest)
                             return 0;
-                        if (v._scope)
+                        if (v.declScope)
                             v.semantic(null);
                         if (v.storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCctfe | STCtemplateparameter))
                             return 0;

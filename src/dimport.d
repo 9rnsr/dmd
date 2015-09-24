@@ -225,10 +225,10 @@ public:
     override void semantic(Scope* sc)
     {
         //printf("Import::semantic('%s')\n", toPrettyChars());
-        if (_scope)
+        if (declScope)
         {
-            sc = _scope;
-            _scope = null;
+            sc = declScope;
+            declScope = null;
         }
         // Load if not already done so
         if (!mod)

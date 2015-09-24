@@ -268,7 +268,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             if (global.params.symdebug)
                 toDebug(cd);
 
-            assert(!cd->_scope);     // semantic() should have been run to completion
+            assert(!cd->declScope);     // semantic() should have been run to completion
 
             enum_SC scclass = SCcomdat;
 

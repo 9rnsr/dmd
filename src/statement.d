@@ -4887,7 +4887,7 @@ public:
         }
         if (_body)
         {
-            sym._scope = sc;
+            sym.declScope = sc;
             sc = sc.push(sym);
             sc.insert(sym);
             _body = _body.semantic(sc);

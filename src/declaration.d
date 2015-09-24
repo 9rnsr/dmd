@@ -257,7 +257,7 @@ public:
         Dsymbol s = Dsymbol.search(loc, ident, flags);
         if (!s && type)
         {
-            s = type.toDsymbol(_scope);
+            s = type.toDsymbol(declScope);
             if (s)
                 s = s.search(loc, ident, flags);
         }
@@ -791,11 +791,11 @@ public:
         //    loc.toChars(), toChars(), this, aliassym, aliassym ? aliassym->kind() : "", inuse);
         assert(this != aliassym);
         //static int count; if (++count == 10) *(char*)0=0;
-        if (inuse == 1 && type && _scope)
+        if (inuse == 1 && type && declScope)
         {
             inuse = 2;
             uint olderrors = global.errors;
-            Dsymbol s = type.toDsymbol(_scope);
+            Dsymbol s = type.toDsymbol(declScope);
             //printf("[%s] type = %s, s = %p, this = %p\n", loc.toChars(), type->toChars(), s, this);
             if (global.errors != olderrors)
                 goto Lerr;
@@ -809,7 +809,7 @@ public:
             }
             else
             {
-                Type t = type.semantic(loc, _scope);
+                Type t = type.semantic(loc, declScope);
                 if (t.ty == Terror)
                     goto Lerr;
                 if (global.errors != olderrors)
@@ -833,15 +833,15 @@ public:
         {
             // semantic is already done.
         }
-        else if (_import && _import._scope)
+        else if (_import && _import.declScope)
         {
             /* If this is an internal alias for selective/renamed import,
              * resolve it under the correct scope.
              */
             _import.semantic(null);
         }
-        else if (_scope)
-            semantic(_scope);
+        else if (declScope)
+            semantic(declScope);
         inuse = 1;
         Dsymbol s = aliassym ? aliassym.toAlias() : this;
         inuse = 0;
@@ -1076,11 +1076,11 @@ public:
         if (sem >= SemanticDone)
             return;
         Scope* scx = null;
-        if (_scope)
+        if (declScope)
         {
-            sc = _scope;
+            sc = declScope;
             scx = sc;
-            _scope = null;
+            declScope = null;
         }
         /* Pick up storage classes from context, but except synchronized,
          * override, abstract, and final.
@@ -1621,8 +1621,8 @@ public:
             }
             else if (parent.isAggregateDeclaration())
             {
-                _scope = scx ? scx : sc.copy();
-                _scope.setNoFree();
+                declScope = scx ? scx : sc.copy();
+                declScope.setNoFree();
             }
             else if (storage_class & (STCconst | STCimmutable | STCmanifest) || type.isConst() || type.isImmutable())
             {
@@ -1685,8 +1685,8 @@ public:
                 }
                 else
                 {
-                    _scope = scx ? scx : sc.copy();
-                    _scope.setNoFree();
+                    declScope = scx ? scx : sc.copy();
+                    declScope.setNoFree();
                 }
             }
             sc = sc.pop();
@@ -1698,7 +1698,7 @@ public:
         if (edtor)
         {
             if (sc.func && storage_class & (STCstatic | STCgshared))
-                edtor = edtor.semantic(sc.currentModule._scope);
+                edtor = edtor.semantic(sc.currentModule.declScope);
             else
                 edtor = edtor.semantic(sc);
             version (none)
@@ -1772,7 +1772,7 @@ public:
                     ad.error("cannot have field %s with %ssame struct type", toChars(), s);
                     return;
                 }
-                if (ts.sym.sizeok != SIZEOKdone && ts.sym._scope)
+                if (ts.sym.sizeok != SIZEOKdone && ts.sym.declScope)
                     ts.sym.semantic(null);
                 if (ts.sym.sizeok != SIZEOKdone)
                 {
@@ -2126,11 +2126,11 @@ public:
             if (sym && !sym.isSpeculative())
                 global.gag = 0;
         }
-        if (_scope)
+        if (declScope)
         {
             inuse++;
-            _init = _init.semantic(_scope, type, INITinterpret);
-            _scope = null;
+            _init = _init.semantic(declScope, type, INITinterpret);
+            declScope = null;
             inuse--;
         }
         Expression e = _init.toExpression(needFullType ? type : null);

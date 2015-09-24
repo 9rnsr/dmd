@@ -381,11 +381,11 @@ public:
         int errors = global.errors;
         //printf("+ClassDeclaration::semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
         Scope* scx = null;
-        if (_scope)
+        if (declScope)
         {
-            sc = _scope;
-            scx = _scope; // save so we don't make redundant copies
-            _scope = null;
+            sc = declScope;
+            scx = declScope; // save so we don't make redundant copies
+            declScope = null;
         }
         if (!parent)
         {
@@ -437,13 +437,13 @@ public:
             // Expand any tuples in baseclasses[]
             for (size_t i = 0; i < baseclasses.dim;)
             {
-                _scope = scx ? scx : sc.copy();
-                _scope.setNoFree();
+                declScope = scx ? scx : sc.copy();
+                declScope.setNoFree();
                 BaseClass* b = (*baseclasses)[i];
                 //printf("+ %s [%d] b->type = %s\n", toChars(), i, b->type->toChars());
                 b.type = b.type.semantic(loc, sc);
                 //printf("- %s [%d] b->type = %s\n", toChars(), i, b->type->toChars());
-                _scope = null;
+                declScope = null;
                 Type tb = b.type.toBasetype();
                 if (tb.ty == Ttuple)
                 {
@@ -508,13 +508,13 @@ public:
                  */
                 baseClass = tc.sym;
                 b.sym = baseClass;
-                if (tc.sym._scope && tc.sym.baseok < BASEOKdone)
+                if (tc.sym.declScope && tc.sym.baseok < BASEOKdone)
                     tc.sym.semantic(null); // Try to resolve forward reference
                 if (tc.sym.baseok < BASEOKdone)
                 {
                     //printf("\ttry later, forward reference of base class %s\n", tc->sym->toChars());
-                    if (tc.sym._scope)
-                        tc.sym._scope.currentModule.addDeferredSemantic(tc.sym);
+                    if (tc.sym.declScope)
+                        tc.sym.declScope.currentModule.addDeferredSemantic(tc.sym);
                     baseok = BASEOKnone;
                 }
             L7:
@@ -554,13 +554,13 @@ public:
                     }
                 }
                 b.sym = tc.sym;
-                if (tc.sym._scope && tc.sym.baseok < BASEOKdone)
+                if (tc.sym.declScope && tc.sym.baseok < BASEOKdone)
                     tc.sym.semantic(null); // Try to resolve forward reference
                 if (tc.sym.baseok < BASEOKdone)
                 {
                     //printf("\ttry later, forward reference of base %s\n", tc->sym->toChars());
-                    if (tc.sym._scope)
-                        tc.sym._scope.currentModule.addDeferredSemantic(tc.sym);
+                    if (tc.sym.declScope)
+                        tc.sym.declScope.currentModule.addDeferredSemantic(tc.sym);
                     baseok = BASEOKnone;
                 }
                 i++;
@@ -568,9 +568,9 @@ public:
             if (baseok == BASEOKnone)
             {
                 // Forward referencee of one or more bases, try again later
-                _scope = scx ? scx : sc.copy();
-                _scope.setNoFree();
-                _scope.currentModule.addDeferredSemantic(this);
+                declScope = scx ? scx : sc.copy();
+                declScope.setNoFree();
+                declScope.currentModule.addDeferredSemantic(this);
                 //printf("\tL%d semantic('%s') failed due to forward references\n", __LINE__, toChars());
                 return;
             }
@@ -679,11 +679,11 @@ public:
             if (tc.sym.semanticRun < PASSsemanticdone)
             {
                 // Forward referencee of one or more bases, try again later
-                _scope = scx ? scx : sc.copy();
-                _scope.setNoFree();
-                if (tc.sym._scope)
-                    tc.sym._scope.currentModule.addDeferredSemantic(tc.sym);
-                _scope.currentModule.addDeferredSemantic(this);
+                declScope = scx ? scx : sc.copy();
+                declScope.setNoFree();
+                if (tc.sym.declScope)
+                    tc.sym.declScope.currentModule.addDeferredSemantic(tc.sym);
+                declScope.currentModule.addDeferredSemantic(this);
                 //printf("\tL%d semantic('%s') failed due to forward references\n", __LINE__, toChars());
                 return;
             }
@@ -779,9 +779,9 @@ public:
             structsize = 0;
             alignsize = 0;
             sc2.pop();
-            _scope = scx ? scx : sc.copy();
-            _scope.setNoFree();
-            _scope.currentModule.addDeferredSemantic(this);
+            declScope = scx ? scx : sc.copy();
+            declScope.setNoFree();
+            declScope.currentModule.addDeferredSemantic(this);
             Module.dprogress = dprogress_save;
             //printf("\tsemantic('%s') failed due to forward references\n", toChars());
             return;
@@ -928,10 +928,10 @@ public:
         {
             /* cd->baseClass might not be set if cd is forward referenced.
              */
-            if (!cd.baseClass && cd._scope && !cd.isInterfaceDeclaration())
+            if (!cd.baseClass && cd.declScope && !cd.isInterfaceDeclaration())
             {
                 cd.semantic(null);
-                if (!cd.baseClass && cd._scope)
+                if (!cd.baseClass && cd.declScope)
                     cd.error("base class is forward referenced by %s", toChars());
             }
             if (this == cd.baseClass)
@@ -954,7 +954,7 @@ public:
     {
         //printf("%s.ClassDeclaration::search('%s')\n", toChars(), ident->toChars());
         //if (scope) printf("%s baseok = %d\n", toChars(), baseok);
-        if (_scope && baseok < BASEOKdone)
+        if (declScope && baseok < BASEOKdone)
         {
             if (!inuse)
             {
@@ -1335,11 +1335,11 @@ public:
             return;
         int errors = global.errors;
         Scope* scx = null;
-        if (_scope)
+        if (declScope)
         {
-            sc = _scope;
-            scx = _scope; // save so we don't make redundant copies
-            _scope = null;
+            sc = declScope;
+            scx = declScope; // save so we don't make redundant copies
+            declScope = null;
         }
         if (!parent)
         {
@@ -1379,11 +1379,11 @@ public:
             // Expand any tuples in baseclasses[]
             for (size_t i = 0; i < baseclasses.dim;)
             {
-                _scope = scx ? scx : sc.copy();
-                _scope.setNoFree();
+                declScope = scx ? scx : sc.copy();
+                declScope.setNoFree();
                 BaseClass* b = (*baseclasses)[i];
                 b.type = b.type.semantic(loc, sc);
-                _scope = null;
+                declScope = null;
                 Type tb = b.type.toBasetype();
                 if (tb.ty == Ttuple)
                 {
@@ -1451,13 +1451,13 @@ public:
                     }
                 }
                 b.sym = tc.sym;
-                if (tc.sym._scope && tc.sym.baseok < BASEOKdone)
+                if (tc.sym.declScope && tc.sym.baseok < BASEOKdone)
                     tc.sym.semantic(null); // Try to resolve forward reference
                 if (tc.sym.baseok < BASEOKdone)
                 {
                     //printf("\ttry later, forward reference of base %s\n", tc->sym->toChars());
-                    if (tc.sym._scope)
-                        tc.sym._scope.currentModule.addDeferredSemantic(tc.sym);
+                    if (tc.sym.declScope)
+                        tc.sym.declScope.currentModule.addDeferredSemantic(tc.sym);
                     baseok = BASEOKnone;
                 }
                 i++;
@@ -1465,9 +1465,9 @@ public:
             if (baseok == BASEOKnone)
             {
                 // Forward referencee of one or more bases, try again later
-                _scope = scx ? scx : sc.copy();
-                _scope.setNoFree();
-                _scope.currentModule.addDeferredSemantic(this);
+                declScope = scx ? scx : sc.copy();
+                declScope.setNoFree();
+                declScope.currentModule.addDeferredSemantic(this);
                 return;
             }
             baseok = BASEOKdone;
@@ -1502,11 +1502,11 @@ public:
             if (tc.sym.semanticRun < PASSsemanticdone)
             {
                 // Forward referencee of one or more bases, try again later
-                _scope = scx ? scx : sc.copy();
-                _scope.setNoFree();
-                if (tc.sym._scope)
-                    tc.sym._scope.currentModule.addDeferredSemantic(tc.sym);
-                _scope.currentModule.addDeferredSemantic(this);
+                declScope = scx ? scx : sc.copy();
+                declScope.setNoFree();
+                if (tc.sym.declScope)
+                    tc.sym.declScope.currentModule.addDeferredSemantic(tc.sym);
+                declScope.currentModule.addDeferredSemantic(this);
                 return;
             }
         }

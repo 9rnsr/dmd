@@ -474,10 +474,10 @@ public:
         /* Remember Scope for later instantiations, but make
          * a copy since attributes can change.
          */
-        if (!this._scope)
+        if (!this.declScope)
         {
-            this._scope = sc.copy();
-            this._scope.setNoFree();
+            this.declScope = sc.copy();
+            this.declScope.setNoFree();
         }
         // Set up scope for parameters
         auto paramsym = new ScopeDsymbol();
@@ -486,7 +486,7 @@ public:
         paramscope.stc = 0;
         if (!parent)
             parent = sc.parent;
-        isstatic = toParent().isModule() || (_scope.stc & STCstatic);
+        isstatic = toParent().isModule() || (declScope.stc & STCstatic);
         protection = sc.protection;
         if (global.params.doDocComments)
         {
@@ -800,11 +800,11 @@ public:
         }
         assert(dedtypes_dim == parameters_dim);
         assert(dedtypes_dim >= ti.tiargs.dim || variadic);
-        assert(_scope);
+        assert(declScope);
         // Set up scope for template parameters
         auto paramsym = new ScopeDsymbol();
-        paramsym.parent = _scope.parent;
-        Scope* paramscope = _scope.push(paramsym);
+        paramsym.parent = declScope.parent;
+        Scope* paramscope = declScope.push(paramsym);
         paramscope.tinst = ti;
         paramscope.minst = sc.minst;
         paramscope.callsc = sc;
@@ -1041,7 +1041,7 @@ public:
             if (tthis)
                 printf("tthis = %s\n", tthis.toChars());
         }
-        assert(_scope);
+        assert(declScope);
         dedargs.setDim(parameters.dim);
         dedargs.zero();
         dedtypes.setDim(parameters.dim);
@@ -1050,8 +1050,8 @@ public:
             return MATCHnomatch;
         // Set up scope for parameters
         auto paramsym = new ScopeDsymbol();
-        paramsym.parent = _scope.parent; // should use hasnestedArgs and enclosing?
-        Scope* paramscope = _scope.push(paramsym);
+        paramsym.parent = declScope.parent; // should use hasnestedArgs and enclosing?
+        Scope* paramscope = declScope.push(paramsym);
         paramscope.tinst = ti;
         paramscope.minst = sc.minst;
         paramscope.callsc = sc;
@@ -1179,7 +1179,7 @@ public:
             L1:
             }
         }
-        if (toParent().isModule() || (_scope.stc & STCstatic))
+        if (toParent().isModule() || (declScope.stc & STCstatic))
             tthis = null;
         if (tthis)
         {
@@ -1202,7 +1202,7 @@ public:
             // Match attributes of tthis against attributes of fd
             if (fd.type && !fd.isCtorDeclaration())
             {
-                StorageClass stc = _scope.stc | fd.storage_class2;
+                StorageClass stc = declScope.stc | fd.storage_class2;
                 // Propagate parent storage class (see bug 5504)
                 Dsymbol p = parent;
                 while (p.isTemplateDeclaration() || p.isTemplateInstance())
@@ -1803,7 +1803,7 @@ public:
         // Partially instantiate function for constraint and fd->leastAsSpecialized()
         {
             assert(paramsym);
-            Scope* sc2 = _scope;
+            Scope* sc2 = declScope;
             sc2 = sc2.push(paramsym);
             sc2 = sc2.push(ti);
             sc2.parent = ti;
@@ -2253,10 +2253,10 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
         if (tiargs && tiargs.dim > 0)
             return 0;
 
-        if (fd.semanticRun == PASSinit && fd._scope)
+        if (fd.semanticRun == PASSinit && fd.declScope)
         {
             Ungag ungag = fd.ungagSpeculative();
-            fd.semantic(fd._scope);
+            fd.semantic(fd.declScope);
         }
         if (fd.semanticRun == PASSinit)
         {
@@ -2362,13 +2362,13 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
             return 0;
 
         if (!sc)
-            sc = td._scope; // workaround for Type::aliasthisOf
+            sc = td.declScope; // workaround for Type::aliasthisOf
 
-        if (td.semanticRun == PASSinit && td._scope)
+        if (td.semanticRun == PASSinit && td.declScope)
         {
             // Try to fix forward reference. Ungag errors while doing so.
             Ungag ungag = td.ungagSpeculative();
-            td.semantic(td._scope);
+            td.semantic(td.declScope);
         }
         if (td.semanticRun == PASSinit)
         {
@@ -2474,7 +2474,7 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
 
         Ltd2:
             // td is the new best match
-            assert(td._scope);
+            assert(td.declScope);
             td_best = td;
             ti_best = null;
             property = 0;   // (backward compatibility)
@@ -2575,7 +2575,7 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
 
         Ltd:                // td is the new best match
             //printf("Ltd\n");
-            assert(td._scope);
+            assert(td.declScope);
             td_best = td;
             ti_best = ti;
             property = 0;   // (backward compatibility)
@@ -2613,9 +2613,9 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
         /* The best match is td_best with arguments tdargs.
          * Now instantiate the template.
          */
-        assert(td_best._scope);
+        assert(td_best.declScope);
         if (!sc)
-            sc = td_best._scope; // workaround for Type::aliasthisOf
+            sc = td_best.declScope; // workaround for Type::aliasthisOf
 
         auto ti = new TemplateInstance(loc, td_best, ti_best.tiargs);
         ti.semantic(sc, fargs);
@@ -4237,7 +4237,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                     return;
                 TypeFunction tof = cast(TypeFunction)to.nextOf();
                 // Parameter types inference from 'tof'
-                assert(e.td._scope);
+                assert(e.td.declScope);
                 TypeFunction tf = cast(TypeFunction)e.fd.type;
                 //printf("\ttof = %s\n", tof->toChars());
                 //printf("\ttf  = %s\n", tf->toChars());
@@ -4274,7 +4274,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                 if (!tf.next && tof.next)
                     e.fd.treq = tparam;
                 auto ti = new TemplateInstance(e.loc, e.td, tiargs);
-                Expression ex = (new ScopeExp(e.loc, ti)).semantic(e.td._scope);
+                Expression ex = (new ScopeExp(e.loc, ti)).semantic(e.td.declScope);
                 // Reset inference target for the later re-semantic
                 e.fd.treq = null;
                 if (ex.op == TOKerror)
@@ -5460,7 +5460,7 @@ public:
         this.tempdecl = td;
         this.semantictiargsdone = true;
         this.havetempdecl = true;
-        assert(tempdecl._scope);
+        assert(tempdecl.declScope);
     }
 
     final static Objects* arraySyntaxCopy(Objects* objs)
@@ -5693,7 +5693,7 @@ public:
             break;
         }
         // Create our own scope for the template parameters
-        Scope* _scope = tempdecl._scope;
+        Scope* scd = tempdecl.declScope;
         if (tempdecl.semanticRun == PASSinit)
         {
             error("template instantiation %s forward references template declaration %s", toChars(), tempdecl.toChars());
@@ -5704,13 +5704,13 @@ public:
             printf("\tcreate scope for template parameters '%s'\n", toChars());
         }
         argsym = new ScopeDsymbol();
-        argsym.parent = _scope.parent;
-        _scope = _scope.push(argsym);
-        _scope.tinst = this;
-        _scope.minst = minst;
+        argsym.parent = scd.parent;
+        scd = scd.push(argsym);
+        scd.tinst = this;
+        scd.minst = minst;
         //scope->stc = 0;
         // Declare each template parameter as an alias for the argument type
-        Scope* paramscope = _scope.push();
+        Scope* paramscope = scd.push();
         paramscope.stc = 0;
         paramscope.protection = Prot(PROTpublic); // Bugzilla 14169: template parameters should be public
         declareParameters(paramscope);
@@ -5725,7 +5725,7 @@ public:
             {
                 printf("\t[%d] adding member '%s' %p kind %s to '%s'\n", i, s.toChars(), s, s.kind(), this.toChars());
             }
-            s.addMember(_scope, this);
+            s.addMember(scd, this);
         }
         static if (LOG)
         {
@@ -5769,7 +5769,7 @@ public:
             printf("\tdo semantic() on template instance members '%s'\n", toChars());
         }
         Scope* sc2;
-        sc2 = _scope.push(this);
+        sc2 = scd.push(this);
         //printf("enclosing = %d, sc->parent = %s\n", enclosing, sc->parent->toChars());
         sc2.parent = this;
         sc2.tinst = this;
@@ -5903,7 +5903,7 @@ public:
         }
     Laftersemantic:
         sc2.pop();
-        _scope.pop();
+        scd.pop();
         // Give additional context info if error occurred during instantiation
         if (global.errors != errorsave)
         {
@@ -5979,7 +5979,7 @@ public:
         {
             TemplateDeclaration tempdecl = this.tempdecl.isTemplateDeclaration();
             assert(tempdecl);
-            sc = tempdecl._scope;
+            sc = tempdecl.declScope;
             assert(sc);
             sc = sc.push(argsym);
             sc = sc.push(this);
@@ -6037,7 +6037,7 @@ public:
         {
             TemplateDeclaration tempdecl = this.tempdecl.isTemplateDeclaration();
             assert(tempdecl);
-            sc = tempdecl._scope;
+            sc = tempdecl.declScope;
             sc = sc.push(argsym);
             sc = sc.push(this);
             sc.tinst = this;
@@ -6087,9 +6087,9 @@ public:
         if (!inst)
         {
             // Maybe we can resolve it
-            if (_scope)
+            if (declScope)
             {
-                semantic(_scope);
+                semantic(declScope);
             }
             if (!inst)
             {
@@ -6518,11 +6518,11 @@ public:
                     return 0;
                 if (td.semanticRun == PASSinit)
                 {
-                    if (td._scope)
+                    if (td.declScope)
                     {
                         // Try to fix forward reference. Ungag errors while doing so.
                         Ungag ungag = td.ungagSpeculative();
-                        td.semantic(td._scope);
+                        td.semantic(td.declScope);
                     }
                     if (td.semanticRun == PASSinit)
                     {
@@ -6907,7 +6907,7 @@ public:
         {
             TemplateDeclaration tempdecl = this.tempdecl.isTemplateDeclaration();
             assert(tempdecl);
-            assert(tempdecl._scope);
+            assert(tempdecl.declScope);
             // Deduce tdtypes
             tdtypes.setDim(tempdecl.parameters.dim);
             if (!tempdecl.matchWithInstance(sc, this, &tdtypes, fargs, 2))
@@ -7163,11 +7163,11 @@ public:
                     dedtypes.zero();
                     if (td.semanticRun == PASSinit)
                     {
-                        if (td._scope)
+                        if (td.declScope)
                         {
                             // Try to fix forward reference. Ungag errors while doing so.
                             Ungag ungag = td.ungagSpeculative();
-                            td.semantic(td._scope);
+                            td.semantic(td.declScope);
                         }
                         if (td.semanticRun == PASSinit)
                         {
@@ -7743,11 +7743,11 @@ public:
             printf("\tdo semantic\n");
         }
         Scope* scx = null;
-        if (_scope)
+        if (declScope)
         {
-            sc = _scope;
-            scx = _scope; // save so we don't make redundant copies
-            _scope = null;
+            sc = declScope;
+            scx = declScope; // save so we don't make redundant copies
+            declScope = null;
         }
         /* Run semantic on each argument, place results in tiargs[],
          * then find best match template with tiargs
@@ -7769,9 +7769,9 @@ public:
                 {
                     // Forward reference
                     //printf("forward reference - deferring\n");
-                    _scope = scx ? scx : sc.copy();
-                    _scope.setNoFree();
-                    _scope.currentModule.addDeferredSemantic(this);
+                    declScope = scx ? scx : sc.copy();
+                    declScope.setNoFree();
+                    declScope.currentModule.addDeferredSemantic(this);
                 }
                 return;
             }
@@ -8049,7 +8049,7 @@ public:
     override void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
     {
         //printf("TemplateMixin::setFieldOffset() %s\n", toChars());
-        if (_scope) // if fwd reference
+        if (declScope) // if fwd reference
             semantic(null); // try to resolve it
         if (members)
         {
@@ -8125,8 +8125,8 @@ public:
                     return 0;
                 if (td.semanticRun == PASSinit)
                 {
-                    if (td._scope)
-                        td.semantic(td._scope);
+                    if (td.declScope)
+                        td.semantic(td.declScope);
                     else
                     {
                         semanticRun = PASSinit;

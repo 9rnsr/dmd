@@ -755,8 +755,8 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 e.error("argument %s has no protection", o.toChars());
             return new ErrorExp();
         }
-        if (s._scope)
-            s.semantic(s._scope);
+        if (s.declScope)
+            s.semantic(s.declScope);
         const(char)* protName = protectionToChars(s.prot().kind); // TODO: How about package(names)
         assert(protName);
         auto se = new StringExp(e.loc, cast(char*)protName);
@@ -932,8 +932,8 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         if (cd.sizeok == SIZEOKnone)
         {
-            if (cd._scope)
-                cd.semantic(cd._scope);
+            if (cd.declScope)
+                cd.semantic(cd.declScope);
         }
         if (cd.sizeok != SIZEOKdone)
         {
@@ -1099,7 +1099,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         ClassDeclaration cd = sds.isClassDeclaration();
         if (cd && e.ident == Id.allMembers)
         {
-            if (cd._scope)
+            if (cd.declScope)
                 cd.semantic(null); // Bugzilla 13668: Try to resolve forward reference
 
             void pushBaseMembersDg(ClassDeclaration cd)
@@ -1253,14 +1253,14 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         Import imp = s.isImport();
         if (imp) // Bugzilla 10990
             s = imp.mod;
-        ScopeDsymbol _scope = s.isScopeDsymbol();
-        if (!_scope)
+        ScopeDsymbol sds = s.isScopeDsymbol();
+        if (!sds)
         {
             e.error("argument %s to __traits(getUnitTests) must be a module or aggregate, not a %s", s.toChars(), s.kind());
             return new ErrorExp();
         }
         auto unitTests = new Expressions();
-        Dsymbols* symbols = _scope.members;
+        Dsymbols* symbols = sds.members;
         if (global.params.useUnitTests && symbols)
         {
             // Should actually be a set

@@ -123,11 +123,11 @@ public:
         }
         uint dprogress_save = Module.dprogress;
         Scope* scx = null;
-        if (_scope)
+        if (declScope)
         {
-            sc = _scope;
-            scx = _scope; // save so we don't make redundant copies
-            _scope = null;
+            sc = declScope;
+            scx = declScope; // save so we don't make redundant copies
+            declScope = null;
         }
         parent = sc.parent;
         type = type.semantic(loc, sc);
@@ -159,12 +159,12 @@ public:
             if (memtype.ty == Tenum)
             {
                 EnumDeclaration sym = cast(EnumDeclaration)memtype.toDsymbol(sc);
-                if (!sym.memtype || !sym.members || !sym.symtab || sym._scope)
+                if (!sym.memtype || !sym.members || !sym.symtab || sym.declScope)
                 {
                     // memtype is forward referenced, so try again later
-                    _scope = scx ? scx : sc.copy();
-                    _scope.setNoFree();
-                    _scope.currentModule.addDeferredSemantic(this);
+                    declScope = scx ? scx : sc.copy();
+                    declScope.setNoFree();
+                    declScope.currentModule.addDeferredSemantic(this);
                     Module.dprogress = dprogress_save;
                     //printf("\tdeferring %s\n", toChars());
                     semanticRun = PASSinit;
@@ -217,7 +217,7 @@ public:
         {
             EnumMember em = (*members)[i].isEnumMember();
             if (em)
-                em._scope = sce;
+                em.declScope = sce;
         }
         if (!added)
         {
@@ -261,7 +261,7 @@ public:
         {
             EnumMember em = (*members)[i].isEnumMember();
             if (em)
-                em.semantic(em._scope);
+                em.semantic(em.declScope);
         }
         //printf("defaultval = %lld\n", defaultval);
         //if (defaultval) printf("defaultval: %s %s\n", defaultval->toChars(), defaultval->type->toChars());
@@ -288,12 +288,12 @@ public:
     override Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
     {
         //printf("%s.EnumDeclaration::search('%s')\n", toChars(), ident->toChars());
-        if (_scope)
+        if (declScope)
         {
             // Try one last time to resolve this enum
-            semantic(_scope);
+            semantic(declScope);
         }
-        if (!members || !symtab || _scope)
+        if (!members || !symtab || declScope)
         {
             error("is forward referenced when looking for '%s'", ident.toChars());
             //*(char*)0=0;
@@ -331,8 +331,8 @@ public:
         }
         if (*pval)
             goto Ldone;
-        if (_scope)
-            semantic(_scope);
+        if (declScope)
+            semantic(declScope);
         if (errors)
             goto Lerrors;
         if (semanticRun == PASSinit || !members)
@@ -371,7 +371,7 @@ public:
                  */
                 Expression ec = new CmpExp(id == Id.max ? TOKgt : TOKlt, em.loc, e, *pval);
                 inuse++;
-                ec = ec.semantic(em._scope);
+                ec = ec.semantic(em.declScope);
                 inuse--;
                 ec = ec.ctfeInterpret();
                 if (ec.toInteger())
@@ -398,8 +398,8 @@ public:
         //printf("EnumDeclaration::getDefaultValue() %p %s\n", this, toChars());
         if (defaultval)
             return defaultval;
-        if (_scope)
-            semantic(_scope);
+        if (declScope)
+            semantic(declScope);
         if (errors)
             goto Lerrors;
         if (semanticRun == PASSinit || !members)
@@ -424,13 +424,13 @@ public:
     {
         if (loc.linnum == 0)
             loc = this.loc;
-        if (_scope)
+        if (declScope)
         {
             /* Enum is forward referenced. We don't need to resolve the whole thing,
              * just the base type
              */
             if (memtype)
-                memtype = memtype.semantic(loc, _scope);
+                memtype = memtype.semantic(loc, declScope);
             else
             {
                 if (!isAnonymous() && members)
@@ -525,8 +525,8 @@ public:
         if (errors || semanticRun >= PASSsemanticdone)
             return;
         semanticRun = PASSsemantic;
-        if (_scope)
-            sc = _scope;
+        if (declScope)
+            sc = declScope;
         // The first enum member is special
         bool first = (this == (*ed.members)[0]);
         if (type)
@@ -635,7 +635,7 @@ public:
             }
             assert(emprev);
             if (emprev.semanticRun < PASSsemanticdone) // if forward reference
-                emprev.semantic(emprev._scope); // resolve it
+                emprev.semantic(emprev.declScope); // resolve it
             if (emprev.errors)
                 goto Lerrors;
             Expression eprev = emprev.value;

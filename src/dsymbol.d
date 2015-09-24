@@ -187,7 +187,7 @@ public:
     Symbol* isym;           // import version of csym
     const(char)* comment;   // documentation comment for this Dsymbol
     Loc loc;                // where defined
-    Scope* _scope;          // !=null means context to use for semantic()
+    Scope* declScope;       // !=null means context to use for semantic()
     bool errors;            // this symbol failed to pass semantic()
     PASS semanticRun;
 
@@ -564,7 +564,7 @@ public:
         //printf("Dsymbol::setScope() %p %s, %p stc = %llx\n", this, toChars(), sc, sc->stc);
         if (!sc.nofree)
             sc.setNoFree(); // may need it even after semantic() finishes
-        _scope = sc;
+        declScope = sc;
         if (sc.depmsg)
             depmsg = sc.depmsg;
         if (!userAttribDecl)
@@ -1575,7 +1575,7 @@ public:
         // Acts as proxy to the with class declaration
         Dsymbol s = null;
         Expression eold = null;
-        for (Expression e = withstate.exp; e != eold; e = resolveAliasThis(_scope, e))
+        for (Expression e = withstate.exp; e != eold; e = resolveAliasThis(declScope, e))
         {
             if (e.op == TOKimport)
             {

@@ -238,11 +238,11 @@ public:
         uint dprogress_save = Module.dprogress;
         int errors = global.errors;
         Scope* scx = null;
-        if (_scope)
+        if (declScope)
         {
-            sc = _scope;
-            scx = _scope; // save so we don't make redundant copies
-            _scope = null;
+            sc = declScope;
+            scx = declScope; // save so we don't make redundant copies
+            declScope = null;
         }
         if (!parent)
         {
@@ -337,9 +337,9 @@ public:
             structsize = 0;
             alignsize = 0;
             sc2.pop();
-            _scope = scx ? scx : sc.copy();
-            _scope.setNoFree();
-            _scope.currentModule.addDeferredSemantic(this);
+            declScope = scx ? scx : sc.copy();
+            declScope.setNoFree();
+            declScope.currentModule.addDeferredSemantic(this);
             Module.dprogress = dprogress_save;
             //printf("\tdeferring %s\n", toChars());
             return;
@@ -360,9 +360,9 @@ public:
             if (sd.semanticRun >= PASSsemanticdone)
                 continue;
             sc2.pop();
-            _scope = scx ? scx : sc.copy();
-            _scope.setNoFree();
-            _scope.currentModule.addDeferredSemantic(this);
+            declScope = scx ? scx : sc.copy();
+            declScope.setNoFree();
+            declScope.currentModule.addDeferredSemantic(this);
             //printf("\tdeferring %s\n", toChars());
             return;
         }
@@ -447,44 +447,44 @@ public:
 
     final void semanticTypeInfoMembers()
     {
-        if (xeq && xeq._scope && xeq.semanticRun < PASSsemantic3done)
+        if (xeq && xeq.declScope && xeq.semanticRun < PASSsemantic3done)
         {
             uint errors = global.startGagging();
-            xeq.semantic3(xeq._scope);
+            xeq.semantic3(xeq.declScope);
             if (global.endGagging(errors))
                 xeq = xerreq;
         }
-        if (xcmp && xcmp._scope && xcmp.semanticRun < PASSsemantic3done)
+        if (xcmp && xcmp.declScope && xcmp.semanticRun < PASSsemantic3done)
         {
             uint errors = global.startGagging();
-            xcmp.semantic3(xcmp._scope);
+            xcmp.semantic3(xcmp.declScope);
             if (global.endGagging(errors))
                 xcmp = xerrcmp;
         }
         FuncDeclaration ftostr = search_toString(this);
-        if (ftostr && ftostr._scope && ftostr.semanticRun < PASSsemantic3done)
+        if (ftostr && ftostr.declScope && ftostr.semanticRun < PASSsemantic3done)
         {
-            ftostr.semantic3(ftostr._scope);
+            ftostr.semantic3(ftostr.declScope);
         }
-        if (xhash && xhash._scope && xhash.semanticRun < PASSsemantic3done)
+        if (xhash && xhash.declScope && xhash.semanticRun < PASSsemantic3done)
         {
-            xhash.semantic3(xhash._scope);
+            xhash.semantic3(xhash.declScope);
         }
-        if (postblit && postblit._scope && postblit.semanticRun < PASSsemantic3done)
+        if (postblit && postblit.declScope && postblit.semanticRun < PASSsemantic3done)
         {
-            postblit.semantic3(postblit._scope);
+            postblit.semantic3(postblit.declScope);
         }
-        if (dtor && dtor._scope && dtor.semanticRun < PASSsemantic3done)
+        if (dtor && dtor.declScope && dtor.semanticRun < PASSsemantic3done)
         {
-            dtor.semantic3(dtor._scope);
+            dtor.semantic3(dtor.declScope);
         }
     }
 
     override final Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
     {
         //printf("%s.StructDeclaration::search('%s')\n", toChars(), ident->toChars());
-        if (_scope && !symtab)
-            semantic(_scope);
+        if (declScope && !symtab)
+            semantic(declScope);
         if (!members || !symtab) // opaque or semantic() is not yet called
         {
             error("is forward referenced when looking for '%s'", ident.toChars());

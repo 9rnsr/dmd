@@ -56,7 +56,7 @@ public:
 
     override final int apply(Dsymbol_apply_ft_t fp, void* param)
     {
-        Dsymbols* d = include(_scope, null);
+        Dsymbols* d = include(declScope, null);
         if (d)
         {
             for (size_t i = 0; i < d.dim; i++)
@@ -1055,7 +1055,7 @@ public:
     {
         //printf("ConditionalDeclaration::include(sc = %p) scope = %p\n", sc, scope);
         assert(condition);
-        return condition.include(_scope ? _scope : sc, sds) ? decl : elsedecl;
+        return condition.include(declScope ? declScope : sc, sds) ? decl : elsedecl;
     }
 
     override final void addComment(const(char)* comment)
@@ -1134,21 +1134,21 @@ public:
         if (condition.inc == 0)
         {
             assert(scopesym); // addMember is already done
-            assert(_scope); // setScope is already done
-            Dsymbols* d = ConditionalDeclaration.include(_scope, scopesym);
+            assert(declScope); // setScope is already done
+            Dsymbols* d = ConditionalDeclaration.include(declScope, scopesym);
             if (d && !addisdone)
             {
                 // Add members lazily.
                 for (size_t i = 0; i < d.dim; i++)
                 {
                     Dsymbol s = (*d)[i];
-                    s.addMember(_scope, scopesym);
+                    s.addMember(declScope, scopesym);
                 }
                 // Set the member scopes lazily.
                 for (size_t i = 0; i < d.dim; i++)
                 {
                     Dsymbol s = (*d)[i];
-                    s.setScope(_scope);
+                    s.setScope(declScope);
                 }
                 addisdone = 1;
             }
@@ -1280,12 +1280,12 @@ public:
             compileIt(sc);
             AttribDeclaration.addMember(sc, scopesym);
             compiled = 1;
-            if (_scope && decl)
+            if (declScope && decl)
             {
                 for (size_t i = 0; i < decl.dim; i++)
                 {
                     Dsymbol s = (*decl)[i];
-                    s.setScope(_scope);
+                    s.setScope(declScope);
                 }
             }
         }
@@ -1341,7 +1341,7 @@ public:
     override void semantic(Scope* sc)
     {
         //printf("UserAttributeDeclaration::semantic() %p\n", this);
-        if (decl && !_scope)
+        if (decl && !declScope)
             Dsymbol.setScope(sc); // for function local symbols
         return AttribDeclaration.semantic(sc);
     }
@@ -1350,9 +1350,9 @@ public:
     {
         if (decl && atts && atts.dim)
         {
-            if (atts && atts.dim && _scope)
+            if (atts && atts.dim && declScope)
             {
-                _scope = null;
+                declScope = null;
                 arrayExpressionSemantic(atts, sc, true); // run semantic
             }
         }
@@ -1388,10 +1388,10 @@ public:
 
     Expressions* getAttributes()
     {
-        if (_scope)
+        if (declScope)
         {
-            Scope* sc = _scope;
-            _scope = null;
+            Scope* sc = declScope;
+            declScope = null;
             arrayExpressionSemantic(atts, sc);
         }
         auto exps = new Expressions();

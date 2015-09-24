@@ -892,7 +892,7 @@ public:
     override void importAll(Scope* prevsc)
     {
         //printf("+Module::importAll(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
-        if (_scope)
+        if (declScope)
             return; // already done
         if (isDocFile)
         {
@@ -962,7 +962,7 @@ public:
         // Note that modules get their own scope, from scratch.
         // This is so regardless of where in the syntax a module
         // gets imported, it is unaffected by context.
-        Scope* sc = _scope; // see if already got one from importAll()
+        Scope* sc = declScope; // see if already got one from importAll()
         if (!sc)
         {
             Scope.createGlobal(this); // create root scope
@@ -980,7 +980,7 @@ public:
         {
             userAttribDecl.semantic(sc);
         }
-        if (!_scope)
+        if (!declScope)
         {
             sc = sc.pop();
             sc.pop(); // 2 pops because Scope::createGlobal() created 2
