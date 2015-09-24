@@ -43,19 +43,6 @@ enum LOGSEMANTIC = false;
 
 /************************ TraitsExp ************************************/
 
-// callback for TypeFunction::attributesApply
-struct PushAttributes
-{
-    Expressions* mods;
-
-    extern (C++) static int fp(void* param, const(char)* str)
-    {
-        PushAttributes* p = cast(PushAttributes*)param;
-        p.mods.push(new StringExp(Loc(), cast(char*)str));
-        return 0;
-    }
-}
-
 extern (C++) __gshared StringTable traitsStringTable;
 
 extern (C++) void initTraitsStringTable()
@@ -842,10 +829,16 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         }
 
         auto mods = new Expressions();
-        PushAttributes pa;
-        pa.mods = mods;
-        tf.modifiersApply(&pa, &PushAttributes.fp);
-        tf.attributesApply(&pa, &PushAttributes.fp, TRUSTformatSystem);
+        tf.modifiersApply((const(char)* str)
+        {
+            mods.push(new StringExp(Loc(), cast(char*)str));
+            return 0;
+        });
+        tf.attributesApply(TRUSTformatSystem, (const(char)* str)
+        {
+            mods.push(new StringExp(Loc(), cast(char*)str));
+            return 0;
+        });
 
         auto tup = new TupleExp(e.loc, mods);
         return tup.semantic(sc);

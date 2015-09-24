@@ -1086,9 +1086,13 @@ public:
         return buf.extractString();
     }
 
-    /** For each active modifier (MODconst, MODimmutable, etc) call fp with a
-     void* for the work param and a string representation of the attribute. */
-    final int modifiersApply(void* param, int function(void*, const(char)*) fp)
+    /***************************************************
+     * For each active modifiers (MODconst, MODimmutable, etc) call dg with
+     * a string representation of the attribute.
+     * Params:
+     *      dg
+     */
+    extern (D) final int modifiersApply(int delegate(const(char)*) dg)
     {
         immutable ubyte[4] modsArr = [MODconst, MODimmutable, MODwild, MODshared];
 
@@ -1096,12 +1100,16 @@ public:
         {
             if (mod & modsarr)
             {
-                if (int res = fp(param, MODtoChars(modsarr)))
-                    return res;
+                if (auto r = dg(MODtoChars(modsarr)))
+                    return r;
             }
         }
-
         return 0;
+    }
+
+    final int modifiersApply(void* param, int function(void*, const(char)*) fp)
+    {
+        return modifiersApply(s => fp(param, s));
     }
 
     bool isintegral()
@@ -6251,36 +6259,45 @@ public:
         return t;
     }
 
-    /** For each active attribute (ref/const/nogc/etc) call fp with a void* for the
-     work param and a string representation of the attribute. */
-    int attributesApply(void* param, int function(void*, const(char)*) fp,
-        TRUSTformat trustFormat = TRUSTformatDefault)
+    /***************************************************
+     * For each active attributes (ref/const/nogc/etc), call dg
+     * with a string representation of the attribute.
+     * Params:
+     *      trustFormat = customize TRUSTdefault printing. Its default is TRUSTformatDefault.
+     *      dg
+     */
+    extern (D) int attributesApply(TRUSTformat trustFormat, int delegate(const(char)*) dg)
     {
-        int res = 0;
         if (purity)
-            res = fp(param, "pure");
-        if (res)
-            return res;
+        {
+            if (auto r = dg("pure"))
+                return r;
+        }
         if (isnothrow)
-            res = fp(param, "nothrow");
-        if (res)
-            return res;
+        {
+            if (auto r = dg("nothrow"))
+                return r;
+        }
         if (isnogc)
-            res = fp(param, "@nogc");
-        if (res)
-            return res;
+        {
+            if (auto r = dg("@nogc"))
+                return r;
+        }
         if (isproperty)
-            res = fp(param, "@property");
-        if (res)
-            return res;
+        {
+            if (auto r = dg("@property"))
+                return r;
+        }
         if (isref)
-            res = fp(param, "ref");
-        if (res)
-            return res;
+        {
+            if (auto r = dg("ref"))
+                return r;
+        }
         if (isreturn)
-            res = fp(param, "return");
-        if (res)
-            return res;
+        {
+            if (auto r = dg("return"))
+                return r;
+        }
         TRUST trustAttrib = trust;
         if (trustAttrib == TRUSTdefault)
         {
@@ -6288,9 +6305,21 @@ public:
             if (trustFormat == TRUSTformatSystem)
                 trustAttrib = TRUSTsystem;
             else
-                return res; // avoid calling with an empty string
+                return 0;   // avoid calling with an empty string
         }
-        return fp(param, trustToChars(trustAttrib));
+        return dg(trustToChars(trustAttrib));
+    }
+
+    /// ditto
+    extern (D) int attributesApply(int delegate(const(char)*) dg)
+    {
+        return attributesApply(TRUSTformatDefault, dg);
+    }
+
+    int attributesApply(void* param, int function(void*, const(char)*) fp,
+        TRUSTformat trustFormat = TRUSTformatDefault)
+    {
+        return attributesApply(trustFormat, s => fp(param, s));
     }
 
     override Type substWildTo(uint)
