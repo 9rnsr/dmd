@@ -3792,10 +3792,17 @@ public:
         }
         if (auto tup = s.isTupleDeclaration())
         {
-            if (tup.needThis() && hasThis(sc))
-                e = new DotVarExp(loc, new ThisExp(loc), tup);
-            else
-                e = new TupleExp(loc, tup);
+            if (auto t = tup.getType())   // type tuple
+            {
+                e = new TypeExp(loc, t);
+            }
+            else                    // expression tuple
+            {
+                if (tup.needThis() && hasThis(sc))
+                    e = new DotVarExp(loc, new ThisExp(loc), tup);
+                else
+                    e = new TupleExp(loc, tup);
+            }
             e = e.semantic(sc);
             return e;
         }
@@ -4504,10 +4511,23 @@ public:
         super(loc, TOKtuple, __traits(classInstanceSize, TupleExp));
         this.exps = new Expressions();
         this.exps.reserve(tup.objects.dim);
+
+        //assert(tup.isexp || tup.objects.dim == 0);    // todo?
+
         for (size_t i = 0; i < tup.objects.dim; i++)
         {
             RootObject o = (*tup.objects)[i];
-            if (Dsymbol s = getDsymbol(o))
+            if (o.dyncast() == DYNCAST_TYPE)
+            {
+                /* DYNCAST_TYPE check should be done before the getDsymbol call,
+                 * because it returns the AggregateDeclaration symbol of Type object
+                 * and completely ignores Type.mod.
+                 */
+                Type t = cast(Type)o;
+                Expression e = new TypeExp(loc, t);
+                this.exps.push(e);
+            }
+            else if (Dsymbol s = getDsymbol(o))
             {
                 /* If tuple element represents a symbol, translate to DsymbolExp
                  * to supply implicit 'this' if needed later.
@@ -4518,12 +4538,6 @@ public:
             else if (o.dyncast() == DYNCAST_EXPRESSION)
             {
                 Expression e = cast(Expression)o;
-                this.exps.push(e);
-            }
-            else if (o.dyncast() == DYNCAST_TYPE)
-            {
-                Type t = cast(Type)o;
-                Expression e = new TypeExp(loc, t);
                 this.exps.push(e);
             }
             else
@@ -4569,8 +4583,10 @@ public:
         }
         if (type)
             return this;
+
         if (e0)
             e0 = e0.semantic(sc);
+
         // Run semantic() on each argument
         bool err = false;
         for (size_t i = 0; i < exps.dim; i++)
@@ -4589,9 +4605,18 @@ public:
         }
         if (err)
             return new ErrorExp();
+
         expandTuples(exps);
+
         type = new TypeTuple(exps);
         type = type.semantic(loc, sc);
+
+        // todo: although all elements of exps are Types, don't return
+        // TypeExp with TypeTuple. It it legitimate?
+
+        // todo: An 'empty tuple' can become for both TypeExp and TupleExp.
+        // Should the ambiguity be normalized?
+
         //printf("-TupleExp::semantic(%s)\n", toChars());
         return this;
     }
@@ -8120,13 +8145,17 @@ public:
                 }
                 if (auto tup = s.isTupleDeclaration())
                 {
-                    if (eleft)
+                    if (auto t = tup.getType())   // type tuple
                     {
-                        e = new DotVarExp(loc, eleft, tup);
-                        e = e.semantic(sc);
-                        return e;
+                        e = new TypeExp(loc, t);
                     }
-                    e = new TupleExp(loc, tup);
+                    else                    // expression tuple
+                    {
+                        if (eleft)
+                            e = new DotVarExp(loc, eleft, tup);
+                        else
+                            e = new TupleExp(loc, tup);
+                    }
                     e = e.semantic(sc);
                     return e;
                 }
