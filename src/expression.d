@@ -3687,23 +3687,26 @@ public:
                 s.checkDeprecated(loc, sc);
         }
 
-        if (EnumMember em = s.isEnumMember())
+        if (auto em = s.isEnumMember())
         {
             return em.getVarExp(loc, sc);
         }
-        if (VarDeclaration v = s.isVarDeclaration())
+        if (auto v = s.isVarDeclaration())
         {
             //printf("Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
-            if (!v.type)
+            if (!v.type || !v.type.deco && v.inuse)
             {
-                .error(loc, "forward reference of %s %s", v.kind(), v.toChars());
+                if (v.inuse)
+                    .error(loc, "circular reference to %s '%s'", v.kind(), v.toPrettyChars());
+                else
+                    .error(loc, "forward reference to %s '%s'", v.kind(), v.toPrettyChars());
                 return new ErrorExp();
             }
             if ((v.storage_class & STCmanifest) && v._init)
             {
                 if (v.inuse)
                 {
-                    .error(loc, "circular initialization of %s", v.toChars());
+                    .error(loc, "circular initialization of %s '%s'", v.kind(), v.toPrettyChars());
                     return new ErrorExp();
                 }
                 e = v.expandInitializer(loc);
@@ -8014,23 +8017,35 @@ public:
 
                 checkDeprecated(sc, s);
 
-                EnumMember em = s.isEnumMember();
-                if (em)
+                if (auto em = s.isEnumMember())
                 {
                     return em.getVarExp(loc, sc);
                 }
-                VarDeclaration v = s.isVarDeclaration();
-                if (v)
+                if (auto v = s.isVarDeclaration())
                 {
                     //printf("DotIdExp:: Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
-                    if (!v.type)
+                    if (!v.type || !v.type.deco && v.inuse)
                     {
                         if (v.inuse)
-                            error("circular reference to '%s'", v.toChars());
+                            error("circular reference to %s '%s'", v.kind(), v.toPrettyChars());
                         else
-                            error("forward reference of %s %s", s.kind(), s.toChars());
+                            error("forward reference to %s '%s'", v.kind(), v.toPrettyChars());
                         return new ErrorExp();
                     }
+                    if ((v.storage_class & STCmanifest) && v._init)
+                    {
+                        if (v.inuse)
+                        {
+                            .error(loc, "circular initialization of %s '%s'", v.kind(), v.toPrettyChars());
+                            return new ErrorExp();
+                        }
+                        e = v.expandInitializer(loc);
+                        v.inuse++;
+                        e = e.semantic(sc);
+                        v.inuse--;
+                        return e;
+                    }
+
                     if (v.needThis())
                     {
                         if (!eleft)
