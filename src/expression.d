@@ -3660,6 +3660,11 @@ public:
 
     static Expression resolve(Loc loc, Scope *sc, Dsymbol s, bool hasOverloads)
     {
+        return resolve(loc, sc, null, s, hasOverloads);
+    }
+
+    static Expression resolve(Loc loc, Scope *sc, Expression eleft, Dsymbol s, bool hasOverloads)
+    {
         static if (LOGSEMANTIC)
         {
             printf("DsymbolExp::resolve(%s %s)\n", s.kind(), s.toChars());
@@ -3720,8 +3725,10 @@ public:
             if (v.checkNestedReference(sc, loc))
                 return new ErrorExp();
 
-            if (v.needThis() && hasThis(sc))
-                e = new DotVarExp(loc, new ThisExp(loc), v);
+            if (!eleft && v.needThis() && hasThis(sc))
+                eleft = new ThisExp(loc);
+            if (eleft)
+                e = new DotVarExp(loc, eleft, v);
             else
                 e = new VarExp(loc, v);
             e = e.semantic(sc);
@@ -3735,8 +3742,10 @@ public:
             }
             else                    // expression tuple
             {
-                if (tup.needThis() && hasThis(sc))
-                    e = new DotVarExp(loc, new ThisExp(loc), tup);
+                if (!eleft && tup.needThis() && hasThis(sc))
+                    eleft = new ThisExp(loc);
+                if (eleft)
+                    e = new DotVarExp(loc, eleft, tup);
                 else
                     e = new TupleExp(loc, tup);
             }
@@ -3749,7 +3758,10 @@ public:
             {
                 //printf("'%s' is a function literal\n", fld.toChars());
                 e = new FuncExp(loc, fld);
-                return e.semantic(sc);
+                e = e.semantic(sc);
+                if (eleft)
+                    e = Expression.combine(eleft, e);
+                return e;
             }
             f = f.toAliasFunc();
 
@@ -3762,14 +3774,27 @@ public:
                 .error(loc, "forward reference to %s'%s'", trailMsg, f.toChars());
                 return new ErrorExp();
             }
+
+            if (f.needThis() && eleft)
+            {
+                e = new DotVarExp(loc, eleft, f);
+                e = e.semantic(sc);
+                return e;
+            }
+
             auto fd = s.isFuncDeclaration();
             fd.type = f.type;
-            return new VarExp(loc, fd, hasOverloads);
+            e = new VarExp(loc, fd, hasOverloads);
+            if (eleft)
+                e = Expression.combine(eleft, e);
+            return e;
         }
         if (auto od = s.isOverDeclaration())
         {
             e = new VarExp(loc, od, 1);
-            e.type = Type.tvoid;
+            e.type = Type.tvoid;    // ambiguous type?
+            if (eleft)
+                e = Expression.combine(eleft, e);
             return e;
         }
         if (auto os = s.isOverloadSet())
@@ -3785,13 +3810,20 @@ public:
 
         if (auto td = s.isTemplateDeclaration())
         {
-            auto p = td.toParent2();
-            auto fdthis = hasThis(sc);
-            auto ad = p ? p.isAggregateDeclaration() : null;
-            if (fdthis && ad && isAggregate(fdthis.vthis.type) == ad && (td._scope.stc & STCstatic) == 0)
+            if (!eleft)
             {
-                e = new DotTemplateExp(loc, new ThisExp(loc), td);
+                auto p = td.toParent2();
+                auto fdthis = hasThis(sc);
+                auto ad = p ? p.isAggregateDeclaration() : null;
+                if (fdthis && ad &&
+                    isAggregate(fdthis.vthis.type) == ad &&
+                    (td._scope.stc & STCstatic) == 0)
+                {
+                    eleft = new ThisExp(loc);
+                }
             }
+            if (eleft)
+                e = new DotTemplateExp(loc, eleft, td);
             else
                 e = new TemplateExp(loc, td);
             e = e.semantic(sc);
@@ -3804,8 +3836,10 @@ public:
                 return new ErrorExp();
             s = ti.toAlias();
             if (!s.isTemplateInstance())
-                return resolve(loc, sc, s, hasOverloads);
+                return resolve(loc, sc, eleft, s, hasOverloads);
             e = new ScopeExp(loc, ti);
+            if (eleft)
+                e = new DotExp(loc, eleft, e);
             e = e.semantic(sc);
             return e;
         }
@@ -3817,12 +3851,17 @@ public:
                 .error(loc, "forward reference of import %s", imp.toChars());
                 return new ErrorExp();
             }
-            auto ie = new ScopeExp(loc, imp.pkg);
-            return ie.semantic(sc);
+            e = new ScopeExp(loc, imp.pkg);
+            if (eleft)
+                e = new DotExp(loc, eleft, e);
+            e = e.semantic(sc);
+            return e;
         }
         if (auto sds = s.isScopeDsymbol())
         {
             e = new ScopeExp(loc, sds);
+            if (eleft)
+                e = new DotExp(loc, eleft, e);
             e = e.semantic(sc);
             return e;
         }
@@ -8039,162 +8078,7 @@ public:
 
                 checkDeprecated(sc, s);
 
-                if (auto em = s.isEnumMember())
-                {
-                    return em.getVarExp(loc, sc);
-                }
-                if (auto v = s.isVarDeclaration())
-                {
-                    //printf("DotIdExp:: Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
-                    if (!v.type || !v.type.deco && v.inuse)
-                    {
-                        if (v.inuse)
-                            error("circular reference to %s '%s'", v.kind(), v.toPrettyChars());
-                        else
-                            error("forward reference to %s '%s'", v.kind(), v.toPrettyChars());
-                        return new ErrorExp();
-                    }
-                    if ((v.storage_class & STCmanifest) && v._init)
-                    {
-                        if (v.inuse)
-                        {
-                            .error(loc, "circular initialization of %s '%s'", v.kind(), v.toPrettyChars());
-                            return new ErrorExp();
-                        }
-                        e = v.expandInitializer(loc);
-                        v.inuse++;
-                        e = e.semantic(sc);
-                        v.inuse--;
-                        return e;
-                    }
-
-                    if (v.needThis())
-                    {
-                        if (!eleft)
-                            eleft = new ThisExp(loc);
-                        e = new DotVarExp(loc, eleft, v);
-                        e = e.semantic(sc);
-                    }
-                    else
-                    {
-                        e = new VarExp(loc, v);
-                        if (eleft)
-                        {
-                            e = new CommaExp(loc, eleft, e);
-                            e.type = v.type;
-                        }
-                    }
-                    e = e.deref();
-                    return e.semantic(sc);
-                }
-                if (auto tup = s.isTupleDeclaration())
-                {
-                    if (auto t = tup.getType())   // type tuple
-                    {
-                        e = new TypeExp(loc, t);
-                    }
-                    else                    // expression tuple
-                    {
-                        if (eleft)
-                            e = new DotVarExp(loc, eleft, tup);
-                        else
-                            e = new TupleExp(loc, tup);
-                    }
-                    e = e.semantic(sc);
-                    return e;
-                }
-                if (auto f = s.isFuncDeclaration())
-                {
-                    //printf("it's a function\n");
-                    if (!f.functionSemantic())
-                        return new ErrorExp();
-                    if (f.needThis())
-                    {
-                        if (!eleft)
-                            eleft = new ThisExp(loc);
-                        e = new DotVarExp(loc, eleft, f);
-                        e = e.semantic(sc);
-                    }
-                    else
-                    {
-                        e = new VarExp(loc, f, 1);
-                        if (eleft)
-                        {
-                            e = new CommaExp(loc, eleft, e);
-                            e.type = f.type;
-                        }
-                    }
-                    return e;
-                }
-                if (auto td = s.isTemplateDeclaration())
-                {
-                    if (eleft)
-                        e = new DotTemplateExp(loc, eleft, td);
-                    else
-                        e = new TemplateExp(loc, td);
-                    e = e.semantic(sc);
-                    return e;
-                }
-                if (auto od = s.isOverDeclaration())
-                {
-                    e = new VarExp(loc, od, 1);
-                    if (eleft)
-                    {
-                        e = new CommaExp(loc, eleft, e);
-                        e.type = Type.tvoid; // ambiguous type?
-                    }
-                    return e;
-                }
-                if (auto os = s.isOverloadSet())
-                {
-                    //printf("'%s' is an overload set\n", o->toChars());
-                    return new OverExp(loc, os);
-                }
-
-                if (auto t = s.getType())
-                {
-                    return (new TypeExp(loc, t)).semantic(sc);
-                }
-
-                if (auto td = s.isTemplateDeclaration())
-                {
-                    auto sds = s.isScopeDsymbol();
-                    assert(sds);
-                    e = new ScopeExp(loc, sds);
-                    e = e.semantic(sc);
-                    if (eleft)
-                        e = new DotExp(loc, eleft, e);
-                    return e;
-                }
-                if (auto ti = s.isTemplateInstance())
-                {
-                    auto sds = s.isScopeDsymbol();
-                    assert(sds);
-                    e = new ScopeExp(loc, sds);
-                    e = e.semantic(sc);
-                    if (eleft)
-                        e = new DotExp(loc, eleft, e);
-                    return e;
-                }
-
-                if (auto imp = s.isImport())
-                {
-                    ie = new ScopeExp(loc, imp.pkg);
-                    return ie.semantic(sc);
-                }
-                if (auto sds = s.isScopeDsymbol())
-                {
-                    //printf("it's a ScopeDsymbol %s\n", ident->toChars());
-                    e = new ScopeExp(loc, sds);
-                    e = e.semantic(sc);
-                    if (eleft)
-                        e = new DotExp(loc, eleft, e);
-                    return e;
-                }
-
-                // BUG: handle other cases like in IdentifierExp::semantic()
-                debug printf("s = '%s', kind = '%s'\n", s.toChars(), s.kind());
-                assert(0);
+                return DsymbolExp.resolve(loc, sc, eleft, s, true);
             }
             if (ident == Id.stringof)
             {
