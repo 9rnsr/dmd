@@ -617,10 +617,15 @@ public:
             VarDeclaration v = fields[i];
             if (v.offset < offset)
             {
-                .error(loc, "overlapping initialization for %s", v.toChars());
-                return false;
+                if (v.type.size() != 0)
+                {
+                    .error(loc, "overlapping initialization for %s", v.toChars());
+                    return false;
+                }
+                // keep offset
             }
-            offset = cast(uint)(v.offset + v.type.size());
+            else
+                offset = cast(uint)(v.offset + v.type.size());
             Type t = v.type;
             if (stype)
                 t = t.addMod(stype.mod);
@@ -658,6 +663,12 @@ public:
             if (e.op == TOKerror)
                 return false;
             (*elements)[i] = e.isLvalue() ? callCpCtor(sc, e) : valueNoDtor(e);
+
+            if (v.type.size() == 0)
+            {
+                // do not send unnecessary field initializer to backend
+                (*elements)[i] = null;
+            }
         }
         return true;
     }
