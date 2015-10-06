@@ -171,7 +171,7 @@ struct T
     /****
      */
     this(A...)(A args) { }
-    
+
     ///
     this(int){}
 }
@@ -207,4 +207,10 @@ template foo14547(T)
 template bar14547(T) if (is(T == int))
 {
     enum int bar14547 = T.stringof.length;
+}
+
+/// regression test for eponymous template with an enum member
+template bitfields()
+{
+    enum { bitfields = 10 }
 }
