@@ -875,7 +875,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
 
         override void visit(AddrExp e)
         {
-            version (none)
+            //version (none)
             {
                 printf("AddrExp::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
             }
@@ -883,9 +883,11 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             //printf("\tresult = %d\n", result);
             if (result != MATCHnomatch)
                 return;
+
             // Look for pointers to functions where the functions are overloaded.
             t = t.toBasetype();
-            if (e.e1.op == TOKoverloadset && (t.ty == Tpointer || t.ty == Tdelegate) && t.nextOf().ty == Tfunction)
+            if (e.e1.op == TOKoverloadset &&
+                (t.ty == Tpointer || t.ty == Tdelegate) && t.nextOf().ty == Tfunction)
             {
                 OverExp eo = cast(OverExp)e.e1;
                 FuncDeclaration f = null;
@@ -909,7 +911,9 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     }
                 }
             }
-            if (e.type.ty == Tpointer && e.type.nextOf().ty == Tfunction && t.ty == Tpointer && t.nextOf().ty == Tfunction && e.e1.op == TOKvar)
+            if (e.e1.op == TOKvar &&
+                e.type.ty == Tpointer && e.type.nextOf().ty == Tfunction &&
+                t.ty == Tpointer && t.nextOf().ty == Tfunction)
             {
                 /* I don't think this can ever happen -
                  * it should have been
@@ -1817,70 +1821,76 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
 
         override void visit(AddrExp e)
         {
-            Type tb;
-            version (none)
+            //version (none)
             {
                 printf("AddrExp::castTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
             }
             result = e;
-            tb = t.toBasetype();
+
+            Type tb = t.toBasetype();
             e.type = e.type.toBasetype();
-            if (!tb.equals(e.type))
+
+            if (tb.equals(e.type))
             {
-                // Look for pointers to functions where the functions are overloaded.
-                if (e.e1.op == TOKoverloadset && (t.ty == Tpointer || t.ty == Tdelegate) && t.nextOf().ty == Tfunction)
+                result.type = t;
+                return;
+            }
+
+            // Look for pointers to functions where the functions are overloaded.
+            if (e.e1.op == TOKoverloadset &&
+                (t.ty == Tpointer || t.ty == Tdelegate) && t.nextOf().ty == Tfunction)
+            {
+                OverExp eo = cast(OverExp)e.e1;
+                FuncDeclaration f = null;
+                for (size_t i = 0; i < eo.vars.a.dim; i++)
                 {
-                    OverExp eo = cast(OverExp)e.e1;
-                    FuncDeclaration f = null;
-                    for (size_t i = 0; i < eo.vars.a.dim; i++)
+                    Dsymbol s = eo.vars.a[i];
+                    FuncDeclaration f2 = s.isFuncDeclaration();
+                    assert(f2);
+                    if (f2.overloadExactMatch(t.nextOf()))
                     {
-                        Dsymbol s = eo.vars.a[i];
-                        FuncDeclaration f2 = s.isFuncDeclaration();
-                        assert(f2);
-                        if (f2.overloadExactMatch(t.nextOf()))
+                        if (f)
                         {
-                            if (f)
-                            {
-                                /* Error if match in more than one overload set,
-                                 * even if one is a 'better' match than the other.
-                                 */
-                                ScopeDsymbol.multiplyDefined(e.loc, f, f2);
-                            }
-                            else
-                                f = f2;
+                            /* Error if match in more than one overload set,
+                             * even if one is a 'better' match than the other.
+                             */
+                            ScopeDsymbol.multiplyDefined(e.loc, f, f2);
                         }
+                        else
+                            f = f2;
                     }
+                }
+                if (f)
+                {
+                    f.tookAddressOf++;
+                    auto se = new SymOffExp(e.loc, f, 0, 0);
+                    se.semantic(sc);
+                    // Let SymOffExp::castTo() do the heavy lifting
+                    visit(se);
+                    return;
+                }
+            }
+            if (e.e1.op == TOKvar &&
+                e.type.ty == Tpointer && e.type.nextOf().ty == Tfunction &&
+                tb.ty == Tpointer && tb.nextOf().ty == Tfunction)
+            {
+                VarExp ve = cast(VarExp)e.e1;
+                FuncDeclaration f = ve.var.isFuncDeclaration();
+                if (f)
+                {
+                    assert(f.isImportedSymbol());
+                    f = f.overloadExactMatch(tb.nextOf());
                     if (f)
                     {
-                        f.tookAddressOf++;
-                        auto se = new SymOffExp(e.loc, f, 0, 0);
-                        se.semantic(sc);
-                        // Let SymOffExp::castTo() do the heavy lifting
-                        visit(se);
+                        result = new VarExp(e.loc, f);
+                        result.type = f.type;
+                        result = new AddrExp(e.loc, result);
+                        result.type = t;
                         return;
                     }
                 }
-                if (e.type.ty == Tpointer && e.type.nextOf().ty == Tfunction && tb.ty == Tpointer && tb.nextOf().ty == Tfunction && e.e1.op == TOKvar)
-                {
-                    VarExp ve = cast(VarExp)e.e1;
-                    FuncDeclaration f = ve.var.isFuncDeclaration();
-                    if (f)
-                    {
-                        assert(f.isImportedSymbol());
-                        f = f.overloadExactMatch(tb.nextOf());
-                        if (f)
-                        {
-                            result = new VarExp(e.loc, f);
-                            result.type = f.type;
-                            result = new AddrExp(e.loc, result);
-                            result.type = t;
-                            return;
-                        }
-                    }
-                }
-                visit(cast(Expression)e);
             }
-            result.type = t;
+            visit(cast(Expression)e);
         }
 
         override void visit(TupleExp e)
