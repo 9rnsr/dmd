@@ -787,6 +787,8 @@ public:
         }
 
         // Give error for overloaded function addresses
+//+
+    // overloaded &func -> must be AddrExp.
         if (exp.op == TOKsymoff)
         {
             SymOffExp se = cast(SymOffExp)exp;
@@ -796,6 +798,7 @@ public:
                 return new ErrorInitializer();
             }
         }
+// +/
         if (exp.op == TOKdelegate)
         {
             DelegateExp se = cast(DelegateExp)exp;
@@ -808,6 +811,12 @@ public:
         if (exp.op == TOKaddress)
         {
             AddrExp ae = cast(AddrExp)exp;
+            if (auto f = ae.e1.op == TOKvar    ? (cast(   VarExp)ae.e1).var.isFuncDeclaration()
+                       : ae.e1.op == TOKdotvar ? (cast(DotVarExp)ae.e1).var.isFuncDeclaration() : null)
+            {
+                if (f.checkForwardRef(loc))
+                    return new ErrorInitializer();
+            }
             if (ae.e1.op == TOKoverloadset)
             {
                 exp.error("cannot infer type from overloaded function symbol %s", exp.toChars());

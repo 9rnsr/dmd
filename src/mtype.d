@@ -7533,8 +7533,11 @@ public:
                     goto Lerr;
                 }
             }
-            if (auto f = exp.op == TOKvar    ? (cast(   VarExp)exp).var.isFuncDeclaration()
-                       : exp.op == TOKdotvar ? (cast(DotVarExp)exp).var.isFuncDeclaration() : null)
+            auto e = exp;
+            if (e.op == TOKaddress)
+                e = (cast(AddrExp)e).e1;
+            if (auto f = e.op == TOKvar    ? (cast(   VarExp)e).var.isFuncDeclaration()
+                       : e.op == TOKdotvar ? (cast(DotVarExp)e).var.isFuncDeclaration() : null)
             {
                 if (f.checkForwardRef(loc))
                     goto Lerr;

@@ -1092,23 +1092,31 @@ int foo14965(int x) { return x; }
 auto bar14965() { int function(int) fp = &bar14965; return fp(123); }
 int bar14965(int x) { return x; }
 
+auto baz14965() { auto fp = cast(int function(int))&baz14965; return fp(123); }
+int baz14965(int x) { return x; }
+
 class C
 {
     auto foo() { return this.foo(123); }
     int foo(int x) { return x; }
 
-    auto bar() { int delegate(int) fp = &this.bar; return fp(123); }
+    auto bar() { int delegate(int) dg = &this.bar; return dg(123); }
     int bar(int x) { return x; }
+
+    auto baz() { auto dg = cast(int delegate(int))&this.baz; return dg(123); }
+    int baz(int x) { return x; }
 }
 
 void test14965()
 {
     assert(foo14965() == 123);
     assert(bar14965() == 123);
+    assert(baz14965() == 123);
 
     auto c = new C();
     assert(c.foo() == 123);
     assert(c.bar() == 123);
+    assert(c.baz() == 123);
 }
 
 /***************************************************/
