@@ -9696,10 +9696,12 @@ public:
         if (auto f = e1.op == TOKvar    ? (cast(   VarExp)e1).var.isFuncDeclaration()
                    : e1.op == TOKdotvar ? (cast(DotVarExp)e1).var.isFuncDeclaration() : null)
         {
-            if (f.checkForwardRef(loc))
+            bool hasOverloads = e1.op == TOKvar    ? (cast(   VarExp)e1).hasOverloads
+                              : e1.op == TOKdotvar ? (cast(DotVarExp)e1).hasOverloads : false;
+            if (!hasOverloads && f.checkForwardRef(loc))
                 return new ErrorExp();
         }
-        if (!e1.type.deco)
+        else if (!e1.type.deco)
         {
             if (e1.op == TOKvar)
             {
