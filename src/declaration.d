@@ -580,11 +580,18 @@ public:
                     aliassym = null;
                     type = Type.terror;
                 }
-                return;
             }
-
-            if (aliassym.isTemplateInstance())
+            else if (aliassym.isTemplateInstance())
                 aliassym.semantic(sc);
+
+            semanticRun = PASSsemanticdone;
+
+            if (Dsymbol sx = overnext)
+            {
+                overnext = null;
+                if (!overloadInsert(sx))
+                    ScopeDsymbol.multiplyDefined(Loc(), sx, this);
+            }
             return;
         }
         inuse = 1;

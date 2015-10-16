@@ -664,9 +664,9 @@ template Foo1900(T)
     {
     }
 }
-mixin Foo1900!(int) A;
-mixin Foo1900!(char) B;
-alias Bar1900!(int) bar;    //error
+mixin Foo1900!(int) A1900;
+mixin Foo1900!(char) B1900;
+alias Bar1900!(int) bar1900;    // error
 
 /***************************************************/
 // 7780
@@ -1090,6 +1090,9 @@ template Mix()
     auto foo(int n) { return a + n; }
 }
 
+alias bar = () { return 1; };
+alias bar = (int n) { return n + 1; };
+
 void testNestedFuncOverloads()
 {
     int a = 1;
@@ -1100,8 +1103,14 @@ void testNestedFuncOverloads()
     assert(foo(10) == 11);
 
     //auto fp = &foo;
-    int delegate() fp1 = &foo;
-    int delegate(int) fp2 = &foo;
+    int delegate() dg1 = &foo;
+    int delegate(int) dg2 = &foo;
+
+    assert(bar() == 1);
+    assert(bar(1) == 11);
+
+    int function() fp1 = &bar;
+  //int function(int) fp2 = &bar;   // todo
 }
 
 /***************************************************/
@@ -1138,6 +1147,7 @@ int main()
     test11916();
     test13783();
     test14858();
+    testNestedFuncOverloads();
 
     printf("Success\n");
     return 0;

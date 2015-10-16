@@ -7982,11 +7982,7 @@ public:
             return e;
         }
 
-        // This is consistent with DsymbolExp.resolve(..., keepOverloads: true)
-        auto f = d.isFuncDeclaration();
-        bool hasOverloads = f && !f.isFuncLiteralDeclaration();
-
-        e = new DotVarExp(e.loc, e, d, hasOverloads);
+        e = new DotVarExp(e.loc, e, d, d.isFuncDeclaration() !is null);
         return e.semantic(sc);
     }
 
@@ -8893,11 +8889,7 @@ public:
             return e;
         }
 
-        // This is consistent with DsymbolExp.resolve(..., keepOverloads: true)
-        auto f = d.isFuncDeclaration();
-        bool hasOverloads = f && !f.isFuncLiteralDeclaration();
-
-        e = new DotVarExp(e.loc, e, d, hasOverloads);
+        e = new DotVarExp(e.loc, e, d, d.isFuncDeclaration() !is null);
         return e.semantic(sc);
     }
 

@@ -3683,28 +3683,28 @@ extern (C++) final class DsymbolExp : Expression
 {
 public:
     Dsymbol s;
-    bool keepOverloads;
+    bool hasOverloads;
 
-    extern (D) this(Loc loc, Dsymbol s, bool keepOverloads = false)
+    extern (D) this(Loc loc, Dsymbol s, bool hasOverloads = false)
     {
         super(loc, TOKdsymbol, __traits(classInstanceSize, DsymbolExp));
         this.s = s;
-        this.keepOverloads = keepOverloads;
+        this.hasOverloads = hasOverloads;
     }
 
     override Expression semantic(Scope* sc)
     {
-        return resolve(loc ,sc, s, keepOverloads);
+        return resolve(loc ,sc, s, hasOverloads);
     }
 
     /****************************************
      * Resolve a symbol `s` to correcponding concrete Expression object.
      * Params:
-     *      keepOverloads = works if the aliased symbol is a function.
+     *      hasOverloads = works if the aliased symbol is a function.
      *          true:  it's overloaded and will be resolved later.
      *          false: it's exact function symbol.
      */
-    static Expression resolve(Loc loc, Scope *sc, Dsymbol s, bool keepOverloads)
+    static Expression resolve(Loc loc, Scope *sc, Dsymbol s, bool hasOverloads)
     {
         static if (LOGSEMANTIC)
         {
@@ -3772,19 +3772,16 @@ public:
         }
         if (auto f = s.isFuncDeclaration())
         {
-            if (auto fld = s.isFuncLiteralDeclaration())
-            {
-                //printf("'%s' is a function literal\n", fld->toChars());
-                e = new FuncExp(loc, fld);
-                return e.semantic(sc);
-            }
+            //if (auto fld = s.isFuncLiteralDeclaration())
+            //{
+            //    //printf("'%s' is a function literal\n", fld->toChars());
+            //    e = new FuncExp(loc, fld);
+            //    return e.semantic(sc);
+            //}
 
             f = f.toAliasFunc();
             if (!f.functionSemantic())
                 return new ErrorExp();
-
-            // Because function literals cannot have overloads.
-            bool hasOverloads = keepOverloads && !f.isFuncLiteralDeclaration();
 
             if (!f.type.deco)
             {
@@ -3793,7 +3790,8 @@ public:
                 return new ErrorExp();
             }
 
-            FuncDeclaration fd = s.isFuncDeclaration();
+            auto fd = s.isFuncDeclaration();
+            //printf("[%s] %s, fd = %s %s\n", loc.toChars(), s.toChars(), fd.kind(), fd.toChars());
             fd.type = f.type;
             return new VarExp(loc, fd, hasOverloads);
         }
@@ -8017,16 +8015,14 @@ public:
                         return new ErrorExp();
                     if (f.needThis())
                     {
-                        bool hasOverloads = true;
                         if (!eleft)
                             eleft = new ThisExp(loc);
-                        e = new DotVarExp(loc, eleft, f, hasOverloads);
+                        e = new DotVarExp(loc, eleft, f, true);
                         e = e.semantic(sc);
                     }
                     else
                     {
-                        bool hasOverloads = !f.isFuncLiteralDeclaration();
-                        e = new VarExp(loc, f, hasOverloads);
+                        e = new VarExp(loc, f, true);
                         if (eleft)
                         {
                             e = new CommaExp(loc, eleft, e);
