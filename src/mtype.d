@@ -4616,7 +4616,7 @@ public:
         {
             // It's really an index expression
             if (Dsymbol s = getDsymbol(*pe))
-                *pe = new DsymbolExp(loc, s, 1);
+                *pe = new DsymbolExp(loc, s, true);
             *pe = new ArrayExp(loc, *pe, dim);
         }
         else if (*ps)
@@ -4949,7 +4949,7 @@ public:
         {
             // It's really a slice expression
             if (Dsymbol s = getDsymbol(*pe))
-                *pe = new DsymbolExp(loc, s, 1);
+                *pe = new DsymbolExp(loc, s, true);
             *pe = new ArrayExp(loc, *pe);
         }
         else if (*ps)
@@ -7140,9 +7140,9 @@ public:
             }
             version (none)
             {
-                if (FuncDeclaration fd = s.isFuncDeclaration())
+                if (auto fd = s.isFuncDeclaration())
                 {
-                    *pe = new DsymbolExp(loc, fd, 1);
+                    *pe = new DsymbolExp(loc, fd, true);
                     return;
                 }
             }
@@ -7500,60 +7500,60 @@ public:
             return;
         }
         inuse++;
-        Type t;
+
+        /* Currently we cannot evalute 'exp' in speculative context, because
+         * the type implementation may leak to the final execution. Consider:
+         *
+         * struct S(T) {
+         *   string toString() const { return "x"; }
+         * }
+         * void main() {
+         *   alias X = typeof(S!int());
+         *   assert(typeid(X).xtoString(null) == "x");
+         * }
+         *
+         * Now typeid(X) will make X unSpeculative...
+         */
+        Scope* sc2 = sc.push();
+        sc2.intypeof = 1;
+        exp = exp.semantic(sc2);
+        exp = resolvePropertiesOnly(sc2, exp);
+        sc2.pop();
+
+        if (exp.op == TOKtype)
         {
-            /* Currently we cannot evalute 'exp' in speculative context, because
-             * the type implementation may leak to the final execution. Consider:
-             *
-             * struct S(T) {
-             *   string toString() const { return "x"; }
-             * }
-             * void main() {
-             *   alias X = typeof(S!int());
-             *   assert(typeid(X).xtoString(null) == "x");
-             * }
-             */
-            Scope* sc2 = sc.push();
-            sc2.intypeof = 1;
-            exp = exp.semantic(sc2);
-            exp = resolvePropertiesOnly(sc2, exp);
-            sc2.pop();
+            error(loc, "argument %s to typeof is not an expression", exp.toChars());
+            goto Lerr;
+        }
+        if (exp.op == TOKimport)
+        {
+            ScopeDsymbol sds = (cast(ScopeExp)exp).sds;
+            if (sds.isPackage())
+            {
+                error(loc, "%s has no type", exp.toChars());
+                goto Lerr;
+            }
+        }
+        auto ex = exp;
+        if (ex.op == TOKaddress)
+            ex = (cast(AddrExp)ex).e1;
+        if (auto f = ex.op == TOKvar    ? (cast(   VarExp)ex).var.isFuncDeclaration()
+                   : ex.op == TOKdotvar ? (cast(DotVarExp)ex).var.isFuncDeclaration() : null)
+        {
+            if (f.checkForwardRef(loc))
+                goto Lerr;
+        }
 
-            if (exp.op == TOKtype)
-            {
-                error(loc, "argument %s to typeof is not an expression", exp.toChars());
-                goto Lerr;
-            }
-            if (exp.op == TOKimport)
-            {
-                ScopeDsymbol sds = (cast(ScopeExp)exp).sds;
-                if (sds.isPackage())
-                {
-                    error(loc, "%s has no type", exp.toChars());
-                    goto Lerr;
-                }
-            }
-            auto e = exp;
-            if (e.op == TOKaddress)
-                e = (cast(AddrExp)e).e1;
-            if (auto f = e.op == TOKvar    ? (cast(   VarExp)e).var.isFuncDeclaration()
-                       : e.op == TOKdotvar ? (cast(DotVarExp)e).var.isFuncDeclaration() : null)
-            {
-                if (f.checkForwardRef(loc))
-                    goto Lerr;
-            }
-
-            t = exp.type;
-            if (!t)
-            {
-                error(loc, "expression (%s) has no type", exp.toChars());
-                goto Lerr;
-            }
-            if (t.ty == Ttypeof)
-            {
-                error(loc, "forward reference to %s", toChars());
-                goto Lerr;
-            }
+        Type t = exp.type;
+        if (!t)
+        {
+            error(loc, "expression (%s) has no type", exp.toChars());
+            goto Lerr;
+        }
+        if (t.ty == Ttypeof)
+        {
+            error(loc, "forward reference to %s", toChars());
+            goto Lerr;
         }
         if (idents.dim == 0)
             *pt = t;
@@ -7866,43 +7866,42 @@ public:
         {
             return em.getVarExp(e.loc, sc);
         }
-
-        VarDeclaration v = s.isVarDeclaration();
-        if (v && (!v.type || !v.type.deco))
+        if (auto v = s.isVarDeclaration())
         {
-            if (v.inuse) // Bugzilla 9494
+            if (!v.type || !v.type.deco)
             {
-                e.error("circular reference to '%s'", v.toPrettyChars());
-                return new ErrorExp();
+                if (v.inuse) // Bugzilla 9494
+                {
+                    e.error("circular reference to '%s'", v.toPrettyChars());
+                    return new ErrorExp();
+                }
+                //if (v._scope)     // this is already handled in VarDeclaration.toAlias()
+                //{
+                //    v.semantic(v._scope);
+                //    s = v.toAlias(); // Need this if 'v' is a tuple variable
+                //    v = s.isVarDeclaration();
+                //}
             }
-            if (v._scope)
+            if (/*!v.isDataseg() && */(v.storage_class & STCmanifest))
             {
-                v.semantic(v._scope);
-                s = v.toAlias(); // Need this if 'v' is a tuple variable
-                v = s.isVarDeclaration();
+                checkAccess(e.loc, sc, null, v);
+                e = new VarExp(e.loc, v);
+                e = e.semantic(sc);
+                return e;
             }
         }
-        if (v && !v.isDataseg() && (v.storage_class & STCmanifest))
+        if (auto t = s.getType())
         {
-            checkAccess(e.loc, sc, null, v);
-            Expression ve = new VarExp(e.loc, v);
-            ve = ve.semantic(sc);
-            return ve;
-        }
-        if (s.getType())
-        {
-            return new TypeExp(e.loc, s.getType());
+            return new TypeExp(e.loc, t);
         }
 
-        TemplateMixin tm = s.isTemplateMixin();
-        if (tm)
+        if (auto tm = s.isTemplateMixin())
         {
             Expression de = new DotExp(e.loc, e, new ScopeExp(e.loc, tm));
             de.type = e.type;
             return de;
         }
-        TemplateDeclaration td = s.isTemplateDeclaration();
-        if (td)
+        if (auto td = s.isTemplateDeclaration())
         {
             if (e.op == TOKtype)
                 e = new ScopeExp(e.loc, td);
@@ -7911,8 +7910,7 @@ public:
             e = e.semantic(sc);
             return e;
         }
-        TemplateInstance ti = s.isTemplateInstance();
-        if (ti)
+        if (auto ti = s.isTemplateInstance())
         {
             if (!ti.semanticRun)
             {
@@ -7934,27 +7932,28 @@ public:
             e = DsymbolExp.resolve(e.loc, sc, s, false);
             return e;
         }
-        OverloadSet o = s.isOverloadSet();
-        if (o)
+        if (auto os = s.isOverloadSet())
         {
-            auto oe = new OverExp(e.loc, o);
+            auto oe = new OverExp(e.loc, os);
             if (e.op == TOKtype)
                 return oe;
             return new DotExp(e.loc, e, oe);
         }
-        Declaration d = s.isDeclaration();
+
+        auto d = s.isDeclaration();
         debug
         {
             if (!d)
                 printf("d = %s '%s'\n", s.kind(), s.toChars());
         }
         assert(d);
+
         if (e.op == TOKtype)
         {
             /* It's:
              *    Struct.d
              */
-            if (TupleDeclaration tup = d.isTupleDeclaration())
+            if (auto tup = d.isTupleDeclaration())
             {
                 e = new TupleExp(e.loc, tup);
                 e = e.semantic(sc);
@@ -7974,12 +7973,15 @@ public:
             }
             if (d.semanticRun == PASSinit && d._scope)
                 d.semantic(d._scope);
+
             checkAccess(e.loc, sc, e, d);
+
             auto ve = new VarExp(e.loc, d, 1);
             if (d.isVarDeclaration() && d.needThis())
                 ve.type = d.type.addMod(e.type.mod);
             return ve;
         }
+
         bool unreal = e.op == TOKvar && (cast(VarExp)e).var.isField();
         if (d.isDataseg() || unreal && d.isField())
         {
@@ -7990,7 +7992,11 @@ public:
             e = e.semantic(sc);
             return e;
         }
-        auto de = new DotVarExp(e.loc, e, d);
+
+        auto f = d.isFuncDeclaration();
+        bool hasOverloads = f && !f.isNested() && !f.isFuncLiteralDeclaration();
+
+        auto de = new DotVarExp(e.loc, e, d, hasOverloads);
         return de.semantic(sc);
     }
 
@@ -8708,42 +8714,42 @@ public:
             return em.getVarExp(e.loc, sc);
         }
 
-        VarDeclaration v = s.isVarDeclaration();
-        if (v && (!v.type || !v.type.deco))
+        if (auto v = s.isVarDeclaration())
         {
-            if (v.inuse) // Bugzilla 9494
+            if (!v.type || !v.type.deco)
             {
-                e.error("circular reference to '%s'", v.toPrettyChars());
-                return new ErrorExp();
+                if (v.inuse) // Bugzilla 9494
+                {
+                    e.error("circular reference to '%s'", v.toPrettyChars());
+                    return new ErrorExp();
+                }
+                //if (v._scope)     // this is already handled in VarDeclaration.toAlias()
+                //{
+                //    v.semantic(v._scope);
+                //    s = v.toAlias(); // Need this if 'v' is a tuple variable
+                //    v = s.isVarDeclaration();
+                //}
             }
-            if (v._scope)
+            if (/*!v.isDataseg() && */(v.storage_class & STCmanifest))
             {
-                v.semantic(v._scope);
-                s = v.toAlias(); // Need this if 'v' is a tuple variable
-                v = s.isVarDeclaration();
+                checkAccess(e.loc, sc, null, v);
+                Expression ve = new VarExp(e.loc, v);
+                ve = ve.semantic(sc);
+                return ve;
             }
         }
-        if (v && !v.isDataseg() && (v.storage_class & STCmanifest))
+        if (auto t = s.getType())
         {
-            checkAccess(e.loc, sc, null, v);
-            Expression ve = new VarExp(e.loc, v);
-            ve = ve.semantic(sc);
-            return ve;
-        }
-        if (s.getType())
-        {
-            return new TypeExp(e.loc, s.getType());
+            return new TypeExp(e.loc, t);
         }
 
-        TemplateMixin tm = s.isTemplateMixin();
-        if (tm)
+        if (auto tm = s.isTemplateMixin())
         {
             Expression de = new DotExp(e.loc, e, new ScopeExp(e.loc, tm));
             de.type = e.type;
             return de;
         }
-        TemplateDeclaration td = s.isTemplateDeclaration();
-        if (td)
+        if (auto td = s.isTemplateDeclaration())
         {
             if (e.op == TOKtype)
                 e = new ScopeExp(e.loc, td);
@@ -8752,8 +8758,7 @@ public:
             e = e.semantic(sc);
             return e;
         }
-        TemplateInstance ti = s.isTemplateInstance();
-        if (ti)
+        if (auto ti = s.isTemplateInstance())
         {
             if (!ti.semanticRun)
             {
@@ -8775,20 +8780,21 @@ public:
             e = DsymbolExp.resolve(e.loc, sc, s, false);
             return e;
         }
-        OverloadSet o = s.isOverloadSet();
-        if (o)
+        if (auto os = s.isOverloadSet())
         {
-            auto oe = new OverExp(e.loc, o);
+            auto oe = new OverExp(e.loc, os);
             if (e.op == TOKtype)
                 return oe;
             return new DotExp(e.loc, e, oe);
         }
-        Declaration d = s.isDeclaration();
+
+        auto d = s.isDeclaration();
         if (!d)
         {
             e.error("%s.%s is not a declaration", e.toChars(), ident.toChars());
             return new ErrorExp();
         }
+
         if (e.op == TOKtype)
         {
             /* It's:
@@ -8869,12 +8875,15 @@ public:
             //printf("e = %s, d = %s\n", e->toChars(), d->toChars());
             if (d.semanticRun == PASSinit && d._scope)
                 d.semantic(d._scope);
+
             checkAccess(e.loc, sc, e, d);
+
             auto ve = new VarExp(e.loc, d, 1);
             if (d.isVarDeclaration() && d.needThis())
                 ve.type = d.type.addMod(e.type.mod);
             return ve;
         }
+
         bool unreal = e.op == TOKvar && (cast(VarExp)e).var.isField();
         if (d.isDataseg() || unreal && d.isField())
         {
@@ -8885,6 +8894,7 @@ public:
             e = e.semantic(sc);
             return e;
         }
+
         if (d.parent && d.toParent().isModule())
         {
             // (e, d)
@@ -8893,7 +8903,11 @@ public:
             e.type = d.type;
             return e;
         }
-        auto de = new DotVarExp(e.loc, e, d, d.hasOverloads());
+
+        auto f = d.isFuncDeclaration();
+        bool hasOverloads = f && !f.isNested() && !f.isFuncLiteralDeclaration();
+
+        auto de = new DotVarExp(e.loc, e, d, hasOverloads);
         return de.semantic(sc);
     }
 
@@ -9270,7 +9284,7 @@ public:
         {
             // It's really a slice expression
             if (Dsymbol s = getDsymbol(*pe))
-                *pe = new DsymbolExp(loc, s, 1);
+                *pe = new DsymbolExp(loc, s, true);
             *pe = new ArrayExp(loc, *pe, new IntervalExp(loc, lwr, upr));
         }
         else if (*ps)

@@ -1871,6 +1871,11 @@ public:
         return "overloadset";
     }
 
+    //bool hasOverloads()
+    //{
+    //    return true;
+    //}
+
     override void accept(Visitor v)
     {
         v.visit(this);

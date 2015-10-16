@@ -2979,7 +2979,10 @@ public:
 
     override final bool hasOverloads()
     {
-        return overnext !is null;
+        // Nested functions and function literals cannot have overloads.
+        return overnext !is null &&
+               !isNested() &&
+               !isFuncLiteralDeclaration();
     }
 
     final PURE isPure()

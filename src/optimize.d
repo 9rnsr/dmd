@@ -347,9 +347,11 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 ret = ret.optimize(result);
                 return;
             }
+
             // Keep lvalue-ness
             if (expOptimize(e.e1, result, true))
                 return;
+
             // Convert &*ex to ex
             if (e.e1.op == TOKstar)
             {

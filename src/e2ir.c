@@ -953,17 +953,11 @@ elem *toElem(Expression *e, IRState *irs)
 
             //printf("[%s] SymbolExp::toElem('%s') %p, %s\n", se->loc.toChars(), se->toChars(), se, se->type->toChars());
             //printf("\tparent = '%s'\n", se->var->parent ? se->var->parent->toChars() : "null");
-            if (se->op == TOKvar && se->var->needThis())
+            if (se->op == TOKvar && se->var->needThis() && !se->hasOverloads)
             {
-                //se->error("need 'this' to access member %s", se->toChars());
-                //result = el_long(TYsize_t, 0);
-                //return;
-#if 0
-    auto fp = &TypeInfo.postblit;
-    pragma(msg, typeof(fp));
-
-    void delegate(void*) dg = &TypeInfo.postblit;   // error
-#endif
+                se->error("need 'this' to access member %s", se->toChars());
+                result = el_long(TYsize_t, 0);
+                return;
             }
 
             /* The magic variable __ctfe is always false at runtime
