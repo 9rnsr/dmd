@@ -9766,7 +9766,14 @@ public:
             {
                 f = f.toAliasFunc(); // FIXME, should see overlods - Bugzilla 1983
                 if (dve.hasOverloads)
+                {
+                    if (f.needThis())
+                    {
+                        type = new TypeDelegate(f.type);
+                        type = type.semantic(loc, sc);
+                    }
                     return this;
+                }
 
                 f.tookAddressOf++;
 
@@ -9807,23 +9814,38 @@ public:
             }
             if (auto f = ve.var.isFuncDeclaration())
             {
-                if (ve.hasOverloads)
-                    return this;
+                //if (ve.hasOverloads)
+                //{
+                //    //if (f.needThis() || f.isNested())
+                //    //{
+                //    //    type = new TypeDelegate(f.type);
+                //    //    type = type.semantic(loc, sc);
+                //    //}
+                //    return this;
+                //}
 
                 f.tookAddressOf++;
 
                 Expression e;
                 if (f.needThis())
                 {
-                    if (hasThis(sc))
+                    if (!ve.hasOverloads)
                     {
-                        e = new DelegateExp(loc, new ThisExp(loc), f);
+                        if (hasThis(sc))
+                        {
+                            e = new DelegateExp(loc, new ThisExp(loc), f);
+                            e = e.semantic(sc);
+                        }
+                        else 
+                        {
+                            error("no 'this' to create delegate for %s", f.toChars());
+                            e = new ErrorExp();
+                        }
+                        return e;
                     }
-                    else
-                    {
-                        error("no 'this' to create delegate for %s", f.toChars());
-                        e = new ErrorExp();
-                    }
+
+                    type = new TypeDelegate(f.type);
+                    type = type.semantic(loc, sc);
                 }
                 else if (f.isNested())
                 {
@@ -9835,15 +9857,19 @@ public:
                         e = new DelegateExp(loc, new NullExp(loc, Type.tnull), f);
                     }
                     else
+                    {
                         e = new DelegateExp(loc, e1, f);
+                    }
+                    e = e.semantic(sc);
+                    return e;
                 }
-                else
+                else if (!ve.hasOverloads)
                 {
                     // convert to SymOffExp
                     e = optimize(WANTvalue);
+                    return e;
                 }
-                e = e.semantic(sc);
-                return e;
+                return this;
             }
         }
         else if (wasCond)

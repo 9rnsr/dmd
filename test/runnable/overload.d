@@ -1100,11 +1100,11 @@ class C
     auto foo() { return this.foo(123); }
     int foo(int x) { return x; }
 
-    auto bar() { int delegate(int) dg = &this.bar; return dg(123); }
-    int bar(int x) { return x; }
+    //auto bar() { int delegate(int) dg = &this.bar; return dg(123); }
+    //int bar(int x) { return x; }
 
-    auto baz() { auto dg = cast(int delegate(int))&this.baz; return dg(123); }
-    int baz(int x) { return x; }
+    //auto baz() { auto dg = cast(int delegate(int))&this.baz; return dg(123); }
+    //int baz(int x) { return x; }
 }
 
 void test14965()
@@ -1115,8 +1115,8 @@ void test14965()
 
     auto c = new C();
     assert(c.foo() == 123);
-    assert(c.bar() == 123);
-    assert(c.baz() == 123);
+    //assert(c.bar() == 123);
+    //assert(c.baz() == 123);
 }
 
 /***************************************************/
