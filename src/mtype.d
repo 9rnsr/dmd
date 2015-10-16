@@ -7855,43 +7855,42 @@ public:
         {
             return em.getVarExp(e.loc, sc);
         }
-
-        VarDeclaration v = s.isVarDeclaration();
-        if (v && (!v.type || !v.type.deco))
+        if (auto v = s.isVarDeclaration())
         {
-            if (v.inuse) // Bugzilla 9494
+            if (!v.type || !v.type.deco)
             {
-                e.error("circular reference to '%s'", v.toPrettyChars());
-                return new ErrorExp();
+                if (v.inuse) // Bugzilla 9494
+                {
+                    e.error("circular reference to '%s'", v.toPrettyChars());
+                    return new ErrorExp();
+                }
+                //if (v._scope)     // this is already handled in VarDeclaration.toAlias()
+                //{
+                //    v.semantic(v._scope);
+                //    s = v.toAlias(); // Need this if 'v' is a tuple variable
+                //    v = s.isVarDeclaration();
+                //}
             }
-            if (v._scope)
+            if (/*!v.isDataseg() && */(v.storage_class & STCmanifest))
             {
-                v.semantic(v._scope);
-                s = v.toAlias(); // Need this if 'v' is a tuple variable
-                v = s.isVarDeclaration();
+                checkAccess(e.loc, sc, null, v);
+                e = new VarExp(e.loc, v);
+                e = e.semantic(sc);
+                return e;
             }
         }
-        if (v && !v.isDataseg() && (v.storage_class & STCmanifest))
+        if (auto t = s.getType())
         {
-            checkAccess(e.loc, sc, null, v);
-            Expression ve = new VarExp(e.loc, v);
-            ve = ve.semantic(sc);
-            return ve;
-        }
-        if (s.getType())
-        {
-            return new TypeExp(e.loc, s.getType());
+            return new TypeExp(e.loc, t);
         }
 
-        TemplateMixin tm = s.isTemplateMixin();
-        if (tm)
+        if (auto tm = s.isTemplateMixin())
         {
             Expression de = new DotExp(e.loc, e, new ScopeExp(e.loc, tm));
             de.type = e.type;
             return de;
         }
-        TemplateDeclaration td = s.isTemplateDeclaration();
-        if (td)
+        if (auto td = s.isTemplateDeclaration())
         {
             if (e.op == TOKtype)
                 e = new ScopeExp(e.loc, td);
@@ -7900,8 +7899,7 @@ public:
             e = e.semantic(sc);
             return e;
         }
-        TemplateInstance ti = s.isTemplateInstance();
-        if (ti)
+        if (auto ti = s.isTemplateInstance())
         {
             if (!ti.semanticRun)
             {
@@ -7923,27 +7921,28 @@ public:
             e = DsymbolExp.resolve(e.loc, sc, s, false);
             return e;
         }
-        OverloadSet o = s.isOverloadSet();
-        if (o)
+        if (auto os = s.isOverloadSet())
         {
-            auto oe = new OverExp(e.loc, o);
+            auto oe = new OverExp(e.loc, os);
             if (e.op == TOKtype)
                 return oe;
             return new DotExp(e.loc, e, oe);
         }
-        Declaration d = s.isDeclaration();
+
+        auto d = s.isDeclaration();
         debug
         {
             if (!d)
                 printf("d = %s '%s'\n", s.kind(), s.toChars());
         }
         assert(d);
+
         if (e.op == TOKtype)
         {
             /* It's:
              *    Struct.d
              */
-            if (TupleDeclaration tup = d.isTupleDeclaration())
+            if (auto tup = d.isTupleDeclaration())
             {
                 e = new TupleExp(e.loc, tup);
                 e = e.semantic(sc);
@@ -7963,12 +7962,15 @@ public:
             }
             if (d.semanticRun == PASSinit && d._scope)
                 d.semantic(d._scope);
+
             checkAccess(e.loc, sc, e, d);
+
             auto ve = new VarExp(e.loc, d, 1);
             if (d.isVarDeclaration() && d.needThis())
                 ve.type = d.type.addMod(e.type.mod);
             return ve;
         }
+
         bool unreal = e.op == TOKvar && (cast(VarExp)e).var.isField();
         if (d.isDataseg() || unreal && d.isField())
         {
@@ -7979,8 +7981,9 @@ public:
             e = e.semantic(sc);
             return e;
         }
-        auto de = new DotVarExp(e.loc, e, d);
-        return de.semantic(sc);
+
+        e = new DotVarExp(e.loc, e, d);
+        return e.semantic(sc);
     }
 
     override structalign_t alignment()
@@ -8696,43 +8699,42 @@ public:
         {
             return em.getVarExp(e.loc, sc);
         }
-
-        VarDeclaration v = s.isVarDeclaration();
-        if (v && (!v.type || !v.type.deco))
+        if (auto v = s.isVarDeclaration())
         {
-            if (v.inuse) // Bugzilla 9494
+            if (!v.type || !v.type.deco)
             {
-                e.error("circular reference to '%s'", v.toPrettyChars());
-                return new ErrorExp();
+                if (v.inuse) // Bugzilla 9494
+                {
+                    e.error("circular reference to '%s'", v.toPrettyChars());
+                    return new ErrorExp();
+                }
+                //if (v._scope)     // this is already handled in VarDeclaration.toAlias()
+                //{
+                //    v.semantic(v._scope);
+                //    s = v.toAlias(); // Need this if 'v' is a tuple variable
+                //    v = s.isVarDeclaration();
+                //}
             }
-            if (v._scope)
+            if (/*!v.isDataseg() && */(v.storage_class & STCmanifest))
             {
-                v.semantic(v._scope);
-                s = v.toAlias(); // Need this if 'v' is a tuple variable
-                v = s.isVarDeclaration();
+                checkAccess(e.loc, sc, null, v);
+                Expression ve = new VarExp(e.loc, v);
+                ve = ve.semantic(sc);
+                return ve;
             }
         }
-        if (v && !v.isDataseg() && (v.storage_class & STCmanifest))
+        if (auto t = s.getType())
         {
-            checkAccess(e.loc, sc, null, v);
-            Expression ve = new VarExp(e.loc, v);
-            ve = ve.semantic(sc);
-            return ve;
-        }
-        if (s.getType())
-        {
-            return new TypeExp(e.loc, s.getType());
+            return new TypeExp(e.loc, t);
         }
 
-        TemplateMixin tm = s.isTemplateMixin();
-        if (tm)
+        if (auto tm = s.isTemplateMixin())
         {
             Expression de = new DotExp(e.loc, e, new ScopeExp(e.loc, tm));
             de.type = e.type;
             return de;
         }
-        TemplateDeclaration td = s.isTemplateDeclaration();
-        if (td)
+        if (auto td = s.isTemplateDeclaration())
         {
             if (e.op == TOKtype)
                 e = new ScopeExp(e.loc, td);
@@ -8741,8 +8743,7 @@ public:
             e = e.semantic(sc);
             return e;
         }
-        TemplateInstance ti = s.isTemplateInstance();
-        if (ti)
+        if (auto ti = s.isTemplateInstance())
         {
             if (!ti.semanticRun)
             {
@@ -8764,20 +8765,21 @@ public:
             e = DsymbolExp.resolve(e.loc, sc, s, false);
             return e;
         }
-        OverloadSet o = s.isOverloadSet();
-        if (o)
+        if (auto os = s.isOverloadSet())
         {
-            auto oe = new OverExp(e.loc, o);
+            auto oe = new OverExp(e.loc, os);
             if (e.op == TOKtype)
                 return oe;
             return new DotExp(e.loc, e, oe);
         }
-        Declaration d = s.isDeclaration();
+
+        auto d = s.isDeclaration();
         if (!d)
         {
             e.error("%s.%s is not a declaration", e.toChars(), ident.toChars());
             return new ErrorExp();
         }
+
         if (e.op == TOKtype)
         {
             /* It's:
@@ -8858,12 +8860,15 @@ public:
             //printf("e = %s, d = %s\n", e->toChars(), d->toChars());
             if (d.semanticRun == PASSinit && d._scope)
                 d.semantic(d._scope);
+
             checkAccess(e.loc, sc, e, d);
+
             auto ve = new VarExp(e.loc, d, 1);
             if (d.isVarDeclaration() && d.needThis())
                 ve.type = d.type.addMod(e.type.mod);
             return ve;
         }
+
         bool unreal = e.op == TOKvar && (cast(VarExp)e).var.isField();
         if (d.isDataseg() || unreal && d.isField())
         {
@@ -8874,6 +8879,7 @@ public:
             e = e.semantic(sc);
             return e;
         }
+
         if (d.parent && d.toParent().isModule())
         {
             // (e, d)
@@ -8882,8 +8888,9 @@ public:
             e.type = d.type;
             return e;
         }
-        auto de = new DotVarExp(e.loc, e, d, d.hasOverloads());
-        return de.semantic(sc);
+
+        e = new DotVarExp(e.loc, e, d, d.hasOverloads());
+        return e.semantic(sc);
     }
 
     override ClassDeclaration isClassHandle()
