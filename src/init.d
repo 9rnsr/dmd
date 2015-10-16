@@ -774,6 +774,7 @@ public:
         //printf("ExpInitializer::inferType() %s\n", toChars());
         exp = exp.semantic(sc);
         exp = resolveProperties(sc, exp);
+
         if (exp.op == TOKimport)
         {
             ScopeExp se = cast(ScopeExp)exp;
@@ -784,6 +785,7 @@ public:
                 se.error("cannot infer type from %s %s", se.sds.kind(), se.toChars());
             return new ErrorInitializer();
         }
+
         // Give error for overloaded function addresses
         if (exp.op == TOKsymoff)
         {

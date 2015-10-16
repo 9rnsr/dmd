@@ -7140,7 +7140,7 @@ public:
             }
             version (none)
             {
-                if (FuncDeclaration fd = s.isFuncDeclaration())
+                if (auto fd = s.isFuncDeclaration())
                 {
                     *pe = new DsymbolExp(loc, fd, 1);
                     return;

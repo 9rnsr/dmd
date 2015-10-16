@@ -350,6 +350,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             // Keep lvalue-ness
             if (expOptimize(e.e1, result, true))
                 return;
+
             // Convert &*ex to ex
             if (e.e1.op == TOKstar)
             {
@@ -366,7 +367,9 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (e.e1.op == TOKvar)
             {
                 VarExp ve = cast(VarExp)e.e1;
-                if (!ve.var.isOut() && !ve.var.isRef() && !ve.var.isImportedSymbol())
+                if (!ve.var.isOut() &&
+                    !ve.var.isRef() &&
+                    !ve.var.isImportedSymbol())
                 {
                     ret = new SymOffExp(e.loc, ve.var, 0, ve.hasOverloads);
                     ret.type = e.type;

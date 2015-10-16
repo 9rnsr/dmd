@@ -3761,23 +3761,26 @@ public:
             e = e.semantic(sc);
             return e;
         }
-        if (FuncLiteralDeclaration fld = s.isFuncLiteralDeclaration())
+        if (auto f = s.isFuncDeclaration())
         {
-            //printf("'%s' is a function literal\n", fld->toChars());
-            e = new FuncExp(loc, fld);
-            return e.semantic(sc);
-        }
-        if (FuncDeclaration f = s.isFuncDeclaration())
-        {
+            if (auto fld = s.isFuncLiteralDeclaration())
+            {
+                //printf("'%s' is a function literal\n", fld->toChars());
+                e = new FuncExp(loc, fld);
+                return e.semantic(sc);
+            }
+
             f = f.toAliasFunc();
             if (!f.functionSemantic())
                 return new ErrorExp();
+
             if (!f.type.deco)
             {
                 const(char)* trailMsg = f.inferRetType ? "inferred return type of function call " : "";
                 .error(loc, "forward reference to %s'%s'", trailMsg, f.toChars());
                 return new ErrorExp();
             }
+
             FuncDeclaration fd = s.isFuncDeclaration();
             fd.type = f.type;
             return new VarExp(loc, fd, hasOverloads);
@@ -5955,21 +5958,24 @@ public:
             type = var.type;
         if (type && !type.deco)
             type = type.semantic(loc, sc);
+
         /* Fix for 1161 doesn't work because it causes protection
          * problems when instantiating imported templates passing private
          * variables as alias template parameters.
          */
         //checkAccess(loc, sc, NULL, var);
-        if (VarDeclaration vd = var.isVarDeclaration())
+
+        if (auto vd = var.isVarDeclaration())
         {
             hasOverloads = 0;
             if (vd.checkNestedReference(sc, loc))
                 return new ErrorExp();
+
             // Bugzilla 12025: If the variable is not actually used in runtime code,
             // the purity violation error is redundant.
             //checkPurity(sc, vd);
         }
-        else if (FuncDeclaration fd = var.isFuncDeclaration())
+        else if (auto fd = var.isFuncDeclaration())
         {
             // TODO: If fd isn't yet resolved its overload, the checkNestedReference
             // call would cause incorrect validation.
@@ -5977,7 +5983,7 @@ public:
             if (fd.checkNestedReference(sc, loc))
                 return new ErrorExp();
         }
-        else if (OverDeclaration od = var.isOverDeclaration())
+        else if (auto od = var.isOverDeclaration())
         {
             type = Type.tvoid; // ambiguous type?
         }
@@ -7828,7 +7834,7 @@ public:
             L1:
                 {
                     assert(ds);
-                    if (FuncDeclaration f = ds.isFuncDeclaration())
+                    if (auto f = ds.isFuncDeclaration())
                     {
                         if (!f.type.deco)
                         {
@@ -7953,7 +7959,7 @@ public:
                 /* Check for access before resolving aliases because public
                  * aliases to private symbols are public.
                  */
-                if (Declaration d = s.isDeclaration())
+                if (auto d = s.isDeclaration())
                     checkAccess(loc, sc, null, d);
 
                 // if 's' is a tuple variable, the tuple is returned.
@@ -7961,13 +7967,11 @@ public:
 
                 checkDeprecated(sc, s);
 
-                EnumMember em = s.isEnumMember();
-                if (em)
+                if (auto em = s.isEnumMember())
                 {
                     return em.getVarExp(loc, sc);
                 }
-                VarDeclaration v = s.isVarDeclaration();
-                if (v)
+                if (auto v = s.isVarDeclaration())
                 {
                     //printf("DotIdExp:: Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
                     if (v.inuse)
@@ -7994,8 +7998,7 @@ public:
                     e = e.deref();
                     return e.semantic(sc);
                 }
-                FuncDeclaration f = s.isFuncDeclaration();
-                if (f)
+                if (auto f = s.isFuncDeclaration())
                 {
                     //printf("it's a function\n");
                     if (!f.functionSemantic())
@@ -8018,7 +8021,7 @@ public:
                     }
                     return e;
                 }
-                if (OverDeclaration od = s.isOverDeclaration())
+                if (auto od = s.isOverDeclaration())
                 {
                     e = new VarExp(loc, od, 1);
                     if (eleft)
@@ -8028,19 +8031,16 @@ public:
                     }
                     return e;
                 }
-                OverloadSet o = s.isOverloadSet();
-                if (o)
+                if (auto os = s.isOverloadSet())
                 {
                     //printf("'%s' is an overload set\n", o->toChars());
-                    return new OverExp(loc, o);
+                    return new OverExp(loc, os);
                 }
-                Type t = s.getType();
-                if (t)
+                if (auto t = s.getType())
                 {
                     return new TypeExp(loc, t);
                 }
-                TupleDeclaration tup = s.isTupleDeclaration();
-                if (tup)
+                if (auto tup = s.isTupleDeclaration())
                 {
                     if (eleft)
                     {
@@ -8051,8 +8051,7 @@ public:
                     e = e.semantic(sc);
                     return e;
                 }
-                ScopeDsymbol sds = s.isScopeDsymbol();
-                if (sds)
+                if (auto sds = s.isScopeDsymbol())
                 {
                     //printf("it's a ScopeDsymbol %s\n", ident->toChars());
                     e = new ScopeExp(loc, sds);
@@ -8061,17 +8060,14 @@ public:
                         e = new DotExp(loc, eleft, e);
                     return e;
                 }
-                Import imp = s.isImport();
-                if (imp)
+                if (auto imp = s.isImport())
                 {
                     ie = new ScopeExp(loc, imp.pkg);
                     return ie.semantic(sc);
                 }
+
                 // BUG: handle other cases like in IdentifierExp::semantic()
-                debug
-                {
-                    printf("s = '%s', kind = '%s'\n", s.toChars(), s.kind());
-                }
+                debug printf("s = '%s', kind = '%s'\n", s.toChars(), s.kind());
                 assert(0);
             }
             else if (ident == Id.stringof)
@@ -8182,9 +8178,10 @@ public:
         }
         if (type)
             return this;
+
         var = var.toAlias().isDeclaration();
-        TupleDeclaration tup = var.isTupleDeclaration();
-        if (tup)
+
+        if (auto tup = var.isTupleDeclaration())
         {
             /* Replace:
              *  e1.tuple(a, b, c)
@@ -8192,7 +8189,7 @@ public:
              *  tuple(e1.a, e1.b, e1.c)
              */
             e1 = e1.semantic(sc);
-            auto exps = new Expressions();
+
             Expression e0 = null;
             Expression ev = e1;
             if (sc.func && !isTrivialExp(e1))
@@ -8206,6 +8203,8 @@ public:
                 e0 = e0.semantic(sc);
                 ev = ev.semantic(sc);
             }
+
+            auto exps = new Expressions();
             exps.reserve(tup.objects.dim);
             for (size_t i = 0; i < tup.objects.dim; i++)
             {
@@ -8235,6 +8234,7 @@ public:
                 }
                 exps.push(e);
             }
+
             Expression e = new TupleExp(loc, e0, exps);
             e = e.semantic(sc);
             return e;
@@ -8242,11 +8242,13 @@ public:
         e1 = e1.semantic(sc);
         e1 = e1.addDtorHook(sc);
         Type t1 = e1.type;
-        if (FuncDeclaration fd = var.isFuncDeclaration())
+
+        if (auto fd = var.isFuncDeclaration())
         {
             // for functions, do checks after overload resolution
             if (!fd.functionSemantic())
                 return new ErrorExp();
+
             /* Bugzilla 13843: If fd obviously has no overloads, we should
              * normalize AST, and it will give a chance to wrap fd with FuncExp.
              */
@@ -8259,7 +8261,7 @@ public:
             type = fd.type;
             assert(type);
         }
-        else if (OverDeclaration od = var.isOverDeclaration())
+        else if (auto  od = var.isOverDeclaration())
         {
             type = Type.tvoid; // ambiguous type?
         }
@@ -8275,8 +8277,9 @@ public:
             if (t1.ty == Tpointer)
                 t1 = t1.nextOf();
             type = type.addMod(t1.mod);
-            Dsymbol vparent = var.toParent();
-            AggregateDeclaration ad = vparent ? vparent.isAggregateDeclaration() : null;
+
+            auto p = var.toParent();
+            auto ad = p ? p.isAggregateDeclaration() : null;
             if (Expression e1x = getRightThis(loc, sc, ad, e1, var, 1))
                 e1 = e1x;
             else
@@ -8288,7 +8291,8 @@ public:
                 return e;
             }
             checkAccess(loc, sc, e1, var);
-            VarDeclaration v = var.isVarDeclaration();
+
+            auto v = var.isVarDeclaration();
             if (v && (v.isDataseg() || (v.storage_class & STCmanifest)))
             {
                 Expression e = expandVar(WANTvalue, v);
@@ -8483,6 +8487,7 @@ public:
                 ti.semantic(sc);
                 if (!ti.inst || ti.errors) // if template failed to expand
                     return new ErrorExp();
+
                 Dsymbol s = ti.toAlias();
                 Declaration v = s.isDeclaration();
                 if (v)
@@ -9639,9 +9644,9 @@ public:
 extern (C++) final class AddrExp : UnaExp
 {
 public:
-    extern (D) this(Loc loc, Expression e)
+    extern (D) this(Loc loc, Expression e1)
     {
-        super(loc, TOKaddress, __traits(classInstanceSize, AddrExp), e);
+        super(loc, TOKaddress, __traits(classInstanceSize, AddrExp), e1);
     }
 
     override Expression semantic(Scope* sc)
@@ -9652,13 +9657,15 @@ public:
         }
         if (type)
             return this;
+
         if (Expression ex = unaSemantic(sc))
             return ex;
         int wasCond = e1.op == TOKquestion;
+
         if (e1.op == TOKdotti)
         {
-            DotTemplateInstanceExp dti = cast(DotTemplateInstanceExp)e1;
-            TemplateInstance ti = dti.ti;
+            auto dti = cast(DotTemplateInstanceExp)e1;
+            auto ti = dti.ti;
             {
                 //assert(ti->needsTypeInference(sc));
                 ti.semantic(sc);
@@ -9675,7 +9682,7 @@ public:
         }
         else if (e1.op == TOKimport)
         {
-            TemplateInstance ti = (cast(ScopeExp)e1).sds.isTemplateInstance();
+            auto ti = (cast(ScopeExp)e1).sds.isTemplateInstance();
             if (ti)
             {
                 //assert(ti->needsTypeInference(sc));
@@ -9694,6 +9701,7 @@ public:
         e1 = e1.toLvalue(sc, null);
         if (e1.op == TOKerror)
             return e1;
+
         if (!e1.type)
         {
             error("cannot take address of %s", e1.toChars());
@@ -9718,12 +9726,12 @@ public:
             return new ErrorExp();
         }
         type = e1.type.pointerTo();
+
         // See if this should really be a delegate
         if (e1.op == TOKdotvar)
         {
             DotVarExp dve = cast(DotVarExp)e1;
-            FuncDeclaration f = dve.var.isFuncDeclaration();
-            if (f)
+            if (auto f = dve.var.isFuncDeclaration())
             {
                 f = f.toAliasFunc(); // FIXME, should see overlods - Bugzilla 1983
                 if (!dve.hasOverloads)
@@ -9740,8 +9748,7 @@ public:
         else if (e1.op == TOKvar)
         {
             VarExp ve = cast(VarExp)e1;
-            VarDeclaration v = ve.var.isVarDeclaration();
-            if (v)
+            if (auto v = ve.var.isVarDeclaration())
             {
                 if (!v.canTakeAddressOf())
                 {
@@ -9758,8 +9765,7 @@ public:
                 }
                 ve.checkPurity(sc, v);
             }
-            FuncDeclaration f = ve.var.isFuncDeclaration();
-            if (f)
+            if (auto f = ve.var.isFuncDeclaration())
             {
                 /* Because nested functions cannot be overloaded,
                  * mark here that we took its address because castTo()
