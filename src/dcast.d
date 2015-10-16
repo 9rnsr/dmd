@@ -1856,66 +1856,70 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             Type tb = t.toBasetype();
             Type typeb = e.type.toBasetype();
 
-            if (!tb.equals(typeb))
+            if (tb.equals(typeb))
             {
-                // Look for pointers to functions where the functions are overloaded.
-                if (e.e1.op == TOKoverloadset &&
-                    (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
+                result = e.copy();
+                result.type = t;
+                return;
+            }
+
+            // Look for pointers to functions where the functions are overloaded.
+            if (e.e1.op == TOKoverloadset &&
+                (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
+            {
+                OverExp eo = cast(OverExp)e.e1;
+                FuncDeclaration f = null;
+                for (size_t i = 0; i < eo.vars.a.dim; i++)
                 {
-                    OverExp eo = cast(OverExp)e.e1;
-                    FuncDeclaration f = null;
-                    for (size_t i = 0; i < eo.vars.a.dim; i++)
+                    Dsymbol s = eo.vars.a[i];
+                    FuncDeclaration f2 = s.isFuncDeclaration();
+                    assert(f2);
+                    if (f2.overloadExactMatch(tb.nextOf()))
                     {
-                        Dsymbol s = eo.vars.a[i];
-                        FuncDeclaration f2 = s.isFuncDeclaration();
-                        assert(f2);
-                        if (f2.overloadExactMatch(tb.nextOf()))
+                        if (f)
                         {
-                            if (f)
-                            {
-                                /* Error if match in more than one overload set,
-                                 * even if one is a 'better' match than the other.
-                                 */
-                                ScopeDsymbol.multiplyDefined(e.loc, f, f2);
-                            }
-                            else
-                                f = f2;
+                            /* Error if match in more than one overload set,
+                             * even if one is a 'better' match than the other.
+                             */
+                            ScopeDsymbol.multiplyDefined(e.loc, f, f2);
                         }
+                        else
+                            f = f2;
                     }
+                }
+                if (f)
+                {
+                    f.tookAddressOf++;
+                    auto se = new SymOffExp(e.loc, f, 0, 0);
+                    se.semantic(sc);
+                    // Let SymOffExp::castTo() do the heavy lifting
+                    visit(se);
+                    return;
+                }
+            }
+
+            if (e.e1.op == TOKvar &&
+                typeb.ty == Tpointer && typeb.nextOf().ty == Tfunction &&
+                tb.ty == Tpointer && tb.nextOf().ty == Tfunction)
+            {
+                VarExp ve = cast(VarExp)e.e1;
+                FuncDeclaration f = ve.var.isFuncDeclaration();
+                if (f)
+                {
+                    assert(f.isImportedSymbol());
+                    f = f.overloadExactMatch(tb.nextOf());
                     if (f)
                     {
-                        f.tookAddressOf++;
-                        auto se = new SymOffExp(e.loc, f, 0, 0);
-                        se.semantic(sc);
-                        // Let SymOffExp::castTo() do the heavy lifting
-                        visit(se);
+                        result = new VarExp(e.loc, f);
+                        result.type = f.type;
+                        result = new AddrExp(e.loc, result);
+                        result.type = t;
                         return;
                     }
                 }
-
-                if (e.e1.op == TOKvar &&
-                    typeb.ty == Tpointer && typeb.nextOf().ty == Tfunction &&
-                    tb.ty == Tpointer && tb.nextOf().ty == Tfunction)
-                {
-                    VarExp ve = cast(VarExp)e.e1;
-                    FuncDeclaration f = ve.var.isFuncDeclaration();
-                    if (f)
-                    {
-                        assert(f.isImportedSymbol());
-                        f = f.overloadExactMatch(tb.nextOf());
-                        if (f)
-                        {
-                            result = new VarExp(e.loc, f);
-                            result.type = f.type;
-                            result = new AddrExp(e.loc, result);
-                            result.type = t;
-                            return;
-                        }
-                    }
-                }
-                visit(cast(Expression)e);
             }
-            result.type = t;
+
+            visit(cast(Expression)e);
         }
 
         override void visit(TupleExp e)
