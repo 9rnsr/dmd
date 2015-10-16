@@ -7993,11 +7993,12 @@ public:
             return e;
         }
 
+        // This is consistent with DsymbolExp.resolve(..., keepOverloads: true)
         auto f = d.isFuncDeclaration();
         bool hasOverloads = f && !f.isNested() && !f.isFuncLiteralDeclaration();
 
-        auto de = new DotVarExp(e.loc, e, d, hasOverloads);
-        return de.semantic(sc);
+        e = new DotVarExp(e.loc, e, d, hasOverloads);
+        return e.semantic(sc);
     }
 
     override structalign_t alignment()
@@ -8904,11 +8905,12 @@ public:
             return e;
         }
 
+        // This is consistent with DsymbolExp.resolve(..., keepOverloads: true)
         auto f = d.isFuncDeclaration();
         bool hasOverloads = f && !f.isNested() && !f.isFuncLiteralDeclaration();
 
-        auto de = new DotVarExp(e.loc, e, d, hasOverloads);
-        return de.semantic(sc);
+        e = new DotVarExp(e.loc, e, d, hasOverloads);
+        return e.semantic(sc);
     }
 
     override ClassDeclaration isClassHandle()
