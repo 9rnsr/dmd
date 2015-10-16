@@ -1084,6 +1084,27 @@ void test14858()
 
 /***************************************************/
 
+template Mix()
+{
+    auto foo() { return a; }
+    auto foo(int n) { return a + n; }
+}
+
+void testNestedFuncOverloads()
+{
+    int a = 1;
+    mixin Mix!();
+
+    // foo is overloaded nested functions.
+    assert(foo() == 1);
+    assert(foo(10) == 11);
+
+    //auto fp = &foo;
+    int delegate() fp1 = &foo;
+    int delegate(int) fp2 = &foo;
+}
+
+/***************************************************/
 int main()
 {
     test1528a();

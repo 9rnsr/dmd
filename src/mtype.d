@@ -4616,7 +4616,7 @@ public:
         {
             // It's really an index expression
             if (Dsymbol s = getDsymbol(*pe))
-                *pe = new DsymbolExp(loc, s, 1);
+                *pe = new DsymbolExp(loc, s, true);
             *pe = new ArrayExp(loc, *pe, dim);
         }
         else if (*ps)
@@ -4949,7 +4949,7 @@ public:
         {
             // It's really a slice expression
             if (Dsymbol s = getDsymbol(*pe))
-                *pe = new DsymbolExp(loc, s, 1);
+                *pe = new DsymbolExp(loc, s, true);
             *pe = new ArrayExp(loc, *pe);
         }
         else if (*ps)
@@ -7142,7 +7142,7 @@ public:
             {
                 if (auto fd = s.isFuncDeclaration())
                 {
-                    *pe = new DsymbolExp(loc, fd, 1);
+                    *pe = new DsymbolExp(loc, fd, true);
                     return;
                 }
             }
@@ -7982,7 +7982,11 @@ public:
             return e;
         }
 
-        e = new DotVarExp(e.loc, e, d);
+        // This is consistent with DsymbolExp.resolve(..., keepOverloads: true)
+        auto f = d.isFuncDeclaration();
+        bool hasOverloads = f && !f.isFuncLiteralDeclaration();
+
+        e = new DotVarExp(e.loc, e, d, hasOverloads);
         return e.semantic(sc);
     }
 
@@ -8889,7 +8893,11 @@ public:
             return e;
         }
 
-        e = new DotVarExp(e.loc, e, d, d.hasOverloads());
+        // This is consistent with DsymbolExp.resolve(..., keepOverloads: true)
+        auto f = d.isFuncDeclaration();
+        bool hasOverloads = f && !f.isFuncLiteralDeclaration();
+
+        e = new DotVarExp(e.loc, e, d, hasOverloads);
         return e.semantic(sc);
     }
 
@@ -9266,7 +9274,7 @@ public:
         {
             // It's really a slice expression
             if (Dsymbol s = getDsymbol(*pe))
-                *pe = new DsymbolExp(loc, s, 1);
+                *pe = new DsymbolExp(loc, s, true);
             *pe = new ArrayExp(loc, *pe, new IntervalExp(loc, lwr, upr));
         }
         else if (*ps)
