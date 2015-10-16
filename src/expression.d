@@ -9751,14 +9751,16 @@ public:
             {
                 f = f.toAliasFunc(); // FIXME, should see overlods - Bugzilla 1983
                 if (!dve.hasOverloads)
+                {
                     f.tookAddressOf++;
-                Expression e;
-                if (f.needThis())
-                    e = new DelegateExp(loc, dve.e1, f, dve.hasOverloads);
-                else // It is a function pointer. Convert &v.f() --> (v, &V.f())
-                    e = new CommaExp(loc, dve.e1, new AddrExp(loc, new VarExp(loc, f)));
-                e = e.semantic(sc);
-                return e;
+                    Expression e;
+                    if (f.needThis())
+                        e = new DelegateExp(loc, dve.e1, f, dve.hasOverloads);
+                    else // It is a function pointer. Convert &v.f() --> (v, &V.f())
+                        e = new CommaExp(loc, dve.e1, new AddrExp(loc, new VarExp(loc, f)));
+                    e = e.semantic(sc);
+                    return e;
+                }
             }
         }
         else if (e1.op == TOKvar)
