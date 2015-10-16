@@ -9661,9 +9661,9 @@ public:
 extern (C++) final class AddrExp : UnaExp
 {
 public:
-    extern (D) this(Loc loc, Expression e)
+    extern (D) this(Loc loc, Expression e1)
     {
-        super(loc, TOKaddress, __traits(classInstanceSize, AddrExp), e);
+        super(loc, TOKaddress, __traits(classInstanceSize, AddrExp), e1);
     }
 
     override Expression semantic(Scope* sc)
@@ -9674,13 +9674,27 @@ public:
         }
         if (type)
             return this;
+
         if (Expression ex = unaSemantic(sc))
             return ex;
+
+        /* Rewrite &(a, b) as (a, &b)
+         */
+        if (e1.op == TOKcomma)
+        {
+            Expression e0;
+            Expression e = Expression.extractLast(e1, &e0);
+            e = new AddrExp(loc, e);
+            e = new CommaExp(loc, e0, e);
+            return e.semantic(sc);
+        }
+
         int wasCond = e1.op == TOKquestion;
+
         if (e1.op == TOKdotti)
         {
-            DotTemplateInstanceExp dti = cast(DotTemplateInstanceExp)e1;
-            TemplateInstance ti = dti.ti;
+            auto dti = cast(DotTemplateInstanceExp)e1;
+            auto ti = dti.ti;
             {
                 //assert(ti->needsTypeInference(sc));
                 ti.semantic(sc);
@@ -9697,7 +9711,7 @@ public:
         }
         else if (e1.op == TOKimport)
         {
-            TemplateInstance ti = (cast(ScopeExp)e1).sds.isTemplateInstance();
+            auto ti = (cast(ScopeExp)e1).sds.isTemplateInstance();
             if (ti)
             {
                 //assert(ti->needsTypeInference(sc));
@@ -9716,6 +9730,7 @@ public:
         e1 = e1.toLvalue(sc, null);
         if (e1.op == TOKerror)
             return e1;
+
         if (!e1.type)
         {
             error("cannot take address of %s", e1.toChars());
@@ -9750,17 +9765,24 @@ public:
             if (auto f = dve.var.isFuncDeclaration())
             {
                 f = f.toAliasFunc(); // FIXME, should see overlods - Bugzilla 1983
-                if (!dve.hasOverloads)
+                if (dve.hasOverloads)
+                    return this;
+
+                f.tookAddressOf++;
+
+                Expression e;
+                if (f.needThis())
                 {
-                    f.tookAddressOf++;
-                    Expression e;
-                    if (f.needThis())
-                        e = new DelegateExp(loc, dve.e1, f, dve.hasOverloads);
-                    else // It is a function pointer. Convert &v.f() --> (v, &V.f())
-                        e = new CommaExp(loc, dve.e1, new AddrExp(loc, new VarExp(loc, f)));
-                    e = e.semantic(sc);
-                    return e;
+                    e = new DelegateExp(loc, dve.e1, f, dve.hasOverloads);
                 }
+                else
+                {
+                    // It is a function pointer. Convert &v.f --> (v, &V.f)
+                    e = new AddrExp(loc, new VarExp(loc, f));
+                    e = new CommaExp(loc, dve.e1, e);
+                }
+                e = e.semantic(sc);
+                return e;
             }
         }
         else if (e1.op == TOKvar)
@@ -9785,38 +9807,43 @@ public:
             }
             if (auto f = ve.var.isFuncDeclaration())
             {
-                /* mark here that we took its address because castTo()
-                 * may not be called with an exact match.
-                 */
-                if (!ve.hasOverloads)
-                    f.tookAddressOf++;
-                if (f.isNested())
+                if (ve.hasOverloads)
+                    return this;
+
+                f.tookAddressOf++;
+
+                Expression e;
+                if (f.needThis())
                 {
-                    if (f.isFuncLiteralDeclaration())
+                    if (hasThis(sc))
                     {
-                        if (!f.FuncDeclaration.isNested())
-                        {
-                            /* Supply a 'null' for a this pointer if no this is available
-                             */
-                            Expression e = new DelegateExp(loc, new NullExp(loc, Type.tnull), f, ve.hasOverloads);
-                            e = e.semantic(sc);
-                            return e;
-                        }
+                        e = new DelegateExp(loc, new ThisExp(loc), f);
                     }
-                    Expression e = new DelegateExp(loc, e1, f, ve.hasOverloads);
-                    e = e.semantic(sc);
-                    return e;
+                    else
+                    {
+                        error("no 'this' to create delegate for %s", f.toChars());
+                        e = new ErrorExp();
+                    }
                 }
-                if (f.needThis() && hasThis(sc))
+                else if (f.isNested())
                 {
-                    /* Should probably supply 'this' after overload resolution,
-                     * not before.
-                     */
-                    Expression ethis = new ThisExp(loc);
-                    Expression e = new DelegateExp(loc, ethis, f, ve.hasOverloads);
-                    e = e.semantic(sc);
-                    return e;
+                    if (f.isFuncLiteralDeclaration() &&
+                        !f.FuncDeclaration.isNested())
+                    {
+                        /* Supply a 'null' for a this pointer if no this is available
+                         */
+                        e = new DelegateExp(loc, new NullExp(loc, Type.tnull), f);
+                    }
+                    else
+                        e = new DelegateExp(loc, e1, f);
                 }
+                else
+                {
+                    // convert to SymOffExp
+                    e = optimize(WANTvalue);
+                }
+                e = e.semantic(sc);
+                return e;
             }
         }
         else if (wasCond)

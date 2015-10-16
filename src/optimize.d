@@ -335,18 +335,6 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
         override void visit(AddrExp e)
         {
             //printf("AddrExp::optimize(result = %d) %s\n", result, e->toChars());
-            /* Rewrite &(a,b) as (a,&b)
-             */
-            if (e.e1.op == TOKcomma)
-            {
-                CommaExp ce = cast(CommaExp)e.e1;
-                auto ae = new AddrExp(e.loc, ce.e2);
-                ae.type = e.type;
-                ret = new CommaExp(ce.loc, ce.e1, ae);
-                ret.type = e.type;
-                ret = ret.optimize(result);
-                return;
-            }
 
             // Keep lvalue-ness
             if (expOptimize(e.e1, result, true))
