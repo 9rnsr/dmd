@@ -6473,11 +6473,14 @@ public:
     {
         if (type)
             return this;
+
         static if (LOGSEMANTIC)
         {
             printf("DeclarationExp::semantic() %s\n", toChars());
         }
+
         uint olderrors = global.errors;
+
         /* This is here to support extern(linkage) declaration,
          * where the extern(linkage) winds up being an AttribDeclaration
          * wrapper.
@@ -6485,8 +6488,7 @@ public:
         Dsymbol s = declaration;
         while (1)
         {
-            AttribDeclaration ad = s.isAttribDeclaration();
-            if (ad)
+            if (auto ad = s.isAttribDeclaration())
             {
                 if (ad.decl && ad.decl.dim == 1)
                 {
@@ -6496,7 +6498,8 @@ public:
             }
             break;
         }
-        VarDeclaration v = s.isVarDeclaration();
+
+        auto v = s.isVarDeclaration();
         if (v)
         {
             // Do semantic() on initializer first, so:
@@ -6505,7 +6508,8 @@ public:
             declaration.semantic(sc);
             s.parent = sc.parent;
         }
-        //printf("inserting '%s' %p into sc = %p\n", s->toChars(), s, sc);
+        //printf("inserting '%s' %p into sc = %p\n", s.toChars(), s, sc);
+
         // Insert into both local scope and function scope.
         // Must be unique in both.
         if (s.ident)
@@ -6515,36 +6519,45 @@ public:
                 error("declaration %s is already defined", s.toPrettyChars());
                 return new ErrorExp();
             }
-            else if (sc.func)
+            if (sc.func)
             {
                 // Bugzilla 11720 - include Dataseg variables
-                if ((s.isFuncDeclaration() || s.isAggregateDeclaration() || s.isEnumDeclaration() || v && v.isDataseg()) && !sc.func.localsymtab.insert(s))
+                if ((s.isFuncDeclaration() ||
+                     s.isAggregateDeclaration() ||
+                     s.isEnumDeclaration() ||
+                     v && v.isDataseg()) &&
+                    !sc.func.localsymtab.insert(s))
                 {
                     error("declaration %s is already defined in another scope in %s", s.toPrettyChars(), sc.func.toChars());
                     return new ErrorExp();
                 }
-                else
+
+                // Disallow shadowing
+                for (Scope* scx = sc.enclosing; scx && scx.func == sc.func; scx = scx.enclosing)
                 {
-                    // Disallow shadowing
-                    for (Scope* scx = sc.enclosing; scx && scx.func == sc.func; scx = scx.enclosing)
+                    Dsymbol s2;
+                    if (scx.scopesym &&
+                        scx.scopesym.symtab &&
+                        (s2 = scx.scopesym.symtab.lookup(s.ident)) !is null &&
+                        s != s2)
                     {
-                        Dsymbol s2;
-                        if (scx.scopesym && scx.scopesym.symtab && (s2 = scx.scopesym.symtab.lookup(s.ident)) !is null && s != s2)
-                        {
-                            error("%s %s is shadowing %s %s", s.kind(), s.ident.toChars(), s2.kind(), s2.toPrettyChars());
-                            return new ErrorExp();
-                        }
+                        error("%s %s is shadowing %s %s", s.kind(), s.ident.toChars(), s2.kind(), s2.toPrettyChars());
+                        return new ErrorExp();
                     }
                 }
             }
         }
-        if (!s.isVarDeclaration())
+        if (!v)
         {
             Scope* sc2 = sc;
-            if (sc2.stc & (STCpure | STCnothrow | STCnogc))
+            if (auto stc = sc2.stc & (STCpure | STCnothrow | STCnogc))
+            {
                 sc2 = sc.push();
-            sc2.stc &= ~(STCpure | STCnothrow | STCnogc);
+                sc2.stc &= ~stc;
+            }
+            //printf("+++ [%s]\n", loc.toChars());
             declaration.semantic(sc2);
+            //printf("---\n");
             if (sc2 != sc)
                 sc2.pop();
             s.parent = sc.parent;
