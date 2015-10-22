@@ -4728,6 +4728,21 @@ void test15152()
 }
 
 /******************************************/
+// 15254
+
+struct S15254
+{
+    int[] val;
+    alias val this;
+}
+
+// U is deduced to int, but the reconstructed tspec int[] does not equal to S15254
+static assert(!is(S15254 == U[], U));
+
+// U is deduced to int, but the reconstructed tspec int[][] does not equal to S15254
+static assert(!is(S15254[] == U[][], U));
+
+/******************************************/
 
 int main()
 {

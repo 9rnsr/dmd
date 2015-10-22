@@ -7000,8 +7000,8 @@ public:
              * is(targ : tspec)
              */
             tspec = tspec.semantic(loc, sc);
-            //printf("targ  = %s, %s\n", targ->toChars(), targ->deco);
-            //printf("tspec = %s, %s\n", tspec->toChars(), tspec->deco);
+            //printf("targ  = %s, %s\n", targ.toChars(), targ.deco);
+            //printf("tspec = %s, %s\n", tspec.toChars(), tspec.deco);
 
             if (tok == TOKcolon)
             {
@@ -7037,41 +7037,74 @@ public:
             dedtypes.zero();
 
             MATCH m = deduceType(targ, sc, tspec, parameters, &dedtypes);
-            //printf("targ: %s\n", targ->toChars());
-            //printf("tspec: %s\n", tspec->toChars());
-            if (m <= MATCHnomatch || (m != MATCHexact && tok == TOKequal))
-            {
+            //printf("targ: %s\n", targ.toChars());
+            //printf("tspec: %s\n", tspec.toChars());
+            if (m <= MATCHnomatch)
                 goto Lno;
-            }
-            else
-            {
-                tded = cast(Type)dedtypes[0];
-                if (!tded)
-                    tded = targ;
-                Objects tiargs;
-                tiargs.setDim(1);
-                tiargs[0] = targ;
+            if (tok == TOKequal && m != MATCHexact)
+                goto Lno;
 
-                /* Declare trailing parameters
+            tded = cast(Type)dedtypes[0];
+            if (!tded)
+                tded = targ;
+            Objects tiargs;
+            tiargs.setDim(1);
+            tiargs[0] = targ;
+
+            Declarations paramdecls;
+            paramdecls.reserve(parameters.dim);
+
+            /* Declare trailing parameters
+             */
+            for (size_t i = 1; i < parameters.dim; i++)
+            {
+                TemplateParameter tp = (*parameters)[i];
+                Declaration d = null;
+
+                m = tp.matchArg(loc, sc, &tiargs, i, parameters, &dedtypes, &d);
+                if (m <= MATCHnomatch)
+                    goto Lno;
+                d.semantic(sc);
+
+                paramdecls.push(d);
+            }
+
+            if (tok == TOKequal)
+            {
+                /* Bugzilla 15254: deduceType now considers alias this sub-types.
+                 * When an equality test is required, need to reconstruct 'tspec'
+                 * from the deduced parameters, and then have to compare it with 'targ'.
                  */
+                auto argsym = new ScopeDsymbol();
+                argsym.parent = sc.parent;
+                Scope* argsc = sc.push(argsym);
+
+                TemplateDeclaration.declareParameter(loc, argsc, (*parameters)[0], tded);
+
                 for (size_t i = 1; i < parameters.dim; i++)
                 {
-                    TemplateParameter tp = (*parameters)[i];
-                    Declaration s = null;
-
-                    m = tp.matchArg(loc, sc, &tiargs, i, parameters, &dedtypes, &s);
-                    if (m <= MATCHnomatch)
-                        goto Lno;
-                    s.semantic(sc);
-                    if (sc.sds)
-                        s.addMember(sc, sc.sds);
-                    else if (!sc.insert(s))
-                        error("declaration %s is already defined", s.toChars());
-
-                    unSpeculative(sc, s);
+                    auto d = paramdecls[i-1];
+                    argsc.insert(d);
                 }
-                goto Lyes;
+                auto ts = tspec.semantic(loc, argsc);
+                argsc.pop();
+
+                if (!targ.equals(ts))
+                    goto Lno;
             }
+
+            for (size_t i = 1; i < parameters.dim; i++)
+            {
+                auto d = paramdecls[i-1];
+                if (sc.sds)
+                    d.addMember(sc, sc.sds);
+                else if (!sc.insert(d))
+                    error("declaration %s is already defined", d.toChars());
+
+                unSpeculative(sc, d);
+            }
+
+            goto Lyes;
         }
         else if (id)
         {

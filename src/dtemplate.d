@@ -6600,7 +6600,7 @@ public:
             {
                 if (!s.parent && global.errors)
                     return false;
-                if (!s.parent && s.getType())
+                if (s.getType())
                 {
                     Dsymbol s2 = s.getType().toDsymbol(sc);
                     if (!s2)
