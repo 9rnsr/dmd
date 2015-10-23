@@ -5987,115 +5987,111 @@ extern (C++) Expression interpret(Statement s, InterState* istate)
  */
 extern (C++) Expression scrubReturnValue(Loc loc, Expression e)
 {
-    if (e.op == TOKclassreference)
+    // Scrub all members of an array. Return false if error
+    Expression scrubArray(Expressions* elems, bool structlit = false)
     {
-        StructLiteralExp se = (cast(ClassReferenceExp)e).value;
-        se.ownedByCtfe = OWNEDcode;
-        if (!(se.stageflags & stageScrub))
+        // Return true if every element is either void,
+        // or is an array literal or struct literal of void elements.
+        bool isEntirelyVoid(Expression m)
         {
-            int old = se.stageflags;
-            se.stageflags |= stageScrub;
-            if (Expression ex = scrubArray(loc, se.elements, true))
-                return ex;
-            se.stageflags = old;
+            if (m.op == TOKvoid)
+                return true;
+
+            Expressions *elems = null;
+            if (m.op == TOKstructliteral)
+                elemes = (cast(StructLiteralExp)m).elements;
+            else if (m.op == TOKarrayliteral && m.type.ty == Tsarray)
+                elems = (cast(ArrayLiteralExp)m).elements;
+            else
+                return false;
+
+            if (!elems || !elems.dim)       // bugfix position
+                return false;
+            foreach (m; *elems)
+            {
+                if (m && !isEntirelyVoid(m))
+                    return false;
+            }
+            return true;
         }
+
+        foreach (m; *elems)
+        {
+            // It can be null for performance reasons,
+            // see StructLiteralExp::interpret().
+            if (!m)
+                continue;
+
+            // A struct .init may contain void members.
+            // Static array members are a weird special case (bug 10994).
+            if (structlit && isEntirelyVoid(m))
+            {
+                m = null;
+            }
+            else
+            {
+                m = scrubReturnValue(loc, m);
+                if (CTFEExp.isCantExp(m) || m.op == TOKerror)
+                    return m;
+            }
+            (*elems)[i] = m;
+        }
+        return null;
     }
+
     if (e.op == TOKvoid)
     {
-        error(loc, "uninitialized variable '%s' cannot be returned from CTFE", (cast(VoidInitExp)e).var.toChars());
+        error(loc, "uninitialized variable '%s' cannot be returned from CTFE",
+            (cast(VoidInitExp)e).var.toChars());
         return new ErrorExp();
     }
+
     e = resolveSlice(e);
-    if (e.op == TOKstructliteral)
+
+    switch (e.op)
     {
-        StructLiteralExp se = cast(StructLiteralExp)e;
-        se.ownedByCtfe = OWNEDcode;
-        if (!(se.stageflags & stageScrub))
-        {
-            int old = se.stageflags;
-            se.stageflags |= stageScrub;
-            if (Expression ex = scrubArray(loc, se.elements, true))
+        case TOKstring:
+            auto se = cast(StringExp)e;
+            se.ownedByCtfe = OWNEDcode;
+            break;
+
+        case TOKarrayliteral:
+            auto ale = cast(ArrayLiteralExp)e;
+            ale.ownedByCtfe = OWNEDcode;
+            if (auto ex = scrubArray(ale.elements))
                 return ex;
-            se.stageflags = old;
-        }
-    }
-    if (e.op == TOKstring)
-    {
-        (cast(StringExp)e).ownedByCtfe = OWNEDcode;
-    }
-    if (e.op == TOKarrayliteral)
-    {
-        (cast(ArrayLiteralExp)e).ownedByCtfe = OWNEDcode;
-        if (Expression ex = scrubArray(loc, (cast(ArrayLiteralExp)e).elements))
-            return ex;
-    }
-    if (e.op == TOKassocarrayliteral)
-    {
-        AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)e;
-        aae.ownedByCtfe = OWNEDcode;
-        if (Expression ex = scrubArray(loc, aae.keys))
-            return ex;
-        if (Expression ex = scrubArray(loc, aae.values))
-            return ex;
-        aae.type = toBuiltinAAType(aae.type);
+            break;
+
+        case TOKassocarrayliteral:
+            auto aae = cast(AssocArrayLiteralExp)e;
+            aae.ownedByCtfe = OWNEDcode;
+            if (auto ex = scrubArray(aae.keys))
+                return ex;
+            if (auto ex = scrubArray(aae.values))
+                return ex;
+            aae.type = toBuiltinAAType(aae.type);
+            break;
+
+        case TOKstructliteral:
+        case TOKclassreference:
+            auto sle = e.op == TOKstructliteral
+                            ? cast(StructLiteralExp)e
+                            : (cast(ClassReferenceExp)e).value;
+            sle.ownedByCtfe = OWNEDcode;
+            if (!(sle.stageflags & stageScrub))
+            {
+                int old = sle.stageflags;
+                sle.stageflags |= stageScrub;
+                if (auto ex = scrubArray(sle.elements, true))
+                    return ex;
+                sle.stageflags = old;
+            }
+            break;
+
+        default:
+            break;
     }
     return e;
-}
-
-// Return true if every element is either void,
-// or is an array literal or struct literal of void elements.
-extern (C++) bool isEntirelyVoid(Expressions* elems)
-{
-    if (!elems.dim)
-        return false;
-
-    for (size_t i = 0; i < elems.dim; i++)
-    {
-        Expression m = (*elems)[i];
-        // It can be NULL for performance reasons,
-        // see StructLiteralExp::interpret().
-        if (!m)
-            continue;
-
-        if (!(m.op == TOKvoid) &&
-            !(m.op == TOKarrayliteral && isEntirelyVoid((cast(ArrayLiteralExp)m).elements)) &&
-            !(m.op == TOKstructliteral && isEntirelyVoid((cast(StructLiteralExp)m).elements)))
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
-// Scrub all members of an array. Return false if error
-extern (C++) Expression scrubArray(Loc loc, Expressions* elems, bool structlit = false)
-{
-    for (size_t i = 0; i < elems.dim; i++)
-    {
-        Expression m = (*elems)[i];
-        // It can be NULL for performance reasons,
-        // see StructLiteralExp::interpret().
-        if (!m)
-            continue;
-
-        // A struct .init may contain void members.
-        // Static array members are a weird special case (bug 10994).
-        if (structlit &&
-            ((m.op == TOKvoid) ||
-             (m.op == TOKarrayliteral && m.type.ty == Tsarray && isEntirelyVoid((cast(ArrayLiteralExp)m).elements)) ||
-             (m.op == TOKstructliteral && isEntirelyVoid((cast(StructLiteralExp)m).elements))))
-        {
-            m = null;
-        }
-        else
-        {
-            m = scrubReturnValue(loc, m);
-            if (CTFEExp.isCantExp(m) || m.op == TOKerror)
-                return m;
-        }
-        (*elems)[i] = m;
-    }
-    return null;
 }
 
 extern (C++) Expression scrubCacheValue(Loc loc, Expression e)
