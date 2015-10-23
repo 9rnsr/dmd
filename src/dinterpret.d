@@ -2518,13 +2518,15 @@ public:
         }
         if (exceptionOrCant(interpret(e.e0, istate, ctfeNeedNothing)))
             return;
-        Expressions* expsx = null;
-        for (size_t i = 0; i < e.exps.dim; i++)
+
+        auto expsx = e.exps;
+        for (size_t i = 0; i < expsx.dim; i++)
         {
-            Expression exp = (*e.exps)[i];
+            Expression exp = (*expsx)[i];
             Expression ex = interpret(exp, istate);
             if (exceptionOrCant(ex))
                 return;
+
             // A tuple of assignments can contain void (Bug 5676).
             if (goal == ctfeNeedNothing)
                 continue;
@@ -2533,33 +2535,29 @@ public:
                 e.error("CTFE internal error: void element %s in tuple", exp.toChars());
                 assert(0);
             }
+
             /* If any changes, do Copy On Write
              */
             if (ex != exp)
             {
-                if (!expsx)
+                if (expsx == e.exps)
                 {
-                    expsx = new Expressions();
+                    expsx = e.exps.copy();
                     ++CtfeStatus.numArrayAllocs;
-                    expsx.setDim(e.exps.dim);
-                    for (size_t j = 0; j < i; j++)
-                    {
-                        (*expsx)[j] = (*e.exps)[j];
-                    }
                 }
                 (*expsx)[i] = ex;
             }
         }
-        if (expsx)
+
+        if (expsx != e.exps)
         {
+            expandTuples(expsx);
             auto te = new TupleExp(e.loc, expsx);
-            expandTuples(te.exps);
             te.type = new TypeTuple(te.exps);
             result = te;
-            return;
         }
-        result = e;
-        return;
+        else
+            result = e;
     }
 
     override void visit(ArrayLiteralExp e)
@@ -2573,6 +2571,7 @@ public:
             result = e;
             return;
         }
+
         Type tn = e.type.toBasetype().nextOf().toBasetype();
         bool wantCopy = (tn.ty == Tsarray || tn.ty == Tstruct);
 
@@ -2580,54 +2579,47 @@ public:
         if (exceptionOrCant(basis))
             return;
 
-        Expressions* expsx = null;
-        size_t dim = e.elements ? e.elements.dim : 0;
+        auto expsx = e.elements;
+        size_t dim = expsx ? expsx.dim : 0;
         for (size_t i = 0; i < dim; i++)
         {
-            Expression exp = (*e.elements)[i];
+            Expression exp = (*expsx)[i];
             Expression ex;
             if (!exp)
             {
                 ex = copyLiteral(basis).copy();
-                goto Lcow;
             }
+            else
+            {
+                // segfault bug 6250
+                assert(exp.op != TOKindex || (cast(IndexExp)exp).e1 != e);
 
-            // segfault bug 6250
-            assert(exp.op != TOKindex || (cast(IndexExp)exp).e1 != e);
+                ex = interpret(exp, istate);
+                if (exceptionOrCant(ex))
+                    return;
 
-            ex = interpret(exp, istate);
-            if (exceptionOrCant(ex))
-                return;
-
-            /* Each elements should have distinct CFE memory.
-             *  int[1] z = 7;
-             *  int[1][] pieces = [z,z];    // here
-             */
-            if (wantCopy || ex == exp && expsx)
-                ex = copyLiteral(ex).copy();
-
-            if (ex == exp && !expsx)
-                continue;
+                /* Each elements should have distinct CTFE memory.
+                 *  int[1] z = 7;
+                 *  int[1][] pieces = [z,z];    // here
+                 */
+                if (wantCopy)
+                    ex = copyLiteral(ex).copy();
+            }
 
             /* If any changes, do Copy On Write
              */
-        Lcow:
-            if (!expsx)
+            if (ex != exp)
             {
-                expsx = new Expressions();
-                ++CtfeStatus.numArrayAllocs;
-                expsx.setDim(dim);
-                for (size_t j = 0; j < i; j++)
+                if (!expsx)
                 {
-                    auto el = (*e.elements)[j];
-                    if (!el)
-                        el = e.basis;
-                    (*expsx)[j] = copyLiteral(el).copy();
+                    expsx = e.elements.copy();
+                    ++CtfeStatus.numArrayAllocs;
                 }
+                (*expsx)[i] = ex;
             }
-            (*expsx)[i] = ex;
         }
-        if (expsx)
+
+        if (expsx != e.elements)
         {
             // todo: all tuple expansions should go in semantic phase.
             expandTuples(expsx);
@@ -2641,21 +2633,18 @@ public:
             ae.type = e.type;
             ae.ownedByCtfe = OWNEDctfe;
             result = ae;
-            return;
         }
-        if ((cast(TypeNext)e.type).next.mod & (MODconst | MODimmutable))
+        else if ((cast(TypeNext)e.type).next.mod & (MODconst | MODimmutable))
         {
             // If it's immutable, we don't need to dup it
             result = e;
-            return;
         }
-        result = copyLiteral(e).copy();
+        else
+            result = copyLiteral(e).copy();
     }
 
     override void visit(AssocArrayLiteralExp e)
     {
-        Expressions* keysx = e.keys;
-        Expressions* valuesx = e.values;
         static if (LOG)
         {
             printf("%s AssocArrayLiteralExp::interpret() %s\n", e.loc.toChars(), e.toChars());
@@ -2665,31 +2654,39 @@ public:
             result = e;
             return;
         }
-        for (size_t i = 0; i < e.keys.dim; i++)
+
+        auto keysx = e.keys;
+        auto valuesx = e.values;
+        for (size_t i = 0; i < keysx.dim; i++)
         {
-            Expression ekey = (*e.keys)[i];
-            Expression evalue = (*e.values)[i];
-            Expression ex = interpret(ekey, istate);
-            if (exceptionOrCant(ex))
+            Expression ekey = (*keysx)[i];
+            Expression evalue = (*valuesx)[i];
+            auto ek = interpret(ekey, istate);
+            if (exceptionOrCant(ek))
                 return;
+            auto ev = interpret(evalue, istate);
+            if (exceptionOrCant(ev))
+                return;
+
             /* If any changes, do Copy On Write
              */
-            if (ex != ekey)
+            if (ek != ekey)
             {
                 if (keysx == e.keys)
-                    keysx = cast(Expressions*)e.keys.copy();
-                (*keysx)[i] = ex;
+                {
+                    keysx = e.keys.copy();
+                    ++CtfeStatus.numArrayAllocs;
+                }
+                (*keysx)[i] = ek;
             }
-            ex = interpret(evalue, istate);
-            if (exceptionOrCant(ex))
-                return;
-            /* If any changes, do Copy On Write
-             */
-            if (ex != evalue)
+            if (ev != evalue)
             {
                 if (valuesx == e.values)
-                    valuesx = cast(Expressions*)e.values.copy();
-                (*valuesx)[i] = ex;
+                {
+                    valuesx = e.values.copy();
+                    ++CtfeStatus.numArrayAllocs;
+                }
+                (*valuesx)[i] = ev;
             }
         }
         if (keysx != e.keys)
@@ -2702,6 +2699,7 @@ public:
             result = CTFEExp.cantexp;
             return;
         }
+
         /* Remove duplicate keys
          */
         for (size_t i = 1; i < keysx.dim; i++)
@@ -2710,31 +2708,38 @@ public:
             for (size_t j = i; j < keysx.dim; j++)
             {
                 Expression ekey2 = (*keysx)[j];
-                int eq = ctfeEqual(e.loc, TOKequal, ekey, ekey2);
-                if (eq) // if a match
+                if (!ctfeEqual(e.loc, TOKequal, ekey, ekey2))
+                    continue;
+
+                // Remove ekey
+                if (keysx == e.keys)
                 {
-                    // Remove ekey
-                    if (keysx == e.keys)
-                        keysx = cast(Expressions*)e.keys.copy();
-                    if (valuesx == e.values)
-                        valuesx = cast(Expressions*)e.values.copy();
-                    keysx.remove(i - 1);
-                    valuesx.remove(i - 1);
-                    i -= 1; // redo the i'th iteration
-                    break;
+                    keysx = e.keys.copy();
+                    ++CtfeStatus.numArrayAllocs;
                 }
+                if (valuesx == e.values)
+                {
+                    valuesx = e.values.copy();
+                    ++CtfeStatus.numArrayAllocs;
+                }
+                keysx.remove(i - 1);
+                valuesx.remove(i - 1);
+
+                i -= 1; // redo the i'th iteration
+                break;
             }
         }
-        if (keysx != e.keys || valuesx != e.values)
+
+        if (keysx != e.keys ||
+            valuesx != e.values)
         {
-            AssocArrayLiteralExp ae;
-            ae = new AssocArrayLiteralExp(e.loc, keysx, valuesx);
+            auto ae = new AssocArrayLiteralExp(e.loc, keysx, valuesx);
             ae.type = e.type;
             ae.ownedByCtfe = OWNEDctfe;
             result = ae;
-            return;
         }
-        result = copyLiteral(e).copy();
+        else
+            result = copyLiteral(e).copy();
     }
 
     override void visit(StructLiteralExp e)
@@ -2748,13 +2753,14 @@ public:
             result = e;
             return;
         }
+
         size_t elemdim = e.elements ? e.elements.dim : 0;
-        Expressions* expsx = null;
+        auto expsx = e.elements;
         for (size_t i = 0; i < e.sd.fields.dim; i++)
         {
-            VarDeclaration v = e.sd.fields[i];
-            Expression ex = null;
+            auto v = e.sd.fields[i];
             Expression exp = null;
+            Expression ex = null;
             if (i >= elemdim)
             {
                 /* If a nested struct has no initialized hidden pointer,
@@ -2769,7 +2775,7 @@ public:
             }
             else
             {
-                exp = (*e.elements)[i];
+                exp = (*expsx)[i];
                 if (!exp)
                 {
                     ex = voidInitLiteral(v.type, v).copy();
@@ -2788,24 +2794,27 @@ public:
                     }
                 }
             }
+
             /* If any changes, do Copy On Write
              */
             if (ex != exp)
             {
                 if (!expsx)
                 {
-                    expsx = new Expressions();
+                    expsx = e.elements.copy();
                     ++CtfeStatus.numArrayAllocs;
+
+                    // all elements excepting hidden context pointer (sd.vthis)
+                    // should be filled in semantic pass.
+                    assert(expsx.dim == e.sd.fields.dim ||
+                           expsx.dim == e.sd.fields.dim - 1);
                     expsx.setDim(e.sd.fields.dim);
-                    for (size_t j = 0; j < e.elements.dim; j++)
-                    {
-                        (*expsx)[j] = (*e.elements)[j];
-                    }
                 }
                 (*expsx)[i] = ex;
             }
         }
-        if (e.elements && expsx)
+
+        if (expsx != e.elements)
         {
             expandTuples(expsx);
             if (expsx.dim != e.sd.fields.dim)
@@ -2818,9 +2827,9 @@ public:
             se.type = e.type;
             se.ownedByCtfe = OWNEDctfe;
             result = se;
-            return;
         }
-        result = copyLiteral(e).copy();
+        else
+            result = copyLiteral(e).copy();
     }
 
     // Create an array literal of type 'newtype' with dimensions given by

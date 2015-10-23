@@ -913,6 +913,7 @@ extern (C++) void expandTuples(Expressions* exps)
             Expression arg = (*exps)[i];
             if (!arg)
                 continue;
+
             // Look for tuple with 0 members
             if (arg.op == TOKtype)
             {
@@ -930,6 +931,7 @@ extern (C++) void expandTuples(Expressions* exps)
                     }
                 }
             }
+
             // Inline expand all the tuples
             while (arg.op == TOKtuple)
             {
