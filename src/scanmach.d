@@ -32,11 +32,14 @@ extern (C++) void scanMachObjModule(void* pctx, void function(void* pctx, char* 
     {
         printf("scanMachObjModule(%s)\n", module_name);
     }
+
     ubyte* buf = cast(ubyte*)base;
     int reason = 0;
     uint32_t ncmds;
+
     mach_header* header = cast(mach_header*)buf;
     mach_header_64* header64 = null;
+
     /* First do sanity checks on object file
      */
     if (buflen < mach_header.sizeof)
@@ -50,12 +53,14 @@ extern (C++) void scanMachObjModule(void* pctx, void function(void* pctx, char* 
     {
         if (header.cputype != CPU_TYPE_I386)
         {
-            error(loc, "Mach-O object module %s has cputype = %d, should be %d", module_name, header.cputype, CPU_TYPE_I386);
+            error(loc, "Mach-O object module %s has cputype = %d, should be %d",
+                module_name, header.cputype, CPU_TYPE_I386);
             return;
         }
         if (header.filetype != MH_OBJECT)
         {
-            error(loc, "Mach-O object module %s has file type = %d, should be %d", module_name, header.filetype, MH_OBJECT);
+            error(loc, "Mach-O object module %s has file type = %d, should be %d",
+                module_name, header.filetype, MH_OBJECT);
             return;
         }
         if (buflen < mach_header.sizeof + header.sizeofcmds)
@@ -72,12 +77,14 @@ extern (C++) void scanMachObjModule(void* pctx, void function(void* pctx, char* 
             goto Lcorrupt;
         if (header64.cputype != CPU_TYPE_X86_64)
         {
-            error(loc, "Mach-O object module %s has cputype = %d, should be %d", module_name, header64.cputype, CPU_TYPE_X86_64);
+            error(loc, "Mach-O object module %s has cputype = %d, should be %d",
+                module_name, header64.cputype, CPU_TYPE_X86_64);
             return;
         }
         if (header64.filetype != MH_OBJECT)
         {
-            error(loc, "Mach-O object module %s has file type = %d, should be %d", module_name, header64.filetype, MH_OBJECT);
+            error(loc, "Mach-O object module %s has file type = %d, should be %d",
+                module_name, header64.filetype, MH_OBJECT);
             return;
         }
         if (buflen < mach_header_64.sizeof + header64.sizeofcmds)
@@ -92,12 +99,17 @@ extern (C++) void scanMachObjModule(void* pctx, void function(void* pctx, char* 
         reason = __LINE__;
         goto Lcorrupt;
     }
+
     segment_command* segment_commands = null;
     segment_command_64* segment_commands64 = null;
     symtab_command* symtab_commands = null;
     dysymtab_command* dysymtab_commands = null;
+
     // Commands immediately follow mach_header
-    char* commands = cast(char*)buf + (header.magic == MH_MAGIC_64 ? mach_header_64.sizeof : mach_header.sizeof);
+    char* commands = cast(char*)buf +
+        (header.magic == MH_MAGIC_64
+         ? mach_header_64.sizeof
+         : mach_header.sizeof);
     for (uint32_t i = 0; i < ncmds; i++)
     {
         load_command* command = cast(load_command*)commands;
@@ -121,6 +133,7 @@ extern (C++) void scanMachObjModule(void* pctx, void function(void* pctx, char* 
         }
         commands += command.cmdsize;
     }
+
     if (symtab_commands)
     {
         // Get pointer to string table
@@ -130,6 +143,7 @@ extern (C++) void scanMachObjModule(void* pctx, void function(void* pctx, char* 
             reason = __LINE__;
             goto Lcorrupt;
         }
+
         if (header.magic == MH_MAGIC_64)
         {
             // Get pointer to symbol table
@@ -139,11 +153,13 @@ extern (C++) void scanMachObjModule(void* pctx, void function(void* pctx, char* 
                 reason = __LINE__;
                 goto Lcorrupt;
             }
+
             // For each symbol
             for (int i = 0; i < symtab_commands.nsyms; i++)
             {
                 nlist_64* s = symtab + i;
                 char* name = strtab + s.n_strx;
+
                 if (s.n_type & N_STAB)
                 {
                     // values in /usr/include/mach-o/stab.h
@@ -191,11 +207,13 @@ extern (C++) void scanMachObjModule(void* pctx, void function(void* pctx, char* 
                 reason = __LINE__;
                 goto Lcorrupt;
             }
+
             // For each symbol
             for (int i = 0; i < symtab_commands.nsyms; i++)
             {
                 nlist* s = symtab + i;
                 char* name = strtab + s.n_strx;
+
                 if (s.n_type & N_STAB)
                 {
                     // values in /usr/include/mach-o/stab.h

@@ -43,6 +43,7 @@ extern (C++) bool isTrivialExp(Expression e)
                 stop = true;
                 return;
             }
+
             // stop walking if we determine this expression has side effects
             stop = lambdaHasSideEffect(e);
         }
@@ -89,6 +90,7 @@ extern (C++) int callSideEffectLevel(FuncDeclaration f)
      */
     if (f.isCtorDeclaration())
         return 0;
+
     assert(f.type.ty == Tfunction);
     TypeFunction tf = cast(TypeFunction)f.type;
     if (tf.isnothrow)
@@ -105,6 +107,7 @@ extern (C++) int callSideEffectLevel(FuncDeclaration f)
 extern (C++) int callSideEffectLevel(Type t)
 {
     t = t.toBasetype();
+
     TypeFunction tf;
     if (t.ty == Tdelegate)
         tf = cast(TypeFunction)(cast(TypeDelegate)t).next;
@@ -113,6 +116,7 @@ extern (C++) int callSideEffectLevel(Type t)
         assert(t.ty == Tfunction);
         tf = cast(TypeFunction)t;
     }
+
     tf.purityLevel();
     PURE purity = tf.purity;
     if (t.ty == Tdelegate && purity > PUREweak)
@@ -122,6 +126,7 @@ extern (C++) int callSideEffectLevel(Type t)
         else if (!tf.isImmutable())
             purity = PUREconst;
     }
+
     if (tf.isnothrow)
     {
         if (purity == PUREstrong)
@@ -136,7 +141,7 @@ extern (C++) bool lambdaHasSideEffect(Expression e)
 {
     switch (e.op)
     {
-        // Sort the cases by most frequently used first
+    // Sort the cases by most frequently used first
     case TOKassign:
     case TOKplusplus:
     case TOKminusminus:
@@ -164,6 +169,7 @@ extern (C++) bool lambdaHasSideEffect(Expression e)
     case TOKnew:
     case TOKnewanonclass:
         return true;
+
     case TOKcall:
         {
             CallExp ce = cast(CallExp)e;
@@ -175,7 +181,9 @@ extern (C++) bool lambdaHasSideEffect(Expression e)
                 Type t = ce.e1.type.toBasetype();
                 if (t.ty == Tdelegate)
                     t = (cast(TypeDelegate)t).next;
-                if (t.ty == Tfunction && (ce.f ? callSideEffectLevel(ce.f) : callSideEffectLevel(ce.e1.type)) > 0)
+                if (t.ty == Tfunction &&
+                    (ce.f ? callSideEffectLevel(ce.f)
+                          : callSideEffectLevel(ce.e1.type)) > 0)
                 {
                 }
                 else
@@ -219,11 +227,11 @@ extern (C++) void discardValue(Expression e)
                  */
                 return;
             }
-            break;
-            // complain
+            break; // complain
         }
     case TOKerror:
         return;
+
     case TOKvar:
         {
             VarDeclaration v = (cast(VarExp)e).var.isVarDeclaration();
@@ -254,7 +262,9 @@ extern (C++) void discardValue(Expression e)
                 Type t = ce.e1.type.toBasetype();
                 if (t.ty == Tdelegate)
                     t = (cast(TypeDelegate)t).next;
-                if (t.ty == Tfunction && (ce.f ? callSideEffectLevel(ce.f) : callSideEffectLevel(ce.e1.type)) > 0)
+                if (t.ty == Tfunction &&
+                    (ce.f ? callSideEffectLevel(ce.f)
+                          : callSideEffectLevel(ce.e1.type)) > 0)
                 {
                     const(char)* s;
                     if (ce.f)
@@ -266,14 +276,18 @@ extern (C++) void discardValue(Expression e)
                     }
                     else
                         s = ce.e1.toChars();
-                    e.warning("calling %s without side effects discards return value of type %s, prepend a cast(void) if intentional", s, e.type.toChars());
+
+                    e.warning("calling %s without side effects discards return value of type %s, prepend a cast(void) if intentional",
+                        s, e.type.toChars());
                 }
             }
         }
         return;
+
     case TOKimport:
         e.error("%s has no effect", e.toChars());
         return;
+
     case TOKandand:
         {
             AndAndExp aae = cast(AndAndExp)e;
@@ -289,6 +303,7 @@ extern (C++) void discardValue(Expression e)
     case TOKquestion:
         {
             CondExp ce = cast(CondExp)e;
+
             /* Bugzilla 6178 & 14089: Either CondExp::e1 or e2 may have
              * redundant expression to make those types common. For example:
              *
@@ -307,7 +322,8 @@ extern (C++) void discardValue(Expression e)
              * To avoid false error, discardValue() should be called only when
              * the both tops of e1 and e2 have actually no side effects.
              */
-            if (!lambdaHasSideEffect(ce.e1) && !lambdaHasSideEffect(ce.e2))
+            if (!lambdaHasSideEffect(ce.e1) &&
+                !lambdaHasSideEffect(ce.e2))
             {
                 discardValue(ce.e1);
                 discardValue(ce.e2);
@@ -325,7 +341,9 @@ extern (C++) void discardValue(Expression e)
             CommaExp firstComma = ce;
             while (firstComma.e1.op == TOKcomma)
                 firstComma = cast(CommaExp)firstComma.e1;
-            if (firstComma.e1.op == TOKdeclaration && ce.e2.op == TOKvar && (cast(DeclarationExp)firstComma.e1).declaration == (cast(VarExp)ce.e2).var)
+            if (firstComma.e1.op == TOKdeclaration &&
+                ce.e2.op == TOKvar &&
+                (cast(DeclarationExp)firstComma.e1).declaration == (cast(VarExp)ce.e2).var)
             {
                 return;
             }
@@ -342,6 +360,7 @@ extern (C++) void discardValue(Expression e)
         if (!hasSideEffect(e))
             break;
         return;
+
     default:
         break;
     }

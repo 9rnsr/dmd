@@ -36,12 +36,17 @@ struct Target
         // adjusted for 64 bit code.
         ptrsize = 4;
         classinfosize = 0x4C; // 76
+
         if (global.params.isLP64)
         {
             ptrsize = 8;
             classinfosize = 0x98; // 152
         }
-        if (global.params.isLinux || global.params.isFreeBSD || global.params.isOpenBSD || global.params.isSolaris)
+
+        if (global.params.isLinux ||
+            global.params.isFreeBSD ||
+            global.params.isOpenBSD ||
+            global.params.isSolaris)
         {
             realsize = 12;
             realpad = 2;
@@ -65,9 +70,12 @@ struct Target
         }
         else
             assert(0);
+
         if (global.params.is64bit)
         {
-            if (global.params.isLinux || global.params.isFreeBSD || global.params.isSolaris)
+            if (global.params.isLinux ||
+                global.params.isFreeBSD ||
+                global.params.isSolaris)
             {
                 realsize = 16;
                 realpad = 6;
@@ -79,6 +87,7 @@ struct Target
                 c_longsize = 8;
             }
         }
+
         c_long_doublesize = realsize;
         if (global.params.is64bit && global.params.isWindows)
             c_long_doublesize = 8;
@@ -96,18 +105,33 @@ struct Target
         case Timaginary80:
         case Tcomplex80:
             return Target.realalignsize;
+
         case Tcomplex32:
-            if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isOpenBSD || global.params.isSolaris)
+            if (global.params.isLinux ||
+                global.params.isOSX ||
+                global.params.isFreeBSD ||
+                global.params.isOpenBSD ||
+                global.params.isSolaris)
+            {
                 return 4;
+            }
             break;
+
         case Tint64:
         case Tuns64:
         case Tfloat64:
         case Timaginary64:
         case Tcomplex64:
-            if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isOpenBSD || global.params.isSolaris)
+            if (global.params.isLinux ||
+                global.params.isOSX ||
+                global.params.isFreeBSD ||
+                global.params.isOpenBSD ||
+                global.params.isSolaris)
+            {
                 return global.params.is64bit ? 8 : 4;
+            }
             break;
+
         default:
             break;
         }
@@ -177,7 +201,11 @@ struct Target
         {
             return Type.tchar.pointerTo();
         }
-        else if (global.params.isLinux || global.params.isFreeBSD || global.params.isOpenBSD || global.params.isSolaris || global.params.isOSX)
+        else if (global.params.isLinux ||
+                 global.params.isFreeBSD ||
+                 global.params.isOpenBSD ||
+                 global.params.isSolaris ||
+                 global.params.isOSX)
         {
             if (global.params.is64bit)
             {
@@ -201,8 +229,10 @@ struct Target
     {
         if (!global.params.is64bit && !global.params.isOSX)
             return 1; // not supported
+
         if (sz != 16 && sz != 32)
             return 2; // wrong size
+
         switch (type.ty)
         {
         case Tvoid:
@@ -217,6 +247,7 @@ struct Target
         case Tuns64:
         case Tfloat64:
             break;
+
         default:
             return 3; // wrong base type
         }
@@ -233,6 +264,7 @@ struct Target
         // We support up to 512-bit values.
         ubyte[64] buffer;
         assert(e.type.size() == type.size());
+
         // Write the expression into the buffer.
         switch (e.type.ty)
         {
@@ -242,13 +274,16 @@ struct Target
         case Tuns64:
             encodeInteger(e, buffer.ptr);
             break;
+
         case Tfloat32:
         case Tfloat64:
             encodeReal(e, buffer.ptr);
             break;
+
         default:
             assert(0);
         }
+
         // Interpret the buffer as a new type.
         switch (type.ty)
         {
@@ -257,12 +292,15 @@ struct Target
         case Tint64:
         case Tuns64:
             return decodeInteger(e.loc, type, buffer.ptr);
+
         case Tfloat32:
         case Tfloat64:
             return decodeReal(e.loc, type, buffer.ptr);
+
         default:
             assert(0);
         }
+
         return null; // avoid warning
     }
 
@@ -302,6 +340,7 @@ extern (C++) static void encodeInteger(Expression e, ubyte* buffer)
 {
     dinteger_t value = e.toInteger();
     int size = cast(int)e.type.size();
+
     for (int p = 0; p < size; p++)
     {
         int offset = p; // Would be (size - 1) - p; on BigEndian
@@ -315,6 +354,7 @@ extern (C++) static Expression decodeInteger(Loc loc, Type type, ubyte* buffer)
 {
     dinteger_t value = 0;
     int size = cast(int)type.size();
+
     for (int p = 0; p < size; p++)
     {
         int offset = p; // Would be (size - 1) - p; on BigEndian
@@ -367,5 +407,6 @@ extern (C++) static Expression decodeReal(Loc loc, Type type, ubyte* buffer)
     default:
         assert(0);
     }
+
     return new RealExp(loc, value, type);
 }
