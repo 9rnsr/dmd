@@ -2744,7 +2744,7 @@ public:
 
     override void visit(StructLiteralExp e)
     {
-        //static if (LOG)
+        static if (LOG)
         {
             printf("%s StructLiteralExp::interpret() %s ownedByCtfe = %d\n", e.loc.toChars(), e.toChars(), e.ownedByCtfe);
         }
@@ -2812,10 +2812,10 @@ public:
                 }
                 (*expsx)[i] = ex;
             }
-            printf("\t[%d] exp = %p %s, ex = %p %s, expsx = %p, e.elements = %p\n",
-                i,  exp, exp ? exp.toChars() : null,
-                    ex,  ex  ? ex .toChars() : null,
-                    expsx, e.elements);
+            //printf("\t[%d] exp = %p %s, ex = %p %s, expsx = %p, e.elements = %p\n",
+            //    i,  exp, exp ? exp.toChars() : null,
+            //        ex,  ex  ? ex .toChars() : null,
+            //        expsx, e.elements);
         }
 
         if (expsx != e.elements)
@@ -2827,7 +2827,7 @@ public:
                 result = CTFEExp.cantexp;
                 return;
             }
-            printf("expsx = %s\n", expsx.toChars());
+            //printf("expsx = %s\n", expsx.toChars());
             auto sle = new StructLiteralExp(e.loc, e.sd, expsx);
             sle.type = e.type;
             sle.ownedByCtfe = OWNEDctfe;
@@ -2835,7 +2835,7 @@ public:
         }
         else
             result = copyLiteral(e).copy();
-        printf("  -result = %s\n", result.toChars());
+        //printf("  -result = %s\n", result.toChars());
     }
 
     // Create an array literal of type 'newtype' with dimensions given by
@@ -5999,7 +5999,7 @@ extern (C++) Expression scrubReturnValue(Loc loc, Expression e)
 
             Expressions *elems = null;
             if (m.op == TOKstructliteral)
-                elemes = (cast(StructLiteralExp)m).elements;
+                elems = (cast(StructLiteralExp)m).elements;
             else if (m.op == TOKarrayliteral && m.type.ty == Tsarray)
                 elems = (cast(ArrayLiteralExp)m).elements;
             else
@@ -6007,15 +6007,15 @@ extern (C++) Expression scrubReturnValue(Loc loc, Expression e)
 
             if (!elems || !elems.dim)       // bugfix position
                 return false;
-            foreach (m; *elems)
+            foreach (el; *elems)
             {
-                if (m && !isEntirelyVoid(m))
+                if (el && !isEntirelyVoid(el))
                     return false;
             }
             return true;
         }
 
-        foreach (m; *elems)
+        foreach (i, m; *elems)
         {
             // It can be null for performance reasons,
             // see StructLiteralExp::interpret().

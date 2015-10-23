@@ -841,9 +841,9 @@ public:
             {
                 exp = exp.implicitCastTo(sc, t);
             }
-            printf("L%d +[%s] exp = %s\n", __LINE__, loc.toChars(), exp.toChars());
+            //printf("L%d +[%s] exp = %s\n", __LINE__, loc.toChars(), exp.toChars());
             exp = exp.ctfeInterpret();
-            printf("L%d -[%s] exp = %s\n", __LINE__, loc.toChars(), exp.toChars());
+            //printf("L%d -[%s] exp = %s\n", __LINE__, loc.toChars(), exp.toChars());
         }
         else
         {
@@ -952,9 +952,9 @@ public:
             return this;
         if (needInterpret)
         {
-            printf("L%d +[%s] exp = %s\n", __LINE__, loc.toChars(), exp.toChars());
+            //printf("L%d +[%s] exp = %s\n", __LINE__, loc.toChars(), exp.toChars());
             exp = exp.ctfeInterpret();
-            printf("L%d -[%s] exp = %s\n", __LINE__, loc.toChars(), exp.toChars());
+            //printf("L%d -[%s] exp = %s\n", __LINE__, loc.toChars(), exp.toChars());
         }
         else
             exp = exp.optimize(WANTvalue);
