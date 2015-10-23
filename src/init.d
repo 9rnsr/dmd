@@ -8,6 +8,7 @@
 
 module ddmd.init;
 
+import core.stdc.stdio;
 import ddmd.aggregate;
 import ddmd.arraytypes;
 import ddmd.dcast;
@@ -840,7 +841,9 @@ public:
             {
                 exp = exp.implicitCastTo(sc, t);
             }
+            printf("L%d +[%s] exp = %s\n", __LINE__, loc.toChars(), exp.toChars());
             exp = exp.ctfeInterpret();
+            printf("L%d -[%s] exp = %s\n", __LINE__, loc.toChars(), exp.toChars());
         }
         else
         {
@@ -948,7 +951,11 @@ public:
         if (exp.op == TOKerror)
             return this;
         if (needInterpret)
+        {
+            printf("L%d +[%s] exp = %s\n", __LINE__, loc.toChars(), exp.toChars());
             exp = exp.ctfeInterpret();
+            printf("L%d -[%s] exp = %s\n", __LINE__, loc.toChars(), exp.toChars());
+        }
         else
             exp = exp.optimize(WANTvalue);
         //printf("-ExpInitializer::semantic(): "); exp->print();

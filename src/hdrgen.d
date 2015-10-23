@@ -2319,6 +2319,10 @@ public:
 
     override void visit(StructLiteralExp e)
     {
+        //printf("[%s] sle.sd = %s\n", e.loc.toChars(), e.sd.toChars());
+        //if (e.elements)
+        //foreach (i, el; *e.elements)
+        //    printf("\telements[%d] = %p\n", i, el);
         buf.writestring(e.sd.toChars());
         buf.writeByte('(');
         // CTFE can generate struct literals that contain an AddrExp pointing

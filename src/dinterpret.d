@@ -2610,7 +2610,7 @@ public:
              */
             if (ex != exp)
             {
-                if (!expsx)
+                if (expsx == e.elements)
                 {
                     expsx = e.elements.copy();
                     ++CtfeStatus.numArrayAllocs;
@@ -2744,7 +2744,7 @@ public:
 
     override void visit(StructLiteralExp e)
     {
-        static if (LOG)
+        //static if (LOG)
         {
             printf("%s StructLiteralExp::interpret() %s ownedByCtfe = %d\n", e.loc.toChars(), e.toChars(), e.ownedByCtfe);
         }
@@ -2799,7 +2799,7 @@ public:
              */
             if (ex != exp)
             {
-                if (!expsx)
+                if (expsx == e.elements)
                 {
                     expsx = e.elements.copy();
                     ++CtfeStatus.numArrayAllocs;
@@ -2812,6 +2812,10 @@ public:
                 }
                 (*expsx)[i] = ex;
             }
+            printf("\t[%d] exp = %p %s, ex = %p %s, expsx = %p, e.elements = %p\n",
+                i,  exp, exp ? exp.toChars() : null,
+                    ex,  ex  ? ex .toChars() : null,
+                    expsx, e.elements);
         }
 
         if (expsx != e.elements)
@@ -2823,13 +2827,15 @@ public:
                 result = CTFEExp.cantexp;
                 return;
             }
-            auto se = new StructLiteralExp(e.loc, e.sd, expsx);
-            se.type = e.type;
-            se.ownedByCtfe = OWNEDctfe;
-            result = se;
+            printf("expsx = %s\n", expsx.toChars());
+            auto sle = new StructLiteralExp(e.loc, e.sd, expsx);
+            sle.type = e.type;
+            sle.ownedByCtfe = OWNEDctfe;
+            result = sle;
         }
         else
             result = copyLiteral(e).copy();
+        printf("  -result = %s\n", result.toChars());
     }
 
     // Create an array literal of type 'newtype' with dimensions given by
@@ -6040,6 +6046,9 @@ extern (C++) Expression scrubReturnValue(Loc loc, Expression e)
 // or is an array literal or struct literal of void elements.
 extern (C++) bool isEntirelyVoid(Expressions* elems)
 {
+    if (!elems.dim)
+        return false;
+
     for (size_t i = 0; i < elems.dim; i++)
     {
         Expression m = (*elems)[i];
@@ -6047,7 +6056,10 @@ extern (C++) bool isEntirelyVoid(Expressions* elems)
         // see StructLiteralExp::interpret().
         if (!m)
             continue;
-        if (!(m.op == TOKvoid) && !(m.op == TOKarrayliteral && isEntirelyVoid((cast(ArrayLiteralExp)m).elements)) && !(m.op == TOKstructliteral && isEntirelyVoid((cast(StructLiteralExp)m).elements)))
+
+        if (!(m.op == TOKvoid) &&
+            !(m.op == TOKarrayliteral && isEntirelyVoid((cast(ArrayLiteralExp)m).elements)) &&
+            !(m.op == TOKstructliteral && isEntirelyVoid((cast(StructLiteralExp)m).elements)))
         {
             return false;
         }
@@ -6065,9 +6077,13 @@ extern (C++) Expression scrubArray(Loc loc, Expressions* elems, bool structlit =
         // see StructLiteralExp::interpret().
         if (!m)
             continue;
+
         // A struct .init may contain void members.
         // Static array members are a weird special case (bug 10994).
-        if (structlit && ((m.op == TOKvoid) || (m.op == TOKarrayliteral && m.type.ty == Tsarray && isEntirelyVoid((cast(ArrayLiteralExp)m).elements)) || (m.op == TOKstructliteral && isEntirelyVoid((cast(StructLiteralExp)m).elements))))
+        if (structlit &&
+            ((m.op == TOKvoid) ||
+             (m.op == TOKarrayliteral && m.type.ty == Tsarray && isEntirelyVoid((cast(ArrayLiteralExp)m).elements)) ||
+             (m.op == TOKstructliteral && isEntirelyVoid((cast(StructLiteralExp)m).elements))))
         {
             m = null;
         }
