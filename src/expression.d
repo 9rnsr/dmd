@@ -4541,6 +4541,7 @@ public:
                         if (s1[u] != s2[u])
                             return s1[u] - s2[u];
                     }
+                    //break;    // BUG
                 }
 
                 case 4:
@@ -7619,7 +7620,7 @@ public:
         if (op == TOKmulass ||
             op == TOKdivass ||
             op == TOKmodass ||
-            TOKaddass ||
+            TOKaddass ||        // BUG
             op == TOKminass ||
             op == TOKpowass)
         {
