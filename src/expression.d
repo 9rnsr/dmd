@@ -6772,7 +6772,8 @@ public:
     TOK tok2;           // 'struct', 'union', 'typedef', etc.
     TemplateParameters* parameters;
 
-    extern (D) this(Loc loc, Type targ, Identifier id, TOK tok, Type tspec, TOK tok2, TemplateParameters* parameters)
+    extern (D) this(Loc loc, Type targ, Identifier id, TOK tok,
+        Type tspec, TOK tok2, TemplateParameters* parameters)
     {
         super(loc, TOKis, __traits(classInstanceSize, IsExp));
         this.targ = targ;
@@ -6794,7 +6795,8 @@ public:
             for (size_t i = 0; i < p.dim; i++)
                 (*p)[i] = (*parameters)[i].syntaxCopy();
         }
-        return new IsExp(loc, targ.syntaxCopy(), id, tok, tspec ? tspec.syntaxCopy() : null, tok2, p);
+        return new IsExp(loc, targ.syntaxCopy(),
+            id, tok, tspec ? tspec.syntaxCopy() : null, tok2, p);
     }
 
     override Expression semantic(Scope* sc)
@@ -6803,12 +6805,14 @@ public:
          * is(targ id :  tok2)
          * is(targ id == tok2)
          */
+
         //printf("IsExp::semantic(%s)\n", toChars());
         if (id && !(sc.flags & SCOPEcondition))
         {
             error("can only declare type aliases within static if conditionals or static asserts");
             return new ErrorExp();
         }
+
         Type tded = null;
         Scope* sc2 = sc.copy(); // keep sc->flags
         sc2.tinst = null;
@@ -6825,6 +6829,7 @@ public:
             {
             case TOKtypedef:
                 goto Lno;
+
             case TOKstruct:
                 if (targ.ty != Tstruct)
                     goto Lno;
@@ -6832,6 +6837,7 @@ public:
                     goto Lno;
                 tded = targ;
                 break;
+
             case TOKunion:
                 if (targ.ty != Tstruct)
                     goto Lno;
@@ -6839,6 +6845,7 @@ public:
                     goto Lno;
                 tded = targ;
                 break;
+
             case TOKclass:
                 if (targ.ty != Tclass)
                     goto Lno;
@@ -6846,6 +6853,7 @@ public:
                     goto Lno;
                 tded = targ;
                 break;
+
             case TOKinterface:
                 if (targ.ty != Tclass)
                     goto Lno;
@@ -6853,26 +6861,31 @@ public:
                     goto Lno;
                 tded = targ;
                 break;
+
             case TOKconst:
                 if (!targ.isConst())
                     goto Lno;
                 tded = targ;
                 break;
+
             case TOKimmutable:
                 if (!targ.isImmutable())
                     goto Lno;
                 tded = targ;
                 break;
+
             case TOKshared:
                 if (!targ.isShared())
                     goto Lno;
                 tded = targ;
                 break;
+
             case TOKwild:
                 if (!targ.isWild())
                     goto Lno;
                 tded = targ;
                 break;
+
             case TOKsuper:
                 // If class or interface, get the base class and interfaces
                 if (targ.ty != Tclass)
@@ -6892,6 +6905,7 @@ public:
                     tded = new TypeTuple(args);
                 }
                 break;
+
             case TOKenum:
                 if (targ.ty != Tenum)
                     goto Lno;
@@ -6902,17 +6916,20 @@ public:
                 if (tded.ty == Terror)
                     return new ErrorExp();
                 break;
+
             case TOKdelegate:
                 if (targ.ty != Tdelegate)
                     goto Lno;
                 tded = (cast(TypeDelegate)targ).next; // the underlying function type
                 break;
+
             case TOKfunction:
             case TOKparameters:
                 {
                     if (targ.ty != Tfunction)
                         goto Lno;
                     tded = targ;
+
                     /* Generate tuple from function parameter types.
                      */
                     assert(tded.ty == Tfunction);
@@ -6925,11 +6942,16 @@ public:
                         Parameter arg = Parameter.getNth(params, i);
                         assert(arg && arg.type);
                         /* If one of the default arguments was an error,
-                         don't return an invalid tuple
+                           don't return an invalid tuple
                          */
-                        if (tok2 == TOKparameters && arg.defaultArg && arg.defaultArg.op == TOKerror)
+                        if (tok2 == TOKparameters && arg.defaultArg &&
+                            arg.defaultArg.op == TOKerror)
+                        {
                             return new ErrorExp();
-                        args.push(new Parameter(arg.storageClass, arg.type, (tok2 == TOKparameters) ? arg.ident : null, (tok2 == TOKparameters) ? arg.defaultArg : null));
+                        }
+                        args.push(new Parameter(arg.storageClass, arg.type,
+                            (tok2 == TOKparameters) ? arg.ident : null,
+                            (tok2 == TOKparameters) ? arg.defaultArg : null));
                     }
                     tded = new TypeTuple(args);
                     break;
@@ -6953,6 +6975,7 @@ public:
                 else
                     goto Lno;
                 break;
+
             case TOKargTypes:
                 /* Generate a type tuple of the equivalent types used to determine if a
                  * function argument of this type can be passed in registers.
@@ -6964,6 +6987,7 @@ public:
                     goto Lno;
                 // not valid for a parameter
                 break;
+
             default:
                 assert(0);
             }
@@ -6978,6 +7002,7 @@ public:
             tspec = tspec.semantic(loc, sc);
             //printf("targ  = %s, %s\n", targ->toChars(), targ->deco);
             //printf("tspec = %s, %s\n", tspec->toChars(), tspec->deco);
+
             if (tok == TOKcolon)
             {
                 if (targ.implicitConvTo(tspec))
@@ -7006,9 +7031,11 @@ public:
              */
             Identifier tid = id ? id : Identifier.generateId("__isexp_id");
             parameters.insert(0, new TemplateTypeParameter(loc, tid, null, null));
+
             Objects dedtypes;
             dedtypes.setDim(parameters.dim);
             dedtypes.zero();
+
             MATCH m = deduceType(targ, sc, tspec, parameters, &dedtypes);
             //printf("targ: %s\n", targ->toChars());
             //printf("tspec: %s\n", tspec->toChars());
@@ -7024,12 +7051,14 @@ public:
                 Objects tiargs;
                 tiargs.setDim(1);
                 tiargs[0] = targ;
+
                 /* Declare trailing parameters
                  */
                 for (size_t i = 1; i < parameters.dim; i++)
                 {
                     TemplateParameter tp = (*parameters)[i];
                     Declaration s = null;
+
                     m = tp.matchArg(loc, sc, &tiargs, i, parameters, &dedtypes, &s);
                     if (m <= MATCHnomatch)
                         goto Lno;
@@ -7038,6 +7067,7 @@ public:
                         s.addMember(sc, sc.sds);
                     else if (!sc.insert(s))
                         error("declaration %s is already defined", s.toChars());
+
                     unSpeculative(sc, s);
                 }
                 goto Lyes;
@@ -7051,6 +7081,7 @@ public:
             tded = targ;
             goto Lyes;
         }
+
     Lyes:
         if (id)
         {
@@ -7061,6 +7092,7 @@ public:
             else
                 s = new AliasDeclaration(loc, id, tded);
             s.semantic(sc);
+
             /* The reason for the !tup is unclear. It fails Phobos unittests if it is not there.
              * More investigation is needed.
              */
@@ -7068,10 +7100,12 @@ public:
                 error("declaration %s is already defined", s.toChars());
             if (sc.sds)
                 s.addMember(sc, sc.sds);
+
             unSpeculative(sc, s);
         }
         //printf("Lyes\n");
         return new IntegerExp(loc, 1, Type.tbool);
+
     Lno:
         //printf("Lno\n");
         return new IntegerExp(loc, 0, Type.tbool);
