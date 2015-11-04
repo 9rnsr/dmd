@@ -1092,7 +1092,7 @@ public:
                 {
                     t.objects[i] = (*tiargs)[n + i];
                 }
-                declareParameter(paramscope, tp, t);
+                declareParameter(loc, paramscope, tp, t);
                 declaredTuple = t;
             }
             else
@@ -1151,7 +1151,7 @@ public:
                     auto t = new Tuple();
                     //printf("t = %p\n", t);
                     (*dedargs)[parameters.dim - 1] = t;
-                    declareParameter(paramscope, tp, t);
+                    declareParameter(loc, paramscope, tp, t);
                     declaredTuple = t;
                 }
             }
@@ -1309,7 +1309,7 @@ public:
                             }
                             declaredTuple.objects[i] = tt;
                         }
-                        declareParameter(paramscope, tp, declaredTuple);
+                        declareParameter(loc, paramscope, tp, declaredTuple);
                     }
                     else
                     {
@@ -1416,13 +1416,13 @@ public:
                                         if (MATCHconvert < matchTiargs)
                                             matchTiargs = MATCHconvert;
                                     }
-                                    (*dedargs)[i] = declareParameter(paramscope, tparam, oded);
+                                    (*dedargs)[i] = declareParameter(loc, paramscope, tparam, oded);
                                 }
                                 else
                                 {
                                     oded = tparam.defaultArg(loc, paramscope);
                                     if (oded)
-                                        (*dedargs)[i] = declareParameter(paramscope, tparam, oded);
+                                        (*dedargs)[i] = declareParameter(loc, paramscope, tparam, oded);
                                 }
                             }
                         }
@@ -1785,7 +1785,7 @@ public:
                             error("specialization not allowed for deduced parameter %s", tparam.ident.toChars());
                     }
                 }
-                oded = declareParameter(paramscope, tparam, oded);
+                oded = declareParameter(loc, paramscope, tparam, oded);
                 /* Bugzilla 7469: Normalize ti->tiargs for the correct mangling of template instance.
                  */
                 Tuple va = isTuple(oded);
@@ -1846,7 +1846,7 @@ public:
     /**************************************************
      * Declare template parameter tp with value o, and install it in the scope sc.
      */
-    RootObject declareParameter(Scope* sc, TemplateParameter tp, RootObject o)
+    static RootObject declareParameter(Loc loc, Scope* sc, TemplateParameter tp, RootObject o)
     {
         //printf("TemplateDeclaration::declareParameter('%s', o = %p)\n", tp->ident->toChars(), o);
         Type ta = isType(o);
@@ -1924,7 +1924,7 @@ public:
                 d.storage_class |= STCdeprecated;
         }
         if (!sc.insert(d))
-            error("declaration %s is already defined", tp.ident.toChars());
+            .error(loc, "declaration %s is already defined", tp.ident.toChars());
         d.semantic(sc);
         /* So the caller's o gets updated with the result of semantic() being run on o
          */
@@ -7406,7 +7406,7 @@ public:
             //RootObject *o = (*tiargs)[i];
             RootObject o = tdtypes[i]; // initializer for tp
             //printf("\ttdtypes[%d] = %p\n", i, o);
-            tempdecl.declareParameter(sc, tp, o);
+            tempdecl.declareParameter(tempdecl.loc, sc, tp, o);
         }
     }
 
