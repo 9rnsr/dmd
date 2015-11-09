@@ -1310,11 +1310,11 @@ public:
                         a = mergeOverloadSet(ident, a, s);
                     s = a;
                 }
-                if (!(flags & IgnoreErrors) && s.prot().kind == PROTprivate && !s.parent.isTemplateMixin())
-                {
-                    if (!s.isImport())
-                        error(loc, "%s %s is private", s.kind(), s.toPrettyChars());
-                }
+                //if (!(flags & IgnoreErrors) && s.prot().kind == PROTprivate && !s.parent.isTemplateMixin())
+                //{
+                //    if (!s.isImport())        // f/fail10528.d
+                //        error(loc, "%s %s is private", s.kind(), s.toPrettyChars());
+                //}
                 return s;
             }
         }

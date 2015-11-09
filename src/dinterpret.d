@@ -2221,6 +2221,10 @@ public:
                      */
                     e = scrubCacheValue(v.loc, e);
                     ctfeStack.saveGlobalConstant(v, e);
+
+                    // set correct location for diagnostic (c/vgc2.d, f/nogc2.d)
+                    e = e.copy();
+                    e.loc = loc;
                 }
                 else
                 {

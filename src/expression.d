@@ -3524,11 +3524,11 @@ public:
             /* See if the symbol was a member of an enclosing 'with'
              */
             WithScopeSymbol withsym = scopesym.isWithScopeSymbol();
-            if (withsym)
-            {
-                if (auto d = s.isDeclaration())
-                    checkAccess(loc, sc, null, d);
-            }
+            //if (withsym)
+            //{
+            //    if (auto d = s.isDeclaration())       // f/fail10528.d
+            //        checkAccess(loc, sc, null, d);
+            //}
             if (withsym && withsym.withstate.wthis)
             {
                 /* Disallow shadowing
@@ -3699,8 +3699,8 @@ public:
         }
 
         Expression e;
-        //printf("DsymbolExp:: %p '%s' is a symbol\n", this, toChars());
-        //printf("s = '%s', s->kind = '%s'\n", s->toChars(), s->kind());
+        //printf("DsymbolExp::resolve %p '%s' is a symbol\n", s, s.toChars());
+        //printf("s = '%s', s.kind = '%s'\n", s.toChars(), s.kind());
         Dsymbol olds = s;
         Declaration d = s.isDeclaration();
         if (d && (d.storage_class & STCtemplateparameter))
@@ -3710,17 +3710,31 @@ public:
         else
         {
             if (!s.isFuncDeclaration()) // functions are checked after overloading
+            {
                 s.checkDeprecated(loc, sc);
+
+                if (checkAccess(loc, sc, s))
+                    return new ErrorExp();
+            }
 
             // Bugzilla 12023: if 's' is a tuple variable, the tuple is returned.
             s = s.toAlias();
 
-            //printf("s = '%s', s->kind = '%s', s->needThis() = %p\n", s->toChars(), s->kind(), s->needThis());
+            //printf("s = '%s', s.kind = '%s', s.needThis() = %p\n", s.toChars(), s.kind(), s.needThis());
             if (s != olds && !s.isFuncDeclaration())
+            {
                 s.checkDeprecated(loc, sc);
+
+                if (checkAccess(loc, sc, s))
+                    return new ErrorExp();
+            }
         }
 
-        // call checkAccess here (excepting if s is FuncDeclaration || OverDeclaration || TemplateDeclaration)?
+        //// call checkAccess here (excepting if s is FuncDeclaration || OverDeclaration || TemplateDeclaration)?
+        //d = s.isDeclaration();
+        ////if (d && checkAccess(loc, sc, eleft, d))
+        //if (d && checkAccess(loc, sc, null/*eleft*/, d))
+        //    return new ErrorExp();
 
         if (eleft && eleft.op == TOKtype)
         {
@@ -3814,11 +3828,18 @@ public:
                     .error(loc, "circular initialization of %s '%s'", v.kind(), v.toPrettyChars());
                     return new ErrorExp();
                 }
+            /+
                 //checkAccess(loc, sc, null, v);    // ?
                 e = v.expandInitializer(loc);
                 v.inuse++;
                 e = e.semantic(sc);
                 v.inuse--;
+            // +/
+            //+
+                // f/diag8178.d
+                e = new VarExp(loc, v);
+                e = e.semantic(sc);
+            // +/
                 return e;
             }
 
@@ -6221,8 +6242,6 @@ public:
         return var.checkModify(loc, sc, type, null, flag);
     }
 
-    bool checkReadModifyWrite();
-
     override bool isLvalue()
     {
         if (var.storage_class & (STClazy | STCrvalue | STCmanifest))
@@ -8188,8 +8207,8 @@ public:
                 /* Check for access before resolving aliases because public
                  * aliases to private symbols are public.
                  */
-                if (auto d = s.isDeclaration())
-                    checkAccess(loc, sc, null, d);
+                //if (auto d = s.isDeclaration())
+                //    checkAccess(loc, sc, null, d);
 
                 return DsymbolExp.resolve(loc, sc, eleft, s, true);
             }
@@ -8436,8 +8455,6 @@ public:
         //printf("\te1 = %s\n", e1->toChars());
         return e1.checkModifiable(sc, flag);
     }
-
-    bool checkReadModifyWrite();
 
     override bool isLvalue()
     {
@@ -11407,6 +11424,13 @@ public:
         Expression ex = markSettingAAElem();
         if (ex.op == TOKerror)
             return ex;
+        //if (e1.isLvalue())      // f/diag6796.d
+        //{
+        //    ex = e1.modifiableLvalue(sc, e1);
+        //    if (ex.op == TOKerror)
+        //        return ex;
+        //    e1 = ex;
+        //}
         return Expression.modifiableLvalue(sc, e);
     }
 
@@ -12775,6 +12799,10 @@ public:
             {
                 // Rewrite: e1 = e1 ^^ e2
                 e = new PowExp(loc, e1.syntaxCopy(), e2);
+
+                (cast(PowExp)e).e1.type = (cast(PowExp)e).e1.type.unSharedOf();
+                (cast(PowExp)e).e2.type = (cast(PowExp)e).e2.type.unSharedOf();
+
                 e = new AssignExp(loc, e1, e);
             }
             else
@@ -12786,6 +12814,10 @@ public:
                 Expression de = new DeclarationExp(e1.loc, v);
                 auto ve = new VarExp(e1.loc, v);
                 e = new PowExp(loc, ve, e2);
+
+                (cast(PowExp)e).e1.type = (cast(PowExp)e).e1.type.unSharedOf();
+                (cast(PowExp)e).e2.type = (cast(PowExp)e).e2.type.unSharedOf();
+
                 e = new AssignExp(loc, new VarExp(e1.loc, v), e);
                 e = new CommaExp(loc, de, e);
             }

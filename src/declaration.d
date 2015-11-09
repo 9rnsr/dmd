@@ -1155,7 +1155,7 @@ public:
             sc2.pop();
         }
         //printf(" semantic type = %s\n", type ? type->toChars() : "null");
-        type.checkDeprecated(loc, sc);
+        //type.checkDeprecated(loc, sc);
         linkage = sc.linkage;
         this.parent = sc.parent;
         //printf("this = %p, parent = %p, '%s'\n", this, parent, parent->toChars());

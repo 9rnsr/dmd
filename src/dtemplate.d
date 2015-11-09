@@ -11,6 +11,7 @@ module ddmd.dtemplate;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
+import ddmd.access;
 import ddmd.aggregate;
 import ddmd.aliasthis;
 import ddmd.arraytypes;
@@ -7087,6 +7088,13 @@ public:
         /* The best match is td_last
          */
         tempdecl = td_last;
+
+        if (errs == global.errors)
+        {
+            if (checkAccess(loc, sc, tempdecl))
+                ++errs;
+        }
+
         static if (LOG)
         {
             printf("\tIt's a match with template declaration '%s'\n", tempdecl.toChars());

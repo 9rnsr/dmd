@@ -8,6 +8,7 @@
 
 module ddmd.access;
 
+import core.stdc.stdio;
 import ddmd.aggregate;
 import ddmd.dclass;
 import ddmd.declaration;
@@ -407,6 +408,28 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
         // Do access check
         StructDeclaration cd = cast(StructDeclaration)(cast(TypeStruct)e.type).sym;
         return checkAccess(cd, loc, sc, d);
+    }
+    return false;
+}
+
+extern (C++) bool checkAccess(Loc loc, Scope* sc, Dsymbol s)
+{
+    auto d = s.isDeclaration();
+
+    if (d)
+    {
+        return checkAccess(loc, sc, null/*eleft*/, d);
+    }
+    if (s.prot().kind == PROTprivate && !s.parent.isTemplateMixin())
+    {
+        //printf("[%s] s = '%s', s.kind = '%s', sc.module = %s, s.getModule = %s\n",
+        //    loc.toChars(), s.toChars(), s.kind(), sc._module.toChars(), s.getModule().toChars());
+        if (!s.isImport())        // f/fail10528.d
+        if (sc._module !is s.getModule())
+        {
+            error(loc, "%s %s is private", s.kind(), s.toPrettyChars());
+            return true;
+        }
     }
     return false;
 }

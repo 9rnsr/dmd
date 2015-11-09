@@ -6989,14 +6989,40 @@ public:
         *ps = null;
         if (s)
         {
-            //printf("\t1: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
+            //printf("\t1: s = '%s' %p, kind = '%s'\n",s.toChars(), s, s.kind());
+            Dsymbol olds = s;
             Declaration d = s.isDeclaration();
             if (d && (d.storage_class & STCtemplateparameter))
                 s = s.toAlias();
             else
-                s.checkDeprecated(loc, sc); // check for deprecated aliases
-            s = s.toAlias();
-            //printf("\t2: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
+            {
+                if (!s.isFuncDeclaration()) // functions are checked after overloading
+                {
+                    s.checkDeprecated(loc, sc); // check for deprecated aliases
+
+                    if (checkAccess(loc, sc, s))
+                    {
+                        *pt = Type.terror;
+                        return;// new ErrorExp();
+                    }
+                }
+
+                s = s.toAlias();
+
+                //printf("s = '%s', s.kind = '%s', s.needThis() = %p\n", s.toChars(), s.kind(), s.needThis());
+                if (s != olds && !s.isFuncDeclaration())
+                {
+                    s.checkDeprecated(loc, sc);
+
+                    if (checkAccess(loc, sc, s))
+                    {
+                        *pt = Type.terror;
+                        return;// new ErrorExp();
+                    }
+                }
+            }
+
+            //printf("\t2: s = '%s' %p, kind = '%s'\n",s.toChars(), s, s.kind());
             for (size_t i = 0; i < idents.dim; i++)
             {
                 RootObject id = idents[i];
