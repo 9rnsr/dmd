@@ -3524,6 +3524,11 @@ public:
             /* See if the symbol was a member of an enclosing 'with'
              */
             WithScopeSymbol withsym = scopesym.isWithScopeSymbol();
+            if (withsym)
+            {
+                if (auto d = s.isDeclaration())
+                    checkAccess(loc, sc, null, d);
+            }
             if (withsym && withsym.withstate.wthis)
             {
                 /* Disallow shadowing
@@ -3546,32 +3551,25 @@ public:
                         return new ErrorExp();
                     }
                 }
-                s = s.toAlias();
 
                 // Same as wthis.ident
-                //  TODO: DotIdExp.semantic will find 'ident' from 'wthis' again.
-                //  The redudancy should be removed.
                 e = new VarExp(loc, withsym.withstate.wthis);
+
+                // 'e' does not contain 'alias this' part, so it does not work...
+                //e = DsymbolExp.resolve(loc, sc, e, s, true);
+                //printf("[%s] e = %s %s\n", e.loc.toChars(), Token.toChars(e.op), e.toChars());
+
                 e = new DotIdExp(loc, e, ident);
                 e = e.semantic(sc);
             }
             else
             {
-                if (withsym)
-                {
-                    Declaration d = s.isDeclaration();
-                    if (d)
-                        checkAccess(loc, sc, null, d);
-                }
-
                 /* If f is really a function template,
                  * then replace f with the function template declaration.
                  */
-                FuncDeclaration f = s.isFuncDeclaration();
-                if (f)
+                if (auto f = s.isFuncDeclaration())
                 {
-                    TemplateDeclaration td = getFuncTemplateDecl(f);
-                    if (td)
+                    if (auto td = getFuncTemplateDecl(f))
                     {
                         if (td.overroot) // if not start of overloaded list of TemplateDeclaration's
                             td = td.overroot; // then get the start
@@ -8094,13 +8092,8 @@ public:
                 /* Check for access before resolving aliases because public
                  * aliases to private symbols are public.
                  */
-                if (Declaration d = s.isDeclaration())
+                if (auto d = s.isDeclaration())
                     checkAccess(loc, sc, null, d);
-
-                // if 's' is a tuple variable, the tuple is returned.
-                s = s.toAlias();
-
-                checkDeprecated(sc, s);
 
                 return DsymbolExp.resolve(loc, sc, eleft, s, true);
             }
