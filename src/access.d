@@ -420,7 +420,7 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Dsymbol s)
     {
         return checkAccess(loc, sc, null/*eleft*/, d);
     }
-    if (s.prot().kind == PROTprivate && !s.parent.isTemplateMixin())
+    if (s.prot().kind == PROTprivate && s.parent && !s.parent.isTemplateMixin())
     {
         //printf("[%s] s = '%s', s.kind = '%s', sc.module = %s, s.getModule = %s\n",
         //    loc.toChars(), s.toChars(), s.kind(), sc._module.toChars(), s.getModule().toChars());

@@ -7002,6 +7002,7 @@ public:
 
                     if (checkAccess(loc, sc, s))
                     {
+//                printf("s = %s '%s', s.prot = '%d', s.stc = x%llx\n", s.kind(), s.toChars(), s.prot().kind, d ? d.storage_class : 0);
                         *pt = Type.terror;
                         return;// new ErrorExp();
                     }
@@ -7009,17 +7010,18 @@ public:
 
                 s = s.toAlias();
 
-                //printf("s = '%s', s.kind = '%s', s.needThis() = %p\n", s.toChars(), s.kind(), s.needThis());
-                if (s != olds && !s.isFuncDeclaration())
-                {
-                    s.checkDeprecated(loc, sc);
-
-                    if (checkAccess(loc, sc, s))
-                    {
-                        *pt = Type.terror;
-                        return;// new ErrorExp();
-                    }
-                }
+// If the alias name is accessible, the aliased symbol also be accessible.
+//                //printf("s = '%s', s.kind = '%s', s.needThis() = %p\n", s.toChars(), s.kind(), s.needThis());
+//                if (s != olds && !s.isFuncDeclaration())
+//                {
+//                    s.checkDeprecated(loc, sc);
+//
+//                    if (checkAccess(loc, sc, s))
+//                    {
+//                        *pt = Type.terror;
+//                        return;// new ErrorExp();
+//                    }
+//                }
             }
 
             //printf("\t2: s = '%s' %p, kind = '%s'\n",s.toChars(), s, s.kind());

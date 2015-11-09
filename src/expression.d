@@ -3720,14 +3720,15 @@ public:
             // Bugzilla 12023: if 's' is a tuple variable, the tuple is returned.
             s = s.toAlias();
 
-            //printf("s = '%s', s.kind = '%s', s.needThis() = %p\n", s.toChars(), s.kind(), s.needThis());
-            if (s != olds && !s.isFuncDeclaration())
-            {
-                s.checkDeprecated(loc, sc);
-
-                if (checkAccess(loc, sc, s))
-                    return new ErrorExp();
-            }
+// If the alias name is accessible, the aliased symbol also be accessible.
+//            //printf("s = '%s', s.kind = '%s', s.needThis() = %p\n", s.toChars(), s.kind(), s.needThis());
+//            if (s != olds && !s.isFuncDeclaration())
+//            {
+//                s.checkDeprecated(loc, sc);
+//
+//                if (checkAccess(loc, sc, s))
+//                    return new ErrorExp();
+//            }
         }
 
         //// call checkAccess here (excepting if s is FuncDeclaration || OverDeclaration || TemplateDeclaration)?
@@ -7253,16 +7254,17 @@ public:
                 for (size_t i = 1; i < parameters.dim; i++)
                 {
                     TemplateParameter tp = (*parameters)[i];
-                    Declaration s = null;
-                    m = tp.matchArg(loc, sc, &tiargs, i, parameters, &dedtypes, &s);
+                    Declaration d = null;
+                    m = tp.matchArg(loc, sc, &tiargs, i, parameters, &dedtypes, &d);
                     if (m <= MATCHnomatch)
                         goto Lno;
-                    s.semantic(sc);
+                    d.semantic(sc);
+                    //printf("[%s] d = %s, prot = %d, stc = x%llx\n", loc.toChars(), d.toChars(), d.prot().kind, d.storage_class);
                     if (sc.sds)
-                        s.addMember(sc, sc.sds);
-                    else if (!sc.insert(s))
-                        error("declaration %s is already defined", s.toChars());
-                    unSpeculative(sc, s);
+                        d.addMember(sc, sc.sds);
+                    else if (!sc.insert(d))
+                        error("declaration %s is already defined", d.toChars());
+                    unSpeculative(sc, d);
                 }
                 goto Lyes;
             }
@@ -7278,21 +7280,23 @@ public:
     Lyes:
         if (id)
         {
-            Dsymbol s;
+            Declaration d;
             Tuple tup = isTuple(tded);
             if (tup)
-                s = new TupleDeclaration(loc, id, &tup.objects);
+                d = new TupleDeclaration(loc, id, &tup.objects);
             else
-                s = new AliasDeclaration(loc, id, tded);
-            s.semantic(sc);
+                d = new AliasDeclaration(loc, id, tded);
+            d.protection = Prot(PROTpublic);
+            d.storage_class |= STCtemplateparameter;
+            d.semantic(sc);
             /* The reason for the !tup is unclear. It fails Phobos unittests if it is not there.
              * More investigation is needed.
              */
-            if (!tup && !sc.insert(s))
-                error("declaration %s is already defined", s.toChars());
+            if (!tup && !sc.insert(d))
+                error("declaration %s is already defined", d.toChars());
             if (sc.sds)
-                s.addMember(sc, sc.sds);
-            unSpeculative(sc, s);
+                d.addMember(sc, sc.sds);
+            unSpeculative(sc, d);
         }
         //printf("Lyes\n");
         return new IntegerExp(loc, 1, Type.tbool);
