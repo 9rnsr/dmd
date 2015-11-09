@@ -3720,6 +3720,78 @@ public:
                 s.checkDeprecated(loc, sc);
         }
 
+        // call checkAccess here (excepting if s is FuncDeclaration || OverDeclaration || TemplateDeclaration)?
+
+        if (eleft && eleft.op == TOKtype)
+        {
+            d = s.isDeclaration();
+            auto cd = eleft.type.isClassHandle();
+            if (cd && d && d.needThis() && sc.intypeof != 1)
+            {
+                /* Rewrite as:
+                 *  this.d
+                 */
+                if (hasThis(sc))
+                {
+                    // This is almost same as getRightThis() in expression.c
+                    Expression e1 = new ThisExp(loc);
+                    e1 = e1.semantic(sc);
+                L2:
+                    Type t = e1.type.toBasetype();
+                    //ClassDeclaration cd = e.type.isClassHandle();
+                    ClassDeclaration tcd = t.isClassHandle();
+                    if (cd && tcd && (tcd == cd || cd.isBaseOf(tcd, null)))
+                    {
+                        e = new DotTypeExp(e1.loc, e1, cd);
+                        e = new DotVarExp(loc, e, d);
+                        e = e.semantic(sc);
+                        return e;
+                    }
+                    if (tcd && tcd.isNested())
+                    {
+                        /* e1 is the 'this' pointer for an inner class: tcd.
+                         * Rewrite it as the 'this' pointer for the outer class.
+                         */
+                        e1 = new DotVarExp(loc, e1, tcd.vthis);
+                        e1.type = tcd.vthis.type;
+                        e1.type = e1.type.addMod(t.mod);
+
+                        // Do not call checkNestedRef()
+                        //e1 = e1->semantic(sc);
+
+                        // Skip up over nested functions, and get the enclosing class type.
+                        int n = 0;
+                        for (s = tcd.toParent(); s && s.isFuncDeclaration(); s = s.toParent())
+                        {
+                            auto f = s.isFuncDeclaration();
+                            if (f.vthis)
+                            {
+                                //printf("rewriting e1 to %s's this\n", f->toChars());
+                                n++;
+                                e1 = new VarExp(loc, f.vthis);
+                            }
+                            else
+                            {
+                                e = new VarExp(loc, d, 1);
+                                return e;
+                            }
+                        }
+                        if (s && s.isClassDeclaration())
+                        {
+                            e1.type = s.isClassDeclaration().type;
+                            e1.type = e1.type.addMod(t.mod);
+                            if (n > 1)
+                                e1 = e1.semantic(sc);
+                        }
+                        else
+                            e1 = e1.semantic(sc);
+                        goto L2;
+                    }
+                }
+            }
+            eleft = null;
+        }
+
         if (auto em = s.isEnumMember())
         {
             return em.getVarExp(loc, sc);
@@ -3742,6 +3814,7 @@ public:
                     .error(loc, "circular initialization of %s '%s'", v.kind(), v.toPrettyChars());
                     return new ErrorExp();
                 }
+                //checkAccess(loc, sc, null, v);    // ?
                 e = v.expandInitializer(loc);
                 v.inuse++;
                 e = e.semantic(sc);
@@ -3753,10 +3826,22 @@ public:
             if (v.checkNestedReference(sc, loc))
                 return new ErrorExp();
 
+            //printf("[%s] eleft = %s, s = %s %s\n", loc.toChars(), eleft ? eleft.toChars() : null, s.kind(), s.toPrettyChars());
             if (!eleft && v.needThis() && hasThis(sc))
                 eleft = new ThisExp(loc);
+
             if (eleft)
-                e = new DotVarExp(loc, eleft, v);
+            {
+                bool unreal = eleft.op == TOKvar && (cast(VarExp)eleft).var.isField();
+                //printf("\tunreal = %d, eleft --> %s\n", unreal, eleft ? eleft.toChars() : null);
+                if (v.isDataseg() || unreal && v.isField())
+                {
+                    e = new VarExp(loc, v);
+                    e = unreal ? e : new CommaExp(loc, eleft, e);
+                }
+                else
+                    e = new DotVarExp(loc, eleft, v);
+            }
             else
                 e = new VarExp(loc, v);
             e = e.semantic(sc);
@@ -3827,7 +3912,10 @@ public:
         if (auto os = s.isOverloadSet())
         {
             //printf("'%s' is an overload set\n", o->toChars());
-            return new OverExp(loc, os);
+            e = new OverExp(loc, os);
+            if (eleft)
+                e = new DotExp(loc, eleft, e);
+            return e;
         }
 
         if (auto t = s.getType())
@@ -3858,10 +3946,18 @@ public:
             e = e.semantic(sc);
             return e;
         }
+        if (auto tm = s.isTemplateMixin())
+        {
+            e = new ScopeExp(loc, tm);
+            if (eleft)
+                e = new DotExp(e.loc, eleft, e);
+            e = e.semantic(sc);
+            return e;
+        }
         if (auto ti = s.isTemplateInstance())
         {
             ti.semantic(sc);
-            if (!ti.inst || ti.errors)
+            if (!ti.inst || ti.errors)  // if template failed to expand
                 return new ErrorExp();
             s = ti.toAlias();
             if (!s.isTemplateInstance())
