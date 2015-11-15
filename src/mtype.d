@@ -5978,6 +5978,7 @@ public:
                     }
                     else
                     {
+                        e = inferType(e, fparam.type);
                         Initializer iz = new ExpInitializer(e.loc, e);
                         iz = iz.semantic(argsc, fparam.type, INITnointerpret);
                         e = iz.toExpression();
