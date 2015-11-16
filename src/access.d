@@ -55,9 +55,11 @@ extern (C++) Prot getAccess(AggregateDeclaration ad, Dsymbol smember)
             {
             case PROTnone:
                 break;
+
             case PROTprivate:
                 access_ret = Prot(PROTnone); // private members of base class not accessible
                 break;
+
             case PROTpackage:
             case PROTprotected:
             case PROTpublic:
@@ -65,10 +67,12 @@ extern (C++) Prot getAccess(AggregateDeclaration ad, Dsymbol smember)
                 // If access is to be tightened
                 if (PROTpublic < access.kind)
                     access = Prot(PROTpublic);
+
                 // Pick path with loosest access
                 if (access_ret.isMoreRestrictiveThan(access))
                     access_ret = access;
                 break;
+
             default:
                 assert(0);
             }
@@ -98,6 +102,7 @@ extern (C++) static bool isAccessible(Dsymbol smember, Dsymbol sfunc, AggregateD
     {
         if (smember.toParent() == dthis)
             return true;
+
         if (ClassDeclaration cdthis = dthis.isClassDeclaration())
         {
             for (size_t i = 0; i < cdthis.baseclasses.dim; i++)
@@ -138,10 +143,12 @@ extern (C++) bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymb
 {
     FuncDeclaration f = sc.func;
     AggregateDeclaration cdscope = sc.getStructClassScope();
+
     static if (LOG)
     {
         printf("AggregateDeclaration::checkAccess() for %s.%s in function %s() in scope %s\n", ad.toChars(), smember.toChars(), f ? f.toChars() : null, cdscope ? cdscope.toChars() : null);
     }
+
     Dsymbol smemberparent = smember.toParent();
     if (!smemberparent || !smemberparent.isAggregateDeclaration())
     {
@@ -151,8 +158,10 @@ extern (C++) bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymb
         }
         return false; // then it is accessible
     }
+
     // BUG: should enable this check
     //assert(smember->parent->isBaseOf(this, NULL));
+
     bool result;
     Prot access;
     if (smemberparent == ad)
@@ -209,6 +218,7 @@ extern (C++) bool isFriendOf(AggregateDeclaration ad, AggregateDeclaration cd)
     }
     if (ad == cd)
         return true;
+
     // Friends if both are in the same module
     //if (toParent() == cd->toParent())
     if (cd && ad.getAccessModule() == cd.getAccessModule())
@@ -241,6 +251,7 @@ extern (C++) bool hasPackageAccess(Module mod, Dsymbol s)
         printf("hasPackageAccess(s = '%s', mod = '%s', s->protection.pkg = '%s')\n", s.toChars(), mod.toChars(), s.prot().pkg ? s.prot().pkg.toChars() : "NULL");
     }
     Package pkg = null;
+
     if (s.prot().pkg)
         pkg = s.prot().pkg;
     else
@@ -270,6 +281,7 @@ extern (C++) bool hasPackageAccess(Module mod, Dsymbol s)
         if (pkg)
             printf("\tsymbol access binds to package '%s'\n", pkg.toChars());
     }
+
     if (pkg)
     {
         if (pkg == mod.parent)
@@ -301,6 +313,7 @@ extern (C++) bool hasPackageAccess(Module mod, Dsymbol s)
             }
         }
     }
+
     static if (LOG)
     {
         printf("\tno package access\n");
@@ -338,10 +351,12 @@ extern (C++) bool hasPrivateAccess(AggregateDeclaration ad, Dsymbol smember)
         Dsymbol smemberparent = smember.toParent();
         if (smemberparent)
             cd = smemberparent.isAggregateDeclaration();
+
         static if (LOG)
         {
             printf("AggregateDeclaration::hasPrivateAccess(class %s, member %s)\n", ad.toChars(), smember.toChars());
         }
+
         if (ad == cd) // smember is a member of this class
         {
             static if (LOG)
@@ -350,6 +365,7 @@ extern (C++) bool hasPrivateAccess(AggregateDeclaration ad, Dsymbol smember)
             }
             return true; // so we get private access
         }
+
         // If both are members of the same module, grant access
         while (1)
         {
@@ -391,6 +407,7 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
 {
     if (sc.flags & SCOPEnoaccesscheck)
         return false;
+
     static if (LOG)
     {
         if (e)

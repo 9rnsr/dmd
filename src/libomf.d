@@ -73,7 +73,9 @@ public:
         if (!FileName.absolute(arg))
             arg = FileName.combine(dir, arg);
         const(char)* libfilename = FileName.defaultExt(arg, global.lib_ext);
+
         libfile = File.create(libfilename);
+
         loc.filename = libfile.name.toChars();
         loc.linnum = 0;
         loc.charnum = 0;
@@ -100,12 +102,15 @@ public:
             buflen = file.len;
             file._ref = 1;
         }
+
         uint g_page_size;
         ubyte* pstart = cast(ubyte*)buf;
         bool islibrary = false;
+
         /* See if it's an OMF library.
          * Don't go by file extension.
          */
+
         struct LibHeader
         {
         align(1):
@@ -146,6 +151,7 @@ public:
             // Not a library, assume OMF object module
             g_page_size = 16;
         }
+
         bool firstmodule = true;
 
         void addOmfObjModule(char* name, void* base, size_t length)
@@ -154,6 +160,7 @@ public:
             om.base = cast(ubyte*)base;
             om.page = om.page = cast(ushort)((om.base - pstart) / g_page_size);
             om.length = cast(uint)length;
+
             /* Determine the name of the module
              */
             if (firstmodule && module_name && !islibrary)
@@ -174,7 +181,9 @@ public:
                 if (ext)
                     ext[-1] = 0;
             }
+
             firstmodule = false;
+
             this.objmodules.push(om);
         }
 
@@ -183,6 +192,7 @@ public:
     }
 
     /*****************************************************************************/
+
     override void addLibrary(void* buf, size_t buflen)
     {
         addObject(null, buf, buflen);
@@ -192,12 +202,16 @@ public:
     {
         if (global.params.verbose)
             fprintf(global.stdmsg, "library   %s\n", libfile.name.toChars());
+
         OutBuffer libbuf;
         WriteLibToBuffer(&libbuf);
+
         // Transfer image to file
         libfile.setbuffer(libbuf.data, libbuf.offset);
         libbuf.extractData();
+
         ensurePathToNameExists(Loc(), libfile.name.toChars());
+
         writeFile(Loc(), libfile);
     }
 
@@ -226,6 +240,7 @@ public:
             os.name = strdup(name);
             os.om = om;
             s.ptrvalue = cast(void*)os;
+
             objsymbols.push(os);
         }
     }
@@ -261,11 +276,13 @@ private:
         ushort bucksForHash;
         ushort bucksForSize;
         uint symSize = 0;
+
         for (size_t i = 0; i < objsymbols.dim; i++)
         {
             OmfObjSymbol* s = objsymbols[i];
             symSize += (strlen(s.name) + 4) & ~1;
         }
+
         for (size_t i = 0; i < objmodules.dim; i++)
         {
             OmfObjModule* om = objmodules[i];
@@ -274,10 +291,13 @@ private:
                 len += 2; // Digital Mars long name extension
             symSize += (len + 4 + 1) & ~1;
         }
+
         bucksForHash = cast(ushort)((objsymbols.dim + objmodules.dim + HASHMOD - 3) / (HASHMOD - 2));
         bucksForSize = cast(ushort)((symSize + BUCKETSIZE - padding - padding - 1) / (BUCKETSIZE - padding));
+
         ndicpages = (bucksForHash > bucksForSize) ? bucksForHash : bucksForSize;
         //printf("ndicpages = %u\n",ndicpages);
+
         // Find prime number greater than ndicpages
         static __gshared uint* primes =
         [
@@ -293,6 +313,7 @@ private:
             //521,523,541,547,
             0
         ];
+
         for (size_t i = 0; 1; i++)
         {
             if (primes[i] == 0)
@@ -314,12 +335,14 @@ private:
                 ndicpages = cast(ushort)prime;
                 break;
             }
+
             if (primes[i] > ndicpages)
             {
                 ndicpages = cast(ushort)primes[i];
                 break;
             }
         }
+
         return ndicpages;
     }
 
@@ -333,11 +356,14 @@ private:
         // max size that will fit in dictionary
         enum LIBIDMAX = (512 - 0x25 - 3 - 4);
         ubyte[4 + LIBIDMAX + 2 + 1] entry;
+
         //printf("FillDict()\n");
+
         // Add each of the module names
         for (size_t i = 0; i < objmodules.dim; i++)
         {
             OmfObjModule* om = objmodules[i];
+
             ushort n = cast(ushort)strlen(om.name);
             if (n > 255)
             {
@@ -359,12 +385,15 @@ private:
             if (!EnterDict(bucketsP, ndicpages, entry.ptr, n + 1))
                 return false;
         }
+
         // Sort the symbols
         qsort(objsymbols.tdata(), objsymbols.dim, (objsymbols[0]).sizeof, &NameCompare);
+
         // Add each of the symbols
         for (size_t i = 0; i < objsymbols.dim; i++)
         {
             OmfObjSymbol* os = objsymbols[i];
+
             ushort n = cast(ushort)strlen(os.name);
             if (n > 255)
             {
@@ -408,7 +437,9 @@ private:
             OmfObjModule* om = objmodules[i];
             scanObjModule(om);
         }
+
         uint g_page_size = 16;
+
         /* Calculate page size so that the number of pages
          * fits in 16 bits. This is because object modules
          * are indexed by page number, stored as an unsigned short.
@@ -424,6 +455,7 @@ private:
             for (size_t i = 0; i < objmodules.dim; i++)
             {
                 OmfObjModule* om = objmodules[i];
+
                 uint page = offset / g_page_size;
                 if (page > 0xFFFF)
                 {
@@ -431,7 +463,9 @@ private:
                     g_page_size *= 2;
                     goto Lagain;
                 }
+
                 offset += OMFObjSize(om.base, om.length, om.name);
+
                 // Round the size of the file up to the next page size
                 // by filling with 0s
                 uint n = (g_page_size - 1) & offset;
@@ -440,33 +474,41 @@ private:
             }
             break;
         }
+
         /* Leave one page of 0s at start as a dummy library header.
          * Fill it in later with the real data.
          */
         libbuf.fill0(g_page_size);
+
         /* Write each object module into the library
          */
         for (size_t i = 0; i < objmodules.dim; i++)
         {
             OmfObjModule* om = objmodules[i];
+
             uint page = cast(uint)(libbuf.offset / g_page_size);
             assert(page <= 0xFFFF);
             om.page = cast(ushort)page;
+
             // Write out the object module om
             writeOMFObj(libbuf, om.base, om.length, om.name);
+
             // Round the size of the file up to the next page size
             // by filling with 0s
             uint n = (g_page_size - 1) & libbuf.offset;
             if (n)
                 libbuf.fill0(g_page_size - n);
         }
+
         // File offset of start of dictionary
         uint offset = cast(uint)libbuf.offset;
+
         // Write dictionary header, then round it to a BUCKETPAGE boundary
         ushort size = (BUCKETPAGE - (cast(short)offset + 3)) & (BUCKETPAGE - 1);
         libbuf.writeByte(0xF1);
         libbuf.writeword(size);
         libbuf.fill0(size);
+
         // Create dictionary
         ubyte* bucketsP = null;
         ushort ndicpages;
@@ -474,6 +516,7 @@ private:
         for (;;)
         {
             ndicpages = numDictPages(padding);
+
             static if (LOG)
             {
                 printf("ndicpages = %d\n", ndicpages);
@@ -490,14 +533,17 @@ private:
                 // 'next available' slot
                 bucketsP[u * BUCKETPAGE + HASHMOD] = (HASHMOD + 1) >> 1;
             }
+
             if (FillDict(bucketsP, ndicpages))
                 break;
             padding += 16; // try again with more margins
         }
+
         // Write dictionary
         libbuf.write(bucketsP, ndicpages * BUCKETPAGE);
         if (bucketsP)
             free(bucketsP);
+
         // Create library header
         struct Libheader
         {
@@ -518,6 +564,7 @@ private:
         libHeader.recLen = cast(ushort)(g_page_size - 3);
         libHeader.ndicpages = ndicpages;
         libHeader.flags = 1; // always case sensitive
+
         // Write library header at start of buffer
         memcpy(libbuf.data, &libHeader, (libHeader).sizeof);
     }
@@ -547,6 +594,7 @@ extern (C++) Library LibOMF_factory()
 
 /*****************************************************************************/
 /*****************************************************************************/
+
 struct OmfObjModule
 {
     ubyte* base; // where are we holding it in memory
@@ -557,6 +605,7 @@ struct OmfObjModule
 
 /*****************************************************************************/
 /*****************************************************************************/
+
 extern (C)
 {
     int NameCompare(const(void*) p1, const(void*) p2)
@@ -587,12 +636,15 @@ extern (C++) static bool EnterDict(ubyte* bucketsP, ushort ndicpages, ubyte* ent
     uint nbytes;
     ubyte* aP;
     ubyte* zP;
+
     aP = entry;
     zP = aP + entrylen; // point at last char in identifier
+
     uStartPage = 0;
     uPageStep = 0;
     uStartIndex = 0;
     uStep = 0;
+
     u = entrylen;
     while (u--)
     {
@@ -601,6 +653,7 @@ extern (C++) static bool EnterDict(ubyte* bucketsP, ushort ndicpages, ubyte* ent
         uStartIndex = cast(ushort)_rotr(uStartIndex, 2) ^ (*zP | 0x20);
         uPageStep = cast(ushort)_rotl(uPageStep, 2) ^ (*zP-- | 0x20);
     }
+
     uStartPage %= ndicpages;
     uPageStep %= ndicpages;
     if (uPageStep == 0)
@@ -609,12 +662,15 @@ extern (C++) static bool EnterDict(ubyte* bucketsP, ushort ndicpages, ubyte* ent
     uStep %= HASHMOD;
     if (uStep == 0)
         uStep++;
+
     uPage = uStartPage;
     uIndex = uStartIndex;
+
     // number of bytes in entry
     nbytes = 1 + entrylen + 2;
     if (entrylen > 255)
         nbytes += 2;
+
     while (1)
     {
         aP = &bucketsP[uPage * BUCKETPAGE];
@@ -626,6 +682,7 @@ extern (C++) static bool EnterDict(ubyte* bucketsP, ushort ndicpages, ubyte* ent
                 // n = next available position in this page
                 n = aP[HASHMOD] << 1;
                 assert(n > HASHMOD);
+
                 // if off end of this page
                 if (n + nbytes > BUCKETPAGE)
                 {
@@ -656,5 +713,6 @@ extern (C++) static bool EnterDict(ubyte* bucketsP, ushort ndicpages, ubyte* ent
         if (uPage == uStartPage)
             break;
     }
+
     return false;
 }

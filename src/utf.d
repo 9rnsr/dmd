@@ -679,9 +679,12 @@ immutable(char*) utf_decodeChar(const(char)* s, size_t len, ref size_t ridx, out
     size_t i = ridx++;
     assert(i < len);
     char u = s[i];
+
     // Pre-stage results for ASCII and error cases
     rresult = u;
+
     //printf("utf_decodeChar(s = %02x, %02x, %02x len = %d)\n", u, s[1], s[2], len);
+
     // Get expected sequence length
     size_t n = UTF8_STRIDE[u];
     switch (n)
@@ -689,17 +692,20 @@ immutable(char*) utf_decodeChar(const(char)* s, size_t len, ref size_t ridx, out
     case 1:
         // ASCII
         return UTF8_DECODE_OK;
+
     case 2:
     case 3:
     case 4:
         // multi-byte UTF-8
         break;
+
     default:
         // 5- or 6-byte sequence
         return UTF8_DECODE_OUTSIDE_CODE_SPACE;
     }
     if (len < i + n) // source too short
         return UTF8_DECODE_TRUNCATED_SEQUENCE;
+
     // Pick off 7 - n low bits from first code unit
     dchar c = u & ((1 << (7 - n)) - 1);
     /* The following combinations are overlong, and illegal:
@@ -750,8 +756,10 @@ immutable(char*) utf_decodeWchar(const(wchar)* s, size_t len, ref size_t ridx, o
     assert(s !is null);
     size_t i = ridx++;
     assert(i < len);
+
     // Pre-stage results for ASCII and error cases
     dchar u = rresult = s[i];
+
     if (u < 0x80) // ASCII
         return UTF16_DECODE_OK;
     if (0xD800 <= u && u <= 0xDBFF) // Surrogate pair

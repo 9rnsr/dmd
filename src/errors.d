@@ -26,6 +26,7 @@ enum COLOR : int
     COLOR_RED       = 1,
     COLOR_GREEN     = 2,
     COLOR_BLUE      = 4,
+
     COLOR_YELLOW    = COLOR_RED | COLOR_GREEN,
     COLOR_MAGENTA   = COLOR_RED | COLOR_BLUE,
     COLOR_CYAN      = COLOR_GREEN | COLOR_BLUE,
@@ -196,11 +197,13 @@ extern (C++) void deprecationSupplemental(const ref Loc loc, const(char)* format
 extern (C++) void verrorPrint(const ref Loc loc, COLOR headerColor, const(char)* header, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
 {
     const p = loc.toChars();
+
     if (global.params.color)
         setConsoleColorBright(true);
     if (*p)
         fprintf(stderr, "%s: ", p);
     mem.xfree(cast(void*)p);
+
     if (global.params.color)
         setConsoleColor(headerColor, true);
     fputs(header, stderr);

@@ -70,6 +70,7 @@ public:
     {
         if (e.type.ty != Tarray || !e.elements || !e.elements.dim)
             return;
+
         if (f.setGC())
         {
             e.error("array literal in @nogc %s '%s' may cause GC allocation",
@@ -84,6 +85,7 @@ public:
     {
         if (!e.keys.dim)
             return;
+
         if (f.setGC())
         {
             e.error("associative array literal in @nogc %s '%s' may cause GC allocation",
@@ -105,6 +107,7 @@ public:
             return;
         if (e.allocator)
             return;
+
         if (f.setGC())
         {
             e.error("cannot use 'new' in @nogc %s '%s'",

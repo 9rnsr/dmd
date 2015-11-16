@@ -43,15 +43,18 @@ extern (C++) bool isCommutative(TOK op)
     case TOKand:
     case TOKor:
     case TOKxor:
+
     // EqualExp
     case TOKequal:
     case TOKnotequal:
+
     // CmpExp
     case TOKlt:
     case TOKle:
     case TOKgt:
     case TOKge:
         return true;
+
     default:
         break;
     }
@@ -388,42 +391,55 @@ extern (C++) Objects* opToArg(Scope* sc, TOK op)
     case TOKaddass:
         op = TOKadd;
         break;
+
     case TOKminass:
         op = TOKmin;
         break;
+
     case TOKmulass:
         op = TOKmul;
         break;
+
     case TOKdivass:
         op = TOKdiv;
         break;
+
     case TOKmodass:
         op = TOKmod;
         break;
+
     case TOKandass:
         op = TOKand;
         break;
+
     case TOKorass:
         op = TOKor;
         break;
+
     case TOKxorass:
         op = TOKxor;
         break;
+
     case TOKshlass:
         op = TOKshl;
         break;
+
     case TOKshrass:
         op = TOKshr;
         break;
+
     case TOKushrass:
         op = TOKushr;
         break;
+
     case TOKcatass:
         op = TOKcat;
         break;
+
     case TOKpowass:
         op = TOKpow;
         break;
+
     default:
         break;
     }
@@ -462,6 +478,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
         override void visit(UnaExp e)
         {
             //printf("UnaExp::op_overload() (%s)\n", e->toChars());
+
             if (e.e1.op == TOKarray)
             {
                 ArrayExp ae = cast(ArrayExp)e.e1;
@@ -475,6 +492,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     assert((*ae.arguments)[0].op == TOKinterval);
                     ie = cast(IntervalExp)(*ae.arguments)[0];
                 }
+
                 while (true)
                 {
                     if (ae.e1.op == TOKerror)
@@ -485,6 +503,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     Expression e0 = null;
                     Expression ae1save = ae.e1;
                     ae.lengthVar = null;
+
                     Type t1b = ae.e1.type.toBasetype();
                     AggregateDeclaration ad = isAggregate(t1b);
                     if (!ad)
@@ -497,6 +516,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                             goto Lfallback;
                         if (result.op == TOKerror)
                             return;
+
                         /* Rewrite op(a[arguments]) as:
                          *      a.opIndexUnary!(op)(arguments)
                          */
@@ -521,6 +541,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         result = resolveOpDollar(sc, ae, ie, &e0);
                         if (result.op == TOKerror)
                             return;
+
                         /* Rewrite op(a[i..j]) as:
                          *      a.opSliceUnary!(op)(i, j)
                          */
@@ -537,11 +558,13 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         result = Expression.combine(e0, result);
                         return;
                     }
+
                     // Didn't find it. Forward to aliasthis
                     if (ad.aliasthis && t1b != ae.att1)
                     {
                         if (!ae.att1 && t1b.checkAliasThisRec())
                             ae.att1 = t1b;
+
                         /* Rewrite op(a[arguments]) as:
                          *      op(a.aliasthis[arguments])
                          */
@@ -554,6 +577,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 ae.e1 = ae1old; // recovery
                 ae.lengthVar = null;
             }
+
             e.e1 = e.e1.semantic(sc);
             e.e1 = resolveProperties(sc, e.e1);
             if (e.e1.op == TOKerror)
@@ -561,6 +585,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 result = e.e1;
                 return;
             }
+
             AggregateDeclaration ad = isAggregate(e.e1.type);
             if (ad)
             {
@@ -579,6 +604,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         }
                     }
                 }
+
                 /* Rewrite as:
                  *      e1.opUnary!(op)()
                  */
@@ -591,6 +617,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     result = result.semantic(sc);
                     return;
                 }
+
                 // Didn't find it. Forward to aliasthis
                 if (ad.aliasthis && e.e1.type != e.att1)
                 {
@@ -615,6 +642,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
             ae.e1 = ae.e1.semantic(sc);
             ae.e1 = resolveProperties(sc, ae.e1);
             Expression ae1old = ae.e1;
+
             const(bool) maybeSlice = (ae.arguments.dim == 0 || ae.arguments.dim == 1 && (*ae.arguments)[0].op == TOKinterval);
             IntervalExp ie = null;
             if (maybeSlice && ae.arguments.dim)
@@ -622,6 +650,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 assert((*ae.arguments)[0].op == TOKinterval);
                 ie = cast(IntervalExp)(*ae.arguments)[0];
             }
+
             while (true)
             {
                 if (ae.e1.op == TOKerror)
@@ -632,6 +661,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 Expression e0 = null;
                 Expression ae1save = ae.e1;
                 ae.lengthVar = null;
+
                 Type t1b = ae.e1.type.toBasetype();
                 AggregateDeclaration ad = isAggregate(t1b);
                 if (!ad)
@@ -665,6 +695,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         goto Lfallback;
                     if (result.op == TOKerror)
                         return;
+
                     /* Rewrite e1[arguments] as:
                      *      e1.opIndex(arguments)
                      */
@@ -695,6 +726,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     result = resolveOpDollar(sc, ae, ie, &e0);
                     if (result.op == TOKerror)
                         return;
+
                     /* Rewrite a[i..j] as:
                      *      a.opSlice(i, j)
                      */
@@ -710,12 +742,14 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     result = Expression.combine(e0, result);
                     return;
                 }
+
                 // Didn't find it. Forward to aliasthis
                 if (ad.aliasthis && t1b != ae.att1)
                 {
                     if (!ae.att1 && t1b.checkAliasThisRec())
                         ae.att1 = t1b;
                     //printf("att arr e1 = %s\n", this->e1->type->toChars());
+
                     /* Rewrite op(a[arguments]) as:
                      *      op(a.aliasthis[arguments])
                      */
@@ -763,6 +797,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     result = result.semantic(sc);
                     return;
                 }
+
                 // Didn't find it. Forward to aliasthis
                 if (ad.aliasthis)
                 {
@@ -781,13 +816,17 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
         override void visit(BinExp e)
         {
             //printf("BinExp::op_overload() (%s)\n", e->toChars());
+
             Identifier id = opId(e);
             Identifier id_r = opId_r(e);
+
             Expressions args1;
             Expressions args2;
             int argsset = 0;
+
             AggregateDeclaration ad1 = isAggregate(e.e1.type);
             AggregateDeclaration ad2 = isAggregate(e.e2.type);
+
             if (e.op == TOKassign && ad1 == ad2)
             {
                 StructDeclaration sd = ad1.isStructDeclaration();
@@ -797,8 +836,10 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     return;
                 }
             }
+
             Dsymbol s = null;
             Dsymbol s_r = null;
+
             version (all)
             {
                 // the old D1 scheme
@@ -815,6 +856,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         s_r = null;
                 }
             }
+
             Objects* tiargs = null;
             if (e.op == TOKplusplus || e.op == TOKminusminus)
             {
@@ -848,6 +890,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     if (s_r && s_r == s) // Bugzilla 12778
                         s_r = null;
                 }
+
                 // Set tiargs, the template argument list, which will be the operator string
                 if (s || s_r)
                 {
@@ -856,6 +899,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     tiargs = opToArg(sc, e.op);
                 }
             }
+
             if (s || s_r)
             {
                 /* Try:
@@ -863,6 +907,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                  *      b.opfunc_r(a)
                  * and see which is better.
                  */
+
                 args1.setDim(1);
                 args1[0] = e.e1;
                 expandTuples(&args1);
@@ -870,8 +915,10 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 args2[0] = e.e2;
                 expandTuples(&args2);
                 argsset = 1;
+
                 Match m;
                 m.last = MATCHnomatch;
+
                 if (s)
                 {
                     functionResolve(&m, s, e.loc, sc, tiargs, e.e1.type, &args2);
@@ -881,7 +928,9 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         return;
                     }
                 }
+
                 FuncDeclaration lastf = m.lastf;
+
                 if (s_r)
                 {
                     functionResolve(&m, s_r, e.loc, sc, tiargs, e.e2.type, &args1);
@@ -891,6 +940,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         return;
                     }
                 }
+
                 if (m.count > 1)
                 {
                     // Error, ambiguous
@@ -902,6 +952,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     if (tiargs)
                         goto L1;
                 }
+
                 if (e.op == TOKplusplus || e.op == TOKminusminus)
                 {
                     // Kludge because operator overloading regards e++ and e--
@@ -922,6 +973,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 }
                 return;
             }
+
         L1:
             version (all)
             {
@@ -940,6 +992,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         if (s && s == s_r) // Bugzilla 12778
                             s = null;
                     }
+
                     if (s || s_r)
                     {
                         /* Try:
@@ -947,6 +1000,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                          *  b.opfunc(a)
                          * and see which is better.
                          */
+
                         if (!argsset)
                         {
                             args1.setDim(1);
@@ -956,8 +1010,10 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                             args2[0] = e.e2;
                             expandTuples(&args2);
                         }
+
                         Match m;
                         m.last = MATCHnomatch;
+
                         if (s_r)
                         {
                             functionResolve(&m, s_r, e.loc, sc, tiargs, e.e1.type, &args2);
@@ -967,7 +1023,9 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                                 return;
                             }
                         }
+
                         FuncDeclaration lastf = m.lastf;
+
                         if (s)
                         {
                             functionResolve(&m, s, e.loc, sc, tiargs, e.e2.type, &args1);
@@ -977,6 +1035,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                                 return;
                             }
                         }
+
                         if (m.count > 1)
                         {
                             // Error, ambiguous
@@ -986,6 +1045,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         {
                             m.lastf = m.anyf;
                         }
+
                         if (lastf && m.lastf == lastf || !s && m.last <= MATCHnomatch)
                         {
                             // Rewrite (e1 op e2) as e1.opfunc_r(e2)
@@ -996,6 +1056,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                             // Rewrite (e1 op e2) as e2.opfunc(e1)
                             result = build_overload(e.loc, sc, e.e2, e.e1, m.lastf ? m.lastf : s);
                         }
+
                         // When reversing operands of comparison operators,
                         // need to reverse the sense of the op
                         switch (e.op)
@@ -1003,15 +1064,19 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         case TOKlt:
                             e.op = TOKgt;
                             break;
+
                         case TOKgt:
                             e.op = TOKlt;
                             break;
+
                         case TOKle:
                             e.op = TOKge;
                             break;
+
                         case TOKge:
                             e.op = TOKle;
                             break;
+
                         default:
                             break;
                         }
@@ -1019,6 +1084,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     }
                 }
             }
+
             // Try alias this on first operand
             if (ad1 && ad1.aliasthis && !(e.op == TOKassign && ad2 && ad1 == ad2)) // See Bugzilla 2943
             {
@@ -1027,6 +1093,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                  */
                 if (e.att1 && e.e1.type == e.att1)
                     return;
+
                 //printf("att bin e1 = %s\n", this->e1->type->toChars());
                 Expression e1 = new DotIdExp(e.loc, e.e1, ad1.aliasthis.ident);
                 BinExp be = cast(BinExp)e.copy();
@@ -1047,6 +1114,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                  */
                 if (e.att2 && e.e2.type == e.att2)
                     return;
+
                 //printf("att bin e2 = %s\n", e->e2->type->toChars());
                 Expression e2 = new DotIdExp(e.loc, e.e2, ad2.aliasthis.ident);
                 BinExp be = cast(BinExp)e.copy();
@@ -1301,12 +1369,14 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
         override void visit(BinAssignExp e)
         {
             //printf("BinAssignExp::op_overload() (%s)\n", e->toChars());
+
             if (e.e1.op == TOKarray)
             {
                 ArrayExp ae = cast(ArrayExp)e.e1;
                 ae.e1 = ae.e1.semantic(sc);
                 ae.e1 = resolveProperties(sc, ae.e1);
                 Expression ae1old = ae.e1;
+
                 const(bool) maybeSlice = (ae.arguments.dim == 0 || ae.arguments.dim == 1 && (*ae.arguments)[0].op == TOKinterval);
                 IntervalExp ie = null;
                 if (maybeSlice && ae.arguments.dim)
@@ -1314,6 +1384,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     assert((*ae.arguments)[0].op == TOKinterval);
                     ie = cast(IntervalExp)(*ae.arguments)[0];
                 }
+
                 while (true)
                 {
                     if (ae.e1.op == TOKerror)
@@ -1324,6 +1395,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     Expression e0 = null;
                     Expression ae1save = ae.e1;
                     ae.lengthVar = null;
+
                     Type t1b = ae.e1.type.toBasetype();
                     AggregateDeclaration ad = isAggregate(t1b);
                     if (!ad)
@@ -1336,10 +1408,12 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                             goto Lfallback;
                         if (result.op == TOKerror)
                             return;
+
                         result = e.e2.semantic(sc);
                         if (result.op == TOKerror)
                             return;
                         e.e2 = result;
+
                         /* Rewrite a[arguments] op= e2 as:
                          *      a.opIndexOpAssign!(op)(e2, arguments)
                          */
@@ -1365,10 +1439,12 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         result = resolveOpDollar(sc, ae, ie, &e0);
                         if (result.op == TOKerror)
                             return;
+
                         result = e.e2.semantic(sc);
                         if (result.op == TOKerror)
                             return;
                         e.e2 = result;
+
                         /* Rewrite (a[i..j] op= e2) as:
                          *      a.opSliceOpAssign!(op)(e2, i, j)
                          */
@@ -1386,11 +1462,13 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         result = Expression.combine(e0, result);
                         return;
                     }
+
                     // Didn't find it. Forward to aliasthis
                     if (ad.aliasthis && t1b != ae.att1)
                     {
                         if (!ae.att1 && t1b.checkAliasThisRec())
                             ae.att1 = t1b;
+
                         /* Rewrite (a[arguments] op= e2) as:
                          *      a.aliasthis[arguments] op= e2
                          */
@@ -1403,19 +1481,23 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 ae.e1 = ae1old; // recovery
                 ae.lengthVar = null;
             }
+
             result = e.binSemanticProp(sc);
             if (result)
                 return;
+
             // Don't attempt 'alias this' if an error occured
             if (e.e1.type.ty == Terror || e.e2.type.ty == Terror)
             {
                 result = new ErrorExp();
                 return;
             }
+
             Identifier id = opId(e);
             Expressions args2;
             AggregateDeclaration ad1 = isAggregate(e.e1.type);
             Dsymbol s = null;
+
             version (all)
             {
                 // the old D1 scheme
@@ -1424,6 +1506,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     s = search_function(ad1, id);
                 }
             }
+
             Objects* tiargs = null;
             if (!s)
             {
@@ -1439,6 +1522,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         return;
                     }
                 }
+
                 // Set tiargs, the template argument list, which will be the operator string
                 if (s)
                 {
@@ -1446,16 +1530,20 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     tiargs = opToArg(sc, e.op);
                 }
             }
+
             if (s)
             {
                 /* Try:
                  *      a.opOpAssign(b)
                  */
+
                 args2.setDim(1);
                 args2[0] = e.e2;
                 expandTuples(&args2);
+
                 Match m;
                 m.last = MATCHnomatch;
+
                 if (s)
                 {
                     functionResolve(&m, s, e.loc, sc, tiargs, e.e1.type, &args2);
@@ -1465,6 +1553,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         return;
                     }
                 }
+
                 if (m.count > 1)
                 {
                     // Error, ambiguous
@@ -1476,10 +1565,12 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     if (tiargs)
                         goto L1;
                 }
+
                 // Rewrite (e1 op e2) as e1.opOpAssign(e2)
                 result = build_overload(e.loc, sc, e.e1, e.e2, m.lastf ? m.lastf : s);
                 return;
             }
+
         L1:
             // Try alias this on first operand
             if (ad1 && ad1.aliasthis)
@@ -1489,6 +1580,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                  */
                 if (e.att1 && e.e1.type == e.att1)
                     return;
+
                 //printf("att %s e1 = %s\n", Token::toChars(e->op), e->e1->type->toChars());
                 Expression e1 = new DotIdExp(e.loc, e.e1, ad1.aliasthis.ident);
                 BinExp be = cast(BinExp)e.copy();
@@ -1498,6 +1590,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 result = be.trySemantic(sc);
                 return;
             }
+
             // Try alias this on second operand
             AggregateDeclaration ad2 = isAggregate(e.e2.type);
             if (ad2 && ad2.aliasthis)
@@ -1507,6 +1600,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                  */
                 if (e.att2 && e.e2.type == e.att2)
                     return;
+
                 //printf("att %s e2 = %s\n", Token::toChars(e->op), e->e2->type->toChars());
                 Expression e2 = new DotIdExp(e.loc, e.e2, ad2.aliasthis.ident);
                 BinExp be = cast(BinExp)e.copy();
@@ -1530,10 +1624,13 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
 extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
 {
     //printf("BinExp::compare_overload(id = %s) %s\n", id->toChars(), e->toChars());
+
     AggregateDeclaration ad1 = isAggregate(e.e1.type);
     AggregateDeclaration ad2 = isAggregate(e.e2.type);
+
     Dsymbol s = null;
     Dsymbol s_r = null;
+
     if (ad1)
     {
         s = search_function(ad1, id);
@@ -1544,7 +1641,9 @@ extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
         if (s == s_r)
             s_r = null;
     }
+
     Objects* tiargs = null;
+
     if (s || s_r)
     {
         /* Try:
@@ -1552,35 +1651,43 @@ extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
          *      b.opEquals(a)
          * and see which is better.
          */
+
         Expressions args1;
         Expressions args2;
+
         args1.setDim(1);
         args1[0] = e.e1;
         expandTuples(&args1);
         args2.setDim(1);
         args2[0] = e.e2;
         expandTuples(&args2);
+
         Match m;
         m.last = MATCHnomatch;
+
         if (0 && s && s_r)
         {
             printf("s  : %s\n", s.toPrettyChars());
             printf("s_r: %s\n", s_r.toPrettyChars());
         }
+
         if (s)
         {
             functionResolve(&m, s, e.loc, sc, tiargs, e.e1.type, &args2);
             if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                 return new ErrorExp();
         }
+
         FuncDeclaration lastf = m.lastf;
         int count = m.count;
+
         if (s_r)
         {
             functionResolve(&m, s_r, e.loc, sc, tiargs, e.e2.type, &args1);
             if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                 return new ErrorExp();
         }
+
         if (m.count > 1)
         {
             /* The following if says "not ambiguous" if there's one match
@@ -1604,6 +1711,7 @@ extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
         {
             m.lastf = m.anyf;
         }
+
         Expression result;
         if (lastf && m.lastf == lastf || !s_r && m.last <= MATCHnomatch)
         {
@@ -1614,6 +1722,7 @@ extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
         {
             // Rewrite (e1 op e2) as e2.opfunc_r(e1)
             result = build_overload(e.loc, sc, e.e2, e.e1, m.lastf ? m.lastf : s_r);
+
             // When reversing operands of comparison operators,
             // need to reverse the sense of the op
             switch (e.op)
@@ -1621,21 +1730,27 @@ extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
             case TOKlt:
                 e.op = TOKgt;
                 break;
+
             case TOKgt:
                 e.op = TOKlt;
                 break;
+
             case TOKle:
                 e.op = TOKge;
                 break;
+
             case TOKge:
                 e.op = TOKle;
                 break;
+
             default:
                 break;
             }
         }
+
         return result;
     }
+
     // Try alias this on first operand
     if (ad1 && ad1.aliasthis)
     {
@@ -1644,6 +1759,7 @@ extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
          */
         if (e.att1 && e.e1.type == e.att1)
             return null;
+
         //printf("att cmp_bin e1 = %s\n", e->e1->type->toChars());
         Expression e1 = new DotIdExp(e.loc, e.e1, ad1.aliasthis.ident);
         BinExp be = cast(BinExp)e.copy();
@@ -1652,6 +1768,7 @@ extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
         be.e1 = e1;
         return be.trySemantic(sc);
     }
+
     // Try alias this on second operand
     if (ad2 && ad2.aliasthis)
     {
@@ -1660,6 +1777,7 @@ extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
          */
         if (e.att2 && e.e2.type == e.att2)
             return null;
+
         //printf("att cmp_bin e2 = %s\n", e->e2->type->toChars());
         Expression e2 = new DotIdExp(e.loc, e.e2, ad2.aliasthis.ident);
         BinExp be = cast(BinExp)e.copy();
@@ -1668,6 +1786,7 @@ extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
         be.e2 = e2;
         return be.trySemantic(sc);
     }
+
     return null;
 }
 
@@ -1678,6 +1797,7 @@ extern (C++) Expression build_overload(Loc loc, Scope* sc, Expression ethis, Exp
 {
     assert(d);
     Expression e;
+
     //printf("build_overload(id = '%s')\n", id->toChars());
     //earg->print();
     //earg->type->print();
@@ -1705,6 +1825,7 @@ extern (C++) Dsymbol search_function(ScopeDsymbol ad, Identifier funcid)
         FuncDeclaration fd = s2.isFuncDeclaration();
         if (fd && fd.type.ty == Tfunction)
             return fd;
+
         TemplateDeclaration td = s2.isTemplateDeclaration();
         if (td)
             return td;
@@ -1721,10 +1842,12 @@ extern (C++) bool inferAggregate(ForeachStatement fes, Scope* sc, ref Dsymbol sa
     Type att = null;
     Expression aggr = fes.aggr;
     AggregateDeclaration ad;
+
     while (1)
     {
         if (!aggr.type)
             goto Lerr;
+
         tab = aggr.type.toBasetype();
         switch (tab.ty)
         {
@@ -1733,12 +1856,15 @@ extern (C++) bool inferAggregate(ForeachStatement fes, Scope* sc, ref Dsymbol sa
         case Ttuple:
         case Taarray:
             break;
+
         case Tclass:
             ad = (cast(TypeClass)tab).sym;
             goto Laggr;
+
         case Tstruct:
             ad = (cast(TypeStruct)tab).sym;
             goto Laggr;
+
         Laggr:
             if (!sliced)
             {
@@ -1748,6 +1874,7 @@ extern (C++) bool inferAggregate(ForeachStatement fes, Scope* sc, ref Dsymbol sa
                     // opApply aggregate
                     break;
                 }
+
                 if (fes.aggr.op != TOKtype)
                 {
                     Expression rinit = new ArrayExp(aggr.loc, fes.aggr);
@@ -1760,11 +1887,13 @@ extern (C++) bool inferAggregate(ForeachStatement fes, Scope* sc, ref Dsymbol sa
                     }
                 }
             }
+
             if (ad.search(Loc(), idfront))
             {
                 // range aggregate
                 break;
             }
+
             if (ad.aliasthis)
             {
                 if (att == tab)
@@ -1775,14 +1904,17 @@ extern (C++) bool inferAggregate(ForeachStatement fes, Scope* sc, ref Dsymbol sa
                 continue;
             }
             goto Lerr;
+
         case Tdelegate:
             if (aggr.op == TOKdelegate)
             {
                 sapply = (cast(DelegateExp)aggr).func;
             }
             break;
+
         case Terror:
             break;
+
         default:
             goto Lerr;
         }
@@ -1790,6 +1922,7 @@ extern (C++) bool inferAggregate(ForeachStatement fes, Scope* sc, ref Dsymbol sa
     }
     fes.aggr = aggr;
     return true;
+
 Lerr:
     return false;
 }
@@ -1803,6 +1936,7 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
 {
     if (!fes.parameters || !fes.parameters.dim)
         return false;
+
     if (sapply) // prefer opApply
     {
         for (size_t u = 0; u < fes.parameters.dim; u++)
@@ -1814,6 +1948,7 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
                 p.type = p.type.addStorageClass(p.storageClass);
             }
         }
+
         Expression ethis;
         Type tab = fes.aggr.type.toBasetype();
         if (tab.ty == Tclass || tab.ty == Tstruct)
@@ -1823,6 +1958,7 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
             assert(tab.ty == Tdelegate && fes.aggr.op == TOKdelegate);
             ethis = (cast(DelegateExp)fes.aggr).e1;
         }
+
         /* Look for like an
          *  int opApply(int delegate(ref Type [, ...]) dg);
          * overload
@@ -1834,6 +1970,7 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
         }
         return sapply !is null;
     }
+
     /* Return if no parameters need types.
      */
     for (size_t u = 0; u < fes.parameters.dim; u++)
@@ -1842,7 +1979,9 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
         if (!p.type)
             break;
     }
+
     AggregateDeclaration ad;
+
     Parameter p = (*fes.parameters)[0];
     Type taggr = fes.aggr.type;
     assert(taggr);
@@ -1867,6 +2006,7 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
             p.type = p.type.addStorageClass(p.storageClass);
         }
         break;
+
     case Taarray:
         {
             TypeAArray taa = cast(TypeAArray)tab;
@@ -1891,9 +2031,11 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
     case Tclass:
         ad = (cast(TypeClass)tab).sym;
         goto Laggr;
+
     case Tstruct:
         ad = (cast(TypeStruct)tab).sym;
         goto Laggr;
+
     Laggr:
         if (fes.parameters.dim == 1)
         {
@@ -1925,6 +2067,7 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
             break;
         }
         break;
+
     case Tdelegate:
         {
             if (!inferApplyArgTypesY(cast(TypeFunction)tab.nextOf(), fes.parameters))
@@ -1950,6 +2093,7 @@ extern (C++) static Dsymbol inferApplyArgTypesX(Expression ethis, FuncDeclaratio
             return 0;
         auto tf = cast(TypeFunction)f.type;
         MATCH m = MATCHexact;
+
         if (f.isThis())
         {
             if (!MODimplicitConv(mod, tf.mod))
@@ -1959,6 +2103,7 @@ extern (C++) static Dsymbol inferApplyArgTypesX(Expression ethis, FuncDeclaratio
         }
         if (!inferApplyArgTypesY(tf, parameters, 1))
             m = MATCHnomatch;
+
         if (m > match)
         {
             fd_best = f;
@@ -1995,6 +2140,7 @@ extern (C++) static int inferApplyArgTypesY(TypeFunction tf, Parameters* paramet
 {
     size_t nparams;
     Parameter p;
+
     if (Parameter.dim(tf.parameters) != 1)
         goto Lnomatch;
     p = Parameter.getNth(tf.parameters, 0);
@@ -2002,6 +2148,7 @@ extern (C++) static int inferApplyArgTypesY(TypeFunction tf, Parameters* paramet
         goto Lnomatch;
     tf = cast(TypeFunction)p.type.nextOf();
     assert(tf.ty == Tfunction);
+
     /* We now have tf, the type of the delegate. Match it against
      * the parameters, filling in missing parameter types.
      */
@@ -2010,6 +2157,7 @@ extern (C++) static int inferApplyArgTypesY(TypeFunction tf, Parameters* paramet
         goto Lnomatch; // not enough parameters
     if (parameters.dim != nparams)
         goto Lnomatch; // not enough parameters
+
     for (size_t u = 0; u < nparams; u++)
     {
         p = (*parameters)[u];
@@ -2026,6 +2174,7 @@ extern (C++) static int inferApplyArgTypesY(TypeFunction tf, Parameters* paramet
         }
     }
     return 1;
+
 Lnomatch:
     return 0;
 }

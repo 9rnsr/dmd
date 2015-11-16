@@ -37,6 +37,7 @@ extern (C++) StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration f)
 {
     if (!f)
         return s1;
+
     StorageClass s2 = (f.storage_class & STCdisable);
     TypeFunction tf = cast(TypeFunction)f.type;
     if (tf.trust == TRUSTsafe)
@@ -51,9 +52,11 @@ extern (C++) StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration f)
         s2 |= STCnothrow;
     if (tf.isnogc)
         s2 |= STCnogc;
+
     StorageClass stc = 0;
     StorageClass sa = s1 & s2;
     StorageClass so = s1 | s2;
+
     if (so & STCsystem)
         stc |= STCsystem;
     else if (sa & STCtrusted)
@@ -62,14 +65,19 @@ extern (C++) StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration f)
         stc |= STCtrusted;
     else if (sa & STCsafe)
         stc |= STCsafe;
+
     if (sa & STCpure)
         stc |= STCpure;
+
     if (sa & STCnothrow)
         stc |= STCnothrow;
+
     if (sa & STCnogc)
         stc |= STCnogc;
+
     if (so & STCdisable)
         stc |= STCdisable;
+
     return stc;
 }
 
@@ -93,6 +101,7 @@ extern (C++) FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope*
         el.type = ad.type;
         Expressions a;
         a.setDim(1);
+
         const errors = global.startGagging(); // Do not report errors, even if the
         sc = sc.push();
         sc.tinst = null;
@@ -108,6 +117,7 @@ extern (C++) FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope*
 
         sc = sc.pop();
         global.endGagging(errors);
+
         if (f)
         {
             if (f.errors)
@@ -141,6 +151,7 @@ extern (C++) bool needOpAssign(StructDeclaration sd)
 
     if (sd.dtor || sd.postblit)
         goto Lneed;
+
     /* If any of the fields need an opAssign, then we
      * need it too.
      */
@@ -159,6 +170,7 @@ extern (C++) bool needOpAssign(StructDeclaration sd)
     }
     //printf("\tdontneed\n");
     return false;
+
 Lneed:
     //printf("\tneed\n");
     return true;
@@ -193,6 +205,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     }
     // Even if non-identity opAssign is defined, built-in identity opAssign
     // will be defined.
+
     if (!needOpAssign(sd))
         return null;
 
@@ -200,6 +213,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     StorageClass stc = STCsafe | STCnothrow | STCpure | STCnogc;
     Loc declLoc = sd.loc;
     Loc loc = Loc(); // internal code should have no loc to prevent coverage
+
     if (sd.dtor || sd.postblit)
     {
         if (!sd.type.isAssignable()) // Bugzilla 13044
@@ -218,13 +232,16 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
             Type tv = v.type.baseElemOf();
             if (tv.ty != Tstruct)
                 continue;
+
             StructDeclaration sdv = (cast(TypeStruct)tv).sym;
             stc = mergeFuncAttrs(stc, hasIdentityOpAssign(sdv, sc));
         }
     }
+
     auto fparams = new Parameters();
     fparams.push(new Parameter(STCnodtor, sd.type, Id.p, null));
     auto tf = new TypeFunction(fparams, sd.handleType(), 0, LINKd, stc | STCref);
+
     auto fop = new FuncDeclaration(declLoc, Loc(), Id.assign, stc, tf);
     fop.storage_class |= STCinference;
 
@@ -285,21 +302,26 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     if (e)
     {
         Statement s1 = new ExpStatement(loc, e);
+
         /* Add:
          *   return this;
          */
         e = new ThisExp(loc);
         Statement s2 = new ReturnStatement(loc, e);
+
         fop.fbody = new CompoundStatement(loc, s1, s2);
         tf.isreturn = true;
     }
+
     sd.members.push(fop);
     fop.addMember(sc, sd);
     sd.hasIdentityAssign = true; // temporary mark identity assignable
+
     uint errors = global.startGagging(); // Do not report errors, even if the
     Scope* sc2 = sc.push();
     sc2.stc = 0;
     sc2.linkage = LINKd;
+
     fop.semantic(sc2);
     fop.semantic2(sc2);
     // Bugzilla 15044: fop.semantic3 isn't run here for lazy forward reference resolution.
@@ -326,8 +348,10 @@ extern (C++) bool needOpEquals(StructDeclaration sd)
     //printf("StructDeclaration::needOpEquals() %s\n", sd.toChars());
     if (sd.hasIdentityEquals)
         goto Lneed;
+
     if (sd.isUnionDeclaration())
         goto Ldontneed;
+
     /* If any of the fields has an opEquals, then we
      * need it too.
      */
@@ -363,6 +387,7 @@ extern (C++) bool needOpEquals(StructDeclaration sd)
 Ldontneed:
     //printf("\tdontneed\n");
     return false;
+
 Lneed:
     //printf("\tneed\n");
     return true;
@@ -394,10 +419,12 @@ extern (C++) FuncDeclaration hasIdentityOpEquals(AggregateDeclaration ad, Scope*
                 case 4:  tthis = ad.type.sharedConstOf(); break;
             }
             FuncDeclaration f = null;
+
             const errors = global.startGagging(); // Do not report errors, even if the
             sc = sc.push();
             sc.tinst = null;
             sc.minst = null;
+
             foreach (j; 0 .. 2)
             {
                 a[0] = (j == 0 ? er : el);
@@ -406,8 +433,10 @@ extern (C++) FuncDeclaration hasIdentityOpEquals(AggregateDeclaration ad, Scope*
                 if (f)
                     break;
             }
+
             sc = sc.pop();
             global.endGagging(errors);
+
             if (f)
             {
                 if (f.errors)
@@ -460,6 +489,7 @@ extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
             TypeFunction tfeqptr;
             {
                 Scope scx;
+
                 /* const bool opEquals(ref const S s);
                  */
                 auto parameters = new Parameters();
@@ -473,6 +503,7 @@ extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
                 return fd;
         }
     }
+
     if (!sd.xerreq)
     {
         // object._xopEquals
@@ -485,27 +516,36 @@ extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
         assert(s);
         sd.xerreq = s.isFuncDeclaration();
     }
+
     Loc declLoc = Loc(); // loc is unnecessary so __xopEquals is never called directly
     Loc loc = Loc(); // loc is unnecessary so errors are gagged
+
     auto parameters = new Parameters();
     parameters.push(new Parameter(STCref | STCconst, sd.type, Id.p, null));
     parameters.push(new Parameter(STCref | STCconst, sd.type, Id.q, null));
     auto tf = new TypeFunction(parameters, Type.tbool, 0, LINKd);
+
     Identifier id = Id.xopEquals;
     auto fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
+
     Expression e1 = new IdentifierExp(loc, Id.p);
     Expression e2 = new IdentifierExp(loc, Id.q);
     Expression e = new EqualExp(TOKequal, loc, e1, e2);
+
     fop.fbody = new ReturnStatement(loc, e);
+
     uint errors = global.startGagging(); // Do not report errors
     Scope* sc2 = sc.push();
     sc2.stc = 0;
     sc2.linkage = LINKd;
+
     fop.semantic(sc2);
     fop.semantic2(sc2);
+
     sc2.pop();
     if (global.endGagging(errors)) // if errors happened
         fop = sd.xerreq;
+
     return fop;
 }
 
@@ -529,6 +569,7 @@ extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
             TypeFunction tfcmpptr;
             {
                 Scope scx;
+
                 /* const int opCmp(ref const S s);
                  */
                 auto parameters = new Parameters();
@@ -562,12 +603,15 @@ extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
                 case TOKoverloadset:
                     s = (cast(OverExp)e).vars;
                     break;
+
                 case TOKscope:
                     s = (cast(ScopeExp)e).sds;
                     break;
+
                 case TOKvar:
                     s = (cast(VarExp)e).var;
                     break;
+
                 default:
                     break;
                 }
@@ -592,6 +636,7 @@ extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
             return null;
         }
     }
+
     if (!sd.xerrcmp)
     {
         // object._xopCmp
@@ -604,27 +649,36 @@ extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
         assert(s);
         sd.xerrcmp = s.isFuncDeclaration();
     }
+
     Loc declLoc = Loc(); // loc is unnecessary so __xopCmp is never called directly
     Loc loc = Loc(); // loc is unnecessary so errors are gagged
+
     auto parameters = new Parameters();
     parameters.push(new Parameter(STCref | STCconst, sd.type, Id.p, null));
     parameters.push(new Parameter(STCref | STCconst, sd.type, Id.q, null));
     auto tf = new TypeFunction(parameters, Type.tint32, 0, LINKd);
+
     Identifier id = Id.xopCmp;
     auto fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
+
     Expression e1 = new IdentifierExp(loc, Id.p);
     Expression e2 = new IdentifierExp(loc, Id.q);
     Expression e = new CallExp(loc, new DotIdExp(loc, e2, Id.cmp), e1);
+
     fop.fbody = new ReturnStatement(loc, e);
+
     uint errors = global.startGagging(); // Do not report errors
     Scope* sc2 = sc.push();
     sc2.stc = 0;
     sc2.linkage = LINKd;
+
     fop.semantic(sc2);
     fop.semantic2(sc2);
+
     sc2.pop();
     if (global.endGagging(errors)) // if errors happened
         fop = sd.xerrcmp;
+
     return fop;
 }
 
@@ -638,6 +692,7 @@ extern (C++) bool needToHash(StructDeclaration sd)
     //printf("StructDeclaration::needToHash() %s\n", sd.toChars());
     if (sd.xhash)
         goto Lneed;
+
     if (sd.isUnionDeclaration())
         goto Ldontneed;
 
@@ -675,6 +730,7 @@ extern (C++) bool needToHash(StructDeclaration sd)
 Ldontneed:
     //printf("\tdontneed\n");
     return false;
+
 Lneed:
     //printf("\tneed\n");
     return true;
@@ -695,6 +751,7 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
             tftohash.mod = MODconst;
             tftohash = cast(TypeFunction)tftohash.merge();
         }
+
         if (FuncDeclaration fd = s.isFuncDeclaration())
         {
             fd = fd.overloadExactMatch(tftohash);
@@ -702,15 +759,18 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
                 return fd;
         }
     }
+
     if (!needToHash(sd))
         return null;
 
     //printf("StructDeclaration::buildXtoHash() %s\n", sd.toPrettyChars());
     Loc declLoc = Loc(); // loc is unnecessary so __xtoHash is never called directly
     Loc loc = Loc(); // internal code should have no loc to prevent coverage
+
     auto parameters = new Parameters();
     parameters.push(new Parameter(STCref | STCconst, sd.type, Id.p, null));
     auto tf = new TypeFunction(parameters, Type.thash_t, 0, LINKd, STCnothrow | STCtrusted);
+
     Identifier id = Id.xtoHash;
     auto fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
 
@@ -725,11 +785,14 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
         "    h += typeid(T).getHash(cast(const void*)&p.tupleof[i]);" ~
         "return h;";
     fop.fbody = new CompileStatement(loc, new StringExp(loc, cast(char*)code));
+
     Scope* sc2 = sc.push();
     sc2.stc = 0;
     sc2.linkage = LINKd;
+
     fop.semantic(sc2);
     fop.semantic2(sc2);
+
     sc2.pop();
 
     //printf("%s fop = %s %s\n", sd.toChars(), fop.toChars(), fop.type.toChars());
@@ -1111,9 +1174,11 @@ extern (C++) FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
     {
     case 0:
         return null;
+
     case 1:
         // Don't return invs[0] so it has uniquely generated name.
         /* fall through */
+
     default:
         Expression e = null;
         StorageClass stcx = 0;

@@ -31,11 +31,14 @@ void scanMachObjModule(void delegate(char* name, int pickAny) pAddSymbol, void* 
     {
         printf("scanMachObjModule(%s)\n", module_name);
     }
+
     ubyte* buf = cast(ubyte*)base;
     int reason = 0;
     uint32_t ncmds;
+
     mach_header* header = cast(mach_header*)buf;
     mach_header_64* header64 = null;
+
     /* First do sanity checks on object file
      */
     if (buflen < mach_header.sizeof)
@@ -91,10 +94,12 @@ void scanMachObjModule(void delegate(char* name, int pickAny) pAddSymbol, void* 
         reason = __LINE__;
         goto Lcorrupt;
     }
+
     segment_command* segment_commands = null;
     segment_command_64* segment_commands64 = null;
     symtab_command* symtab_commands = null;
     dysymtab_command* dysymtab_commands = null;
+
     // Commands immediately follow mach_header
     char* commands = cast(char*)buf + (header.magic == MH_MAGIC_64 ? mach_header_64.sizeof : mach_header.sizeof);
     for (uint32_t i = 0; i < ncmds; i++)
@@ -120,6 +125,7 @@ void scanMachObjModule(void delegate(char* name, int pickAny) pAddSymbol, void* 
         }
         commands += command.cmdsize;
     }
+
     if (symtab_commands)
     {
         // Get pointer to string table
@@ -129,6 +135,7 @@ void scanMachObjModule(void delegate(char* name, int pickAny) pAddSymbol, void* 
             reason = __LINE__;
             goto Lcorrupt;
         }
+
         if (header.magic == MH_MAGIC_64)
         {
             // Get pointer to symbol table
@@ -138,11 +145,13 @@ void scanMachObjModule(void delegate(char* name, int pickAny) pAddSymbol, void* 
                 reason = __LINE__;
                 goto Lcorrupt;
             }
+
             // For each symbol
             for (int i = 0; i < symtab_commands.nsyms; i++)
             {
                 nlist_64* s = symtab + i;
                 char* name = strtab + s.n_strx;
+
                 if (s.n_type & N_STAB)
                 {
                     // values in /usr/include/mach-o/stab.h
@@ -190,11 +199,13 @@ void scanMachObjModule(void delegate(char* name, int pickAny) pAddSymbol, void* 
                 reason = __LINE__;
                 goto Lcorrupt;
             }
+
             // For each symbol
             for (int i = 0; i < symtab_commands.nsyms; i++)
             {
                 nlist* s = symtab + i;
                 char* name = strtab + s.n_strx;
+
                 if (s.n_type & N_STAB)
                 {
                     // values in /usr/include/mach-o/stab.h

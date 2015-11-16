@@ -83,24 +83,34 @@ extern (C++) TypeInfoDeclaration getTypeInfoDeclaration(Type t)
     {
     case Tpointer:
         return TypeInfoPointerDeclaration.create(t);
+
     case Tarray:
         return TypeInfoArrayDeclaration.create(t);
+
     case Tsarray:
         return TypeInfoStaticArrayDeclaration.create(t);
+
     case Taarray:
         return TypeInfoAssociativeArrayDeclaration.create(t);
+
     case Tstruct:
         return TypeInfoStructDeclaration.create(t);
+
     case Tvector:
         return TypeInfoVectorDeclaration.create(t);
+
     case Tenum:
         return TypeInfoEnumDeclaration.create(t);
+
     case Tfunction:
         return TypeInfoFunctionDeclaration.create(t);
+
     case Tdelegate:
         return TypeInfoDelegateDeclaration.create(t);
+
     case Ttuple:
         return TypeInfoTupleDeclaration.create(t);
+
     case Tclass:
         if ((cast(TypeClass)t).sym.isInterfaceDeclaration())
             return TypeInfoInterfaceDeclaration.create(t);

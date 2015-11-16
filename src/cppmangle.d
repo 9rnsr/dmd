@@ -142,12 +142,14 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                      *           <template-arg> ::= <type>            # type or template
                      *                          ::= <expr-primary>   # simple expressions
                      */
+
                     if (tt)
                     {
                         buf.writeByte('I');
                         is_var_arg = true;
                         tp = null;
                     }
+
                     if (tv)
                     {
                         // <expr-primary> ::= L <type> <value number> E                   # integer literal
@@ -263,6 +265,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                         p = p.toParent();
                     }
                 }
+
                 if (p && !p.isModule())
                 {
                     if (p.ident == Id.std && is_initial_qualifier(p))
@@ -305,6 +308,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                     dont_write_prefix = true;
                 p = p.toParent();
             }
+
             if (p && !p.isModule())
             {
                 /* The N..E is not required if:
@@ -327,6 +331,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                         size_t off = buf.offset;
                         source_name(se, true);
                         components_on = true;
+
                         // Replace ::std::basic_string < char, ::std::char_traits<char>, ::std::allocator<char> >
                         // with Ss
                         //printf("xx: '%.*s'\n", (int)(buf.offset - off), buf.data + off);
@@ -350,6 +355,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                         components_on = false; // turn off substitutions
                         source_name(se, true);
                         components_on = true;
+
                         //printf("xx: '%.*s'\n", (int)(buf.offset - off), buf.data + off);
                         if (buf.offset - off >= 21 && memcmp(buf.data + off, "IcSt11char_traitsIcEE".ptr, 21) == 0)
                         {
@@ -395,6 +401,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 d.error("Internal Compiler Error: C++ static non- __gshared non-extern variables not supported");
                 fatal();
             }
+
             Dsymbol p = d.toParent();
             if (p && !p.isModule()) //for example: char Namespace1::beta[6] should be mangled as "_ZN10Namespace14betaE"
             {
@@ -427,6 +434,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
              *         ::= <special-name>
              */
             TypeFunction tf = cast(TypeFunction)d.type;
+
             buf.writestring("_Z");
             Dsymbol p = d.toParent();
             TemplateDeclaration ftd = getFuncTemplateDecl(d);
@@ -437,19 +445,23 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 if (d.type.isConst())
                     buf.writeByte('K');
                 prefix_name(p);
+
                 // See ABI 5.1.8 Compression
+
                 // Replace ::std::allocator with Sa
                 if (buf.offset >= 17 && memcmp(buf.data, "_ZN3std9allocator".ptr, 17) == 0)
                 {
                     buf.remove(3, 14);
                     buf.insert(3, "Sa".ptr, 2);
                 }
+
                 // Replace ::std::basic_string with Sb
                 if (buf.offset >= 21 && memcmp(buf.data, "_ZN3std12basic_string".ptr, 21) == 0)
                 {
                     buf.remove(3, 18);
                     buf.insert(3, "Sb".ptr, 2);
                 }
+
                 // Replace ::std with St
                 if (buf.offset >= 7 && memcmp(buf.data, "_ZN3std".ptr, 7) == 0)
                 {
@@ -461,6 +473,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                     buf.remove(4, 4);
                     buf.insert(4, "St".ptr, 2);
                 }
+
                 if (d.isDtorDeclaration())
                 {
                     buf.writestring("D1");
@@ -482,6 +495,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             {
                 source_name(d);
             }
+
             if (tf.linkage == LINKcpp) //Template args accept extern "C" symbols with special mangling
             {
                 assert(tf.ty == Tfunction);
@@ -511,6 +525,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                     fatal();
                     //t = t.nextOf().pointerTo();
                 }
+
                 /* If it is a basic, enum or struct type,
                  * then don't mark it const
                  */
@@ -525,6 +540,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
 
             if (parameters)
                 Parameter._foreach(parameters, &paramsCppMangleDg);
+
             if (varargs)
                 buf.writestring("z");
             else if (!parameters || !parameters.dim)
@@ -596,6 +612,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
              * z        ellipsis
              * u <source-name>  # vendor extended type
              */
+
             char c;
             char p = 0;
             switch (t.ty)
@@ -603,83 +620,107 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             case Tvoid:
                 c = 'v';
                 break;
+
             case Tint8:
                 c = 'a';
                 break;
+
             case Tuns8:
                 c = 'h';
                 break;
+
             case Tint16:
                 c = 's';
                 break;
+
             case Tuns16:
                 c = 't';
                 break;
+
             case Tint32:
                 c = 'i';
                 break;
+
             case Tuns32:
                 c = 'j';
                 break;
+
             case Tfloat32:
                 c = 'f';
                 break;
+
             case Tint64:
                 c = (Target.c_longsize == 8 ? 'l' : 'x');
                 break;
+
             case Tuns64:
                 c = (Target.c_longsize == 8 ? 'm' : 'y');
                 break;
+
             case Tint128:
                 c = 'n';
                 break;
+
             case Tuns128:
                 c = 'o';
                 break;
+
             case Tfloat64:
                 c = 'd';
                 break;
+
             case Tfloat80:
                 c = Target.realislongdouble ? 'e' : 'g';
                 break;
+
             case Tbool:
                 c = 'b';
                 break;
+
             case Tchar:
                 c = 'c';
                 break;
+
             case Twchar:
                 c = 't';
                 break;
                 // unsigned short
+
             case Tdchar:
                 c = 'w';
                 break;
                 // wchar_t (UTF-32)
+
             case Timaginary32:
                 p = 'G';
                 c = 'f';
                 break;
+
             case Timaginary64:
                 p = 'G';
                 c = 'd';
                 break;
+
             case Timaginary80:
                 p = 'G';
                 c = 'e';
                 break;
+
             case Tcomplex32:
                 p = 'C';
                 c = 'f';
                 break;
+
             case Tcomplex64:
                 p = 'C';
                 c = 'd';
                 break;
+
             case Tcomplex80:
                 p = 'C';
                 c = 'e';
                 break;
+
             default:
                 visit(cast(Type)t);
                 return;
@@ -699,10 +740,13 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                     store(t);
                 }
             }
+
             if (t.isConst())
                 buf.writeByte('K');
+
             if (p)
                 buf.writeByte(p);
+
             buf.writeByte(c);
         }
 
@@ -784,6 +828,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
              *  <bare-function-type> ::= <signature type>+
              *  # types are possible return type, then parameter types
              */
+
             /* ABI says:
                 "The type of a non-static member function is considered to be different,
                 for the purposes of substitution, from the type of a namespace-scope or
@@ -847,12 +892,16 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                         store(t);
                     }
                 }
+
                 if (t.isConst())
                     buf.writeByte('K');
+
                 buf.writeByte(c);
                 return;
             }
+
             is_top_level = false;
+
             if (substitute(t))
                 return;
             if (t.isImmutable() || t.isShared())
@@ -861,14 +910,17 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             }
             if (t.isConst())
                 buf.writeByte('K');
+
             if (!substitute(t.sym))
             {
                 cpp_mangle_name(t.sym, t.isConst());
             }
+
             if (t.isImmutable() || t.isShared())
             {
                 visit(cast(Type)t);
             }
+
             if (t.isConst())
                 store(t);
         }
@@ -1011,11 +1063,13 @@ else static if (TARGET_WINDOS)
                 visit(cast(Type)type);
                 return;
             }
+
             if (type.isConst() && ((flags & IS_NOT_TOP_TYPE) || (flags & IS_DMC)))
             {
                 if (checkTypeSaved(type))
                     return;
             }
+
             if ((type.ty == Tbool) && checkTypeSaved(type)) // try to replace long name with number
             {
                 return;
@@ -1044,64 +1098,82 @@ else static if (TARGET_WINDOS)
             case Tvoid:
                 buf.writeByte('X');
                 break;
+
             case Tint8:
                 buf.writeByte('C');
                 break;
+
             case Tuns8:
                 buf.writeByte('E');
                 break;
+
             case Tint16:
                 buf.writeByte('F');
                 break;
+
             case Tuns16:
                 buf.writeByte('G');
                 break;
+
             case Tint32:
                 buf.writeByte('H');
                 break;
+
             case Tuns32:
                 buf.writeByte('I');
                 break;
+
             case Tfloat32:
                 buf.writeByte('M');
                 break;
+
             case Tint64:
                 buf.writestring("_J");
                 break;
+
             case Tuns64:
                 buf.writestring("_K");
                 break;
+
             case Tint128:
                 buf.writestring("_L");
                 break;
+
             case Tuns128:
                 buf.writestring("_M");
                 break;
+
             case Tfloat64:
                 buf.writeByte('N');
                 break;
+
             case Tbool:
                 buf.writestring("_N");
                 break;
+
             case Tchar:
                 buf.writeByte('D');
                 break;
+
             case Tdchar:
                 buf.writeByte('I');
                 break;
                 // unsigned int
+
             case Tfloat80:
                 if (flags & IS_DMC)
                     buf.writestring("_Z"); // DigitalMars long double
                 else
                     buf.writestring("_T"); // Intel long double
                 break;
+
             case Twchar:
                 if (flags & IS_DMC)
                     buf.writestring("_Y"); // DigitalMars wchar_t
                 else
                     buf.writestring("_W"); // Visual C++ wchar_t
                 break;
+
             default:
                 visit(cast(Type)type);
                 return;
@@ -1131,6 +1203,7 @@ else static if (TARGET_WINDOS)
                 buf.writeByte('Q');
             else
                 buf.writeByte('P');
+
             flags |= IS_NOT_TOP_TYPE;
             assert(type.next);
             if (type.next.ty == Tsarray)
@@ -1153,20 +1226,24 @@ else static if (TARGET_WINDOS)
                 visit(cast(Type)type);
                 return;
             }
+
             assert(type.next);
             if (type.next.ty == Tfunction)
             {
                 const(char)* arg = mangleFunctionType(cast(TypeFunction)type.next); // compute args before checking to save; args should be saved before function type
+
                 // If we've mangled this function early, previous call is meaningless.
                 // However we should do it before checking to save types of function arguments before function type saving.
                 // If this function was already mangled, types of all it arguments are save too, thus previous can't save
                 // anything if function is saved.
                 if (checkTypeSaved(type))
                     return;
+
                 if (type.isConst())
                     buf.writeByte('Q'); // const
                 else
                     buf.writeByte('P'); // mutable
+
                 buf.writeByte('6'); // pointer to a function
                 buf.writestring(arg);
                 flags &= ~IS_NOT_TOP_TYPE;
@@ -1178,13 +1255,16 @@ else static if (TARGET_WINDOS)
                 if (checkTypeSaved(type))
                     return;
                 mangleModifier(type);
+
                 if (type.isConst() || !(flags & IS_DMC))
                     buf.writeByte('Q'); // const
                 else
                     buf.writeByte('P'); // mutable
+
                 if (global.params.is64bit)
                     buf.writeByte('E');
                 flags |= IS_NOT_TOP_TYPE;
+
                 mangleArray(cast(TypeSArray)type.next);
                 return;
             }
@@ -1193,6 +1273,7 @@ else static if (TARGET_WINDOS)
                 if (checkTypeSaved(type))
                     return;
                 mangleModifier(type);
+
                 if (type.isConst())
                 {
                     buf.writeByte('Q'); // const
@@ -1201,6 +1282,7 @@ else static if (TARGET_WINDOS)
                 {
                     buf.writeByte('P'); // mutable
                 }
+
                 if (global.params.is64bit)
                     buf.writeByte('E');
                 flags |= IS_NOT_TOP_TYPE;
@@ -1213,12 +1295,15 @@ else static if (TARGET_WINDOS)
             //printf("visit(TypeReference); type = %s\n", type.toChars());
             if (checkTypeSaved(type))
                 return;
+
             if (type.isImmutable() || type.isShared())
             {
                 visit(cast(Type)type);
                 return;
             }
+
             buf.writeByte('A'); // mutable
+
             if (global.params.is64bit)
                 buf.writeByte('E');
             flags |= IS_NOT_TOP_TYPE;
@@ -1236,6 +1321,7 @@ else static if (TARGET_WINDOS)
         override void visit(TypeFunction type)
         {
             const(char)* arg = mangleFunctionType(type);
+
             if ((flags & IS_DMC))
             {
                 if (checkTypeSaved(type))
@@ -1261,6 +1347,7 @@ else static if (TARGET_WINDOS)
                 c = 'K'; // VC++ unsigned long
             else
                 c = 0;
+
             if (c)
             {
                 if (type.isImmutable() || type.isShared())
@@ -1268,11 +1355,13 @@ else static if (TARGET_WINDOS)
                     visit(cast(Type)type);
                     return;
                 }
+
                 if (type.isConst() && ((flags & IS_NOT_TOP_TYPE) || (flags & IS_DMC)))
                 {
                     if (checkTypeSaved(type))
                         return;
                 }
+
                 mangleModifier(type);
                 buf.writeByte(c);
             }
@@ -1330,6 +1419,7 @@ else static if (TARGET_WINDOS)
                 visit(cast(Type)type);
                 break;
             }
+
             mangleIdent(type.sym);
             flags &= ~IS_NOT_TOP_TYPE;
             flags &= ~IGNORE_CONST;
@@ -1344,15 +1434,20 @@ else static if (TARGET_WINDOS)
                 return;
             if (flags & IS_NOT_TOP_TYPE)
                 mangleModifier(type);
+
             if (type.isConst())
                 buf.writeByte('Q');
             else
                 buf.writeByte('P');
+
             if (global.params.is64bit)
                 buf.writeByte('E');
+
             flags |= IS_NOT_TOP_TYPE;
             mangleModifier(type);
+
             buf.writeByte('V');
+
             mangleIdent(type.sym);
             flags &= ~IS_NOT_TOP_TYPE;
             flags &= ~IGNORE_CONST;
@@ -1384,6 +1479,7 @@ else static if (TARGET_WINDOS)
             assert(d);
             buf.writeByte('?');
             mangleIdent(d);
+
             if (d.needThis()) // <flags> ::= <virtual/protection flag> <const/volatile flag> <calling convention flag>
             {
                 // Pivate methods always non-virtual in D and it should be mangled as non-virtual in C++
@@ -1466,7 +1562,9 @@ else static if (TARGET_WINDOS)
             }
             buf.writeByte('?');
             mangleIdent(d);
+
             assert(!d.needThis());
+
             if (d.parent && d.parent.isModule()) // static member
             {
                 buf.writeByte('3');
@@ -1486,8 +1584,10 @@ else static if (TARGET_WINDOS)
                     break;
                 }
             }
+
             char cv_mod = 0;
             Type t = d.type;
+
             if (t.isImmutable() || t.isShared())
             {
                 visit(t);
@@ -1501,13 +1601,17 @@ else static if (TARGET_WINDOS)
             {
                 cv_mod = 'A'; // mutable
             }
+
             if (t.ty != Tpointer)
                 t = t.mutableOf();
+
             t.accept(this);
+
             if ((t.ty == Tpointer || t.ty == Treference || t.ty == Tclass) && global.params.is64bit)
             {
                 buf.writeByte('E');
             }
+
             buf.writeByte(cv_mod);
         }
 
@@ -1534,10 +1638,12 @@ else static if (TARGET_WINDOS)
                     tmp.mangleIdent(sym.parent, true);
                     is_dmc_template = true;
                 }
+
                 bool is_var_arg = false;
                 for (size_t i = 0; i < ti.tiargs.dim; i++)
                 {
                     RootObject o = (*ti.tiargs)[i];
+
                     TemplateParameter tp = null;
                     TemplateValueParameter tv = null;
                     TemplateTupleParameter tt = null;
@@ -1549,6 +1655,7 @@ else static if (TARGET_WINDOS)
                         tv = tp.isTemplateValueParameter();
                         tt = tp.isTemplateTupleParameter();
                     }
+
                     if (tt)
                     {
                         is_var_arg = true;
@@ -1560,8 +1667,10 @@ else static if (TARGET_WINDOS)
                         {
                             tmp.buf.writeByte('$');
                             tmp.buf.writeByte('0');
+
                             Expression e = isExpression(o);
                             assert(e);
+
                             if (tv.valType.isunsigned())
                             {
                                 tmp.mangleNumber(e.toUInteger());
@@ -1693,6 +1802,7 @@ else static if (TARGET_WINDOS)
                     saved_idents[i] = name;
                     break;
                 }
+
                 if (!strcmp(saved_idents[i], name)) // ok, we've found same name. use index instead of name
                 {
                     buf.writeByte(i + '0');
@@ -1711,6 +1821,7 @@ else static if (TARGET_WINDOS)
                     saved_idents[i] = name;
                     break;
                 }
+
                 if (!strcmp(saved_idents[i], name)) // ok, we've found same name. use index instead of name
                 {
                     return;
@@ -1723,14 +1834,19 @@ else static if (TARGET_WINDOS)
             // <qualified name> ::= <sub-name list> @
             // <sub-name list>  ::= <sub-name> <name parts>
             //                  ::= <sub-name>
+
             // <sub-name> ::= <identifier> @
             //            ::= ?$ <identifier> @ <template args> @
             //            :: <back reference>
+
             // <back reference> ::= 0-9
+
             // <template args> ::= <template arg> <template args>
             //                ::= <template arg>
+
             // <template arg>  ::= <type>
             //                ::= $0<encoded integral number>
+
             //printf("mangleIdent('%s')\n", sym.toChars());
             Dsymbol p = sym;
             if (p.toParent() && p.toParent().isTemplateInstance())
@@ -1740,6 +1856,7 @@ else static if (TARGET_WINDOS)
             while (p && !p.isModule())
             {
                 mangleName(p, dont_use_back_reference);
+
                 p = p.toParent();
                 if (p.toParent() && p.toParent().isTemplateInstance())
                 {
@@ -1763,6 +1880,7 @@ else static if (TARGET_WINDOS)
                 buf.writeByte(cast(char)(num - 1 + '0'));
                 return;
             }
+
             char[17] buff;
             buff[16] = 0;
             size_t i = 16;
@@ -1875,6 +1993,7 @@ else static if (TARGET_WINDOS)
                     break;
                 }
             }
+
             tmp.flags &= ~IS_NOT_TOP_TYPE;
             if (noreturn)
             {
@@ -1944,6 +2063,7 @@ else static if (TARGET_WINDOS)
                     tmp.buf.writeByte('@');
                 }
             }
+
             tmp.buf.writeByte('Z');
             const(char)* ret = tmp.buf.extractString();
             memcpy(&saved_idents, &tmp.saved_idents, (const(char)*).sizeof * VC_SAVED_IDENT_CNT);

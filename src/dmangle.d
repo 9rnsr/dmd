@@ -47,6 +47,7 @@ extern (C++) __gshared const(char)*[TMAX] mangleChar =
     Tstruct : "S",
     Tenum : "E",
     Tdelegate : "D",
+
     Tnone : "n",
     Tvoid : "v",
     Tint8 : "g",
@@ -62,16 +63,19 @@ extern (C++) __gshared const(char)*[TMAX] mangleChar =
     Tfloat32 : "f",
     Tfloat64 : "d",
     Tfloat80 : "e",
+
     Timaginary32 : "o",
     Timaginary64 : "p",
     Timaginary80 : "j",
     Tcomplex32 : "q",
     Tcomplex64 : "r",
     Tcomplex80 : "c",
+
     Tbool : "b",
     Tchar : "a",
     Twchar : "u",
     Tdchar : "w",
+
     // '@' shouldn't appear anywhere in the deco'd names
     Tinstance : "@",
     Terror : "@",
@@ -80,6 +84,7 @@ extern (C++) __gshared const(char)*[TMAX] mangleChar =
     Tslice : "@",
     Treturn : "@",
     Tvector : "@",
+
     Tnull : "n", // same as TypeNone
 ];
 
@@ -143,6 +148,7 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
+
     /**************************************************
      * Type mangling
      */
@@ -211,33 +217,42 @@ public:
             return;
         }
         t.inuse++;
+
         if (modMask != t.mod)
             MODtoDecoBuffer(buf, t.mod);
+
         ubyte mc;
         switch (t.linkage)
         {
         case LINKd:
             mc = 'F';
             break;
+
         case LINKc:
             mc = 'U';
             break;
+
         case LINKwindows:
             mc = 'W';
             break;
+
         case LINKpascal:
             mc = 'V';
             break;
+
         case LINKcpp:
             mc = 'R';
             break;
+
         case LINKobjc:
             mc = 'Y';
             break;
+
         default:
             assert(0);
         }
         buf.writeByte(mc);
+
         if (ta.purity || ta.isnothrow || ta.isnogc || ta.isproperty || ta.isref || ta.trust || ta.isreturn)
         {
             if (ta.purity)
@@ -264,12 +279,14 @@ public:
                 break;
             }
         }
+
         // Write argument types
         paramsToDecoBuffer(t.parameters);
         //if (buf.data[buf.offset - 1] == '@') assert(0);
         buf.writeByte('Z' - t.varargs); // mark end of arg list
         if (tret !is null)
             visitWithMask(tret, 0);
+
         t.inuse--;
     }
 
@@ -319,12 +336,15 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
+
     void mangleDecl(Declaration sthis)
     {
         mangleParent(sthis);
+
         assert(sthis.ident);
         const(char)* id = sthis.ident.toChars();
         toBuffer(id, sthis);
+
         if (FuncDeclaration fd = sthis.isFuncDeclaration())
         {
             mangleFunc(fd, false);
@@ -344,9 +364,11 @@ public:
             p = ti.isTemplateMixin() ? ti.parent : ti.tempdecl.parent;
         else
             p = s.parent;
+
         if (p)
         {
             mangleParent(p);
+
             if (p.getIdent())
             {
                 const(char)* id = p.ident.toChars();
@@ -407,26 +429,32 @@ public:
             {
             case LINKd:
                 break;
+
             case LINKc:
             case LINKwindows:
             case LINKpascal:
             case LINKobjc:
                 buf.writestring(d.ident.toChars());
                 return;
+
             case LINKcpp:
                 buf.writestring(toCppMangle(d));
                 return;
+
             case LINKdefault:
                 d.error("forward declaration");
                 buf.writestring(d.ident.toChars());
                 return;
+
             default:
                 fprintf(stderr, "'%s', linkage = %d\n", d.toChars(), d.linkage);
                 assert(0);
             }
         }
+
         buf.writestring("_D");
         mangleDecl(d);
+
         debug
         {
             assert(buf.data);
@@ -495,6 +523,7 @@ public:
             visit(cast(Dsymbol)od);
             return;
         }
+
         if (FuncDeclaration fd = od.aliassym.isFuncDeclaration())
         {
             if (!od.hasOverloads || fd.isUnique())
@@ -511,17 +540,20 @@ public:
                 return;
             }
         }
+
         visit(cast(Dsymbol)od);
     }
 
     void mangleExact(FuncDeclaration fd)
     {
         assert(!fd.isFuncAliasDeclaration());
+
         if (fd.mangleOverride)
         {
             buf.writestring(fd.mangleOverride);
             return;
         }
+
         if (fd.isMain())
         {
             buf.writestring("_Dmain");
@@ -532,6 +564,7 @@ public:
             buf.writestring(fd.ident.toChars());
             return;
         }
+
         visit(cast(Declaration)fd);
     }
 
@@ -542,6 +575,7 @@ public:
             buf.writestring(vd.mangleOverride);
             return;
         }
+
         visit(cast(Declaration)vd);
     }
 
@@ -560,7 +594,9 @@ public:
                 ad.parent = null;
             }
         }
+
         visit(cast(Dsymbol)ad);
+
         ad.parent = parentsave;
     }
 
@@ -573,13 +609,16 @@ public:
                 printf("  parent = %s %s", ti.parent.kind(), ti.parent.toChars());
             printf("\n");
         }
+
         if (!ti.tempdecl)
             ti.error("is not defined");
         else
             mangleParent(ti);
+
         ti.getIdent();
         const(char)* id = ti.ident ? ti.ident.toChars() : ti.toChars();
         toBuffer(id, ti);
+
         //printf("TemplateInstance.mangle() %s = %s\n", ti.toChars(), ti.id);
     }
 
@@ -592,13 +631,17 @@ public:
                 printf("  parent = %s %s", s.parent.kind(), s.parent.toChars());
             printf("\n");
         }
+
         mangleParent(s);
+
         auto id = s.ident ? s.ident.toChars() : s.toChars();
         toBuffer(id, s);
+
         //printf("Dsymbol.mangle() %s = %s\n", s.toChars(), id);
     }
 
     ////////////////////////////////////////////////////////////////////////////
+
     override void visit(Expression e)
     {
         e.error("expression %s is not a valid template value argument", e.toChars());
@@ -630,6 +673,7 @@ public:
          * -0X1.1BC18BA997B95P+79   => N11BC18BA997B95P79
          * 0X1.9P+2                 => 19P2
          */
+
         if (Port.isNan(value))
             buf.writestring("NAN"); // no -NAN bugs
         else if (Port.isInfinity(value))
@@ -648,14 +692,17 @@ public:
                 case '-':
                     buf.writeByte('N');
                     break;
+
                 case '+':
                 case 'X':
                 case '.':
                     break;
+
                 case '0':
                     if (i < 2)
                         break; // skip leading 0X
                     goto default;
+
                 default:
                     buf.writeByte(c);
                     break;
@@ -683,6 +730,7 @@ public:
         OutBuffer tmp;
         char* q;
         size_t qlen;
+
         /* Write string in UTF-8 format
          */
         switch (e.sz)
@@ -692,6 +740,7 @@ public:
             q = e.string;
             qlen = e.len;
             break;
+
         case 2:
             m = 'w';
             for (size_t u = 0; u < e.len;)
@@ -706,6 +755,7 @@ public:
             q = cast(char*)tmp.data;
             qlen = tmp.offset;
             break;
+
         case 4:
             m = 'd';
             for (size_t u = 0; u < e.len; u++)
@@ -719,12 +769,14 @@ public:
             q = cast(char*)tmp.data;
             qlen = tmp.offset;
             break;
+
         default:
             assert(0);
         }
         buf.reserve(1 + 11 + 2 * qlen);
         buf.writeByte(m);
         buf.printf("%d_", cast(int)qlen); // nbytes <= 11
+
         for (char* p = cast(char*)buf.data + buf.offset, pend = p + 2 * qlen; p < pend; p += 2, ++q)
         {
             char hi = *q >> 4 & 0xF;
@@ -771,6 +823,7 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
+
     void paramsToDecoBuffer(Parameters* parameters)
     {
         //printf("Parameter.paramsToDecoBuffer()\n");

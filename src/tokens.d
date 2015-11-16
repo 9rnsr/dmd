@@ -213,6 +213,7 @@ enum TOK : int
     TOKdelegate,
     TOKfunction,
     TOKmixin,
+
     TOKalign,
     TOKextern,
     TOKprivate,
@@ -595,6 +596,7 @@ extern (C++) struct Token
         TOKge: ">=",
         TOKequal: "==",
         TOKnotequal: "!=",
+
         TOKunord: "!<>=",
         TOKue: "!<>",
         TOKlg: "<>",
@@ -603,6 +605,7 @@ extern (C++) struct Token
         TOKul: "!>=",
         TOKuge: "!<",
         TOKug: "!<=",
+
         TOKnot: "!",
         TOKshl: "<<",
         TOKshr: ">>",
@@ -649,6 +652,7 @@ extern (C++) struct Token
         TOKcall: "call",
         TOKidentity: "is",
         TOKnotidentity: "!is",
+
         TOKidentifier: "identifier",
         TOKat: "@",
         TOKpow: "^^",
@@ -768,47 +772,58 @@ extern (C++) struct Token
     extern (C++) const(char)* toChars() const
     {
         __gshared char[3 + 3 * float80value.sizeof + 1] buffer;
+
         const(char)* p = &buffer[0];
         switch (value)
         {
         case TOKint32v:
             sprintf(&buffer[0], "%d", cast(d_int32)int64value);
             break;
+
         case TOKuns32v:
         case TOKcharv:
         case TOKwcharv:
         case TOKdcharv:
             sprintf(&buffer[0], "%uU", cast(d_uns32)uns64value);
             break;
+
         case TOKint64v:
             sprintf(&buffer[0], "%lldL", cast(long)int64value);
             break;
+
         case TOKuns64v:
             sprintf(&buffer[0], "%lluUL", cast(ulong)uns64value);
             break;
+
         case TOKfloat32v:
             Port.ld_sprint(&buffer[0], 'g', float80value);
             strcat(&buffer[0], "f");
             break;
+
         case TOKfloat64v:
             Port.ld_sprint(&buffer[0], 'g', float80value);
             break;
+
         case TOKfloat80v:
             Port.ld_sprint(&buffer[0], 'g', float80value);
             strcat(&buffer[0], "L");
             break;
+
         case TOKimaginary32v:
             Port.ld_sprint(&buffer[0], 'g', float80value);
             strcat(&buffer[0], "fi");
             break;
+
         case TOKimaginary64v:
             Port.ld_sprint(&buffer[0], 'g', float80value);
             strcat(&buffer[0], "i");
             break;
+
         case TOKimaginary80v:
             Port.ld_sprint(&buffer[0], 'g', float80value);
             strcat(&buffer[0], "Li");
             break;
+
         case TOKstring:
             {
                 OutBuffer buf;
@@ -821,6 +836,7 @@ extern (C++) struct Token
                     {
                     case 0:
                         break;
+
                     case '"':
                     case '\\':
                         buf.writeByte('\\');
@@ -847,6 +863,7 @@ extern (C++) struct Token
                 p = buf.extractString();
             }
             break;
+
         case TOKxstring:
             {
                 OutBuffer buf;
@@ -895,6 +912,7 @@ extern (C++) struct Token
         case TOKvoid:
             p = ident.toChars();
             break;
+
         default:
             p = toChars(value);
             break;
@@ -905,6 +923,7 @@ extern (C++) struct Token
     static const(char)* toChars(TOK value)
     {
         static __gshared char[3 + 3 * value.sizeof + 1] buffer;
+
         const(char)* p = tochars[value];
         if (!p)
         {

@@ -175,6 +175,7 @@ extern (C++) Expression eval_yl2xp1(Loc loc, FuncDeclaration fd, Expressions* ar
 public extern (C++) void builtin_init()
 {
     builtins._init(47);
+
     // @safe @nogc pure nothrow real function(real)
     add_builtin("_D4core4math3sinFNaNbNiNfeZe", &eval_sin);
     add_builtin("_D4core4math3cosFNaNbNiNfeZe", &eval_cos);
@@ -183,6 +184,7 @@ public extern (C++) void builtin_init()
     add_builtin("_D4core4math4fabsFNaNbNiNfeZe", &eval_fabs);
     add_builtin("_D4core4math5expm1FNaNbNiNfeZe", &eval_unimp);
     add_builtin("_D4core4math4exp21FNaNbNiNfeZe", &eval_unimp);
+
     // @trusted @nogc pure nothrow real function(real)
     add_builtin("_D4core4math3sinFNaNbNiNeeZe", &eval_sin);
     add_builtin("_D4core4math3cosFNaNbNiNeeZe", &eval_cos);
@@ -191,10 +193,12 @@ public extern (C++) void builtin_init()
     add_builtin("_D4core4math4fabsFNaNbNiNeeZe", &eval_fabs);
     add_builtin("_D4core4math5expm1FNaNbNiNeeZe", &eval_unimp);
     add_builtin("_D4core4math4exp21FNaNbNiNeeZe", &eval_unimp);
+
     // @safe @nogc pure nothrow double function(double)
     add_builtin("_D4core4math4sqrtFNaNbNiNfdZd", &eval_sqrt);
     // @safe @nogc pure nothrow float function(float)
     add_builtin("_D4core4math4sqrtFNaNbNiNffZf", &eval_sqrt);
+
     // @safe @nogc pure nothrow real function(real, real)
     add_builtin("_D4core4math5atan2FNaNbNiNfeeZe", &eval_unimp);
     if (Port.yl2x_supported)
@@ -213,8 +217,10 @@ public extern (C++) void builtin_init()
     {
         add_builtin("_D4core4math6yl2xp1FNaNbNiNfeeZe", &eval_unimp);
     }
+
     // @safe @nogc pure nothrow long function(real)
     add_builtin("_D4core4math6rndtolFNaNbNiNfeZl", &eval_unimp);
+
     // @safe @nogc pure nothrow real function(real)
     add_builtin("_D3std4math3sinFNaNbNiNfeZe", &eval_sin);
     add_builtin("_D3std4math3cosFNaNbNiNfeZe", &eval_cos);
@@ -223,6 +229,7 @@ public extern (C++) void builtin_init()
     add_builtin("_D3std4math4fabsFNaNbNiNfeZe", &eval_fabs);
     add_builtin("_D3std4math5expm1FNaNbNiNfeZe", &eval_unimp);
     add_builtin("_D3std4math4exp21FNaNbNiNfeZe", &eval_unimp);
+
     // @trusted @nogc pure nothrow real function(real)
     add_builtin("_D3std4math3sinFNaNbNiNeeZe", &eval_sin);
     add_builtin("_D3std4math3cosFNaNbNiNeeZe", &eval_cos);
@@ -231,12 +238,15 @@ public extern (C++) void builtin_init()
     add_builtin("_D3std4math4fabsFNaNbNiNeeZe", &eval_fabs);
     add_builtin("_D3std4math5expm1FNaNbNiNeeZe", &eval_unimp);
     add_builtin("_D3std4math4exp21FNaNbNiNeeZe", &eval_unimp);
+
     // @safe @nogc pure nothrow double function(double)
     add_builtin("_D3std4math4sqrtFNaNbNiNfdZd", &eval_sqrt);
     // @safe @nogc pure nothrow float function(float)
     add_builtin("_D3std4math4sqrtFNaNbNiNffZf", &eval_sqrt);
+
     // @safe @nogc pure nothrow real function(real, real)
     add_builtin("_D3std4math5atan2FNaNbNiNfeeZe", &eval_unimp);
+
     if (Port.yl2x_supported)
     {
         add_builtin("_D3std4math4yl2xFNaNbNiNfeeZe", &eval_yl2x);
@@ -253,20 +263,27 @@ public extern (C++) void builtin_init()
     {
         add_builtin("_D3std4math6yl2xp1FNaNbNiNfeeZe", &eval_unimp);
     }
+
     // @safe @nogc pure nothrow long function(real)
     add_builtin("_D3std4math6rndtolFNaNbNiNfeZl", &eval_unimp);
+
     // @safe @nogc pure nothrow int function(uint)
     add_builtin("_D4core5bitop3bsfFNaNbNiNfkZi", &eval_bsf);
     add_builtin("_D4core5bitop3bsrFNaNbNiNfkZi", &eval_bsr);
+
     // @safe @nogc pure nothrow int function(ulong)
     add_builtin("_D4core5bitop3bsfFNaNbNiNfmZi", &eval_bsf);
     add_builtin("_D4core5bitop3bsrFNaNbNiNfmZi", &eval_bsr);
+
     // @safe @nogc pure nothrow uint function(uint)
     add_builtin("_D4core5bitop5bswapFNaNbNiNfkZk", &eval_bswap);
+
     // @safe @nogc pure nothrow int function(uint)
     add_builtin("_D4core5bitop7_popcntFNaNbNiNfkZi", &eval_popcnt);
+
     // @safe @nogc pure nothrow ushort function(ushort)
     add_builtin("_D4core5bitop7_popcntFNaNbNiNftZt", &eval_popcnt);
+
     // @safe @nogc pure nothrow int function(ulong)
     if (global.params.is64bit)
         add_builtin("_D4core5bitop7_popcntFNaNbNiNfmZi", &eval_popcnt);

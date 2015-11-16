@@ -85,6 +85,7 @@ extern (C++) static ushort parseIdx(const(ubyte)** pp)
 {
     auto p = *pp;
     const c = *p++;
+
     ushort idx = (0x80 & c) ? ((0x7F & c) << 8) + *p++ : c;
     *pp = p;
     return idx;
@@ -111,6 +112,7 @@ extern (C++) static void skipDataType(const(ubyte)** pp)
 {
     auto p = *pp;
     const c = *p++;
+
     if (c == 0x61)
     {
         // FAR data
@@ -148,10 +150,13 @@ void scanOmfObjModule(void delegate(const(char)* name, int pickAny) pAddSymbol, 
     int easyomf;
     ubyte result = 0;
     char[LIBIDMAX + 1] name;
+
     Strings names;
     names.push(null); // don't use index 0
+
     easyomf = 0; // assume not EASY-OMF
     auto pend = cast(const(ubyte)*)base + buflen;
+
     const(ubyte)* pnext;
     for (auto p = cast(const(ubyte)*)base; 1; p = pnext)
     {
@@ -161,6 +166,7 @@ void scanOmfObjModule(void delegate(const(char)* name, int pickAny) pAddSymbol, 
         p += 2;
         pnext = p + recLen;
         recLen--; // forget the checksum
+
         switch (recTyp)
         {
         case LNAMES:
@@ -171,6 +177,7 @@ void scanOmfObjModule(void delegate(const(char)* name, int pickAny) pAddSymbol, 
                 names.push(strdup(name.ptr));
             }
             break;
+
         case PUBDEF:
             if (easyomf)
                 recTyp = PUB386; // convert to MS format
@@ -186,6 +193,7 @@ void scanOmfObjModule(void delegate(const(char)* name, int pickAny) pAddSymbol, 
                 pAddSymbol(name.ptr, 0);
             }
             break;
+
         case COMDAT:
             if (easyomf)
                 recTyp = COMDAT + 1; // convert to MS format
@@ -193,21 +201,27 @@ void scanOmfObjModule(void delegate(const(char)* name, int pickAny) pAddSymbol, 
         case COMDAT + 1:
             {
                 int pickAny = 0;
+
                 if (*p++ & 5) // if continuation or local comdat
                     break;
+
                 ubyte attr = *p++;
                 if (attr & 0xF0) // attr: if multiple instances allowed
                     pickAny = 1;
                 p++; // align
+
                 p += 2; // enum data offset
                 if (recTyp == COMDAT + 1)
                     p += 2; // enum data offset
+
                 parseIdx(&p); // type index
+
                 if ((attr & 0x0F) == 0) // if explicit allocation
                 {
                     parseIdx(&p); // base group
                     parseIdx(&p); // base segment
                 }
+
                 uint idx = parseIdx(&p); // public name index
                 if (idx == 0 || idx >= names.dim)
                 {
@@ -215,6 +229,7 @@ void scanOmfObjModule(void delegate(const(char)* name, int pickAny) pAddSymbol, 
                     error(loc, "corrupt COMDAT");
                     return;
                 }
+
                 //printf("[s] name='%s'\n",name);
                 pAddSymbol(names[idx], pickAny);
                 break;
@@ -238,14 +253,17 @@ void scanOmfObjModule(void delegate(const(char)* name, int pickAny) pAddSymbol, 
                 parseName(&p, name.ptr);
             }
             break;
+
         case MODEND:
         case M386END:
             result = 1;
             goto Ret;
+
         case COMENT:
             // Recognize Phar Lap EASY-OMF format
             {
                 static __gshared ubyte* omfstr1 = [0x80, 0xAA, '8', '0', '3', '8', '6'];
+
                 if (recLen == (omfstr1).sizeof)
                 {
                     for (uint i = 0; i < (omfstr1).sizeof; i++)
@@ -259,6 +277,7 @@ void scanOmfObjModule(void delegate(const(char)* name, int pickAny) pAddSymbol, 
             // Recognize .IMPDEF Import Definition Records
             {
                 static __gshared ubyte* omfstr2 = [0, 0xA0, 1];
+
                 if (recLen >= 7)
                 {
                     p++;
@@ -273,6 +292,7 @@ void scanOmfObjModule(void delegate(const(char)* name, int pickAny) pAddSymbol, 
                 }
             }
             break;
+
         default:
             // ignore
         }
@@ -293,9 +313,11 @@ bool scanOmfLib(void delegate(char* name, void* base, size_t length) pAddObjModu
     /* Split up the buffer buf[0..buflen] into multiple object modules,
      * each aligned on a pagesize boundary.
      */
+
     bool first_module = true;
     const(ubyte)* base = null;
     char[LIBIDMAX + 1] name;
+
     auto p = cast(const(ubyte)*)buf;
     auto pend = p + buflen;
     const(ubyte)* pnext;
@@ -309,6 +331,7 @@ bool scanOmfLib(void delegate(char* name, void* base, size_t length) pAddObjModu
         if (pnext > pend)
             return true; // corrupt
         recLen--; // forget the checksum
+
         switch (recTyp)
         {
         case LHEADR:
@@ -322,6 +345,7 @@ bool scanOmfLib(void delegate(char* name, void* base, size_t length) pAddObjModu
                     base = pnext; // skip past THEADR
             }
             break;
+
         case MODEND:
         case M386END:
             {
@@ -363,12 +387,15 @@ void writeOMFObj(OutBuffer* buf, const(void)* base, uint length, const(char)* na
         const len = strlen(name);
         assert(len <= LIBIDMAX);
         ubyte[4 + LIBIDMAX + 1] header;
+
         header[0] = THEADR;
         header[1] = cast(ubyte)(2 + len);
         header[2] = 0;
         header[3] = cast(ubyte)len;
         assert(len <= 0xFF - 2);
+
         memcpy(4 + header.ptr, name, len);
+
         // Compute and store record checksum
         uint n = cast(uint)(len + 4);
         ubyte checksum = 0;
@@ -379,6 +406,7 @@ void writeOMFObj(OutBuffer* buf, const(void)* base, uint length, const(char)* na
             p++;
         }
         *p = checksum;
+
         buf.write(header.ptr, len + 5);
     }
     buf.write(base, length);

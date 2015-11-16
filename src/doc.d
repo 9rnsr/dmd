@@ -179,9 +179,11 @@ public:
                 case '\t':
                     p++;
                     continue;
+
                 case '\n':
                     p++;
                     goto Lcont;
+
                 default:
                     if (isIdStart(p) || isCVariadicArg(p, pend - p))
                         break;
@@ -325,6 +327,7 @@ extern (C++) static Dsymbol getEponymousMember(TemplateDeclaration td)
 {
     if (!td.onemember)
         return null;
+
     if (AggregateDeclaration ad = td.onemember.isAggregateDeclaration())
         return ad;
     if (FuncDeclaration fd = td.onemember.isFuncDeclaration())
@@ -333,6 +336,7 @@ extern (C++) static Dsymbol getEponymousMember(TemplateDeclaration td)
         return null;    // Keep backward compatibility. See compilable/ddoc9.d
     if (VarDeclaration vd = td.onemember.isVarDeclaration())
         return td.constraint ? null : vd;
+
     return null;
 }
 
@@ -458,8 +462,10 @@ ESCAPES = /</&lt;/
           />/&gt;/
           /&/&amp;/
 ";
+
 extern (C++) __gshared const(char)* ddoc_decl_s = "$(DDOC_DECL ";
 extern (C++) __gshared const(char)* ddoc_decl_e = ")\n";
+
 extern (C++) __gshared const(char)* ddoc_decl_dd_s = "$(DDOC_DECL_DD ";
 extern (C++) __gshared const(char)* ddoc_decl_dd_e = ")\n";
 
@@ -469,17 +475,23 @@ extern (C++) void gendocfile(Module m)
 {
     static __gshared OutBuffer mbuf;
     static __gshared int mbuf_done;
+
     OutBuffer buf;
+
     //printf("Module::gendocfile()\n");
+
     if (!mbuf_done) // if not already read the ddoc files
     {
         mbuf_done = 1;
+
         // Use our internal default
         mbuf.write(ddoc_default, strlen(ddoc_default));
+
         // Override with DDOCFILE specified in the sc.ini file
         char* p = getenv("DDOCFILE");
         if (p)
             global.params.ddocfiles.shift(p);
+
         // Override with the ddoc macro files from the command line
         for (size_t i = 0; i < global.params.ddocfiles.dim; i++)
         {
@@ -487,22 +499,28 @@ extern (C++) void gendocfile(Module m)
             auto file = File(&f);
             readFile(m.loc, &file);
             // BUG: convert file contents to UTF-8 before use
+
             //printf("file: '%.*s'\n", file.len, file.buffer);
             mbuf.write(file.buffer, file.len);
         }
     }
     DocComment.parseMacros(&m.escapetable, &m.macrotable, cast(char*)mbuf.data, mbuf.offset);
+
     Scope* sc = Scope.createGlobal(m); // create root scope
+
     DocComment* dc = DocComment.parse(sc, m, m.comment);
     dc.pmacrotable = &m.macrotable;
     dc.pescapetable = &m.escapetable;
     sc.lastdc = dc;
+
     // Generate predefined macros
+
     // Set the title to be the name of the module
     {
         const(char)* p = m.toPrettyChars();
         Macro.define(&m.macrotable, cast(char*)"TITLE", 5, cast(char*)p, strlen(p));
     }
+
     // Set time macros
     {
         time_t t;
@@ -512,15 +530,19 @@ extern (C++) void gendocfile(Module m)
         Macro.define(&m.macrotable, cast(char*)"DATETIME", 8, p, strlen(p));
         Macro.define(&m.macrotable, cast(char*)"YEAR", 4, p + 20, 4);
     }
+
     const srcfilename = m.srcfile.toChars();
     Macro.define(&m.macrotable, "SRCFILENAME", 11, srcfilename, strlen(srcfilename));
+
     const docfilename = m.docfile.toChars();
     Macro.define(&m.macrotable, "DOCFILENAME", 11, docfilename, strlen(docfilename));
+
     if (dc.copyright)
     {
         dc.copyright.nooutput = 1;
         Macro.define(&m.macrotable, cast(char*)"COPYRIGHT", 9, dc.copyright._body, dc.copyright.bodylen);
     }
+
     if (m.isDocFile)
     {
         Loc loc = m.md ? m.md.loc : m.loc;
@@ -542,12 +564,15 @@ extern (C++) void gendocfile(Module m)
         dc.writeSections(sc, &a, &buf);
         emitMemberComments(m, &buf, sc);
     }
+
     //printf("BODY= '%.*s'\n", buf.offset, buf.data);
     Macro.define(&m.macrotable, cast(char*)"BODY", 4, cast(char*)buf.data, buf.offset);
+
     OutBuffer buf2;
     buf2.writestring("$(DDOC)\n");
     size_t end = buf2.offset;
     m.macrotable.expand(&buf2, 0, &end, null, 0);
+
     version (all)
     {
         /* Remove all the escape sequences from buf2,
@@ -579,6 +604,7 @@ extern (C++) void gendocfile(Module m)
                 buf.writeByte(c);
             }
         }
+
         // Transfer image to file
         assert(m.docfile);
         m.docfile.setbuffer(buf.data, buf.offset);
@@ -632,16 +658,19 @@ extern (C++) void escapeDdocString(OutBuffer* buf, size_t start)
             buf.insert(u, cast(const(char)*)"$(DOLLAR)", 9);
             u += 8;
             break;
+
         case '(':
             buf.remove(u, 1); //remove the (
             buf.insert(u, cast(const(char)*)"$(LPAREN)", 9); //insert this instead
             u += 8; //skip over newly inserted macro
             break;
+
         case ')':
             buf.remove(u, 1); //remove the )
             buf.insert(u, cast(const(char)*)"$(RPAREN)", 9); //insert this instead
             u += 8; //skip over newly inserted macro
             break;
+
         default:
             break;
         }
@@ -667,6 +696,7 @@ extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
             if (!inCode)
                 par_open++;
             break;
+
         case ')':
             if (!inCode)
             {
@@ -682,6 +712,7 @@ extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
                     par_open--;
             }
             break;
+
             version (none)
             {
                 // For this to work, loc must be set to the beginning of the passed
@@ -691,6 +722,7 @@ extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
                 loc.linnum++;
                 break;
             }
+
         case '-':
             // Issue 15465: don't try to escape unbalanced parens inside code
             // blocks.
@@ -703,6 +735,7 @@ extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
             if (numdash >= 3)
                 inCode = !inCode;
             break;
+
         default:
             break;
         }
@@ -719,6 +752,7 @@ extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
             case ')':
                 par_open++;
                 break;
+
             case '(':
                 if (par_open == 0)
                 {
@@ -730,6 +764,7 @@ extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
                 else
                     par_open--;
                 break;
+
             default:
                 break;
             }
@@ -750,17 +785,20 @@ extern (C++) static bool emitAnchorName(OutBuffer* buf, Dsymbol s, Scope* sc)
 {
     if (!s || s.isPackage() || s.isModule())
         return false;
+
     // Add parent names first
     bool dot = false;
     if (s.parent)
         dot = emitAnchorName(buf, s.parent, sc);
     else if (sc)
         dot = emitAnchorName(buf, sc.scopesym, skipNonQualScopes(sc.enclosing));
+
     // Eponymous template members can share the parent anchor name
     if (getEponymousParent(s))
         return dot;
     if (dot)
         buf.writeByte('.');
+
     // Use "this" not "__ctor"
     TemplateDeclaration td;
     if (s.isCtorDeclaration() || ((td = s.isTemplateDeclaration()) !is null && td.onemember && td.onemember.isCtorDeclaration()))
@@ -805,6 +843,7 @@ extern (C++) static void emitAnchor(OutBuffer* buf, Dsymbol s, Scope* sc)
 
     // cache anchor name
     sc.prevAnchor = ident;
+
     buf.writestring("$(DDOC_ANCHOR ");
     buf.writestring(ident.toChars());
     // only append count once there's a duplicate
@@ -820,6 +859,7 @@ extern (C++) static size_t getCodeIndent(const(char)* src)
 {
     while (src && (*src == '\r' || *src == '\n'))
         ++src; // skip until we find the first non-empty line
+
     size_t codeIndent = 0;
     while (src && (*src == ' ' || *src == '\t'))
     {
@@ -853,7 +893,9 @@ extern (C++) void emitMemberComments(ScopeDsymbol sds, OutBuffer* buf, Scope* sc
 {
     if (!sds.members)
         return;
+
     //printf("ScopeDsymbol::emitMemberComments() %s\n", toChars());
+
     const(char)* m = "$(DDOC_MEMBERS ";
     if (sds.isTemplateDeclaration())
         m = "$(DDOC_TEMPLATE_MEMBERS ";
@@ -865,21 +907,27 @@ extern (C++) void emitMemberComments(ScopeDsymbol sds, OutBuffer* buf, Scope* sc
         m = "$(DDOC_ENUM_MEMBERS ";
     else if (sds.isModule())
         m = "$(DDOC_MODULE_MEMBERS ";
+
     size_t offset1 = buf.offset; // save starting offset
     buf.writestring(m);
     size_t offset2 = buf.offset; // to see if we write anything
+
     sc = sc.push(sds);
+
     for (size_t i = 0; i < sds.members.dim; i++)
     {
         Dsymbol s = (*sds.members)[i];
         //printf("\ts = '%s'\n", s->toChars());
         // only expand if parent is a non-template (semantic won't work)
+
         if (s.comment && s.isTemplateMixin() && s.parent && !s.parent.isTemplateDeclaration())
             expandTemplateMixinComments(cast(TemplateMixin)s, buf, sc);
         emitComment(s, buf, sc);
     }
     emitComment(null, buf, sc);
+
     sc.pop();
+
     if (buf.offset == offset2)
     {
         /* Didn't write out any members, so back out last write
@@ -953,6 +1001,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                 sc.lastdc.a.push(s);
                 return;
             }
+
             // Put previous doc comment if exists
             if (DocComment* dc = sc.lastdc)
             {
@@ -971,6 +1020,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                         buf.writestring("$(DDOC_OVERLOAD_SEPARATOR)");
                         continue;
                     }
+
                     buf.writestring("$(DDOC_DITTO ");
                     {
                         size_t o = buf.offset;
@@ -981,6 +1031,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                     buf.writeByte(')');
                 }
                 buf.writestring(ddoc_decl_e);
+
                 // Put the ddoc comment as the document 'description'
                 buf.writestring(ddoc_decl_dd_s);
                 {
@@ -991,6 +1042,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                 buf.writestring(ddoc_decl_dd_e);
                 //printf("buf.2 = [[%.*s]]\n", buf->offset - o0, buf->data + o0);
             }
+
             if (s)
             {
                 DocComment* dc = DocComment.parse(sc, s, com);
@@ -1029,6 +1081,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
             }
             if (!com)
                 return;
+
             emit(sc, d, com);
         }
 
@@ -1052,6 +1105,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
             }
             if (!com)
                 return;
+
             emit(sc, ad, com);
         }
 
@@ -1062,6 +1116,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                 return;
             if (!td.comment)
                 return;
+
             if (Dsymbol ss = getEponymousMember(td))
             {
                 ss.accept(this);
@@ -1087,6 +1142,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                 return;
             if (ed.isAnonymous())
                 return;
+
             emit(sc, ed, ed.comment);
         }
 
@@ -1097,6 +1153,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                 return;
             if (!em.comment)
                 return;
+
             emit(sc, em, em.comment);
         }
 
@@ -1143,6 +1200,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                 visit(cast(AttribDeclaration)cd);
                 return;
             }
+
             /* If generating doc comment, be careful because if we're inside
              * a template, then include(NULL, NULL) will fail.
              */
@@ -1189,9 +1247,11 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
         {
             if (s.isDeprecated())
                 buf.writestring("deprecated ");
+
             if (Declaration d = s.isDeclaration())
             {
                 emitProtection(buf, d.protection);
+
                 if (d.isStatic())
                     buf.writestring("static ");
                 else if (d.isFinal())
@@ -1231,13 +1291,18 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
         {
             if (!d.ident)
                 return;
+
             TemplateDeclaration td = getEponymousParent(d);
             //printf("Declaration::toDocbuffer() %s, originalType = %s, td = %s\n", d->toChars(), d->originalType ? d->originalType->toChars() : "--", td ? td->toChars() : "--");
+
             HdrGenState hgs;
             hgs.ddoc = true;
+
             if (d.isDeprecated())
                 buf.writestring("$(DEPRECATED ");
+
             prefix(d);
+
             if (d.type)
             {
                 Type origType = d.originalType ? d.originalType : d.type;
@@ -1250,6 +1315,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
             }
             else
                 buf.writestring(d.ident.toChars());
+
             if (d.isVarDeclaration() && td)
             {
                 buf.writeByte('(');
@@ -1264,6 +1330,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
                 }
                 buf.writeByte(')');
             }
+
             // emit constraints if declaration is a templated declaration
             if (td && td.constraint)
             {
@@ -1280,8 +1347,10 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
                     buf.writestring(")");
                 }
             }
+
             if (d.isDeprecated())
                 buf.writestring(")");
+
             buf.writestring(";\n");
         }
 
@@ -1290,10 +1359,13 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
             //printf("AliasDeclaration::toDocbuffer() %s\n", ad->toChars());
             if (!ad.ident)
                 return;
+
             if (ad.isDeprecated())
                 buf.writestring("deprecated ");
+
             emitProtection(buf, ad.protection);
             buf.printf("alias %s = ", ad.toChars());
+
             if (Dsymbol s = ad.aliassym) // ident alias
             {
                 prettyPrintDsymbol(s, ad.parent);
@@ -1313,6 +1385,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
                     buf.writestring(type.toChars());
                 }
             }
+
             buf.writestring(";\n");
         }
 
@@ -1333,11 +1406,13 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
                 if (s.isModule())
                     break;
             }
+
             for (; p; p = p.parent)
             {
                 if (p.isModule())
                     break;
             }
+
             return s == p;
         }
 
@@ -1365,6 +1440,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
         {
             if (!ad.ident)
                 return;
+
             version (none)
             {
                 emitProtection(buf, ad.protection);
@@ -1378,6 +1454,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
             //printf("StructDeclaration::toDocbuffer() %s\n", sd->toChars());
             if (!sd.ident)
                 return;
+
             version (none)
             {
                 emitProtection(buf, sd.protection);
@@ -1398,6 +1475,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
             //printf("ClassDeclaration::toDocbuffer() %s\n", cd->toChars());
             if (!cd.ident)
                 return;
+
             version (none)
             {
                 emitProtection(buf, cd.protection);
@@ -1418,6 +1496,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
                 BaseClass* bc = (*cd.baseclasses)[i];
                 if (bc.sym && bc.sym.ident == Id.Object)
                     continue;
+
                 if (any)
                     buf.writestring(", ");
                 else
@@ -1443,6 +1522,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
         {
             if (!ed.ident)
                 return;
+
             buf.printf("%s %s", ed.kind(), ed.toChars());
             if (ed.memtype)
             {
@@ -1458,6 +1538,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
         {
             if (!em.ident)
                 return;
+
             buf.writestring(em.toChars());
         }
     }
@@ -1485,10 +1566,13 @@ struct DocComment
         dc.a.push(s);
         if (!comment)
             return dc;
+
         dc.parseSections(comment);
+
         for (size_t i = 0; i < dc.sections.dim; i++)
         {
             Section sec = dc.sections[i];
+
             if (icmp("copyright", sec.name, sec.namelen) == 0)
             {
                 dc.copyright = sec;
@@ -1498,6 +1582,7 @@ struct DocComment
                 dc.macros = sec;
             }
         }
+
         return dc;
     }
 
@@ -1513,12 +1598,16 @@ struct DocComment
         const(char)* p = m;
         size_t len = mlen;
         const(char)* pend = p + len;
+
         const(char)* tempstart = null;
         size_t templen = 0;
+
         const(char)* namestart = null;
         size_t namelen = 0; // !=0 if line continuation
+
         const(char)* textstart = null;
         size_t textlen = 0;
+
         while (p < pend)
         {
             // Skip to start of macro
@@ -1532,10 +1621,12 @@ struct DocComment
                 case '\t':
                     p++;
                     continue;
+
                 case '\r':
                 case '\n':
                     p++;
                     goto Lcont;
+
                 default:
                     if (isIdStart(p))
                         break;
@@ -1546,6 +1637,7 @@ struct DocComment
                 break;
             }
             tempstart = p;
+
             while (1)
             {
                 if (p >= pend)
@@ -1555,6 +1647,7 @@ struct DocComment
                 p += utfStride(p);
             }
             templen = p - tempstart;
+
             while (1)
             {
                 if (p >= pend)
@@ -1563,6 +1656,7 @@ struct DocComment
                     break;
                 p++;
             }
+
             if (*p != '=')
             {
                 if (namelen)
@@ -1572,6 +1666,7 @@ struct DocComment
             p++;
             if (p >= pend)
                 goto Ldone;
+
             if (namelen)
             {
                 // Output existing macro
@@ -1585,19 +1680,25 @@ struct DocComment
                 if (p >= pend)
                     break;
             }
+
             namestart = tempstart;
             namelen = templen;
+
             while (p < pend && (*p == ' ' || *p == '\t'))
                 p++;
             textstart = p;
+
         Ltext:
             while (p < pend && *p != '\r' && *p != '\n')
                 p++;
             textlen = p - textstart;
+
             p++;
             //printf("p = %p, pend = %p\n", p, pend);
+
         Lcont:
             continue;
+
         Lskipline:
             // Ignore this line
             while (p < pend && *p != '\r' && *p != '\n')
@@ -1618,6 +1719,7 @@ struct DocComment
     extern (C++) static void parseEscapes(Escape** pescapetable, const(char)* textstart, size_t textlen)
     {
         Escape* escapetable = *pescapetable;
+
         if (!escapetable)
         {
             escapetable = new Escape();
@@ -1627,6 +1729,7 @@ struct DocComment
         //printf("parseEscapes('%.*s') pescapetable = %p\n", textlen, textstart, pescapetable);
         const(char)* p = textstart;
         const(char)* pend = p + textlen;
+
         while (1)
         {
             while (1)
@@ -1673,8 +1776,10 @@ struct DocComment
         const(char)* pend;
         const(char)* idstart = null; // dead-store to prevent spurious warning
         size_t idlen;
+
         const(char)* name = null;
         size_t namelen = 0;
+
         //printf("parseSections('%s')\n", comment);
         p = comment;
         while (*p)
@@ -1683,6 +1788,7 @@ struct DocComment
             p = skipwhitespace(p);
             pstart = p;
             pend = p;
+
             /* Find end of section, which is ended by one of:
              *      'identifier:' (but not inside a code section)
              *      '\0'
@@ -1700,6 +1806,7 @@ struct DocComment
                         while (pstart0 < pstart && isIndentWS(pstart - 1))
                             --pstart;
                     }
+
                     int numdash = 0;
                     while (*p == '-')
                     {
@@ -1711,6 +1818,7 @@ struct DocComment
                         inCode ^= 1;
                     pend = p;
                 }
+
                 if (!inCode && isIdStart(p))
                 {
                     const(char)* q = p + utfStride(p);
@@ -1750,6 +1858,7 @@ struct DocComment
                 p = skipwhitespace(p);
             }
         L1:
+
             if (namelen || pstart < pend)
             {
                 Section s;
@@ -1764,8 +1873,10 @@ struct DocComment
                 s._body = pstart;
                 s.bodylen = pend - pstart;
                 s.nooutput = 0;
+
                 //printf("Section: '%.*s' = '%.*s'\n", s->namelen, s->name, s->bodylen, s->body);
                 sections.push(s);
+
                 if (!summary && !namelen)
                     summary = s;
             }
@@ -1787,6 +1898,7 @@ struct DocComment
     extern (C++) void writeSections(Scope* sc, Dsymbols* a, OutBuffer* buf)
     {
         assert(a.dim);
+
         //printf("DocComment::writeSections()\n");
         Loc loc = (*a)[0].loc;
         if (Module m = (*a)[0].isModule())
@@ -1794,14 +1906,17 @@ struct DocComment
             if (m.md)
                 loc = m.md.loc;
         }
+
         size_t offset1 = buf.offset;
         buf.writestring("$(DDOC_SECTIONS ");
         size_t offset2 = buf.offset;
+
         for (size_t i = 0; i < sections.dim; i++)
         {
             Section sec = sections[i];
             if (sec.nooutput)
                 continue;
+
             //printf("Section: '%.*s' = '%.*s'\n", sec->namelen, sec->name, sec->bodylen, sec->body);
             if (!sec.namelen && i == 0)
             {
@@ -1815,22 +1930,28 @@ struct DocComment
             else
                 sec.write(loc, &this, sc, a, buf);
         }
+
         for (size_t i = 0; i < a.dim; i++)
         {
             Dsymbol s = (*a)[i];
             if (Dsymbol td = getEponymousParent(s))
                 s = td;
+
             for (UnitTestDeclaration utd = s.ddocUnittest; utd; utd = utd.ddocUnittest)
             {
                 if (utd.protection.kind == PROTprivate || !utd.comment || !utd.fbody)
                     continue;
+
                 // Strip whitespaces to avoid showing empty summary
                 const(char)* c = utd.comment;
                 while (*c == ' ' || *c == '\t' || *c == '\n' || *c == '\r')
                     ++c;
+
                 buf.writestring("$(DDOC_EXAMPLES ");
+
                 size_t o = buf.offset;
                 buf.writestring(cast(char*)c);
+
                 if (utd.codedoc)
                 {
                     size_t n = getCodeIndent(utd.codedoc);
@@ -1841,9 +1962,11 @@ struct DocComment
                     buf.writestring("----\n");
                     highlightText(sc, a, buf, o);
                 }
+
                 buf.writestring(")");
             }
         }
+
         if (buf.offset == offset2)
         {
             /* Didn't write out any sections, so back out last write
@@ -1922,6 +2045,7 @@ extern (C++) size_t skiptoident(OutBuffer* buf, size_t i)
     while (i < buf.offset)
     {
         dchar c;
+
         size_t oi = i;
         if (utf_decodeChar(cast(char*)buf.data, buf.offset, i, c))
         {
@@ -1950,6 +2074,7 @@ extern (C++) size_t skippastident(OutBuffer* buf, size_t i)
     while (i < buf.offset)
     {
         dchar c;
+
         size_t oi = i;
         if (utf_decodeChar(cast(char*)buf.data, buf.offset, i, c))
         {
@@ -1983,6 +2108,7 @@ extern (C++) size_t skippastURL(OutBuffer* buf, size_t i)
     char* p = cast(char*)&buf.data[i];
     size_t j;
     uint sawdot = 0;
+
     if (length > 7 && Port.memicmp(p, "http://", 7) == 0)
     {
         j = 7;
@@ -1993,6 +2119,7 @@ extern (C++) size_t skippastURL(OutBuffer* buf, size_t i)
     }
     else
         goto Lno;
+
     for (; j < length; j++)
     {
         char c = p[j];
@@ -2009,6 +2136,7 @@ extern (C++) size_t skippastURL(OutBuffer* buf, size_t i)
     }
     if (sawdot)
         return i + j;
+
 Lno:
     return i;
 }
@@ -2044,6 +2172,7 @@ extern (C++) bool isKeyword(char* p, size_t len)
 extern (C++) TypeFunction isTypeFunction(Dsymbol s)
 {
     FuncDeclaration f = s.isFuncDeclaration();
+
     /* f->type may be NULL for template members.
      */
     if (f && f.type)
@@ -2156,23 +2285,29 @@ extern (C++) bool isReservedName(char* str, size_t len)
 extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset)
 {
     Dsymbol s = a.dim ? (*a)[0] : null; // test
+
     //printf("highlightText()\n");
+
     int leadingBlank = 1;
     int inCode = 0;
     int inBacktick = 0;
     //int inComment = 0;                  // in <!-- ... --> comment
     size_t iCodeStart = 0; // start of code section
     size_t codeIndent = 0;
+
     size_t iLineStart = offset;
+
     for (size_t i = offset; i < buf.offset; i++)
     {
         char c = buf.data[i];
+
     Lcont:
         switch (c)
         {
         case ' ':
         case '\t':
             break;
+
         case '\n':
             if (inBacktick)
             {
@@ -2181,20 +2316,25 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 //
                 // This lets things like `output from the linker' display
                 // unmolested while keeping the feature consistent with GitHub.
+
                 inBacktick = false;
                 inCode = false; // the backtick also assumes we're in code
+
                 // Nothing else is necessary since the DDOC_BACKQUOTED macro is
                 // inserted lazily at the close quote, meaning the rest of the
                 // text is already OK.
             }
+
             if (!sc._module.isDocFile && !inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
             {
                 static __gshared const(char)* blankline = "$(DDOC_BLANKLINE)\n";
+
                 i = buf.insert(i, blankline, strlen(blankline));
             }
             leadingBlank = 1;
             iLineStart = i + 1;
             break;
+
         case '<':
             {
                 leadingBlank = 0;
@@ -2224,6 +2364,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                         }
                         break;
                     }
+
                     // Skip over HTML tag
                     if (isalpha(p[1]) || (p[1] == '/' && isalpha(p[2])))
                     {
@@ -2297,28 +2438,38 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 {
                     inBacktick = 0;
                     inCode = 0;
+
                     OutBuffer codebuf;
+
                     codebuf.write(buf.data + iCodeStart + 1, i - (iCodeStart + 1));
+
                     // escape the contents, but do not perform highlighting except for DDOC_PSYMBOL
                     highlightCode(sc, a, &codebuf, 0);
+
                     buf.remove(iCodeStart, i - iCodeStart + 1); // also trimming off the current `
+
                     static __gshared const(char)* pre = "$(DDOC_BACKQUOTED ";
                     i = buf.insert(iCodeStart, pre, strlen(pre));
                     i = buf.insert(i, cast(char*)codebuf.data, codebuf.offset);
                     i = buf.insert(i, cast(char*)")", 1);
+
                     i--; // point to the ending ) so when the for loop does i++, it will see the next character
+
                     break;
                 }
                 if (inCode)
                     break;
+
                 inCode = 1;
                 inBacktick = 1;
                 codeIndent = 0; // inline code is not indented
+
                 // All we do here is set the code flags and record
                 // the location. The macro will be inserted lazily
                 // so we can easily cancel the inBacktick if we come
                 // across a newline character.
                 iCodeStart = i;
+
                 break;
             }
         case '-':
@@ -2329,6 +2480,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             {
                 size_t istart = i;
                 size_t eollen = 0;
+
                 leadingBlank = 0;
                 while (1)
                 {
@@ -2358,23 +2510,29 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 }
                 if (i - istart < 3)
                     goto Lcont;
+
                 // We have the start/end of a code section
+
                 // Remove the entire --- line, including blanks and \n
                 buf.remove(iLineStart, i - iLineStart + eollen);
                 i = iLineStart;
+
                 if (inCode && (i <= iCodeStart))
                 {
                     // Empty code section, just remove it completely.
                     inCode = 0;
                     break;
                 }
+
                 if (inCode)
                 {
                     inCode = 0;
+
                     // The code section is from iCodeStart to i
                     OutBuffer codebuf;
                     codebuf.write(buf.data + iCodeStart, i - iCodeStart);
                     codebuf.writeByte(0);
+
                     // Remove leading indentations from all lines
                     bool lineStart = true;
                     char* endp = cast(char*)codebuf.data + codebuf.offset;
@@ -2397,6 +2555,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                             lineStart = true;
                         ++p;
                     }
+
                     highlightCode2(sc, a, &codebuf, 0);
                     buf.remove(iCodeStart, i - iCodeStart);
                     i = buf.insert(iCodeStart, codebuf.data, codebuf.offset);
@@ -2406,6 +2565,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 else
                 {
                     static __gshared const(char)* d_code = "$(D_CODE ";
+
                     inCode = 1;
                     codeIndent = istart - iLineStart; // save indent count
                     i = buf.insert(i, d_code, strlen(d_code));
@@ -2415,10 +2575,12 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 }
             }
             break;
+
         default:
             leadingBlank = 0;
             if (sc._module.isDocFile || inCode)
                 break;
+
             char* start = cast(char*)buf.data + i;
             if (isIdStart(start))
             {
@@ -2435,6 +2597,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 else
                     break;
                 size_t len = j - i;
+
                 // leading '_' means no highlight unless it's a reserved symbol name
                 if (c == '_' && (i == 0 || !isdigit(*(start - 1))) && (i == buf.size - 1 || !isReservedName(start, len)))
                 {
@@ -2458,6 +2621,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     i = buf.bracket(i, "$(DDOC_PARAM ", j, ")") - 1;
                     break;
                 }
+
                 i = j - 1;
             }
             break;
@@ -2477,6 +2641,7 @@ extern (C++) void highlightCode(Scope* sc, Dsymbol s, OutBuffer* buf, size_t off
     emitAnchor(&ancbuf, s, sc);
     buf.insert(offset, cast(char*)ancbuf.data, ancbuf.offset);
     offset += ancbuf.offset;
+
     Dsymbols a;
     a.push(s);
     highlightCode(sc, &a, buf, offset);
@@ -2501,6 +2666,7 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             i--; // point to ';'
             continue;
         }
+
         char* start = cast(char*)buf.data + i;
         if (isIdStart(start))
         {
@@ -2623,6 +2789,7 @@ extern (C++) void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t 
     scope Lexer lex = new Lexer(null, cast(char*)buf.data, 0, buf.offset - 1, 0, 1);
     OutBuffer res;
     const(char)* lastp = cast(char*)buf.data;
+
     //printf("highlightCode2('%.*s')\n", buf->offset - 1, buf->data);
     res.reserve(buf.offset);
     while (1)
@@ -2630,6 +2797,7 @@ extern (C++) void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t 
         Token tok;
         lex.scan(&tok);
         highlightCode3(sc, &res, lastp, tok.ptr);
+
         const(char)* highlight = null;
         switch (tok.value)
         {
@@ -2654,9 +2822,11 @@ extern (C++) void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t 
         case TOKcomment:
             highlight = "$(D_COMMENT ";
             break;
+
         case TOKstring:
             highlight = "$(D_STRING ";
             break;
+
         default:
             if (tok.isKeyword())
                 highlight = "$(D_KEYWORD ";

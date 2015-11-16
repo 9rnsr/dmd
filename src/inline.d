@@ -170,7 +170,9 @@ public:
             cost = COST_MAX;
             return;
         }
+
         expressionInlineCost(s.condition);
+
         /* Specifically allow:
          *  if (condition)
          *      return exp1;
@@ -178,6 +180,7 @@ public:
          *      return exp2;
          * Otherwise, we can't handle return statements nested in if's.
          */
+
         if (s.elsebody && s.ifbody && s.ifbody.isReturnStatement() && s.elsebody.isReturnStatement())
         {
             s.ifbody.accept(this);
@@ -234,6 +237,7 @@ public:
     }
 
     /* -------------------------- */
+
     void expressionInlineCost(Expression e)
     {
         //printf("expressionInlineCost()\n");
@@ -366,6 +370,7 @@ public:
                 cost = COST_MAX;
                 return;
             }
+
             if (vd.edtor)
             {
                 // if destructor required
@@ -384,12 +389,14 @@ public:
             }
             cost += 1;
         }
+
         // These can contain functions, which when copied, get output twice.
         if (e.declaration.isStructDeclaration() || e.declaration.isClassDeclaration() || e.declaration.isFuncDeclaration() || e.declaration.isAttribDeclaration() || e.declaration.isTemplateMixin())
         {
             cost = COST_MAX;
             return;
         }
+
         //printf("DeclarationExp.inlineCost3('%s')\n", toChars());
     }
 
@@ -1391,6 +1398,7 @@ public:
     }
 
     /* -------------------------- */
+
     void arrayInlineScan(Expressions* arguments)
     {
         if (arguments)
@@ -1730,6 +1738,7 @@ public:
         if (fd.isUnitTestDeclaration() && !global.params.useUnitTests ||
             fd.flags & FUNCFLAGinlineScanned)
             return;
+
         if (fd.fbody && !fd.naked)
         {
             auto againsave = again;
@@ -1854,14 +1863,17 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
             printf("\t1: yes %s\n", fd.toChars());
         }
         return true;
+
     case ILSno:
         static if (CANINLINE_LOG)
         {
             printf("\t1: no %s\n", fd.toChars());
         }
         return false;
+
     case ILSuninitialized:
         break;
+
     default:
         assert(0);
     }
@@ -1870,10 +1882,13 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
     {
     case PINLINEdefault:
         break;
+
     case PINLINEalways:
         break;
+
     case PINLINEnever:
         return false;
+
     default:
         assert(0);
     }
@@ -2359,6 +2374,7 @@ public Expression inlineCopy(Expression e, Scope* sc)
     /* See Bugzilla 2935 for explanation of why just a copy() is broken
      */
     //return e.copy();
+
     if (e.op == TOKdelegate)
     {
         DelegateExp de = cast(DelegateExp)e;
@@ -2370,6 +2386,7 @@ public Expression inlineCopy(Expression e, Scope* sc)
             return de.copy();
         }
     }
+
     scope InlineCostVisitor icv = new InlineCostVisitor();
     icv.hdrscan = 1;
     icv.allowAlloca = true;

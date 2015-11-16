@@ -49,6 +49,7 @@ public:
         {
             if (!symtab)
                 symtab = new DsymbolTable();
+
             // The namespace becomes 'imported' into the enclosing scope
             for (Scope* sce = sc; 1; sce = sce.enclosing)
             {
@@ -59,15 +60,18 @@ public:
                     break;
                 }
             }
+
             assert(sc);
             sc = sc.push(this);
             sc.linkage = LINKcpp; // namespaces default to C++ linkage
             sc.parent = this;
+
             foreach (s; *members)
             {
                 //printf("add %s to scope %s\n", s->toChars(), toChars());
                 s.addMember(sc, this);
             }
+
             sc.pop();
         }
     }
@@ -81,10 +85,12 @@ public:
             sc = sc.push(this);
             sc.linkage = LINKcpp; // namespaces default to C++ linkage
             sc.parent = this;
+
             foreach (s; *members)
             {
                 s.setScope(sc);
             }
+
             sc.pop();
         }
     }
@@ -94,26 +100,32 @@ public:
         if (semanticRun >= PASSsemantic)
             return;
         semanticRun = PASSsemantic;
+
         static if (LOG)
         {
             printf("+Nspace::semantic('%s')\n", toChars());
         }
+
         if (_scope)
         {
             sc = _scope;
             _scope = null;
         }
+
         parent = sc.parent;
+
         if (members)
         {
             assert(sc);
             sc = sc.push(this);
             sc.linkage = LINKcpp; // note that namespaces imply C++ linkage
             sc.parent = this;
+
             foreach (s; *members)
             {
                 s.importAll(sc);
             }
+
             foreach (s; *members)
             {
                 static if (LOG)
@@ -122,6 +134,7 @@ public:
                 }
                 s.semantic(sc);
             }
+
             sc.pop();
         }
         static if (LOG)
@@ -144,6 +157,7 @@ public:
             assert(sc);
             sc = sc.push(this);
             sc.linkage = LINKcpp;
+
             foreach (s; *members)
             {
                 static if (LOG)
@@ -152,6 +166,7 @@ public:
                 }
                 s.semantic2(sc);
             }
+
             sc.pop();
         }
         static if (LOG)
@@ -173,10 +188,12 @@ public:
         {
             sc = sc.push(this);
             sc.linkage = LINKcpp;
+
             foreach (s; *members)
             {
                 s.semantic3(sc);
             }
+
             sc.pop();
         }
     }

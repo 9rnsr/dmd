@@ -41,10 +41,13 @@ extern (C++) bool mergeFieldInit(Loc loc, ref uint fieldInit, uint fi, bool must
         // Have any branches returned?
         bool aRet = (fi & CSXreturn) != 0;
         bool bRet = (fieldInit & CSXreturn) != 0;
+
         // Have any branches halted?
         bool aHalt = (fi & CSXhalt) != 0;
         bool bHalt = (fieldInit & CSXhalt) != 0;
+
         bool ok;
+
         if (aHalt && bHalt)
         {
             ok = true;
@@ -75,6 +78,7 @@ extern (C++) bool mergeFieldInit(Loc loc, ref uint fieldInit, uint fi, bool must
             ok = !mustInit || !((fieldInit ^ fi) & CSXthis_ctor);
             fieldInit |= fi;
         }
+
         return ok;
     }
     return true;
@@ -191,16 +195,21 @@ struct Scope
     {
         Scope* sc = Scope.alloc();
         *sc = Scope.init;
+
         sc._module = _module;
+
         sc.minst = _module;
+
         sc.scopesym = new ScopeDsymbol();
         sc.scopesym.symtab = new DsymbolTable();
+
         // Add top level package as member of this global scope
         Dsymbol m = _module;
         while (m.parent)
             m = m.parent;
         m.addMember(null, sc.scopesym);
         m.parent = null; // got changed by addMember()
+
         // Create the module scope underneath the global scope
         sc = sc.push(_module);
         sc.parent = _module;
@@ -211,17 +220,21 @@ struct Scope
     {
         Scope* sc = Scope.alloc();
         *sc = this;
+
         /* Bugzilla 11777: The copied scope should not inherit fieldinit.
          */
         sc.fieldinit = null;
+
         return sc;
     }
 
     extern (C++) Scope* push()
     {
         Scope* s = copy();
+
         //printf("Scope::push(this = %p) new = %p\n", this, s);
         assert(!(flags & SCOPEfree));
+
         s.scopesym = null;
         s.sds = null;
         s.enclosing = &this;
@@ -240,6 +253,7 @@ struct Scope
         s.fieldinit = saveFieldInit();
         s.flags = (flags & (SCOPEcontract | SCOPEdebug | SCOPEctfe | SCOPEcompile | SCOPEconstraint));
         s.lastdc = null;
+
         assert(&this != s);
         return s;
     }
@@ -256,6 +270,7 @@ struct Scope
     {
         //printf("Scope::pop() %p nofree = %d\n", this, nofree);
         Scope* enc = enclosing;
+
         if (enclosing)
         {
             enclosing.callSuper |= callSuper;
@@ -270,12 +285,14 @@ struct Scope
                 freeFieldinit();
             }
         }
+
         if (!nofree)
         {
             enclosing = freelist;
             freelist = &this;
             flags |= SCOPEfree;
         }
+
         return enc;
     }
 
@@ -332,21 +349,27 @@ struct Scope
         // regarding when and how constructors can appear.
         // It merges the results of two paths.
         // The two paths are callSuper and cs; the result is merged into callSuper.
+
         if (cs != callSuper)
         {
             // Have ALL branches called a constructor?
             int aAll = (cs & (CSXthis_ctor | CSXsuper_ctor)) != 0;
             int bAll = (callSuper & (CSXthis_ctor | CSXsuper_ctor)) != 0;
+
             // Have ANY branches called a constructor?
             bool aAny = (cs & CSXany_ctor) != 0;
             bool bAny = (callSuper & CSXany_ctor) != 0;
+
             // Have any branches returned?
             bool aRet = (cs & CSXreturn) != 0;
             bool bRet = (callSuper & CSXreturn) != 0;
+
             // Have any branches halted?
             bool aHalt = (cs & CSXhalt) != 0;
             bool bHalt = (callSuper & CSXhalt) != 0;
+
             bool ok = true;
+
             if (aHalt && bHalt)
             {
                 callSuper = CSXhalt;
@@ -372,6 +395,7 @@ struct Scope
             {
                 // Both branches must have called ctors, or both not.
                 ok = (aAll == bAll);
+
                 // If one returned without a ctor, we must remember that
                 // (Don't bother if we've already found an error)
                 if (ok && aRet && !aAny)
@@ -469,6 +493,7 @@ struct Scope
                 assert(sc != sc.enclosing);
                 if (!sc.scopesym)
                     continue;
+
                 if (Dsymbol s = sc.scopesym.isModule())
                 {
                     //printMsg("\tfound", s);
@@ -505,6 +530,7 @@ struct Scope
                         *pscopesym = sc.scopesym;
                     return s;
                 }
+
                 // Stop when we hit a module, but keep going if that is not just under the global scope
                 if (sc.scopesym.isModule() && !(sc.enclosing && !sc.enclosing.enclosing))
                     break;
@@ -577,6 +603,7 @@ struct Scope
         extern (D) void* scope_search_fp(const(char)* seed, ref int cost)
         {
             //printf("scope_search_fp('%s')\n", seed);
+
             /* If not in the lexer's string table, it certainly isn't in the symbol table.
              * Doing this first is a lot faster.
              */
@@ -586,6 +613,7 @@ struct Scope
             Identifier id = Identifier.lookup(seed, len);
             if (!id)
                 return null;
+
             Scope* sc = &this;
             Module.clearCache();
             Dsymbol scopesym = null;
@@ -626,6 +654,7 @@ struct Scope
             }
             return null;
         }
+
         for (Scope* sc = &this; sc; sc = sc.enclosing)
         {
             //printf("\tsc = %p\n", sc);
@@ -649,6 +678,7 @@ struct Scope
         {
             if (!sc.scopesym)
                 continue;
+
             ClassDeclaration cd = sc.scopesym.isClassDeclaration();
             if (cd)
                 return cd;
@@ -665,6 +695,7 @@ struct Scope
         {
             if (!sc.scopesym)
                 continue;
+
             AggregateDeclaration ad = sc.scopesym.isClassDeclaration();
             if (ad)
                 return ad;
@@ -683,11 +714,13 @@ struct Scope
     extern (C++) void setNoFree()
     {
         //int i = 0;
+
         //printf("Scope::setNoFree(this = %p)\n", this);
         for (Scope* sc = &this; sc; sc = sc.enclosing)
         {
             //printf("\tsc = %p\n", sc);
             sc.nofree = 1;
+
             assert(!(flags & SCOPEfree));
             //assert(sc != sc->enclosing);
             //assert(!sc->enclosing || sc != sc->enclosing->enclosing);
