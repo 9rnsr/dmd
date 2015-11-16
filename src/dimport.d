@@ -139,7 +139,8 @@ public:
         {
             if (pkg && pkg.isModule())
             {
-                .error(loc, "can only import from a module, not from a member of module %s. Did you mean `import %s : %s`?", pkg.toChars(), pkg.toPrettyChars(), id.toChars());
+                .error(loc, "can only import from a module, not from a member of module %s. Did you mean `import %s : %s`?",
+                    pkg.toChars(), pkg.toPrettyChars(), id.toChars());
                 mod = pkg.isModule(); // Error recovery - treat as import of that module
                 return;
             }
@@ -332,7 +333,8 @@ public:
 
         // object self-imports itself, so skip that (Bugzilla 7547)
         // don't list pseudo modules __entrypoint.d, __main.d (Bugzilla 11117, 11164)
-        if (global.params.moduleDeps !is null && !(id == Id.object && sc._module.ident == Id.object) &&
+        if (global.params.moduleDeps !is null &&
+            !(id == Id.object && sc._module.ident == Id.object) &&
             sc._module.ident != Id.entrypoint &&
             strcmp(sc._module.ident.toChars(), "__main") != 0)
         {

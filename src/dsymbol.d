@@ -762,16 +762,19 @@ public:
                 {
                     sm = s.search_correct(ti.name);
                     if (sm)
-                        .error(loc, "template identifier '%s' is not a member of %s '%s', did you mean %s '%s'?", ti.name.toChars(), s.kind(), s.toPrettyChars(), sm.kind(), sm.toChars());
+                        .error(loc, "template identifier '%s' is not a member of %s '%s', did you mean %s '%s'?",
+                            ti.name.toChars(), s.kind(), s.toPrettyChars(), sm.kind(), sm.toChars());
                     else
-                        .error(loc, "template identifier '%s' is not a member of %s '%s'", ti.name.toChars(), s.kind(), s.toPrettyChars());
+                        .error(loc, "template identifier '%s' is not a member of %s '%s'",
+                            ti.name.toChars(), s.kind(), s.toPrettyChars());
                     return null;
                 }
                 sm = sm.toAlias();
                 TemplateDeclaration td = sm.isTemplateDeclaration();
                 if (!td)
                 {
-                    .error(loc, "%s.%s is not a template, it is a %s", s.toPrettyChars(), ti.name.toChars(), sm.kind());
+                    .error(loc, "%s.%s is not a template, it is a %s",
+                        s.toPrettyChars(), ti.name.toChars(), sm.kind());
                     return null;
                 }
                 ti.tempdecl = td;
@@ -1365,7 +1368,8 @@ public:
 
                 /* Don't find private members if ss is a module
                  */
-                Dsymbol s2 = ss.search(loc, ident, sflags | (ss.isModule() ? IgnorePrivateImports : IgnoreNone));
+                Dsymbol s2 = ss.search(loc, ident,
+                    sflags | (ss.isModule() ? IgnorePrivateImports : IgnoreNone));
                 import ddmd.access : symbolIsVisible;
                 if (!s2 || !(flags & IgnoreSymbolVisibility) && !symbolIsVisible(this, s2))
                     continue;
@@ -1377,15 +1381,19 @@ public:
                 }
                 else if (s2 && s != s2)
                 {
-                    if (s.toAlias() == s2.toAlias() || s.getType() == s2.getType() && s.getType())
+                    if (s.toAlias() == s2.toAlias() ||
+                        s.getType() == s2.getType() && s.getType())
                     {
                         /* After following aliases, we found the same
                          * symbol, so it's not an ambiguity.  But if one
                          * alias is deprecated or less accessible, prefer
                          * the other.
                          */
-                        if (s.isDeprecated() || s.prot().isMoreRestrictiveThan(s2.prot()) && s2.prot().kind != PROTnone)
+                        if (s.isDeprecated() ||
+                            s.prot().isMoreRestrictiveThan(s2.prot()) && s2.prot().kind != PROTnone)
+                        {
                             s = s2;
+                        }
                     }
                     else
                     {
@@ -1394,7 +1402,10 @@ public:
                          */
                         Import i1 = s.isImport();
                         Import i2 = s2.isImport();
-                        if (!(i1 && i2 && (i1.mod == i2.mod || (!i1.parent.isImport() && !i2.parent.isImport() && i1.ident.equals(i2.ident)))))
+                        if (!(i1 && i2 &&
+                              (i1.mod == i2.mod ||
+                               (!i1.parent.isImport() && !i2.parent.isImport() &&
+                                i1.ident.equals(i2.ident)))))
                         {
                             /* Bugzilla 8668:
                              * Public selective import adds AliasDeclaration in module.
@@ -1407,13 +1418,15 @@ public:
                             /* If both s2 and s are overloadable (though we only
                              * need to check s once)
                              */
-                            if ((s2.isOverloadSet() || s2.isOverloadable()) && (a || s.isOverloadable()))
+                            if ((s2.isOverloadSet() || s2.isOverloadable()) &&
+                                (a || s.isOverloadable()))
                             {
                                 a = mergeOverloadSet(ident, a, s2);
                                 continue;
                             }
 
-                            if (flags & IgnoreAmbiguous) // if return NULL on ambiguity
+                            // if return NULL on ambiguity
+                            if (flags & IgnoreAmbiguous)
                                 return null;
 
                             if (!(flags & IgnoreErrors))
@@ -1557,11 +1570,18 @@ public:
         }
         if (loc.filename)
         {
-            .error(loc, "%s at %s conflicts with %s at %s", s1.toPrettyChars(), s1.locToChars(), s2.toPrettyChars(), s2.locToChars());
+            .error(loc, "%s at %s conflicts with %s at %s",
+                s1.toPrettyChars(),
+                s1.locToChars(),
+                s2.toPrettyChars(),
+                s2.locToChars());
         }
         else
         {
-            s1.error(s1.loc, "conflicts with %s %s at %s", s2.kind(), s2.toPrettyChars(), s2.locToChars());
+            s1.error(s1.loc, "conflicts with %s %s at %s",
+                s2.kind(),
+                s2.toPrettyChars(),
+                s2.locToChars());
         }
     }
 
@@ -1910,7 +1930,8 @@ public:
                     v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, new ExpInitializer(Loc(), e));
                     v.storage_class |= STCtemp | STCstatic | STCconst;
                 }
-                else if (ce.type && (t = ce.type.toBasetype()) !is null && (t.ty == Tstruct || t.ty == Tclass))
+                else if (ce.type && (t = ce.type.toBasetype()) !is null &&
+                         (t.ty == Tstruct || t.ty == Tclass))
                 {
                     // Look for opDollar
                     assert(exp.op == TOKarray || exp.op == TOKslice);

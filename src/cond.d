@@ -336,7 +336,10 @@ public:
             else if (level <= global.params.versionlevel || level <= mod.versionlevel)
                 inc = 1;
             if (!definedInModule &&
-                (!ident || (!isPredefined(ident.toChars()) && ident != idUnitTest && ident != idAssert)))
+                (!ident ||
+                 (!isPredefined(ident.toChars()) &&
+                  ident != idUnitTest &&
+                  ident != idAssert)))
             {
                 printDepsConditional(sc, this, "depsVersion ");
             }

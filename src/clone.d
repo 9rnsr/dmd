@@ -517,8 +517,8 @@ extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
         sd.xerreq = s.isFuncDeclaration();
     }
 
-    Loc declLoc = Loc(); // loc is unnecessary so __xopEquals is never called directly
-    Loc loc = Loc(); // loc is unnecessary so errors are gagged
+    Loc declLoc = Loc();    // loc is unnecessary so __xopEquals is never called directly
+    Loc loc = Loc();        // loc is unnecessary so errors are gagged
 
     auto parameters = new Parameters();
     parameters.push(new Parameter(STCref | STCconst, sd.type, Id.p, null));
@@ -600,18 +600,9 @@ extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
                 Dsymbol s = null;
                 switch (e.op)
                 {
-                case TOKoverloadset:
-                    s = (cast(OverExp)e).vars;
-                    break;
-
-                case TOKscope:
-                    s = (cast(ScopeExp)e).sds;
-                    break;
-
-                case TOKvar:
-                    s = (cast(VarExp)e).var;
-                    break;
-
+                case TOKoverloadset:    s = (cast(OverExp)e).vars;  break;
+                case TOKscope:          s = (cast(ScopeExp)e).sds;  break;
+                case TOKvar:            s = (cast(VarExp)e).var;    break;
                 default:
                     break;
                 }
@@ -1189,7 +1180,8 @@ extern (C++) FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
             {
                 // What should do?
             }
-            StorageClass stcy = (ad.invs[i].storage_class & STCsynchronized) | (ad.invs[i].type.mod & MODshared ? STCshared : 0);
+            StorageClass stcy = (ad.invs[i].storage_class & STCsynchronized) |
+                                (ad.invs[i].type.mod & MODshared ? STCshared : 0);
             if (i == 0)
                 stcx = stcy;
             else if (stcx ^ stcy)

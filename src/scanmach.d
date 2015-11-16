@@ -52,12 +52,14 @@ void scanMachObjModule(void delegate(char* name, int pickAny) pAddSymbol, void* 
     {
         if (header.cputype != CPU_TYPE_I386)
         {
-            error(loc, "Mach-O object module %s has cputype = %d, should be %d", module_name, header.cputype, CPU_TYPE_I386);
+            error(loc, "Mach-O object module %s has cputype = %d, should be %d",
+                module_name, header.cputype, CPU_TYPE_I386);
             return;
         }
         if (header.filetype != MH_OBJECT)
         {
-            error(loc, "Mach-O object module %s has file type = %d, should be %d", module_name, header.filetype, MH_OBJECT);
+            error(loc, "Mach-O object module %s has file type = %d, should be %d",
+                module_name, header.filetype, MH_OBJECT);
             return;
         }
         if (buflen < mach_header.sizeof + header.sizeofcmds)
@@ -74,12 +76,14 @@ void scanMachObjModule(void delegate(char* name, int pickAny) pAddSymbol, void* 
             goto Lcorrupt;
         if (header64.cputype != CPU_TYPE_X86_64)
         {
-            error(loc, "Mach-O object module %s has cputype = %d, should be %d", module_name, header64.cputype, CPU_TYPE_X86_64);
+            error(loc, "Mach-O object module %s has cputype = %d, should be %d",
+                module_name, header64.cputype, CPU_TYPE_X86_64);
             return;
         }
         if (header64.filetype != MH_OBJECT)
         {
-            error(loc, "Mach-O object module %s has file type = %d, should be %d", module_name, header64.filetype, MH_OBJECT);
+            error(loc, "Mach-O object module %s has file type = %d, should be %d",
+                module_name, header64.filetype, MH_OBJECT);
             return;
         }
         if (buflen < mach_header_64.sizeof + header64.sizeofcmds)
@@ -101,7 +105,10 @@ void scanMachObjModule(void delegate(char* name, int pickAny) pAddSymbol, void* 
     dysymtab_command* dysymtab_commands = null;
 
     // Commands immediately follow mach_header
-    char* commands = cast(char*)buf + (header.magic == MH_MAGIC_64 ? mach_header_64.sizeof : mach_header.sizeof);
+    char* commands = cast(char*)buf +
+        (header.magic == MH_MAGIC_64
+         ? mach_header_64.sizeof
+         : mach_header.sizeof);
     for (uint32_t i = 0; i < ncmds; i++)
     {
         load_command* command = cast(load_command*)commands;

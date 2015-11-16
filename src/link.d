@@ -272,6 +272,7 @@ public int runLINK()
                 // environment variables UniversalCRTSdkDir and UCRTVersion set
                 // when running vcvarsall.bat x64
                 if (const(char)* UniversalCRTSdkDir = getenv("UniversalCRTSdkDir"))
+                {
                     if (const(char)* UCRTVersion = getenv("UCRTVersion"))
                     {
                         cmdbuf.writestring(" /LIBPATH:\"");
@@ -283,6 +284,7 @@ public int runLINK()
                         else
                             cmdbuf.writestring("\\ucrt\\x86\"");
                     }
+                }
             }
             else
             {
@@ -693,7 +695,9 @@ public int runLINK()
         /* Standard libraries must go after user specified libraries
          * passed with -l.
          */
-        const(char)* libname = global.params.symdebug ? global.params.debuglibname : global.params.defaultlibname;
+        const(char)* libname = global.params.symdebug
+                               ? global.params.debuglibname
+                               : global.params.defaultlibname;
         size_t slen = strlen(libname);
         if (slen)
         {

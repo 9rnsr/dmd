@@ -80,10 +80,18 @@ public:
      * If the returned scope != sc, the caller should pop
      * the scope after it used.
      */
-    static Scope* createNewScope(Scope* sc, StorageClass stc, LINK linkage, Prot protection, int explicitProtection, structalign_t structalign, PINLINE inlining)
+    static Scope* createNewScope(Scope* sc,
+        StorageClass stc, LINK linkage,
+        Prot protection, int explicitProtection,
+        structalign_t structalign, PINLINE inlining)
     {
         Scope* sc2 = sc;
-        if (stc != sc.stc || linkage != sc.linkage || !protection.isSubsetOf(sc.protection) || explicitProtection != sc.explicitProtection || structalign != sc.structalign || inlining != sc.inlining)
+        if (stc != sc.stc ||
+            linkage != sc.linkage ||
+            !protection.isSubsetOf(sc.protection) ||
+            explicitProtection != sc.explicitProtection ||
+            structalign != sc.structalign ||
+            inlining != sc.inlining)
         {
             // create new one for changes
             sc2 = sc.copy();
@@ -345,7 +353,9 @@ public:
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new StorageClassDeclaration(stc, Dsymbol.arraySyntaxCopy(decl));
+        return new StorageClassDeclaration(
+            stc,
+            Dsymbol.arraySyntaxCopy(decl));
     }
 
     override Scope* newScope(Scope* sc)
@@ -368,7 +378,9 @@ public:
         scstc |= stc;
         //printf("scstc = x%llx\n", scstc);
 
-        return createNewScope(sc, scstc, sc.linkage, sc.protection, sc.explicitProtection, sc.structalign, sc.inlining);
+        return createNewScope(sc, scstc, sc.linkage,
+            sc.protection, sc.explicitProtection,
+            sc.structalign, sc.inlining);
     }
 
     override final bool oneMember(Dsymbol* ps, Identifier ident)
@@ -422,7 +434,9 @@ public:
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new DeprecatedDeclaration(msg.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl));
+        return new DeprecatedDeclaration(
+            msg.syntaxCopy(),
+            Dsymbol.arraySyntaxCopy(decl));
     }
 
     /**
@@ -511,12 +525,17 @@ public:
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new LinkDeclaration(linkage, Dsymbol.arraySyntaxCopy(decl));
+        return new LinkDeclaration(
+            linkage,
+            Dsymbol.arraySyntaxCopy(decl));
     }
 
     override Scope* newScope(Scope* sc)
     {
-        return createNewScope(sc, sc.stc, this.linkage, sc.protection, sc.explicitProtection, sc.structalign, sc.inlining);
+        return createNewScope(sc,
+            sc.stc, this.linkage,
+            sc.protection, sc.explicitProtection,
+            sc.structalign, sc.inlining);
     }
 
     override const(char)* toChars() const
@@ -571,9 +590,19 @@ public:
     {
         assert(!s);
         if (protection.kind == PROTpackage)
-            return new ProtDeclaration(this.loc, pkg_identifiers, Dsymbol.arraySyntaxCopy(decl));
+        {
+            return new ProtDeclaration(
+                this.loc,
+                pkg_identifiers,
+                Dsymbol.arraySyntaxCopy(decl));
+        }
         else
-            return new ProtDeclaration(this.loc, protection, Dsymbol.arraySyntaxCopy(decl));
+        {
+            return new ProtDeclaration(
+                this.loc,
+                protection,
+                Dsymbol.arraySyntaxCopy(decl));
+        }
     }
 
     override Scope* newScope(Scope* sc)
@@ -642,12 +671,17 @@ public:
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new AlignDeclaration(salign, Dsymbol.arraySyntaxCopy(decl));
+        return new AlignDeclaration(
+            salign,
+            Dsymbol.arraySyntaxCopy(decl));
     }
 
     override Scope* newScope(Scope* sc)
     {
-        return createNewScope(sc, sc.stc, sc.linkage, sc.protection, sc.explicitProtection, this.salign, sc.inlining);
+        return createNewScope(sc,
+            sc.stc, sc.linkage,
+            sc.protection, sc.explicitProtection,
+            this.salign, sc.inlining);
     }
 
     override void accept(Visitor v)
@@ -678,7 +712,10 @@ public:
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new AnonDeclaration(loc, isunion, Dsymbol.arraySyntaxCopy(decl));
+        return new AnonDeclaration(
+            loc,
+            isunion,
+            Dsymbol.arraySyntaxCopy(decl));
     }
 
     override void semantic(Scope* sc)
@@ -818,7 +855,11 @@ public:
     {
         //printf("PragmaDeclaration::syntaxCopy(%s)\n", toChars());
         assert(!s);
-        return new PragmaDeclaration(loc, ident, Expression.arraySyntaxCopy(args), Dsymbol.arraySyntaxCopy(decl));
+        return new PragmaDeclaration(
+            loc,
+            ident,
+            Expression.arraySyntaxCopy(args),
+            Dsymbol.arraySyntaxCopy(decl));
     }
 
     override void semantic(Scope* sc)
@@ -977,7 +1018,10 @@ public:
                     dchar c = p[i];
                     if (c < 0x80)
                     {
-                        if (c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c != 0 && strchr("$%().:?@[]_", c))
+                        if (c >= 'A' && c <= 'Z' ||
+                            c >= 'a' && c <= 'z' ||
+                            c >= '0' && c <= '9' ||
+                            c != 0 && strchr("$%().:?@[]_", c))
                         {
                             ++i;
                             continue;
@@ -1108,7 +1152,10 @@ public:
                 else if (e.isBool(false))
                     inlining = PINLINEnever;
             }
-            return createNewScope(sc, sc.stc, sc.linkage, sc.protection, sc.explicitProtection, sc.structalign, inlining);
+            return createNewScope(sc,
+                sc.stc, sc.linkage,
+                sc.protection, sc.explicitProtection,
+                sc.structalign, inlining);
         }
         return sc;
     }
@@ -1143,7 +1190,10 @@ public:
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new ConditionalDeclaration(condition.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl), Dsymbol.arraySyntaxCopy(elsedecl));
+        return new ConditionalDeclaration(
+            condition.syntaxCopy(),
+            Dsymbol.arraySyntaxCopy(decl),
+            Dsymbol.arraySyntaxCopy(elsedecl));
     }
 
     override final bool oneMember(Dsymbol* ps, Identifier ident)
@@ -1156,7 +1206,8 @@ public:
         }
         else
         {
-            bool res = (Dsymbol.oneMembers(decl, ps, ident) && *ps is null && Dsymbol.oneMembers(elsedecl, ps, ident) && *ps is null);
+            bool res = (Dsymbol.oneMembers(    decl, ps, ident) && *ps is null &&
+                        Dsymbol.oneMembers(elsedecl, ps, ident) && *ps is null);
             *ps = null;
             return res;
         }
@@ -1233,7 +1284,10 @@ public:
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new StaticIfDeclaration(condition.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl), Dsymbol.arraySyntaxCopy(elsedecl));
+        return new StaticIfDeclaration(
+            condition.syntaxCopy(),
+            Dsymbol.arraySyntaxCopy(decl),
+            Dsymbol.arraySyntaxCopy(elsedecl));
     }
 
     /****************************************
@@ -1443,7 +1497,9 @@ public:
     {
         //printf("UserAttributeDeclaration::syntaxCopy('%s')\n", toChars());
         assert(!s);
-        return new UserAttributeDeclaration(Expression.arraySyntaxCopy(this.atts), Dsymbol.arraySyntaxCopy(decl));
+        return new UserAttributeDeclaration(
+            Expression.arraySyntaxCopy(this.atts),
+            Dsymbol.arraySyntaxCopy(decl));
     }
 
     override Scope* newScope(Scope* sc)
@@ -1545,8 +1601,10 @@ extern (C++) static uint setMangleOverride(Dsymbol s, char* sym)
         uint nestedCount = 0;
 
         if (decls && decls.dim)
+        {
             for (size_t i = 0; i < decls.dim; ++i)
                 nestedCount += setMangleOverride((*decls)[i], sym);
+        }
 
         return nestedCount;
     }
