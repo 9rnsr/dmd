@@ -6925,6 +6925,38 @@ public:
             resolveExp(*pe, pt, pe, ps);
     }
 
+    final Expression toExpHelper(Expression e, RootObject id)
+    {
+        switch (id.dyncast())
+        {
+            // ... '. ident'
+            case DYNCAST_IDENTIFIER:
+                e = new DotIdExp(e.loc, e, cast(Identifier)id);
+                break;
+
+            // ... '. name!(tiargs)'
+            case DYNCAST_DSYMBOL:
+                auto ti = (cast(Dsymbol)id).isTemplateInstance();
+                assert(ti);
+                e = new DotTemplateInstanceExp(e.loc, e, ti.name, ti.tiargs);
+                break;
+
+            // ... '[type]'
+            case DYNCAST_TYPE:          // Bugzilla 1215
+                e = new ArrayExp(loc, e, new TypeExp(loc, cast(Type)id));
+                break;
+
+            // ... '[expr]'
+            case DYNCAST_EXPRESSION:    // Bugzilla 1215
+                e = new ArrayExp(loc, e, cast(Expression)id);
+                break;
+
+            default:
+                assert(0);
+        }
+        return e;
+    }
+
     final Expression toExpressionHelper(Expression e, size_t i = 0)
     {
         //printf("toExpressionHelper(e = %s %s)\n", Token.toChars(e.op), e.toChars());
@@ -6932,34 +6964,7 @@ public:
         {
             RootObject id = idents[i];
             //printf("\t[%d] e: '%s', id: '%s'\n", i, e.toChars(), id.toChars());
-
-            switch (id.dyncast())
-            {
-                // ... '. ident'
-                case DYNCAST_IDENTIFIER:
-                    e = new DotIdExp(e.loc, e, cast(Identifier)id);
-                    break;
-
-                // ... '. name!(tiargs)'
-                case DYNCAST_DSYMBOL:
-                    auto ti = (cast(Dsymbol)id).isTemplateInstance();
-                    assert(ti);
-                    e = new DotTemplateInstanceExp(e.loc, e, ti.name, ti.tiargs);
-                    break;
-
-                // ... '[type]'
-                case DYNCAST_TYPE:          // Bugzilla 1215
-                    e = new ArrayExp(loc, e, new TypeExp(loc, cast(Type)id));
-                    break;
-
-                // ... '[expr]'
-                case DYNCAST_EXPRESSION:    // Bugzilla 1215
-                    e = new ArrayExp(loc, e, cast(Expression)id);
-                    break;
-
-                default:
-                    assert(0);
-            }
+            e = toExpHelper(e, id);
         }
         return e;
     }
@@ -6985,6 +6990,35 @@ public:
         *ps = null;
         if (s)
         {
+            if (idents.dim)
+            {
+                auto e = DsymbolExp.resolve(loc, sc, s, true);
+                if (e.op == TOKerror)
+                {
+                    *pt = Type.terror;
+                    return;
+                }
+                foreach (size_t i; 0 .. idents.dim - 1)
+                {
+                    RootObject id = idents[i];
+                    //printf("\t[%d] e: '%s', id: '%s'\n", i, e.toChars(), id.toChars());
+                    e = toExpHelper(e, id);
+                }
+                e = e.semantic(sc);
+
+                auto sa = getDsymbol(e);
+                if (!sa)
+                {
+                    e = toExpHelper(e, idents[idents.dim - 1]);
+                    e = e.semantic(sc);
+                    resolveExp(e, pt, pe, ps);
+                    //if (*pt && (*pt).ty != Ttuple)
+                    //    *pt = (*pt).merge();
+                    return;
+                }
+                s = sa;
+            }
+
             //printf("\t1: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
             Declaration d = s.isDeclaration();
             if (d && (d.storage_class & STCtemplateparameter))
@@ -6993,10 +7027,12 @@ public:
                 s.checkDeprecated(loc, sc); // check for deprecated aliases
             s = s.toAlias();
             //printf("\t2: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
-            for (size_t i = 0; i < idents.dim; i++)
+            //for (size_t i = idents.dim ? idents.dim - 1 : 0; i < idents.dim; i++)
+            if (idents.dim)
             {
-                RootObject id = idents[i];
-                if (id.dyncast() == DYNCAST_EXPRESSION || id.dyncast() == DYNCAST_TYPE)
+                RootObject id = idents[idents.dim - 1];
+                if (id.dyncast() == DYNCAST_EXPRESSION ||
+                    id.dyncast() == DYNCAST_TYPE)
                 {
                     Type tx;
                     Expression ex;
@@ -7005,17 +7041,18 @@ public:
                     if (sx)
                     {
                         s = sx.toAlias();
-                        continue;
+                        goto Lx;//continue;
                     }
                     if (tx)
                         ex = new TypeExp(loc, tx);
                     assert(ex);
 
-                    ex = toExpressionHelper(ex, i + 1);
+                    ex = toExpHelper(ex, id);
                     ex = ex.semantic(sc);
                     resolveExp(ex, pt, pe, ps);
                     return;
                 }
+
                 Type t = s.getType(); // type symbol, type alias, or type tuple?
                 uint errorsave = global.errors;
                 Dsymbol sm = s.searchX(loc, sc, id);
@@ -7027,9 +7064,10 @@ public:
                 //printf("\t3: s = %p %s %s, sm = %p\n", s, s->kind(), s->toChars(), sm);
                 if (intypeid && !t && sm && sm.needThis())
                     goto L3;
-                if (VarDeclaration v = s.isVarDeclaration())
+                if (auto v = s.isVarDeclaration())
                 {
-                    if (v.storage_class & (STCconst | STCimmutable | STCmanifest) || v.type.isConst() || v.type.isImmutable())
+                    if (v.storage_class & (STCconst | STCimmutable | STCmanifest) ||
+                        v.type.isConst() || v.type.isImmutable())
                     {
                         // Bugzilla 13087: this.field is not constant always
                         if (!v.isThisDeclaration())
@@ -7069,7 +7107,7 @@ public:
                         else
                             e = new VarExp(loc, s.isDeclaration());
 
-                        e = toExpressionHelper(e, i);
+                        e = toExpHelper(e, id);
                         e = e.semantic(sc);
                         resolveExp(e, pt, pe, ps);
                         return;
@@ -7097,7 +7135,7 @@ public:
             L2:
                 s = sm.toAlias();
             }
-
+Lx:
             if (auto em = s.isEnumMember())
             {
                 // It's not a type, it's an expression
