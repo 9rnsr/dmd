@@ -7078,10 +7078,10 @@ public:
                 {
                     if (!t)
                     {
-                        if (auto d = s.isDeclaration()) // var, func, or tuple declaration?
+                        if (s.isDeclaration()) // var, func, or tuple declaration?
                         {
-                            t = d.type;
-                            if (!t && d.isTupleDeclaration()) // expression tuple?
+                            t = s.isDeclaration().type;
+                            if (!t && s.isTupleDeclaration()) // expression tuple?
                                 goto L3;
                         }
                         else if (s.isTemplateInstance() ||
@@ -7101,8 +7101,8 @@ public:
                         }
                     L3:
                         Expression e;
-                        VarDeclaration v = s.isVarDeclaration();
-                        FuncDeclaration f = s.isFuncDeclaration();
+                        auto v = s.isVarDeclaration();
+                        auto f = s.isFuncDeclaration();
                         if (intypeid || !v && !f)
                             e = DsymbolExp.resolve(loc, sc, s, false);
                         else
@@ -7143,7 +7143,7 @@ Lx:
                 *pe = em.getVarExp(loc, sc);
                 return;
             }
-            if (VarDeclaration v = s.isVarDeclaration())
+            if (auto v = s.isVarDeclaration())
             {
                 /* This is mostly same with DsymbolExp::semantic(), but we cannot use it
                  * because some variables used in type context need to prevent lowering
@@ -7196,13 +7196,13 @@ Lx:
                 *ps = s;
                 return;
             }
-            if (t.ty == Tinstance && t != this && !t.deco)
-            {
-                if (!(cast(TypeInstance)t).tempinst.errors)
-                    error(loc, "forward reference to '%s'", t.toChars());
-                *pt = Type.terror;
-                return;
-            }
+            //if (t.ty == Tinstance && t != this && !t.deco)
+            //{
+            //    if (!(cast(TypeInstance)t).tempinst.errors)
+            //        error(loc, "forward reference to '%s'", t.toChars());
+            //    *pt = Type.terror;
+            //    return;
+            //}
 
             if (t.ty == Ttuple)
                 *pt = t;
