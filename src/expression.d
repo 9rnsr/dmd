@@ -3815,7 +3815,7 @@ public:
         {
             return (new TypeExp(loc, t)).semantic(sc);
         }
-        if (TupleDeclaration tup = s.isTupleDeclaration())
+        if (auto tup = s.isTupleDeclaration())
         {
             if (tup.needThis() && hasThis(sc))
                 e = new DotVarExp(loc, new ThisExp(loc), tup);
@@ -4506,8 +4506,8 @@ public:
      * The declaration of temporary variable __tup will be stored in TupleExp.e0.
      */
     Expression e0;
-
     Expressions* exps;
+    TupleDeclaration tup;   // save the original tuple
 
     extern (D) this(Loc loc, Expression e0, Expressions* exps)
     {
@@ -4556,6 +4556,7 @@ public:
                 error("%s is not an expression", o.toChars());
             }
         }
+        this.tup = tup;
     }
 
     override Expression syntaxCopy()
@@ -8102,8 +8103,7 @@ public:
                 {
                     return (new TypeExp(loc, t)).semantic(sc);
                 }
-                TupleDeclaration tup = s.isTupleDeclaration();
-                if (tup)
+                if (auto tup = s.isTupleDeclaration())
                 {
                     if (eleft)
                     {
@@ -8246,8 +8246,7 @@ public:
         if (type)
             return this;
         var = var.toAlias().isDeclaration();
-        TupleDeclaration tup = var.isTupleDeclaration();
-        if (tup)
+        if (auto tup = var.isTupleDeclaration())
         {
             /* Replace:
              *  e1.tuple(a, b, c)
