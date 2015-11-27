@@ -2754,6 +2754,74 @@ public:
         *ps = s;
     }
 
+    final void resolveExp2(Expression e, Type *pt, Expression *pe, Dsymbol* ps)
+    {
+        *pt = null;
+        *pe = null;
+        *ps = null;
+
+        Dsymbol s;
+        switch (e.op)
+        {
+            case TOKerror:
+                *pt = Type.terror;
+                return;
+
+            case TOKtype:
+                *pt = e.type;
+                return;
+
+            case TOKvar:
+                s = (cast(VarExp)e).var;
+                if (s.isVarDeclaration())
+                    goto default;
+                //if (s.isOverDeclaration())
+                //    todo;
+                break;
+
+            case TOKtemplate:
+                // TemplateDeclaration
+                s = (cast(TemplateExp)e).td;
+                break;
+
+            case TOKimport:
+                s = (cast(ScopeExp)e).sds;
+                // TemplateDeclaration, TemplateInstance, Import, Package, Module
+                break;
+
+            case TOKfunction:
+                s = getDsymbol(e);
+                break;
+
+            //case TOKthis:
+            //case TOKsuper:
+
+            //case TOKtuple:
+
+            case TOKoverloadset:
+                s = (cast(OverExp)e).vars;
+                break;
+
+            case TOKdotvar:
+                s = (cast(DotVarExp)e).var;
+                break;
+
+            case TOKdottd:
+                s = (cast(DotTemplateExp)e).td;
+                break;
+
+            //case TOKdotti:
+            //case TOKdottype:
+            //case TOKdot:
+
+            default:
+                *pe = e;
+                return;
+        }
+
+        *ps = s;
+    }
+
     /***************************************
      * Return !=0 if the type or any of its subtypes is wild.
      */
@@ -6979,17 +7047,13 @@ public:
     final void resolveHelper(Loc loc, Scope* sc, Dsymbol s, Dsymbol scopesym,
         Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
     {
-        version (none)
-        {
-            printf("TypeQualified::resolveHelper(sc = %p, idents = '%s')\n", sc, toChars());
-            if (scopesym)
-                printf("\tscopesym = '%s'\n", scopesym.toChars());
-        }
+        //printf("TypeQualified::resolveHelper(sc = %p, idents = '%s')\n", sc, toChars());
         *pe = null;
         *pt = null;
         *ps = null;
         if (s)
         {
+            printf("\t1: s = %p %s '%s'\n", s, s.kind(), s.toChars());
             if (idents.dim)
             {
                 auto e = DsymbolExp.resolve(loc, sc, s, true);
@@ -7006,53 +7070,51 @@ public:
                 }
                 e = e.semantic(sc);
 
-                auto sa = getDsymbol(e);
-                if (!sa)
+                auto id = idents[idents.dim - 1];
+                auto sx = getDsymbol(e);
+                if (!sx)
                 {
-                    e = toExpHelper(e, idents[idents.dim - 1]);
+                    e = toExpHelper(e, id);
                     e = e.semantic(sc);
-                    resolveExp(e, pt, pe, ps);
+                    resolveExp2(e, pt, pe, ps);
                     //if (*pt && (*pt).ty != Ttuple)
                     //    *pt = (*pt).merge();
                     return;
                 }
-                s = sa;
-            }
-
-            //printf("\t1: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
-            Declaration d = s.isDeclaration();
-            if (d && (d.storage_class & STCtemplateparameter))
-                s = s.toAlias();
-            else
-                s.checkDeprecated(loc, sc); // check for deprecated aliases
-            s = s.toAlias();
-            //printf("\t2: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
-            //for (size_t i = idents.dim ? idents.dim - 1 : 0; i < idents.dim; i++)
-            if (idents.dim)
-            {
-                RootObject id = idents[idents.dim - 1];
                 if (id.dyncast() == DYNCAST_EXPRESSION ||
                     id.dyncast() == DYNCAST_TYPE)
                 {
                     Type tx;
                     Expression ex;
-                    Dsymbol sx;
-                    resolveTupleIndex(loc, sc, s, &ex, &tx, &sx, id);
-                    if (sx)
+                    resolveTupleIndex(loc, sc, sx, &ex, &tx, &sx, id);
+                    if (!sx)
                     {
-                        s = sx.toAlias();
-                        goto Lx;//continue;
+                        if (tx)
+                            ex = new TypeExp(loc, tx);
+                        assert(ex);
+
+                        ex = toExpHelper(ex, id);
+                        ex = ex.semantic(sc);
+                        resolveExp2(ex, pt, pe, ps);
+                        return;
                     }
-                    if (tx)
-                        ex = new TypeExp(loc, tx);
-                    assert(ex);
-
-                    ex = toExpHelper(ex, id);
-                    ex = ex.semantic(sc);
-                    resolveExp(ex, pt, pe, ps);
-                    return;
                 }
+                s = sx;
+            }
+            else
+            {
+                auto d = s.isDeclaration();
+                if (d && (d.storage_class & STCtemplateparameter))
+                    s = s.toAlias();
+                else
+                    s.checkDeprecated(loc, sc); // check for deprecated aliases
+                s = s.toAlias();
+            }
 
+            printf("\t2: s = %p %s '%s'\n", s, s.kind(), s.toChars());
+            if (auto id = idents.dim ? idents[idents.dim - 1] : null)
+            {
+                // s.id
                 uint errorsave = global.errors;
                 Dsymbol sm = s.searchX(loc, sc, id);
                 if (global.errors != errorsave)
@@ -7060,7 +7122,7 @@ public:
                     *pt = Type.terror;
                     return;
                 }
-                //printf("\t3: s = %p %s %s, sm = %p\n", s, s->kind(), s->toChars(), sm);
+                printf("\t3: s = %p %s '%s' / sm = %p\n", s, s.kind(), s.toChars(), sm);
                 Type t = s.getType(); // type symbol, type alias, or type tuple?
                 if (intypeid && !t && sm && sm.needThis())
                     goto L3;
@@ -7175,7 +7237,7 @@ Lx:
             }
             version (none)
             {
-                if (FuncDeclaration fd = s.isFuncDeclaration())
+                if (auto fd = s.isFuncDeclaration())
                 {
                     *pe = new DsymbolExp(loc, fd, 1);
                     return;
@@ -7186,12 +7248,12 @@ Lx:
             if (!t)
             {
                 // If the symbol is an import, try looking inside the import
-                if (Import si = s.isImport())
+                if (auto imp = s.isImport())
                 {
-                    s = si.search(loc, s.ident);
-                    if (s && s != si)
+                    s = imp.search(loc, s.ident);
+                    if (s && s != imp)
                         goto L1;
-                    s = si;
+                    s = imp;
                 }
                 *ps = s;
                 return;
