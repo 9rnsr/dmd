@@ -7009,7 +7009,10 @@ public:
             {
                 switch ((*pe).op)
                 {
-                    //case TOKoverloadset:
+                    case TOKoverloadset:
+                        *ps = (cast(OverExp)*pe).vars;
+                        *pe = null;
+                        break;
 
                     //case TOKdotvar:
                     case TOKdottd:
