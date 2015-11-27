@@ -5203,34 +5203,25 @@ public:
 
     override Expression semantic(Scope* sc)
     {
-        if (type.ty == Terror)
-            return new ErrorExp();
-
-        //printf("TypeExp::semantic(%s)\n", type->toChars());
-        Expression e;
-        Type t;
-        Dsymbol s;
-        type.resolve(loc, sc, &e, &t, &s, true);
+        //printf("TypeExp::semantic(%s)\n", type.toChars());
+        auto e = type.toExpression();
         if (e)
         {
-            //printf("e = %s %s\n", Token::toChars(e->op), e->toChars());
+            //printf("e = %s %s\n", Token.toChars(e.op), e.toChars());
             e = e.semantic(sc);
-        }
-        else if (t)
-        {
-            //printf("t = %d %s\n", t->ty, t->toChars());
-            type = t.semantic(loc, sc);
-            e = this;
-        }
-        else if (s)
-        {
-            //printf("s = %s %s\n", s->kind(), s->toChars());
-            e = DsymbolExp.resolve(loc, sc, s, s.hasOverloads());
+            if (!e.type) // todo for ScopeExp
+                e.type = Type.tvoid;
         }
         else
-            assert(0);
+        {
+            //printf("type = %d %s\n", type.ty, type.toChars());
+            e = this;
+            e.type = type.semantic(loc, sc);
+        }
+        if (e.type.ty == Terror)
+            return new ErrorExp();
         if (global.params.vcomplex)
-            type.checkComplexTransition(loc);
+            e.type.checkComplexTransition(loc);
         return e;
     }
 
@@ -6677,13 +6668,15 @@ public:
         {
             printf("TypeidExp::semantic() %s\n", toChars());
         }
-        Type ta = isType(obj);
-        Expression ea = isExpression(obj);
-        Dsymbol sa = isDsymbol(obj);
+        auto ta = isType(obj);
+        auto ea = isExpression(obj);
+        auto sa = isDsymbol(obj);
         //printf("ta %p ea %p sa %p\n", ta, ea, sa);
         if (ta)
         {
-            ta.resolve(loc, sc, &ea, &ta, &sa, true);
+            ea = ta.toExpression();
+            if (!ea)
+                ta.resolve(loc, sc, &ea, &ta, &sa);
         }
         if (ea)
         {
