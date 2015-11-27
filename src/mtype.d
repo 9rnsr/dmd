@@ -2682,7 +2682,7 @@ public:
      * Resolve 'this' type to either type, symbol, or expression.
      * If errors happened, resolved to Type.terror.
      */
-    void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps/*, bool intypeid = false*/)
+    void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps)
     {
         //printf("Type::resolve() %s, %d\n", toChars(), ty);
         Type t = semantic(loc, sc);
@@ -4678,10 +4678,10 @@ public:
         return Type.terror;
     }
 
-    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps/*, bool intypeid = false*/)
+    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps)
     {
         //printf("TypeSArray::resolve() %s\n", toChars());
-        next.resolve(loc, sc, pe, pt, ps/*, intypeid*/);
+        next.resolve(loc, sc, pe, pt, ps);
         //printf("s = %p, e = %p, t = %p\n", *ps, *pe, *pt);
         if (*pe)
         {
@@ -4758,7 +4758,7 @@ public:
             if ((*pt).ty != Terror)
                 next = *pt; // prevent re-running semantic() on 'next'
         Ldefault:
-            Type.resolve(loc, sc, pe, pt, ps/*, intypeid*/);
+            Type.resolve(loc, sc, pe, pt, ps);
         }
     }
 
@@ -5011,10 +5011,10 @@ public:
         return merge();
     }
 
-    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps/*, bool intypeid = false*/)
+    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps)
     {
         //printf("TypeDArray::resolve() %s\n", toChars());
-        next.resolve(loc, sc, pe, pt, ps/*, intypeid*/);
+        next.resolve(loc, sc, pe, pt, ps);
         //printf("s = %p, e = %p, t = %p\n", *ps, *pe, *pt);
         if (*pe)
         {
@@ -5037,7 +5037,7 @@ public:
             if ((*pt).ty != Terror)
                 next = *pt; // prevent re-running semantic() on 'next'
         Ldefault:
-            Type.resolve(loc, sc, pe, pt, ps/*, intypeid*/);
+            Type.resolve(loc, sc, pe, pt, ps);
         }
     }
 
@@ -5365,7 +5365,7 @@ public:
         return merge();
     }
 
-    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps/*, bool intypeid = false*/)
+    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps)
     {
         //printf("TypeAArray::resolve() %s\n", toChars());
         // Deal with the case where we thought the index was a type, but
@@ -5375,21 +5375,21 @@ public:
             Expression e;
             Type t;
             Dsymbol s;
-            index.resolve(loc, sc, &e, &t, &s/*, intypeid*/);
+            index.resolve(loc, sc, &e, &t, &s);
             if (e)
             {
                 // It was an expression -
                 // Rewrite as a static array
                 auto tsa = new TypeSArray(next, e);
                 tsa.mod = this.mod; // just copy mod field so tsa's semantic is not yet done
-                return tsa.resolve(loc, sc, pe, pt, ps/*, intypeid*/);
+                return tsa.resolve(loc, sc, pe, pt, ps);
             }
             else if (t)
                 index = t;
             else
                 index.error(loc, "index is not a type or an expression");
         }
-        Type.resolve(loc, sc, pe, pt, ps/*, intypeid*/);
+        Type.resolve(loc, sc, pe, pt, ps);
     }
 
     override Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
@@ -7052,7 +7052,7 @@ public:
      *      if type, *pt is set
      */
     final void resolveHelper(Loc loc, Scope* sc, Dsymbol s, Dsymbol scopesym,
-        Expression* pe, Type* pt, Dsymbol* ps/*, bool intypeid = false*/)
+        Expression* pe, Type* pt, Dsymbol* ps)
     {
         //printf("TypeQualified::resolveHelper(sc = %p, idents = '%s')\n", sc, toChars());
         *pe = null;
@@ -7131,8 +7131,6 @@ public:
 
                 //printf("\t3: s = %p %s '%s' / sm = %p\n", s, s.kind(), s.toChars(), sm);
                 Type t = s.getType(); // type symbol, type alias, or type tuple?
-                //if (intypeid && !t && sm && sm.needThis())
-                //    goto L3;
                 if (auto v = s.isVarDeclaration())
                 {
                     if (v.storage_class & (STCconst | STCimmutable | STCmanifest) ||
@@ -7172,7 +7170,7 @@ public:
                         Expression e;
                         auto v = s.isVarDeclaration();
                         auto f = s.isFuncDeclaration();
-                        if (/*intypeid || */!v && !f)
+                        if (!v && !f)
                             e = DsymbolExp.resolve(loc, sc, s, false);
                         else
                             e = new VarExp(loc, s.isDeclaration());
@@ -7339,7 +7337,7 @@ public:
      *      if expression, *pe is set
      *      if type, *pt is set
      */
-    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps/*, bool intypeid = false*/)
+    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps)
     {
         //printf("TypeIdentifier::resolve(sc = %p, idents = '%s')\n", sc, toChars());
         if ((ident.equals(Id._super) || ident.equals(Id.This)) && !hasThis(sc))
@@ -7373,7 +7371,7 @@ public:
         }
         Dsymbol scopesym;
         Dsymbol s = sc.search(loc, ident, &scopesym);
-        resolveHelper(loc, sc, s, scopesym, pe, pt, ps/*, intypeid*/);
+        resolveHelper(loc, sc, s, scopesym, pe, pt, ps);
         if (*pt)
             (*pt) = (*pt).addMod(mod);
     }
@@ -7464,7 +7462,7 @@ public:
         return t;
     }
 
-    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps/*, bool intypeid = false*/)
+    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps)
     {
         // Note close similarity to TypeIdentifier::resolve()
         Dsymbol s;
@@ -7492,7 +7490,7 @@ public:
                 return;
             }
         }
-        resolveHelper(loc, sc, s, null, pe, pt, ps/*, intypeid*/);
+        resolveHelper(loc, sc, s, null, pe, pt, ps);
         if (*pt)
             *pt = (*pt).addMod(mod);
         //printf("pt = '%s'\n", (*pt)->toChars());
@@ -7587,7 +7585,7 @@ public:
         return s;
     }
 
-    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps/*, bool intypeid = false*/)
+    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps)
     {
         *pe = null;
         *pt = null;
@@ -7653,7 +7651,7 @@ public:
         else
         {
             if (Dsymbol s = t.toDsymbol(sc))
-                resolveHelper(loc, sc, s, null, pe, pt, ps/*, intypeid*/);
+                resolveHelper(loc, sc, s, null, pe, pt, ps);
             else
             {
                 auto e = toExpressionHelper(new TypeExp(loc, t));
@@ -7730,7 +7728,7 @@ public:
         return s;
     }
 
-    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps/*, bool intypeid = false*/)
+    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps)
     {
         *pe = null;
         *pt = null;
@@ -7758,7 +7756,7 @@ public:
         else
         {
             if (Dsymbol s = t.toDsymbol(sc))
-                resolveHelper(loc, sc, s, null, pe, pt, ps/*, intypeid*/);
+                resolveHelper(loc, sc, s, null, pe, pt, ps);
             else
             {
                 auto e = toExpressionHelper(new TypeExp(loc, t));
@@ -9369,9 +9367,9 @@ public:
         return t.semantic(loc, sc);
     }
 
-    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps/*, bool intypeid = false*/)
+    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps)
     {
-        next.resolve(loc, sc, pe, pt, ps/*, intypeid*/);
+        next.resolve(loc, sc, pe, pt, ps);
         if (*pe)
         {
             // It's really a slice expression
@@ -9429,7 +9427,7 @@ public:
             if ((*pt).ty != Terror)
                 next = *pt; // prevent re-running semantic() on 'next'
         Ldefault:
-            Type.resolve(loc, sc, pe, pt, ps/*, intypeid*/);
+            Type.resolve(loc, sc, pe, pt, ps);
         }
     }
 

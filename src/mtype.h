@@ -330,7 +330,7 @@ public:
     virtual Expression *defaultInitLiteral(Loc loc);
     virtual bool isZeroInit(Loc loc = Loc());                // if initializer is 0
     Identifier *getTypeInfoIdent(int internal);
-    virtual void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
+    virtual void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     virtual int hasWild();
     virtual Expression *toExpression();
     virtual bool hasPointers();
@@ -463,7 +463,7 @@ public:
     d_uns64 size(Loc loc);
     unsigned alignsize();
     Type *semantic(Loc loc, Scope *sc);
-    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
+    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     bool isString();
     bool isZeroInit(Loc loc);
@@ -490,7 +490,7 @@ public:
     d_uns64 size(Loc loc);
     unsigned alignsize();
     Type *semantic(Loc loc, Scope *sc);
-    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
+    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     bool isString();
     bool isZeroInit(Loc loc);
@@ -515,7 +515,7 @@ public:
     Type *syntaxCopy();
     d_uns64 size(Loc loc);
     Type *semantic(Loc loc, Scope *sc);
-    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
+    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc);
@@ -677,7 +677,7 @@ public:
     void resolveExprType(Loc loc, Scope *sc, Expression *e, size_t i,
         Expression **pe, Type **pt);
     void resolveHelper(Loc loc, Scope *sc, Dsymbol *s, Dsymbol *scopesym,
-        Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
+        Expression **pe, Type **pt, Dsymbol **ps);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -691,7 +691,7 @@ public:
     TypeIdentifier(Loc loc, Identifier *ident);
     const char *kind();
     Type *syntaxCopy();
-    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
+    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     Dsymbol *toDsymbol(Scope *sc);
     Type *semantic(Loc loc, Scope *sc);
     Expression *toExpression();
@@ -708,7 +708,7 @@ public:
     TypeInstance(Loc loc, TemplateInstance *tempinst);
     const char *kind();
     Type *syntaxCopy();
-    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
+    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);
     Expression *toExpression();
@@ -725,7 +725,7 @@ public:
     const char *kind();
     Type *syntaxCopy();
     Dsymbol *toDsymbol(Scope *sc);
-    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
+    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     Type *semantic(Loc loc, Scope *sc);
     d_uns64 size(Loc loc);
     void accept(Visitor *v) { v->visit(this); }
@@ -738,7 +738,7 @@ public:
     const char *kind();
     Type *syntaxCopy();
     Dsymbol *toDsymbol(Scope *sc);
-    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
+    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     Type *semantic(Loc loc, Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -881,7 +881,7 @@ public:
     const char *kind();
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
-    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
+    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     void accept(Visitor *v) { v->visit(this); }
 };
 
