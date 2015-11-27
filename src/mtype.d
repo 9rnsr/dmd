@@ -6985,7 +6985,7 @@ public:
         *ps = null;
         if (s)
         {
-            //printf("\t1: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
+            //printf("\t1: s = '%s' %p, kind = '%s'\n",s.toChars(), s, s.kind());
             auto e = DsymbolExp.resolve(loc, sc, s, true);
             if (e.op == TOKerror)
             {
@@ -6994,9 +6994,7 @@ public:
             }
             e = toExpressionHelper(e);
             e = e.semantic(sc);
-
             resolveExp(e, pt, pe, ps);
-
             if (*pt && (*pt).ty != Ttuple)
                 *pt = (*pt).merge();
 

@@ -3717,11 +3717,11 @@ public:
                 s.checkDeprecated(loc, sc);
         }
 
-        if (EnumMember em = s.isEnumMember())
+        if (auto em = s.isEnumMember())
         {
             return em.getVarExp(loc, sc);
         }
-        if (VarDeclaration v = s.isVarDeclaration())
+        if (auto v = s.isVarDeclaration())
         {
             //printf("Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
             if (!v.type)
@@ -3729,19 +3729,19 @@ public:
                 .error(loc, "forward reference of %s %s", v.kind(), v.toChars());
                 return new ErrorExp();
             }
-            if ((v.storage_class & STCmanifest) && v._init)
-            {
-                if (v.inuse)
-                {
-                    .error(loc, "circular initialization of %s", v.toChars());
-                    return new ErrorExp();
-                }
-                e = v.expandInitializer(loc);
-                v.inuse++;
-                e = e.semantic(sc);
-                v.inuse--;
-                return e;
-            }
+            //if ((v.storage_class & STCmanifest) && v._init)
+            //{
+            //    if (v.inuse)
+            //    {
+            //        .error(loc, "circular initialization of %s", v.toChars());
+            //        return new ErrorExp();
+            //    }
+            //    e = v.expandInitializer(loc);
+            //    v.inuse++;
+            //    e = e.semantic(sc);
+            //    v.inuse--;
+            //    //return e;
+            //}
 
             // Change the ancestor lambdas to delegate before hasThis(sc) call.
             if (v.checkNestedReference(sc, loc))

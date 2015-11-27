@@ -648,6 +648,10 @@ public:
             if (sc2 != sc)
                 sc2.pop();
 
+            //printf("[%s] alias %s = %s\n", loc.toChars(), toChars(), type.toChars());
+            //if (e) printf("\te = %s %s\n", Token.toChars(e.op), e.toChars());
+            //if (s) printf("\ts = %s %s\n", s.kind(), s.toChars());
+            //if (t) printf("\tt = %d %s\n", t.ty, t.toChars());
             if (e)  // Try to convert Expression to Dsymbol
             {
                 s = getDsymbol(e);

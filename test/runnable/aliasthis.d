@@ -128,7 +128,7 @@ void test5()
 
 /**********************************************/
 // 4617
-
+/+
 struct S4617
 {
     struct F
@@ -186,7 +186,7 @@ void test4617b()
 
     alias Id4617!(T4617.square) R_sqr;
     static assert(__traits(isSame, R_sqr, S4617.forward.square));
-}
+}+/
 
 /**********************************************/
 // 4773
@@ -1921,8 +1921,8 @@ int main()
     test3();
     test4();
     test5();
-    test4617a();
-    test4617b();
+    //test4617a();
+    //test4617b();
     test4773();
     test5188();
     test6();
