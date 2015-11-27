@@ -2736,7 +2736,14 @@ public:
             //case TOKthis:
             //case TOKsuper:
 
-            //case TOKtuple:
+            case TOKtuple:
+                auto te = cast(TupleExp)e;
+                if (te.tup)
+                {
+                    s = te.tup;
+                    break;
+                }
+                goto default;
 
             //case TOKoverloadset:
 
