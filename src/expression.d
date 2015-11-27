@@ -5211,6 +5211,8 @@ public:
             e = e.semantic(sc);
             if (!e.type) // todo for ScopeExp
                 e.type = Type.tvoid;
+            if (e.op == TOKtype)
+                e.type = e.type.addMod(type.mod);
         }
         else
         {
@@ -10962,19 +10964,26 @@ public:
         }
         e1 = e1.semantic(sc);
         e2 = e2.semantic(sc);
+        if (e1.op == TOKerror)
+            return e1;
+        if (e2.op == TOKerror)
+            return e2;
+
+        if (e1.op == TOKtype)
+            return e2;
+        if (e2.op == TOKtype)
+            return e2;
+
         if (e2.op == TOKimport)
         {
-            ScopeExp se = cast(ScopeExp)e2;
-            TemplateDeclaration td = se.sds.isTemplateDeclaration();
-            if (td)
+            auto se = cast(ScopeExp)e2;
+            if (auto td = se.sds.isTemplateDeclaration())
             {
                 Expression e = new DotTemplateExp(loc, e1, td);
                 e = e.semantic(sc);
                 return e;
             }
         }
-        if (e2.op == TOKtype)
-            return e2;
         if (!type)
             type = e2.type;
         return this;
