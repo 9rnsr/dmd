@@ -7005,6 +7005,29 @@ public:
             if (*pt && (*pt).ty != Ttuple)
                 *pt = (*pt).merge();
 
+            if (*pe)
+            {
+                switch ((*pe).op)
+                {
+                    //case TOKoverloadset:
+
+                    //case TOKdotvar:
+                    case TOKdottd:
+                        *ps = (cast(DotTemplateExp)*pe).td;
+                        *pe = null;
+                        break;
+
+                    //case TOKdotti:
+                    //    s = (cast(DotTemlateInstanceExp)*pe).ti;
+                    //    break;
+
+                    //case TOKdottype:
+                    //case TOKdot:
+
+                    default:
+                        break;
+                }
+            }
             return;
         }
         if (!s)

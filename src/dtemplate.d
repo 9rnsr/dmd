@@ -8122,6 +8122,10 @@ public:
             Type t;
             Dsymbol s;
             tqual.resolve(loc, sc, &e, &t, &s);
+            //printf("[%s] mixin %s\n", loc.toChars(), tqual.toChars());
+            //if (e) printf("\te = %s %s\n", Token.toChars(e.op), e.toChars());
+            //if (s) printf("\ts = %s %s\n", s.kind(), s.toChars());
+            //if (t) printf("\tt = %d %s\n", t.ty, t.toChars());
             if (!s)
             {
                 error("is not defined");
