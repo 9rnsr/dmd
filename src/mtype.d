@@ -7053,7 +7053,6 @@ public:
                     return;
                 }
 
-                Type t = s.getType(); // type symbol, type alias, or type tuple?
                 uint errorsave = global.errors;
                 Dsymbol sm = s.searchX(loc, sc, id);
                 if (global.errors != errorsave)
@@ -7062,6 +7061,7 @@ public:
                     return;
                 }
                 //printf("\t3: s = %p %s %s, sm = %p\n", s, s->kind(), s->toChars(), sm);
+                Type t = s.getType(); // type symbol, type alias, or type tuple?
                 if (intypeid && !t && sm && sm.needThis())
                     goto L3;
                 if (auto v = s.isVarDeclaration())
@@ -7078,13 +7078,14 @@ public:
                 {
                     if (!t)
                     {
-                        if (s.isDeclaration()) // var, func, or tuple declaration?
+                        if (auto d = s.isDeclaration()) // var, func, or tuple declaration?
                         {
-                            t = s.isDeclaration().type;
-                            if (!t && s.isTupleDeclaration()) // expression tuple?
+                            t = d.type;
+                            if (!t && d.isTupleDeclaration()) // expression tuple?
                                 goto L3;
                         }
-                        else if (s.isTemplateInstance() || s.isImport() || s.isPackage() || s.isModule())
+                        else if (s.isTemplateInstance() ||
+                                 s.isImport() || s.isPackage() || s.isModule())
                         {
                             goto L3;
                         }

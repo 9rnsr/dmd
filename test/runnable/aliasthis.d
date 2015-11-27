@@ -155,7 +155,7 @@ void test4617a()
     alias Id4617!(S4617.square) test1;            //NG
     alias Id4617!(S4617.forward.square) test2;    //OK
 
-    alias Id4617!(S4617.sqr) test3;               //okay
+    //alias Id4617!(S4617.sqr) test3;               //okay
 
     static assert(__traits(isSame, S4617.square, S4617.forward.square));
 }
