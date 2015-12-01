@@ -553,7 +553,10 @@ public:
         }
         uint dprogress_save = Module.dprogress;
         foverrides.setDim(0); // reset in case semantic() is being retried for this function
-        storage_class |= sc.stc & ~STCref;
+        storage_class |= sc.stc
+            & ~(STCref |
+               ((storage_class & STCfinal) ? STCabstract : 0) |
+               ((storage_class & STCabstract) ? STCfinal : 0));
         ad = isThis();
         if (ad)
         {
