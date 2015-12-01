@@ -1249,36 +1249,33 @@ public:
         Dsymbol.setScope(sc);
     }
 
-    void compileIt(Scope* sc)
+    Dsymbols* compileIt(Scope* sc)
     {
         //printf("CompileDeclaration::compileIt(loc = %d) %s\n", loc.linnum, exp->toChars());
-        sc = sc.startCTFE();
-        exp = exp.semantic(sc);
-        exp = resolveProperties(sc, exp);
-        sc = sc.endCTFE();
-        if (exp.op != TOKerror)
+        auto se = semanticString(sc, exp, "argument to mixin");
+        if (!se)
         {
-            Expression e = exp.ctfeInterpret();
-            StringExp se = e.toStringExp();
-            if (!se)
-                exp.error("argument to mixin must be a string, not (%s) of type %s", exp.toChars(), exp.type.toChars());
-            else
-            {
-                se = se.toUTF8(sc);
-                uint errors = global.errors;
-                auto cstr = se.toStringz();
-                scope Parser p = new Parser(loc, sc._module, cstr, se.len, 0);
-                p.nextToken();
-                decl = p.parseDeclDefs(0);
-                if (p.token.value != TOKeof)
-                    exp.error("incomplete mixin declaration (%s)", se.toChars());
-                if (p.errors)
-                {
-                    assert(global.errors != errors);
-                    decl = null;
-                }
-            }
+            exp = new ErrorExp();
+            return null;
         }
+
+        uint errors = global.errors;
+        auto cstr = se.toStringz();
+        scope Parser p = new Parser(loc, sc._module, cstr, se.len, 0);
+        p.nextToken();
+
+        auto d = p.parseDeclDefs(0);
+        if (p.token.value != TOKeof)
+        {
+            exp.error("incomplete mixin declaration (%s)", se.toChars());
+            return null;
+        }
+        if (p.errors)
+        {
+            assert(global.errors != errors);
+            return null;
+        }
+        return d;
     }
 
     override void semantic(Scope* sc)
@@ -1286,9 +1283,10 @@ public:
         //printf("CompileDeclaration::semantic()\n");
         if (!compiled)
         {
-            compileIt(sc);
+            decl = compileIt(sc);
             AttribDeclaration.addMember(sc, scopesym);
             compiled = 1;
+
             if (_scope && decl)
             {
                 for (size_t i = 0; i < decl.dim; i++)

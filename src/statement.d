@@ -1296,48 +1296,46 @@ public:
         return new CompileStatement(loc, exp.syntaxCopy());
     }
 
+    Statements* compileIt(Scope* sc)
+    {
+        //printf("CompileStatement::compileIt() %s\n", exp.toChars());
+        auto se = semanticString(sc, exp, "argument to mixin");
+        if (!se)
+        {
+        Lerror:
+            auto a = new Statements();
+            a.push(new ErrorStatement());
+            return a;
+        }
+
+        uint errors = global.errors;
+        // TODO: auto cstr = se.toStringz(); ?
+        scope Parser p = new Parser(loc, sc._module, cast(char*)se.string, se.len, 0);
+        p.nextToken();
+
+        auto a = new Statements();
+        while (p.token.value != TOKeof)
+        {
+            Statement s = p.parseStatement(PSsemi | PScurlyscope);
+            if (!s || p.errors)
+            {
+                assert(!p.errors || global.errors != errors); // make sure we caught all the cases
+                goto Lerror;
+            }
+            a.push(s);
+        }
+        return a;
+    }
+
     override Statements* flatten(Scope* sc)
     {
-        //printf("CompileStatement::flatten() %s\n", exp->toChars());
-        sc = sc.startCTFE();
-        exp = exp.semantic(sc);
-        exp = resolveProperties(sc, exp);
-        sc = sc.endCTFE();
-        auto a = new Statements();
-        if (exp.op != TOKerror)
-        {
-            Expression e = exp.ctfeInterpret();
-            StringExp se = e.toStringExp();
-            if (!se)
-                error("argument to mixin must be a string, not (%s) of type %s", exp.toChars(), exp.type.toChars());
-            else
-            {
-                se = se.toUTF8(sc);
-                uint errors = global.errors;
-                scope Parser p = new Parser(loc, sc._module, cast(char*)se.string, se.len, 0);
-                p.nextToken();
-                while (p.token.value != TOKeof)
-                {
-                    Statement s = p.parseStatement(PSsemi | PScurlyscope);
-                    if (!s || p.errors)
-                    {
-                        assert(!p.errors || global.errors != errors); // make sure we caught all the cases
-                        goto Lerror;
-                    }
-                    a.push(s);
-                }
-                return a;
-            }
-        }
-    Lerror:
-        a.push(new ErrorStatement());
-        return a;
+        return compileIt(sc);
     }
 
     override Statement semantic(Scope* sc)
     {
         //printf("CompileStatement::semantic() %s\n", exp->toChars());
-        Statements* a = flatten(sc);
+        Statements* a = compileIt(sc);
         if (!a)
             return null;
         Statement s = new CompoundStatement(loc, a);

@@ -7594,6 +7594,37 @@ public:
 
 /***********************************************************
  */
+StringExp semanticString(Scope *sc, Expression exp, const char* name)
+{
+    sc = sc.startCTFE();
+    exp = exp.semantic(sc);
+    exp = resolveProperties(sc, exp);
+    sc = sc.endCTFE();
+
+    if (exp.op == TOKerror)
+        return null;
+    if (!exp.type.isString())
+    {
+        exp.error("%s must be a string type, not %s",
+            name, exp.type.toChars());
+        return null;
+    }
+
+    Expression e = exp.ctfeInterpret();
+    StringExp se = e.toStringExp();
+    if (!se)
+    {
+        exp.error("%s must be a string, not (%s) of type %s",
+            name, exp.toChars(), exp.type.toChars());
+        return null;
+    }
+    se = se.toUTF8(sc);
+
+    return se;
+}
+
+/***********************************************************
+ */
 extern (C++) final class CompileExp : UnaExp
 {
 public:
@@ -7602,35 +7633,18 @@ public:
         super(loc, TOKmixin, __traits(classInstanceSize, CompileExp), e);
     }
 
-    override Expression semantic(Scope* sc)
+    Expression compileIt(Scope* sc)
     {
-        static if (LOGSEMANTIC)
-        {
-            printf("CompileExp::semantic('%s')\n", toChars());
-        }
-        sc = sc.startCTFE();
-        e1 = e1.semantic(sc);
-        e1 = resolveProperties(sc, e1);
-        sc = sc.endCTFE();
-        if (e1.op == TOKerror)
-            return e1;
-        if (!e1.type.isString())
-        {
-            error("argument to mixin must be a string type, not %s", e1.type.toChars());
-            return new ErrorExp();
-        }
-        e1 = e1.ctfeInterpret();
-        StringExp se = e1.toStringExp();
+        auto se = semanticString(sc, e1, "argument to mixin");
         if (!se)
-        {
-            error("argument to mixin must be a string, not (%s)", e1.toChars());
             return new ErrorExp();
-        }
-        se = se.toUTF8(sc);
+
         uint errors = global.errors;
+        // TODO: auto cstr = se.toStringz(); ?
         scope Parser p = new Parser(loc, sc._module, cast(char*)se.string, se.len, 0);
         p.nextToken();
         //printf("p.loc.linnum = %d\n", p.loc.linnum);
+
         Expression e = p.parseExpression();
         if (p.errors)
         {
@@ -7642,6 +7656,17 @@ public:
             error("incomplete mixin expression (%s)", se.toChars());
             return new ErrorExp();
         }
+        return e;
+    }
+
+    override Expression semantic(Scope* sc)
+    {
+        static if (LOGSEMANTIC)
+        {
+            printf("CompileExp::semantic('%s')\n", toChars());
+        }
+
+        auto e = compileIt(sc);
         return e.semantic(sc);
     }
 
@@ -7667,44 +7692,37 @@ public:
         {
             printf("FileExp::semantic('%s')\n", toChars());
         }
-        const(char)* name;
-        char* namez;
-        StringExp se;
 
-        sc = sc.startCTFE();
-        e1 = e1.semantic(sc);
-        e1 = resolveProperties(sc, e1);
-        sc = sc.endCTFE();
-        e1 = e1.ctfeInterpret();
-        if (e1.op != TOKstring)
-        {
-            error("file name argument must be a string, not (%s)", e1.toChars());
-            goto Lerror;
-        }
-        se = cast(StringExp)e1;
-        se = se.toUTF8(sc);
-        namez = se.toStringz();
+        auto se = semanticString(sc, e1, "file name argument");
+        if (!se)
+            return new ErrorExp();
+
+        char* namez = se.toStringz();
         if (!global.params.fileImppath)
         {
             error("need -Jpath switch to import text file %s", namez);
-            goto Lerror;
+            return new ErrorExp();
         }
+
         /* Be wary of CWE-22: Improper Limitation of a Pathname to a Restricted Directory
          * ('Path Traversal') attacks.
          * http://cwe.mitre.org/data/definitions/22.html
          */
-        name = FileName.safeSearchPath(global.filePath, namez);
+
+        const(char)* name = FileName.safeSearchPath(global.filePath, namez);
         if (!name)
         {
             error("file %s cannot be found or not in a path specified with -J", se.toChars());
-            goto Lerror;
+            return new ErrorExp();
         }
+
         if (global.params.verbose)
             fprintf(global.stdmsg, "file      %.*s\t(%s)\n", cast(int)se.len, se.string, name);
         if (global.params.moduleDeps !is null)
         {
             OutBuffer* ob = global.params.moduleDeps;
             Module imod = sc.instantiatingModule();
+
             if (!global.params.moduleDepsFile)
                 ob.writestring("depsFile ");
             ob.writestring(imod.toPrettyChars());
@@ -7719,12 +7737,13 @@ public:
             ob.writestring(")");
             ob.writenl();
         }
+
         {
             auto f = File(name);
             if (f.read())
             {
                 error("cannot read file %s", f.toChars());
-                goto Lerror;
+                return new ErrorExp();
             }
             else
             {
@@ -7733,8 +7752,6 @@ public:
             }
         }
         return se.semantic(sc);
-    Lerror:
-        return new ErrorExp();
     }
 
     override void accept(Visitor v)
