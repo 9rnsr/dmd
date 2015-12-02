@@ -1511,18 +1511,46 @@ public:
      *  e = the function call
      *  eret = if !null, then this is the lvalue of the nrvo function result
      *  asStatements = if inline as statements rather than as an Expression
+     * Returns:
+     *  this.eresult if asStatements == false
+     *  this.sresult if asStatements == true
      */
     void visitCallExp(CallExp e, Expression eret, bool asStatements)
     {
         //printf("visitCallExp() %s\n", e.toChars());
 
-        FuncDeclaration fd;
-
-        void inlineFd()
+        void inlineFd(FuncDeclaration fd, Expression ethis = null)
         {
-            if (fd && fd != parent && canInline(fd, false, false, asStatements))
+            if (!fd || fd == parent)
+                return;
+            if (!canInline(fd, ethis !is null, false, asStatements))
+                return;
+
+            /* To create ethis, we'll need to take the address
+             * of ethis, but this won't work if ethis is a function call.
+             */
+            // todo: Is this true? in expandInline, ethis will be assigned to a temporary if necessary.
+            if (ethis && ethis.op == TOKcall && ethis.type.toBasetype().ty == Tstruct)
+                return;
+
+            expandInline(fd, parent, eret, ethis, e.arguments, asStatements, eresult, sresult, again);
+
+            if (global.params.verbose && (eresult || sresult))
             {
-                expandInline(fd, parent, eret, null, e.arguments, asStatements, eresult, sresult, again);
+                fprintf(global.stdmsg, "inlined   %s =>\n          %s\n",
+                    fd.toPrettyChars(), parent.toPrettyChars());
+            }
+
+            // this post-process should be done in expandInline.
+            if (eresult && e.type.ty != Tvoid)
+            {
+                Expression ex = eresult;
+                while (ex.op == TOKcomma)
+                {
+                    ex.type = e.type;
+                    ex = (cast(CommaExp)ex).e2;
+                }
+                ex.type = e.type;
             }
         }
 
@@ -1531,109 +1559,53 @@ public:
          * If so, and that is only assigned its _init.
          * If so, do 'copy propagation' of the _init value and try to inline it.
          */
-        if (e.e1.op == TOKvar)
+        // todo: Maybe the found function symbol is same with CallExp.f ?
+        auto e1 = e.e1;
+        if (e1.op == TOKstar)
+            e1 = (cast(PtrExp)e1).e1;
+        if (e1.op == TOKvar)
         {
-            VarExp ve = cast(VarExp)e.e1;
-            fd = ve.var.isFuncDeclaration();
-            if (fd)
+            auto ve = cast(VarExp)e1;
+            if (auto f = ve.var.isFuncDeclaration())
+            {
                 // delegate call
-                inlineFd();
-            else
+                return inlineFd(f);
+            }
+            if (auto ie = onlyOneAssign(ve.var.isVarDeclaration(), parent))
             {
-                // delegate literal call
-                auto v = ve.var.isVarDeclaration();
-                if (v && v._init && v.type.ty == Tdelegate && onlyOneAssign(v, parent))
+                // function pointer call
+                if (ie.op == TOKsymoff)
                 {
-                    //printf("init: %s\n", v._init.toChars());
-                    auto ei = v._init.isExpInitializer();
-                    if (ei && ei.exp.op == TOKblit)
+                    auto se = cast(SymOffExp)ie;
+                    return inlineFd(se.var.isFuncDeclaration());
+                }
+                // function/delegate literal call
+                if (ie.op == TOKfunction)
+                {
+                    auto fe = cast(FuncExp)ie;
+                    return inlineFd(fe.fd);
+                }
+                // delegate call
+                if (ie.op == TOKdelegate)
+                {
+                    auto de = cast(DelegateExp)ie;
+                    if (de.e1.op == TOKvar)
                     {
-                        Expression e2 = (cast(AssignExp)ei.exp).e2;
-                        if (e2.op == TOKfunction)
-                        {
-                            auto fld = (cast(FuncExp)e2).fd;
-                            assert(fld.tok == TOKdelegate);
-                            fd = fld;
-                            inlineFd();
-                        }
-                        else if (e2.op == TOKdelegate)
-                        {
-                            auto de = cast(DelegateExp)e2;
-                            if (de.e1.op == TOKvar)
-                            {
-                                auto ve2 = cast(VarExp)de.e1;
-                                fd = ve2.var.isFuncDeclaration();
-                                inlineFd();
-                            }
-                        }
+                        // if de.e1 == de.func, de is &de.func
+                        auto ve2 = cast(VarExp)de.e1;
+                        auto f = ve2.var.isFuncDeclaration();
+                        if (f == de.func)
+                            return inlineFd(de.func);
                     }
+                    //return inlineFd(de.func, de.e1);    // todo
                 }
             }
-        }
-        else if (e.e1.op == TOKdotvar)
-        {
-            DotVarExp dve = cast(DotVarExp)e.e1;
-            fd = dve.var.isFuncDeclaration();
-            if (fd && fd != parent && canInline(fd, true, false, asStatements))
-            {
-                if (dve.e1.op == TOKcall && dve.e1.type.toBasetype().ty == Tstruct)
-                {
-                    /* To create ethis, we'll need to take the address
-                     * of dve.e1, but this won't work if dve.e1 is
-                     * a function call.
-                     */
-                }
-                else
-                {
-                    expandInline(fd, parent, eret, dve.e1, e.arguments, asStatements, eresult, sresult, again);
-                }
-            }
-        }
-        else if (e.e1.op == TOKstar &&
-                 (cast(PtrExp)e.e1).e1.op == TOKvar)
-        {
-            VarExp ve = cast(VarExp)(cast(PtrExp)e.e1).e1;
-            VarDeclaration v = ve.var.isVarDeclaration();
-            if (v && v._init && onlyOneAssign(v, parent))
-            {
-                //printf("init: %s\n", v._init.toChars());
-                auto ei = v._init.isExpInitializer();
-                if (ei && ei.exp.op == TOKblit)
-                {
-                    Expression e2 = (cast(AssignExp)ei.exp).e2;
-                    // function pointer call
-                    if (e2.op == TOKsymoff)
-                    {
-                        auto se = cast(SymOffExp)e2;
-                        fd = se.var.isFuncDeclaration();
-                        inlineFd();
-                    }
-                    // function literal call
-                    else if (e2.op == TOKfunction)
-                    {
-                        auto fld = (cast(FuncExp)e2).fd;
-                        assert(fld.tok == TOKfunction);
-                        fd = fld;
-                        inlineFd();
-                    }
-                }
-            }
-        }
-        else
             return;
-
-        if (global.params.verbose && (eresult || sresult))
-            fprintf(global.stdmsg, "inlined   %s =>\n          %s\n", fd.toPrettyChars(), parent.toPrettyChars());
-
-        if (eresult && e.type.ty != Tvoid)
+        }
+        if (e1.op == TOKdotvar)
         {
-            Expression ex = eresult;
-            while (ex.op == TOKcomma)
-            {
-                ex.type = e.type;
-                ex = (cast(CommaExp)ex).e2;
-            }
-            ex.type = e.type;
+            auto dve = cast(DotVarExp)e1;
+            return inlineFd(dve.var.isFuncDeclaration(), dve.e1);
         }
     }
 
@@ -2003,8 +1975,6 @@ public void inlineScanModule(Module m)
     foreach (i; 0 .. m.members.dim)
     {
         Dsymbol s = (*m.members)[i];
-        //if (global.params.verbose)
-        //    fprintf(global.stdmsg, "inline scan symbol %s\n", s.toChars());
         scope InlineScanVisitor v = new InlineScanVisitor();
         s.accept(v);
     }
@@ -2323,13 +2293,25 @@ public Expression inlineCopy(Expression e, Scope* sc)
  *      v       variable to check
  *      fd      function that v is local to
  * Returns:
- *      true if v's initializer is the only value assigned to v
+ *      the assigned value to v only once
  */
-
-bool onlyOneAssign(VarDeclaration v, FuncDeclaration fd)
+Expression onlyOneAssign(VarDeclaration v, FuncDeclaration fd)
 {
+    if (!v)
+        return null;
     if (!v.type.isMutable())
-        return true;            // currently the only case handled atm
-    return false;
-}
+    {
+        // currently the only case handled atm
 
+        if (!v._init)
+            return null;
+        auto ei = v._init.isExpInitializer();
+        if (!ei)
+            return null;
+        auto e = ei.exp;
+        if (e.op == TOKblit)
+            e = (cast(BlitExp)e).e2;
+        return e;
+    }
+    return null;
+}
