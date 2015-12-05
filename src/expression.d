@@ -6151,48 +6151,44 @@ public:
 
     void genIdent(Scope* sc)
     {
-        if (fd.ident == Id.empty)
+        if (fd.ident != Id.empty)
+            return;
+
+        const(char)* s;
+        if (fd.fes)                     s = "__foreachbody";
+        else if (fd.tok == TOKreserved) s = "__lambda";
+        else if (fd.tok == TOKdelegate) s = "__dgliteral";
+        else                            s = "__funcliteral";
+
+        DsymbolTable symtab;
+        if (auto func = sc.parent.isFuncDeclaration())
         {
-            const(char)* s;
-            if (fd.fes)
-                s = "__foreachbody";
-            else if (fd.tok == TOKreserved)
-                s = "__lambda";
-            else if (fd.tok == TOKdelegate)
-                s = "__dgliteral";
-            else
-                s = "__funcliteral";
-            DsymbolTable symtab;
-            if (FuncDeclaration func = sc.parent.isFuncDeclaration())
+            if (func.localsymtab is null)
             {
-                if (func.localsymtab is null)
-                {
-                    // Inside template constraint, symtab is not set yet.
-                    // Initialize it lazily.
-                    func.localsymtab = new DsymbolTable();
-                }
-                symtab = func.localsymtab;
+                // Inside template constraint, symtab is not set yet.
+                // Initialize it lazily.
+                func.localsymtab = new DsymbolTable();
             }
-            else
-            {
-                ScopeDsymbol sds = sc.parent.isScopeDsymbol();
-                if (!sds.symtab)
-                {
-                    // Inside template constraint, symtab may not be set yet.
-                    // Initialize it lazily.
-                    assert(sds.isTemplateInstance());
-                    sds.symtab = new DsymbolTable();
-                }
-                symtab = sds.symtab;
-            }
-            assert(symtab);
-            int num = cast(int)dmd_aaLen(symtab.tab) + 1;
-            Identifier id = Identifier.generateId(s, num);
-            fd.ident = id;
-            if (td)
-                td.ident = id;
-            symtab.insert(td ? cast(Dsymbol)td : cast(Dsymbol)fd);
+            symtab = func.localsymtab;
         }
+        else
+        {
+            auto sds = sc.parent.isScopeDsymbol();
+            if (!sds.symtab)
+            {
+                // Inside template constraint, symtab may not be set yet.
+                // Initialize it lazily.
+                assert(sds.isTemplateInstance());
+                sds.symtab = new DsymbolTable();
+            }
+            symtab = sds.symtab;
+        }
+        assert(symtab);
+        int num = cast(int)dmd_aaLen(symtab.tab) + 1;
+        fd.ident = Identifier.generateId(s, num);
+        if (td)
+            td.ident = fd.ident;
+        symtab.insert(td ? cast(Dsymbol)td : cast(Dsymbol)fd);
     }
 
     override Expression syntaxCopy()
@@ -6213,95 +6209,94 @@ public:
             if (fd.treq)
                 printf("  treq = %s\n", fd.treq.toChars());
         }
-        Expression e = this;
+        //if (type) // todo
+        if (type && type != Type.tvoid) // todo
+            return this;
+
         sc = sc.push(); // just create new scope
         sc.flags &= ~SCOPEctfe; // temporary stop CTFE
         sc.protection = Prot(PROTpublic); // Bugzilla 12506
-        if (!type || type == Type.tvoid)
+        scope(exit) sc.pop();
+
+        /* fd.treq might be incomplete type,
+         * so should not semantic it.
+         * void foo(T)(T delegate(int) dg){}
+         * foo(a=>a); // in IFTI, treq == T delegate(int)
+         */
+        //if (fd.treq)
+        //    fd.treq = fd.treq.semantic(loc, sc);
+
+        genIdent(sc);
+
+        // Set target of return type inference
+        if (fd.treq && !fd.type.nextOf())
         {
-            /* fd->treq might be incomplete type,
-             * so should not semantic it.
-             * void foo(T)(T delegate(int) dg){}
-             * foo(a=>a); // in IFTI, treq == T delegate(int)
-             */
-            //if (fd->treq)
-            //    fd->treq = fd->treq->semantic(loc, sc);
-            genIdent(sc);
-            // Set target of return type inference
-            if (fd.treq && !fd.type.nextOf())
+            if (fd.treq.ty == Tdelegate ||
+                (fd.treq.ty == Tpointer && fd.treq.nextOf().ty == Tfunction))
             {
-                TypeFunction tfv = null;
-                if (fd.treq.ty == Tdelegate || (fd.treq.ty == Tpointer && fd.treq.nextOf().ty == Tfunction))
-                    tfv = cast(TypeFunction)fd.treq.nextOf();
-                if (tfv)
-                {
-                    TypeFunction tfl = cast(TypeFunction)fd.type;
-                    tfl.next = tfv.nextOf();
-                }
+                auto tfv = cast(TypeFunction)fd.treq.nextOf();
+                auto tfl = cast(TypeFunction)fd.type;
+                tfl.next = tfv.nextOf();
             }
-            //printf("td = %p, treq = %p\n", td, fd->treq);
-            if (td)
+        }
+
+        //printf("td = %p, treq = %p\n", td, fd.treq);
+        if (td)
+        {
+            assert(td.parameters && td.parameters.dim);
+            td.semantic(sc);
+            type = Type.tvoid; // temporary type
+
+            if (fd.treq) // defer type determination
             {
-                assert(td.parameters && td.parameters.dim);
-                td.semantic(sc);
-                type = Type.tvoid; // temporary type
-                if (fd.treq) // defer type determination
-                {
-                    FuncExp fe;
-                    if (matchType(fd.treq, sc, &fe) > MATCHnomatch)
-                        e = fe;
-                    else
-                        e = new ErrorExp();
-                }
-                goto Ldone;
-            }
-            uint olderrors = global.errors;
-            fd.semantic(sc);
-            if (olderrors == global.errors)
-            {
-                fd.semantic2(sc);
-                if (olderrors == global.errors)
-                    fd.semantic3(sc);
-            }
-            if (olderrors != global.errors)
-            {
-                if (fd.type && fd.type.ty == Tfunction && !fd.type.nextOf())
-                    (cast(TypeFunction)fd.type).next = Type.terror;
-                e = new ErrorExp();
-                goto Ldone;
-            }
-            // Type is a "delegate to" or "pointer to" the function literal
-            if ((fd.isNested() && fd.tok == TOKdelegate) || (tok == TOKreserved && fd.treq && fd.treq.ty == Tdelegate))
-            {
-                type = new TypeDelegate(fd.type);
-                type = type.semantic(loc, sc);
-                fd.tok = TOKdelegate;
+                FuncExp fe;
+                if (matchType(fd.treq, sc, &fe) > MATCHnomatch)
+                    return fe;
+                else
+                    return new ErrorExp();
             }
             else
-            {
-                type = new TypePointer(fd.type);
-                type = type.semantic(loc, sc);
-                //type = fd->type->pointerTo();
-                /* A lambda expression deduced to function pointer might become
-                 * to a delegate literal implicitly.
-                 *
-                 *   auto foo(void function() fp) { return 1; }
-                 *   assert(foo({}) == 1);
-                 *
-                 * So, should keep fd->tok == TOKreserve if fd->treq == NULL.
-                 */
-                if (fd.treq && fd.treq.ty == Tpointer)
-                {
-                    // change to non-nested
-                    fd.tok = TOKfunction;
-                    fd.vthis = null;
-                }
-            }
-            fd.tookAddressOf++;
+                return this;
         }
-    Ldone:
-        sc = sc.pop();
-        return e;
+
+        fd.semantic(sc);
+        fd.semantic2(sc);
+        fd.semantic3(sc);
+        if (fd.errors || fd.semantic3Errors)
+            return new ErrorExp();
+
+        // Type is a "delegate to" or "pointer to" the function literal
+        if ((fd.isNested() && fd.tok == TOKdelegate) ||
+            (tok == TOKreserved && fd.treq && fd.treq.ty == Tdelegate))
+        {
+            type = new TypeDelegate(fd.type);
+            type = type.semantic(loc, sc);
+
+            fd.tok = TOKdelegate;
+        }
+        else
+        {
+            type = new TypePointer(fd.type);
+            type = type.semantic(loc, sc);
+
+            /* A lambda expression deduced to function pointer might become
+             * to a delegate literal implicitly.
+             *
+             *   auto foo(void function() fp) { return 1; }
+             *   assert(foo({}) == 1);
+             *
+             * So, have to keep fd.tok == TOKreserve if fd.treq == null.
+             */
+            if (fd.treq && fd.treq.ty == Tpointer)
+            {
+                // change to non-nested
+                fd.tok = TOKfunction;
+                fd.vthis = null;
+            }
+        }
+        fd.tookAddressOf++;
+
+        return this;
     }
 
     // used from CallExp::semantic()
@@ -6315,9 +6310,12 @@ public:
                 if (checkarg.op == TOKerror)
                     return checkarg;
             }
+
             genIdent(sc);
+
             assert(td.parameters && td.parameters.dim);
             td.semantic(sc);
+
             TypeFunction tfl = cast(TypeFunction)fd.type;
             size_t dim = Parameter.dim(tfl.parameters);
             if (arguments.dim < dim)
@@ -6327,10 +6325,13 @@ public:
                 if (p.defaultArg)
                     dim = arguments.dim;
             }
-            if ((!tfl.varargs && arguments.dim == dim) || (tfl.varargs && arguments.dim >= dim))
+
+            if ((!tfl.varargs && arguments.dim == dim) ||
+                (tfl.varargs && arguments.dim >= dim))
             {
                 auto tiargs = new Objects();
                 tiargs.reserve(td.parameters.dim);
+
                 for (size_t i = 0; i < td.parameters.dim; i++)
                 {
                     TemplateParameter tp = (*td.parameters)[i];
@@ -6345,6 +6346,7 @@ public:
                         }
                     }
                 }
+
                 auto ti = new TemplateInstance(loc, td, tiargs);
                 return (new ScopeExp(loc, ti)).semantic(sc);
             }
@@ -6359,6 +6361,7 @@ public:
         //printf("FuncExp::matchType('%s'), to=%s\n", type ? type->toChars() : "null", to->toChars());
         if (presult)
             *presult = null;
+
         TypeFunction tof = null;
         if (to.ty == Tdelegate)
         {
@@ -6380,6 +6383,7 @@ public:
             }
             tof = cast(TypeFunction)to.nextOf();
         }
+
         if (td)
         {
             if (!tof)
@@ -6389,16 +6393,23 @@ public:
                     error("cannot infer parameter types from %s", to.toChars());
                 return MATCHnomatch;
             }
+
             // Parameter types inference from 'tof'
             assert(td._scope);
             TypeFunction tf = cast(TypeFunction)fd.type;
             //printf("\ttof = %s\n", tof->toChars());
             //printf("\ttf  = %s\n", tf->toChars());
             size_t dim = Parameter.dim(tf.parameters);
-            if (Parameter.dim(tof.parameters) != dim || tof.varargs != tf.varargs)
+
+            if (Parameter.dim(tof.parameters) != dim ||
+                tof.varargs != tf.varargs)
+            {
                 goto L1;
+            }
+
             auto tiargs = new Objects();
             tiargs.reserve(td.parameters.dim);
+
             for (size_t i = 0; i < td.parameters.dim; i++)
             {
                 TemplateParameter tp = (*td.parameters)[i];
@@ -6418,24 +6429,31 @@ public:
                     goto L1;
                 tiargs.push(t);
             }
+
             // Set target of return type inference
             if (!tf.next && tof.next)
                 fd.treq = to;
+
             auto ti = new TemplateInstance(loc, td, tiargs);
             Expression ex = (new ScopeExp(loc, ti)).semantic(td._scope);
+
             // Reset inference target for the later re-semantic
             fd.treq = null;
+
             if (ex.op == TOKerror)
                 return MATCHnomatch;
             if (ex.op != TOKfunction)
                 goto L1;
             return (cast(FuncExp)ex).matchType(to, sc, presult, flag);
         }
+
         if (!tof || !tof.next)
             return MATCHnomatch;
+
         assert(type && type != Type.tvoid);
         TypeFunction tfx = cast(TypeFunction)fd.type;
         bool convertMatch = (type.ty != to.ty);
+
         if (fd.inferRetType && tfx.next.implicitConvTo(tof.next) == MATCHconvert)
         {
             /* If return type is inferred and covariant return,
@@ -6447,6 +6465,7 @@ public:
              * I delegate() dg = delegate() { return new class C(); }
              */
             convertMatch = true;
+
             auto tfy = new TypeFunction(tfx.parameters, tof.next, tfx.varargs, tfx.linkage, STCundefined);
             tfy.mod = tfx.mod;
             tfy.isnothrow = tfx.isnothrow;
@@ -6456,10 +6475,13 @@ public:
             tfy.isref = tfx.isref;
             tfy.iswild = tfx.iswild;
             tfy.deco = tfy.merge().deco;
+
             tfx = tfy;
         }
         Type tx;
-        if (tok == TOKdelegate || tok == TOKreserved && (type.ty == Tdelegate || type.ty == Tpointer && to.ty == Tdelegate))
+        if (tok == TOKdelegate ||
+            tok == TOKreserved && (type.ty == Tdelegate ||
+                                   type.ty == Tpointer && to.ty == Tdelegate))
         {
             // Allow conversion from implicit function pointer to delegate
             tx = new TypeDelegate(tfx);
@@ -6467,10 +6489,12 @@ public:
         }
         else
         {
-            assert(tok == TOKfunction || tok == TOKreserved && type.ty == Tpointer);
+            assert(tok == TOKfunction ||
+                   tok == TOKreserved && type.ty == Tpointer);
             tx = tfx.pointerTo();
         }
         //printf("\ttx = %s, to = %s\n", tx->toChars(), to->toChars());
+
         MATCH m = tx.implicitConvTo(to);
         if (m > MATCHnomatch)
         {
@@ -6478,10 +6502,12 @@ public:
             // MATCHconst:      covairiant type match (eg. attributes difference)
             // MATCHconvert:    context conversion
             m = convertMatch ? MATCHconvert : tx.equals(to) ? MATCHexact : MATCHconst;
+
             if (presult)
             {
                 (*presult) = cast(FuncExp)copy();
                 (*presult).type = to;
+
                 // Bugzilla 12508: Tweak function body for covariant returns.
                 (*presult).fd.modifyReturns(sc, tof.next);
             }
