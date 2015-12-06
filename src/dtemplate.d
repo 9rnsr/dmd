@@ -1135,8 +1135,10 @@ public:
         paramscope.minst = sc.minst;
         paramscope.callsc = sc;
         paramscope.stc = 0;
-        TemplateTupleParameter tp = isVariadic();
+
+        auto tupleParam = isVariadic();
         Tuple declaredTuple = null;
+
         version (none)
         {
             for (size_t i = 0; i < dedargs.dim; i++)
@@ -1154,11 +1156,11 @@ public:
             // Set initial template arguments
             ntargs = tiargs.dim;
             size_t n = parameters.dim;
-            if (tp)
+            if (tupleParam)
                 n--;
             if (ntargs > n)
             {
-                if (!tp)
+                if (!tupleParam)
                     goto Lnomatch;
                 /* The extra initial template arguments
                  * now form the tuple argument.
@@ -1171,7 +1173,7 @@ public:
                 {
                     t.objects[i] = (*tiargs)[n + i];
                 }
-                tp.declareParameter(paramscope, t);
+                tupleParam.declareParameter(paramscope, t);
                 declaredTuple = t;
             }
             else
@@ -1219,7 +1221,7 @@ public:
          * void foo(T, A...)(T t, A a);
          * void main() { foo(1,2,3); }
          */
-        if (tp) // if variadic
+        if (tupleParam) // if variadic
         {
             // TemplateTupleParameter always makes most lesser matching.
             matchTiargs = MATCHconvert;
@@ -1230,7 +1232,7 @@ public:
                     auto t = new Tuple();
                     //printf("t = %p\n", t);
                     (*dedargs)[parameters.dim - 1] = t;
-                    tp.declareParameter(paramscope, t);
+                    tupleParam.declareParameter(paramscope, t);
                     declaredTuple = t;
                 }
             }
@@ -1247,11 +1249,12 @@ public:
                     if (fparam.type.ty != Tident)
                         continue;
                     TypeIdentifier tid = cast(TypeIdentifier)fparam.type;
-                    if (!tp.ident.equals(tid.ident) || tid.idents.dim)
+                    if (!tupleParam.ident.equals(tid.ident) || tid.idents.dim)
                         continue;
+
                     if (fvarargs) // variadic function doesn't
-                        goto Lnomatch;
-                    // go with variadic template
+                        goto Lnomatch; // go with variadic template
+
                     goto L1;
                 }
                 fptupindex = IDX_NOTFOUND;
@@ -1314,7 +1317,7 @@ public:
         // Loop through the function parameters
         {
             //printf("%s\n\tnfargs = %d, nfparams = %d, tuple_dim = %d\n", toChars(), nfargs, nfparams, declaredTuple ? declaredTuple->objects.dim : 0);
-            //printf("\ttp = %p, fptupindex = %d, found = %d, declaredTuple = %s\n", tp, fptupindex, fptupindex != IDX_NOTFOUND, declaredTuple ? declaredTuple->toChars() : NULL);
+            //printf("\ttp = %p, fptupindex = %d, found = %d, declaredTuple = %s\n", tupleParam, fptupindex, fptupindex != IDX_NOTFOUND, declaredTuple ? declaredTuple->toChars() : NULL);
             size_t argi = 0;
             size_t nfargs2 = nfargs; // nfargs + supplied defaultArgs
             for (size_t parami = 0; parami < nfparams; parami++)
@@ -1388,7 +1391,7 @@ public:
                             }
                             declaredTuple.objects[i] = tt;
                         }
-                        tp.declareParameter(paramscope, declaredTuple);
+                        tupleParam.declareParameter(paramscope, declaredTuple);
                     }
                     else
                     {
@@ -1835,7 +1838,7 @@ public:
                         // if tuple parameter and
                         // tuple parameter was not in function parameter list and
                         // we're one or more arguments short (i.e. no tuple argument)
-                        if (tparam == tp &&
+                        if (tparam == tupleParam &&
                             fptupindex == IDX_NOTFOUND &&
                             ntargs <= dedargs.dim - 1)
                         {
