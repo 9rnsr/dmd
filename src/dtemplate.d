@@ -874,9 +874,7 @@ public:
         m = MATCHexact;
         for (size_t i = 0; i < dedtypes_dim; i++)
         {
-            MATCH m2;
             TemplateParameter tp = (*parameters)[i];
-            Declaration sparam;
 
             //printf("\targument [%d]\n", i);
             static if (LOGM)
@@ -887,7 +885,9 @@ public:
                     printf("\tparameter[%d] is %s : %s\n", i, tp.ident.toChars(), ttp.specType ? ttp.specType.toChars() : "");
             }
 
-            m2 = tp.matchArg(ti.loc, paramscope, ti.tiargs, i, parameters, dedtypes, &sparam);
+            Declaration sparam;
+            MATCH m2 = tp.matchArg(ti.loc, paramscope, ti.tiargs, i, parameters, dedtypes,
+                flag != 1 ? &sparam : null);
             //printf("\tm2 = %d\n", m2);
             if (m2 == MATCHnomatch)
             {
@@ -901,13 +901,15 @@ public:
             if (m2 < m)
                 m = m2;
 
-            if (!flag)
-                sparam.semantic(paramscope);
-            if (!paramscope.insert(sparam)) // TODO: This check can make more early
+            if (sparam)
             {
-                // in TemplateDeclaration::semantic, and
+                sparam.semantic(paramscope);
+
+                // TODO: This check can make more early
+                // in TemplateDeclaration.semantic, and
                 // then we don't need to make sparam if flags == 0
-                goto Lnomatch;
+                if (!paramscope.insert(sparam))
+                    goto Lnomatch;
             }
         }
 
@@ -1169,7 +1171,7 @@ public:
                 {
                     t.objects[i] = (*tiargs)[n + i];
                 }
-                declareParameter(paramscope, tp, t);
+                tp.declareParameter(paramscope, t);
                 declaredTuple = t;
             }
             else
@@ -1228,7 +1230,7 @@ public:
                     auto t = new Tuple();
                     //printf("t = %p\n", t);
                     (*dedargs)[parameters.dim - 1] = t;
-                    declareParameter(paramscope, tp, t);
+                    tp.declareParameter(paramscope, t);
                     declaredTuple = t;
                 }
             }
@@ -1386,7 +1388,7 @@ public:
                             }
                             declaredTuple.objects[i] = tt;
                         }
-                        declareParameter(paramscope, tp, declaredTuple);
+                        tp.declareParameter(paramscope, declaredTuple);
                     }
                     else
                     {
@@ -1493,13 +1495,13 @@ public:
                                         if (MATCHconvert < matchTiargs)
                                             matchTiargs = MATCHconvert;
                                     }
-                                    (*dedargs)[i] = declareParameter(paramscope, tparam, oded);
+                                    (*dedargs)[i] = tparam.declareParameter(paramscope, oded);
                                 }
                                 else
                                 {
                                     oded = tparam.defaultArg(instLoc, paramscope);
                                     if (oded)
-                                        (*dedargs)[i] = declareParameter(paramscope, tparam, oded);
+                                        (*dedargs)[i] = tparam.declareParameter(paramscope, oded);
                                 }
                             }
                         }
@@ -1866,7 +1868,7 @@ public:
                             error("specialization not allowed for deduced parameter %s", tparam.ident.toChars());
                     }
                 }
-                oded = declareParameter(paramscope, tparam, oded);
+                oded = tparam.declareParameter(paramscope, oded);
                 (*dedargs)[i] = oded;
             }
         }
@@ -1932,96 +1934,6 @@ public:
         paramscope.pop();
         //printf("\terror\n");
         return MATCHnomatch;
-    }
-
-    /**************************************************
-     * Declare template parameter tp with value o, and install it in the scope sc.
-     */
-    RootObject declareParameter(Scope* sc, TemplateParameter tp, RootObject o)
-    {
-        //printf("TemplateDeclaration::declareParameter('%s', o = %p)\n", tp->ident->toChars(), o);
-        Type ta = isType(o);
-        Expression ea = isExpression(o);
-        Dsymbol sa = isDsymbol(o);
-        Tuple va = isTuple(o);
-        Declaration d;
-        VarDeclaration v = null;
-        if (ea && ea.op == TOKtype)
-            ta = ea.type;
-        else if (ea && ea.op == TOKscope)
-            sa = (cast(ScopeExp)ea).sds;
-        else if (ea && (ea.op == TOKthis || ea.op == TOKsuper))
-            sa = (cast(ThisExp)ea).var;
-        else if (ea && ea.op == TOKfunction)
-        {
-            if ((cast(FuncExp)ea).td)
-                sa = (cast(FuncExp)ea).td;
-            else
-                sa = (cast(FuncExp)ea).fd;
-        }
-        if (ta)
-        {
-            //printf("type %s\n", ta->toChars());
-            d = new AliasDeclaration(Loc(), tp.ident, ta);
-        }
-        else if (sa)
-        {
-            //printf("Alias %s %s;\n", sa->ident->toChars(), tp->ident->toChars());
-            d = new AliasDeclaration(Loc(), tp.ident, sa);
-        }
-        else if (ea)
-        {
-            // tdtypes.data[i] always matches ea here
-            Initializer _init = new ExpInitializer(loc, ea);
-            TemplateValueParameter tvp = tp.isTemplateValueParameter();
-            Type t = tvp ? tvp.valType : null;
-            v = new VarDeclaration(loc, t, tp.ident, _init);
-            v.storage_class = STCmanifest | STCtemplateparameter;
-            d = v;
-        }
-        else if (va)
-        {
-            //printf("\ttuple\n");
-            d = new TupleDeclaration(loc, tp.ident, &va.objects);
-        }
-        else
-        {
-            debug
-            {
-                o.print();
-            }
-            assert(0);
-        }
-        d.storage_class |= STCtemplateparameter;
-        if (ta)
-        {
-            Type t = ta;
-            // consistent with Type::checkDeprecated()
-            while (t.ty != Tenum)
-            {
-                if (!t.nextOf())
-                    break;
-                t = (cast(TypeNext)t).next;
-            }
-            if (Dsymbol s = t.toDsymbol(null))
-            {
-                if (s.isDeprecated())
-                    d.storage_class |= STCdeprecated;
-            }
-        }
-        else if (sa)
-        {
-            if (sa.isDeprecated())
-                d.storage_class |= STCdeprecated;
-        }
-        if (!sc.insert(d))
-            error("declaration %s is already defined", tp.ident.toChars());
-        d.semantic(sc);
-        /* So the caller's o gets updated with the result of semantic() being run on o
-         */
-        if (v)
-            o = v._init.toExpression();
-        return o;
     }
 
     /*************************************************
@@ -4835,7 +4747,119 @@ public:
 
     abstract TemplateParameter syntaxCopy();
 
-    abstract bool declareParameter(Scope* sc);
+    /**************************************************
+     * Declare dummy template parameter, then install it into sc.
+     */
+    final bool declareParameter(Scope* sc)
+    {
+        auto tvp = isTemplateValueParameter();
+        auto d = tvp ? new VarDeclaration(loc, tvp.valType, ident, null)
+                     : new AliasDeclaration(loc, ident, new TypeIdentifier(loc, ident));
+        d.protection = Prot(PROTpublic);
+        d.storage_class |= STCtemplateparameter;
+        return sc.insert(d) !is null;
+    }
+
+    /**************************************************
+     * Declare actual template parameter with the value o, then install it into sc.
+     */
+    final RootObject declareParameter(Scope* sc, RootObject o)
+    {
+        //printf("TemplateParameter::declareParameter('%s', o = %p)\n", ident.toChars(), o);
+        if (auto ea = isExpression(o))
+        {
+            if (ea.op == TOKtype)
+                o = ea.type;
+            else if (ea.op == TOKscope)
+                o = (cast(ScopeExp)ea).sds;
+            else if (ea.op == TOKthis || ea.op == TOKsuper)
+                o = (cast(ThisExp)ea).var;
+            else if (ea.op == TOKfunction)
+            {
+                auto fe = cast(FuncExp)ea;
+                if (fe.td)
+                    o = fe.td;
+                else
+                    o = fe.fd;
+            }
+        }
+        //printf("o = %p\n", o);
+        //if (auto ta = isType(o))       printf("ta = %p %d %s\n", ta, ta.ty, ta.toChars());
+        //if (auto ea = isExpression(o)) printf("ea = %p %s %s\n", ea, Token.toChars(ea.op), ea.toChars());
+        //if (auto sa = isDsymbol(o))    printf("sa = %p %s %s\n", sa, sa.kind(), sa.toChars());
+        //if (auto va = isTuple(o))      printf("va = %p %s\n", va, va.toChars());
+
+        auto d = declareParameter(o);
+        if (!sc.insert(d))
+            error(loc, "declaration %s is already defined", ident.toChars());
+        d.semantic(sc);
+
+        /* So the caller's o gets updated with the result of semantic() being run on o
+         */
+        if (auto v = d.isVarDeclaration())
+            o = v._init.toExpression();
+        return o;
+    }
+
+    // Return parameter declaration to declare the argument 'o'.
+    final Declaration declareParameter(RootObject o)
+    {
+        if (auto ta = isType(o))
+        {
+            //printf("\ttype %s = %s;\n", ident.toChars(), ta.toChars());
+            auto d = new AliasDeclaration(loc, ident, ta);
+            d.protection = Prot(PROTpublic);
+            d.storage_class |= STCtemplateparameter;
+
+            auto t = ta;
+            // consistent with Type::checkDeprecated()
+            while (t.ty != Tenum)
+            {
+                if (!t.nextOf())
+                    break;
+                t = (cast(TypeNext)t).next;
+            }
+            if (auto s = t.toDsymbol(null))
+            {
+                if (s.isDeprecated())
+                    d.storage_class |= STCdeprecated;
+            }
+
+            return d;
+        }
+        if (auto sa = isDsymbol(o))
+        {
+            //printf("\talias %s = %s %s;\n", ident.toChars(), sa.kind(), sa.toChars());
+            auto d = new AliasDeclaration(loc, ident, sa);
+            d.protection = Prot(PROTpublic);
+            d.storage_class |= STCtemplateparameter;
+
+            if (sa.isDeprecated())
+                d.storage_class |= STCdeprecated;
+
+            return d;
+        }
+        if (auto ea = isExpression(o))
+        {
+            //printf("\texpr %s = %s %s;\n", ident.toChars(), ea.type.toChars(), ea.toChars());
+            auto ei = new ExpInitializer(loc, ea);
+            auto tvp = isTemplateValueParameter();
+            auto type = tvp ? tvp.valType : null;
+            auto d = new VarDeclaration(loc, type, ident, ei);
+            d.protection = Prot(PROTpublic);
+            d.storage_class |= STCtemplateparameter | STCmanifest;
+            return d;
+        }
+        if (auto va = isTuple(o))
+        {
+            auto d = new TupleDeclaration(loc, ident, &va.objects);
+            d.protection = Prot(PROTpublic);
+            d.storage_class |= STCtemplateparameter;
+            return d;
+        }
+
+        assert(0);
+    }
 
     abstract bool semantic(Scope* sc, TemplateParameters* parameters);
 
@@ -4931,14 +4955,6 @@ public:
         return new TemplateTypeParameter(loc, ident,
             specType ? specType.syntaxCopy() : null,
             defaultType ? defaultType.syntaxCopy() : null);
-    }
-
-    override final bool declareParameter(Scope* sc)
-    {
-        //printf("TemplateTypeParameter::declareParameter('%s')\n", ident->toChars());
-        auto ti = new TypeIdentifier(loc, ident);
-        Declaration ad = new AliasDeclaration(loc, ident, ti);
-        return sc.insert(ad) !is null;
     }
 
     override final bool semantic(Scope* sc, TemplateParameters* parameters)
@@ -5062,7 +5078,7 @@ public:
         (*dedtypes)[i] = ta;
 
         if (psparam)
-            *psparam = new AliasDeclaration(loc, ident, ta);
+            *psparam = declareParameter(ta);
         //printf("\tm = %d\n", m);
         return dependent ? MATCHexact : m;
 
@@ -5158,13 +5174,6 @@ public:
             defaultValue ? defaultValue.syntaxCopy() : null);
     }
 
-    override bool declareParameter(Scope* sc)
-    {
-        auto v = new VarDeclaration(loc, valType, ident, null);
-        v.storage_class = STCtemplateparameter;
-        return sc.insert(v) !is null;
-    }
-
     override bool semantic(Scope* sc, TemplateParameters* parameters)
     {
         valType = valType.semantic(loc, sc);
@@ -5243,10 +5252,10 @@ public:
         Expression ei = isExpression(oarg);
         Type vt;
 
-        if (!ei && oarg)
+        if (!ei)
         {
-            Dsymbol si = isDsymbol(oarg);
-            FuncDeclaration f = si ? si.isFuncDeclaration() : null;
+            auto si = isDsymbol(oarg);
+            auto f = si ? si.isFuncDeclaration() : null;
             if (!f || !f.fbody || f.needThis())
                 goto Lnomatch;
 
@@ -5280,16 +5289,16 @@ public:
             m = MATCHconvert;
         }
 
-        if (ei && ei.op == TOKvar)
+        if (ei.op == TOKvar)
         {
             // Resolve const variables that we had skipped earlier
             ei = ei.ctfeInterpret();
         }
 
-        //printf("\tvalType: %s, ty = %d\n", valType->toChars(), valType->ty);
+        //printf("\tvalType: %s, ty = %d\n", valType.toChars(), valType.ty);
         vt = valType.semantic(loc, sc);
-        //printf("ei: %s, ei->type: %s\n", ei->toChars(), ei->type->toChars());
-        //printf("vt = %s\n", vt->toChars());
+        //printf("ei: %s %s, ei.type: %s\n", Token.toChars(ei.op), ei.toChars(), ei.type.toChars());
+        //printf("vt = %s\n", vt.toChars());
 
         if (ei.type)
         {
@@ -5323,8 +5332,8 @@ public:
             sc = sc.endCTFE();
             ei = ei.implicitCastTo(sc, vt);
             ei = ei.ctfeInterpret();
-            //printf("\tei: %s, %s\n", ei->toChars(), ei->type->toChars());
-            //printf("\te : %s, %s\n", e->toChars(), e->type->toChars());
+            //printf("\tei: %s, %s\n", ei.toChars(), ei.type.toChars());
+            //printf("\te : %s, %s\n", e.toChars(), e.type.toChars());
             if (!ei.equals(e))
                 goto Lnomatch;
         }
@@ -5333,20 +5342,15 @@ public:
             if ((*dedtypes)[i])
             {
                 // Must match already deduced value
-                Expression e = cast(Expression)(*dedtypes)[i];
-                if (!ei || !ei.equals(e))
+                auto e = cast(Expression)(*dedtypes)[i];
+                if (!ei.equals(e))
                     goto Lnomatch;
             }
         }
         (*dedtypes)[i] = ei;
 
         if (psparam)
-        {
-            Initializer _init = new ExpInitializer(loc, ei);
-            Declaration sparam = new VarDeclaration(loc, vt, ident, _init);
-            sparam.storage_class = STCmanifest;
-            *psparam = sparam;
-        }
+            *psparam = declareParameter(ei);
         return dependent ? MATCHexact : m;
 
     Lnomatch:
@@ -5437,13 +5441,6 @@ public:
             objectSyntaxCopy(defaultAlias));
     }
 
-    override bool declareParameter(Scope* sc)
-    {
-        auto ti = new TypeIdentifier(loc, ident);
-        Declaration ad = new AliasDeclaration(loc, ident, ti);
-        return sc.insert(ad) !is null;
-    }
-
     override bool semantic(Scope* sc, TemplateParameters* parameters)
     {
         if (specType && !reliesOnTident(specType, parameters))
@@ -5509,6 +5506,7 @@ public:
             sa = (cast(ThisExp)ea).var;
         else if (ea && ea.op == TOKscope)
             sa = (cast(ScopeExp)ea).sds;
+
         if (sa)
         {
             if ((cast(Dsymbol)sa).isAggregateDeclaration())
@@ -5594,27 +5592,7 @@ public:
         (*dedtypes)[i] = sa;
 
         if (psparam)
-        {
-            if (Dsymbol s = isDsymbol(sa))
-            {
-                *psparam = new AliasDeclaration(loc, ident, s);
-            }
-            else if (Type t = isType(sa))
-            {
-                *psparam = new AliasDeclaration(loc, ident, t);
-            }
-            else
-            {
-                assert(ea);
-
-                // Declare manifest constant
-                Initializer _init = new ExpInitializer(loc, ea);
-                auto v = new VarDeclaration(loc, null, ident, _init);
-                v.storage_class = STCmanifest;
-                v.semantic(sc);
-                *psparam = v;
-            }
-        }
+            *psparam = declareParameter(sa);
         return dependent ? MATCHexact : m;
 
     Lnomatch:
@@ -5663,13 +5641,6 @@ public:
     override TemplateParameter syntaxCopy()
     {
         return new TemplateTupleParameter(loc, ident);
-    }
-
-    override bool declareParameter(Scope* sc)
-    {
-        auto ti = new TypeIdentifier(loc, ident);
-        Declaration ad = new AliasDeclaration(loc, ident, ti);
-        return sc.insert(ad) !is null;
     }
 
     override bool semantic(Scope* sc, TemplateParameters* parameters)
@@ -5771,7 +5742,7 @@ public:
         (*dedtypes)[i] = ovar;
 
         if (psparam)
-            *psparam = new TupleDeclaration(loc, ident, &ovar.objects);
+            *psparam = declareParameter(ovar);
         return dependent ? MATCHexact : MATCHconvert;
     }
 
@@ -5960,7 +5931,7 @@ public:
             errors = true;
             return;
         }
-        TemplateDeclaration tempdecl = this.tempdecl.isTemplateDeclaration();
+        auto tempdecl = this.tempdecl.isTemplateDeclaration();
         assert(tempdecl);
         // If tempdecl is a mixin, disallow it
         if (tempdecl.ismixin)
@@ -6104,14 +6075,16 @@ public:
         _scope.tinst = this;
         _scope.minst = minst;
         //scope->stc = 0;
+
         // Declare each template parameter as an alias for the argument type
-        Scope* paramscope = _scope.push();
-        paramscope.stc = 0;
-        paramscope.protection = Prot(PROTpublic); // Bugzilla 14169: template parameters should be public
-        declareParameters(paramscope);
-        paramscope.pop();
+        Scope* argscope = _scope.push();
+        argscope.stc = 0;
+        argscope.protection = Prot(PROTpublic); // Bugzilla 14169: template parameters should be public
+        declareParameters(argscope);
+        argscope.pop();
+
         // Add members of template instance to template instance symbol table
-        //    parent = scope->scopesym;
+        //parent = scope->scopesym;
         symtab = new DsymbolTable();
         for (size_t i = 0; i < members.dim; i++)
         {
@@ -7834,16 +7807,17 @@ public:
      */
     final void declareParameters(Scope* sc)
     {
-        TemplateDeclaration tempdecl = this.tempdecl.isTemplateDeclaration();
+        auto tempdecl = this.tempdecl.isTemplateDeclaration();
         assert(tempdecl);
+
         //printf("TemplateInstance::declareParameters()\n");
         for (size_t i = 0; i < tdtypes.dim; i++)
         {
-            TemplateParameter tp = (*tempdecl.parameters)[i];
-            //RootObject *o = (*tiargs)[i];
-            RootObject o = tdtypes[i]; // initializer for tp
+            auto tp = (*tempdecl.parameters)[i];
+            auto o = tdtypes[i]; // initializer for tp
+
             //printf("\ttdtypes[%d] = %p\n", i, o);
-            tempdecl.declareParameter(sc, tp, o);
+            tp.declareParameter(sc, o);
         }
     }
 
@@ -8226,7 +8200,7 @@ public:
             errors = true;
             return; // error recovery
         }
-        TemplateDeclaration tempdecl = this.tempdecl.isTemplateDeclaration();
+        auto tempdecl = this.tempdecl.isTemplateDeclaration();
         assert(tempdecl);
         if (!ident)
         {
@@ -8321,9 +8295,11 @@ public:
         }
         Scope* scy = sc.push(this);
         scy.parent = this;
+
         argsym = new ScopeDsymbol();
         argsym.parent = scy.parent;
         Scope* argscope = scy.push(argsym);
+
         uint errorsave = global.errors;
         // Declare each template parameter as an alias for the argument type
         declareParameters(argscope);
