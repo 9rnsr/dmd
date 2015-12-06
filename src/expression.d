@@ -7360,19 +7360,22 @@ public:
                 Objects tiargs;
                 tiargs.setDim(1);
                 tiargs[0] = targ;
+
                 /* Declare trailing parameters
                  */
                 for (size_t i = 1; i < parameters.dim; i++)
                 {
-                    TemplateParameter tp = (*parameters)[i];
-                    Declaration s = null;
-                    m = tp.matchArg(loc, sc, &tiargs, i, parameters, &dedtypes, &s);
+                    auto tp = (*parameters)[i];
+                    m = tp.matchArg(loc, sc, &tiargs, i, parameters, &dedtypes);
                     if (m <= MATCHnomatch)
                         goto Lno;
-                    s.semantic(sc);
-                    if (!sc.insert(s))
-                        error("declaration %s is already defined", s.toChars());
-                    unSpeculative(sc, s);
+
+                    auto d = tp.declareParameter(dedtypes[i]);
+                    d.semantic(sc);
+                    if (!sc.insert(d))
+                        error("declaration %s is already defined", d.toChars());
+
+                    unSpeculative(sc, d);
                 }
                 goto Lyes;
             }
