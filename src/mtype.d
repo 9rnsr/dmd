@@ -7139,13 +7139,6 @@ public:
                     *pe = new VarExp(loc, v);
                 return;
             }
-            if (auto fld = s.isFuncLiteralDeclaration())
-            {
-                //printf("'%s' is a function literal\n", fld.toChars());
-                *pe = new FuncExp(loc, fld);
-                *pe = (*pe).semantic(sc);
-                return;
-            }
             if (auto f = s.isFuncDeclaration())
             {
                 f = f.toAliasFunc();

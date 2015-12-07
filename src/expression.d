@@ -3673,12 +3673,9 @@ public:
         {
             printf("DsymbolExp::resolve(%s %s)\n", s.kind(), s.toChars());
         }
-    Lagain:
+
         Expression e;
-        //printf("DsymbolExp:: %p '%s' is a symbol\n", this, toChars());
-        //printf("s = '%s', s->kind = '%s'\n", s->toChars(), s->kind());
-        Dsymbol olds = s;
-        Declaration d = s.isDeclaration();
+        auto d = s.isDeclaration();
         if (d && (d.storage_class & STCtemplateparameter))
         {
             s = s.toAlias();
@@ -3688,10 +3685,12 @@ public:
             if (!s.isFuncDeclaration()) // functions are checked after overloading
                 s.checkDeprecated(loc, sc);
 
+            Dsymbol olds = s;
+
             // Bugzilla 12023: if 's' is a tuple variable, the tuple is returned.
             s = s.toAlias();
 
-            //printf("s = '%s', s->kind = '%s', s->needThis() = %p\n", s->toChars(), s->kind(), s->needThis());
+            //printf("s = '%s', s.kind = '%s', s.needThis() = %p\n", s.toChars(), s.kind(), s.needThis());
             if (s != olds && !s.isFuncDeclaration())
                 s.checkDeprecated(loc, sc);
         }
@@ -3702,7 +3701,7 @@ public:
         }
         if (VarDeclaration v = s.isVarDeclaration())
         {
-            //printf("Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
+            //printf("Identifier '%s' is a variable, type '%s'\n", s.toChars(), v.type.toChars());
             if (!v.type)
             {
                 .error(loc, "forward reference of %s %s", v.kind(), v.toChars());
@@ -3733,14 +3732,9 @@ public:
             e = e.semantic(sc);
             return e;
         }
-        if (auto fld = s.isFuncLiteralDeclaration())
-        {
-            //printf("'%s' is a function literal\n", fld->toChars());
-            e = new FuncExp(loc, fld);
-            return e.semantic(sc);
-        }
         if (auto f = s.isFuncDeclaration())
         {
+            // FuncLiteralDeclaration also be converted to VarExp always.
             f = f.toAliasFunc();
             if (!f.functionSemantic())
                 return new ErrorExp();
@@ -3811,7 +3805,7 @@ public:
                 return new ErrorExp();
             s = ti.toAlias();
             if (!s.isTemplateInstance())
-                goto Lagain;
+                return resolve(loc, sc, s, hasOverloads);
             e = new ScopeExp(loc, ti);
             e = e.semantic(sc);
             return e;
@@ -4509,26 +4503,25 @@ public:
         super(loc, TOKtuple, __traits(classInstanceSize, TupleExp));
         this.exps = new Expressions();
         this.exps.reserve(tup.objects.dim);
-        for (size_t i = 0; i < tup.objects.dim; i++)
+        foreach (o; *tup.objects)
         {
-            RootObject o = (*tup.objects)[i];
-            if (Dsymbol s = getDsymbol(o))
+            if (auto s = isDsymbol(o))      // don"t convert FuncExp to VarExp(fld)
             {
                 /* If tuple element represents a symbol, translate to DsymbolExp
                  * to supply implicit 'this' if needed later.
                  */
-                Expression e = new DsymbolExp(loc, s);
+                auto e = new DsymbolExp(loc, s);
                 this.exps.push(e);
             }
-            else if (o.dyncast() == DYNCAST_EXPRESSION)
+            else if (auto e = isExpression(o))
             {
-                Expression e = cast(Expression)o;
+                if (e.op == TOKvar)         // from getDsymbol
+                    e = new DsymbolExp(loc, (cast(VarExp)e).var);
                 this.exps.push(e);
             }
-            else if (o.dyncast() == DYNCAST_TYPE)
+            else if (auto t = isType(o))
             {
-                Type t = cast(Type)o;
-                Expression e = new TypeExp(loc, t);
+                auto e = new TypeExp(loc, t);
                 this.exps.push(e);
             }
             else
@@ -5352,6 +5345,12 @@ public:
                     ti.inuse--;
                     return e;
                 }
+            }
+            if (auto fld = s.isFuncLiteralDeclaration())
+            {
+                auto td = ti.tempdecl.isTemplateDeclaration();
+                if (td && td.literal)
+                    return (new FuncExp(loc, fld)).semantic(sc);
             }
 
             //printf("s = %s, '%s'\n", s.kind(), s.toChars());
@@ -8850,11 +8849,13 @@ public:
                     earg.type.print();
             }
         }
+
         Type t1;
         Objects* tiargs = null; // initial list of template arguments
         Expression ethis = null;
         Type tthis = null;
         Expression e1org = e1;
+
         if (e1.op == TOKcomma)
         {
             /* Rewrite (a,b)(args) as (a,(b(args)))
@@ -8872,20 +8873,10 @@ public:
             e1 = new DotVarExp(de.loc, de.e1, de.func);
             return semantic(sc);
         }
-        if (e1.op == TOKfunction)
-        {
-            if (arrayExpressionSemantic(arguments, sc) || preFunctionParameters(loc, sc, arguments))
-            {
-                return new ErrorExp();
-            }
-            // Run e1 semantic even if arguments have any errors
-            FuncExp fe = cast(FuncExp)e1;
-            e1 = fe.semantic(sc, arguments);
-            if (e1.op == TOKerror)
-                return e1;
-        }
+
         if (Expression ex = resolveUFCS(sc, this))
             return ex;
+
         /* This recognizes:
          *  foo!(tiargs)(funcargs)
          */
@@ -8899,7 +8890,8 @@ public:
                  * If not, go with partial explicit specialization.
                  */
                 WithScopeSymbol withsym;
-                if (!ti.findTempDecl(sc, &withsym) || !ti.semanticTiargs(sc))
+                if (!ti.findTempDecl(sc, &withsym) ||
+                    !ti.semanticTiargs(sc))
                 {
                     return new ErrorExp();
                 }
@@ -8931,6 +8923,7 @@ public:
                 }
             }
         }
+
         /* This recognizes:
          *  expr.foo!(tiargs)(funcargs)
          */
@@ -8943,7 +8936,8 @@ public:
                 /* Attempt to instantiate ti. If that works, go with it.
                  * If not, go with partial explicit specialization.
                  */
-                if (!se.findTempDecl(sc) || !ti.semanticTiargs(sc))
+                if (!se.findTempDecl(sc) ||
+                    !ti.semanticTiargs(sc))
                 {
                     return new ErrorExp();
                 }
@@ -8971,6 +8965,7 @@ public:
                 }
             }
         }
+
     Lagain:
         //printf("Lagain: %s\n", toChars());
         f = null;
@@ -9007,6 +9002,7 @@ public:
                 if (ex)
                     return ex;
             }
+
             /* Look for e1 being a lazy parameter
              */
             if (e1.op == TOKvar)
@@ -9026,6 +9022,7 @@ public:
                 if (v && ve.checkPurity(sc, v))
                     return new ErrorExp();
             }
+
             if (e1.op == TOKscope)
             {
                 // Perhaps this should be moved to ScopeExp::semantic()
@@ -9041,6 +9038,7 @@ public:
             else if (e1.op == TOKdot)
             {
                 DotExp de = cast(DotExp)e1;
+
                 if (de.e2.op == TOKoverloadset)
                 {
                     ethis = de.e1;
@@ -9065,13 +9063,17 @@ public:
                 e1 = (cast(PtrExp)e1).e1;
             }
         }
+
         t1 = e1.type ? e1.type.toBasetype() : null;
+
         if (e1.op == TOKerror)
             return e1;
-        if (arrayExpressionSemantic(arguments, sc) || preFunctionParameters(loc, sc, arguments))
+        if (arrayExpressionSemantic(arguments, sc) ||
+            preFunctionParameters(loc, sc, arguments))
         {
             return new ErrorExp();
         }
+
         // Check for call operator overload
         if (t1)
         {
@@ -9081,16 +9083,19 @@ public:
                 sd.size(loc); // Resolve forward references to construct object
                 if (sd.sizeok != SIZEOKdone)
                     return new ErrorExp();
+
                 // First look for constructor
                 if (e1.op == TOKtype && sd.ctor)
                 {
                     if (!sd.noDefaultCtor && !(arguments && arguments.dim))
                         goto Lx;
+
                     auto sle = new StructLiteralExp(loc, sd, null, e1.type);
                     if (!sd.fill(loc, sle.elements, true))
                         return new ErrorExp();
                     if (checkFrameAccess(loc, sc, sd, sle.elements.dim))
                         return new ErrorExp();
+
                     // Bugzilla 14556: Set concrete type to avoid further redundant semantic().
                     sle.type = e1.type;
 
@@ -9134,6 +9139,7 @@ public:
                     error("%s %s does not overload ()", sd.kind(), sd.toChars());
                     return new ErrorExp();
                 }
+
                 /* It's a struct literal
                  */
             Lx:
@@ -9172,17 +9178,23 @@ public:
                 return e;
             }
         }
-        if (e1.op == TOKdotvar && t1.ty == Tfunction || e1.op == TOKdottd)
+
+        if (e1.op == TOKdotvar && t1.ty == Tfunction ||
+            e1.op == TOKdottd)
         {
             UnaExp ue = cast(UnaExp)e1;
+
             Expression ue1 = ue.e1;
             Expression ue1old = ue1; // need for 'right this' check
             VarDeclaration v;
-            if (ue1.op == TOKvar && (v = (cast(VarExp)ue1).var.isVarDeclaration()) !is null && v.needThis())
+            if (ue1.op == TOKvar &&
+                (v = (cast(VarExp)ue1).var.isVarDeclaration()) !is null &&
+                v.needThis())
             {
                 ue.e1 = new TypeExp(ue1.loc, ue1.type);
                 ue1 = null;
             }
+
             DotVarExp dve;
             DotTemplateExp dte;
             Dsymbol s;
@@ -9199,10 +9211,12 @@ public:
                 dte = cast(DotTemplateExp)e1;
                 s = dte.td;
             }
+
             // Do overload resolution
             f = resolveFuncCall(loc, sc, s, tiargs, ue1 ? ue1.type : null, arguments);
             if (!f || f.errors || f.type.ty == Terror)
                 return new ErrorExp();
+
             if (f.needThis())
             {
                 AggregateDeclaration ad = f.toParent2().isAggregateDeclaration();
@@ -9212,6 +9226,7 @@ public:
                 ethis = ue.e1;
                 tthis = ue.e1.type;
             }
+
             /* Cannot call public functions from inside invariant
              * (because then the invariant would have infinite recursion)
              */
@@ -9220,6 +9235,7 @@ public:
                 error("cannot call public/export function %s from invariant", f.toChars());
                 return new ErrorExp();
             }
+
             checkDeprecated(sc, f);
             checkPurity(sc, f);
             checkSafety(sc, f);
@@ -9259,6 +9275,7 @@ public:
                     printf("e1 = %s\n", e1.toChars());
                     printf("e1->type = %s\n", e1.type.toChars());
                 }
+
                 // See if we need to adjust the 'this' pointer
                 AggregateDeclaration ad = f.isThis();
                 ClassDeclaration cd = ue.e1.type.isClassHandle();
@@ -9273,6 +9290,7 @@ public:
                         directcall = true;
                     else if ((cd.storage_class & STCfinal) != 0) // Bugzilla 14211
                         directcall = true;
+
                     if (ad != cd)
                     {
                         ue.e1 = ue.e1.castTo(sc, ad.type.addMod(ue.e1.type.mod));
@@ -9286,6 +9304,7 @@ public:
         {
             // Base class constructor call
             ClassDeclaration cd = null;
+
             if (sc.func && sc.func.isThis())
                 cd = sc.func.isThis().isClassDeclaration();
             if (!cd || !cd.baseClass || !sc.func.isCtorDeclaration())
@@ -9298,6 +9317,7 @@ public:
                 error("no super class constructor for %s", cd.baseClass.toChars());
                 return new ErrorExp();
             }
+
             if (!sc.intypeof && !(sc.callSuper & CSXhalt))
             {
                 if (sc.noctor || sc.callSuper & CSXlabel)
@@ -9308,6 +9328,7 @@ public:
                     error("an earlier return statement skips constructor");
                 sc.callSuper |= CSXany_ctor | CSXsuper_ctor;
             }
+
             tthis = cd.type.addMod(sc.func.type.mod);
             f = resolveFuncCall(loc, sc, cd.baseClass.ctor, null, tthis, arguments, 0);
             if (!f || f.errors)
@@ -9317,6 +9338,7 @@ public:
             checkSafety(sc, f);
             checkNogc(sc, f);
             checkAccess(loc, sc, null, f);
+
             e1 = new DotVarExp(e1.loc, e1, f);
             e1 = e1.semantic(sc);
             t1 = e1.type;
@@ -9325,6 +9347,7 @@ public:
         {
             // same class constructor call
             AggregateDeclaration cd = null;
+
             if (sc.func && sc.func.isThis())
                 cd = sc.func.isThis().isAggregateDeclaration();
             if (!cd || !sc.func.isCtorDeclaration())
@@ -9332,6 +9355,7 @@ public:
                 error("constructor call must be in a constructor");
                 return new ErrorExp();
             }
+
             if (!sc.intypeof && !(sc.callSuper & CSXhalt))
             {
                 if (sc.noctor || sc.callSuper & CSXlabel)
@@ -9342,6 +9366,7 @@ public:
                     error("an earlier return statement skips constructor");
                 sc.callSuper |= CSXany_ctor | CSXthis_ctor;
             }
+
             tthis = cd.type.addMod(sc.func.type.mod);
             f = resolveFuncCall(loc, sc, cd.ctor, null, tthis, arguments, 0);
             if (!f || f.errors)
@@ -9351,9 +9376,11 @@ public:
             checkSafety(sc, f);
             checkNogc(sc, f);
             //checkAccess(loc, sc, NULL, f);    // necessary?
+
             e1 = new DotVarExp(e1.loc, e1, f);
             e1 = e1.semantic(sc);
             t1 = e1.type;
+
             // BUG: this should really be done by checking the static
             // call graph
             if (f == sc.func)
@@ -9416,8 +9443,17 @@ public:
             const(char)* p;
             Dsymbol s;
             f = null;
+
             if (e1.op == TOKfunction)
             {
+                // Run e1 semantic even if arguments have any errors
+                auto fe = cast(FuncExp)e1;
+                e1 = fe.semantic(sc, arguments);
+                if (e1.op == TOKerror)
+                    return e1;
+                assert(e1.op == TOKfunction);
+                t1 = e1.type ? e1.type.toBasetype() : null;
+
                 // function literal that direct called is always inferred.
                 assert((cast(FuncExp)e1).fd);
                 f = (cast(FuncExp)e1).fd;
@@ -9436,7 +9472,8 @@ public:
                 tf = cast(TypeFunction)(cast(TypePointer)t1).next;
                 p = "function pointer";
             }
-            else if (e1.op == TOKdotvar && (cast(DotVarExp)e1).var.isOverDeclaration())
+            else if (e1.op == TOKdotvar &&
+                     (cast(DotVarExp)e1).var.isOverDeclaration())
             {
                 DotVarExp dve = cast(DotVarExp)e1;
                 f = resolveFuncCall(loc, sc, dve.var, tiargs, dve.e1.type, arguments, 2);
@@ -9453,7 +9490,8 @@ public:
                 Expression e = new CommaExp(loc, dve.e1, this);
                 return e.semantic(sc);
             }
-            else if (e1.op == TOKvar && (cast(VarExp)e1).var.isOverDeclaration())
+            else if (e1.op == TOKvar &&
+                     (cast(VarExp)e1).var.isOverDeclaration())
             {
                 s = (cast(VarExp)e1).var;
                 goto L2;
@@ -9488,6 +9526,7 @@ public:
                 error("function expected before (), not %s of type %s", e1.toChars(), e1.type.toChars());
                 return new ErrorExp();
             }
+
             if (!tf.callMatch(null, arguments))
             {
                 OutBuffer buf;
@@ -9496,8 +9535,12 @@ public:
                 buf.writeByte(')');
                 if (tthis)
                     tthis.modToBuffer(&buf);
+
                 //printf("tf = %s, args = %s\n", tf->deco, (*arguments)[0]->type->deco);
-                .error(loc, "%s %s %s is not callable using argument types %s", p, e1.toChars(), parametersTypeToChars(tf.parameters, tf.varargs), buf.peekString());
+                .error(loc, "%s %s %s is not callable using argument types %s",
+                    p, e1.toChars(), parametersTypeToChars(tf.parameters, tf.varargs),
+                    buf.peekString());
+
                 return new ErrorExp();
             }
             // Purity and safety check should run after testing arguments matching
@@ -9514,22 +9557,26 @@ public:
                 bool err = false;
                 if (!tf.purity && !(sc.flags & SCOPEdebug) && sc.func.setImpure())
                 {
-                    error("pure function '%s' cannot call impure %s '%s'", sc.func.toPrettyChars(), p, e1.toChars());
+                    error("pure function '%s' cannot call impure %s '%s'",
+                        sc.func.toPrettyChars(), p, e1.toChars());
                     err = true;
                 }
                 if (!tf.isnogc && sc.func.setGC())
                 {
-                    error("@nogc function '%s' cannot call non-@nogc %s '%s'", sc.func.toPrettyChars(), p, e1.toChars());
+                    error("@nogc function '%s' cannot call non-@nogc %s '%s'",
+                        sc.func.toPrettyChars(), p, e1.toChars());
                     err = true;
                 }
                 if (tf.trust <= TRUSTsystem && sc.func.setUnsafe())
                 {
-                    error("safe function '%s' cannot call system %s '%s'", sc.func.toPrettyChars(), p, e1.toChars());
+                    error("safe function '%s' cannot call system %s '%s'",
+                        sc.func.toPrettyChars(), p, e1.toChars());
                     err = true;
                 }
                 if (err)
                     return new ErrorExp();
             }
+
             if (t1.ty == Tpointer)
             {
                 Expression e = new PtrExp(loc, e1);
@@ -9542,9 +9589,11 @@ public:
         {
             // Do overload resolution
             VarExp ve = cast(VarExp)e1;
+
             f = ve.var.isFuncDeclaration();
             assert(f);
             tiargs = null;
+
             if (ve.hasOverloads)
                 f = resolveFuncCall(loc, sc, f, tiargs, null, arguments, 2);
             else
@@ -9557,18 +9606,24 @@ public:
                     buf.writeByte('(');
                     argExpTypesToCBuffer(&buf, arguments);
                     buf.writeByte(')');
+
                     //printf("tf = %s, args = %s\n", tf->deco, (*arguments)[0]->type->deco);
-                    .error(loc, "%s %s is not callable using argument types %s", e1.toChars(), parametersTypeToChars(tf.parameters, tf.varargs), buf.peekString());
+                    .error(loc, "%s %s is not callable using argument types %s",
+                        e1.toChars(), parametersTypeToChars(tf.parameters, tf.varargs),
+                        buf.peekString());
+
                     f = null;
                 }
             }
             if (!f || f.errors)
                 return new ErrorExp();
+
             if (f.needThis())
             {
                 // Change the ancestor lambdas to delegate before hasThis(sc) call.
                 if (f.checkNestedReference(sc, loc))
                     return new ErrorExp();
+
                 if (hasThis(sc))
                 {
                     // Supply an implicit 'this', as in
@@ -9582,6 +9637,7 @@ public:
                     return new ErrorExp();
                 }
             }
+
             checkDeprecated(sc, f);
             checkPurity(sc, f);
             checkSafety(sc, f);
@@ -9589,8 +9645,10 @@ public:
             checkAccess(loc, sc, null, f);
             if (f.checkNestedReference(sc, loc))
                 return new ErrorExp();
+
             ethis = null;
             tthis = null;
+
             if (ve.hasOverloads)
             {
                 e1 = new VarExp(ve.loc, f, 0);
@@ -9599,17 +9657,20 @@ public:
             t1 = f.type;
         }
         assert(t1.ty == Tfunction);
+
         Expression argprefix;
         if (!arguments)
             arguments = new Expressions();
         if (functionParameters(loc, sc, cast(TypeFunction)t1, tthis, arguments, f, &type, &argprefix))
             return new ErrorExp();
+
         if (!type)
         {
             e1 = e1org; // Bugzilla 10922, avoid recursive expression printing
             error("forward reference to inferred return type of function call %s", toChars());
             return new ErrorExp();
         }
+
         if (f && f.tintro)
         {
             Type t = type;
@@ -9621,11 +9682,14 @@ public:
                 return combine(argprefix, castTo(sc, t));
             }
         }
+
         // Handle the case of a direct lambda call
-        if (f && f.isFuncLiteralDeclaration() && sc.func && !sc.intypeof)
+        if (f && f.isFuncLiteralDeclaration() &&
+            sc.func && !sc.intypeof)
         {
             f.tookAddressOf = 0;
         }
+
         return combine(argprefix, this);
     }
 
@@ -9637,8 +9701,10 @@ public:
         if (tb.ty == Tfunction && (cast(TypeFunction)tb).isref)
         {
             if (e1.op == TOKdotvar)
+            {
                 if ((cast(DotVarExp)e1).var.isCtorDeclaration())
                     return false;
+            }
             return true; // function returns a reference
         }
         return false;
@@ -9656,12 +9722,14 @@ public:
         /* Only need to add dtor hook if it's a type that needs destruction.
          * Use same logic as VarDeclaration::callScopeDtor()
          */
+
         if (e1.type && e1.type.ty == Tfunction)
         {
             TypeFunction tf = cast(TypeFunction)e1.type;
             if (tf.isref)
                 return this;
         }
+
         Type tv = type.baseElemOf();
         if (tv.ty == Tstruct)
         {

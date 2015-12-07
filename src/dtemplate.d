@@ -4203,31 +4203,37 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
 
         override void visit(FuncExp e)
         {
-            //printf("e->type = %s, tparam = %s\n", e->type->toChars(), tparam->toChars());
+            //printf("e.type = %s, tparam = %s\n", e.type.toChars(), tparam.toChars());
             if (e.td)
             {
-                Type to = tparam;
+                auto to = tparam;
                 if (!to.nextOf() || to.nextOf().ty != Tfunction)
                     return;
-                TypeFunction tof = cast(TypeFunction)to.nextOf();
+                auto tof = cast(TypeFunction)to.nextOf();
+
                 // Parameter types inference from 'tof'
                 assert(e.td._scope);
-                TypeFunction tf = cast(TypeFunction)e.fd.type;
-                //printf("\ttof = %s\n", tof->toChars());
-                //printf("\ttf  = %s\n", tf->toChars());
+                auto tf = cast(TypeFunction)e.fd.type;
+                //printf("\ttof = %s\n", tof.toChars());
+                //printf("\ttf  = %s\n", tf.toChars());
                 size_t dim = Parameter.dim(tf.parameters);
-                if (Parameter.dim(tof.parameters) != dim || tof.varargs != tf.varargs)
+
+                if (Parameter.dim(tof.parameters) != dim ||
+                    tof.varargs != tf.varargs)
                     return;
+
                 auto tiargs = new Objects();
                 tiargs.reserve(e.td.parameters.dim);
+
                 for (size_t i = 0; i < e.td.parameters.dim; i++)
                 {
-                    TemplateParameter tp = (*e.td.parameters)[i];
+                    auto tp = (*e.td.parameters)[i];
                     size_t u = 0;
                     for (; u < dim; u++)
                     {
                         Parameter p = Parameter.getNth(tf.parameters, u);
-                        if (p.type.ty == Tident && (cast(TypeIdentifier)p.type).ident == tp.ident)
+                        if (p.type.ty == Tident &&
+                            (cast(TypeIdentifier)p.type).ident == tp.ident)
                         {
                             break;
                         }
@@ -4244,13 +4250,17 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                         return;
                     tiargs.push(t);
                 }
+
                 // Set target of return type inference
                 if (!tf.next && tof.next)
                     e.fd.treq = tparam;
+
                 auto ti = new TemplateInstance(e.loc, e.td, tiargs);
-                Expression ex = (new ScopeExp(e.loc, ti)).semantic(e.td._scope);
+                auto ex = (new ScopeExp(e.loc, ti)).semantic(e.td._scope);
+
                 // Reset inference target for the later re-semantic
                 e.fd.treq = null;
+
                 if (ex.op == TOKerror)
                     return;
                 if (ex.op != TOKfunction)
@@ -4258,16 +4268,20 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                 visit(ex.type);
                 return;
             }
+
             Type t = e.type;
+
             if (t.ty == Tdelegate && tparam.ty == Tpointer)
                 return;
+
             // Allow conversion from implicit function pointer to delegate
-            if (e.tok == TOKreserved && t.ty == Tpointer && tparam.ty == Tdelegate)
+            if (e.tok == TOKreserved &&
+                t.ty == Tpointer && tparam.ty == Tdelegate)
             {
                 TypeFunction tf = cast(TypeFunction)t.nextOf();
                 t = (new TypeDelegate(tf)).merge();
             }
-            //printf("tparam = %s <= e->type = %s, t = %s\n", tparam->toChars(), e->type->toChars(), t->toChars());
+            //printf("tparam = %s <= e.type = %s, t = %s\n", tparam.toChars(), e.type.toChars(), t.toChars());
             visit(t);
         }
 
@@ -4497,6 +4511,7 @@ public:
         //printf("TemplateParameter::declareParameter('%s', o = %p)\n", ident.toChars(), o);
         if (auto ea = isExpression(o))
         {
+            //printf("0 ea = %p %s %s\n", ea, Token.toChars(ea.op), ea.toChars());
             if (ea.op == TOKtype)
                 o = ea.type;
             else if (ea.op == TOKscope)
@@ -4510,8 +4525,8 @@ public:
                 auto fe = cast(FuncExp)ea;
                 if (fe.td)
                     o = fe.td;
-                else
-                    o = fe.fd;
+                //else
+                //    o = fe.fd;
             }
         }
         //printf("o = %p\n", o);
@@ -5220,15 +5235,46 @@ public:
     override MATCH matchArg(Scope* sc, RootObject oarg,
         size_t i, TemplateParameters* parameters, Objects* dedtypes)
     {
-        //printf("TemplateAliasParameter::matchArg('%s')\n", ident->toChars());
+        //printf("TemplateAliasParameter::matchArg('%s')\n", ident.toChars());
         MATCH m = MATCHexact;
+
         Type ta = isType(oarg);
-        RootObject sa = ta && !ta.deco ? null : getDsymbol(oarg);
+        RootObject sa = isDsymbol(oarg);
         Expression ea = isExpression(oarg);
-        if (ea && (ea.op == TOKthis || ea.op == TOKsuper))
-            sa = (cast(ThisExp)ea).var;
-        else if (ea && ea.op == TOKscope)
-            sa = (cast(ScopeExp)ea).sds;
+        if (ea)
+        {
+            if (ea.op == TOKthis || ea.op == TOKsuper)
+                sa = (cast(ThisExp)ea).var;
+            else if (ea.op == TOKscope)
+                sa = (cast(ScopeExp)ea).sds;
+            else if (ea.op == TOKvar)       // from getDsymbol
+                sa = (cast(VarExp)ea).var;
+            else if (ea.op == TOKfunction)
+            {
+                sa = null;
+                if ((cast(FuncExp)ea).td)
+                    sa = (cast(FuncExp)ea).td;
+                //else
+                //    sa = (cast(FuncExp)ea).fd;
+            }
+        }
+        else if (ta)
+        {
+            if (ta.deco)
+            {
+                /* ta is an actual template argument that is already analyzed
+                 * in TemplateInstance.semanticTiargs().
+                 */
+                sa = ta.toDsymbol(null);
+            }
+            else
+            {
+                /* ta would be either of dummyArg(), specType, or specAlias object.
+                 * This case happens during leastAsSpecialized process.
+                 */
+                //printf("!deco tp = %s [%s], ta = %d %s\n", ident.toChars(), loc.toChars(), ta.ty, ta.toChars());
+            }
+        }
 
         if (sa)
         {
@@ -6834,7 +6880,7 @@ public:
             else if (ea)
             {
             Lexpr:
-                //printf("+[%d] ea = %s %s\n", j, Token::toChars(ea->op), ea->toChars());
+                //printf("+[%d] ea = %s %s\n", j, Token.toChars(ea.op), ea.toChars());
                 if (flags & 1) // only used by __traits
                 {
                     ea = ea.semantic(sc);
@@ -6856,6 +6902,11 @@ public:
                          * match with an 'alias' parameter. Instead, do the
                          * const substitution in TemplateValueParameter::matchArg().
                          */
+                        auto v = (cast(VarExp)ea).var.isVarDeclaration();
+                        if (v && v.storage_class & STCtemplateparameter)
+                        {
+                            ea = ea.optimize(WANTvalue);
+                        }
                     }
                     else if (definitelyValueParameter(ea))
                     {
@@ -6867,7 +6918,7 @@ public:
                             ea = new ErrorExp();
                     }
                 }
-                //printf("-[%d] ea = %s %s\n", j, Token::toChars(ea->op), ea->toChars());
+                //printf("-[%d] ea = %s %s\n", j, Token.toChars(ea.op), ea.toChars());
                 if (ea.op == TOKtuple)
                 {
                     // Expand tuple
