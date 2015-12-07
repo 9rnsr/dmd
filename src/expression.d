@@ -3911,15 +3911,7 @@ public:
         }
         if (auto f = s.isFuncDeclaration())
         {
-            if (auto fld = f.isFuncLiteralDeclaration())
-            {
-                //printf("'%s' is a function literal\n", fld.toChars());
-                e = new FuncExp(loc, fld);
-                e = e.semantic(sc);
-                if (eleft)
-                    e = Expression.combine(eleft, e);
-                return e;
-            }
+            // FuncLiteralDeclaration also be converted to VarExp always.
             f = f.toAliasFunc();
 
             if (!f.functionSemantic())
@@ -4732,34 +4724,30 @@ public:
         this.exps = new Expressions();
 
         this.exps.reserve(tup.objects.dim);
-
-        //assert(tup.isexp || tup.objects.dim == 0);    // todo?
-
-        for (size_t i = 0; i < tup.objects.dim; i++)
+        foreach (o; *tup.objects)
         {
-            RootObject o = (*tup.objects)[i];
-            if (o.dyncast() == DYNCAST_TYPE)
-            {
-                /* DYNCAST_TYPE check should be done before the getDsymbol call,
-                 * because it returns the AggregateDeclaration symbol of Type object
-                 * and completely ignores Type.mod.
-                 */
-                Type t = cast(Type)o;
-                Expression e = new TypeExp(loc, t);
-                this.exps.push(e);
-            }
-            else if (Dsymbol s = getDsymbol(o))
+            if (auto s = isDsymbol(o))      // don"t convert FuncExp to VarExp(fld)
             {
                 /* If tuple element represents a symbol, translate to DsymbolExp
                  * to supply implicit 'this' if needed later.
                  */
-                Expression e = new DsymbolExp(loc, s);
+                auto e = new DsymbolExp(loc, s);
                 this.exps.push(e);
             }
-            else if (o.dyncast() == DYNCAST_EXPRESSION)
+            else if (auto e = isExpression(o))
             {
-                auto e = (cast(Expression)o).copy();
-                e.loc = loc;    // Bugzilla 15669
+                if (e.op == TOKvar)         // from getDsymbol
+                    e = new DsymbolExp(loc, (cast(VarExp)e).var);
+                //else  // from git-head, need to test (TODO)
+                //{
+                //    auto e = (cast(Expression)o).copy();
+                //    e.loc = loc;    // Bugzilla 15669
+                //}
+                this.exps.push(e);
+            }
+            else if (auto t = isType(o))
+            {
+                auto e = new TypeExp(loc, t);
                 this.exps.push(e);
             }
             else
@@ -5606,6 +5594,12 @@ public:
                     ti.inuse--;
                     return e;
                 }
+            }
+            if (auto fld = s.isFuncLiteralDeclaration())
+            {
+                auto td = ti.tempdecl.isTemplateDeclaration();
+                if (td && td.literal)
+                    return (new FuncExp(loc, fld)).semantic(sc);
             }
 
             //printf("s = %s, '%s'\n", s.kind(), s.toChars());

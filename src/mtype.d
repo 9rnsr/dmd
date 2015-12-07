@@ -7168,20 +7168,23 @@ public:
             *pe = new VarExp(loc, v);
             return;
         }
-        if (auto fld = s.isFuncLiteralDeclaration())
+        if (auto f = s.isFuncDeclaration())
         {
-            //printf("'%s' is a function literal\n", fld.toChars());
-            *pe = new FuncExp(loc, fld);
-            *pe = (*pe).semantic(sc);
-            return;
-        }
-        version (none)
-        {
-            if (auto fd = s.isFuncDeclaration())
+            f = f.toAliasFunc();
+            if (!f.functionSemantic())
+                goto Lerror;
+
+            // (TODO) should use checkForwardRef
+            if (!f.type.deco)
             {
-                *pe = new DsymbolExp(loc, fd);
-                return;
+                const(char)* trailMsg = f.inferRetType ? "inferred return type of function call " : "";
+                .error(loc, "forward reference to %s'%s'", trailMsg, f.toChars());
+                goto Lerror;
             }
+            auto fd = s.isFuncDeclaration();
+            fd.type = f.type;
+            *pe = new VarExp(loc, fd, true);
+            return;
         }
 
     L1:

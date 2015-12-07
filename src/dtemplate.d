@@ -4892,19 +4892,22 @@ public:
         //printf("TemplateParameter::declareParameter('%s', o = %p)\n", ident.toChars(), o);
         if (auto ea = isExpression(o))
         {
+            //printf("0 ea = %p %s %s\n", ea, Token.toChars(ea.op), ea.toChars());
             if (ea.op == TOKtype)
                 o = ea.type;
             else if (ea.op == TOKscope)
                 o = (cast(ScopeExp)ea).sds;
             else if (ea.op == TOKthis || ea.op == TOKsuper)
                 o = (cast(ThisExp)ea).var;
+            else if (ea.op == TOKvar)   // for FuncDeclaration
+                o = (cast(VarExp)ea).var;
             else if (ea.op == TOKfunction)
             {
                 auto fe = cast(FuncExp)ea;
                 if (fe.td)
                     o = fe.td;
-                else
-                    o = fe.fd;
+                //else
+                //    o = fe.fd;
             }
         }
         //printf("o = %p\n", o);
@@ -5374,6 +5377,11 @@ public:
 
             ei = new VarExp(loc, f);
             ei = ei.semantic(sc);
+        }
+
+        if (ei.op == TOKvar && (cast(VarExp)ei).var.isFuncDeclaration())
+        {
+            auto oldei = ei;
 
             /* If a function is really property-like, and then
              * it's CTFEable, ei will be a literal expression.
@@ -5493,15 +5501,18 @@ extern (C++) RootObject aliasParameterSemantic(Loc loc, Scope* sc, RootObject o,
 {
     if (o)
     {
-        Expression ea = isExpression(o);
-        Type ta = isType(o);
+        auto ea = isExpression(o);
+        auto ta = isType(o);
         if (ta && (!parameters || !reliesOnTident(ta, parameters)))
         {
-            Dsymbol s = ta.toDsymbol(sc);
-            if (s)
-                o = s;
+            Dsymbol sa;
+            ta.resolve(loc, sc, &ea, &ta, &sa);
+            if (sa)
+                o = sa;
+            else if (ea)
+                o = ea;
             else
-                o = ta.semantic(loc, sc);
+                o = ta;
         }
         else if (ea)
         {
@@ -5609,12 +5620,42 @@ public:
         MATCH m = MATCHexact;
 
         Type ta = isType(oarg);
-        RootObject sa = ta && !ta.deco ? null : getDsymbol(oarg);
+        RootObject sa = isDsymbol(oarg);
         Expression ea = isExpression(oarg);
-        if (ea && (ea.op == TOKthis || ea.op == TOKsuper))
-            sa = (cast(ThisExp)ea).var;
-        else if (ea && ea.op == TOKscope)
-            sa = (cast(ScopeExp)ea).sds;
+        if (ea)
+        {
+            if (ea.op == TOKthis || ea.op == TOKsuper)
+                sa = (cast(ThisExp)ea).var;
+            else if (ea.op == TOKscope)
+                sa = (cast(ScopeExp)ea).sds;
+            else if (ea.op == TOKvar)       // from getDsymbol
+                sa = (cast(VarExp)ea).var;
+            else if (ea.op == TOKfunction)
+            {
+                sa = null;
+                if ((cast(FuncExp)ea).td)
+                    sa = (cast(FuncExp)ea).td;
+                //else
+                //    sa = (cast(FuncExp)ea).fd;
+            }
+        }
+        else if (ta)
+        {
+            if (ta.deco)
+            {
+                /* ta is an actual template argument that is already analyzed
+                 * in TemplateInstance.semanticTiargs().
+                 */
+                sa = ta.toDsymbol(null);
+            }
+            else
+            {
+                /* ta would be either of dummyArg(), specType, or specAlias object.
+                 * This case happens during leastAsSpecialized process.
+                 */
+                //printf("!deco tp = %s [%s], ta = %d %s\n", ident.toChars(), loc.toChars(), ta.ty, ta.toChars());
+            }
+        }
 
         if (sa)
         {
@@ -7314,6 +7355,11 @@ public:
                          * match with an 'alias' parameter. Instead, do the
                          * const substitution in TemplateValueParameter::matchArg().
                          */
+                        auto v = (cast(VarExp)ea).var.isVarDeclaration();
+                        if (v && v.storage_class & STCtemplateparameter)
+                        {
+                            ea = ea.optimize(WANTvalue);
+                        }
                     }
                     else if (definitelyValueParameter(ea))
                     {
