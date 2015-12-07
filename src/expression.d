@@ -3667,6 +3667,7 @@ public:
         return resolve(loc ,sc, s, hasOverloads);
     }
 
+    // Idea: add Dsymbol* ps, then if it's not null, some symbols would be set to the *ps.
     static Expression resolve(Loc loc, Scope *sc, Dsymbol s, bool hasOverloads)
     {
         static if (LOGSEMANTIC)

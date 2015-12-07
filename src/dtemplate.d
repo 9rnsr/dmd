@@ -4511,8 +4511,9 @@ public:
         //printf("TemplateParameter::declareParameter('%s', o = %p)\n", ident.toChars(), o);
         if (auto ea = isExpression(o))
         {
+            // Here is mostly equivalent with TemplateAliasParameter.matchArg()...
             //printf("0 ea = %p %s %s\n", ea, Token.toChars(ea.op), ea.toChars());
-            if (ea.op == TOKtype)
+            if (ea.op == TOKtype)   // TODO: Can be done the TOKtype -> Type conversion in semanticTiargs()?
                 o = ea.type;
             else if (ea.op == TOKscope)
                 o = (cast(ScopeExp)ea).sds;
@@ -4989,6 +4990,12 @@ public:
 
         if (!ei)
         {
+          version (none)
+          {
+            goto Lnomatch;
+          }
+          else  // This part can be removed finally.
+          {
             auto si = isDsymbol(oarg);
             auto f = si ? si.isFuncDeclaration() : null;
             if (!f || !f.fbody || f.needThis())
@@ -4996,6 +5003,7 @@ public:
 
             ei = new VarExp(loc, f);
             ei = ei.semantic(sc);
+          }
         }
 
         if (ei.op == TOKvar && (cast(VarExp)ei).var.isFuncDeclaration())
@@ -5118,6 +5126,34 @@ public:
 
 extern (C++) RootObject aliasParameterSemantic(Loc loc, Scope* sc, RootObject o, TemplateParameters* parameters)
 {
+  version(none)
+  {
+    // after fixing reliesOnTident (fix12748), here can become:
+    if (o && !parameters || !reliesOnTident(o, parameters))
+    {
+        if (auto ta = isType(o))
+        {
+            Dsymbol sa;
+            ta.resolve(loc, sc, &ea, &ta, &sa);
+            if (sa)
+                o = sa;
+            else if (ea)
+                o = ea;
+            else
+                o = ta;
+        }
+        else if (auto ea = isExpression(o))
+        {
+            sc = sc.startCTFE();
+            ea = ea.semantic(sc);
+            sc = sc.endCTFE();
+            o = ea.ctfeInterpret();
+        }
+    }
+    return o;
+  }
+  else
+  {
     if (o)
     {
         auto ea = isExpression(o);
@@ -5142,6 +5178,7 @@ extern (C++) RootObject aliasParameterSemantic(Loc loc, Scope* sc, RootObject o,
         }
     }
     return o;
+  }
 }
 
 /***********************************************************
@@ -5694,15 +5731,18 @@ public:
         }
         auto tempdecl = this.tempdecl.isTemplateDeclaration();
         assert(tempdecl);
+
         // If tempdecl is a mixin, disallow it
         if (tempdecl.ismixin)
         {
             error("mixin templates are not regular templates");
             goto Lerror;
         }
+
         hasNestedArgs(tiargs, tempdecl.isstatic);
         if (errors)
             goto Lerror;
+
         /* See if there is an existing TemplateInstantiation that already
          * implements the typeargs. If so, just refer to that one instead.
          */
@@ -7386,7 +7426,8 @@ public:
     final bool hasNestedArgs(Objects* args, bool isstatic)
     {
         int nested = 0;
-        //printf("TemplateInstance::hasNestedArgs('%s')\n", tempdecl->ident->toChars());
+        //printf("TemplateInstance::hasNestedArgs('%s')\n", tempdecl.ident.toChars());
+
         version (none)
         {
             if (!enclosing)
@@ -7395,6 +7436,7 @@ public:
                     enclosing = ti.enclosing;
             }
         }
+
         /* A nested instance happens when an argument references a local
          * symbol that is on the stack.
          */
@@ -7425,7 +7467,14 @@ public:
                     goto Lsa;
                 }
                 // Emulate Expression::toMangleBuffer call that had exist in TemplateInstance::genIdent.
-                if (ea.op != TOKint64 && ea.op != TOKfloat64 && ea.op != TOKcomplex80 && ea.op != TOKnull && ea.op != TOKstring && ea.op != TOKarrayliteral && ea.op != TOKassocarrayliteral && ea.op != TOKstructliteral)
+                if (ea.op != TOKint64 &&
+                    ea.op != TOKfloat64 &&
+                    ea.op != TOKcomplex80 &&
+                    ea.op != TOKnull &&
+                    ea.op != TOKstring &&
+                    ea.op != TOKarrayliteral &&
+                    ea.op != TOKassocarrayliteral &&
+                    ea.op != TOKstructliteral)
                 {
                     ea.error("expression %s is not a valid template value argument", ea.toChars());
                     errors = true;
@@ -7444,7 +7493,12 @@ public:
                 }
                 TemplateInstance ti = sa.isTemplateInstance();
                 Declaration d = sa.isDeclaration();
-                if ((td && td.literal) || (ti && ti.enclosing) || (d && !d.isDataseg() && !(d.storage_class & STCmanifest) && (!d.isFuncDeclaration() || d.isFuncDeclaration().isNested()) && !isTemplateMixin()))
+                if ((td && td.literal) ||
+                    (ti && ti.enclosing) ||
+                    (d && !d.isDataseg() &&
+                     !(d.storage_class & STCmanifest) &&
+                     (!d.isFuncDeclaration() || d.isFuncDeclaration().isNested()) &&
+                     !isTemplateMixin()))
                 {
                     // if module level template
                     if (isstatic)
@@ -7460,23 +7514,22 @@ public:
                             for (Dsymbol p = enclosing; p; p = p.parent)
                             {
                                 if (p == dparent)
-                                    goto L1;
-                                // enclosing is most nested
+                                    goto L1; // enclosing is most nested
                             }
                             for (Dsymbol p = dparent; p; p = p.parent)
                             {
                                 if (p == enclosing)
                                 {
                                     enclosing = dparent;
-                                    goto L1;
-                                    // dparent is most nested
+                                    goto L1; // dparent is most nested
                                 }
                             }
-                            error("%s is nested in both %s and %s", toChars(), enclosing.toChars(), dparent.toChars());
+                            error("%s is nested in both %s and %s",
+                                toChars(), enclosing.toChars(), dparent.toChars());
                             errors = true;
                         }
                     L1:
-                        //printf("\tnested inside %s\n", enclosing->toChars());
+                        //printf("\tnested inside %s\n", enclosing.toChars());
                         nested |= 1;
                     }
                     else
@@ -7491,7 +7544,7 @@ public:
                 nested |= cast(int)hasNestedArgs(&va.objects, isstatic);
             }
         }
-        //printf("-TemplateInstance::hasNestedArgs('%s') = %d\n", tempdecl->ident->toChars(), nested);
+        //printf("-TemplateInstance::hasNestedArgs('%s') = %d\n", tempdecl.ident.toChars(), nested);
         return nested != 0;
     }
 
@@ -7594,8 +7647,9 @@ public:
      */
     final Identifier genIdent(Objects* args)
     {
-        TemplateDeclaration tempdecl = this.tempdecl.isTemplateDeclaration();
+        auto tempdecl = this.tempdecl.isTemplateDeclaration();
         assert(tempdecl);
+
         //printf("TemplateInstance::genIdent('%s')\n", tempdecl->ident->toChars());
         OutBuffer buf;
         char* id = tempdecl.ident.toChars();
@@ -7609,11 +7663,11 @@ public:
         size_t nparams = tempdecl.parameters.dim - (tempdecl.isVariadic() ? 1 : 0);
         for (size_t i = 0; i < args.dim; i++)
         {
-            RootObject o = (*args)[i];
-            Type ta = isType(o);
-            Expression ea = isExpression(o);
-            Dsymbol sa = isDsymbol(o);
-            Tuple va = isTuple(o);
+            auto o = (*args)[i];
+            auto ta = isType(o);
+            auto ea = isExpression(o);
+            auto sa = isDsymbol(o);
+            auto va = isTuple(o);
             //printf("\to [%d] %p ta %p ea %p sa %p va %p\n", i, o, ta, ea, sa, va);
             if (i < nparams && (*tempdecl.parameters)[i].specialization())
                 buf.writeByte('H'); // Bugzilla 6574
@@ -7668,6 +7722,7 @@ public:
                 ea = ea.ctfeInterpret();
                 if (ea.op == TOKerror || olderr != global.errors)
                     continue;
+
                 /* Use deco that matches what it would be for a function parameter
                  */
                 buf.writestring(ea.type.deco);
@@ -7678,13 +7733,14 @@ public:
             Lsa:
                 buf.writeByte('S');
                 sa = sa.toAlias();
-                Declaration d = sa.isDeclaration();
+                auto d = sa.isDeclaration();
                 if (d && (!d.type || !d.type.deco))
                 {
                     error("forward reference of %s %s", d.kind(), d.toChars());
                     continue;
                 }
                 const(char)* p = mangle(sa);
+
                 /* Bugzilla 3043: if the first character of p is a digit this
                  * causes ambiguity issues because the digits of the two numbers are adjacent.
                  * Current demanglers resolve this by trying various places to separate the
