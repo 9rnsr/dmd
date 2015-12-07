@@ -7109,7 +7109,7 @@ public:
                 *pe = em.getVarExp(loc, sc);
                 return;
             }
-            if (VarDeclaration v = s.isVarDeclaration())
+            if (auto v = s.isVarDeclaration())
             {
                 /* This is mostly same with DsymbolExp::semantic(), but we cannot use it
                  * because some variables used in type context need to prevent lowering
@@ -7146,13 +7146,26 @@ public:
                 *pe = (*pe).semantic(sc);
                 return;
             }
-            version (none)
+            if (auto f = s.isFuncDeclaration())
             {
-                if (FuncDeclaration fd = s.isFuncDeclaration())
+                f = f.toAliasFunc();
+                if (!f.functionSemantic())
                 {
-                    *pe = new DsymbolExp(loc, fd, 1);
+                    *pt = Type.terror;
                     return;
                 }
+
+                if (!f.type.deco)
+                {
+                    const(char)* trailMsg = f.inferRetType ? "inferred return type of function call " : "";
+                    .error(loc, "forward reference to %s'%s'", trailMsg, f.toChars());
+                    *pt = Type.terror;
+                    return;
+                }
+                auto fd = s.isFuncDeclaration();
+                fd.type = f.type;
+                *pe = new VarExp(loc, fd, true);
+                return;
             }
 
         L1:

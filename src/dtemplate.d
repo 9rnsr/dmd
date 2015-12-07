@@ -4503,6 +4503,8 @@ public:
                 o = (cast(ScopeExp)ea).sds;
             else if (ea.op == TOKthis || ea.op == TOKsuper)
                 o = (cast(ThisExp)ea).var;
+            else if (ea.op == TOKvar)   // for FuncDeclaration
+                o = (cast(VarExp)ea).var;
             else if (ea.op == TOKfunction)
             {
                 auto fe = cast(FuncExp)ea;
@@ -4979,6 +4981,11 @@ public:
 
             ei = new VarExp(loc, f);
             ei = ei.semantic(sc);
+        }
+
+        if (ei.op == TOKvar && (cast(VarExp)ei).var.isFuncDeclaration())
+        {
+            auto oldei = ei;
 
             /* If a function is really property-like, and then
              * it's CTFEable, ei will be a literal expression.
@@ -5098,15 +5105,18 @@ extern (C++) RootObject aliasParameterSemantic(Loc loc, Scope* sc, RootObject o,
 {
     if (o)
     {
-        Expression ea = isExpression(o);
-        Type ta = isType(o);
+        auto ea = isExpression(o);
+        auto ta = isType(o);
         if (ta && (!parameters || !reliesOnTident(ta, parameters)))
         {
-            Dsymbol s = ta.toDsymbol(sc);
-            if (s)
-                o = s;
+            Dsymbol sa;
+            ta.resolve(loc, sc, &ea, &ta, &sa);
+            if (sa)
+                o = sa;
+            else if (ea)
+                o = ea;
             else
-                o = ta.semantic(loc, sc);
+                o = ta;
         }
         else if (ea)
         {
@@ -5272,14 +5282,14 @@ public:
         {
             if (sa == sdummy)
                 goto Lnomatch;
-            Dsymbol sx = isDsymbol(sa);
+            auto sx = isDsymbol(sa);
             if (sa != specAlias && sx)
             {
                 Type talias = isType(specAlias);
                 if (!talias)
                     goto Lnomatch;
 
-                TemplateInstance ti = sx.isTemplateInstance();
+                auto ti = sx.isTemplateInstance();
                 if (!ti && sx.parent)
                 {
                     ti = sx.parent.isTemplateInstance();
