@@ -6046,6 +6046,10 @@ public:
                 f = fd.overloadModMatch(loc, null, hasOverloads);
                 if (!f && !hasOverloads)    // no match
                     return new ErrorExp();
+                //if (f)                      // better or exact match
+                //    fd = f;
+                //if (!hasOverloads)          // exact match
+                //    var = f;
             }
             type = (f ? f.type : Type.tambig);
         }
@@ -8379,6 +8383,7 @@ public:
              * normalize AST, and it will give a chance to wrap fd with FuncExp.
              */
             if (fd.isNested() || fd.isFuncLiteralDeclaration())
+            //if (!hasOverloads && !f.needThis())   // todo
             {
                 // (e1, fd)
                 auto e = DsymbolExp.resolve(loc, sc, f, false);
@@ -9909,6 +9914,7 @@ public:
             if (auto fd = dve.var.isFuncDeclaration())
             {
                 if (!dve.hasOverloads)
+                //if (!dve.hasOverloads || !dve.type.isAmbiguous())     // get a better match then increment its address counter?
                     fd.tookAddressOf++;
 
                 Expression e;
@@ -9949,7 +9955,8 @@ public:
                  * may not be called with an exact match.
                  * TODO: If a nested function is mixed-in, it could have overloads.
                  */
-                if (!ve.hasOverloads || fd.isNested())
+                if (!ve.hasOverloads || fd.isNested())  // todo, nested function may have overloads wehn it's mixed-in.
+                //if (!ve.hasOverloads || !ve.type.isAmbiguous()) // get a better match then increment its address counter?
                     fd.tookAddressOf++;
                 if (fd.isNested())
                 {
