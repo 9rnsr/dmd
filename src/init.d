@@ -8,6 +8,7 @@
 
 module ddmd.init;
 
+import core.stdc.stdio;
 import ddmd.aggregate;
 import ddmd.arraytypes;
 import ddmd.dcast;
@@ -519,7 +520,7 @@ public:
         const(uint) amax = 0x80000000;
         bool errors = false;
 
-        //printf("ArrayInitializer::semantic(%s)\n", t->toChars());
+        //printf("ArrayInitializer::semantic(%s)\n", t.toChars());
         if (sem) // if semantic() already run
             return this;
         sem = true;
@@ -889,7 +890,7 @@ public:
             exp = exp.optimize(WANTvalue);
         }
         if (!global.gag && olderrors != global.errors)
-            return this; // Failed, suppress duplicate error messages
+            return new ErrorInitializer();
 
         if (exp.type.ty == Ttuple && (cast(TypeTuple)exp.type).arguments.dim == 0)
         {
@@ -924,7 +925,7 @@ public:
          */
         if (exp.op == TOKstring && tb.ty == Tsarray)
         {
-            StringExp se = cast(StringExp)exp;
+            auto se = cast(StringExp)exp;
             Type typeb = se.type.toBasetype();
             TY tynto = tb.nextOf().ty;
             if (!se.committed &&
@@ -942,7 +943,7 @@ public:
             !(ti.ty == Tstruct && tb.toDsymbol(sc) == ti.toDsymbol(sc)) &&
             !exp.implicitConvTo(t))
         {
-            StructDeclaration sd = (cast(TypeStruct)tb).sym;
+            auto sd = (cast(TypeStruct)tb).sym;
             if (sd.ctor)
             {
                 // Rewrite as S().ctor(exp)
@@ -1004,7 +1005,7 @@ public:
         }
     L1:
         if (exp.op == TOKerror)
-            return this;
+            return new ErrorInitializer();
         if (needInterpret)
             exp = exp.ctfeInterpret();
         else

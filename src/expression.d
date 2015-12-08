@@ -3864,18 +3864,14 @@ public:
             if (v.type.ty == Terror)
                 return new ErrorExp();
 
-            if ((v.storage_class & STCmanifest) && v._init)
+            if (v.storage_class & STCmanifest)
             {
                 if (v.inuse)
                 {
                     .error(loc, "circular initialization of %s '%s'", v.kind(), v.toPrettyChars());
                     return new ErrorExp();
                 }
-                e = v.expandInitializer(loc);
-                v.inuse++;
-                e = e.semantic(sc);
-                v.inuse--;
-                return e;
+                eleft = null;
             }
 
             // Change the ancestor lambdas to delegate before hasThis(sc) call.
@@ -9270,19 +9266,27 @@ public:
             if (e1.op == TOKvar)
             {
                 auto ve = cast(VarExp)e1;
-                if (ve.var.storage_class & STClazy)
+                if (auto v = ve.var.isVarDeclaration())
                 {
-                    // lazy paramaters can be called without violating purity and safety
-                    Type tw = ve.var.type;
-                    Type tc = ve.var.type.substWildTo(MODconst);
-                    auto tf = new TypeFunction(null, tc, 0, LINKd, STCsafe | STCpure);
-                    (tf = cast(TypeFunction)tf.semantic(loc, sc)).next = tw; // hack for bug7757
-                    auto t = new TypeDelegate(tf);
-                    ve.type = t.semantic(loc, sc);
+                    if (ve.checkPurity(sc, v))
+                        return new ErrorExp();
+                    if (v.storage_class & STClazy)
+                    {
+                        // lazy paramaters can be called without violating purity and safety
+                        Type tw = v.type;
+                        Type tc = v.type.substWildTo(MODconst);
+                        auto tf = new TypeFunction(null, tc, 0, LINKd, STCsafe | STCpure);
+                        (tf = cast(TypeFunction)tf.semantic(loc, sc)).next = tw; // hack for bug7757
+                        auto t = new TypeDelegate(tf);
+                        ve.type = t.semantic(loc, sc);
+                    }
+                    else if (v.storage_class & STCtemplateparameter)
+                    {
+                        // If the tmeplate argument is FuncExp, it should be inlined.
+                        // Necessary for: runnable/template9.d test7585()
+                        e1 = e1.optimize(WANTvalue);
+                    }
                 }
-                auto v = ve.var.isVarDeclaration();
-                if (v && ve.checkPurity(sc, v))
-                    return new ErrorExp();
             }
 
             if (e1.op == TOKsymoff && (cast(SymOffExp)e1).hasOverloads)

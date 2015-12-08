@@ -725,7 +725,14 @@ extern (C++) Expression ctfeInterpret(Expression e)
     Expression result = interpret(e, null);
 
     if (!CTFEExp.isCantExp(result))
+    {
         result = scrubReturnValue(e.loc, result);
+        if (result.loc != e.loc)
+        {
+            result = result.copy();
+            result.loc = e.loc;
+        }
+    }
     if (CTFEExp.isCantExp(result))
         result = new ErrorExp();
 

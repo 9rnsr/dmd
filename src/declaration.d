@@ -1645,6 +1645,8 @@ public:
                 {
                     // Bugzilla 14166: Don't run CTFE for the temporary variables inside typeof
                     _init = _init.semantic(sc, type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
+                    if (_init.isErrorInitializer())
+                        type = Type.terror;
                 }
             }
             else if (parent.isAggregateDeclaration())
@@ -1881,34 +1883,36 @@ public:
             _init = _init.semantic(sc, type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
             inuse--;
         }
-        if (storage_class & STCmanifest)
+        if ((storage_class & STCmanifest) && _init)
         {
             version (none)
             {
-                if ((type.ty == Tclass) && type.isMutable())
+                if (type.ty == Tclass && type.isMutable())
                 {
                     error("is mutable. Only const and immutable class enum are allowed, not %s", type.toChars());
                 }
-                else if (type.ty == Tpointer && type.nextOf().ty == Tstruct && type.nextOf().isMutable())
+                else if (type.ty == Tpointer && type.nextOf().ty == Tstruct &&
+                         type.nextOf().isMutable())
                 {
-                    ExpInitializer ei = _init.isExpInitializer();
+                    auto ei = _init.isExpInitializer();
                     if (ei.exp.op == TOKaddress && (cast(AddrExp)ei.exp).e1.op == TOKstructliteral)
                     {
-                        error("is a pointer to mutable struct. Only pointers to const or immutable struct enum are allowed, not %s", type.toChars());
+                        error("is a pointer to mutable struct. Only pointers to const or immutable struct enum are allowed, not %s",
+                            type.toChars());
                     }
                 }
             }
             else
             {
-                if (type.ty == Tclass && _init)
+                if (type.ty == Tclass)
                 {
-                    ExpInitializer ei = _init.isExpInitializer();
-                    if (ei.exp.op == TOKclassreference)
+                    auto ei = _init.isExpInitializer();
+                    if (ei && ei.exp.op == TOKclassreference)
                         error(": Unable to initialize enum with class or pointer to struct. Use static const variable instead.");
                 }
                 else if (type.ty == Tpointer && type.nextOf().ty == Tstruct)
                 {
-                    ExpInitializer ei = _init.isExpInitializer();
+                    auto ei = _init.isExpInitializer();
                     if (ei && ei.exp.op == TOKaddress && (cast(AddrExp)ei.exp).e1.op == TOKstructliteral)
                     {
                         error(": Unable to initialize enum with class or pointer to struct. Use static const variable instead.");
@@ -1918,15 +1922,17 @@ public:
         }
         else if (_init && isThreadlocal())
         {
-            if ((type.ty == Tclass) && type.isMutable() && !type.isShared())
+            if (type.ty == Tclass &&
+                type.isMutable() && !type.isShared())
             {
-                ExpInitializer ei = _init.isExpInitializer();
+                auto ei = _init.isExpInitializer();
                 if (ei && ei.exp.op == TOKclassreference)
                     error("is mutable. Only const or immutable class thread local variable are allowed, not %s", type.toChars());
             }
-            else if (type.ty == Tpointer && type.nextOf().ty == Tstruct && type.nextOf().isMutable() && !type.nextOf().isShared())
+            else if (type.ty == Tpointer && type.nextOf().ty == Tstruct &&
+                     type.nextOf().isMutable() && !type.nextOf().isShared())
             {
-                ExpInitializer ei = _init.isExpInitializer();
+                auto ei = _init.isExpInitializer();
                 if (ei && ei.exp.op == TOKaddress && (cast(AddrExp)ei.exp).e1.op == TOKstructliteral)
                 {
                     error("is a pointer to mutable struct. Only pointers to const, immutable or shared struct thread local variable are allowed, not %s", type.toChars());

@@ -2522,6 +2522,13 @@ public:
         }
         if (ident == Id.stringof)
         {
+            if (v && (v.storage_class & STCmanifest) && !v.isEnumMember())
+            {
+                // keep backward compatibility
+                e = v.expandInitializer(e.loc);
+                e = e.semantic(sc);
+            }
+
             /* Bugzilla 3796: this should demangle e->type->deco rather than
              * pretty-printing the type.
              */
@@ -7905,7 +7912,7 @@ public:
             if (v.type.ty == Terror)
                 return new ErrorExp();
 
-            if ((v.storage_class & STCmanifest) && v._init)
+            if (v.storage_class & STCmanifest)
             {
                 if (v.inuse)
                 {
@@ -7913,6 +7920,7 @@ public:
                     return new ErrorExp();
                 }
                 checkAccess(e.loc, sc, null, v);
+
                 Expression ve = new VarExp(e.loc, v);
                 ve = ve.semantic(sc);
                 return ve;
@@ -8807,7 +8815,7 @@ public:
             if (v.type.ty == Terror)
                 return new ErrorExp();
 
-            if ((v.storage_class & STCmanifest) && v._init)
+            if (v.storage_class & STCmanifest)
             {
                 if (v.inuse)
                 {
@@ -8815,6 +8823,7 @@ public:
                     return new ErrorExp();
                 }
                 checkAccess(e.loc, sc, null, v);
+
                 Expression ve = new VarExp(e.loc, v);
                 ve = ve.semantic(sc);
                 return ve;
