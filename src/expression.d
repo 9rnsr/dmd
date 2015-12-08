@@ -9913,15 +9913,39 @@ public:
             auto dve = cast(DotVarExp)e1;
             if (auto fd = dve.var.isFuncDeclaration())
             {
+                auto f = fd;
                 if (!dve.hasOverloads)
-                //if (!dve.hasOverloads || !dve.type.isAmbiguous())     // get a better match then increment its address counter?
+                {
+                    f = fd.toAliasFunc();
+                    assert(f == fd);        // might need fixing DotVarExp.semantic
                     fd.tookAddressOf++;
+                }
+                else if (!dve.type.isAmbiguous())
+                {
+                    f = fd.overloadExactMatch(dve.type);
+                    f.tookAddressOf++;
+                }
 
-                Expression e;
-                if (dve.hasOverloads || fd.needThis())
-                    e = new DelegateExp(loc, dve.e1, fd, dve.hasOverloads);
-                else // It is a function pointer. Convert &v.f() --> (v, &V.f())
-                    e = new CommaExp(loc, dve.e1, new AddrExp(loc, new VarExp(loc, fd)));
+                if (!dve.hasOverloads)
+                {
+                    if (f.isNested())
+                    {
+                        Expression ethis = new NullExp(loc, Type.tnull);
+                        Expression e = new DelegateExp(loc, ethis, f);
+                        e = e.semantic(sc);
+                        return e;
+                    }
+                    if (!f.needThis())
+                    {
+                        // It is a function pointer. Convert &v.f --> (v, &V.f)
+                        Expression e = new AddrExp(loc, new VarExp(loc, f));
+                        e = new CommaExp(loc, dve.e1, e);
+                        e = e.semantic(sc);
+                        return e;
+                    }
+                }
+
+                Expression e = new DelegateExp(loc, dve.e1, fd, dve.hasOverloads);
                 e = e.semantic(sc);
                 return e;
             }
