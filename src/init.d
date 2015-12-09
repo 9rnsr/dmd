@@ -591,7 +591,7 @@ public:
             // found a tuple, expand it
             if (ei && ei.exp.op == TOKtuple)
             {
-                TupleExp te = cast(TupleExp)ei.exp;
+                auto te = cast(TupleExp)ei.exp;
                 index.remove(i);
                 value.remove(i);
 
@@ -822,7 +822,7 @@ public:
 
         if (exp.op == TOKscope)
         {
-            ScopeExp se = cast(ScopeExp)exp;
+            auto se = cast(ScopeExp)exp;
             TemplateInstance ti = se.sds.isTemplateInstance();
             if (ti && ti.semanticRun == PASSsemantic && !ti.aliasdecl)
                 se.error("cannot infer type from %s %s, possible circular dependency", se.sds.kind(), se.toChars());
@@ -845,7 +845,7 @@ public:
         }
         if (exp.op == TOKaddress)
         {
-            AddrExp ae = cast(AddrExp)exp;
+            auto ae = cast(AddrExp)exp;
             if (ae.e1.op == TOKoverloadset)
             {
                 exp.error("cannot infer type from overloaded function symbol %s", exp.toChars());
@@ -924,7 +924,7 @@ public:
          */
         if (exp.op == TOKstring && tb.ty == Tsarray)
         {
-            StringExp se = cast(StringExp)exp;
+            auto se = cast(StringExp)exp;
             Type typeb = se.type.toBasetype();
             TY tynto = tb.nextOf().ty;
             if (!se.committed &&
@@ -985,7 +985,7 @@ public:
                 uinteger_t dim2 = dim1;
                 if (exp.op == TOKarrayliteral)
                 {
-                    ArrayLiteralExp ale = cast(ArrayLiteralExp)exp;
+                    auto ale = cast(ArrayLiteralExp)exp;
                     dim2 = ale.elements ? ale.elements.dim : 0;
                 }
                 else if (exp.op == TOKslice)
@@ -1059,19 +1059,19 @@ version (all)
             return false;
         if (e.op == TOKstructliteral)
         {
-            StructLiteralExp se = cast(StructLiteralExp)e;
+            auto se = cast(StructLiteralExp)e;
             return arrayHasNonConstPointers(se.elements);
         }
         if (e.op == TOKarrayliteral)
         {
             if (!e.type.nextOf().hasPointers())
                 return false;
-            ArrayLiteralExp ae = cast(ArrayLiteralExp)e;
+            auto ae = cast(ArrayLiteralExp)e;
             return arrayHasNonConstPointers(ae.elements);
         }
         if (e.op == TOKassocarrayliteral)
         {
-            AssocArrayLiteralExp ae = cast(AssocArrayLiteralExp)e;
+            auto ae = cast(AssocArrayLiteralExp)e;
             if (ae.type.nextOf().hasPointers() && arrayHasNonConstPointers(ae.values))
                 return true;
             if ((cast(TypeAArray)ae.type).index.hasPointers())
@@ -1080,10 +1080,10 @@ version (all)
         }
         if (e.op == TOKaddress)
         {
-            AddrExp ae = cast(AddrExp)e;
+            auto ae = cast(AddrExp)e;
             if (ae.e1.op == TOKstructliteral)
             {
-                StructLiteralExp se = cast(StructLiteralExp)ae.e1;
+                auto se = cast(StructLiteralExp)ae.e1;
                 if (!(se.stageflags & stageSearchPointers))
                 {
                     int old = se.stageflags;

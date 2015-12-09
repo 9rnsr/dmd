@@ -1431,7 +1431,7 @@ public:
             {
                 foreach (i; 0 .. td.objects.dim)
                 {
-                    DsymbolExp se = cast(DsymbolExp)(*td.objects)[i];
+                    auto se = cast(DsymbolExp)(*td.objects)[i];
                     assert(se.op == TOKdsymbol);
                     scanVar(se.s); // TODO
                 }
@@ -1478,7 +1478,7 @@ public:
         // Look for NRVO, as inlining NRVO function returns require special handling
         if (e.op == TOKconstruct && e.e2.op == TOKcall)
         {
-            CallExp ce = cast(CallExp)e.e2;
+            auto ce = cast(CallExp)e.e2;
             if (ce.f && ce.f.nrvo_can && ce.f.nrvo_var) // NRVO
             {
                 if (e.e1.op == TOKvar)
@@ -1551,7 +1551,7 @@ public:
          */
         if (e.e1.op == TOKvar)
         {
-            VarExp ve = cast(VarExp)e.e1;
+            auto ve = cast(VarExp)e.e1;
             fd = ve.var.isFuncDeclaration();
             if (fd)
                 // delegate call
@@ -1590,7 +1590,7 @@ public:
         }
         else if (e.e1.op == TOKdotvar)
         {
-            DotVarExp dve = cast(DotVarExp)e.e1;
+            auto dve = cast(DotVarExp)e.e1;
             fd = dve.var.isFuncDeclaration();
             if (fd && fd != parent && canInline(fd, true, false, asStatements))
             {
@@ -1610,7 +1610,7 @@ public:
         else if (e.e1.op == TOKstar &&
                  (cast(PtrExp)e.e1).e1.op == TOKvar)
         {
-            VarExp ve = cast(VarExp)(cast(PtrExp)e.e1).e1;
+            auto ve = cast(VarExp)(cast(PtrExp)e.e1).e1;
             VarDeclaration v = ve.var.isVarDeclaration();
             if (v && v._init && onlyOneAssign(v, parent))
             {
@@ -2228,13 +2228,13 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
             {
                 if (arg.op == TOKvar)
                 {
-                    VarExp ve = cast(VarExp)arg;
+                    auto ve = cast(VarExp)arg;
                     if (ve.var.isFuncDeclaration())
                         again = true;
                 }
                 else if (arg.op == TOKsymoff)
                 {
-                    SymOffExp se = cast(SymOffExp)arg;
+                    auto se = cast(SymOffExp)arg;
                     if (se.var.isFuncDeclaration())
                         again = true;
                 }
@@ -2383,7 +2383,7 @@ public Expression inlineCopy(Expression e, Scope* sc)
 
     if (e.op == TOKdelegate)
     {
-        DelegateExp de = cast(DelegateExp)e;
+        auto de = cast(DelegateExp)e;
         if (de.func.isNested())
         {
             /* See Bugzilla 4820

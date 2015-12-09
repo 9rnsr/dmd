@@ -754,7 +754,7 @@ extern (C++) Expression ctfeInterpretForPragmaMsg(Expression e)
     // Tuples need to be treated seperately, since they are
     // allowed to contain a TypeExp in this case.
 
-    TupleExp tup = cast(TupleExp)e;
+    auto tup = cast(TupleExp)e;
     Expressions* expsx = null;
     for (size_t i = 0; i < tup.exps.dim; ++i)
     {
@@ -1275,7 +1275,7 @@ public:
         }
         if (e.op == TOKstructliteral)
         {
-            StructLiteralExp se = cast(StructLiteralExp)e;
+            auto se = cast(StructLiteralExp)e;
             return stopPointersEscapingFromArray(loc, se.elements);
         }
         if (e.op == TOKarrayliteral)
@@ -1284,7 +1284,7 @@ public:
         }
         if (e.op == TOKassocarrayliteral)
         {
-            AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)e;
+            auto aae = cast(AssocArrayLiteralExp)e;
             if (!stopPointersEscapingFromArray(loc, aae.keys))
                 return false;
             return stopPointersEscapingFromArray(loc, aae.values);
@@ -1751,7 +1751,7 @@ public:
         // An exception was thrown
         if (e && e.op == TOKthrownexception)
         {
-            ThrownExceptionExp ex = cast(ThrownExceptionExp)e;
+            auto ex = cast(ThrownExceptionExp)e;
             Type extype = ex.thrown.originalClass().type;
 
             // Search for an appropriate catch clause.
@@ -2322,7 +2322,7 @@ public:
 
                 if (e.op == TOKconstruct || e.op == TOKblit)
                 {
-                    AssignExp ae = cast(AssignExp)e;
+                    auto ae = cast(AssignExp)e;
                     e = ae.e2;
                 }
 
@@ -2388,7 +2388,7 @@ public:
                 }
                 if (e.op == TOKvoid)
                 {
-                    VoidInitExp ve = cast(VoidInitExp)e;
+                    auto ve = cast(VoidInitExp)e;
                     error(loc, "cannot read uninitialized variable %s in ctfe", v.toPrettyChars());
                     errorSupplemental(ve.var.loc, "%s was uninitialized and used before set", ve.var.toChars());
                     return CTFEExp.cantexp;
@@ -3456,7 +3456,7 @@ public:
         {
             while (e1.op == TOKcast)
             {
-                CastExp ce = cast(CastExp)e1;
+                auto ce = cast(CastExp)e1;
                 e1 = ce.e1;
             }
         }
@@ -3479,7 +3479,7 @@ public:
              * (2) If the ultimate AA is null, no insertion happens at all. Instead,
              *     we create nested AA literals, and change it into a assignment.
              */
-            IndexExp ie = cast(IndexExp)e1;
+            auto ie = cast(IndexExp)e1;
             int depth = 0; // how many nested AA indices are there?
             while (ie.e1.op == TOKindex &&
                    (cast(IndexExp)ie.e1).e1.type.toBasetype().ty == Taarray)
@@ -3508,7 +3508,7 @@ public:
                 while (depth > 0)
                 {
                     // Walk the syntax tree to find the indexExp at this depth
-                    IndexExp xe = cast(IndexExp)e1;
+                    auto xe = cast(IndexExp)e1;
                     for (int d = 0; d < depth; ++d)
                         xe = cast(IndexExp)xe.e1;
 
@@ -3630,7 +3630,7 @@ public:
 
             if (e1.op == TOKindex && (cast(IndexExp)e1).e1.type.toBasetype().ty == Taarray)
             {
-                IndexExp ie = cast(IndexExp)e1;
+                auto ie = cast(IndexExp)e1;
                 assert(ie.e1.op == TOKassocarrayliteral);
                 existingAA = cast(AssocArrayLiteralExp)ie.e1;
                 lastIndex = ie.e2;
@@ -3917,7 +3917,7 @@ public:
         }
         else if (e1.op == TOKindex)
         {
-            IndexExp ie = cast(IndexExp)e1;
+            auto ie = cast(IndexExp)e1;
             assert(ie.e1.type.toBasetype().ty != Taarray);
 
             Expression aggregate;
@@ -4067,7 +4067,7 @@ public:
             //   aggregate[] = newval
             //   aggregate[low..upp] = newval
             // ------------------------------
-            SliceExp se = cast(SliceExp)e1;
+            auto se = cast(SliceExp)e1;
             version (all) // should be move in interpretAssignCommon as the evaluation of e1
             {
                 Expression oldval = interpret(se.e1, istate);
@@ -4114,7 +4114,7 @@ public:
             if (aggregate.op == TOKslice)
             {
                 // Slice of a slice --> change the bounds
-                SliceExp oldse = cast(SliceExp)aggregate;
+                auto oldse = cast(SliceExp)aggregate;
                 if (oldse.upr.toInteger() < upperbound + oldse.lwr.toInteger())
                 {
                     e.error("slice [%d..%d] exceeds array bounds [0..%lld]",
@@ -4175,7 +4175,7 @@ public:
 
             if (newval.op == TOKslice)
             {
-                SliceExp se = cast(SliceExp)newval;
+                auto se = cast(SliceExp)newval;
                 Expression aggr2 = se.e1;
                 if (aggregate == aggr2)
                 {
@@ -4234,7 +4234,7 @@ public:
 
             if (newval.op == TOKslice && !isBlockAssignment)
             {
-                SliceExp se = cast(SliceExp)newval;
+                auto se = cast(SliceExp)newval;
                 Expression aggr2 = se.e1;
                 dinteger_t srclower = se.lwr.toInteger();
                 dinteger_t srcupper = se.upr.toInteger();
@@ -4831,7 +4831,7 @@ public:
 
         if (ecall.op == TOKdotvar)
         {
-            DotVarExp dve = cast(DotVarExp)ecall;
+            auto dve = cast(DotVarExp)ecall;
 
             // Calling a member function
             pthis = dve.e1;
@@ -4878,7 +4878,7 @@ public:
         }
         else if (ecall.op == TOKsymoff)
         {
-            SymOffExp soe = cast(SymOffExp)ecall;
+            auto soe = cast(SymOffExp)ecall;
             fd = soe.var.isFuncDeclaration();
             assert(fd && soe.offset == 0);
         }
@@ -5014,7 +5014,7 @@ public:
             (cast(DeclarationExp)e.e1).declaration == (cast(VarExp)e.e2).var &&
             (cast(VarExp)e.e2).var.storage_class & STCctfe)
         {
-            VarExp ve = cast(VarExp)e.e2;
+            auto ve = cast(VarExp)e.e2;
             VarDeclaration v = ve.var.isVarDeclaration();
             ctfeStack.push(v);
             if (!v._init && !getValue(v))
@@ -5515,7 +5515,7 @@ public:
         }
         if (e1.op == TOKslice)
         {
-            SliceExp se = cast(SliceExp)e1;
+            auto se = cast(SliceExp)e1;
             // Simplify slice of slice:
             //  aggregate[lo1..up1][lwr..upr] ---> aggregate[lwr'..upr']
             uinteger_t lo1 = se.lwr.toInteger();
@@ -5835,7 +5835,7 @@ public:
             if (e1.op == TOKindex && !(cast(IndexExp)e1).e1.type.equals(e1.type))
             {
                 // type painting operation
-                IndexExp ie = cast(IndexExp)e1;
+                auto ie = cast(IndexExp)e1;
                 result = new IndexExp(e1.loc, ie.e1, ie.e2);
                 if (castBackFromVoid)
                 {
@@ -5845,7 +5845,7 @@ public:
                     Expression xx = null;
                     if (ie.e1.op == TOKarrayliteral && ie.e2.op == TOKint64)
                     {
-                        ArrayLiteralExp ale = cast(ArrayLiteralExp)ie.e1;
+                        auto ale = cast(ArrayLiteralExp)ie.e1;
                         size_t indx = cast(size_t)ie.e2.toInteger();
                         if (indx < ale.elements.dim)
                             xx = (*ale.elements)[indx];
@@ -5881,7 +5881,7 @@ public:
                 {
                     // &val[idx]
                     dinteger_t dim = (cast(TypeSArray)pointee.toBasetype()).dim.toInteger();
-                    IndexExp ie = cast(IndexExp)(cast(AddrExp)e1).e1;
+                    auto ie = cast(IndexExp)(cast(AddrExp)e1).e1;
                     Expression lwr = ie.e2;
                     Expression upr = new IntegerExp(ie.e2.loc, ie.e2.toInteger() + dim, Type.tsize_t);
 
@@ -5935,7 +5935,7 @@ public:
         {
             // Note that the slice may be void[], so when checking for dangerous
             // casts, we need to use the original type, which is se->e1.
-            SliceExp se = cast(SliceExp)e1;
+            auto se = cast(SliceExp)e1;
             if (!isSafePointerCast(se.e1.type.nextOf(), e.to.nextOf()))
             {
                 e.error("array cast from %s to %s is not supported at compile time",
@@ -6033,16 +6033,16 @@ public:
         // Constant fold *(&structliteral + offset)
         if (e.e1.op == TOKadd)
         {
-            AddExp ae = cast(AddExp)e.e1;
+            auto ae = cast(AddExp)e.e1;
             if (ae.e1.op == TOKaddress && ae.e2.op == TOKint64)
             {
-                AddrExp ade = cast(AddrExp)ae.e1;
+                auto ade = cast(AddrExp)ae.e1;
                 Expression ex = interpret(ade.e1, istate);
                 if (exceptionOrCant(ex))
                     return;
                 if (ex.op == TOKstructliteral)
                 {
-                    StructLiteralExp se = cast(StructLiteralExp)ex;
+                    auto se = cast(StructLiteralExp)ex;
                     dinteger_t offset = ae.e2.toInteger();
                     result = se.getField(e.type, cast(uint)offset);
                     if (result)
@@ -6061,7 +6061,7 @@ public:
             return;
         if (result.op == TOKsymoff)
         {
-            SymOffExp soe = cast(SymOffExp)result;
+            auto soe = cast(SymOffExp)result;
             if (soe.offset == 0 && soe.var.isFuncDeclaration())
                 return;
             e.error("cannot dereference pointer to static variable %s at compile time", soe.var.toChars());
@@ -6193,7 +6193,7 @@ public:
         }
         if (result.op == TOKvoid)
         {
-            VoidInitExp ve = cast(VoidInitExp)result;
+            auto ve = cast(VoidInitExp)result;
             const(char)* s = ve.var.toChars();
             if (v.overlapped)
             {
@@ -6240,7 +6240,7 @@ public:
         }
 
         assert(agg.op == TOKassocarrayliteral);
-        AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)agg;
+        auto aae = cast(AssocArrayLiteralExp)agg;
         Expressions* keysx = aae.keys;
         Expressions* valuesx = aae.values;
         size_t removed = 0;
@@ -6334,7 +6334,7 @@ extern (C++) Expression scrubReturnValue(Loc loc, Expression e)
     e = resolveSlice(e);
     if (e.op == TOKstructliteral)
     {
-        StructLiteralExp se = cast(StructLiteralExp)e;
+        auto se = cast(StructLiteralExp)e;
         se.ownedByCtfe = OWNEDcode;
         if (!(se.stageflags & stageScrub))
         {
@@ -6357,7 +6357,7 @@ extern (C++) Expression scrubReturnValue(Loc loc, Expression e)
     }
     if (e.op == TOKassocarrayliteral)
     {
-        AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)e;
+        auto aae = cast(AssocArrayLiteralExp)e;
         aae.ownedByCtfe = OWNEDcode;
         if (Expression ex = scrubArray(loc, aae.keys))
             return ex;
@@ -6438,7 +6438,7 @@ extern (C++) Expression scrubCacheValue(Loc loc, Expression e)
     }
     if (e.op == TOKstructliteral)
     {
-        StructLiteralExp sle = cast(StructLiteralExp)e;
+        auto sle = cast(StructLiteralExp)e;
         sle.ownedByCtfe = OWNEDcache;
         if (!(sle.stageflags & stageScrub))
         {
@@ -6461,7 +6461,7 @@ extern (C++) Expression scrubCacheValue(Loc loc, Expression e)
     }
     if (e.op == TOKassocarrayliteral)
     {
-        AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)e;
+        auto aae = cast(AssocArrayLiteralExp)e;
         aae.ownedByCtfe = OWNEDcache;
         if (Expression ex = scrubArrayCache(loc, aae.keys))
             return ex;
@@ -6514,7 +6514,7 @@ extern (C++) Expression interpret_keys(InterState* istate, Expression earg, Type
     if (earg.op != TOKassocarrayliteral && earg.type.toBasetype().ty != Taarray)
         return null;
     assert(earg.op == TOKassocarrayliteral);
-    AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)earg;
+    auto aae = cast(AssocArrayLiteralExp)earg;
     auto ae = new ArrayLiteralExp(aae.loc, aae.keys);
     ae.ownedByCtfe = aae.ownedByCtfe;
     ae.type = returnType;
@@ -6535,7 +6535,7 @@ extern (C++) Expression interpret_values(InterState* istate, Expression earg, Ty
     if (earg.op != TOKassocarrayliteral && earg.type.toBasetype().ty != Taarray)
         return null;
     assert(earg.op == TOKassocarrayliteral);
-    AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)earg;
+    auto aae = cast(AssocArrayLiteralExp)earg;
     auto ae = new ArrayLiteralExp(aae.loc, aae.values);
     ae.ownedByCtfe = aae.ownedByCtfe;
     ae.type = returnType;
@@ -6557,7 +6557,7 @@ extern (C++) Expression interpret_dup(InterState* istate, Expression earg)
     if (earg.op != TOKassocarrayliteral && earg.type.toBasetype().ty != Taarray)
         return null;
     assert(earg.op == TOKassocarrayliteral);
-    AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)copyLiteral(earg).copy();
+    auto aae = cast(AssocArrayLiteralExp)copyLiteral(earg).copy();
     for (size_t i = 0; i < aae.keys.dim; i++)
     {
         if (Expression e = evaluatePostblit(istate, (*aae.keys)[i]))
@@ -6600,7 +6600,7 @@ extern (C++) Expression interpret_aaApply(InterState* istate, Expression aa, Exp
     Expressions args;
     args.setDim(numParams);
 
-    AssocArrayLiteralExp ae = cast(AssocArrayLiteralExp)aa;
+    auto ae = cast(AssocArrayLiteralExp)aa;
     if (!ae.keys || ae.keys.dim == 0)
         return new IntegerExp(deleg.loc, 0, Type.tsize_t);
     Expression eresult;
@@ -7013,7 +7013,7 @@ extern (C++) Expression evaluatePostblit(InterState* istate, Expression e)
 
     if (e.op == TOKarrayliteral)
     {
-        ArrayLiteralExp ale = cast(ArrayLiteralExp)e;
+        auto ale = cast(ArrayLiteralExp)e;
         for (size_t i = 0; i < ale.elements.dim; i++)
         {
             e = evaluatePostblit(istate, (*ale.elements)[i]);
@@ -7044,7 +7044,7 @@ extern (C++) Expression evaluateDtor(InterState* istate, Expression e)
 
     if (e.op == TOKarrayliteral)
     {
-        ArrayLiteralExp alex = cast(ArrayLiteralExp)e;
+        auto alex = cast(ArrayLiteralExp)e;
         for (size_t i = alex.elements.dim; 0 < i--;)
             e = evaluateDtor(istate, (*alex.elements)[i]);
     }

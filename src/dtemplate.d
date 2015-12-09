@@ -351,7 +351,7 @@ extern (C++) hash_t arrayObjectHash(Objects* oa1)
             {
                 if (e1.op == TOKint64)
                 {
-                    IntegerExp ne = cast(IntegerExp)e1;
+                    auto ne = cast(IntegerExp)e1;
                     hash += cast(size_t)ne.getInteger();
                 }
             }
@@ -1647,17 +1647,17 @@ public:
                         {
                             if (farg.op == TOKstring)
                             {
-                                StringExp se = cast(StringExp)farg;
+                                auto se = cast(StringExp)farg;
                                 argtype = se.type.nextOf().sarrayOf(se.len);
                             }
                             else if (farg.op == TOKarrayliteral)
                             {
-                                ArrayLiteralExp ae = cast(ArrayLiteralExp)farg;
+                                auto ae = cast(ArrayLiteralExp)farg;
                                 argtype = ae.type.nextOf().sarrayOf(ae.elements.dim);
                             }
                             else if (farg.op == TOKslice)
                             {
-                                SliceExp se = cast(SliceExp)farg;
+                                auto se = cast(SliceExp)farg;
                                 if (Type tsa = toStaticArrayType(se))
                                     argtype = tsa;
                             }
@@ -1802,7 +1802,7 @@ public:
                                 TemplateValueParameter tvp = tprm.isTemplateValueParameter();
                                 if (!tvp)
                                     goto Lnomatch;
-                                Expression e = cast(Expression)(*dedtypes)[i];
+                                auto e = cast(Expression)(*dedtypes)[i];
                                 if (e)
                                 {
                                     if (!dim.equals(e))
@@ -5510,7 +5510,7 @@ public:
             if ((*dedtypes)[i])
             {
                 // Must match already deduced value
-                Expression e = cast(Expression)(*dedtypes)[i];
+                auto e = cast(Expression)(*dedtypes)[i];
                 if (!ei || !ei.equals(e))
                     goto Lnomatch;
             }
@@ -7450,7 +7450,7 @@ public:
                 if (ea.op == TOKtuple)
                 {
                     // Expand tuple
-                    TupleExp te = cast(TupleExp)ea;
+                    auto te = cast(TupleExp)ea;
                     size_t dim = te.exps.dim;
                     tiargs.remove(j);
                     if (dim)
@@ -7481,7 +7481,7 @@ public:
                 }
                 if (ea.op == TOKfunction)
                 {
-                    FuncExp fe = cast(FuncExp)ea;
+                    auto fe = cast(FuncExp)ea;
                     /* A function literal, that is passed to template and
                      * already semanticed as function pointer, never requires
                      * outer frame. So convert it to global function is valid.

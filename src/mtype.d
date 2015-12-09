@@ -2442,8 +2442,8 @@ public:
             e = defaultInitLiteral(loc);
             if (tb.ty == Tstruct && tb.needsNested())
             {
-                StructLiteralExp se = cast(StructLiteralExp)e;
-                se.useStaticInit = true;
+                auto sle = cast(StructLiteralExp)e;
+                sle.useStaticInit = true;
             }
         }
         else if (ident == Id._mangleof)
@@ -2507,12 +2507,12 @@ public:
             ex = (cast(CommaExp)ex).e2;
         if (ex.op == TOKdotvar)
         {
-            DotVarExp dv = cast(DotVarExp)ex;
+            auto dv = cast(DotVarExp)ex;
             v = dv.var.isVarDeclaration();
         }
         else if (ex.op == TOKvar)
         {
-            VarExp ve = cast(VarExp)ex;
+            auto ve = cast(VarExp)ex;
             v = ve.var.isVarDeclaration();
         }
         if (v)
@@ -2535,8 +2535,8 @@ public:
                 e = defaultInitLiteral(e.loc);
                 if (tb.ty == Tstruct && tb.needsNested())
                 {
-                    StructLiteralExp se = cast(StructLiteralExp)e;
-                    se.useStaticInit = true;
+                    auto sle = cast(StructLiteralExp)e;
+                    sle.useStaticInit = true;
                 }
                 goto Lreturn;
             }
@@ -4746,7 +4746,7 @@ public:
                 }
                 if (o.dyncast() == DYNCAST_EXPRESSION)
                 {
-                    Expression e = cast(Expression)o;
+                    auto e = cast(Expression)o;
                     if (e.op == TOKdsymbol)
                     {
                         *ps = (cast(DsymbolExp)e).s;
@@ -5086,7 +5086,7 @@ public:
         {
             if (e.op == TOKstring)
             {
-                StringExp se = cast(StringExp)e;
+                auto se = cast(StringExp)e;
                 return new IntegerExp(se.loc, se.len, Type.tsize_t);
             }
             if (e.op == TOKnull)
@@ -6146,7 +6146,7 @@ public:
                     }
                     if (e.op == TOKfunction) // see Bugzilla 4820
                     {
-                        FuncExp fe = cast(FuncExp)e;
+                        auto fe = cast(FuncExp)e;
                         // Replace function literal with a function symbol,
                         // since default arg expression must be copied when used
                         // and copying the literal itself is wrong.
@@ -7049,7 +7049,7 @@ public:
             }
             else if (id.dyncast() == DYNCAST_EXPRESSION)
             {
-                Expression e = cast(Expression)id;
+                auto e = cast(Expression)id;
                 e = e.syntaxCopy();
                 id = e;
             }
@@ -8080,12 +8080,12 @@ public:
 
         if (e.op == TOKdot)
         {
-            DotExp de = cast(DotExp)e;
+            auto de = cast(DotExp)e;
             if (de.e1.op == TOKscope)
             {
                 assert(0); // cannot find a case where this happens; leave
                 // assert in until we do
-                // ScopeExp se = cast(ScopeExp)de.e1;
+                // auto se = cast(ScopeExp)de.e1;
                 // s = se.sds.search(e.loc, ident);
                 // e = de.e1;
                 // goto L1;
@@ -8827,10 +8827,10 @@ public:
         }
         if (e.op == TOKdot)
         {
-            DotExp de = cast(DotExp)e;
+            auto de = cast(DotExp)e;
             if (de.e1.op == TOKscope)
             {
-                ScopeExp se = cast(ScopeExp)de.e1;
+                auto se = cast(ScopeExp)de.e1;
                 s = se.sds.search(e.loc, ident);
                 e = de.e1;
                 goto L1;
@@ -9488,13 +9488,13 @@ public:
             return true;
         if (t.ty == Ttuple)
         {
-            TypeTuple tt = cast(TypeTuple)t;
+            auto tt = cast(TypeTuple)t;
             if (arguments.dim == tt.arguments.dim)
             {
                 for (size_t i = 0; i < tt.arguments.dim; i++)
                 {
-                    Parameter arg1 = (*arguments)[i];
-                    Parameter arg2 = (*tt.arguments)[i];
+                    auto arg1 = (*arguments)[i];
+                    auto arg2 = (*tt.arguments)[i];
                     if (!arg1.type.equals(arg2.type))
                         return false;
                 }

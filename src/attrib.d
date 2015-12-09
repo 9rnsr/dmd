@@ -58,12 +58,12 @@ public:
 
     override final int apply(Dsymbol_apply_ft_t fp, void* param)
     {
-        Dsymbols* d = include(_scope, null);
+        auto d = include(_scope, null);
         if (d)
         {
             for (size_t i = 0; i < d.dim; i++)
             {
-                Dsymbol s = (*d)[i];
+                auto s = (*d)[i];
                 if (s)
                 {
                     if (s.apply(fp, param))
@@ -85,7 +85,7 @@ public:
         Prot protection, int explicitProtection,
         structalign_t structalign, PINLINE inlining)
     {
-        Scope* sc2 = sc;
+        auto sc2 = sc;
         if (stc != sc.stc ||
             linkage != sc.linkage ||
             !protection.isSubsetOf(sc.protection) ||
@@ -116,14 +116,14 @@ public:
 
     override void addMember(Scope* sc, ScopeDsymbol sds)
     {
-        Dsymbols* d = include(sc, sds);
+        auto d = include(sc, sds);
         if (d)
         {
-            Scope* sc2 = newScope(sc);
+            auto sc2 = newScope(sc);
 
             for (size_t i = 0; i < d.dim; i++)
             {
-                Dsymbol s = (*d)[i];
+                auto s = (*d)[i];
                 //printf("\taddMember %s to %s\n", s->toChars(), sds->toChars());
                 s.addMember(sc2, sds);
             }
@@ -135,15 +135,15 @@ public:
 
     override void setScope(Scope* sc)
     {
-        Dsymbols* d = include(sc, null);
+        auto d = include(sc, null);
         //printf("\tAttribDeclaration::setScope '%s', d = %p\n",toChars(), d);
         if (d)
         {
-            Scope* sc2 = newScope(sc);
+            auto sc2 = newScope(sc);
 
             for (size_t i = 0; i < d.dim; i++)
             {
-                Dsymbol s = (*d)[i];
+                auto s = (*d)[i];
                 s.setScope(sc2);
             }
 
@@ -154,15 +154,15 @@ public:
 
     override void importAll(Scope* sc)
     {
-        Dsymbols* d = include(sc, null);
+        auto d = include(sc, null);
         //printf("\tAttribDeclaration::importAll '%s', d = %p\n", toChars(), d);
         if (d)
         {
-            Scope* sc2 = newScope(sc);
+            auto sc2 = newScope(sc);
 
             for (size_t i = 0; i < d.dim; i++)
             {
-                Dsymbol s = (*d)[i];
+                auto s = (*d)[i];
                 s.importAll(sc2);
             }
 
@@ -173,15 +173,15 @@ public:
 
     override void semantic(Scope* sc)
     {
-        Dsymbols* d = include(sc, null);
+        auto d = include(sc, null);
         //printf("\tAttribDeclaration::semantic '%s', d = %p\n",toChars(), d);
         if (d)
         {
-            Scope* sc2 = newScope(sc);
+            auto sc2 = newScope(sc);
 
             for (size_t i = 0; i < d.dim; i++)
             {
-                Dsymbol s = (*d)[i];
+                auto s = (*d)[i];
                 s.semantic(sc2);
             }
 
@@ -192,14 +192,14 @@ public:
 
     override void semantic2(Scope* sc)
     {
-        Dsymbols* d = include(sc, null);
+        auto d = include(sc, null);
         if (d)
         {
-            Scope* sc2 = newScope(sc);
+            auto sc2 = newScope(sc);
 
             for (size_t i = 0; i < d.dim; i++)
             {
-                Dsymbol s = (*d)[i];
+                auto s = (*d)[i];
                 s.semantic2(sc2);
             }
 
@@ -210,14 +210,14 @@ public:
 
     override void semantic3(Scope* sc)
     {
-        Dsymbols* d = include(sc, null);
+        auto d = include(sc, null);
         if (d)
         {
-            Scope* sc2 = newScope(sc);
+            auto sc2 = newScope(sc);
 
             for (size_t i = 0; i < d.dim; i++)
             {
-                Dsymbol s = (*d)[i];
+                auto s = (*d)[i];
                 s.semantic3(sc2);
             }
 
@@ -231,12 +231,12 @@ public:
         //printf("AttribDeclaration::addComment %s\n", comment);
         if (comment)
         {
-            Dsymbols* d = include(null, null);
+            auto d = include(null, null);
             if (d)
             {
                 for (size_t i = 0; i < d.dim; i++)
                 {
-                    Dsymbol s = (*d)[i];
+                    auto s = (*d)[i];
                     //printf("AttribDeclaration::addComment %s\n", s->toChars());
                     s.addComment(comment);
                 }
@@ -251,18 +251,18 @@ public:
 
     override bool oneMember(Dsymbol* ps, Identifier ident)
     {
-        Dsymbols* d = include(null, null);
+        auto d = include(null, null);
         return Dsymbol.oneMembers(d, ps, ident);
     }
 
     override void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
     {
-        Dsymbols* d = include(null, null);
+        auto d = include(null, null);
         if (d)
         {
             for (size_t i = 0; i < d.dim; i++)
             {
-                Dsymbol s = (*d)[i];
+                auto s = (*d)[i];
                 s.setFieldOffset(ad, poffset, isunion);
             }
         }
@@ -270,12 +270,12 @@ public:
 
     override final bool hasPointers()
     {
-        Dsymbols* d = include(null, null);
+        auto d = include(null, null);
         if (d)
         {
             for (size_t i = 0; i < d.dim; i++)
             {
-                Dsymbol s = (*d)[i];
+                auto s = (*d)[i];
                 if (s.hasPointers())
                     return true;
             }
@@ -285,12 +285,12 @@ public:
 
     override final bool hasStaticCtorOrDtor()
     {
-        Dsymbols* d = include(null, null);
+        auto d = include(null, null);
         if (d)
         {
             for (size_t i = 0; i < d.dim; i++)
             {
-                Dsymbol s = (*d)[i];
+                auto s = (*d)[i];
                 if (s.hasStaticCtorOrDtor())
                     return true;
             }
@@ -300,12 +300,12 @@ public:
 
     override final void checkCtorConstInit()
     {
-        Dsymbols* d = include(null, null);
+        auto d = include(null, null);
         if (d)
         {
             for (size_t i = 0; i < d.dim; i++)
             {
-                Dsymbol s = (*d)[i];
+                auto s = (*d)[i];
                 s.checkCtorConstInit();
             }
         }
@@ -315,12 +315,12 @@ public:
      */
     override final void addLocalClass(ClassDeclarations* aclasses)
     {
-        Dsymbols* d = include(null, null);
+        auto d = include(null, null);
         if (d)
         {
             for (size_t i = 0; i < d.dim; i++)
             {
-                Dsymbol s = (*d)[i];
+                auto s = (*d)[i];
                 s.addLocalClass(aclasses);
             }
         }
@@ -360,7 +360,7 @@ public:
 
     override Scope* newScope(Scope* sc)
     {
-        StorageClass scstc = sc.stc;
+        auto scstc = sc.stc;
 
         /* These sets of storage classes are mutually exclusive,
          * so choose the innermost or most recent one.
@@ -397,8 +397,7 @@ public:
              * 'this' pointer can be successful.
              */
 
-            FuncDeclaration fd = (*ps).isFuncDeclaration();
-            if (fd)
+            if (auto fd = (*ps).isFuncDeclaration())
             {
                 /* Use storage_class2 instead of storage_class otherwise when we do .di generation
                  * we'll wind up with 'const const' rather than 'const'.
@@ -624,8 +623,8 @@ public:
 
         if (protection.kind == PROTpackage && protection.pkg && sc._module)
         {
-            Module m = sc._module;
-            Package pkg = m.parent ? m.parent.isPackage() : null;
+            auto m = sc._module;
+            auto pkg = m.parent ? m.parent.isPackage() : null;
             if (!pkg || !protection.pkg.isAncestorPackageOf(pkg))
                 error("does not bind to one of ancestor packages of module '%s'", m.toPrettyChars(true));
         }
@@ -723,8 +722,8 @@ public:
         //printf("\tAnonDeclaration::semantic %s %p\n", isunion ? "union" : "struct", this);
 
         assert(sc.parent);
-        Dsymbol p = sc.parent.pastMixin();
-        AggregateDeclaration ad = p.isAggregateDeclaration();
+        auto p = sc.parent.pastMixin();
+        auto ad = p.isAggregateDeclaration();
         if (!ad)
         {
             .error(loc, "%s can only be a part of an aggregate, not %s %s", kind(), p.kind(), p.toChars());
@@ -741,7 +740,7 @@ public:
 
             for (size_t i = 0; i < decl.dim; i++)
             {
-                Dsymbol s = (*decl)[i];
+                auto s = (*decl)[i];
                 s.semantic(sc);
             }
             sc = sc.pop();
@@ -771,7 +770,7 @@ public:
             uint offset = 0;
             for (size_t i = 0; i < decl.dim; i++)
             {
-                Dsymbol s = (*decl)[i];
+                auto s = (*decl)[i];
                 s.setFieldOffset(ad, &offset, this.isunion);
                 if (this.isunion)
                     offset = 0;
@@ -813,7 +812,7 @@ public:
             //printf("anon fields, anonoffset = %d\n", anonoffset);
             for (size_t i = fieldstart; i < ad.fields.dim; i++)
             {
-                VarDeclaration v = ad.fields[i];
+                auto v = ad.fields[i];
                 //printf("\t[%d] %s %d\n", i, v.toChars(), v.offset);
                 v.offset += anonoffset;
             }
@@ -872,7 +871,7 @@ public:
             {
                 for (size_t i = 0; i < args.dim; i++)
                 {
-                    Expression e = (*args)[i];
+                    auto e = (*args)[i];
 
                     sc = sc.startCTFE();
                     e = e.semantic(sc);
@@ -886,8 +885,7 @@ public:
                         errorSupplemental(loc, "while evaluating pragma(msg, %s)", (*args)[i].toChars());
                         return;
                     }
-                    StringExp se = e.toStringExp();
-                    if (se)
+                    if (auto se = e.toStringExp())
                     {
                         se = se.toUTF8(sc);
                         fprintf(stderr, "%.*s", cast(int)se.len, se.string);
@@ -905,7 +903,7 @@ public:
                 error("string expected for library name");
             else
             {
-                Expression e = (*args)[0];
+                auto e = (*args)[0];
 
                 sc = sc.startCTFE();
                 e = e.semantic(sc);
@@ -916,20 +914,17 @@ public:
                 (*args)[0] = e;
                 if (e.op == TOKerror)
                     goto Lnodecl;
-                StringExp se = e.toStringExp();
-                if (!se)
-                    error("string expected for library name, not '%s'", e.toChars());
-                else
+                if (auto se = e.toStringExp())
                 {
-                    char* name = cast(char*)mem.xmalloc(se.len + 1);
+                    auto name = cast(char*)mem.xmalloc(se.len + 1);
                     memcpy(name, se.string, se.len);
                     name[se.len] = 0;
                     if (global.params.verbose)
                         fprintf(global.stdmsg, "library   %s\n", name);
                     if (global.params.moduleDeps && !global.params.moduleDepsFile)
                     {
-                        OutBuffer* ob = global.params.moduleDeps;
-                        Module imod = sc.instantiatingModule();
+                        auto ob = global.params.moduleDeps;
+                        auto imod = sc.instantiatingModule();
                         ob.writestring("depsLib ");
                         ob.writestring(imod.toPrettyChars());
                         ob.writestring(" (");
@@ -940,6 +935,8 @@ public:
                     }
                     mem.xfree(name);
                 }
+                else
+                    error("string expected for library name, not '%s'", e.toChars());
             }
             goto Lnodecl;
         }
@@ -952,14 +949,14 @@ public:
                 /* Bugzilla 11980:
                  * resolveProperties and ctfeInterpret call are not necessary.
                  */
-                Expression e = (*args)[0];
+                auto e = (*args)[0];
 
                 sc = sc.startCTFE();
                 e = e.semantic(sc);
                 sc = sc.endCTFE();
 
                 (*args)[0] = e;
-                Dsymbol sa = getDsymbol(e);
+                auto sa = getDsymbol(e);
                 if (!sa || !sa.isFuncDeclaration())
                     error("function name expected for start address, not '%s'", e.toChars());
             }
@@ -981,14 +978,14 @@ public:
                 goto Ldecl;
             }
 
-            Expression e = (*args)[0];
+            auto e = (*args)[0];
             e = e.semantic(sc);
             e = e.ctfeInterpret();
             (*args)[0] = e;
             if (e.op == TOKerror)
                 goto Ldecl;
 
-            StringExp se = e.toStringExp();
+            auto se = e.toStringExp();
             if (!se)
             {
                 error("string expected for mangled name, not '%s'", e.toChars());
@@ -1058,7 +1055,7 @@ public:
                 {
                     for (size_t i = 0; i < args.dim; i++)
                     {
-                        Expression e = (*args)[i];
+                        auto e = (*args)[i];
 
                         sc = sc.startCTFE();
                         e = e.semantic(sc);
@@ -1085,18 +1082,18 @@ public:
     Ldecl:
         if (decl)
         {
-            Scope* sc2 = newScope(sc);
+            auto sc2 = newScope(sc);
 
             for (size_t i = 0; i < decl.dim; i++)
             {
-                Dsymbol s = (*decl)[i];
+                auto s = (*decl)[i];
 
                 s.semantic(sc2);
 
                 if (ident == Id.mangle)
                 {
                     assert(args && args.dim == 1);
-                    if (StringExp se = (*args)[0].toStringExp())
+                    if (auto se = (*args)[0].toStringExp())
                     {
                         char* name = cast(char*)mem.xmalloc(se.len + 1);
                         memcpy(name, se.string, se.len);
@@ -1201,7 +1198,7 @@ public:
         //printf("ConditionalDeclaration::oneMember(), inc = %d\n", condition->inc);
         if (condition.inc)
         {
-            Dsymbols* d = condition.include(null, null) ? decl : elsedecl;
+            auto d = condition.include(null, null) ? decl : elsedecl;
             return Dsymbol.oneMembers(d, ps, ident);
         }
         else
@@ -1230,14 +1227,14 @@ public:
          */
         if (comment)
         {
-            Dsymbols* d = decl;
+            auto d = decl;
             for (int j = 0; j < 2; j++)
             {
                 if (d)
                 {
                     for (size_t i = 0; i < d.dim; i++)
                     {
-                        Dsymbol s = (*d)[i];
+                        auto s = (*d)[i];
                         //printf("ConditionalDeclaration::addComment %s\n", s->toChars());
                         s.addComment(comment);
                     }
@@ -1249,13 +1246,13 @@ public:
 
     override void setScope(Scope* sc)
     {
-        Dsymbols* d = include(sc, null);
+        auto d = include(sc, null);
         //printf("\tConditionalDeclaration::setScope '%s', d = %p\n",toChars(), d);
         if (d)
         {
             for (size_t i = 0; i < d.dim; i++)
             {
-                Dsymbol s = (*d)[i];
+                auto s = (*d)[i];
                 s.setScope(sc);
             }
         }
@@ -1302,21 +1299,21 @@ public:
             assert(scopesym); // addMember is already done
             assert(_scope); // setScope is already done
 
-            Dsymbols* d = ConditionalDeclaration.include(_scope, scopesym);
+            auto d = ConditionalDeclaration.include(_scope, scopesym);
 
             if (d && !addisdone)
             {
                 // Add members lazily.
                 for (size_t i = 0; i < d.dim; i++)
                 {
-                    Dsymbol s = (*d)[i];
+                    auto s = (*d)[i];
                     s.addMember(_scope, scopesym);
                 }
 
                 // Set the member scopes lazily.
                 for (size_t i = 0; i < d.dim; i++)
                 {
-                    Dsymbol s = (*d)[i];
+                    auto s = (*d)[i];
                     s.setScope(_scope);
                 }
 
@@ -1421,11 +1418,8 @@ public:
 
         if (exp.op != TOKerror)
         {
-            Expression e = exp.ctfeInterpret();
-            StringExp se = e.toStringExp();
-            if (!se)
-                exp.error("argument to mixin must be a string, not (%s) of type %s", exp.toChars(), exp.type.toChars());
-            else
+            auto e = exp.ctfeInterpret();
+            if (auto se = e.toStringExp())
             {
                 se = se.toUTF8(sc);
                 uint errors = global.errors;
@@ -1442,6 +1436,8 @@ public:
                     decl = null;
                 }
             }
+            else
+                exp.error("argument to mixin must be a string, not (%s) of type %s", exp.toChars(), exp.type.toChars());
         }
     }
 
@@ -1458,7 +1454,7 @@ public:
             {
                 for (size_t i = 0; i < decl.dim; i++)
                 {
-                    Dsymbol s = (*decl)[i];
+                    auto s = (*decl)[i];
                     s.setScope(_scope);
                 }
             }
@@ -1504,7 +1500,7 @@ public:
 
     override Scope* newScope(Scope* sc)
     {
-        Scope* sc2 = sc;
+        auto sc2 = sc;
         if (atts && atts.dim)
         {
             // create new one for changes
@@ -1594,10 +1590,9 @@ public:
 
 extern (C++) static uint setMangleOverride(Dsymbol s, char* sym)
 {
-    AttribDeclaration ad = s.isAttribDeclaration();
-    if (ad)
+    if (auto ad = s.isAttribDeclaration())
     {
-        Dsymbols* decls = ad.include(null, null);
+        auto decls = ad.include(null, null);
         uint nestedCount = 0;
 
         if (decls && decls.dim)
@@ -1608,11 +1603,10 @@ extern (C++) static uint setMangleOverride(Dsymbol s, char* sym)
 
         return nestedCount;
     }
-    else if (s.isFuncDeclaration() || s.isVarDeclaration())
+    if (s.isFuncDeclaration() || s.isVarDeclaration())
     {
         s.isDeclaration().mangleOverride = sym;
         return 1;
     }
-    else
-        return 0;
+    return 0;
 }

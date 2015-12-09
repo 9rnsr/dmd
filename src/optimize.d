@@ -59,7 +59,7 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
                     }
                     goto L1;
                 }
-                Expression ei = v.getConstInitializer();
+                auto ei = v.getConstInitializer();
                 if (!ei)
                 {
                     if (v.storage_class & STCmanifest)
@@ -71,8 +71,7 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
                 }
                 if (ei.op == TOKconstruct || ei.op == TOKblit)
                 {
-                    AssignExp ae = cast(AssignExp)ei;
-                    ei = ae.e2;
+                    ei = (cast(AssignExp)ei).e2;
                     if (ei.isConst() == 1)
                     {
                     }
@@ -154,7 +153,7 @@ extern (C++) Expression fromConstInitializer(int result, Expression e1)
     Expression e = e1;
     if (e1.op == TOKvar)
     {
-        VarExp ve = cast(VarExp)e1;
+        auto ve = cast(VarExp)e1;
         VarDeclaration v = ve.var.isVarDeclaration();
         e = expandVar(result, v);
         if (e)
@@ -341,7 +340,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
              */
             if (e.e1.op == TOKcomma)
             {
-                CommaExp ce = cast(CommaExp)e.e1;
+                auto ce = cast(CommaExp)e.e1;
                 auto ae = new AddrExp(e.loc, ce.e2);
                 ae.type = e.type;
                 ret = new CommaExp(ce.loc, ce.e1, ae);
@@ -369,7 +368,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
             if (e.e1.op == TOKvar)
             {
-                VarExp ve = cast(VarExp)e.e1;
+                auto ve = cast(VarExp)e.e1;
                 if (!ve.var.isOut() && !ve.var.isRef() &&
                     !ve.var.isImportedSymbol())
                 {
@@ -381,12 +380,12 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (e.e1.op == TOKindex)
             {
                 // Convert &array[n] to &array+n
-                IndexExp ae = cast(IndexExp)e.e1;
+                auto ae = cast(IndexExp)e.e1;
 
                 if (ae.e2.op == TOKint64 && ae.e1.op == TOKvar)
                 {
                     sinteger_t index = ae.e2.toInteger();
-                    VarExp ve = cast(VarExp)ae.e1;
+                    auto ve = cast(VarExp)ae.e1;
                     if (ve.type.ty == Tsarray &&
                         !ve.var.isImportedSymbol())
                     {
@@ -440,12 +439,12 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
 
             if (e.e1.op == TOKsymoff)
             {
-                SymOffExp se = cast(SymOffExp)e.e1;
+                auto se = cast(SymOffExp)e.e1;
                 VarDeclaration v = se.var.isVarDeclaration();
                 Expression ex = expandVar(result, v);
                 if (ex && ex.op == TOKstructliteral)
                 {
-                    StructLiteralExp sle = cast(StructLiteralExp)ex;
+                    auto sle = cast(StructLiteralExp)ex;
                     ex = sle.getField(e.type, cast(uint)se.offset);
                     if (ex && !CTFEExp.isCantExp(ex))
                     {
@@ -468,14 +467,14 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
 
             if (ex.op == TOKvar)
             {
-                VarExp ve = cast(VarExp)ex;
+                auto ve = cast(VarExp)ex;
                 VarDeclaration v = ve.var.isVarDeclaration();
                 ex = expandVar(result, v);
             }
 
             if (ex && ex.op == TOKstructliteral)
             {
-                StructLiteralExp sle = cast(StructLiteralExp)ex;
+                auto sle = cast(StructLiteralExp)ex;
                 VarDeclaration vf = e.var.isVarDeclaration();
                 if (vf && !vf.overlapped)
                 {

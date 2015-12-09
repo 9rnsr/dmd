@@ -155,7 +155,7 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
             e = cast(SliceExp)result;
             if (e.e1.op == TOKarrayliteral)
             {
-                ArrayLiteralExp ale = cast(ArrayLiteralExp)e.e1;
+                auto ale = cast(ArrayLiteralExp)e.e1;
                 Type tb = t.toBasetype();
                 Type tx;
                 if (tb.ty == Tsarray)
@@ -908,7 +908,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             {
                 /* Treat 'this' as just another function argument
                  */
-                DotVarExp dve = cast(DotVarExp)e.e1;
+                auto dve = cast(DotVarExp)e.e1;
                 Type targ = dve.e1.type;
                 if (targ.constConv(targ.castMod(mod)) == MATCHnomatch)
                     return;
@@ -968,7 +968,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             if (e.e1.op == TOKoverloadset &&
                 (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
             {
-                OverExp eo = cast(OverExp)e.e1;
+                auto eo = cast(OverExp)e.e1;
                 FuncDeclaration f = null;
                 for (size_t i = 0; i < eo.vars.a.dim; i++)
                 {
@@ -1712,7 +1712,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             visit(cast(Expression)e);
             if (result.op == TOKnull)
             {
-                NullExp ex = cast(NullExp)result;
+                auto ex = cast(NullExp)result;
                 ex.committed = 1;
                 return;
             }
@@ -2016,7 +2016,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             if (e.e1.op == TOKoverloadset &&
                 (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
             {
-                OverExp eo = cast(OverExp)e.e1;
+                auto eo = cast(OverExp)e.e1;
                 FuncDeclaration f = null;
                 for (size_t i = 0; i < eo.vars.a.dim; i++)
                 {
@@ -2088,7 +2088,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 return;
             }
 
-            TupleExp te = cast(TupleExp)e.copy();
+            auto te = cast(TupleExp)e.copy();
             te.e0 = e.e0 ? e.e0.copy() : null;
             te.exps = e.exps.copy();
             for (size_t i = 0; i < te.exps.dim; i++)
@@ -2228,7 +2228,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             if (tb.ty == Taarray && typeb.ty == Taarray &&
                 tb.nextOf().toBasetype().ty != Tvoid)
             {
-                AssocArrayLiteralExp ae = cast(AssocArrayLiteralExp)e.copy();
+                auto ae = cast(AssocArrayLiteralExp)e.copy();
                 ae.keys = e.keys.copy();
                 ae.values = e.values.copy();
                 assert(e.keys.dim == e.values.dim);

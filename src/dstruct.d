@@ -673,7 +673,7 @@ public:
              */
             if (e.op == TOKstring && tb.ty == Tsarray)
             {
-                StringExp se = cast(StringExp)e;
+                auto se = cast(StringExp)e;
                 Type typeb = se.type.toBasetype();
                 TY tynto = tb.nextOf().ty;
                 if (!se.committed &&

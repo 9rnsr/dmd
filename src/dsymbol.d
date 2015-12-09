@@ -263,7 +263,7 @@ public:
     {
         if (this == o)
             return true;
-        Dsymbol s = cast(Dsymbol)o;
+        auto s = cast(Dsymbol)o;
         // Overload sets don't have an ident
         if (s && ident && s.ident && ident.equals(s.ident))
             return true;
@@ -1867,7 +1867,7 @@ public:
             {
                 /* array[index] where index is some function of $
                  */
-                IndexExp ie = cast(IndexExp)exp;
+                auto ie = cast(IndexExp)exp;
                 pvar = &ie.lengthVar;
                 ce = ie.e1;
             }
@@ -1875,7 +1875,7 @@ public:
             {
                 /* array[lwr .. upr] where lwr or upr is some function of $
                  */
-                SliceExp se = cast(SliceExp)exp;
+                auto se = cast(SliceExp)exp;
                 pvar = &se.lengthVar;
                 ce = se.e1;
             }
@@ -1884,7 +1884,7 @@ public:
                 /* array[e0, e1, e2, e3] where e0, e1, e2 are some function of $
                  * $ is a opDollar!(dim)() where dim is the dimension(0,1,2,...)
                  */
-                ArrayExp ae = cast(ArrayExp)exp;
+                auto ae = cast(ArrayExp)exp;
                 pvar = &ae.lengthVar;
                 ce = ae.e1;
             }

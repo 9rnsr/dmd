@@ -297,7 +297,7 @@ public:
                     }
                     if (s.exp.op == TOKassert)
                     {
-                        AssertExp a = cast(AssertExp)s.exp;
+                        auto a = cast(AssertExp)s.exp;
                         if (a.e1.isBool(false)) // if it's an assert(0)
                         {
                             result = BEhalt;
@@ -3940,7 +3940,7 @@ public:
              */
             if (exp.op == TOKvar)
             {
-                VarExp ve = cast(VarExp)exp;
+                auto ve = cast(VarExp)exp;
                 VarDeclaration v = ve.var.isVarDeclaration();
                 Type t = exp.type.toBasetype();
                 if (v && (t.isintegral() || t.ty == Tclass))
@@ -4516,7 +4516,7 @@ public:
             // handle NRVO
             if (fd.nrvo_can && exp.op == TOKvar)
             {
-                VarExp ve = cast(VarExp)exp;
+                auto ve = cast(VarExp)exp;
                 VarDeclaration v = ve.var.isVarDeclaration();
                 if (tf.isref)
                 {

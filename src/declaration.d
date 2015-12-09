@@ -468,10 +468,10 @@ public:
             RootObject o = (*objects)[i];
             if (o.dyncast() == DYNCAST_EXPRESSION)
             {
-                Expression e = cast(Expression)o;
+                auto e = cast(Expression)o;
                 if (e.op == TOKdsymbol)
                 {
-                    DsymbolExp ve = cast(DsymbolExp)e;
+                    auto ve = cast(DsymbolExp)e;
                     Declaration d = ve.s.isDeclaration();
                     if (d && d.needThis())
                     {
@@ -566,7 +566,7 @@ public:
                 e = e.semantic(sc);
                 if (e.op == TOKfunction)
                 {
-                    FuncExp fe = cast(FuncExp)e;
+                    auto fe = cast(FuncExp)e;
                     aliassym = fe.td ? cast(Dsymbol)fe.td : fe.fd;
                 }
                 else
@@ -900,12 +900,12 @@ public:
         if (this == o)
             return true;
 
-        Dsymbol s = isDsymbol(o);
+        auto s = isDsymbol(o);
         if (!s)
             return false;
 
-        OverDeclaration od1 = this;
-        if (OverDeclaration od2 = s.isOverDeclaration())
+        auto od1 = this;
+        if (auto od2 = s.isOverDeclaration())
         {
             return od1.aliassym.equals(od2.aliassym) &&
                    od1.hasOverloads == od2.hasOverloads;
@@ -914,11 +914,11 @@ public:
         {
             if (hasOverloads)
                 return true;
-            if (FuncDeclaration fd = s.isFuncDeclaration())
+            if (auto fd = s.isFuncDeclaration())
             {
                 return fd.isUnique() !is null;
             }
-            if (TemplateDeclaration td = s.isTemplateDeclaration())
+            if (auto td = s.isTemplateDeclaration())
             {
                 return td.overnext is null;
             }
@@ -1229,7 +1229,7 @@ public:
 
                     if (e.op == TOKtuple)
                     {
-                        TupleExp te = cast(TupleExp)e;
+                        auto te = cast(TupleExp)e;
                         if (iexps.dim - 1 + te.exps.dim > nelems)
                             goto Lnomatch;
 
@@ -1289,7 +1289,7 @@ public:
 
             if (ie && ie.op == TOKtuple)
             {
-                TupleExp te = cast(TupleExp)ie;
+                auto te = cast(TupleExp)ie;
                 size_t tedim = te.exps.dim;
                 if (tedim != nelems)
                 {
@@ -1316,7 +1316,7 @@ public:
                     Expression einit = ie;
                     if (ie.op == TOKtuple)
                     {
-                        TupleExp te = cast(TupleExp)ie;
+                        auto te = cast(TupleExp)ie;
                         einit = (*te.exps)[i];
                         if (i == 0)
                             einit = Expression.combine(te.e0, einit);
@@ -1641,7 +1641,7 @@ public:
                         if (ex.op == TOKnew)
                         {
                             // See if initializer is a NewExp that can be allocated on the stack
-                            NewExp ne = cast(NewExp)ex;
+                            auto ne = cast(NewExp)ex;
                             if (!(ne.newargs && ne.newargs.dim > 1) && type.toBasetype().ty == Tclass)
                             {
                                 ne.onstack = 1;
@@ -1782,9 +1782,9 @@ public:
             {
                 RootObject o = (*v2.objects)[i];
                 assert(o.dyncast() == DYNCAST_EXPRESSION);
-                Expression e = cast(Expression)o;
+                auto e = cast(Expression)o;
                 assert(e.op == TOKdsymbol);
-                DsymbolExp se = cast(DsymbolExp)e;
+                auto se = cast(DsymbolExp)e;
                 se.s.setFieldOffset(ad, poffset, isunion);
             }
             return;

@@ -4791,7 +4791,7 @@ public:
                     check(TOKsemicolon);
                     if (e.op == TOKmixin)
                     {
-                        CompileExp cpe = cast(CompileExp)e;
+                        auto cpe = cast(CompileExp)e;
                         s = new CompileStatement(loc, cpe.e1);
                     }
                     else

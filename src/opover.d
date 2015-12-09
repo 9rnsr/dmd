@@ -232,7 +232,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
 
             if (e.e1.op == TOKarray)
             {
-                ArrayExp ae = cast(ArrayExp)e.e1;
+                auto ae = cast(ArrayExp)e.e1;
                 ae.e1 = ae.e1.semantic(sc);
                 ae.e1 = resolveProperties(sc, ae.e1);
                 Expression ae1old = ae.e1;
@@ -379,7 +379,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                      */
                     //printf("att una %s e1 = %s\n", Token::toChars(op), this->e1->type->toChars());
                     Expression e1 = new DotIdExp(e.loc, e.e1, ad.aliasthis.ident);
-                    UnaExp ue = cast(UnaExp)e.copy();
+                    auto ue = cast(UnaExp)e.copy();
                     if (!ue.att1 && e.e1.type.checkAliasThisRec())
                         ue.att1 = e.e1.type;
                     ue.e1 = e1;
@@ -854,7 +854,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
 
                 //printf("att bin e1 = %s\n", this->e1->type->toChars());
                 Expression e1 = new DotIdExp(e.loc, e.e1, ad1.aliasthis.ident);
-                BinExp be = cast(BinExp)e.copy();
+                auto be = cast(BinExp)e.copy();
                 if (!be.att1 && e.e1.type.checkAliasThisRec())
                     be.att1 = e.e1.type;
                 be.e1 = e1;
@@ -876,7 +876,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
 
                 //printf("att bin e2 = %s\n", e->e2->type->toChars());
                 Expression e2 = new DotIdExp(e.loc, e.e2, ad2.aliasthis.ident);
-                BinExp be = cast(BinExp)e.copy();
+                auto be = cast(BinExp)e.copy();
                 if (!be.att2 && e.e2.type.checkAliasThisRec())
                     be.att2 = e.e2.type;
                 be.e2 = e2;
@@ -1131,7 +1131,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
 
             if (e.e1.op == TOKarray)
             {
-                ArrayExp ae = cast(ArrayExp)e.e1;
+                auto ae = cast(ArrayExp)e.e1;
                 ae.e1 = ae.e1.semantic(sc);
                 ae.e1 = resolveProperties(sc, ae.e1);
                 Expression ae1old = ae.e1;
@@ -1347,7 +1347,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
 
                 //printf("att %s e1 = %s\n", Token::toChars(e->op), e->e1->type->toChars());
                 Expression e1 = new DotIdExp(e.loc, e.e1, ad1.aliasthis.ident);
-                BinExp be = cast(BinExp)e.copy();
+                auto be = cast(BinExp)e.copy();
                 if (!be.att1 && e.e1.type.checkAliasThisRec())
                     be.att1 = e.e1.type;
                 be.e1 = e1;
@@ -1367,7 +1367,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
 
                 //printf("att %s e2 = %s\n", Token::toChars(e->op), e->e2->type->toChars());
                 Expression e2 = new DotIdExp(e.loc, e.e2, ad2.aliasthis.ident);
-                BinExp be = cast(BinExp)e.copy();
+                auto be = cast(BinExp)e.copy();
                 if (!be.att2 && e.e2.type.checkAliasThisRec())
                     be.att2 = e.e2.type;
                 be.e2 = e2;
@@ -1517,7 +1517,7 @@ extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
 
         //printf("att cmp_bin e1 = %s\n", e->e1->type->toChars());
         Expression e1 = new DotIdExp(e.loc, e.e1, ad1.aliasthis.ident);
-        BinExp be = cast(BinExp)e.copy();
+        auto be = cast(BinExp)e.copy();
         if (!be.att1 && e.e1.type.checkAliasThisRec())
             be.att1 = e.e1.type;
         be.e1 = e1;
@@ -1535,7 +1535,7 @@ extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
 
         //printf("att cmp_bin e2 = %s\n", e->e2->type->toChars());
         Expression e2 = new DotIdExp(e.loc, e.e2, ad2.aliasthis.ident);
-        BinExp be = cast(BinExp)e.copy();
+        auto be = cast(BinExp)e.copy();
         if (!be.att2 && e.e2.type.checkAliasThisRec())
             be.att2 = e.e2.type;
         be.e2 = e2;

@@ -328,7 +328,7 @@ extern (C++) UnionExp copyLiteral(Expression e)
     UnionExp ue;
     if (e.op == TOKstring) // syntaxCopy doesn't make a copy for StringExp!
     {
-        StringExp se = cast(StringExp)e;
+        auto se = cast(StringExp)e;
         char* s = cast(char*)mem.xcalloc(se.len + 1, se.sz);
         memcpy(s, se.string, se.len * se.sz);
         emplaceExp!(StringExp)(&ue, se.loc, s, se.len);
@@ -348,16 +348,16 @@ extern (C++) UnionExp copyLiteral(Expression e)
 
         emplaceExp!(ArrayLiteralExp)(&ue, e.loc, elements);
 
-        ArrayLiteralExp r = cast(ArrayLiteralExp)ue.exp();
+        auto r = cast(ArrayLiteralExp)ue.exp();
         r.type = e.type;
         r.ownedByCtfe = OWNEDctfe;
         return ue;
     }
     if (e.op == TOKassocarrayliteral)
     {
-        AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)e;
+        auto aae = cast(AssocArrayLiteralExp)e;
         emplaceExp!(AssocArrayLiteralExp)(&ue, e.loc, copyLiteralArray(aae.keys), copyLiteralArray(aae.values));
-        AssocArrayLiteralExp r = cast(AssocArrayLiteralExp)ue.exp();
+        auto r = cast(AssocArrayLiteralExp)ue.exp();
         r.type = e.type;
         r.ownedByCtfe = OWNEDctfe;
         return ue;
@@ -436,7 +436,7 @@ extern (C++) UnionExp copyLiteral(Expression e)
     }
     if (e.op == TOKslice)
     {
-        SliceExp se = cast(SliceExp)e;
+        auto se = cast(SliceExp)e;
         if (se.type.toBasetype().ty == Tsarray)
         {
             // same with resolveSlice()
@@ -447,7 +447,7 @@ extern (C++) UnionExp copyLiteral(Expression e)
             }
             ue = Slice(se.type, se.e1, se.lwr, se.upr);
             assert(ue.exp().op == TOKarrayliteral);
-            ArrayLiteralExp r = cast(ArrayLiteralExp)ue.exp();
+            auto r = cast(ArrayLiteralExp)ue.exp();
             r.elements = copyLiteralArray(r.elements);
             r.ownedByCtfe = OWNEDctfe;
             return ue;
@@ -508,12 +508,12 @@ extern (C++) UnionExp paintTypeOntoLiteralCopy(Type type, Expression lit)
 
     if (lit.op == TOKslice)
     {
-        SliceExp se = cast(SliceExp)lit;
+        auto se = cast(SliceExp)lit;
         emplaceExp!(SliceExp)(&ue, lit.loc, se.e1, se.lwr, se.upr);
     }
     else if (lit.op == TOKindex)
     {
-        IndexExp ie = cast(IndexExp)lit;
+        auto ie = cast(IndexExp)lit;
         emplaceExp!(IndexExp)(&ue, lit.loc, ie.e1, ie.e2);
     }
     else if (lit.op == TOKarrayliteral)
@@ -531,7 +531,7 @@ extern (C++) UnionExp paintTypeOntoLiteralCopy(Type type, Expression lit)
     }
     else if (lit.op == TOKassocarrayliteral)
     {
-        AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)lit;
+        auto aae = cast(AssocArrayLiteralExp)lit;
         // TODO: we should be creating a reference to this AAExp, not
         // just a ref to the keys and values.
         OwnedBy wasOwned = aae.ownedByCtfe;
@@ -555,7 +555,7 @@ extern (C++) Expression resolveSlice(Expression e)
 {
     if (e.op != TOKslice)
         return e;
-    SliceExp se = cast(SliceExp)e;
+    auto se = cast(SliceExp)e;
     if (se.e1.op == TOKnull)
         return se.e1;
     return Slice(e.type, se.e1, se.lwr, se.upr).copy();
@@ -585,12 +585,12 @@ extern (C++) uinteger_t resolveArrayLength(Expression e)
     }
     if (e.op == TOKarrayliteral)
     {
-        ArrayLiteralExp ale = cast(ArrayLiteralExp)e;
+        auto ale = cast(ArrayLiteralExp)e;
         return ale.elements ? ale.elements.dim : 0;
     }
     if (e.op == TOKassocarrayliteral)
     {
-        AssocArrayLiteralExp ale = cast(AssocArrayLiteralExp)e;
+        auto ale = cast(AssocArrayLiteralExp)e;
         return ale.keys.dim;
     }
     assert(0);
@@ -771,7 +771,7 @@ extern (C++) Expression getAggregateFromPointer(Expression e, dinteger_t* ofs)
     }
     if (e.op == TOKindex)
     {
-        IndexExp ie = cast(IndexExp)e;
+        auto ie = cast(IndexExp)e;
         // Note that each AA element is part of its own memory block
         if ((ie.e1.type.ty == Tarray ||
              ie.e1.type.ty == Tsarray ||
@@ -785,7 +785,7 @@ extern (C++) Expression getAggregateFromPointer(Expression e, dinteger_t* ofs)
     }
     if (e.op == TOKslice && e.type.toBasetype().ty == Tsarray)
     {
-        SliceExp se = cast(SliceExp)e;
+        auto se = cast(SliceExp)e;
         if ((se.e1.type.ty == Tarray ||
              se.e1.type.ty == Tsarray ||
              se.e1.op == TOKstring ||
@@ -934,7 +934,7 @@ extern (C++) UnionExp pointerArithmetic(Loc loc, TOK op, Type type,
     if (agg1.op == TOKsymoff)
     {
         emplaceExp!(SymOffExp)(&ue, loc, (cast(SymOffExp)agg1).var, indx * sz);
-        SymOffExp se = cast(SymOffExp)ue.exp();
+        auto se = cast(SymOffExp)ue.exp();
         se.type = type;
         return ue;
     }
@@ -1509,7 +1509,7 @@ extern (C++) UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
         memset(cast(char*)s + len * sz, 0, sz);
 
         emplaceExp!(StringExp)(&ue, loc, s, len);
-        StringExp es = cast(StringExp)ue.exp();
+        auto es = cast(StringExp)ue.exp();
         es.sz = sz;
         es.committed = 0;
         es.type = type;
@@ -1543,7 +1543,7 @@ extern (C++) UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
         memset(cast(char*)s + len * sz, 0, sz);
 
         emplaceExp!(StringExp)(&ue, loc, s, len);
-        StringExp es = cast(StringExp)ue.exp();
+        auto es = cast(StringExp)ue.exp();
         es.sz = sz;
         es.committed = 0; //es1->committed;
         es.type = type;
@@ -1618,7 +1618,7 @@ extern (C++) Expression ctfeIndex(Loc loc, Type type, Expression e1, uinteger_t 
     }
     assert(e1.op == TOKarrayliteral);
     {
-        ArrayLiteralExp ale = cast(ArrayLiteralExp)e1;
+        auto ale = cast(ArrayLiteralExp)e1;
         if (indx >= ale.elements.dim)
         {
             error(loc, "array index %llu is out of bounds %s[0 .. %llu]",
@@ -1832,7 +1832,7 @@ extern (C++) UnionExp changeArrayLiteralLength(Loc loc, TypeArray arrayType,
     size_t copylen = oldlen < newlen ? oldlen : newlen;
     if (oldval.op == TOKstring)
     {
-        StringExp oldse = cast(StringExp)oldval;
+        auto oldse = cast(StringExp)oldval;
         void* s = mem.xcalloc(newlen + 1, oldse.sz);
         memcpy(s, oldse.string, copylen * oldse.sz);
         uint defaultValue = cast(uint)defaultElem.toInteger();
@@ -1848,7 +1848,7 @@ extern (C++) UnionExp changeArrayLiteralLength(Loc loc, TypeArray arrayType,
             }
         }
         emplaceExp!(StringExp)(&ue, loc, s, newlen);
-        StringExp se = cast(StringExp)ue.exp();
+        auto se = cast(StringExp)ue.exp();
         se.type = arrayType;
         se.sz = oldse.sz;
         se.committed = oldse.committed;
@@ -1859,7 +1859,7 @@ extern (C++) UnionExp changeArrayLiteralLength(Loc loc, TypeArray arrayType,
         if (oldlen != 0)
         {
             assert(oldval.op == TOKarrayliteral);
-            ArrayLiteralExp ae = cast(ArrayLiteralExp)oldval;
+            auto ae = cast(ArrayLiteralExp)oldval;
             for (size_t i = 0; i < copylen; i++)
                 (*elements)[i] = (*ae.elements)[indxlo + i];
         }
@@ -1877,7 +1877,7 @@ extern (C++) UnionExp changeArrayLiteralLength(Loc loc, TypeArray arrayType,
                 (*elements)[i] = defaultElem;
         }
         emplaceExp!(ArrayLiteralExp)(&ue, loc, elements);
-        ArrayLiteralExp aae = cast(ArrayLiteralExp)ue.exp();
+        auto aae = cast(ArrayLiteralExp)ue.exp();
         aae.type = arrayType;
         aae.ownedByCtfe = OWNEDctfe;
     }
@@ -1955,7 +1955,7 @@ extern (C++) bool isCtfeValueValid(Expression newval)
     if (newval.op == TOKslice)
     {
         // e1 should be an array aggregate
-        SliceExp se = cast(SliceExp)newval;
+        auto se = cast(SliceExp)newval;
         assert(se.lwr && se.lwr.op == TOKint64);
         assert(se.upr && se.upr.op == TOKint64);
         return (tb.ty == Tarray ||
@@ -2131,7 +2131,7 @@ extern (C++) UnionExp voidInitLiteral(Type t, VarDeclaration var)
             (*elements)[i] = elem;
         }
         emplaceExp!(ArrayLiteralExp)(&ue, var.loc, elements);
-        ArrayLiteralExp ae = cast(ArrayLiteralExp)ue.exp();
+        auto ae = cast(ArrayLiteralExp)ue.exp();
         ae.type = tsa;
         ae.ownedByCtfe = OWNEDctfe;
     }
@@ -2145,7 +2145,7 @@ extern (C++) UnionExp voidInitLiteral(Type t, VarDeclaration var)
             (*exps)[i] = voidInitLiteral(ts.sym.fields[i].type, ts.sym.fields[i]).copy();
         }
         emplaceExp!(StructLiteralExp)(&ue, var.loc, ts.sym, exps);
-        StructLiteralExp se = cast(StructLiteralExp)ue.exp();
+        auto se = cast(StructLiteralExp)ue.exp();
         se.type = ts;
         se.ownedByCtfe = OWNEDctfe;
     }

@@ -201,13 +201,13 @@ extern (C++) UnionExp Add(Loc loc, Type type, Expression e1, Expression e2)
     }
     else if (e1.op == TOKsymoff)
     {
-        SymOffExp soe = cast(SymOffExp)e1;
+        auto soe = cast(SymOffExp)e1;
         emplaceExp!(SymOffExp)(&ue, loc, soe.var, soe.offset + e2.toInteger());
         ue.exp().type = type;
     }
     else if (e2.op == TOKsymoff)
     {
-        SymOffExp soe = cast(SymOffExp)e2;
+        auto soe = cast(SymOffExp)e2;
         emplaceExp!(SymOffExp)(&ue, loc, soe.var, soe.offset + e1.toInteger());
         ue.exp().type = type;
     }
@@ -291,7 +291,7 @@ extern (C++) UnionExp Min(Loc loc, Type type, Expression e1, Expression e2)
     }
     else if (e1.op == TOKsymoff)
     {
-        SymOffExp soe = cast(SymOffExp)e1;
+        auto soe = cast(SymOffExp)e1;
         emplaceExp!(SymOffExp)(&ue, loc, soe.var, soe.offset - e2.toInteger());
         ue.exp().type = type;
     }
@@ -1193,13 +1193,13 @@ extern (C++) UnionExp ArrayLength(Type type, Expression e1)
     }
     else if (e1.op == TOKarrayliteral)
     {
-        ArrayLiteralExp ale = cast(ArrayLiteralExp)e1;
+        auto ale = cast(ArrayLiteralExp)e1;
         size_t dim = ale.elements ? ale.elements.dim : 0;
         emplaceExp!(IntegerExp)(&ue, loc, dim, type);
     }
     else if (e1.op == TOKassocarrayliteral)
     {
-        AssocArrayLiteralExp ale = cast(AssocArrayLiteralExp)e1;
+        auto ale = cast(AssocArrayLiteralExp)e1;
         size_t dim = ale.keys.dim;
         emplaceExp!(IntegerExp)(&ue, loc, dim, type);
     }
@@ -1248,7 +1248,7 @@ extern (C++) UnionExp Index(Type type, Expression e1, Expression e2)
         }
         else if (e1.op == TOKarrayliteral)
         {
-            ArrayLiteralExp ale = cast(ArrayLiteralExp)e1;
+            auto ale = cast(ArrayLiteralExp)e1;
             auto e = ale.getElement(cast(size_t)i);
             e.type = type;
             e.loc = loc;
@@ -1265,7 +1265,7 @@ extern (C++) UnionExp Index(Type type, Expression e1, Expression e2)
         uinteger_t i = e2.toInteger();
         if (e1.op == TOKarrayliteral)
         {
-            ArrayLiteralExp ale = cast(ArrayLiteralExp)e1;
+            auto ale = cast(ArrayLiteralExp)e1;
             if (i >= ale.elements.dim)
             {
                 e1.error("array index %llu is out of bounds %s[0 .. %u]", i, e1.toChars(), ale.elements.dim);
@@ -1287,7 +1287,7 @@ extern (C++) UnionExp Index(Type type, Expression e1, Expression e2)
     }
     else if (e1.op == TOKassocarrayliteral)
     {
-        AssocArrayLiteralExp ae = cast(AssocArrayLiteralExp)e1;
+        auto ae = cast(AssocArrayLiteralExp)e1;
         /* Search the keys backwards, in case there are duplicate keys
          */
         for (size_t i = ae.keys.dim; i;)
@@ -1352,7 +1352,7 @@ extern (C++) UnionExp Slice(Type type, Expression e1, Expression lwr, Expression
             memcpy(cast(char*)s, es1.string + ilwr * sz, len * sz);
 
             emplaceExp!(StringExp)(&ue, loc, s, len, es1.postfix);
-            StringExp es = cast(StringExp)ue.exp();
+            auto es = cast(StringExp)ue.exp();
             es.sz = sz;
             es.committed = es1.committed;
             es.type = type;
@@ -1495,7 +1495,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
                 utf_encode(sz, s, cast(dchar)v);
 
             emplaceExp!(StringExp)(&ue, loc, s, len);
-            StringExp es = cast(StringExp)ue.exp();
+            auto es = cast(StringExp)ue.exp();
             es.sz = sz;
             es.committed = 1;
         }
@@ -1562,7 +1562,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         memcpy(cast(char*)s + es1.len * sz, es2.string, es2.len * sz);
 
         emplaceExp!(StringExp)(&ue, loc, s, len);
-        StringExp es = cast(StringExp)ue.exp();
+        auto es = cast(StringExp)ue.exp();
         es.sz = sz;
         es.committed = es1.committed | es2.committed;
         es.type = type;
@@ -1573,8 +1573,8 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         t1.nextOf().isintegral())
     {
         // [chars] ~ string --> [chars]
-        StringExp es = cast(StringExp)e2;
-        ArrayLiteralExp ea = cast(ArrayLiteralExp)e1;
+        auto es = cast(StringExp)e2;
+        auto ea = cast(ArrayLiteralExp)e1;
         size_t len = es.len + ea.elements.dim;
         auto elems = new Expressions();
         elems.setDim(len);
@@ -1583,7 +1583,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
             (*elems)[i] = ea.getElement(i);
         }
         emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, elems);
-        ArrayLiteralExp dest = cast(ArrayLiteralExp)ue.exp();
+        auto dest = cast(ArrayLiteralExp)ue.exp();
         dest.type = type;
         sliceAssignArrayLiteralFromString(dest, es, ea.elements.dim);
         assert(ue.exp().type);
@@ -1593,8 +1593,8 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         t2.nextOf().isintegral())
     {
         // string ~ [chars] --> [chars]
-        StringExp es = cast(StringExp)e1;
-        ArrayLiteralExp ea = cast(ArrayLiteralExp)e2;
+        auto es = cast(StringExp)e1;
+        auto ea = cast(ArrayLiteralExp)e2;
         size_t len = es.len + ea.elements.dim;
         auto elems = new Expressions();
         elems.setDim(len);
@@ -1603,7 +1603,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
             (*elems)[es.len + i] = ea.getElement(i);
         }
         emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, elems);
-        ArrayLiteralExp dest = cast(ArrayLiteralExp)ue.exp();
+        auto dest = cast(ArrayLiteralExp)ue.exp();
         dest.type = type;
         sliceAssignArrayLiteralFromString(dest, es, 0);
         assert(ue.exp().type);
@@ -1651,7 +1651,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         memcpy(cast(char*)s + sz, es2.string, es2.len * sz);
 
         emplaceExp!(StringExp)(&ue, loc, s, len);
-        StringExp es = cast(StringExp)ue.exp();
+        auto es = cast(StringExp)ue.exp();
         es.sz = sz;
         es.committed = es2.committed;
         es.type = type;
@@ -1766,7 +1766,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         }
         if (!e.type.equals(type))
         {
-            StringExp se = cast(StringExp)e.copy();
+            auto se = cast(StringExp)e.copy();
             e = se.castTo(null, type);
             emplaceExp!(UnionExp)(&ue, e);
             e = ue.exp();
@@ -1785,13 +1785,13 @@ extern (C++) UnionExp Ptr(Type type, Expression e1)
 
     if (e1.op == TOKadd)
     {
-        AddExp ae = cast(AddExp)e1;
+        auto ae = cast(AddExp)e1;
         if (ae.e1.op == TOKaddress && ae.e2.op == TOKint64)
         {
-            AddrExp ade = cast(AddrExp)ae.e1;
+            auto ade = cast(AddrExp)ae.e1;
             if (ade.e1.op == TOKstructliteral)
             {
-                StructLiteralExp se = cast(StructLiteralExp)ade.e1;
+                auto se = cast(StructLiteralExp)ade.e1;
                 uint offset = cast(uint)ae.e2.toInteger();
                 Expression e = se.getField(type, offset);
                 if (e)
