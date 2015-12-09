@@ -3384,7 +3384,8 @@ public:
     {
         if (this == o)
             return true;
-        if ((cast(Expression)o).op == TOKint64)
+        auto e = isExpression(o);
+        if (e && e.op == TOKint64)
         {
             auto ne = cast(IntegerExp)o;
             if (type.toHeadMutable().equals(ne.type.toHeadMutable()) &&
@@ -3542,7 +3543,8 @@ public:
     {
         if (this == o)
             return true;
-        if ((cast(Expression)o).op == TOKfloat64)
+        auto e = isExpression(o);
+        if (e && e.op == TOKfloat64)
         {
             auto ne = cast(RealExp)o;
             if (type.toHeadMutable().equals(ne.type.toHeadMutable()) &&
@@ -3619,7 +3621,8 @@ public:
     {
         if (this == o)
             return true;
-        if ((cast(Expression)o).op == TOKcomplex80)
+        auto e = isExpression(o);
+        if (e && e.op == TOKcomplex80)
         {
             auto ne = cast(ComplexExp)o;
             if (type.toHeadMutable().equals(ne.type.toHeadMutable()) &&
@@ -4282,13 +4285,12 @@ public:
 
     override bool equals(RootObject o)
     {
-        if (o && o.dyncast() == DYNCAST_EXPRESSION)
+        if (this == o)
+            return true;
+        auto e = isExpression(o);
+        if (e && e.op == TOKnull)
         {
-            auto e = cast(Expression)o;
-            if (e.op == TOKnull && type.equals(e.type))
-            {
-                return true;
-            }
+            return type.equals(e.type);
         }
         return false;
     }
@@ -4378,13 +4380,12 @@ public:
     override bool equals(RootObject o)
     {
         //printf("StringExp::equals('%s') %s\n", o->toChars(), toChars());
-        if (o && o.dyncast() == DYNCAST_EXPRESSION)
+        if (this == o)
+            return true;
+        auto e = isExpression(o);
+        if (e && e.op == TOKstring)
         {
-            auto e = cast(Expression)o;
-            if (e.op == TOKstring)
-            {
-                return compare(o) == 0;
-            }
+            return compare(o) == 0;
         }
         return false;
     }
@@ -4849,9 +4850,10 @@ public:
     {
         if (this == o)
             return true;
-        if ((cast(Expression)o).op == TOKtuple)
+        auto e = isExpression(o);
+        if (e && e.op == TOKtuple)
         {
-            auto te = cast(TupleExp)o;
+            auto te = cast(TupleExp)e;
             if (exps.dim != te.exps.dim)
                 return false;
             if (e0 && !e0.equals(te.e0) || !e0 && te.e0)
@@ -4959,24 +4961,24 @@ public:
     {
         if (this == o)
             return true;
-        if (o && o.dyncast() == DYNCAST_EXPRESSION &&
-            (cast(Expression)o).op == TOKarrayliteral)
+        auto e = isExpression(o);
+        if (e && e.op == TOKarrayliteral)
         {
-            auto ae = cast(ArrayLiteralExp)o;
-            if (elements.dim != ae.elements.dim)
+            auto ale = cast(ArrayLiteralExp)o;
+            if (elements.dim != ale.elements.dim)
                 return false;
-            if (elements.dim == 0 && !type.equals(ae.type))
+            if (elements.dim == 0 && !type.equals(ale.type))
             {
                 return false;
             }
             for (size_t i = 0; i < elements.dim; i++)
             {
                 auto e1 = (*elements)[i];
-                auto e2 = (*ae.elements)[i];
+                auto e2 = (*ale.elements)[i];
                 if (!e1)
                     e1 = basis;
                 if (!e2)
-                    e2 = ae.basis;
+                    e2 = ale.basis;
                 if (e1 != e2 &&
                     (!e1 || !e2 || !e1.equals(e2)))
                 {
@@ -5171,20 +5173,20 @@ public:
     {
         if (this == o)
             return true;
-        if (o && o.dyncast() == DYNCAST_EXPRESSION &&
-            (cast(Expression)o).op == TOKassocarrayliteral)
+        auto e = isExpression(o);
+        if (e && e.op == TOKassocarrayliteral)
         {
-            auto ae = cast(AssocArrayLiteralExp)o;
-            if (keys.dim != ae.keys.dim)
+            auto aae = cast(AssocArrayLiteralExp)e;
+            if (keys.dim != aae.keys.dim)
                 return false;
             size_t count = 0;
             for (size_t i = 0; i < keys.dim; i++)
             {
-                for (size_t j = 0; j < ae.keys.dim; j++)
+                for (size_t j = 0; j < aae.keys.dim; j++)
                 {
-                    if ((*keys)[i].equals((*ae.keys)[j]))
+                    if ((*keys)[i].equals((*aae.keys)[j]))
                     {
-                        if (!(*values)[i].equals((*ae.values)[j]))
+                        if (!(*values)[i].equals((*aae.values)[j]))
                             return false;
                         ++count;
                     }
@@ -5313,18 +5315,18 @@ public:
     {
         if (this == o)
             return true;
-        if (o && o.dyncast() == DYNCAST_EXPRESSION &&
-            (cast(Expression)o).op == TOKstructliteral)
+        auto e = isExpression(o);
+        if (e && e.op == TOKstructliteral)
         {
-            auto se = cast(StructLiteralExp)o;
-            if (!type.equals(se.type))
+            auto sle = cast(StructLiteralExp)e;
+            if (!type.equals(sle.type))
                 return false;
-            if (elements.dim != se.elements.dim)
+            if (elements.dim != sle.elements.dim)
                 return false;
             for (size_t i = 0; i < elements.dim; i++)
             {
                 auto e1 = (*elements)[i];
-                auto e2 = (*se.elements)[i];
+                auto e2 = (*sle.elements)[i];
                 if (e1 != e2 && (!e1 || !e2 || !e1.equals(e2)))
                     return false;
             }
@@ -6439,11 +6441,13 @@ public:
     {
         if (this == o)
             return true;
-        if ((cast(Expression)o).op == TOKvar)
+        auto e = isExpression(o);
+        if (e && e.op == TOKvar)
         {
-            auto ne = cast(VarExp)o;
-            if (type.toHeadMutable().equals(ne.type.toHeadMutable()) &&
-                var == ne.var)
+            // todo var == ve.var?
+            auto ve = cast(VarExp)e;
+            if (type.toHeadMutable().equals(ve.type.toHeadMutable()) &&
+                var == ve.var)
             {
                 return true;
             }
@@ -6620,12 +6624,10 @@ public:
     {
         if (this == o)
             return true;
-        if (o.dyncast() != DYNCAST_EXPRESSION)
-            return false;
-        if ((cast(Expression)o).op == TOKfunction)
+        auto e = isExpression(o);
+        if (e && e.op == TOKfunction)
         {
-            auto fe = cast(FuncExp)o;
-            return fd == fe.fd;
+            return fd == (cast(FuncExp)e).fd;
         }
         return false;
     }
