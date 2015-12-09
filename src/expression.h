@@ -651,7 +651,7 @@ public:
     void genIdent(Scope *sc);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
-    Expression *semantic(Scope *sc, Expressions *arguments);
+    Expression *matchArgs(Scope *sc, Expressions *arguments);
     MATCH matchType(Type *to, Scope *sc, FuncExp **pfe, int flag = 0);
     char *toChars();
     bool checkType();
