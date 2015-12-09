@@ -7806,11 +7806,13 @@ public:
         // Bugzilla 14010
         if (ident == Id._mangleof)
             return getProperty(e.loc, ident, flag);
+
         if (!sym.members)
         {
             error(e.loc, "struct %s is forward referenced", sym.toChars());
             return new ErrorExp();
         }
+
         /* If e.tupleof
          */
         if (ident == Id._tupleof)
@@ -7849,19 +7851,21 @@ public:
             sc2.pop();
             return e;
         }
+
         if (e.op == TOKdot)
         {
-            DotExp de = cast(DotExp)e;
+            auto de = cast(DotExp)e;
             if (de.e1.op == TOKscope)
             {
                 assert(0); // cannot find a case where this happens; leave
                 // assert in until we do
-                // ScopeExp se = cast(ScopeExp)de.e1;
+                // auto se = cast(ScopeExp)de.e1;
                 // s = se.sds.search(e.loc, ident);
                 // e = de.e1;
                 // goto L1;
             }
         }
+
         s = sym.search(e.loc, ident);
     L1:
         if (!s)
@@ -7915,15 +7919,14 @@ public:
             return (new TypeExp(e.loc, t)).semantic(sc);
         }
 
-        TemplateMixin tm = s.isTemplateMixin();
-        if (tm)
+        if (auto tm = s.isTemplateMixin())
         {
             Expression de = new DotExp(e.loc, e, new ScopeExp(e.loc, tm));
             de.type = e.type;
             return de;
         }
-        TemplateDeclaration td = s.isTemplateDeclaration();
-        if (td)
+
+        if (auto td = s.isTemplateDeclaration())
         {
             if (e.op == TOKtype)
                 e = new TemplateExp(e.loc, td);
@@ -7932,8 +7935,7 @@ public:
             e = e.semantic(sc);
             return e;
         }
-        TemplateInstance ti = s.isTemplateInstance();
-        if (ti)
+        if (auto ti = s.isTemplateInstance())
         {
             if (!ti.semanticRun)
             {
@@ -7950,26 +7952,29 @@ public:
                 e = new DotExp(e.loc, e, new ScopeExp(e.loc, ti));
             return e.semantic(sc);
         }
+
         if (s.isImport() || s.isModule() || s.isPackage())
         {
             e = DsymbolExp.resolve(e.loc, sc, s, false);
             return e;
         }
-        OverloadSet o = s.isOverloadSet();
-        if (o)
+
+        if (auto os = s.isOverloadSet())
         {
-            auto oe = new OverExp(e.loc, o);
+            auto oe = new OverExp(e.loc, os);
             if (e.op == TOKtype)
                 return oe;
             return new DotExp(e.loc, e, oe);
         }
-        Declaration d = s.isDeclaration();
+
+        auto d = s.isDeclaration();
         debug
         {
             if (!d)
                 printf("d = %s '%s'\n", s.kind(), s.toChars());
         }
         assert(d);
+
         if (e.op == TOKtype)
         {
             /* It's:
@@ -8001,6 +8006,7 @@ public:
                 ve.type = d.type.addMod(e.type.mod);
             return ve;
         }
+
         bool unreal = e.op == TOKvar && (cast(VarExp)e).var.isField();
         if (d.isDataseg() || unreal && d.isField())
         {
@@ -8568,25 +8574,28 @@ public:
         }
         if (e.op == TOKdot)
         {
-            DotExp de = cast(DotExp)e;
+            auto de = cast(DotExp)e;
             if (de.e1.op == TOKscope)
             {
-                ScopeExp se = cast(ScopeExp)de.e1;
+                auto se = cast(ScopeExp)de.e1;
                 s = se.sds.search(e.loc, ident);
                 e = de.e1;
                 goto L1;
             }
         }
+
         // Bugzilla 12543
         if (ident == Id.__sizeof || ident == Id.__xalignof || ident == Id._mangleof)
         {
             return Type.getProperty(e.loc, ident, 0);
         }
+
         if (ident == Id._tupleof)
         {
             /* Create a TupleExp
              */
             e = e.semantic(sc); // do this before turning on noaccesscheck
+
             /* If this is called in the middle of a class declaration,
              *  class Inner {
              *    int x;
@@ -8629,6 +8638,7 @@ public:
             sc2.pop();
             return e;
         }
+
         s = sym.search(e.loc, ident);
     L1:
         if (!s)
@@ -8650,6 +8660,7 @@ public:
                     e = new DotTypeExp(e.loc, e, cbase);
                 return e;
             }
+
             if (ident == Id.classinfo)
             {
                 assert(Type.typeinfoclass);
@@ -8696,6 +8707,7 @@ public:
                 }
                 return e;
             }
+
             if (ident == Id.__vptr)
             {
                 /* The pointer to the vtbl[]
@@ -8706,6 +8718,7 @@ public:
                 e = e.semantic(sc);
                 return e;
             }
+
             if (ident == Id.__monitor)
             {
                 /* The handle to the monitor (call it a void*)
@@ -8717,6 +8730,7 @@ public:
                 e = e.semantic(sc);
                 return e;
             }
+
             if (ident == Id.outer && sym.vthis)
             {
                 if (sym.vthis._scope)
@@ -8802,15 +8816,14 @@ public:
             return (new TypeExp(e.loc, t)).semantic(sc);
         }
 
-        TemplateMixin tm = s.isTemplateMixin();
-        if (tm)
+        if (auto tm = s.isTemplateMixin())
         {
             Expression de = new DotExp(e.loc, e, new ScopeExp(e.loc, tm));
             de.type = e.type;
             return de;
         }
-        TemplateDeclaration td = s.isTemplateDeclaration();
-        if (td)
+
+        if (auto td = s.isTemplateDeclaration())
         {
             if (e.op == TOKtype)
                 e = new TemplateExp(e.loc, td);
@@ -8819,8 +8832,7 @@ public:
             e = e.semantic(sc);
             return e;
         }
-        TemplateInstance ti = s.isTemplateInstance();
-        if (ti)
+        if (auto ti = s.isTemplateInstance())
         {
             if (!ti.semanticRun)
             {
@@ -8837,35 +8849,39 @@ public:
                 e = new DotExp(e.loc, e, new ScopeExp(e.loc, ti));
             return e.semantic(sc);
         }
+
         if (s.isImport() || s.isModule() || s.isPackage())
         {
             e = DsymbolExp.resolve(e.loc, sc, s, false);
             return e;
         }
-        OverloadSet o = s.isOverloadSet();
-        if (o)
+
+        if (auto os = s.isOverloadSet())
         {
-            auto oe = new OverExp(e.loc, o);
+            auto oe = new OverExp(e.loc, os);
             if (e.op == TOKtype)
                 return oe;
             return new DotExp(e.loc, e, oe);
         }
-        Declaration d = s.isDeclaration();
+
+        auto d = s.isDeclaration();
         if (!d)
         {
             e.error("%s.%s is not a declaration", e.toChars(), ident.toChars());
             return new ErrorExp();
         }
+
         if (e.op == TOKtype)
         {
             /* It's:
              *    Class.d
              */
             // If Class is in a failed template, return an error
-            TemplateInstance tiparent = d.isInstantiated();
+            auto tiparent = d.isInstantiated();
             if (tiparent && tiparent.errors)
                 return new ErrorExp();
-            if (TupleDeclaration tup = d.isTupleDeclaration())
+
+            if (auto tup = d.isTupleDeclaration())
             {
                 e = new TupleExp(e.loc, tup);
                 e = e.semantic(sc);
@@ -8883,8 +8899,8 @@ public:
                     e1 = e1.semantic(sc);
                 L2:
                     Type t = e1.type.toBasetype();
-                    ClassDeclaration cd = e.type.isClassHandle();
-                    ClassDeclaration tcd = t.isClassHandle();
+                    auto cd = e.type.isClassHandle();
+                    auto tcd = t.isClassHandle();
                     if (cd && tcd && (tcd == cd || cd.isBaseOf(tcd, null)))
                     {
                         e = new DotTypeExp(e1.loc, e1, cd);
@@ -8902,12 +8918,13 @@ public:
                         e1.type = e1.type.addMod(t.mod);
                         // Do not call checkNestedRef()
                         //e1 = e1->semantic(sc);
+
                         // Skip up over nested functions, and get the enclosing
                         // class type.
                         int n = 0;
                         for (s = tcd.toParent(); s && s.isFuncDeclaration(); s = s.toParent())
                         {
-                            FuncDeclaration f = s.isFuncDeclaration();
+                            auto f = s.isFuncDeclaration();
                             if (f.vthis)
                             {
                                 //printf("rewriting e1 to %s's this\n", f->toChars());
@@ -8942,6 +8959,7 @@ public:
                 ve.type = d.type.addMod(e.type.mod);
             return ve;
         }
+
         bool unreal = e.op == TOKvar && (cast(VarExp)e).var.isField();
         if (d.isDataseg() || unreal && d.isField())
         {
@@ -8952,6 +8970,7 @@ public:
             e = e.semantic(sc);
             return e;
         }
+
         if (d.parent && d.toParent().isModule())
         {
             // (e, d)

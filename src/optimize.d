@@ -30,11 +30,13 @@ import ddmd.visitor;
 extern (C++) Expression expandVar(int result, VarDeclaration v)
 {
     //printf("expandVar(result = %d, v = %p, %s)\n", result, v, v ? v.toChars() : "null");
+
     Expression e = null;
     if (!v)
         return e;
     if (!v.originalType && v._scope) // semantic() not yet run
         v.semantic(v._scope);
+
     if (v.isConst() || v.isImmutable() || v.storage_class & STCmanifest)
     {
         if (!v.type)
@@ -42,7 +44,9 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
             return e;
         }
         Type tb = v.type.toBasetype();
-        if (v.storage_class & STCmanifest || v.type.toBasetype().isscalar() || ((result & WANTexpand) && (tb.ty != Tsarray && tb.ty != Tstruct)))
+        if (v.storage_class & STCmanifest ||
+            v.type.toBasetype().isscalar() ||
+            ((result & WANTexpand) && (tb.ty != Tsarray && tb.ty != Tstruct)))
         {
             if (v._init)
             {
@@ -55,7 +59,7 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
                     }
                     goto L1;
                 }
-                Expression ei = v.getConstInitializer();
+                auto ei = v.getConstInitializer();
                 if (!ei)
                 {
                     if (v.storage_class & STCmanifest)
@@ -67,8 +71,7 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
                 }
                 if (ei.op == TOKconstruct || ei.op == TOKblit)
                 {
-                    AssignExp ae = cast(AssignExp)ei;
-                    ei = ae.e2;
+                    ei = (cast(AssignExp)ei).e2;
                     if (ei.isConst() == 1)
                     {
                     }
@@ -82,6 +85,7 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
                     }
                     else
                         goto L1;
+
                     if (ei.type == v.type)
                     {
                         // const variable initialized with const expression
@@ -95,7 +99,9 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
                     else
                         goto L1;
                 }
-                else if (!(v.storage_class & STCmanifest) && ei.isConst() != 1 && ei.op != TOKstring && ei.op != TOKaddress)
+                else if (!(v.storage_class & STCmanifest) &&
+                         ei.isConst() != 1 && ei.op != TOKstring &&
+                         ei.op != TOKaddress)
                 {
                     goto L1;
                 }
@@ -135,6 +141,7 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
 L1:
     //if (e) printf("\te = %p, %s, e->type = %d, %s\n", e, e->toChars(), e->type->ty, e->type->toChars());
     return e;
+
 Lerror:
     return new ErrorExp();
 }
@@ -226,7 +233,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
         {
             if (keepLvalue)
             {
-                VarDeclaration v = e.var.isVarDeclaration();
+                auto v = e.var.isVarDeclaration();
                 if (v && !(v.storage_class & STCmanifest))
                     return;
             }

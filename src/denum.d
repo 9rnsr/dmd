@@ -77,7 +77,7 @@ public:
             printf("EnumDeclaration::addMember() %s\n", toChars());
             for (size_t i = 0; i < members.dim; i++)
             {
-                EnumMember em = (*members)[i].isEnumMember();
+                auto em = (*members)[i].isEnumMember();
                 printf("    member %s\n", em.toChars());
             }
         }
@@ -97,10 +97,10 @@ public:
         {
             for (size_t i = 0; i < members.dim; i++)
             {
-                EnumMember em = (*members)[i].isEnumMember();
+                auto em = (*members)[i].isEnumMember();
                 em.ed = this;
                 //printf("add %s to scope %s\n", em->toChars(), scopesym->toChars());
-                em.addMember(sc, isAnonymous() ? scopesym : this);
+                em.addMember(sc, scopesym);
             }
         }
         added = true;
