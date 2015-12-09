@@ -1846,15 +1846,15 @@ public:
         // Inside unions, default to void initializers
         if (!_init && sc.inunion && !toParent().isFuncDeclaration())
         {
-            AggregateDeclaration aad = parent.isAggregateDeclaration();
-            if (aad)
+            if (auto aad = parent.isAggregateDeclaration())
             {
                 if (aad.fields[0] == this)
                 {
                     int hasinit = 0;
                     for (size_t i = 1; i < aad.fields.dim; i++)
                     {
-                        if (aad.fields[i]._init && !aad.fields[i]._init.isVoidInitializer())
+                        auto v = aad.fields[i];
+                        if (v._init && !v._init.isVoidInitializer())
                         {
                             hasinit = 1;
                             break;
@@ -1869,17 +1869,8 @@ public:
         }
         if (_init && !toParent().isFuncDeclaration())
         {
-            inuse++;
-            version (none)
-            {
-                ExpInitializer ei = _init.isExpInitializer();
-                if (ei)
-                {
-                    ei.exp.print();
-                    printf("type = %p\n", ei.exp.type);
-                }
-            }
             // Bugzilla 14166: Don't run CTFE for the temporary variables inside typeof
+            inuse++;
             _init = _init.semantic(sc, type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
             inuse--;
         }
@@ -1949,21 +1940,20 @@ public:
 
     override final AggregateDeclaration isThis()
     {
-        AggregateDeclaration ad = null;
         if (!(storage_class & (STCstatic | STCextern | STCmanifest |
                                STCtemplateparameter |
                                STCtls | STCgshared | STCctfe)))
         {
             for (Dsymbol s = this; s; s = s.parent)
             {
-                ad = s.isMember();
+                auto ad = s.isMember();
                 if (ad)
-                    break;
+                    return ad;
                 if (!s.parent || !s.parent.isTemplateMixin())
                     break;
             }
         }
-        return ad;
+        return null;
     }
 
     override final bool needThis()
