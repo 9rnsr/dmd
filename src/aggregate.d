@@ -643,7 +643,8 @@ public:
 
     override final Type getType()
     {
-        return type;
+        //assert(type.ty == Tstruct || type.ty == Tclass);
+        return type.semantic(loc, null);
     }
 
     // is aggregate deprecated?

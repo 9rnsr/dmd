@@ -301,7 +301,8 @@ public:
 
     override Type getType()
     {
-        return type;
+        //assert(type.ty == Tenum);
+        return type.semantic(loc, null);
     }
 
     override const(char)* kind() const

@@ -7164,7 +7164,7 @@ public:
                     error(loc, "forward reference to '%s'", t.toChars());
                 goto Lerror;
             }
-            *pt = t.ty == Ttuple ? t : t.merge();
+            *pt = t;
         }
         else
         {
