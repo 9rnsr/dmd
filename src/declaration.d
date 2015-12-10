@@ -544,6 +544,9 @@ public:
     override void semantic(Scope* sc)
     {
         //printf("AliasDeclaration::semantic() %s\n", toChars());
+        //if (semanticRun >= PASSsemanticdone)
+        //    return;
+
         if (aliassym)
         {
             auto fd = aliassym.isFuncLiteralDeclaration();
@@ -750,6 +753,9 @@ public:
 
     override Type getType()
     {
+        //if (semanticRun < PASSsemanticdone && _scope)
+        //    semantic(_scope);
+
         if (type)
             return type;
         return toAlias().getType();

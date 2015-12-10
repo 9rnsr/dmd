@@ -7157,13 +7157,15 @@ public:
         if (auto t = s.getType())
         {
             // This check is necessary... why?
+            // maybe the problem when s is AliasDeclaration.
             if (t.ty == Tinstance && t != this && !t.deco)
             {
-                //printf("[%s] s = %s %s, t = %s\n", loc.toChars(), s.kind(), s.toChars(), t.toChars());
+                //printf("NG1 [%s] s = %s %s, t = %s\n", loc.toChars(), s.kind(), s.toChars(), t.toChars());
                 if (!(cast(TypeInstance)t).tempinst.errors)
                     error(loc, "forward reference to '%s'", t.toChars());
                 goto Lerror;
             }
+            //if (!t.deco) printf("NG2 [%s] s = %s %s, t = %s\n", loc.toChars(), s.kind(), s.toChars(), t.toChars());
             *pt = t;
         }
         else
