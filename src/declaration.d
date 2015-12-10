@@ -756,6 +756,9 @@ public:
         //if (semanticRun < PASSsemanticdone && _scope)
         //    semantic(_scope);
 
+        //auto s = toAlias();
+        //return s !is this ? s.getType() : type;
+
         if (type)
             return type;
         return toAlias().getType();
