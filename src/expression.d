@@ -3941,7 +3941,11 @@ public:
         if (auto os = s.isOverloadSet())
         {
             //printf("'%s' is an overload set\n", os.toChars());
-            return new OverExp(loc, os);
+            e = new OverExp(loc, os);
+            //if (eleft && eleft.op != TOKtype)
+            //    e = new DotExp(loc, eleft, e);
+            e = e.semantic(sc);
+            return e;
         }
 
         if (auto t = s.getType())
@@ -3970,10 +3974,19 @@ public:
             e = e.semantic(sc);
             return e;
         }
+        //if (auto tm = s.isTemplateMixin())
+        //{
+        //    e = new ScopeExp(loc, tm);
+        //    if (eleft/* && eleft.op != TOKtype*/)
+        //        e = new DotExp(loc, eleft, e);
+        //    e = e.semantic(sc);
+        //    return e;
+        //}
         if (auto ti = s.isTemplateInstance())
         {
+            // TemplateInstance, TemplateMixin
             ti.semantic(sc);
-            if (!ti.inst || ti.errors)
+            if (!ti.inst || ti.errors)  // ti.errors?
                 return new ErrorExp();
             s = ti.toAlias();
             if (!s.isTemplateInstance())
@@ -4000,8 +4013,9 @@ public:
         }
         if (auto sds = s.isScopeDsymbol())
         {
+            // Package, Module, Nspace, ...?
             e = new ScopeExp(loc, sds);
-            if (eleft)
+            if (eleft)  // todo
                 e = new DotExp(loc, eleft, e);
             e = e.semantic(sc);
             return e;

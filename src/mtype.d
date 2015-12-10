@@ -7769,15 +7769,9 @@ public:
         {
             printf("TypeStruct::dotExp(e = '%s', ident = '%s')\n", e.toChars(), ident.toChars());
         }
-        // Bugzilla 14010
-        if (ident == Id._mangleof)
+        // These members' redefinition is disallowed in Dsymbol.addMember.
+        if (ident == Id.__sizeof || ident == Id.__xalignof || ident == Id._mangleof)
             return getProperty(e.loc, ident, flag);
-
-        if (!sym.members)
-        {
-            error(e.loc, "struct %s is forward referenced", sym.toChars());
-            return new ErrorExp();
-        }
 
         /* If e.tupleof
          */
@@ -7786,8 +7780,9 @@ public:
             /* Create a TupleExp out of the fields of the struct e:
              * (e.field0, e.field1, e.field2, ...)
              */
-            e = e.semantic(sc); // do this before turning on noaccesscheck
-            e.type.size(); // do semantic of type
+            sym.size(e.loc);
+            if (sym.sizeok != SIZEOKdone)
+                return new ErrorExp();
 
             Expression e0;
             Expression ev = e.op == TOKtype ? null : e;
@@ -7818,31 +7813,11 @@ public:
             return e;
         }
 
-        if (e.op == TOKdot)
-        {
-            auto de = cast(DotExp)e;
-            if (de.e1.op == TOKscope)
-            {
-                assert(0); // cannot find a case where this happens; leave
-                // assert in until we do
-                // auto se = cast(ScopeExp)de.e1;
-                // s = se.sds.search(e.loc, ident);
-                // e = de.e1;
-                // goto L1;
-            }
-        }
-
         s = sym.search(e.loc, ident);
     L1:
         if (!s)
         {
-            if (sym._scope) // it's a fwd ref, maybe we can resolve it
-            {
-                sym.semantic(null);
-                s = sym.search(e.loc, ident);
-            }
-            if (!s)
-                return noMember(sc, e, ident, flag);
+            return noMember(sc, e, ident, flag);
         }
         if (!symbolIsVisible(sc, s))
         {
@@ -7915,7 +7890,7 @@ public:
                 if (!ti.inst || ti.errors) // if template failed to expand
                     return new ErrorExp();
             }
-            s = ti.inst.toAlias();
+            s = ti.toAlias();
             if (!s.isTemplateInstance())
                 goto L1;
             if (e.op == TOKtype)
@@ -7927,8 +7902,7 @@ public:
 
         if (s.isImport() || s.isModule() || s.isPackage())
         {
-            e = DsymbolExp.resolve(e.loc, sc, s, false);
-            return e;
+            return DsymbolExp.resolve(e.loc, sc, s, false);
         }
 
         if (auto os = s.isOverloadSet())
@@ -7952,11 +7926,12 @@ public:
             /* It's:
              *    Struct.d
              */
-            if (TupleDeclaration tup = d.isTupleDeclaration())
+            if (auto tup = d.isTupleDeclaration())
             {
                 e = new TupleExp(e.loc, tup);
                 e = e.semantic(sc);
                 return e;
+                //return DsymbolExp.resolve(e.loc, sc, null, tup, false);
             }
             if (d.needThis() && sc.intypeof != 1)
             {
@@ -8544,39 +8519,18 @@ public:
         {
             printf("TypeClass::dotExp(e='%s', ident='%s')\n", e.toChars(), ident.toChars());
         }
-        if (e.op == TOKdot)
-        {
-            auto de = cast(DotExp)e;
-            if (de.e1.op == TOKscope)
-            {
-                auto se = cast(ScopeExp)de.e1;
-                s = se.sds.search(e.loc, ident);
-                e = de.e1;
-                goto L1;
-            }
-        }
 
-        // Bugzilla 12543
+        // These members' redefinition is disallowed in Dsymbol.addMember.
         if (ident == Id.__sizeof || ident == Id.__xalignof || ident == Id._mangleof)
-        {
             return Type.getProperty(e.loc, ident, 0);
-        }
 
+        /* If e.tupleof
+         */
         if (ident == Id._tupleof)
         {
             /* Create a TupleExp
              */
-            e = e.semantic(sc); // do this before turning on noaccesscheck
-
-            /* If this is called in the middle of a class declaration,
-             *  class Inner {
-             *    int x;
-             *    alias typeof(Inner.tupleof) T;
-             *    int y;
-             *  }
-             * then Inner.y will be omitted from the tuple.
-             */
-            // Detect that error, and at least try to run semantic() on it if we can
+            //e = e.semantic(sc); // do this before turning on noaccesscheck (<- already done in caller side)
             sym.size(e.loc);
 
             Expression e0;
@@ -8622,11 +8576,11 @@ public:
                     return Type.getProperty(e.loc, ident, 0);
                 return new DotTypeExp(e.loc, e, sym);
             }
-            if (ClassDeclaration cbase = sym.searchBase(ident))
+            if (auto cbase = sym.searchBase(ident))
             {
                 if (e.op == TOKtype)
                     return Type.getProperty(e.loc, ident, 0);
-                if (InterfaceDeclaration ifbase = cbase.isInterfaceDeclaration())
+                if (auto ifbase = cbase.isInterfaceDeclaration())
                     e = new CastExp(e.loc, e, ifbase.type);
                 else
                     e = new DotTypeExp(e.loc, e, cbase);
@@ -8647,12 +8601,32 @@ public:
                     e = new VarExp(e.loc, sym.vclassinfo);
                     e = e.addressOf();
                     e.type = t; // do this so we don't get redundant dereference
+                    return e;
                 }
-                else
+
+                /* For class objects, the classinfo reference is the first
+                 * entry in the vtbl[]
+                 */
+                e = new PtrExp(e.loc, e);
+                e.type = t.pointerTo();
+                if (sym.isInterfaceDeclaration())
                 {
-                    /* For class objects, the classinfo reference is the first
-                     * entry in the vtbl[]
+                    if (sym.isCPPinterface())
+                    {
+                        /* C++ interface vtbl[]s are different in that the
+                         * first entry is always pointer to the first virtual
+                         * function, not classinfo.
+                         * We can't get a .classinfo for it.
+                         */
+                        error(e.loc, "no .classinfo for C++ interface objects");
+                    }
+
+                    /* For an interface, the first entry in the vtbl[]
+                     * is actually a pointer to an instance of struct Interface.
+                     * The first member of Interface is the .classinfo,
+                     * so add an extra pointer indirection.
                      */
+                    e.type = e.type.pointerTo();
                     e = new PtrExp(e.loc, e);
                     e.type = t.pointerTo();
                     if (sym.isInterfaceDeclaration())
@@ -8677,6 +8651,7 @@ public:
                     }
                     e = new PtrExp(e.loc, e, t);
                 }
+                e = new PtrExp(e.loc, e, t);
                 return e;
             }
 
@@ -8818,7 +8793,7 @@ public:
                 if (!ti.inst || ti.errors) // if template failed to expand
                     return new ErrorExp();
             }
-            s = ti.inst.toAlias();
+            s = ti.toAlias();
             if (!s.isTemplateInstance())
                 goto L1;
             if (e.op == TOKtype)

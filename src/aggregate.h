@@ -288,7 +288,7 @@ public:
 
     bool isBaseInfoComplete();
     Dsymbol *search(Loc, Identifier *ident, int flags = IgnoreNone);
-    ClassDeclaration *searchBase(Loc, Identifier *ident);
+    ClassDeclaration *searchBase(Identifier *ident);
     void finalizeSize();
     bool isFuncHidden(FuncDeclaration *fd);
     FuncDeclaration *findFunc(Identifier *ident, TypeFunction *tf);
