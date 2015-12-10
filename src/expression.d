@@ -3446,6 +3446,12 @@ public:
         type = Type.terror;
     }
 
+    override Expression semantic(Scope* sc)
+    {
+        assert(type is Type.terror);
+        return this;
+    }
+
     override Expression toLvalue(Scope* sc, Expression e)
     {
         return this;

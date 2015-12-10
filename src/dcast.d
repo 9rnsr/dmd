@@ -195,6 +195,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 return;
             if (!e.type)
             {
+                // todo: finally all Expression classes should have type after those semantic().
                 e.error("%s is not an expression", e.toChars());
                 e.type = Type.terror;
             }

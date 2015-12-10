@@ -7747,12 +7747,13 @@ public:
     override Type semantic(Loc loc, Scope* sc)
     {
         //printf("TypeStruct::semantic('%s')\n", sym->toChars());
-        /* Don't semantic for sym because it should be deferred until
+
+        /* Don't run sym.semantic because it should be deferred until
          * sizeof needed or its members accessed.
+         * Instead, correct parent setting is just needed.
          */
-        // instead, parent should be set correctly
         assert(sym.parent);
-        if (sym.type.ty == Terror)
+        if (sym.type.ty == Terror)  // sym.errors?
             return Type.terror;
         return merge();
     }
@@ -8254,8 +8255,14 @@ public:
     override Type semantic(Loc loc, Scope* sc)
     {
         //printf("TypeEnum::semantic() %s\n", toChars());
-        if (deco)
-            return this;
+
+        /* Don't run sym.semantic because it should be deferred until
+         * sizeof needed or its members accessed.
+         * Instead, correct parent setting is just needed.
+         */
+        assert(sym.parent);
+        if (sym.type.ty == Terror)  // sym.errors?
+            return Type.terror;
         return merge();
     }
 
@@ -8437,7 +8444,9 @@ public:
             printf("TypeEnum::defaultInit() '%s'\n", toChars());
         }
         // Initialize to first member of enum
-        Expression e = sym.getDefaultValue(loc);
+        auto e = sym.getDefaultValue(loc);
+        if (e.op == TOKerror)
+            return e;
         e = e.copy();
         e.loc = loc;
         e.type = this; // to deal with const, immutable, etc., variants
@@ -8497,12 +8506,13 @@ public:
     override Type semantic(Loc loc, Scope* sc)
     {
         //printf("TypeClass::semantic(%s)\n", sym->toChars());
-        /* Don't semantic for sym because it should be deferred until
+
+        /* Don't run sym.semantic because it should be deferred until
          * sizeof needed or its members accessed.
+         * Instead, correct parent setting is just needed.
          */
-        // instead, parent should be set correctly
         assert(sym.parent);
-        if (sym.type.ty == Terror)
+        if (sym.type.ty == Terror)  // sym.errors?
             return Type.terror;
         return merge();
     }

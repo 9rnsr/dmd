@@ -92,6 +92,8 @@ public:
             if (!symtab)
                 symtab = new DsymbolTable();
         }
+        else
+            parent = sds;
 
         if (members)
         {
