@@ -7142,55 +7142,14 @@ public:
             s = sm.toAlias();
         }
 
-        if (auto em = s.isEnumMember())
+        if (s.isEnumMember() ||
+            s.isVarDeclaration() ||
+            s.isFuncDeclaration())
         {
-            // It's not a type, it's an expression
-            *pe = em.getVarExp(loc, sc);
-            return;
-        }
-        if (auto v = s.isVarDeclaration())
-        {
-            /* This is mostly same with DsymbolExp::semantic(), but we cannot use it
-             * because some variables used in type context need to prevent lowering
-             * to a literal or contextful expression. For example:
-             *
-             *  enum a = 1; alias b = a;
-             *  template X(alias e){ alias v = e; }  alias x = X!(1);
-             *  struct S { int v; alias w = v; }
-             *      // TypeIdentifier 'a', 'e', and 'v' should be TOKvar,
-             *      // because getDsymbol() need to work in AliasDeclaration::semantic().
-             */
-            if (!v.type ||
-                !v.type.deco && v.inuse)
-            {
-                if (v.inuse) // Bugzilla 9494
-                    error(loc, "circular reference to %s '%s'", v.kind(), v.toPrettyChars());
-                else
-                    error(loc, "forward reference to %s '%s'", v.kind(), v.toPrettyChars());
+            auto e = DsymbolExp.resolve(loc, sc, s, true);
+            if (e.op == TOKerror)
                 goto Lerror;
-            }
-            if (v.type.ty == Terror)
-                goto Lerror;
-
-            *pe = new VarExp(loc, v);
-            return;
-        }
-        if (auto f = s.isFuncDeclaration())
-        {
-            f = f.toAliasFunc();
-            if (!f.functionSemantic())
-                goto Lerror;
-
-            // (TODO) should use checkForwardRef
-            if (!f.type.deco)
-            {
-                const(char)* trailMsg = f.inferRetType ? "inferred return type of function call " : "";
-                .error(loc, "forward reference to %s'%s'", trailMsg, f.toChars());
-                goto Lerror;
-            }
-            auto fd = s.isFuncDeclaration();
-            fd.type = f.type;
-            *pe = new VarExp(loc, fd, true);
+            *pe = e;
             return;
         }
 
