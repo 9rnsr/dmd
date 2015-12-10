@@ -5558,14 +5558,14 @@ public:
 
             if (auto v = s.isVarDeclaration())
             {
-                if (!v.type)
+                //if (!v.type)
+                //{
+                //    error("forward reference of %s %s", v.kind(), v.toChars());
+                //    return new ErrorExp();
+                //}
+                if (v.storage_class & STCmanifest)
                 {
-                    error("forward reference of %s %s", v.kind(), v.toChars());
-                    return new ErrorExp();
-                }
-                if ((v.storage_class & STCmanifest) && v._init)
-                {
-                    /* When an instance that will be converted to a constant exists,
+                    /* When an instance exists that will be converted to a constant,
                      * the instance representation "foo!tiargs" is treated like a
                      * variable name, and its recursive appearance check (note that
                      * it's equivalent with a recursive instantiation of foo) is done
@@ -5584,7 +5584,7 @@ public:
                         error("recursive expansion of %s '%s'", ti.kind(), ti.toPrettyChars());
                         return new ErrorExp();
                     }
-                    auto e = v.expandInitializer(loc);
+                    auto e = v.expandInitializer(loc);  // todo: can avoid expansion? -> needs also fix in VarDeclaration.semantic2?
                     ti.inuse++;
                     e = e.semantic(sc);
                     ti.inuse--;
