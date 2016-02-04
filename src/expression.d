@@ -247,7 +247,7 @@ extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
  */
 extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = null)
 {
-    //printf("resolvePropertiesX, e1 = %s %s, e2 = %s\n", Token::toChars(e1->op), e1->toChars(), e2 ? e2->toChars() : NULL);
+    //printf("resolvePropertiesX, e1 = %s %s, e2 = %s\n", Token.toChars(e1.op), e1.toChars(), e2 ? e2.toChars() : null);
     Loc loc = e1.loc;
     OverloadSet os;
     Dsymbol s;
@@ -453,6 +453,25 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
     {
         error(loc, "cannot resolve type for %s", e1.toChars());
         return new ErrorExp();
+    }
+    if (e1.op == TOKdotti && e1.checkValue())
+        return new ErrorExp();
+    if (e1.op == TOKscope)
+    {
+        auto ti = (cast(ScopeExp)e1).sds.isTemplateInstance();
+        if (ti && ti.tempdecl && !ti.semanticRun)
+        {
+            /+
+            // hit...
+            int foo(T, U)(U u) { return 0; }
+            void main()
+            {
+                pragma(msg, "====");
+                assert(foo!int == 0);
+            }
+            +/
+            assert(0, "ICE: partial template instance ti");
+        }
     }
 
     /* Look for e1 being a lazy parameter; rewrite as delegate call
@@ -7969,6 +7988,7 @@ public:
             //printf("e1->op = %d, '%s'\n", e1->op, Token::toChars(e1->op));
         }
         Expression e = semanticY(sc, 1);
+//printf("[%s] dotid e = %s\n", loc.toChars(), e ? e.toChars() : null);
         if (e && isDotOpDispatch(e))
         {
             uint errors = global.startGagging();
@@ -7978,6 +7998,7 @@ public:
             else
                 return e;
         }
+//printf("[%s] e = %p\n", loc.toChars(), e);
         if (!e) // if failed to find the property
         {
             /* If ident is not a valid property, rewrite:
@@ -8676,7 +8697,8 @@ public:
                     goto Lerr;
                 if (ti.needsTypeInference(sc))
                 {
-                    type = Type.tvoid;
+                    if (!flag)
+                        type = Type.tvoid;
                     return this;
                 }
                 ti.semantic(sc);
@@ -8727,7 +8749,8 @@ public:
                 return new ErrorExp();
             if (ti.needsTypeInference(sc))
             {
-                type = Type.tvoid;
+                if (!flag)
+                    type = Type.tvoid;
                 return this;
             }
             ti.semantic(sc);
@@ -8777,7 +8800,8 @@ public:
                 }
                 if (ti.needsTypeInference(sc))
                 {
-                    type = Type.tvoid;
+                    if (!flag)
+                        type = Type.tvoid;
                     return this;
                 }
                 ti.semantic(sc);
