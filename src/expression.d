@@ -438,6 +438,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
         if (e2)
             goto Leprop;
     }
+
     if (e1.op == TOKvar)
     {
         VarExp ve = cast(VarExp)e1;
@@ -447,48 +448,49 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
     }
     if (e2)
         return null;
-    if (e1.type && e1.op != TOKtype) // function type is not a property
-    {
-        /* Look for e1 being a lazy parameter; rewrite as delegate call
-         */
-        if (e1.op == TOKvar)
-        {
-            VarExp ve = cast(VarExp)e1;
-            if (ve.var.storage_class & STClazy)
-            {
-                Expression e = new CallExp(loc, e1);
-                return e.semantic(sc);
-            }
-        }
-        else if (e1.op == TOKdotvar)
-        {
-            // Check for reading overlapped pointer field in @safe code.
-            VarDeclaration v = (cast(DotVarExp)e1).var.isVarDeclaration();
-            if (v && v.overlapped && sc.func && !sc.intypeof)
-            {
-                AggregateDeclaration ad = v.toParent2().isAggregateDeclaration();
-                if (ad && e1.type.hasPointers() && sc.func.setUnsafe())
-                {
-                    e1.error("field %s.%s cannot be accessed in @safe code because it overlaps with a pointer", ad.toChars(), v.toChars());
-                    return new ErrorExp();
-                }
-            }
-        }
-        else if (e1.op == TOKdot)
-        {
-            e1.error("expression has no value");
-            return new ErrorExp();
-        }
-    }
+
     if (!e1.type)
     {
         error(loc, "cannot resolve type for %s", e1.toChars());
-        e1 = new ErrorExp();
+        return new ErrorExp();
+    }
+
+    /* Look for e1 being a lazy parameter; rewrite as delegate call
+     */
+    if (e1.op == TOKvar)
+    {
+        VarExp ve = cast(VarExp)e1;
+        if (ve.var.storage_class & STClazy)
+        {
+            Expression e = new CallExp(loc, e1);
+            return e.semantic(sc);
+        }
+    }
+    else if (e1.op == TOKdotvar)
+    {
+        // Check for reading overlapped pointer field in @safe code.
+        VarDeclaration v = (cast(DotVarExp)e1).var.isVarDeclaration();
+        if (v && v.overlapped && sc.func && !sc.intypeof)
+        {
+            AggregateDeclaration ad = v.toParent2().isAggregateDeclaration();
+            if (ad && e1.type.hasPointers() && sc.func.setUnsafe())
+            {
+                e1.error("field %s.%s cannot be accessed in @safe code because it overlaps with a pointer", ad.toChars(), v.toChars());
+                return new ErrorExp();
+            }
+        }
+    }
+    else if (e1.op == TOKdot)
+    {
+        e1.error("expression has no value");
+        return new ErrorExp();
     }
     return e1;
+
 Leprop:
     error(loc, "not a property %s", e1.toChars());
     return new ErrorExp();
+
 Leproplvalue:
     error(loc, "%s is not an lvalue", e1.toChars());
     return new ErrorExp();
@@ -3385,6 +3387,16 @@ public:
     override Expression toLvalue(Scope* sc, Expression e)
     {
         return this;
+    }
+
+    bool checkType()
+    {
+        return true;
+    }
+
+    override bool checkValue()
+    {
+        return true;
     }
 
     override void accept(Visitor v)
