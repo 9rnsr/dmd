@@ -8697,8 +8697,7 @@ public:
                     goto Lerr;
                 if (ti.needsTypeInference(sc))
                 {
-                    if (!flag)
-                        type = Type.tvoid;
+                    type = Type.tvoid;
                     return this;
                 }
                 ti.semantic(sc);
@@ -8749,8 +8748,7 @@ public:
                 return new ErrorExp();
             if (ti.needsTypeInference(sc))
             {
-                if (!flag)
-                    type = Type.tvoid;
+                type = Type.tvoid;
                 return this;
             }
             ti.semantic(sc);
@@ -8800,8 +8798,7 @@ public:
                 }
                 if (ti.needsTypeInference(sc))
                 {
-                    if (!flag)
-                        type = Type.tvoid;
+                    type = Type.tvoid;
                     return this;
                 }
                 ti.semantic(sc);
