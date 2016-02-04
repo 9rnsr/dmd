@@ -3408,7 +3408,7 @@ public:
         return this;
     }
 
-    bool checkType()
+    override bool checkType()
     {
         return true;
     }
