@@ -8610,6 +8610,9 @@ public:
         {
             printf("DotTemplateInstanceExp::semantic('%s')\n", toChars());
         }
+        if (type)
+            return this;
+
         // Indicate we need to resolve by UFCS.
         Expression e = semanticY(sc, 1);
         if (!e)
@@ -8672,7 +8675,10 @@ public:
                 if (!findTempDecl(sc))
                     goto Lerr;
                 if (ti.needsTypeInference(sc))
+                {
+                    type = Type.tvoid;
                     return this;
+                }
                 ti.semantic(sc);
                 if (!ti.inst || ti.errors) // if template failed to expand
                     return new ErrorExp();
@@ -8720,7 +8726,10 @@ public:
             if (!ti.semanticTiargs(sc))
                 return new ErrorExp();
             if (ti.needsTypeInference(sc))
+            {
+                type = Type.tvoid;
                 return this;
+            }
             ti.semantic(sc);
             if (!ti.inst || ti.errors) // if template failed to expand
                 return new ErrorExp();
@@ -8767,7 +8776,10 @@ public:
                     return new ErrorExp();
                 }
                 if (ti.needsTypeInference(sc))
+                {
+                    type = Type.tvoid;
                     return this;
+                }
                 ti.semantic(sc);
                 if (!ti.inst || ti.errors) // if template failed to expand
                     return new ErrorExp();
@@ -8815,6 +8827,18 @@ public:
     Lerr:
         error("%s isn't a template", e.toChars());
         return new ErrorExp();
+    }
+
+    override bool checkType()
+    {
+        error("partial %s %s has no type", ti.kind(), toChars());
+        return true;
+    }
+
+    override bool checkValue()
+    {
+        error("partial %s %s has no value", ti.kind(), toChars());
+        return true;
     }
 
     override void accept(Visitor v)
@@ -9072,7 +9096,7 @@ public:
          *  expr.foo!(tiargs)(funcargs)
          */
     Ldotti:
-        if (e1.op == TOKdotti && !e1.type)
+        if (e1.op == TOKdotti)
         {
             DotTemplateInstanceExp se = cast(DotTemplateInstanceExp)e1;
             TemplateInstance ti = se.ti;
@@ -9125,7 +9149,7 @@ public:
                  * We handle such earlier, so go back.
                  * Note that in the rewrite, we carefully did not run semantic() on e1
                  */
-                if (e1.op == TOKdotti && !e1.type)
+                if (e1.op == TOKdotti)
                 {
                     goto Ldotti;
                 }

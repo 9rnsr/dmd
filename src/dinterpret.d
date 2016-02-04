@@ -3292,7 +3292,7 @@ public:
             else if (e.op == TOKdotvar)
                 e = (cast(DotVarExp)e).e1;
             else if (e.op == TOKdotti)
-                e = (cast(DotTemplateInstanceExp)e).e1;
+                assert(0, "ICE: TOKdotti must not appear in CTFEing AST.");//e = (cast(DotTemplateInstanceExp)e).e1;
             else if (e.op == TOKslice)
                 e = (cast(SliceExp)e).e1;
             else
