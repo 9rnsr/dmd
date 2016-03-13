@@ -462,6 +462,7 @@ public:
         this.ismixin = ismixin;
         this.isstatic = true;
         this.protection = Prot(PROTundefined);
+
         // Compute in advance for Ddoc's use
         // Bugzilla 11153: ident could be NULL if parsing fails.
         if (members && ident)
@@ -486,7 +487,9 @@ public:
             for (size_t i = 0; i < p.dim; i++)
                 (*p)[i] = (*parameters)[i].syntaxCopy();
         }
-        return new TemplateDeclaration(loc, ident, p, constraint ? constraint.syntaxCopy() : null, Dsymbol.arraySyntaxCopy(members), ismixin, literal);
+        return new TemplateDeclaration(loc, ident, p,
+            constraint ? constraint.syntaxCopy() : null,
+            Dsymbol.arraySyntaxCopy(members), ismixin, literal);
     }
 
     override void semantic(Scope* sc)
@@ -500,12 +503,14 @@ public:
         if (semanticRun != PASSinit)
             return; // semantic() already run
         semanticRun = PASSsemantic;
+
         // Remember templates defined in module object that we need to know about
         if (sc._module && sc._module.ident == Id.object)
         {
             if (ident == Id.RTInfo)
                 Type.rtinfo = this;
         }
+
         /* Remember Scope for later instantiations, but make
          * a copy since attributes can change.
          */
@@ -514,15 +519,19 @@ public:
             this._scope = sc.copy();
             this._scope.setNoFree();
         }
+
         // Set up scope for parameters
         auto paramsym = new ScopeDsymbol();
         paramsym.parent = sc.parent;
         Scope* paramscope = sc.push(paramsym);
         paramscope.stc = 0;
+
         if (!parent)
             parent = sc.parent;
+
         isstatic = toParent().isModule() || (_scope.stc & STCstatic);
         protection = sc.protection;
+
         if (global.params.doDocComments)
         {
             origParameters = new TemplateParameters();
@@ -533,6 +542,7 @@ public:
                 (*origParameters)[i] = tp.syntaxCopy();
             }
         }
+
         for (size_t i = 0; i < parameters.dim; i++)
         {
             TemplateParameter tp = (*parameters)[i];
@@ -551,6 +561,7 @@ public:
                 errors = true;
             }
         }
+
         /* Calculate TemplateParameter::dependent
          */
         TemplateParameters tparams;
@@ -559,11 +570,13 @@ public:
         {
             TemplateParameter tp = (*parameters)[i];
             tparams[0] = tp;
+
             for (size_t j = 0; j < parameters.dim; j++)
             {
                 // Skip cases like: X(T : T)
                 if (i == j)
                     continue;
+
                 if (TemplateTypeParameter ttp = (*parameters)[j].isTemplateTypeParameter())
                 {
                     if (reliesOnTident(ttp.specType, &tparams))
@@ -571,14 +584,17 @@ public:
                 }
                 else if (TemplateAliasParameter tap = (*parameters)[j].isTemplateAliasParameter())
                 {
-                    if (reliesOnTident(tap.specType, &tparams) || reliesOnTident(isType(tap.specAlias), &tparams))
+                    if (reliesOnTident(tap.specType, &tparams) ||
+                        reliesOnTident(isType(tap.specAlias), &tparams))
                     {
                         tp.dependent = true;
                     }
                 }
             }
         }
+
         paramscope.pop();
+
         // Compute again
         onemember = null;
         if (members)
@@ -590,6 +606,7 @@ public:
                 s.parent = this;
             }
         }
+
         /* BUG: should check:
          *  o no virtual functions or non-static data members of classes
          */
@@ -7557,24 +7574,26 @@ public:
     final bool hasNestedArgs(Objects* args, bool isstatic)
     {
         int nested = 0;
-        //printf("TemplateInstance::hasNestedArgs('%s')\n", tempdecl->ident->toChars());
+        //printf("TemplateInstance::hasNestedArgs('%s')\n", tempdecl.ident.toChars());
+
         version (none)
         {
             if (!enclosing)
             {
-                if (TemplateInstance ti = tempdecl.isInstantiated())
+                if (auto ti = tempdecl.isInstantiated())
                     enclosing = ti.enclosing;
             }
         }
+
         /* A nested instance happens when an argument references a local
          * symbol that is on the stack.
          */
         for (size_t i = 0; i < args.dim; i++)
         {
-            RootObject o = (*args)[i];
-            Expression ea = isExpression(o);
-            Dsymbol sa = isDsymbol(o);
-            Tuple va = isTuple(o);
+            auto o = (*args)[i];
+            auto ea = isExpression(o);
+            auto sa = isDsymbol(o);
+            auto va = isTuple(o);
             if (ea)
             {
                 if (ea.op == TOKvar)
@@ -7596,7 +7615,14 @@ public:
                     goto Lsa;
                 }
                 // Emulate Expression::toMangleBuffer call that had exist in TemplateInstance::genIdent.
-                if (ea.op != TOKint64 && ea.op != TOKfloat64 && ea.op != TOKcomplex80 && ea.op != TOKnull && ea.op != TOKstring && ea.op != TOKarrayliteral && ea.op != TOKassocarrayliteral && ea.op != TOKstructliteral)
+                if (ea.op != TOKint64 &&
+                    ea.op != TOKfloat64 &&
+                    ea.op != TOKcomplex80 &&
+                    ea.op != TOKnull &&
+                    ea.op != TOKstring &&
+                    ea.op != TOKarrayliteral &&
+                    ea.op != TOKassocarrayliteral &&
+                    ea.op != TOKstructliteral)
                 {
                     ea.error("expression %s is not a valid template value argument", ea.toChars());
                     errors = true;
@@ -7606,16 +7632,22 @@ public:
             {
             Lsa:
                 sa = sa.toAlias();
-                TemplateDeclaration td = sa.isTemplateDeclaration();
+                auto td = sa.isTemplateDeclaration();
                 if (td)
                 {
-                    TemplateInstance ti = sa.toParent().isTemplateInstance();
+                    auto ti = sa.toParent().isTemplateInstance();
                     if (ti && ti.enclosing)
                         sa = ti;
                 }
-                TemplateInstance ti = sa.isTemplateInstance();
-                Declaration d = sa.isDeclaration();
-                if ((td && td.literal) || (ti && ti.enclosing) || (d && !d.isDataseg() && !(d.storage_class & STCmanifest) && (!d.isFuncDeclaration() || d.isFuncDeclaration().isNested()) && !isTemplateMixin()))
+                auto ti = sa.isTemplateInstance();
+                auto d = sa.isDeclaration();
+                if ((td && td.literal) ||
+                    (ti && ti.enclosing) ||
+                    (d && !d.isDataseg() &&
+                     !(d.storage_class & STCmanifest) &&
+                     (d.isFuncDeclaration() is null ||
+                      d.isFuncDeclaration().isNested()) &&
+                     !isTemplateMixin()))
                 {
                     // if module level template
                     if (isstatic)
@@ -7631,23 +7663,22 @@ public:
                             for (Dsymbol p = enclosing; p; p = p.parent)
                             {
                                 if (p == dparent)
-                                    goto L1;
-                                // enclosing is most nested
+                                    goto L1; // enclosing is most nested
                             }
                             for (Dsymbol p = dparent; p; p = p.parent)
                             {
                                 if (p == enclosing)
                                 {
                                     enclosing = dparent;
-                                    goto L1;
-                                    // dparent is most nested
+                                    goto L1; // dparent is most nested
                                 }
                             }
-                            error("%s is nested in both %s and %s", toChars(), enclosing.toChars(), dparent.toChars());
+                            error("%s is nested in both %s and %s",
+                                toChars(), enclosing.toChars(), dparent.toChars());
                             errors = true;
                         }
                     L1:
-                        //printf("\tnested inside %s\n", enclosing->toChars());
+                        //printf("\tnested inside %s\n", enclosing.toChars());
                         nested |= 1;
                     }
                     else
@@ -7662,7 +7693,7 @@ public:
                 nested |= cast(int)hasNestedArgs(&va.objects, isstatic);
             }
         }
-        //printf("-TemplateInstance::hasNestedArgs('%s') = %d\n", tempdecl->ident->toChars(), nested);
+        //printf("-TemplateInstance::hasNestedArgs('%s') = %d\n", tempdecl.ident.toChars(), nested);
         return nested != 0;
     }
 

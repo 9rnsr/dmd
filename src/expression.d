@@ -92,18 +92,25 @@ void emplaceExp(T : UnionExp)(T* p, Expression e)
  *      ad      struct or class we need the correct 'this' for
  *      var     the specific member of ad we're accessing
  */
-extern (C++) Expression getRightThis(Loc loc, Scope* sc, AggregateDeclaration ad, Expression e1, Declaration var, int flag = 0)
+extern (C++) Expression getRightThis(Loc loc, Scope* sc,
+    AggregateDeclaration ad, Expression e1, Declaration var, int flag = 0)
 {
-    //printf("\ngetRightThis(e1 = %s, ad = %s, var = %s)\n", e1->toChars(), ad->toChars(), var->toChars());
+    //printf("\ngetRightThis(e1 = %s, ad = %s, var = %s)\n", e1.toChars(), ad.toChars(), var.toChars());
 L1:
     Type t = e1.type.toBasetype();
-    //printf("e1->type = %s, var->type = %s\n", e1->type->toChars(), var->type->toChars());
+    //printf("e1.type = %s, var.type = %s\n", e1.type.toChars(), var.type.toChars());
+
     /* If e1 is not the 'this' pointer for ad
      */
-    if (ad && !(t.ty == Tpointer && t.nextOf().ty == Tstruct && (cast(TypeStruct)t.nextOf()).sym == ad) && !(t.ty == Tstruct && (cast(TypeStruct)t).sym == ad))
+    if (ad &&
+        !(t.ty == Tpointer && t.nextOf().ty == Tstruct &&
+          (cast(TypeStruct)t.nextOf()).sym == ad) &&
+        !(t.ty == Tstruct &&
+          (cast(TypeStruct)t).sym == ad))
     {
-        ClassDeclaration cd = ad.isClassDeclaration();
-        ClassDeclaration tcd = t.isClassHandle();
+        auto cd = ad.isClassDeclaration();
+        auto tcd = t.isClassHandle();
+
         /* e1 is the right this if ad is a base class of e1
          */
         if (!cd || !tcd || !(tcd == cd || cd.isBaseOf(tcd, null)))
@@ -120,23 +127,25 @@ L1:
                 e1.type = tcd.vthis.type;
                 e1.type = e1.type.addMod(t.mod);
                 // Do not call checkNestedRef()
-                //e1 = e1->semantic(sc);
+                //e1 = e1.semantic(sc);
+
                 // Skip up over nested functions, and get the enclosing
                 // class type.
                 int n = 0;
                 Dsymbol s;
                 for (s = tcd.toParent(); s && s.isFuncDeclaration(); s = s.toParent())
                 {
-                    FuncDeclaration f = s.isFuncDeclaration();
+                    auto f = s.isFuncDeclaration();
                     if (f.vthis)
                     {
-                        //printf("rewriting e1 to %s's this\n", f->toChars());
+                        //printf("rewriting e1 to %s's this\n", f.toChars());
                         n++;
                         e1 = new VarExp(loc, f.vthis);
                     }
                     else
                     {
-                        e1.error("need 'this' of type %s to access member %s from static function %s", ad.toChars(), var.toChars(), f.toChars());
+                        e1.error("need 'this' of type %s to access member %s from static function %s",
+                            ad.toChars(), var.toChars(), f.toChars());
                         e1 = new ErrorExp();
                         return e1;
                     }
@@ -152,6 +161,7 @@ L1:
                     e1 = e1.semantic(sc);
                 goto L1;
             }
+
             /* Can't find a path from e1 to ad
              */
             if (flag)
@@ -170,11 +180,12 @@ L1:
 extern (C++) FuncDeclaration hasThis(Scope* sc)
 {
     //printf("hasThis()\n");
-    Dsymbol p = sc.parent;
+    auto p = sc.parent;
     while (p && p.isTemplateMixin())
         p = p.parent;
-    FuncDeclaration fdthis = p ? p.isFuncDeclaration() : null;
-    //printf("fdthis = %p, '%s'\n", fdthis, fdthis ? fdthis->toChars() : "");
+    auto fdthis = p ? p.isFuncDeclaration() : null;
+    //printf("fdthis = %p, '%s'\n", fdthis, fdthis ? fdthis.toChars() : "");
+
     // Go upwards until we find the enclosing member function
     FuncDeclaration fd = fdthis;
     while (1)
@@ -185,12 +196,13 @@ extern (C++) FuncDeclaration hasThis(Scope* sc)
         }
         if (!fd.isNested())
             break;
-        Dsymbol parent = fd.parent;
+
+        auto parent = fd.parent;
         while (1)
         {
             if (!parent)
                 goto Lno;
-            TemplateInstance ti = parent.isTemplateInstance();
+            auto ti = parent.isTemplateInstance();
             if (ti)
                 parent = ti.parent;
             else
@@ -198,13 +210,16 @@ extern (C++) FuncDeclaration hasThis(Scope* sc)
         }
         fd = parent.isFuncDeclaration();
     }
+
     if (!fd.isThis())
     {
-        //printf("test '%s'\n", fd->toChars());
+        //printf("test '%s'\n", fd.toChars());
         goto Lno;
     }
+
     assert(fd.vthis);
     return fd;
+
 Lno:
     return null; // don't have 'this' available
 }
@@ -213,16 +228,18 @@ extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
 {
     if (sc.intypeof == 1)
         return false;
-    AggregateDeclaration ad = d.isThis();
+
+    auto ad = d.isThis();
     if (!ad)
         return false;
-    //printf("d = %s, ad = %s\n", d->toChars(), ad->toChars());
-    for (Dsymbol s = sc.parent; s; s = s.toParent2())
+    //printf("d = %s, ad = %s\n", d.toChars(), ad.toChars());
+
+    for (auto s = sc.parent; s; s = s.toParent2())
     {
-        //printf("\ts = %s %s, toParent2() = %p\n", s->kind(), s->toChars(), s->toParent2());
-        if (AggregateDeclaration ad2 = s.isAggregateDeclaration())
+        //printf("\ts = %s %s, toParent2() = %p\n", s.kind(), s.toChars(), s.toParent2());
+        if (auto ad2 = s.isAggregateDeclaration())
         {
-            //printf("\t    ad2 = %s\n", ad2->toChars());
+            //printf("\t    ad2 = %s\n", ad2.toChars());
             if (ad2 == ad)
                 return false;
             else if (ad2.isNested())
@@ -230,7 +247,7 @@ extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
             else
                 return true;
         }
-        if (FuncDeclaration f = s.isFuncDeclaration())
+        if (auto f = s.isFuncDeclaration())
         {
             if (f.isFuncLiteralDeclaration() && f.isNested())
                 continue;
@@ -8683,9 +8700,9 @@ public:
             if (t1.ty == Tpointer)
                 t1 = t1.nextOf();
             type = type.addMod(t1.mod);
-            Dsymbol vparent = var.toParent();
-            AggregateDeclaration ad = vparent ? vparent.isAggregateDeclaration() : null;
-            if (Expression e1x = getRightThis(loc, sc, ad, e1, var, 1))
+            auto vparent = var.toParent();
+            auto ad = vparent ? vparent.isAggregateDeclaration() : null;
+            if (auto e1x = getRightThis(loc, sc, ad, e1, var, 1))
                 e1 = e1x;
             else
             {
@@ -9565,7 +9582,7 @@ public:
             }
             if (f.needThis())
             {
-                AggregateDeclaration ad = f.toParent2().isAggregateDeclaration();
+                auto ad = f.toParent2().isAggregateDeclaration();
                 ue.e1 = getRightThis(loc, sc, ad, ue.e1, f);
                 if (ue.e1.op == TOKerror)
                     return ue.e1;
