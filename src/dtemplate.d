@@ -909,25 +909,30 @@ public:
                 }
             }
         }
+
         if (m > MATCHnomatch && constraint && !flag)
         {
-            if (ti.hasNestedArgs(ti.tiargs, this.isstatic)) // TODO: should gag error
+            if (ti.hasNestedArgs(sc, ti.tiargs, this.isstatic)) // TODO: should gag error
                 ti.parent = ti.enclosing;
             else
                 ti.parent = this.parent;
+
             // Similar to doHeaderInstantiation
             FuncDeclaration fd = onemember ? onemember.isFuncDeclaration() : null;
             if (fd)
             {
                 assert(fd.type.ty == Tfunction);
                 TypeFunction tf = cast(TypeFunction)fd.type.syntaxCopy();
+
                 fd = new FuncDeclaration(fd.loc, fd.endloc, fd.ident, fd.storage_class, tf);
                 fd.parent = ti;
                 fd.inferRetType = true;
+
                 // Shouldn't run semantic on default arguments and return type.
                 for (size_t i = 0; i < tf.parameters.dim; i++)
                     (*tf.parameters)[i].defaultArg = null;
                 tf.next = null;
+
                 // Resolve parameter types and 'auto ref's.
                 tf.fargs = fargs;
                 uint olderrors = global.startGagging();
@@ -940,10 +945,12 @@ public:
                 assert(fd.type.ty == Tfunction);
                 fd.originalType = fd.type; // for mangling
             }
+
             // TODO: dedtypes => ti->tiargs ?
             if (!evaluateConstraint(ti, sc, paramscope, dedtypes, fd))
                 goto Lnomatch;
         }
+
         static if (LOGM)
         {
             // Print out the results
@@ -5889,15 +5896,18 @@ public:
         }
         TemplateDeclaration tempdecl = this.tempdecl.isTemplateDeclaration();
         assert(tempdecl);
+
         // If tempdecl is a mixin, disallow it
         if (tempdecl.ismixin)
         {
             error("mixin templates are not regular templates");
             goto Lerror;
         }
-        hasNestedArgs(tiargs, tempdecl.isstatic);
+
+        hasNestedArgs(sc, tiargs, tempdecl.isstatic);
         if (errors)
             goto Lerror;
+
         /* See if there is an existing TemplateInstantiation that already
          * implements the typeargs. If so, just refer to that one instead.
          */
@@ -7566,12 +7576,69 @@ public:
         return false;
     }
 
+    static bool isStaticAccessOfInstanceMember(Scope* sc, Dsymbol s)
+    {
+        if (!sc.parent)
+            return false;
+
+        bool oneOrMoreInstanceMmebers = false;
+        int check(Dsymbol sa)
+        {
+            auto ad = sa.isThis();
+            if (!ad)
+                return 0;
+            oneOrMoreInstanceMmebers = true;
+
+            // Go upwards until we find the enclosing member function
+            auto p = sc.parent.pastMixin();
+            for (; p; p = p.toParent())
+            {
+                if (auto f = p.isFuncDeclaration())
+                {
+                    if (auto ad2 = f.isThis())
+                    {
+                        if (ad2 == ad || ad.type.isBaseOf(ad2.type, null))
+                            return 1;
+                    }
+                    if (f.isNested())
+                        continue;
+                    return 0;
+                }
+                if (auto ad2 = p.isAggregateDeclaration())
+                {
+                    if (ad2 != ad && ad2.isNested())
+                        continue;
+                    return 0;
+                }
+                return 0;
+            }
+            return 0;
+        }
+
+        if (auto vd = s.isVarDeclaration())
+        {
+            if (check(vd))
+                return false;
+        }
+        else if (auto fd = s.isFuncDeclaration())
+        {
+            if (overloadApply(fd, &check))
+                return false;
+        }
+        else if (auto od = s.isOverDeclaration())
+        {
+            if (overloadApply(od, &check))
+                return false;
+        }
+        return oneOrMoreInstanceMmebers;
+    }
+
     /*****************************************
      * Determines if a TemplateInstance will need a nested
      * generation of the TemplateDeclaration.
      * Sets enclosing property if so, and returns != 0;
      */
-    final bool hasNestedArgs(Objects* args, bool isstatic)
+    final bool hasNestedArgs(Scope* sc, Objects* args, bool isstatic)
     {
         int nested = 0;
         //printf("TemplateInstance::hasNestedArgs('%s')\n", tempdecl.ident.toChars());
@@ -7596,6 +7663,7 @@ public:
             auto va = isTuple(o);
             if (ea)
             {
+                //printf("ea = %s %s\n", Token.toChars(ea.op), ea.toChars());
                 if (ea.op == TOKvar)
                 {
                     sa = (cast(VarExp)ea).var;
@@ -7631,6 +7699,7 @@ public:
             else if (sa)
             {
             Lsa:
+                //printf("sa = %s %s\n", sa.kind(), sa.toChars());
                 sa = sa.toAlias();
                 auto td = sa.isTemplateDeclaration();
                 if (td)
@@ -7641,10 +7710,14 @@ public:
                 }
                 auto ti = sa.isTemplateInstance();
                 auto d = sa.isDeclaration();
+
+                if (isStaticAccessOfInstanceMember(sc, sa))
+                    continue;
+                //printf("\tL%d\n", __LINE__);
+
                 if ((td && td.literal) ||
                     (ti && ti.enclosing) ||
-                    (d && !d.isDataseg() &&
-                     !(d.storage_class & STCmanifest) &&
+                    (d && !d.isDataseg() && !(d.storage_class & STCmanifest) &&
                      (d.isFuncDeclaration() is null ||
                       d.isFuncDeclaration().isThis() ||
                       d.isFuncDeclaration().isNested()) &&
@@ -7699,7 +7772,7 @@ public:
             }
             else if (va)
             {
-                nested |= cast(int)hasNestedArgs(&va.objects, isstatic);
+                nested |= cast(int)hasNestedArgs(sc, &va.objects, isstatic);
             }
         }
         //printf("-TemplateInstance::hasNestedArgs('%s') = %d\n", tempdecl.ident.toChars(), nested);
