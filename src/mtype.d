@@ -8950,7 +8950,7 @@ public:
     {
         if (t && t.ty == Tclass)
         {
-            ClassDeclaration cd = (cast(TypeClass)t).sym;
+            auto cd = (cast(TypeClass)t).sym;
             if (sym.isBaseOf(cd, poffset))
                 return true;
         }

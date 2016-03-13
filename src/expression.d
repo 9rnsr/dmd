@@ -95,82 +95,78 @@ void emplaceExp(T : UnionExp)(T* p, Expression e)
 extern (C++) Expression getRightThis(Loc loc, Scope* sc,
     AggregateDeclaration ad, Expression e1, Declaration var, int flag = 0)
 {
-    //printf("\ngetRightThis(e1 = %s, ad = %s, var = %s)\n", e1.toChars(), ad.toChars(), var.toChars());
-L1:
-    Type t = e1.type.toBasetype();
-    //printf("e1.type = %s, var.type = %s\n", e1.type.toChars(), var.type.toChars());
+    if (!ad)
+        return e1;
 
-    /* If e1 is not the 'this' pointer for ad
-     */
-    if (ad &&
-        !(t.ty == Tpointer && t.nextOf().ty == Tstruct &&
-          (cast(TypeStruct)t.nextOf()).sym == ad) &&
-        !(t.ty == Tstruct &&
-          (cast(TypeStruct)t).sym == ad))
+    //printf("\ngetRightThis(ad = %s, var = %s %s)\n", ad.toChars(), var.toChars(), var.type.toChars());
+    auto t1old = e1.type.toBasetype();
+
+    while (true)
     {
-        auto cd = ad.isClassDeclaration();
-        auto tcd = t.isClassHandle();
+        auto t = e1.type.toBasetype();
+        //printf("\te1 = %s, t = %s\n", e1.toChars(), t.toChars());
+        if (t.ty == Tpointer)
+        {
+            e1 = new PtrExp(e1.loc, e1, t.nextOf());
+            t = t.nextOf().toBasetype();
+        }
+
+        /* If e1 is not the 'this' pointer for ad
+         */
+        auto tad = isAggregate(t);
 
         /* e1 is the right this if ad is a base class of e1
          */
-        if (!cd || !tcd || !(tcd == cd || cd.isBaseOf(tcd, null)))
+        if (ad == tad || ad.type.isBaseOf(t, null))
+            return e1;
+
+        /* Nested aggregates with an 'outer' member can point the enclosing scopes.
+         */
+        if (!tad || !tad.isNested())
+            break;
+        //printf("tad.isNested(), tad = %s, ad = %s\n", tad.toChars(), ad.toChars());
+
+        /* e1 is the 'this' pointer for an inner aggregate: tad.
+         * Rewrite it as the 'this' pointer for the outer aggregate.
+         */
+        e1 = new DotVarExp(loc, e1, tad.vthis);
+        e1.type = tad.vthis.type.addMod(t.mod);
+
+        // Skip up over nested functions, and get the enclosing aggregate type.
+        int n = 0;
+        Dsymbol s;
+        for (s = tad.toParent(); s; s = s.toParent())
         {
-            /* Only classes can be inner classes with an 'outer'
-             * member pointing to the enclosing class instance
-             */
-            if (tcd && tcd.isNested())
+            auto f = s.isFuncDeclaration();
+            if (!f)
+                break;
+            if (!f.vthis)
             {
-                /* e1 is the 'this' pointer for an inner class: tcd.
-                 * Rewrite it as the 'this' pointer for the outer class.
-                 */
-                e1 = new DotVarExp(loc, e1, tcd.vthis);
-                e1.type = tcd.vthis.type;
-                e1.type = e1.type.addMod(t.mod);
-                // Do not call checkNestedRef()
-                //e1 = e1.semantic(sc);
-
-                // Skip up over nested functions, and get the enclosing
-                // class type.
-                int n = 0;
-                Dsymbol s;
-                for (s = tcd.toParent(); s && s.isFuncDeclaration(); s = s.toParent())
-                {
-                    auto f = s.isFuncDeclaration();
-                    if (f.vthis)
-                    {
-                        //printf("rewriting e1 to %s's this\n", f.toChars());
-                        n++;
-                        e1 = new VarExp(loc, f.vthis);
-                    }
-                    else
-                    {
-                        e1.error("need 'this' of type %s to access member %s from static function %s",
-                            ad.toChars(), var.toChars(), f.toChars());
-                        e1 = new ErrorExp();
-                        return e1;
-                    }
-                }
-                if (s && s.isClassDeclaration())
-                {
-                    e1.type = s.isClassDeclaration().type;
-                    e1.type = e1.type.addMod(t.mod);
-                    if (n > 1)
-                        e1 = e1.semantic(sc);
-                }
-                else
-                    e1 = e1.semantic(sc);
-                goto L1;
+                error(loc, "need 'this' of type %s to access member %s from static function %s",
+                    ad.toChars(), var.toChars(), f.toChars());
+                return new ErrorExp();
             }
-
-            /* Can't find a path from e1 to ad
-             */
-            if (flag)
-                return null;
-            e1.error("this for %s needs to be type %s not type %s", var.toChars(), ad.toChars(), t.toChars());
-            return new ErrorExp();
+            //printf("rewriting e1 to %s's this\n", f.toChars());
+            n++;
+            e1 = new VarExp(loc, f.vthis);
         }
+        assert(s);
+        if (auto tad2 = s.isAggregateDeclaration())
+        {
+            e1.type = tad2.type.addMod(t.mod);
+            if (n > 1)
+                e1 = e1.semantic(sc);
+        }
+        else
+            e1 = e1.semantic(sc);
     }
-    return e1;
+
+    /* Can't find a path from e1 to ad
+     */
+    if (flag)
+        return null;
+    e1.error("this for %s needs to be type %s not type %s", var.toChars(), ad.toChars(), t1old.toChars());
+    return new ErrorExp();
 }
 
 /*****************************************
@@ -191,9 +187,7 @@ extern (C++) FuncDeclaration hasThis(Scope* sc)
     while (1)
     {
         if (!fd)
-        {
             goto Lno;
-        }
         if (!fd.isNested())
             break;
 
@@ -254,6 +248,8 @@ extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
             if (f.isMember2())
                 break;
         }
+        if (s.isTemplateInstance())
+            return true;
     }
     return true;
 }
@@ -9052,8 +9048,8 @@ public:
         e1 = e1.semantic(sc);
         type = new TypeDelegate(func.type);
         type = type.semantic(loc, sc);
-        FuncDeclaration f = func.toAliasFunc();
-        AggregateDeclaration ad = f.toParent().isAggregateDeclaration();
+        auto f = func.toAliasFunc();
+        auto ad = f.toParent().isAggregateDeclaration();
         if (f.needThis())
             e1 = getRightThis(loc, sc, ad, e1, f);
         if (ad && ad.isClassDeclaration() && ad.type != e1.type)

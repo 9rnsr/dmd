@@ -7646,46 +7646,55 @@ public:
                     (d && !d.isDataseg() &&
                      !(d.storage_class & STCmanifest) &&
                      (d.isFuncDeclaration() is null ||
+                      d.isFuncDeclaration().isThis() ||
                       d.isFuncDeclaration().isNested()) &&
                      !isTemplateMixin()))
                 {
-                    // if module level template
-                    if (isstatic)
+                    if (!isstatic && !enclosing)
+                        enclosing = tempdecl.toParent();
+                    auto dparent = sa.toParent2();
+
+                    if (!enclosing)
+                        enclosing = dparent;
+                    else if (enclosing != dparent)
                     {
-                        Dsymbol dparent = sa.toParent2();
-                        if (!enclosing)
-                            enclosing = dparent;
-                        else if (enclosing != dparent)
+                        /* Select the more deeply nested of the two.
+                         * Error if one is not nested inside the other.
+                         */
+                        for (auto p = enclosing; p; p = p.parent)
                         {
-                            /* Select the more deeply nested of the two.
-                             * Error if one is not nested inside the other.
-                             */
-                            for (Dsymbol p = enclosing; p; p = p.parent)
-                            {
-                                if (p == dparent)
-                                    goto L1; // enclosing is most nested
-                            }
-                            for (Dsymbol p = dparent; p; p = p.parent)
-                            {
-                                if (p == enclosing)
-                                {
-                                    enclosing = dparent;
-                                    goto L1; // dparent is most nested
-                                }
-                            }
-                            error("%s is nested in both %s and %s",
-                                toChars(), enclosing.toChars(), dparent.toChars());
-                            errors = true;
+                            if (p == dparent)
+                                goto L1; // enclosing is most nested
                         }
-                    L1:
-                        //printf("\tnested inside %s\n", enclosing.toChars());
-                        nested |= 1;
-                    }
-                    else
-                    {
-                        error("cannot use local '%s' as parameter to non-global template %s", sa.toChars(), tempdecl.toChars());
+                        for (auto p = dparent; p; p = p.parent)
+                        {
+                            if (p == enclosing)
+                            {
+                                enclosing = dparent;
+                                goto L1; // dparent is most nested
+                            }
+                        }
+                        auto ad = enclosing.isAggregateDeclaration();
+                        auto adp = dparent.isAggregateDeclaration();
+                        if (ad && adp)
+                        {
+                            if (ad.type.isBaseOf(adp.type, null))
+                            {
+                                enclosing = dparent;
+                                goto L1; // dparent is most nested
+                            }
+                            if (adp.type.isBaseOf(ad.type, null))
+                            {
+                                goto L1; // enclosing is most nested
+                            }
+                        }
+                        error("%s is nested in both %s and %s",
+                            toChars(), enclosing.toChars(), dparent.toChars());
                         errors = true;
                     }
+                L1:
+                    //printf("\tnested inside %s\n", enclosing.toChars());
+                    nested |= 1;
                 }
             }
             else if (va)

@@ -647,6 +647,10 @@ public:
                 {
                     enclosing = ti.enclosing;
                 }
+                else if (auto ti = this.isInstantiated())
+                {
+                    enclosing = ti.enclosing;
+                }
             }
             t = ad.handleType();
         }

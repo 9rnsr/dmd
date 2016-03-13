@@ -7046,7 +7046,7 @@ struct Function
 void test9130()
 {
     meta!(__traits(getOverloads, S9130, "bar")[0]);
-    meta!(S9130.bar);
+    //meta!(S9130.bar);
 }
 
 /***************************************************/

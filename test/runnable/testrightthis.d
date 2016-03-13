@@ -522,6 +522,50 @@ auto bug6430(int a, int b)
 }
 
 /********************************************************/
+// 9439
+
+class B9439
+{
+    int boo(alias F)()
+    {
+        return F();
+    }
+}
+
+class D9439 : B9439
+{
+    int foo() { return 1; }
+    int bug()
+    {
+        return boo!(foo)();
+    }
+}
+
+void test9439()
+{
+    auto d = new D9439();
+    assert(d.bug() == 1);;
+}
+
+/********************************************************/
+
+struct ShiftOr//(Char)
+{
+    static struct ShiftThread
+    {
+        void setInvMask()
+        {
+        }
+
+        void set(alias setBits = setInvMask)(dchar ch)
+        {
+        }
+
+        void add(dchar ch) { return set!setInvMask(ch); }
+    }
+}
+
+/********************************************************/
 // 9619
 
 struct Foo9619 { int x; }
@@ -629,6 +673,61 @@ void test11993()
 }
 
 /********************************************************/
+// 15734
+
+template map15734(alias fun)
+{
+    auto map15734(R)(R r)
+    {
+        return MapResult15734!(fun, R)(r);
+    }
+}
+
+struct MapResult15734(alias fun, R)
+{
+    R _input;
+
+    @property empty() const
+    {
+        return _input.length == 0;
+    }
+
+    @property auto ref front()
+    {
+        return fun(_input[0]);
+    }
+
+    void popFront()
+    {
+        _input = _input[1 .. $];
+    }
+}
+
+class C15734
+{
+    int n;
+
+    int foo(int a)
+    {
+        return a * n;
+    }
+
+    int[] test()
+    {
+        n = 3;
+        int[] r;
+        foreach (e; map15734!foo([ 1, 2, 3 ]))
+            r ~= e;
+        return r;
+    }
+}
+
+void test15734()
+{
+    assert(new C15734().test() == [3, 6, 9]);
+}
+
+/********************************************************/
 
 int main()
 {
@@ -640,8 +739,10 @@ int main()
     test6();
     test7();
     test4350();
+    test9439();
     test9619();
     test9633();
+    test15734();
 
     printf("Success\n");
     return 0;
