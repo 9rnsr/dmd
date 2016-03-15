@@ -673,6 +673,32 @@ void test11993()
 }
 
 /********************************************************/
+// 12285
+
+struct S12285
+{
+    int a, c;
+
+    template toA(alias s)
+    {
+        void copy()
+        {
+            a = s;
+        }
+    }
+
+    alias cToA = toA!c;
+}
+
+void test12285()
+{
+    S12285 s;
+    s.c = 42;
+    s.cToA.copy();
+    assert(s.a == 42);
+}
+
+/********************************************************/
 // 14848
 
 template OffsetOf14848(alias member)
@@ -758,6 +784,7 @@ int main()
     test9439();
     test9619();
     test9633();
+    test12285();
     test14848();
     test15734();
 
