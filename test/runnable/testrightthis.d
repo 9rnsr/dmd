@@ -673,6 +673,22 @@ void test11993()
 }
 
 /********************************************************/
+// 14848
+
+template OffsetOf14848(alias member)
+{
+    size_t get() { return member.offsetof; }
+}
+
+void test14848()
+{
+    static struct S { int v; }
+
+    auto i = OffsetOf14848!(S.v).get();
+    assert(i == S.v.offsetof);
+}
+
+/********************************************************/
 // 15734
 
 template map15734(alias fun)
@@ -742,6 +758,7 @@ int main()
     test9439();
     test9619();
     test9633();
+    test14848();
     test15734();
 
     printf("Success\n");
