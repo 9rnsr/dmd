@@ -7606,7 +7606,9 @@ public:
                 }
                 if (auto ad2 = p.isAggregateDeclaration())
                 {
-                    if (ad2 != ad && ad2.isNested())
+                    if (ad2 == ad || ad.type.isBaseOf(ad2.type, null))
+                        return 1;
+                    if (ad2.isNested())
                         continue;
                     return 0;
                 }
@@ -7776,6 +7778,7 @@ public:
             }
         }
         //printf("-TemplateInstance::hasNestedArgs('%s') = %d\n", tempdecl.ident.toChars(), nested);
+        //if (nested) printf("\tenclosing = %s\n", enclosing.toPrettyChars());
         return nested != 0;
     }
 

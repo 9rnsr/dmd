@@ -699,6 +699,32 @@ void test12285()
 }
 
 /********************************************************/
+// 12286
+
+class A12286          { int i; }
+class B12286 : A12286 { int j; }
+
+template copy12286(alias a, alias b)
+{
+    void copy12286() { a = b; }
+}
+
+class C12286 : B12286
+{
+    // The alias copyIJ works as C's member funciton
+    alias copyIJ = copy12286!(i, j);
+}
+
+void test12286()
+{
+    auto c = new C12286();
+    c.i = 1;
+    c.j = 2;
+    c.copyIJ();
+    assert(c.i == 2);
+}
+
+/********************************************************/
 // 14848
 
 template OffsetOf14848(alias member)
@@ -785,6 +811,7 @@ int main()
     test9619();
     test9633();
     test12285();
+    test12286();
     test14848();
     test15734();
 
