@@ -4158,6 +4158,7 @@ public:
                     s = tempdecl;
                     if (storage_class & STCstatic)
                     {
+//printf("[%s] static template %s\n", loc.toChars(), tempdecl.toChars());
                         assert(f.storage_class & STCstatic);
                         f.storage_class &= ~STCstatic;
                         auto ax = new Dsymbols();

@@ -45,6 +45,8 @@ private enum LOG = false;
 
 enum IDX_NOTFOUND = 0x12345678;
 
+version = BUGZILLA_11946;
+
 /********************************************
  * These functions substitute for dynamic_cast. dynamic_cast does not work
  * on earlier versions of gcc.
@@ -1238,8 +1240,16 @@ public:
             L1:
             }
         }
-        if (toParent().isModule() || (_scope.stc & STCstatic))
+    //version (BUGZILLA_11946)
+    //{
+        if (isstatic)
             tthis = null;
+    //}
+    //else
+    //{
+    //    if (toParent().isModule() || (_scope.stc & STCstatic))
+    //        tthis = null;
+    //}
         if (tthis)
         {
             bool hasttp = false;
@@ -6050,14 +6060,26 @@ public:
         // Add members of template instance to template instance symbol table
         //    parent = scope->scopesym;
         symtab = new DsymbolTable();
-        for (size_t i = 0; i < members.dim; i++)
         {
-            Dsymbol s = (*members)[i];
-            static if (LOG)
+            //auto sc2 = _scope;
+            //if (sc2.stc & STCstatic)
+            //{
+            //    sc2 = sc2.push();
+            //    sc2.stc &= ~STCstatic;
+            //}
+            //printf("[%s] %s addMember isstatic = %d, _scope.stc = x%llx, sc2.stc = x%llx\n",
+            //    loc.toChars(), toChars(), tempdecl.isstatic, _scope.stc, sc2.stc);
+            for (size_t i = 0; i < members.dim; i++)
             {
-                printf("\t[%d] adding member '%s' %p kind %s to '%s'\n", i, s.toChars(), s, s.kind(), this.toChars());
+                Dsymbol s = (*members)[i];
+                static if (LOG)
+                {
+                    printf("\t[%d] adding member '%s' %p kind %s to '%s'\n", i, s.toChars(), s, s.kind(), this.toChars());
+                }
+                s.addMember(_scope, this);
             }
-            s.addMember(_scope, this);
+            //if (sc2 != _scope)
+            //    sc2.pop();
         }
         static if (LOG)
         {
@@ -6104,8 +6126,19 @@ public:
         sc2.parent = this;
         sc2.tinst = this;
         sc2.minst = minst;
+    version (BUGZILLA_11946)
+    {
+        if (enclosing && tempdecl.isstatic)
+            sc2.stc &= ~STCstatic;
+        //printf("%s enclosing = %s, isstatic = %d, sc2.stc = x%llx\n",
+        //    toChars(), enclosing ? enclosing.toPrettyChars() : null,
+        //    tempdecl.isstatic, sc2.stc);
+    }
+
         tryExpandMembers(sc2);
+
         semanticRun = PASSsemanticdone;
+
         /* ConditionalDeclaration may introduce eponymous declaration,
          * so we should find it once again after semantic.
          */
