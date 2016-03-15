@@ -796,6 +796,56 @@ void test15734()
 }
 
 /********************************************************/
+// 12230
+
+/+
+static template T12230a(alias a)
+{
+    // this should become member function?
+    auto foo() { return a * 2; }
+}
+
+struct S12230a
+{
+    int i = 2;
+    @property int p() { return 3; }
+
+    alias ti = T12230a!i;  // OK
+    alias tp = T12230a!p;  // OK <- Error
+}
+
+void test12230a()
+{
+    S12230a s;
+    assert(s.ti.foo() == 4);
+    assert(s.tp.foo() == 6);
+}
+// +/
+
+/+
+static template T12230b(alias a, alias anchor = Object)
+{
+    auto foo() { return a * 2; }
+}
+
+struct ST12230b
+{
+    int i = 2;
+    @property int p() { return 3; }
+
+    alias ti = TT12230b!(i);    // bound to S implicitly
+    alias tp = TT12230b!(p, i); // bound to S via anchor
+}
+
+void test12230b()
+{
+    ST12230b s;
+    assert(s.ti.foo() == 4);
+    assert(s.tp.foo() == 6);
+}
+// +/
+
+/********************************************************/
 
 int main()
 {
@@ -814,6 +864,8 @@ int main()
     test12286();
     test14848();
     test15734();
+    test12230a();
+    test12230b();
 
     printf("Success\n");
     return 0;

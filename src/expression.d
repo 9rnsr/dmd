@@ -173,6 +173,7 @@ extern (C++) Expression getRightThis(Loc loc, Scope* sc,
  * Determine if 'this' is available.
  * If it is, return the FuncDeclaration that has it.
  */
+version (all)
 extern (C++) FuncDeclaration hasThis(Scope* sc)
 {
     //printf("hasThis()\n");
@@ -203,6 +204,52 @@ extern (C++) FuncDeclaration hasThis(Scope* sc)
                 break;
         }
         fd = parent.isFuncDeclaration();
+    }
+
+    if (!fd.isThis())
+    {
+        //printf("test '%s'\n", fd.toChars());
+        goto Lno;
+    }
+
+    assert(fd.vthis);
+    return fd;
+
+Lno:
+    return null; // don't have 'this' available
+}
+
+
+version (none)
+extern (C++) FuncDeclaration hasThis(Scope* sc)
+{
+    printf("hasThis()\n");
+    if (!sc.parent)
+        return null;
+
+    auto fd = sc.parent.pastMixin().isFuncDeclaration();
+    printf("fd = %p, '%s'\n", fd, fd ? fd.toChars() : "");
+
+    // Go upwards until we find the enclosing member function
+    while (1)
+    {
+        if (!fd)
+            goto Lno;
+        if (!fd.isNested() && !fd.isThis())
+            break;
+
+        auto p = fd.toParent();
+        while (1)
+        {
+            printf("\tp = %s\n", p ? p.toPrettyChars() : null);
+            if (!p)
+                goto Lno;
+            if (auto ti = p.isTemplateInstance())
+                p = ti.parent;
+            else
+                break;
+        }
+        fd = p.isFuncDeclaration();
     }
 
     if (!fd.isThis())
@@ -3857,7 +3904,7 @@ public:
         }
         if (VarDeclaration v = s.isVarDeclaration())
         {
-            //printf("Identifier '%s' is a variable, type '%s'\n", toChars(), v.type.toChars());
+            //printf("Identifier '%s' is a variable, type '%s'\n", v.toChars(), v.type.toChars());
             if (!v.type)
             {
                 .error(loc, "forward reference of %s %s", v.kind(), v.toChars());
@@ -3881,10 +3928,12 @@ public:
             if (v.checkNestedReference(sc, loc))
                 return new ErrorExp();
 
+//printf("\t[%s] +v = %s\n", loc.toChars(), v.toChars());
             if (v.needThis() && hasThis(sc))
                 e = new DotVarExp(loc, new ThisExp(loc), v);
             else
                 e = new VarExp(loc, v);
+//printf("\t[%s] -e = %s\n", loc.toChars(), e.toChars());
             e = e.semantic(sc);
             return e;
         }
