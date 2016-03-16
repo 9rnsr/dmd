@@ -7037,7 +7037,8 @@ public:
                     return;
                 }
                 //printf("\t3: s = %p %s %s, sm = %p\n", s, s->kind(), s->toChars(), sm);
-                if (intypeid && !t && sm && sm.needThis())
+                auto dm = sm ? sm.isDeclaration() : null;
+                if (intypeid && !t && dm && dm.needThis())
                     goto L3;
                 if (VarDeclaration v = s.isVarDeclaration())
                 {

@@ -141,6 +141,10 @@ public:
 
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
 
+    virtual AggregateDeclaration *isThis();     // is a 'this' required to access the member
+    virtual bool needThis();                    // need a 'this' pointer?
+    virtual bool isNested();
+
     bool isStatic() { return (storage_class & STCstatic) != 0; }
     virtual bool isDelete();
     virtual bool isDataseg();
@@ -272,6 +276,7 @@ public:
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     void semantic2(Scope *sc);
     const char *kind();
+    bool isNested();
     AggregateDeclaration *isThis();
     bool needThis();
     bool isExport();
@@ -613,7 +618,9 @@ public:
     bool inUnittest();
     MATCH leastAsSpecialized(FuncDeclaration *g);
     LabelDsymbol *searchLabel(Identifier *ident);
+    bool isNested();
     AggregateDeclaration *isThis();
+    bool needThis();
     AggregateDeclaration *isMember2();
     int getLevel(Loc loc, Scope *sc, FuncDeclaration *fd); // lexical nesting level difference
     const char *toPrettyChars(bool QualifyTypes = false);
@@ -641,8 +648,6 @@ public:
     void printGCUsage(Loc loc, const char *warn);
     bool isolateReturn();
     bool parametersIntersect(Type *t);
-    virtual bool isNested();
-    bool needThis();
     bool isVirtualMethod();
     virtual bool isVirtual();
     virtual bool isFinalFunc();

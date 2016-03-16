@@ -124,7 +124,8 @@ extern (C++) Expression resolveAliasThis(Scope* sc, Expression e, bool gag = fal
         Type tthis = (e.op == TOKtype ? e.type : null);
         e = new DotIdExp(loc, e, ad.aliasthis.ident);
         e = e.semantic(sc);
-        if (tthis && ad.aliasthis.needThis())
+        auto d = ad.aliasthis.isDeclaration();
+        if (tthis && d && d.needThis())
         {
             if (e.op == TOKvar)
             {

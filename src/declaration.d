@@ -246,6 +246,23 @@ public:
         return s;
     }
 
+    // is a 'this' required to access the member
+    AggregateDeclaration isThis()
+    {
+        return null;
+    }
+
+    // need a 'this' pointer?
+    bool needThis()
+    {
+        return false;
+    }
+
+    bool isNested()
+    {
+        return false;
+    }
+
     final bool isStatic()
     {
         return (storage_class & STCstatic) != 0;
@@ -1901,6 +1918,11 @@ public:
     {
         //printf("VarDeclaration::needThis(%s, x%x)\n", toChars(), storage_class);
         return isField();
+    }
+
+    override bool isNested()
+    {
+        return !(storage_class & STCmanifest) && !isDataseg();
     }
 
     override final bool isExport()

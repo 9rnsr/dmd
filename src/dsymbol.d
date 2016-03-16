@@ -766,12 +766,6 @@ public:
         return false;
     }
 
-    // is a 'this' required to access the member
-    AggregateDeclaration isThis()
-    {
-        return null;
-    }
-
     // are we a member of an aggregate?
     final AggregateDeclaration isAggregateMember()
     {
@@ -839,12 +833,6 @@ public:
     Type getType()
     {
         return null;
-    }
-
-    // need a 'this' pointer?
-    bool needThis()
-    {
-        return false;
     }
 
     /*************************************

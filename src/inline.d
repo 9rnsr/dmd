@@ -817,15 +817,16 @@ Expression doInline(Expression e, InlineDoState ids)
                 result.type = ids.vthis.type;
                 while (s != fdv)
                 {
-                    FuncDeclaration f = s.isFuncDeclaration();
-                    if (AggregateDeclaration ad = s.isThis())
+                    auto f = s.isFuncDeclaration();
+                    assert(f);
+                    if (auto ad = f.isThis())
                     {
                         assert(ad.vthis);
                         result = new DotVarExp(e.loc, result, ad.vthis);
                         result.type = ad.vthis.type;
                         s = ad.toParent2();
                     }
-                    else if (f && f.isNested())
+                    else if (f.isNested())
                     {
                         assert(f.vthis);
                         if (f.hasNestedFrameRefs())

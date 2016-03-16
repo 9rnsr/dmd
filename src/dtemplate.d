@@ -7592,7 +7592,11 @@ public:
         bool oneOrMoreInstanceMmebers = false;
         int check(Dsymbol sa)
         {
-            if (auto ad = sa.isThis())
+            auto d = sa.isDeclaration();
+            if (!d)
+                return 0;
+
+            if (auto ad = d.isThis())
             {
                 oneOrMoreInstanceMmebers = true;
 
@@ -7623,7 +7627,7 @@ public:
                 }
                 return 0;
             }
-            if (auto d = sa.isDeclaration())
+            //if (auto d = sa.isDeclaration())
             {
                 if (!d.isDataseg() && !(d.storage_class & STCmanifest) &&
                     (d.isFuncDeclaration() is null ||
@@ -7668,7 +7672,7 @@ public:
                 }
                 return 0;
             }
-            return 0;
+            //return 0;
         }
 
         if (auto vd = s.isVarDeclaration())
