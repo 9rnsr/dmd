@@ -278,28 +278,9 @@ extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
         //    printf("d = %s %s, ad = %s\n", d.kind, d.toPrettyChars, ad.toChars);
         assert(ad == d.toParent2());
     }
-    else if (auto v = d.isVarDeclaration())
+    else if (d.isNested())
     {
-        if (!v.isDataseg() && !(v.storage_class & STCmanifest)) // --> VarDeclaration.isNested() ?
-        {
-            // v is local variable
-        }
-        else
-            return false;
     }
-    else if (auto f = d.isFuncDeclaration())
-    {
-        if (f.isNested())
-        {
-        }
-        else
-            return false;
-    }
-    //else if (d.isNested())    // Declaration.isNested() --> (Var|Func)Declaration.isNested() ?
-    //{
-    //    // todo, nested function?
-    //    return false;
-    //}
     else
         return false;
 
@@ -308,33 +289,28 @@ extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
     //printf("d = %s %s\n", d.kind(), d.toPrettyChars());
     //printf("dp = %s %s, adp = %p\n", dp.kind(), dp.toPrettyChars(), adp);
 
+    // Go upwards until we ...
     for (auto s = sc.parent; s; s = s.toParent2())
     {
         //printf("\ts = %s %s\n", s.kind(), s.toChars());
+        if (s == dp)
+            return false;
+
         if (auto fd = s.isFuncDeclaration())
         {
-            //printf("\t    fd = %s\n", fd.toChars());
-            if (fd == dp)
-                return false;
             if (fd.isThis() || fd.isNested())
                 continue;
             return true;
         }
         if (auto ad = s.isAggregateDeclaration())
         {
-            //printf("\t    ad = %s\n", ad.toChars());
-            if (ad == dp)
-                return false;
             // adp is a base class/interface of ad
             if (adp && adp.type.isBaseOf(ad.type, null))
                 return false;
-
             if (ad.isNested())
                 continue;
             return true;
         }
-        //if (s.isTemplateInstance())
-        //    return true;
     }
     return true;
 }

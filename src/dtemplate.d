@@ -7596,83 +7596,13 @@ public:
             if (!d)
                 return 0;
 
-            if (auto ad = d.isThis())
+            if (d.isThis() || d.isNested())
             {
                 oneOrMoreInstanceMmebers = true;
-
-                // Go upwards until we find the enclosing member function
-                auto p = sc.parent.pastMixin();
-                for (; p; p = p.toParent())
-                {
-                    if (auto f = p.isFuncDeclaration())
-                    {
-                        if (auto ad2 = f.isThis())
-                        {
-                            if (ad2 == ad || ad.type.isBaseOf(ad2.type, null))
-                                return 1;
-                        }
-                        if (f.isNested())
-                            continue;
-                        return 0;
-                    }
-                    if (auto ad2 = p.isAggregateDeclaration())
-                    {
-                        if (ad2 == ad || ad.type.isBaseOf(ad2.type, null))
-                            return 1;
-                        if (ad2.isNested())
-                            continue;
-                        return 0;
-                    }
-                    return 0;
-                }
-                return 0;
+                if (!isNeedThisScope(sc, d))
+                    return 1;
             }
-            //if (auto d = sa.isDeclaration())
-            {
-                if (!d.isDataseg() && !(d.storage_class & STCmanifest) &&
-                    (d.isFuncDeclaration() is null ||
-                     d.isFuncDeclaration().isNested()))
-                {
-                }
-                else
-                    return 0;
-
-                oneOrMoreInstanceMmebers = true;
-
-                auto dparent = sa.toParent2();
-
-                // Go upwards until we find the enclosing member function
-                auto p = sc.parent.pastMixin();
-                for (; p; p = p.toParent())
-                {
-                    if (p == dparent)
-                        return 1;
-
-                    if (auto f = p.isFuncDeclaration())
-                    {
-                        if (auto ad2 = f.isThis())
-                        {
-                            //if (ad2 == ad || ad.type.isBaseOf(ad2.type, null))
-                            //    return 1;
-                            continue;
-                        }
-                        if (f.isNested())
-                            continue;
-                        return 0;
-                    }
-                    if (auto ad2 = p.isAggregateDeclaration())
-                    {
-                        //if (ad2 == ad || ad.type.isBaseOf(ad2.type, null))
-                        //    return 1;
-                        if (ad2.isNested())
-                            continue;
-                        return 0;
-                    }
-                    return 0;
-                }
-                return 0;
-            }
-            //return 0;
+            return 0;
         }
 
         if (auto vd = s.isVarDeclaration())
