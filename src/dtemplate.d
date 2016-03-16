@@ -7755,7 +7755,7 @@ public:
             else if (sa)
             {
             Lsa:
-                printf("sa = %s %s\n", sa.kind(), sa.toChars());
+                //printf("sa = %s %s\n", sa.kind(), sa.toChars());
                 sa = sa.toAlias();
                 auto td = sa.isTemplateDeclaration();
                 if (td)
@@ -7769,16 +7769,14 @@ public:
 
                 if (isStaticAccessOfInstanceMember(sc, sa))
                     continue;
-                printf("\tL%d\n", __LINE__);
+                //printf("\tL%d\n", __LINE__);
 
                 if ((td && td.literal) ||
                     (ti && ti.enclosing) ||
-
                     (d && !d.isDataseg() && !(d.storage_class & STCmanifest) &&
                      (d.isFuncDeclaration() is null ||
                       d.isFuncDeclaration().isThis() ||
                       d.isFuncDeclaration().isNested()) &&
-
                      !isTemplateMixin()))
                 {
                     if (!isstatic && !enclosing)

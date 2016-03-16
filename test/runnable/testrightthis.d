@@ -586,7 +586,7 @@ class Foo9633
     void bar()
     {
         // CallExp::e1->op == TOKvar
-        static assert(!compilesWithoutThis9633!baz);
+        static assert( compilesWithoutThis9633!baz);
     }
     void vaz()()
     {
@@ -840,29 +840,6 @@ void test12230b()
     assert(s.ti.foo() == 4);
     assert(s.tp.foo() == 6);
 }
-
-/********************************************************/
-
-/+auto makeS()
-{
-    int a;
-    struct S
-    {
-        alias avar = a;
-
-        int getA() { return a; }
-    }
-    // S is made nested struct in makeS()
-    return S();
-}
-
-void foo(alias a)() { a = 1; }
-
-void main()
-{
-    auto s = makeS();
-    foo!(typeof(s).avar)(); // needs to be compile-time error
-}+/
 
 /********************************************************/
 

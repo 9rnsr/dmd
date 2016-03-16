@@ -269,12 +269,15 @@ extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
 {
     if (sc.intypeof == 1)
         return false;
+    //if (sc.flags & SCOPEcompile)
+    //    return true;
 
     if (auto ad = d.isThis())
     {
-        if (ad != d.toParent())
-            printf("d = %s %s, ad = %s\n", d.kind, d.toPrettyChars, ad.toChars);
-        assert(ad == d.toParent());
+        //if (ad != d.toParent2())
+        //    printf("d = %s %s, ad = %s\n", d.kind, d.toPrettyChars, ad.toChars);
+        assert(ad == d.toParent2());
+        //printf("d = %s, ad = %s\n", d.toChars(), ad.toChars());
     }
     else if (auto v = d.isVarDeclaration())
     {
@@ -292,23 +295,24 @@ extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
     //}
     else
         return false;
-    //printf("d = %s, ad = %s\n", d.toChars(), ad.toChars());
+
+    auto dp = d.toParent2();
 
     for (auto s = sc.parent; s; s = s.toParent2())
     {
         //printf("\ts = %s %s, toParent2() = %p\n", s.kind(), s.toChars(), s.toParent2());
-        if (auto ad2 = s.isAggregateDeclaration())
+        if (auto ad = s.isAggregateDeclaration())
         {
-            //printf("\t    ad2 = %s\n", ad2.toChars());
-            if (ad2 == /*ad*/d.toParent())
+            //printf("\t    ad = %s\n", ad.toChars());
+            if (ad == dp)
                 return false;
-            if (ad2.isNested())
+            if (ad.isNested())
                 continue;
             return true;
         }
         if (auto f = s.isFuncDeclaration())
         {
-            if (f == /*ad*/d.toParent())
+            if (f == dp)
                 return false;
             if (f.isThis() || f.isNested())
                 continue;
