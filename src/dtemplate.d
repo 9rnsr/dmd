@@ -7659,12 +7659,12 @@ public:
                     {
                         if (td.literal)
                             return true;
+                        if (td.isstatic)
+                            return false;
+                        sa = sa.toParent();
+                        // If td.parent is aggregate, function, or template instance, it may be nested.
 
-                        //auto ti = sa.toParent().isTemplateInstance();
-                        //if (ti && ti.enclosing)
-                        //    sa = ti;
-                        if (auto ti = sa.toParent().isTemplateInstance())
-                            return ti.enclosing !is null;
+                        // todo for overloaded template
                     }
                     if (auto ti = sa.isTemplateInstance())
                         return ti.enclosing !is null;
@@ -7688,7 +7688,7 @@ public:
                             return false;
                         return !isNeedThisScope(sc, d);
                     }
-                    // todo
+                    // todo for overloaded function
                     //if (d.isFuncDeclaration() || d.isOverDeclaration())
                     //{
                     //    int r = overloadApply(d, (Dsymbol s)
