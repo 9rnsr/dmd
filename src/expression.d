@@ -270,8 +270,25 @@ extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
     if (sc.intypeof == 1)
         return false;
 
-    auto ad = d.isThis();
-    if (!ad)
+    if (auto ad = d.isThis())
+    {
+        assert(ad == d.toParent());
+    }
+    else if (auto v = d.isVarDeclaration())
+    {
+        if (!v.isDataseg() && !(v.storage_class & STCmanifest))
+        {
+            // v is local variable
+        }
+        else
+            return false;
+    }
+    //else if (d.isNested())
+    //{
+    //    // todo, nested function?
+    //    return false;
+    //}
+    else
         return false;
     //printf("d = %s, ad = %s\n", d.toChars(), ad.toChars());
 
@@ -281,22 +298,22 @@ extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
         if (auto ad2 = s.isAggregateDeclaration())
         {
             //printf("\t    ad2 = %s\n", ad2.toChars());
-            if (ad2 == ad)
+            if (ad2 == /*ad*/d.toParent())
                 return false;
-            else if (ad2.isNested())
+            if (ad2.isNested())
                 continue;
-            else
-                return true;
+            return true;
         }
         if (auto f = s.isFuncDeclaration())
         {
-            if (f.isFuncLiteralDeclaration() && f.isNested())
+            if (f == /*ad*/d.toParent())
+                return false;
+            if (f.isThis() || f.isNested())
                 continue;
-            if (f.isMember2())
-                break;
-        }
-        if (s.isTemplateInstance())
             return true;
+        }
+        //if (s.isTemplateInstance())
+        //    return true;
     }
     return true;
 }

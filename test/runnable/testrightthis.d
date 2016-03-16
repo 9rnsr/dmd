@@ -843,7 +843,7 @@ void test12230b()
 
 /********************************************************/
 
-auto makeS()
+/+auto makeS()
 {
     int a;
     struct S
@@ -862,7 +862,7 @@ void main()
 {
     auto s = makeS();
     foo!(typeof(s).avar)(); // needs to be compile-time error
-}
+}+/
 
 /********************************************************/
 

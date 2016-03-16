@@ -7592,32 +7592,78 @@ public:
         bool oneOrMoreInstanceMmebers = false;
         int check(Dsymbol sa)
         {
-            auto ad = sa.isThis();
-            if (!ad)
-                return 0;
-            oneOrMoreInstanceMmebers = true;
-
-            // Go upwards until we find the enclosing member function
-            auto p = sc.parent.pastMixin();
-            for (; p; p = p.toParent())
+            if (auto ad = sa.isThis())
             {
-                if (auto f = p.isFuncDeclaration())
+                oneOrMoreInstanceMmebers = true;
+
+                // Go upwards until we find the enclosing member function
+                auto p = sc.parent.pastMixin();
+                for (; p; p = p.toParent())
                 {
-                    if (auto ad2 = f.isThis())
+                    if (auto f = p.isFuncDeclaration())
+                    {
+                        if (auto ad2 = f.isThis())
+                        {
+                            if (ad2 == ad || ad.type.isBaseOf(ad2.type, null))
+                                return 1;
+                        }
+                        if (f.isNested())
+                            continue;
+                        return 0;
+                    }
+                    if (auto ad2 = p.isAggregateDeclaration())
                     {
                         if (ad2 == ad || ad.type.isBaseOf(ad2.type, null))
                             return 1;
+                        if (ad2.isNested())
+                            continue;
+                        return 0;
                     }
-                    if (f.isNested())
-                        continue;
                     return 0;
                 }
-                if (auto ad2 = p.isAggregateDeclaration())
+                return 0;
+            }
+            if (auto d = sa.isDeclaration())
+            {
+                if (!d.isDataseg() && !(d.storage_class & STCmanifest) &&
+                    (d.isFuncDeclaration() is null ||
+                     d.isFuncDeclaration().isNested()))
                 {
-                    if (ad2 == ad || ad.type.isBaseOf(ad2.type, null))
+                }
+                else
+                    return 0;
+
+                oneOrMoreInstanceMmebers = true;
+
+                auto dparent = sa.toParent2();
+
+                // Go upwards until we find the enclosing member function
+                auto p = sc.parent.pastMixin();
+                for (; p; p = p.toParent())
+                {
+                    if (p == dparent)
                         return 1;
-                    if (ad2.isNested())
-                        continue;
+
+                    if (auto f = p.isFuncDeclaration())
+                    {
+                        if (auto ad2 = f.isThis())
+                        {
+                            //if (ad2 == ad || ad.type.isBaseOf(ad2.type, null))
+                            //    return 1;
+                            continue;
+                        }
+                        if (f.isNested())
+                            continue;
+                        return 0;
+                    }
+                    if (auto ad2 = p.isAggregateDeclaration())
+                    {
+                        //if (ad2 == ad || ad.type.isBaseOf(ad2.type, null))
+                        //    return 1;
+                        if (ad2.isNested())
+                            continue;
+                        return 0;
+                    }
                     return 0;
                 }
                 return 0;
@@ -7709,7 +7755,7 @@ public:
             else if (sa)
             {
             Lsa:
-                //printf("sa = %s %s\n", sa.kind(), sa.toChars());
+                printf("sa = %s %s\n", sa.kind(), sa.toChars());
                 sa = sa.toAlias();
                 auto td = sa.isTemplateDeclaration();
                 if (td)
@@ -7723,14 +7769,16 @@ public:
 
                 if (isStaticAccessOfInstanceMember(sc, sa))
                     continue;
-                //printf("\tL%d\n", __LINE__);
+                printf("\tL%d\n", __LINE__);
 
                 if ((td && td.literal) ||
                     (ti && ti.enclosing) ||
+
                     (d && !d.isDataseg() && !(d.storage_class & STCmanifest) &&
                      (d.isFuncDeclaration() is null ||
                       d.isFuncDeclaration().isThis() ||
                       d.isFuncDeclaration().isNested()) &&
+
                      !isTemplateMixin()))
                 {
                     if (!isstatic && !enclosing)
