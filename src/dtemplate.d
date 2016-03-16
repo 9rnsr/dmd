@@ -7584,45 +7584,6 @@ public:
         return false;
     }
 
-    static bool isStaticAccessOfInstanceMember(Scope* sc, Dsymbol s)
-    {
-        if (!sc.parent)
-            return false;
-
-        bool oneOrMoreInstanceMmebers = false;
-        int check(Dsymbol sa)
-        {
-            auto d = sa.isDeclaration();
-            if (!d)
-                return 0;
-
-            if (d.isThis() || d.isNested())
-            {
-                oneOrMoreInstanceMmebers = true;
-                if (!isNeedThisScope(sc, d))
-                    return 1;
-            }
-            return 0;
-        }
-
-        if (auto vd = s.isVarDeclaration())
-        {
-            if (check(vd))
-                return false;
-        }
-        else if (auto fd = s.isFuncDeclaration())
-        {
-            if (overloadApply(fd, &check))
-                return false;
-        }
-        else if (auto od = s.isOverDeclaration())
-        {
-            if (overloadApply(od, &check))
-                return false;
-        }
-        return oneOrMoreInstanceMmebers;
-    }
-
     /*****************************************
      * Determines if a TemplateInstance will need a nested
      * generation of the TemplateDeclaration.
@@ -7691,31 +7652,64 @@ public:
             Lsa:
                 //printf("sa = %s %s\n", sa.kind(), sa.toChars());
                 sa = sa.toAlias();
-                auto td = sa.isTemplateDeclaration();
-                if (td)
+
+                static bool isContextful(Scope* sc, Dsymbol sa)
                 {
-                    auto ti = sa.toParent().isTemplateInstance();
-                    if (ti && ti.enclosing)
-                        sa = ti;
+                    if (auto td = sa.isTemplateDeclaration())
+                    {
+                        if (td.literal)
+                            return true;
+
+                        //auto ti = sa.toParent().isTemplateInstance();
+                        //if (ti && ti.enclosing)
+                        //    sa = ti;
+                        if (auto ti = sa.toParent().isTemplateInstance())
+                            return ti.enclosing !is null;
+                    }
+                    if (auto ti = sa.isTemplateInstance())
+                        return ti.enclosing !is null;
+
+                    auto d = sa.isDeclaration();
+                    if (!d)
+                        return false;
+
+                    if (auto vd = d.isVarDeclaration())
+                    {
+                        if (!vd.isThis() && !vd.isNested())
+                            return false;
+                        // isNeedThisScope returns true means: vd use is in inaccessible place
+                        // isNeedThisScope returns false  means: vd use is in accessible place
+                        return !isNeedThisScope(sc, vd);
+                    }
+
+                    if (d.isFuncDeclaration())
+                    {
+                        if (!d.isThis() && !d.isNested())
+                            return false;
+                        return !isNeedThisScope(sc, d);
+                    }
+                    // todo
+                    //if (d.isFuncDeclaration() || d.isOverDeclaration())
+                    //{
+                    //    int r = overloadApply(d, (Dsymbol s)
+                    //    {
+                    //        auto dd = s.isDeclaration();
+                    //        if (!dd || !dd.isThis() && !dd.isNested())
+                    //            return 0;
+                    //        return !isNeedThisScope(sc, dd) ? 1 : 0;
+                    //    });
+                    //    return r != 0;
+                    //}
+
+                    return false;
                 }
-                auto ti = sa.isTemplateInstance();
-                auto d = sa.isDeclaration();
 
-                if (isStaticAccessOfInstanceMember(sc, sa))
-                    continue;
-                //printf("\tL%d\n", __LINE__);
-
-                if ((td && td.literal) ||
-                    (ti && ti.enclosing) ||
-                    (d && !d.isDataseg() && !(d.storage_class & STCmanifest) &&
-                     (d.isFuncDeclaration() is null ||
-                      d.isFuncDeclaration().isThis() ||
-                      d.isFuncDeclaration().isNested()) &&
-                     !isTemplateMixin()))
+                if (isContextful(sc, sa) && !isTemplateMixin())
                 {
                     if (!isstatic && !enclosing)
                         enclosing = tempdecl.toParent();
                     auto dparent = sa.toParent2();
+//printf("\tL%d\n", __LINE__);
 
                     if (!enclosing)
                         enclosing = dparent;
