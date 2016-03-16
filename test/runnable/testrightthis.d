@@ -843,6 +843,29 @@ void test12230b()
 
 /********************************************************/
 
+auto makeS()
+{
+    int a;
+    struct S
+    {
+        alias avar = a;
+
+        int getA() { return a; }
+    }
+    // S is made nested struct in makeS()
+    return S();
+}
+
+void foo(alias a)() { a = 1; }
+
+void main()
+{
+    auto s = makeS();
+    foo!(typeof(s).avar)(); // needs to be compile-time error
+}
+
+/********************************************************/
+
 int main()
 {
     test1();
