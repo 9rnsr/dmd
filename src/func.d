@@ -557,11 +557,9 @@ public:
         uint dprogress_save = Module.dprogress;
         foverrides.setDim(0); // reset in case semantic() is being retried for this function
         storage_class |= sc.stc & ~STCref;
-//printf("[%s] %s storage_class = x%llx\n", loc.toChars(), toPrettyChars(), storage_class);
         ad = isThis();
         if (ad)
         {
-//printf("\tisThis -> ad = %s\n", ad.toChars());
             storage_class |= ad.storage_class & (STC_TYPECTOR | STCsynchronized);
             if (StructDeclaration sd = ad.isStructDeclaration())
                 sd.makeNested();
@@ -3242,8 +3240,7 @@ public:
     bool isNested()
     {
         auto f = toAliasFunc();
-        //auto ti = toParent().isTemplateInstance();
-        //printf("\ttoParent2() = '%s' (hasStaticAttr = %d)\n", f.toParent2().toChars(), (f.storage_class & STCstatic) != 0);
+        //printf("\ttoParent2() = '%s'\n", f.toParent2().toChars());
         return ((f.storage_class & STCstatic) == 0) &&
                 (f.linkage == LINKd) &&
                 (f.toParent2().isFuncDeclaration() !is null);
