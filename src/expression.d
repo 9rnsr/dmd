@@ -269,6 +269,8 @@ extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
 {
     if (sc.intypeof == 1)
         return false;
+    if (sc.flags & SCOPEctfe)
+        return false;
     //if (sc.flags & SCOPEcompile)
     //    return true;
 
@@ -3153,12 +3155,13 @@ public:
             return true;
         if (op == TOKvar && type.ty != Terror)
         {
-            VarExp ve = cast(VarExp)this;
-            if (isNeedThisScope(sc, ve.var))
+            auto v = (cast(VarExp)this).var;
+            //printf("[%s] var = %s, sc.flags = x%x\n", loc.toChars(), v.toChars(), sc.flags);
+            if (isNeedThisScope(sc, v))
             {
                 //printf("checkRightThis sc->intypeof = %d, ad = %p, func = %p, fdthis = %p\n",
                 //        sc->intypeof, sc->getStructClassScope(), func, fdthis);
-                error("need 'this' for '%s' of type '%s'", ve.var.toChars(), ve.var.type.toChars());
+                error("need 'this' for '%s' of type '%s'", v.toChars(), v.type.toChars());
                 return true;
             }
         }
