@@ -272,6 +272,8 @@ extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
 
     if (auto ad = d.isThis())
     {
+        if (ad != d.toParent())
+            printf("d = %s %s, ad = %s\n", d.kind, d.toPrettyChars, ad.toChars);
         assert(ad == d.toParent());
     }
     else if (auto v = d.isVarDeclaration())
@@ -3807,6 +3809,7 @@ public:
             // Create the magic __ctfe bool variable
             auto vd = new VarDeclaration(loc, Type.tbool, Id.ctfe, null);
             vd.storage_class |= STCtemp;
+            vd.parent = Module.rootModule;
             Expression e = new VarExp(loc, vd);
             e = e.semantic(sc);
             return e;
