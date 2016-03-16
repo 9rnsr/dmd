@@ -246,6 +246,30 @@ public:
         return s;
     }
 
+    /*************************************
+     * Returns non `null` if this declaration requires
+     * the runtime 'this' pointer to access instance members.
+     */
+    AggregateDeclaration isThis()
+    {
+        return null;
+    }
+
+    // need a 'this' pointer?
+    bool needThis()
+    {
+        return false;
+    }
+
+    /*************************************
+     * Returns `true` if this is a local declaration and has
+     * a runtime enclosing function scope.
+     */
+    bool isNested()
+    {
+        return false;
+    }
+
     final bool isStatic()
     {
         return (storage_class & STCstatic) != 0;
@@ -1901,6 +1925,11 @@ public:
     {
         //printf("VarDeclaration::needThis(%s, x%x)\n", toChars(), storage_class);
         return isField();
+    }
+
+    override bool isNested()
+    {
+        return !(storage_class & STCmanifest) && !isDataseg();
     }
 
     override final bool isExport()

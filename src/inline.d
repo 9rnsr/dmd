@@ -788,6 +788,7 @@ Expression doInline(Expression e, InlineDoState ids)
                 result.type = e.type;
                 return;
             }
+
             /* Inlining context pointer access for nested referenced variables.
              * For example:
              *      auto fun() {
@@ -807,25 +808,26 @@ Expression doInline(Expression e, InlineDoState ids)
              * should be inlined to:
              *      auto x = *(t.vthis.vthis + i.voffset) + *(t.vthis + g.voffset)
              */
-            VarDeclaration v = e.var.isVarDeclaration();
+            auto v = e.var.isVarDeclaration();
             if (v && v.nestedrefs.dim && ids.vthis)
             {
                 Dsymbol s = ids.fd;
-                FuncDeclaration fdv = v.toParent().isFuncDeclaration();
+                auto fdv = v.toParent().isFuncDeclaration();
                 assert(fdv);
                 result = new VarExp(e.loc, ids.vthis);
                 result.type = ids.vthis.type;
                 while (s != fdv)
                 {
-                    FuncDeclaration f = s.isFuncDeclaration();
-                    if (AggregateDeclaration ad = s.isThis())
+                    auto f = s.isFuncDeclaration();
+                    assert(f);
+                    if (auto ad = f.isThis())
                     {
                         assert(ad.vthis);
                         result = new DotVarExp(e.loc, result, ad.vthis);
                         result.type = ad.vthis.type;
                         s = ad.toParent2();
                     }
-                    else if (f && f.isNested())
+                    else if (f.isNested())
                     {
                         assert(f.vthis);
                         if (f.hasNestedFrameRefs())
@@ -844,6 +846,7 @@ Expression doInline(Expression e, InlineDoState ids)
                 //printf("\t==> result = %s, type = %s\n", result.toChars(), result.type.toChars());
                 return;
             }
+
             result = e;
         }
 

@@ -160,7 +160,9 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
                 assert(fd->ident == Id::require || fd->ident == Id::ensure);
                 assert(thisfd->hasNestedFrameRefs());
 
-                ClassDeclaration *cdp = fdp->isThis()->isClassDeclaration();
+                FuncDeclaration *fdpf = fdp->isFuncDeclaration();
+                assert(fdpf);
+                ClassDeclaration *cdp = fdpf->isThis()->isClassDeclaration();
                 ClassDeclaration *cd = thisfd->isThis()->isClassDeclaration();
                 assert(cdp && cd);
 

@@ -2888,6 +2888,23 @@ public:
         return ad;
     }
 
+    override final bool needThis()
+    {
+        //printf("FuncDeclaration::needThis() '%s'\n", toChars());
+        return toAliasFunc().isThis() !is null;
+    }
+
+    // Determine if function needs
+    // a static frame pointer to its lexically enclosing function
+    override bool isNested()
+    {
+        auto f = toAliasFunc();
+        //printf("\ttoParent2() = '%s'\n", f.toParent2().toChars());
+        return ((f.storage_class & STCstatic) == 0) &&
+                (f.linkage == LINKd) &&
+                (f.toParent2().isFuncDeclaration() !is null);
+    }
+
     final AggregateDeclaration isMember2()
     {
         //printf("+FuncDeclaration::isMember2() '%s'\n", toChars());
@@ -3233,21 +3250,6 @@ public:
                 return false;
         }
         return true;
-    }
-
-    // Determine if function needs
-    // a static frame pointer to its lexically enclosing function
-    bool isNested()
-    {
-        FuncDeclaration f = toAliasFunc();
-        //printf("\ttoParent2() = '%s'\n", f->toParent2()->toChars());
-        return ((f.storage_class & STCstatic) == 0) && (f.linkage == LINKd) && (f.toParent2().isFuncDeclaration() !is null);
-    }
-
-    override final bool needThis()
-    {
-        //printf("FuncDeclaration::needThis() '%s'\n", toChars());
-        return toAliasFunc().isThis() !is null;
     }
 
     // Determine if a function is pedantically virtual
