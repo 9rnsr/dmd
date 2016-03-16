@@ -798,7 +798,6 @@ void test15734()
 /********************************************************/
 // 12230
 
-/+
 static template T12230a(alias a)
 {
     // this should become member function?
@@ -820,9 +819,7 @@ void test12230a()
     assert(s.ti.foo() == 4);
     assert(s.tp.foo() == 6);
 }
-// +/
 
-/+
 static template T12230b(alias a, alias anchor = Object)
 {
     auto foo() { return a * 2; }
@@ -833,8 +830,8 @@ struct ST12230b
     int i = 2;
     @property int p() { return 3; }
 
-    alias ti = TT12230b!(i);    // bound to S implicitly
-    alias tp = TT12230b!(p, i); // bound to S via anchor
+    alias ti = T12230b!(i);    // bound to S implicitly
+    alias tp = T12230b!(p, i); // bound to S via anchor
 }
 
 void test12230b()
@@ -843,7 +840,6 @@ void test12230b()
     assert(s.ti.foo() == 4);
     assert(s.tp.foo() == 6);
 }
-// +/
 
 /********************************************************/
 
