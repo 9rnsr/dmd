@@ -99,66 +99,63 @@ extern (C++) Expression getRightThis(Loc loc, Scope* sc,
         return e1;
 
     //printf("\ngetRightThis(ad = %s, var = %s %s)\n", ad.toChars(), var.toChars(), var.type.toChars());
-    auto t1old = e1.type.toBasetype();
+    auto t = e1.type.toBasetype();
+    auto t1old = t;
+    //printf("\te1 = %s, t = %s\n", e1.toChars(), t.toChars());
+    if (t.ty == Tpointer)
+        t = t.nextOf().toBasetype();
+    if (t.ty != Tstruct && t.ty != Tclass)
+        return e1;
+    if (t1old.ty == Tpointer)
+        e1 = new PtrExp(e1.loc, e1, t);
 
-    while (true)
+    auto tad = isAggregate(t);
+L1:
+    while (1)
     {
-        auto t = e1.type.toBasetype();
-        //printf("\te1 = %s, t = %s\n", e1.toChars(), t.toChars());
-        if (t.ty == Tpointer)
-        {
-            e1 = new PtrExp(e1.loc, e1, t.nextOf());
-            t = t.nextOf().toBasetype();
-        }
-
-        /* If e1 is not the 'this' pointer for ad
-         */
-        auto tad = isAggregate(t);
-
-        /* e1 is the right this if ad is a base class of e1
-         */
-        if (ad == tad || ad.type.isBaseOf(t, null))
+        if (ad == tad || ad.type.isBaseOf(tad.type, null))
             return e1;
 
-        /* Nested aggregates with an 'outer' member can point the enclosing scopes.
-         */
-        if (!tad || !tad.isNested())
+        if (!tad.isNested())
             break;
-        //printf("tad.isNested(), tad = %s, ad = %s\n", tad.toChars(), ad.toChars());
 
-        /* e1 is the 'this' pointer for an inner aggregate: tad.
-         * Rewrite it as the 'this' pointer for the outer aggregate.
-         */
-        e1 = new DotVarExp(loc, e1, tad.vthis);
-        e1.type = tad.vthis.type.addMod(t.mod);
+        auto s = tad.enclosing;
+        if (auto adp = s.isAggregateDeclaration())
+        {
+            /* e1 is the 'this' pointer for an inner aggregate: tad.
+             * Rewrite it as the 'this' pointer for the outer aggregate adp.
+             */
+            e1 = new DotVarExp(e1.loc, e1, tad.vthis);
+            e1.type = tad.vthis.type.addMod(t.mod);
+            if (tad.vthis.type.ty == Tpointer)
+            {
+                e1 = new PtrExp(e1.loc, e1);
+                e1.type = adp.type.addMod(t.mod);
+            }
+            tad = adp;
+            continue;
+        }
 
-        // Skip up over nested functions, and get the enclosing aggregate type.
-        int n = 0;
-        Dsymbol s;
-        for (s = tad.toParent(); s; s = s.toParent())
+        for (; s; s = s.toParent2())
         {
             auto f = s.isFuncDeclaration();
             if (!f)
-                break;
+                break L1;
             if (!f.vthis)
             {
                 error(loc, "need 'this' of type %s to access member %s from static function %s",
                     ad.toChars(), var.toChars(), f.toChars());
                 return new ErrorExp();
             }
-            //printf("rewriting e1 to %s's this\n", f.toChars());
-            n++;
-            e1 = new VarExp(loc, f.vthis);
+            if (auto adp = f.isThis())
+            {
+                e1 = new VarExp(e1.loc, f.vthis);
+                e1.type = f.vthis.type.addMod(t.mod);
+                tad = adp;
+                break;
+            }
+            // f is a nested function
         }
-        assert(s);
-        if (auto tad2 = s.isAggregateDeclaration())
-        {
-            e1.type = tad2.type.addMod(t.mod);
-            if (n > 1)
-                e1 = e1.semantic(sc);
-        }
-        else
-            e1 = e1.semantic(sc);
     }
 
     /* Can't find a path from e1 to ad
