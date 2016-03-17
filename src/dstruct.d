@@ -341,6 +341,11 @@ public:
                 //printf("adding member '%s' to '%s'\n", s.toChars(), this.toChars());
                 s.addMember(sc, this);
             }
+            if (auto ti = toParent().isTemplateInstance())
+            {
+                if (ti.enclosing)
+                    makeNested();
+            }
         }
 
         Scope* sc2 = sc.push(this);

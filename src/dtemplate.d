@@ -529,7 +529,7 @@ public:
         if (!parent)
             parent = sc.parent;
 
-        isstatic = toParent().isModule() || (_scope.stc & STCstatic);
+        isstatic = toParent2().isModule() || (_scope.stc & STCstatic);
         protection = sc.protection;
 
         if (global.params.doDocComments)
@@ -909,25 +909,30 @@ public:
                 }
             }
         }
+
         if (m > MATCHnomatch && constraint && !flag)
         {
-            if (ti.hasNestedArgs(ti.tiargs, this.isstatic)) // TODO: should gag error
+            if (ti.hasNestedArgs(sc, ti.tiargs, this.isstatic)) // TODO: should gag error
                 ti.parent = ti.enclosing;
             else
                 ti.parent = this.parent;
+
             // Similar to doHeaderInstantiation
             FuncDeclaration fd = onemember ? onemember.isFuncDeclaration() : null;
             if (fd)
             {
                 assert(fd.type.ty == Tfunction);
                 TypeFunction tf = cast(TypeFunction)fd.type.syntaxCopy();
+
                 fd = new FuncDeclaration(fd.loc, fd.endloc, fd.ident, fd.storage_class, tf);
                 fd.parent = ti;
                 fd.inferRetType = true;
+
                 // Shouldn't run semantic on default arguments and return type.
                 for (size_t i = 0; i < tf.parameters.dim; i++)
                     (*tf.parameters)[i].defaultArg = null;
                 tf.next = null;
+
                 // Resolve parameter types and 'auto ref's.
                 tf.fargs = fargs;
                 uint olderrors = global.startGagging();
@@ -940,10 +945,12 @@ public:
                 assert(fd.type.ty == Tfunction);
                 fd.originalType = fd.type; // for mangling
             }
+
             // TODO: dedtypes => ti->tiargs ?
             if (!evaluateConstraint(ti, sc, paramscope, dedtypes, fd))
                 goto Lnomatch;
         }
+
         static if (LOGM)
         {
             // Print out the results
@@ -1231,7 +1238,7 @@ public:
             L1:
             }
         }
-        if (toParent().isModule() || (_scope.stc & STCstatic))
+        if (isstatic)
             tthis = null;
         if (tthis)
         {
@@ -5889,15 +5896,18 @@ public:
         }
         TemplateDeclaration tempdecl = this.tempdecl.isTemplateDeclaration();
         assert(tempdecl);
+
         // If tempdecl is a mixin, disallow it
         if (tempdecl.ismixin)
         {
             error("mixin templates are not regular templates");
             goto Lerror;
         }
-        hasNestedArgs(tiargs, tempdecl.isstatic);
+
+        hasNestedArgs(sc, tiargs, tempdecl.isstatic);
         if (errors)
             goto Lerror;
+
         /* See if there is an existing TemplateInstantiation that already
          * implements the typeargs. If so, just refer to that one instead.
          */
@@ -6088,14 +6098,20 @@ public:
         {
             printf("\tdo semantic() on template instance members '%s'\n", toChars());
         }
-        Scope* sc2;
-        sc2 = _scope.push(this);
-        //printf("enclosing = %d, sc->parent = %s\n", enclosing, sc->parent->toChars());
+        Scope* sc2 = _scope.push(this);
         sc2.parent = this;
         sc2.tinst = this;
         sc2.minst = minst;
+        if (enclosing && tempdecl.isstatic)
+            sc2.stc &= ~STCstatic;
+        //printf("%s enclosing = %s, isstatic = %d, sc2.stc = x%llx\n",
+        //    toChars(), enclosing ? enclosing.toPrettyChars() : null,
+        //    tempdecl.isstatic, sc2.stc);
+
         tryExpandMembers(sc2);
+
         semanticRun = PASSsemanticdone;
+
         /* ConditionalDeclaration may introduce eponymous declaration,
          * so we should find it once again after semantic.
          */
@@ -7571,7 +7587,7 @@ public:
      * generation of the TemplateDeclaration.
      * Sets enclosing property if so, and returns != 0;
      */
-    final bool hasNestedArgs(Objects* args, bool isstatic)
+    final bool hasNestedArgs(Scope* sc, Objects* args, bool isstatic)
     {
         int nested = 0;
         //printf("TemplateInstance::hasNestedArgs('%s')\n", tempdecl.ident.toChars());
@@ -7596,6 +7612,7 @@ public:
             auto va = isTuple(o);
             if (ea)
             {
+                //printf("ea = %s %s\n", Token.toChars(ea.op), ea.toChars());
                 if (ea.op == TOKvar)
                 {
                     sa = (cast(VarExp)ea).var;
@@ -7631,69 +7648,111 @@ public:
             else if (sa)
             {
             Lsa:
+                //printf("sa = %s %s\n", sa.kind(), sa.toChars());
                 sa = sa.toAlias();
-                auto td = sa.isTemplateDeclaration();
-                if (td)
+
+                static bool isContextful(Scope* sc, Dsymbol sa)
                 {
-                    auto ti = sa.toParent().isTemplateInstance();
-                    if (ti && ti.enclosing)
-                        sa = ti;
-                }
-                auto ti = sa.isTemplateInstance();
-                auto d = sa.isDeclaration();
-                if ((td && td.literal) ||
-                    (ti && ti.enclosing) ||
-                    (d && !d.isDataseg() &&
-                     !(d.storage_class & STCmanifest) &&
-                     (d.isFuncDeclaration() is null ||
-                      d.isFuncDeclaration().isNested()) &&
-                     !isTemplateMixin()))
-                {
-                    // if module level template
-                    if (isstatic)
+                    if (auto td = sa.isTemplateDeclaration())
                     {
-                        Dsymbol dparent = sa.toParent2();
-                        if (!enclosing)
-                            enclosing = dparent;
-                        else if (enclosing != dparent)
-                        {
-                            /* Select the more deeply nested of the two.
-                             * Error if one is not nested inside the other.
-                             */
-                            for (Dsymbol p = enclosing; p; p = p.parent)
-                            {
-                                if (p == dparent)
-                                    goto L1; // enclosing is most nested
-                            }
-                            for (Dsymbol p = dparent; p; p = p.parent)
-                            {
-                                if (p == enclosing)
-                                {
-                                    enclosing = dparent;
-                                    goto L1; // dparent is most nested
-                                }
-                            }
-                            error("%s is nested in both %s and %s",
-                                toChars(), enclosing.toChars(), dparent.toChars());
-                            errors = true;
-                        }
-                    L1:
-                        //printf("\tnested inside %s\n", enclosing.toChars());
-                        nested |= 1;
+                        //printf("td = %s, literal = %d, isstatic = %d\n", td.toPrettyChars(), td.literal, td.isstatic);
+                        if (td.isstatic)
+                            return false;
+                        if (td.literal)
+                            return true;
+                        sa = sa.toParent();
+                        //printf("\tsa = %s %s\n", sa.kind(), sa.toPrettyChars());
+                        // If td.parent is aggregate, function, or template instance, it may be nested.
+
+                        // todo for overloaded template
                     }
-                    else
+                    if (auto ti = sa.isTemplateInstance())
+                        return ti.enclosing !is null;
+
+                    auto d = sa.isDeclaration();
+                    if (!d)
+                        return false;
+
+                    if (auto vd = d.isVarDeclaration())
                     {
-                        error("cannot use local '%s' as parameter to non-global template %s", sa.toChars(), tempdecl.toChars());
+                        if (!vd.isThis() && !vd.isNested())
+                            return false;
+                        // isNeedThisScope returns true means: vd use is in inaccessible place
+                        // isNeedThisScope returns false  means: vd use is in accessible place
+                        return !isNeedThisScope(sc, vd);
+                    }
+
+                    if (d.isFuncDeclaration())
+                    {
+                        //printf("[%s] hasNestedArgs d = %s %s\n", loc.toChars(), d.kind(), d.toPrettyChars());
+                        if (!d.isThis() && !d.isNested())
+                            return false;
+                        return !isNeedThisScope(sc, d);
+
+                        // todo for overloaded function
+                    }
+
+                    return false;
+                }
+
+                if (isContextful(sc, sa) && !isTemplateMixin())
+                {
+                    if (!isstatic && !enclosing)
+                        enclosing = tempdecl.toParent();
+                    auto dparent = sa.toParent2();
+                    //printf("\tnested: sa = %s %s, dparent = %s\n",
+                    //    sa.kind(), sa.toChars(), dparent.toPrettyChars());
+
+                    if (!enclosing)
+                        enclosing = dparent;
+                    else if (enclosing != dparent)
+                    {
+                        /* Select the more deeply nested of the two.
+                         * Error if one is not nested inside the other.
+                         */
+                        for (auto p = enclosing; p; p = p.parent)
+                        {
+                            if (p == dparent)
+                                goto L1; // enclosing is most nested
+                        }
+                        for (auto p = dparent; p; p = p.parent)
+                        {
+                            if (p == enclosing)
+                            {
+                                enclosing = dparent;
+                                goto L1; // dparent is most nested
+                            }
+                        }
+                        auto ad = enclosing.isAggregateDeclaration();
+                        auto adp = dparent.isAggregateDeclaration();
+                        if (ad && adp)
+                        {
+                            if (ad.type.isBaseOf(adp.type, null))
+                            {
+                                enclosing = dparent;
+                                goto L1; // dparent is most nested
+                            }
+                            if (adp.type.isBaseOf(ad.type, null))
+                            {
+                                goto L1; // enclosing is most nested
+                            }
+                        }
+                        error("%s is nested in both %s and %s",
+                            toChars(), enclosing.toChars(), dparent.toChars());
                         errors = true;
                     }
+                L1:
+                    //printf("\tnested inside %s\n", enclosing.toChars());
+                    nested |= 1;
                 }
             }
             else if (va)
             {
-                nested |= cast(int)hasNestedArgs(&va.objects, isstatic);
+                nested |= cast(int)hasNestedArgs(sc, &va.objects, isstatic);
             }
         }
         //printf("-TemplateInstance::hasNestedArgs('%s') = %d\n", tempdecl.ident.toChars(), nested);
+        //if (nested) printf("\tenclosing = %s\n", enclosing.toPrettyChars());
         return nested != 0;
     }
 

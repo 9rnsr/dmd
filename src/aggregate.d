@@ -621,37 +621,34 @@ public:
         if (storage_class & STCstatic)
             return;
 
-        // If nested struct, add in hidden 'this' pointer to outer scope
-        auto s = toParent2();
+        // If nested aggregate, add in hidden 'this' pointer to outer scope
+        auto s = toParent();
         if (!s)
             return;
-        Type t = null;
-        if (auto fd = s.isFuncDeclaration())
+        //printf("%s, toParent() = %s, toParent2() = %s\n", toChars(), s.toPrettyChars(), toParent2().toPrettyChars());
+        if (auto ti = s.isTemplateInstance())
+        {
+            enclosing = ti.enclosing;
+        }
+        else if (auto fd = s.isFuncDeclaration())
         {
             enclosing = fd;
-
-            /* Bugzilla 14422: If a nested class parent is a function, its
-             * context pointer (== `outer`) should be void* always.
-             */
-            t = Type.tvoidptr;
         }
         else if (auto ad = s.isAggregateDeclaration())
         {
-            if (isClassDeclaration() && ad.isClassDeclaration())
+            if (ad.isClassDeclaration() && isClassDeclaration())
             {
                 enclosing = ad;
             }
-            else if (isStructDeclaration())
-            {
-                if (auto ti = ad.parent.isTemplateInstance())
-                {
-                    enclosing = ti.enclosing;
-                }
-            }
-            t = ad.handleType();
         }
         if (enclosing)
         {
+            /* Bugzilla 14422: If a nested class parent is a function, its
+             * context pointer (== `outer`) should be void* always.
+             */
+            auto ad = enclosing.isAggregateDeclaration();
+            Type t = ad ? ad.handleType() : Type.tvoidptr;
+
             //printf("makeNested %s, enclosing = %s\n", toChars(), enclosing.toChars());
             assert(t);
             if (t.ty == Tstruct)
