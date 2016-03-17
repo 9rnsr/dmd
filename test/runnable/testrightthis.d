@@ -877,6 +877,26 @@ template HeapOps(alias less)
 
 /********************************************************/
 
+@safe void testLevenshteinDistance()
+{
+    assert(levenshteinDistance("cat", "rat") == 1);
+}
+
+size_t levenshteinDistance(alias equals = (a,b) => a == b, R1, R2)(R1 s, R2 t)
+{
+    alias eq = equals;
+
+    Levenshtein!(R1, eq, size_t) lev;
+    return 0;
+}
+
+private struct Levenshtein(Range, alias equals, CostType = size_t)
+{
+    ~this() {}
+}
+
+/********************************************************/
+
 int main()
 {
     test1();

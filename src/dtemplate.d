@@ -7657,8 +7657,13 @@ public:
                 {
                     if (auto td = sa.isTemplateDeclaration())
                     {
-                        if (td.literal)
-                            return true;
+                        //if (td.literal)
+                        //{
+                        //    //auto dparent = td.toParent2();
+                        //    //if (dparent.isModule())
+                        //    //    return false;
+                        //    return true;
+                        //}
                         if (td.isstatic)
                             return false;
                         sa = sa.toParent();
@@ -7710,7 +7715,7 @@ public:
                     if (!isstatic && !enclosing)
                         enclosing = tempdecl.toParent();
                     auto dparent = sa.toParent2();
-//printf("\tL%d\n", __LINE__);
+//printf("\tL%d isContextful: sa = %s %s, dparent = %s\n", __LINE__, sa.kind(), sa.toChars(), dparent.toPrettyChars());
 
                     if (!enclosing)
                         enclosing = dparent;

@@ -625,6 +625,7 @@ public:
         auto s = toParent();
         if (!s)
             return;
+        //printf("%s, toParent() = %s, toParent2() = %s\n", toChars(), s.toPrettyChars(), toParent2().toPrettyChars());
         if (auto ti = s.isTemplateInstance())
         {
             enclosing = ti.enclosing;
@@ -646,12 +647,13 @@ public:
                 //{
                 //    if (auto ti = ad.parent.isTemplateInstance())
                 //    {
+                //        printf("1: %s, ad = %s, isInstantiated = %s\n", toChars(), ad.toChars(), ti.toChars());
                 //        enclosing = ti.enclosing;
                 //    }
                 //    else if (auto ti = this.isInstantiated())
                 //    {
                 //        // todo?
-                //        printf("%s, ad = %s, isInstantiated = %s\n", toChars(), ad.toChars(), ti.toChars());
+                //        printf("2: %s, ad = %s, isInstantiated = %s\n", toChars(), ad.toChars(), ti.toChars());
                 //        enclosing = ti.enclosing;
                 //    }
                 //}
