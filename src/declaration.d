@@ -1953,19 +1953,23 @@ public:
         version (none)
         {
             printf("VarDeclaration::isDataseg(%p, '%s')\n", this, toChars());
-            printf("%llx, isModule: %p, isTemplateInstance: %p\n", storage_class & (STCstatic | STCconst), parent.isModule(), parent.isTemplateInstance());
+            printf("%llx, isModule: %p, isTemplateInstance: %p\n",
+                storage_class & (STCstatic | STCconst), parent.isModule(), parent.isTemplateInstance());
             printf("parent = '%s'\n", parent.toChars());
         }
         if (!canTakeAddressOf())
             return false;
-        Dsymbol parent = toParent();
-        if (!parent && !(storage_class & STCstatic))
+        auto p = toParent();
+        while (p && p.isNspace())
+            p = p.toParent();
+        if (!p && !(storage_class & STCstatic))
         {
             error("forward referenced");
             type = Type.terror;
             return false;
         }
-        return (storage_class & (STCstatic | STCextern | STCtls | STCgshared) || parent.isModule() || parent.isTemplateInstance());
+        return (storage_class & (STCstatic | STCextern | STCtls | STCgshared)) ||
+                p.isModule() || p.isTemplateInstance();
     }
 
     /************************************

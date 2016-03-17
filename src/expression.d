@@ -3159,8 +3159,8 @@ public:
             //printf("[%s] var = %s, sc.flags = x%x\n", loc.toChars(), v.toChars(), sc.flags);
             if (isNeedThisScope(sc, v))
             {
-                //printf("checkRightThis sc->intypeof = %d, ad = %p, func = %p, fdthis = %p\n",
-                //        sc->intypeof, sc->getStructClassScope(), func, fdthis);
+                //printf("checkRightThis sc.intypeof = %d, ad = %p, func = %p\n",
+                //        sc.intypeof, sc.getStructClassScope(), sc.func);
                 error("need 'this' for '%s' of type '%s'", v.toChars(), v.type.toChars());
                 return true;
             }

@@ -402,7 +402,7 @@ public:
     {
         Dsymbol s = this;
         //printf("Dsymbol::pastMixin() %s\n", toChars());
-        while (s && (s.isTemplateMixin() || s.isNspace()))
+        while (s && s.isTemplateMixin())
             s = s.parent;
         return s;
     }
