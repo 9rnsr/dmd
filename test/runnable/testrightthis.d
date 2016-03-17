@@ -946,6 +946,69 @@ struct SortedRange(R, alias pred = "a < b")
 
 /********************************************************/
 
+struct STX1(alias a) { auto foo() { return a * 3; } }
+
+void testX1()
+{
+    int v = 2;
+    STX1!v s1;                // default construction
+    STX1!v s2 = STX1!v();     // literal construction
+    assert(s1.foo() == 6);
+    assert(s2.foo() == 6);
+}
+
+// ----
+
+struct STX2(alias a) { auto foo() { return a * 3; } }
+
+void testX2()
+{
+    int fn() { return 2; }
+    STX2!fn s1;               // default construction
+    STX2!fn s2 = STX2!fn();   // literal construction
+    assert(s1.foo() == 6);
+    assert(s2.foo() == 6);
+}
+
+// ----
+
+struct STX3(alias a) { auto foo() { return a * 3; } }
+
+class CX3 { int v; STX3!v s; this(int a) { v = a; s = STX3!v(); } }
+
+void testX3()
+{
+    auto c = new CX3(2);
+    assert(c.s.foo() == 6);   // currently this line causes Access Violation
+}
+
+// ----
+/+
+// should work, needs getRightThis improvement.
+struct STX4(alias a) { auto foo() { return a * 3; } }
+
+struct SX4
+{
+    int v;
+    SXT4!v s;  // Error: need 'this' to access member v (with 2.069.2 & fix15734(-o- is no error, but -c will be "need 'this' to access member v"))
+            // --> It's same with 2.069.2 behavior
+
+    this(int a)
+    {
+        v = a;
+        s = STX4!v();
+    }
+}
+
+void testX4()
+{
+    //static assert(!__traits(compiles, SX4()));
+    auto s = SX4(1);
+    //auto s3 = SX4(1, S!(S4.v)()); // ICE, typeof(S4.s) != S!(S4.v) in here!
+}
++/
+/********************************************************/
+
 int main()
 {
     test1();
@@ -965,6 +1028,9 @@ int main()
     test15734();
     test12230a();
     test12230b();
+    testX1();
+    testX2();
+    testX3();
 
     printf("Success\n");
     return 0;
