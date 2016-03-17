@@ -7684,6 +7684,7 @@ public:
 
                     if (d.isFuncDeclaration())
                     {
+                        //printf("[%s] hasNestedArgs d = %s %s\n", loc.toChars(), d.kind(), d.toPrettyChars());
                         if (!d.isThis() && !d.isNested())
                             return false;
                         return !isNeedThisScope(sc, d);

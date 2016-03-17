@@ -622,7 +622,6 @@ class Bar11245
 {
     void func()
     {
-        pragma(msg, "====");
         float[Vec11245.f.length] newVal;
     }
 }
@@ -839,6 +838,41 @@ void test12230b()
     ST12230b s;
     assert(s.ti.foo() == 4);
     assert(s.tp.foo() == 6);
+}
+
+/********************************************************/
+
+void testBinaryHeap()
+{
+    int less(int, int) { return 1; }
+
+    // The instantiated struct BinaryHeap!less.BinaryHeap is made nested in its semantic()
+    auto heap = BinaryHeap!(less)();
+    heap.acquire();
+}
+
+struct BinaryHeap(alias less = "a < b")
+{
+    // In HeapOps!less.hasNestedArgs, the isNeedThisScope call will reach to
+    // the testBinaryHeap function via BinaryHeap.vthis, then the instance
+    // will also become nested.
+    alias buildHeap = HeapOps!(less).buildHeap;
+
+    void acquire()
+    {
+        buildHeap();
+    }
+}
+
+template HeapOps(alias less)
+{
+    alias lessFun = /*binaryFun!*/less;
+
+    void buildHeap()()
+    {
+        // finally lessFun call can get correct enclosing context.
+        if (lessFun(1, 2)) {}
+    }
 }
 
 /********************************************************/

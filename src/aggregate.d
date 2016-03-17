@@ -629,11 +629,6 @@ public:
         if (auto fd = s.isFuncDeclaration())
         {
             enclosing = fd;
-
-            /* Bugzilla 14422: If a nested class parent is a function, its
-             * context pointer (== `outer`) should be void* always.
-             */
-            t = Type.tvoidptr;
         }
         else if (auto ad = s.isAggregateDeclaration())
         {
@@ -649,13 +644,30 @@ public:
                 }
                 else if (auto ti = this.isInstantiated())
                 {
+                    // todo?
                     enclosing = ti.enclosing;
                 }
             }
-            t = ad.handleType();
+        }
+        else if (auto ti = s.isTemplateInstance())
+        {
+            enclosing = ti.enclosing;
         }
         if (enclosing)
         {
+            if (enclosing)
+            {
+                if (auto ad = enclosing.isAggregateDeclaration())
+                    t = ad.handleType();
+                else
+                {
+                    /* Bugzilla 14422: If a nested class parent is a function, its
+                     * context pointer (== `outer`) should be void* always.
+                     */
+                    t = Type.tvoidptr;
+                }
+            }
+
             //printf("makeNested %s, enclosing = %s\n", toChars(), enclosing.toChars());
             assert(t);
             if (t.ty == Tstruct)
