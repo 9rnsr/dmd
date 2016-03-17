@@ -522,6 +522,50 @@ auto bug6430(int a, int b)
 }
 
 /********************************************************/
+// 9439
+
+class B9439
+{
+    int boo(alias F)()
+    {
+        return F();
+    }
+}
+
+class D9439 : B9439
+{
+    int foo() { return 1; }
+    int bug()
+    {
+        return boo!(foo)();
+    }
+}
+
+void test9439()
+{
+    auto d = new D9439();
+    assert(d.bug() == 1);;
+}
+
+/********************************************************/
+
+struct ShiftOr//(Char)
+{
+    static struct ShiftThread
+    {
+        void setInvMask()
+        {
+        }
+
+        void set(alias setBits = setInvMask)(dchar ch)
+        {
+        }
+
+        void add(dchar ch) { return set!setInvMask(ch); }
+    }
+}
+
+/********************************************************/
 // 9619
 
 struct Foo9619 { int x; }
@@ -628,6 +672,279 @@ void test11993()
 }
 
 /********************************************************/
+// 12285
+
+struct S12285
+{
+    int a, c;
+
+    template toA(alias s)
+    {
+        void copy()
+        {
+            a = s;
+        }
+    }
+
+    alias cToA = toA!c;
+}
+
+void test12285()
+{
+    S12285 s;
+    s.c = 42;
+    s.cToA.copy();
+    assert(s.a == 42);
+}
+
+/********************************************************/
+// 12286
+
+class A12286          { int i; }
+class B12286 : A12286 { int j; }
+
+template copy12286(alias a, alias b)
+{
+    void copy12286() { a = b; }
+}
+
+class C12286 : B12286
+{
+    // The alias copyIJ works as C's member funciton
+    alias copyIJ = copy12286!(i, j);
+}
+
+void test12286()
+{
+    auto c = new C12286();
+    c.i = 1;
+    c.j = 2;
+    c.copyIJ();
+    assert(c.i == 2);
+}
+
+/********************************************************/
+// 14848
+
+template OffsetOf14848(alias member)
+{
+    size_t get() { return member.offsetof; }
+}
+
+void test14848()
+{
+    static struct S { int v; }
+
+    auto i = OffsetOf14848!(S.v).get();
+    assert(i == S.v.offsetof);
+}
+
+/********************************************************/
+// 15734
+
+template map15734(alias fun)
+{
+    auto map15734(R)(R r)
+    {
+        return MapResult15734!(fun, R)(r);
+    }
+}
+
+struct MapResult15734(alias fun, R)
+{
+    R _input;
+
+    @property empty() const
+    {
+        return _input.length == 0;
+    }
+
+    @property auto ref front()
+    {
+        return fun(_input[0]);
+    }
+
+    void popFront()
+    {
+        _input = _input[1 .. $];
+    }
+}
+
+class C15734
+{
+    int n;
+
+    int foo(int a)
+    {
+        return a * n;
+    }
+
+    int[] test()
+    {
+        n = 3;
+        int[] r;
+        foreach (e; map15734!foo([ 1, 2, 3 ]))
+            r ~= e;
+        return r;
+    }
+}
+
+void test15734()
+{
+    assert(new C15734().test() == [3, 6, 9]);
+}
+
+/********************************************************/
+// 12230
+
+static template T12230a(alias a)
+{
+    // this should become member function?
+    auto foo() { return a * 2; }
+}
+
+struct S12230a
+{
+    int i = 2;
+    @property int p() { return 3; }
+
+    alias ti = T12230a!i;  // OK
+    alias tp = T12230a!p;  // OK <- Error
+}
+
+void test12230a()
+{
+    S12230a s;
+    assert(s.ti.foo() == 4);
+    assert(s.tp.foo() == 6);
+}
+
+static template T12230b(alias a, alias anchor = Object)
+{
+    auto foo() { return a * 2; }
+}
+
+struct ST12230b
+{
+    int i = 2;
+    @property int p() { return 3; }
+
+    alias ti = T12230b!(i);    // bound to S implicitly
+    alias tp = T12230b!(p, i); // bound to S via anchor
+}
+
+void test12230b()
+{
+    ST12230b s;
+    assert(s.ti.foo() == 4);
+    assert(s.tp.foo() == 6);
+}
+
+/********************************************************/
+
+void testBinaryHeap()
+{
+    int less(int, int) { return 1; }
+
+    // The instantiated struct BinaryHeap!less.BinaryHeap is made nested in its semantic()
+    auto heap = BinaryHeap!(less)();
+    heap.acquire();
+}
+
+struct BinaryHeap(alias less = "a < b")
+{
+    // In HeapOps!less.hasNestedArgs, the isNeedThisScope call will reach to
+    // the testBinaryHeap function via BinaryHeap.vthis, then the instance
+    // will also become nested.
+    alias buildHeap = HeapOps!(less).buildHeap;
+
+    void acquire()
+    {
+        buildHeap();
+    }
+}
+
+template HeapOps(alias less)
+{
+    alias lessFun = /*binaryFun!*/less;
+
+    void buildHeap()()
+    {
+        // finally lessFun call can get correct enclosing context.
+        if (lessFun(1, 2)) {}
+    }
+}
+
+/********************************************************/
+
+@safe void testLevenshteinDistance()
+{
+    assert(levenshteinDistance("cat", "rat") == 1);
+}
+
+size_t levenshteinDistance(alias equals = (a,b) => a == b, R1, R2)(R1 s, R2 t)
+{
+    alias eq = equals;
+
+    Levenshtein!(R1, eq, size_t) lev;
+    return 0;
+}
+
+private struct Levenshtein(Range, alias equals, CostType = size_t)
+{
+    ~this() {}
+}
+
+/********************************************************/
+
+void isPrettyPropertyName(in char[] name)
+{
+    auto names = [
+        "L", "Letter",
+    ];
+    find!(x => (x == name) == 0)(names);
+}
+
+auto find(alias pred, R)(R haystack)
+{
+    if (pred(haystack[0])) {}
+}
+
+/********************************************************/
+
+template binaryFun(alias fun)
+{
+    auto binaryFun(E1, E2)(auto ref E1 a, auto ref E2 b)
+    {
+        return mixin(fun);
+    }
+}
+
+void testSortedRange()
+{
+    immutable(int[]) arr = [ 2, 3, 1, 5, 0 ];
+    auto index1 = new immutable(int)*[arr.length];
+
+    makeIndex!("a < b")(arr, index1);
+}
+
+SortedRange!(
+    Idx,
+    (a, b) => binaryFun!less(*a, *b)
+    // The lambda is declared in makeIndex!("a < b") == toParent(),
+    // but its isstatic should be false because makeIndex!("a < b") instance is not nested.
+)
+makeIndex(alias less, R, Idx)(R r, Idx index)
+{
+    return typeof(return)(index);
+}
+
+struct SortedRange(R, alias pred = "a < b")
+{
+    private R _input;
+}
+
+/********************************************************/
 
 int main()
 {
@@ -639,8 +956,15 @@ int main()
     test6();
     test7();
     test4350();
+    test9439();
     test9619();
     test9633();
+    test12285();
+    test12286();
+    test14848();
+    test15734();
+    test12230a();
+    test12230b();
 
     printf("Success\n");
     return 0;
