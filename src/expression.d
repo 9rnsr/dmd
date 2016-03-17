@@ -3744,13 +3744,18 @@ public:
                 error("variable __ctfe cannot be read at compile time");
                 return new ErrorExp();
             }
+
             // Create the magic __ctfe bool variable
             auto vd = new VarDeclaration(loc, Type.tbool, Id.ctfe, null);
             vd.storage_class |= STCtemp;
+            // Avoid "forward referenced" error in vd.isDataseg() and vd.isNested()
+            vd.parent = Module.rootModule;
+
             Expression e = new VarExp(loc, vd);
             e = e.semantic(sc);
             return e;
         }
+
         const(char)* n = importHint(ident.toChars());
         if (n)
             error("'%s' is not defined, perhaps you need to import %s; ?", ident.toChars(), n);
