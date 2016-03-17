@@ -56,7 +56,7 @@ extern (C++) bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, 
     if (ad.isNested() && s)
     {
         //printf("ad = %p %s [%s], parent:%p\n", ad, ad.toChars(), ad.loc.toChars(), ad.parent);
-        //printf("sparent = %p %s [%s], parent: %s\n", sparent, sparent.toChars(), sparent.loc.toChars(), sparent.parent,toChars());
+        //printf("sparent = %p %s [%s], parent: %s\n", sparent, sparent.toChars(), sparent.loc.toChars(), sparent.parent.toChars());
         if (checkNestedRef(s, sparent))
         {
             error(loc, "cannot access frame pointer of %s", ad.toPrettyChars());
@@ -66,7 +66,7 @@ extern (C++) bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, 
     bool result = false;
     for (size_t i = iStart; i < ad.fields.dim; i++)
     {
-        VarDeclaration vd = ad.fields[i];
+        auto vd = ad.fields[i];
         Type tb = vd.type.baseElemOf();
         if (tb.ty == Tstruct)
         {
@@ -208,9 +208,11 @@ public:
      */
     final int checkModify(Loc loc, Scope* sc, Type t, Expression e1, int flag)
     {
-        VarDeclaration v = isVarDeclaration();
+        printf("\t[%s] checkModify v = %s\n", loc.toChars(), toChars());
+        auto v = isVarDeclaration();
         if (v && v.canassign)
             return 2;
+        printf("\t\tL%d\n", __LINE__);
         if (isParameter() || isResult())
         {
             for (Scope* scx = sc; scx; scx = scx.enclosing)
@@ -224,11 +226,14 @@ public:
                 }
             }
         }
+        printf("\t\tL%d\n", __LINE__);
         if (v && (isCtorinit() || isField()))
         {
+        printf("\t\tL%d\n", __LINE__);
             // It's only modifiable if inside the right constructor
             if ((storage_class & (STCforeach | STCref)) == (STCforeach | STCref))
                 return 2;
+        printf("\t\tL%d\n", __LINE__);
             return modifyFieldVar(loc, sc, v, e1) ? 2 : 1;
         }
         return 1;
@@ -1357,7 +1362,7 @@ public:
         }
         else
         {
-            AggregateDeclaration aad = parent.isAggregateDeclaration();
+            auto aad = parent.isAggregateDeclaration();
             if (aad)
             {
                 if (global.params.vfield && storage_class & (STCconst | STCimmutable) && _init && !_init.isVoidInitializer())
@@ -1433,7 +1438,8 @@ public:
                 }
             }
         }
-        if (!(storage_class & (STCctfe | STCref | STCresult)) && tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)
+        if (!(storage_class & (STCctfe | STCref | STCresult)) &&
+            tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)
         {
             if (!_init)
             {
@@ -1473,6 +1479,41 @@ public:
             storage_class |= STCinit; // remember we had an explicit initializer
         else if (storage_class & STCmanifest)
             error("manifest constants must have initializers");
+
+        if (!_init && !sc.inunion &&
+            (storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCfield) || isDataseg()) &&
+            type.size() != 0)
+        {
+            Type tv = type;
+            while (tv.ty == Tsarray)    // Don't skip Tenum
+                tv = tv.nextOf();
+            if (tv.needsNested())
+            {
+                printf("[%s] %s, X!\n", loc.toChars(), toChars());
+                /* Nested struct requires valid enclosing frame pointer.
+                 * In StructLiteralExp::toElem(), it's calculated.
+                 */
+                assert(tbn.ty == Tstruct);
+                auto s = (cast(TypeStruct)tbn).sym.enclosing;
+                assert(s);
+
+                if (isField())
+                {
+                    // the field may be ctorinit, or will be initialized by literal syntax
+                }
+                else
+                {
+                    error("cannot default constructible");
+                    //checkFrameAccess(loc, sc, (cast(TypeStruct)tbn).sym);
+
+                    //Expression e = tv.defaultInitLiteral(loc);
+                    //e = new BlitExp(loc, new VarExp(loc, this), e);
+                    //e = e.semantic(sc);
+                    //_init = new ExpInitializer(loc, e);
+                    //goto Ldtor;
+                }
+            }
+        }
 
         bool isBlit = false;
         if (!_init &&

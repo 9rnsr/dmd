@@ -345,6 +345,8 @@ public:
             {
                 if (ti.enclosing)
                     makeNested();
+                if (enclosing)
+                    noDefaultCtor = true;
             }
         }
 
@@ -508,7 +510,7 @@ public:
             deferred.semantic3(sc);
         }
 
-        version (none)
+        //version (none)
         {
             if (type.ty == Tstruct && (cast(TypeStruct)type).sym != this)
             {

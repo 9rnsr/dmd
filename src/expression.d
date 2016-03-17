@@ -98,18 +98,71 @@ extern (C++) Expression getRightThis(Loc loc, Scope* sc,
     if (!ad)
         return e1;
 
-    //printf("\ngetRightThis(ad = %s, var = %s %s)\n", ad.toChars(), var.toChars(), var.type.toChars());
+    printf("\ngetRightThis(ad = %s, var = %s %s)\n", ad.toChars(), var.toChars(), var.type.toChars());
     auto t1old = e1.type.toBasetype();
 
+    auto t = e1.type.toBasetype();
+    if (t.ty == Tpointer)
+    {
+        e1 = new PtrExp(e1.loc, e1, t.nextOf());
+        t = t.nextOf().toBasetype();
+    }
+
+    alias d = var;
+
+    if (d.isThis() || d.isNested())
+    {
+        auto dp = d.toParent2();
+        auto adp = dp.isAggregateDeclaration();
+        //printf("d = %s %s\n", d.kind(), d.toPrettyChars());
+        //printf("dp = %s %s, adp = %p\n", dp.kind(), dp.toPrettyChars(), adp);
+
+        // Go upwards until we ...
+        for (auto s = sc.parent; s; s = s.toParent2())
+        {
+            //printf("\ts = %s %s\n", s.kind(), s.toChars());
+            if (s == dp)
+                return e1;
+
+            if (auto fd = s.isFuncDeclaration())
+            {
+                if (!fd.vthis)
+                {
+                    error(loc, "need 'this' of type %s to access member %s from static function %s",
+                        ad.toChars(), var.toChars(), fd.toChars());
+                    return new ErrorExp();
+                }
+                if (fd.isThis() || fd.isNested())
+                {
+                    e1 = new VarExp(loc, fd.vthis);
+                    continue;
+                }
+                break;//return true;
+            }
+            if (auto adx = s.isAggregateDeclaration())
+            {
+                // adp is a base class/interface of adx
+                if (adp && adp.type.isBaseOf(adx.type, null))
+                    return e1;
+                if (adx.isNested())
+                {
+                    t = e1.type;
+                    e1 = new DotVarExp(loc, e1, adx.vthis);
+                    e1.type = adx.vthis.type.addMod(t.mod);
+                    continue;
+                }
+                break;//return true;
+            }
+        }
+    }
+    else
+        return e1;
+
+/+
+    // BUG, do not rely on t, because it may be void*
     while (true)
     {
-        auto t = e1.type.toBasetype();
-        //printf("\te1 = %s, t = %s\n", e1.toChars(), t.toChars());
-        if (t.ty == Tpointer)
-        {
-            e1 = new PtrExp(e1.loc, e1, t.nextOf());
-            t = t.nextOf().toBasetype();
-        }
+        printf("\te1 = %s, t = %s\n", e1.toChars(), t.toChars());
 
         /* If e1 is not the 'this' pointer for ad
          */
@@ -124,7 +177,7 @@ extern (C++) Expression getRightThis(Loc loc, Scope* sc,
          */
         if (!tad || !tad.isNested())
             break;
-        //printf("tad.isNested(), tad = %s, ad = %s\n", tad.toChars(), ad.toChars());
+        printf("tad.isNested(), tad = %s, ad = %s\n", tad.toChars(), ad.toChars());
 
         /* e1 is the 'this' pointer for an inner aggregate: tad.
          * Rewrite it as the 'this' pointer for the outer aggregate.
@@ -146,7 +199,7 @@ extern (C++) Expression getRightThis(Loc loc, Scope* sc,
                     ad.toChars(), var.toChars(), f.toChars());
                 return new ErrorExp();
             }
-            //printf("rewriting e1 to %s's this\n", f.toChars());
+            printf("rewriting e1 to %s's this\n", f.toChars());
             n++;
             e1 = new VarExp(loc, f.vthis);
         }
@@ -159,7 +212,10 @@ extern (C++) Expression getRightThis(Loc loc, Scope* sc,
         }
         else
             e1 = e1.semantic(sc);
+
+        t = e1.type.toBasetype();
     }
++/
 
     /* Can't find a path from e1 to ad
      */
@@ -2136,17 +2192,21 @@ extern (C++) DotIdExp typeDotIdExp(Loc loc, Type type, Identifier ident)
  */
 extern (C++) int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
 {
-    //printf("modifyFieldVar(var = %s)\n", var->toChars());
+    printf("modifyFieldVar(var = %s)\n", var.toChars());
     Dsymbol s = sc.func;
     while (1)
     {
         FuncDeclaration fd = null;
         if (s)
             fd = s.isFuncDeclaration();
-        if (fd && ((fd.isCtorDeclaration() && var.isField()) || (fd.isStaticCtorDeclaration() && !var.isField())) && fd.toParent2() == var.toParent2() && (!e1 || e1.op == TOKthis))
+        if (fd && ((fd.isCtorDeclaration() && var.isField()) ||
+                   (fd.isStaticCtorDeclaration() && !var.isField())) &&
+            fd.toParent2() == var.toParent2() &&
+            (!e1 || e1.op == TOKthis || e1.op == TOKvar && (cast(VarExp)e1).var.isThisDeclaration()))
         {
             var.ctorinit = 1;
             //printf("setting ctorinit\n");
+
             int result = true;
             if (var.isField() && sc.fieldinit && !sc.intypeof)
             {
@@ -3950,10 +4010,12 @@ public:
             if (v.checkNestedReference(sc, loc))
                 return new ErrorExp();
 
+printf("\t[%s] +v = %s\n", loc.toChars(), v.toChars());
             if (v.needThis() && hasThis(sc))
                 e = new DotVarExp(loc, new ThisExp(loc), v);
             else
                 e = new VarExp(loc, v);
+printf("\t[%s] -e = %s\n", loc.toChars(), e.toChars());
             e = e.semantic(sc);
             return e;
         }
@@ -5301,16 +5363,24 @@ public:
         }
         if (type)
             return this;
+
+    printf("\t* L%d\n", __LINE__);
         sd.size(loc);
+    printf("\t* L%d\n", __LINE__);
         if (sd.sizeok != SIZEOKdone)
             return new ErrorExp();
+
         if (arrayExpressionSemantic(elements, sc)) // run semantic() on each element
             return new ErrorExp();
+    printf("\t* L%d\n", __LINE__);
         expandTuples(elements);
+
         /* Fit elements[] to the corresponding type of field[].
          */
         if (!sd.fit(loc, sc, elements, stype))
             return new ErrorExp();
+    printf("\t* L%d\n", __LINE__);
+
         /* Fill out remainder of elements[] with default initializers for fields[]
          */
         if (!sd.fill(loc, elements, false))
@@ -5322,8 +5392,11 @@ public:
             global.increaseErrorCount();
             return new ErrorExp();
         }
+    printf("\t* L%d\n", __LINE__);
         if (checkFrameAccess(loc, sc, sd, elements.dim))
             return new ErrorExp();
+    printf("\t* L%d\n", __LINE__);
+
         type = stype ? stype : sd.type;
         return this;
     }
@@ -8767,6 +8840,8 @@ public:
             type = type.addMod(t1.mod);
             auto vparent = var.toParent();
             auto ad = vparent ? vparent.isAggregateDeclaration() : null;
+
+printf("\t[%s] ++dve = %s\n", loc.toChars(), e1.toChars());
             if (auto e1x = getRightThis(loc, sc, ad, e1, var, 1))
                 e1 = e1x;
             else
@@ -8777,6 +8852,7 @@ public:
                 e = e.semantic(sc);
                 return e;
             }
+printf("\t[%s] --dve = %s\n", loc.toChars(), e1.toChars());
             checkAccess(loc, sc, e1, var);
             VarDeclaration v = var.isVarDeclaration();
             if (v && (v.isDataseg() || (v.storage_class & STCmanifest)))
@@ -8801,10 +8877,13 @@ public:
 
     override int checkModifiable(Scope* sc, int flag)
     {
-        //printf("DotVarExp::checkModifiable %s %s\n", toChars(), type->toChars());
+        printf("DotVarExp::checkModifiable %s %s\n", toChars(), type.toChars());
+        printf("\te1 = %s %s\n", Token.toChars(e1.op), e1.toChars());
         if (e1.op == TOKthis)
             return var.checkModify(loc, sc, type, e1, flag);
-        //printf("\te1 = %s\n", e1->toChars());
+        if (e1.op == TOKvar && (cast(VarExp)e1).var.isThisDeclaration())
+            return var.checkModify(loc, sc, type, e1, flag);
+        printf("\te1 = %s\n", e1.toChars());
         return e1.checkModifiable(sc, flag);
     }
 
@@ -9474,20 +9553,26 @@ public:
         {
             if (t1.ty == Tstruct)
             {
-                StructDeclaration sd = (cast(TypeStruct)t1).sym;
+                printf("[%s] %s, L%d\n", loc.toChars(), toChars(), __LINE__);
+                auto sd = (cast(TypeStruct)t1).sym;
                 sd.size(loc); // Resolve forward references to construct object
                 if (sd.sizeok != SIZEOKdone)
                     return new ErrorExp();
+
                 // First look for constructor
                 if (e1.op == TOKtype && sd.ctor)
                 {
+                printf("\tL%d\n", __LINE__);
                     if (!sd.noDefaultCtor && !(arguments && arguments.dim))
                         goto Lx;
+                printf("\tL%d\n", __LINE__);
                     auto sle = new StructLiteralExp(loc, sd, null, e1.type);
                     if (!sd.fill(loc, sle.elements, true))
                         return new ErrorExp();
+                printf("\tL%d\n", __LINE__);
                     if (checkFrameAccess(loc, sc, sd, sle.elements.dim))
                         return new ErrorExp();
+                printf("\tL%d\n", __LINE__);
                     // Bugzilla 14556: Set concrete type to avoid further redundant semantic().
                     sle.type = e1.type;
 
@@ -9535,7 +9620,9 @@ public:
                  */
             Lx:
                 Expression e = new StructLiteralExp(loc, sd, arguments, e1.type);
+                printf("\tL%d\n", __LINE__);
                 e = e.semantic(sc);
+                printf("\tL%d\n", __LINE__);
                 return e;
             }
             else if (t1.ty == Tclass)
