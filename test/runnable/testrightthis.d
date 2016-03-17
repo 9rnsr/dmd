@@ -897,6 +897,21 @@ private struct Levenshtein(Range, alias equals, CostType = size_t)
 
 /********************************************************/
 
+void isPrettyPropertyName(in char[] name)
+{
+    auto names = [
+        "L", "Letter",
+    ];
+    find!(x => (x == name) == 0)(names);
+}
+
+auto find(alias pred, R)(R haystack)
+{
+    if (pred(haystack[0])) {}
+}
+
+/********************************************************/
+
 int main()
 {
     test1();

@@ -7657,16 +7657,13 @@ public:
                 {
                     if (auto td = sa.isTemplateDeclaration())
                     {
-                        //if (td.literal)
-                        //{
-                        //    //auto dparent = td.toParent2();
-                        //    //if (dparent.isModule())
-                        //    //    return false;
-                        //    return true;
-                        //}
+                        //printf("td = %s, literal = %d, isstatic = %d\n", td.toPrettyChars(), td.literal, td.isstatic);
                         if (td.isstatic)
                             return false;
+                        if (td.literal)
+                            return true;
                         sa = sa.toParent();
+                        //printf("\tsa = %s %s\n", sa.kind(), sa.toPrettyChars());
                         // If td.parent is aggregate, function, or template instance, it may be nested.
 
                         // todo for overloaded template
