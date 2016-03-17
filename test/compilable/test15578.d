@@ -1,6 +1,6 @@
 private:
     int j;
-    extern(C++, ns) int k;
+    extern(C++, ns) __gshared int k;
 
 void f()
 {

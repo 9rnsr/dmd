@@ -542,7 +542,7 @@ class Foo9633
     void bar()
     {
         // CallExp::e1->op == TOKvar
-        static assert(!compilesWithoutThis9633!baz);
+        static assert( compilesWithoutThis9633!baz);
     }
     void vaz()()
     {
@@ -578,7 +578,6 @@ class Bar11245
 {
     void func()
     {
-        pragma(msg, "====");
         float[Vec11245.f.length] newVal;
     }
 }
