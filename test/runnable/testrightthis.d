@@ -912,6 +912,40 @@ auto find(alias pred, R)(R haystack)
 
 /********************************************************/
 
+template binaryFun(alias fun)
+{
+    auto binaryFun(E1, E2)(auto ref E1 a, auto ref E2 b)
+    {
+        return mixin(fun);
+    }
+}
+
+void testSortedRange()
+{
+    immutable(int[]) arr = [ 2, 3, 1, 5, 0 ];
+    auto index1 = new immutable(int)*[arr.length];
+
+    makeIndex!("a < b")(arr, index1);
+}
+
+SortedRange!(
+    Idx,
+    (a, b) => binaryFun!less(*a, *b)
+    // The lambda is declared in makeIndex!("a < b") == toParent(),
+    // but its isstatic should be false because makeIndex!("a < b") instance is not nested.
+)
+makeIndex(alias less, R, Idx)(R r, Idx index)
+{
+    return typeof(return)(index);
+}
+
+struct SortedRange(R, alias pred = "a < b")
+{
+    private R _input;
+}
+
+/********************************************************/
+
 int main()
 {
     test1();

@@ -529,7 +529,8 @@ public:
         if (!parent)
             parent = sc.parent;
 
-        isstatic = toParent().isModule() || (_scope.stc & STCstatic);
+        isstatic = toParent2().isModule() || (_scope.stc & STCstatic);
+        //if (literal) printf("[%s] %s, toParent = %s, isstatic = %d\n", loc.toChars(), toPrettyChars(), toParent().toPrettyChars(), isstatic);
         protection = sc.protection;
 
         if (global.params.doDocComments)
