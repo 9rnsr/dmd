@@ -98,7 +98,7 @@ extern (C++) Expression getRightThis(Loc loc, Scope* sc,
     if (!ad)
         return e1;
 
-    //printf("\ngetRightThis(ad = %s, var = %s %s)\n", ad.toChars(), var.toChars(), var.type.toChars());
+    //printf("\n[%s] getRightThis(ad = %s, var = %s %s)\n", loc.toChars(), ad.toChars(), var.toChars(), var.type.toChars());
     auto t = e1.type.toBasetype();
     auto t1old = t;
     //printf("\te1 = %s, t = %s\n", e1.toChars(), t.toChars());
@@ -113,13 +113,21 @@ extern (C++) Expression getRightThis(Loc loc, Scope* sc,
 L1:
     while (1)
     {
+        //printf("\te1 = %s, e1.type = %s\n", e1.toChars(), e1.type.toChars());
+
+        /* e1 is the right this if ad is a base class of e1
+         */
         if (ad == tad || ad.type.isBaseOf(tad.type, null))
             return e1;
 
         if (!tad.isNested())
             break;
 
+        /* Nested aggregates with an 'outer' member can point the enclosing scopes.
+         */
         auto s = tad.enclosing;
+        //printf("tad.isNested(), tad = %s, s = %s %s\n", tad.toChars(), s.kind(), s.toChars());
+
         if (auto adp = s.isAggregateDeclaration())
         {
             /* e1 is the 'this' pointer for an inner aggregate: tad.
@@ -132,10 +140,13 @@ L1:
                 e1 = new PtrExp(e1.loc, e1);
                 e1.type = adp.type.addMod(t.mod);
             }
+            //printf("rewriting e1 to %s's this\n", adp.toChars());
             tad = adp;
             continue;
         }
 
+        // Skip up over nested functions, and get the enclosing aggregate type.
+        int n = 0;
         for (; s; s = s.toParent2())
         {
             auto f = s.isFuncDeclaration();
@@ -149,12 +160,16 @@ L1:
             }
             if (auto adp = f.isThis())
             {
+                //printf("rewriting e1 to %s's this\n", f.toChars());
                 e1 = new VarExp(e1.loc, f.vthis);
                 e1.type = f.vthis.type.addMod(t.mod);
+                if (n)
+                    e1 = e1.semantic(sc);
                 tad = adp;
                 break;
             }
             // f is a nested function
+            n++;
         }
     }
 
