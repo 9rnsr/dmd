@@ -621,52 +621,49 @@ public:
         if (storage_class & STCstatic)
             return;
 
-        // If nested struct, add in hidden 'this' pointer to outer scope
-        auto s = toParent2();
+        // If nested aggregate, add in hidden 'this' pointer to outer scope
+        auto s = toParent();
         if (!s)
             return;
-        Type t = null;
-        if (auto fd = s.isFuncDeclaration())
+        if (auto ti = s.isTemplateInstance())
+        {
+            enclosing = ti.enclosing;
+        }
+        else if (auto fd = s.isFuncDeclaration())
         {
             enclosing = fd;
         }
         else if (auto ad = s.isAggregateDeclaration())
         {
-            if (isClassDeclaration() && ad.isClassDeclaration())
+            if (ad.isClassDeclaration())
             {
-                enclosing = ad;
+                if (this.isClassDeclaration())
+                    enclosing = ad;
             }
-            else if (isStructDeclaration())
+            else
             {
-                if (auto ti = ad.parent.isTemplateInstance())
-                {
-                    enclosing = ti.enclosing;
-                }
-                else if (auto ti = this.isInstantiated())
-                {
-                    // todo?
-                    enclosing = ti.enclosing;
-                }
+                //if (isStructDeclaration())
+                //{
+                //    if (auto ti = ad.parent.isTemplateInstance())
+                //    {
+                //        enclosing = ti.enclosing;
+                //    }
+                //    else if (auto ti = this.isInstantiated())
+                //    {
+                //        // todo?
+                //        printf("%s, ad = %s, isInstantiated = %s\n", toChars(), ad.toChars(), ti.toChars());
+                //        enclosing = ti.enclosing;
+                //    }
+                //}
             }
-        }
-        else if (auto ti = s.isTemplateInstance())
-        {
-            enclosing = ti.enclosing;
         }
         if (enclosing)
         {
-            if (enclosing)
-            {
-                if (auto ad = enclosing.isAggregateDeclaration())
-                    t = ad.handleType();
-                else
-                {
-                    /* Bugzilla 14422: If a nested class parent is a function, its
-                     * context pointer (== `outer`) should be void* always.
-                     */
-                    t = Type.tvoidptr;
-                }
-            }
+            /* Bugzilla 14422: If a nested class parent is a function, its
+             * context pointer (== `outer`) should be void* always.
+             */
+            auto ad = enclosing.isAggregateDeclaration();
+            Type t = ad ? ad.handleType() : Type.tvoidptr;
 
             //printf("makeNested %s, enclosing = %s\n", toChars(), enclosing.toChars());
             assert(t);
