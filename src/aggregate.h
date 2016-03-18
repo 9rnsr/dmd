@@ -118,7 +118,7 @@ public:
     virtual void finalizeSize() = 0;
     unsigned size(Loc loc);
     bool checkOverlappedFields();
-    bool fill(Loc loc, Expressions *elements, bool ctorinit);
+    bool fill(Loc loc, Scope *sc, Expressions *elements);
     static void alignmember(structalign_t salign, unsigned size, unsigned *poffset);
     static unsigned placeField(unsigned *nextoffset,
         unsigned memsize, unsigned memalignsize, structalign_t memalign,

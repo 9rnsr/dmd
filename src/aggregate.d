@@ -368,13 +368,16 @@ public:
      * Fill out remainder of elements[] with default initializers for fields[].
      * Params:
      *      loc         = location
+     *      sc          = runtime scope where the literal is constructed.
      *      elements    = explicit arguments which given to construct object.
-     *      ctorinit    = true if the elements will be used for default initialization.
+     *
+     * If `sc` is null, the elements will be used for default initialization.
+     *
      * Returns:
      *      false if any errors occur.
      *      Otherwise, returns true and the missing arguments will be pushed in elements[].
      */
-    final bool fill(Loc loc, Expressions* elements, bool ctorinit)
+    final bool fill(Loc loc, Scope* sc, Expressions* elements)
     {
         //printf("AggregateDeclaration::fill() %s\n", toChars());
         assert(sizeok == SIZEOKdone);
@@ -460,48 +463,61 @@ public:
                         assert(vx._init || !vx._init && !v2._init);
                 }
             }
-            if (vx)
+            if (!vx)
+                continue;
+
+            // vx is fields[i] or a field that overlaps with it.
+            Expression e;
+            if (vx.type.size() == 0)
             {
-                Expression e;
-                if (vx.type.size() == 0)
+                e = null;
+            }
+            else if (vx._init)
+            {
+                assert(!vx._init.isVoidInitializer());
+                e = vx.getConstInitializer(false);
+            }
+            else
+            {
+                if (sc)
                 {
-                    e = null;
-                }
-                else if (vx._init)
-                {
-                    assert(!vx._init.isVoidInitializer());
-                    e = vx.getConstInitializer(false);
-                }
-                else
-                {
-                    if ((vx.storage_class & STCnodefaultctor) && !ctorinit)
+                    if ((vx.storage_class & STCnodefaultctor))
                     {
                         .error(loc, "field %s.%s must be initialized because it has no default constructor",
                             type.toChars(), vx.toChars());
                         errors = true;
                     }
-                    /* Bugzilla 12509: Get the element of static array type.
-                     */
-                    Type telem = vx.type;
-                    if (telem.ty == Tsarray)
-                    {
-                        /* We cannot use Type::baseElemOf() here.
-                         * If the bottom of the Tsarray is an enum type, baseElemOf()
-                         * will return the base of the enum, and its default initializer
-                         * would be different from the enum's.
-                         */
-                        while (telem.toBasetype().ty == Tsarray)
-                            telem = (cast(TypeSArray)telem.toBasetype()).next;
-                        if (telem.ty == Tvoid)
-                            telem = Type.tuns8.addMod(telem.mod);
-                    }
-                    if (telem.needsNested() && ctorinit)
-                        e = telem.defaultInit(loc);
                     else
-                        e = telem.defaultInitLiteral(loc);
+                    {
+                        auto tbn = vx.type.baseElemOf();
+                        if (tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.isNested())
+                        {
+                            errors |= checkFrameAccess(loc, sc, (cast(TypeStruct)tbn).sym);
+                        }
+                    }
                 }
-                (*elements)[fieldi] = e;
+
+                /* Bugzilla 12509: Get the element of static array type.
+                 */
+                Type tv = vx.type;
+                if (tv.ty == Tsarray)
+                {
+                    /* We cannot use Type::baseElemOf() here.
+                     * If the bottom of the Tsarray is an enum type, baseElemOf()
+                     * will return the base of the enum, and its default initializer
+                     * would be different from the enum's.
+                     */
+                    while (tv.toBasetype().ty == Tsarray)
+                        tv = (cast(TypeSArray)tv.toBasetype()).next;
+                    if (tv.ty == Tvoid)
+                        tv = Type.tuns8.addMod(tv.mod);
+                }
+                if (tv.needsNested() && !sc)
+                    e = tv.defaultInit(loc);
+                else
+                    e = tv.defaultInitLiteral(loc);
             }
+            (*elements)[fieldi] = e;
         }
         foreach (e; *elements)
         {

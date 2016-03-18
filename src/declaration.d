@@ -1401,9 +1401,13 @@ public:
             }
             storage_class |= STCfield;
 
-            if (tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)
+            if (!_init &&
+                tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)
             {
-                if (!isThisDeclaration() && !_init)
+                /* For fields, we'll check the constructor later to make sure it is initialized
+                 */
+                storage_class |= STCnodefaultctor;
+                if (!isThisDeclaration())
                     ad.noDefaultCtor = true;
             }
 
@@ -1449,13 +1453,12 @@ public:
             {
                 error("only parameters or stack based variables can be inout");
             }
-            FuncDeclaration func = sc.func;
-            if (func)
+            if (auto func = sc.func)
             {
                 if (func.fes)
                     func = func.fes.func;
                 bool isWild = false;
-                for (FuncDeclaration fd = func; fd; fd = fd.toParent2().isFuncDeclaration())
+                for (auto fd = func; fd; fd = fd.toParent2().isFuncDeclaration())
                 {
                     if ((cast(TypeFunction)fd.type).iswild)
                     {
@@ -1470,26 +1473,14 @@ public:
             }
         }
 
-        if (!(storage_class & (STCctfe | STCref | STCresult)) &&
+        if (!_init &&
+            !(storage_class & (STCctfe | STCref | STCparameter | STCresult | STCfield)) &&
             tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)
         {
-            if (!_init)
-            {
-                if (isField())
-                {
-                    /* For fields, we'll check the constructor later to make sure it is initialized
-                     */
-                    storage_class |= STCnodefaultctor;
-                }
-                else if (storage_class & STCparameter)
-                {
-                }
-                else
-                    error("default construction is disabled for type %s", type.toChars());
-            }
+            error("default construction is disabled for type %s", type.toChars());
         }
 
-        FuncDeclaration fd = parent.isFuncDeclaration();
+        auto fd = parent.isFuncDeclaration();
         if (type.isscope() && !noscope)
         {
             if (storage_class & (STCfield | STCout | STCref | STCstatic | STCmanifest | STCtls | STCgshared) || !fd)

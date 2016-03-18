@@ -928,14 +928,21 @@ public:
 
         // this.ctor is already set
 
-        if (!ctor && noDefaultCtor)
+        if (!ctor)
         {
             // A class object is always created by constructor, so this check is legitimate.
-            for (size_t i = 0; i < fields.dim; i++)
+            foreach (v; fields)
             {
-                VarDeclaration v = fields[i];
                 if (v.storage_class & STCnodefaultctor)
-                    .error(v.loc, "field %s must be initialized in constructor", v.toChars());
+                {
+                    .error(v.loc, "field %s must be initialized in constructor",
+                        v.toChars());
+                }
+                else if (v.type.needsNested())
+                {
+                    .error(v.loc, "field %s must be initialized in constructor, because it is nested struct",
+                        v.toChars());
+                }
             }
         }
 
@@ -944,21 +951,24 @@ public:
         //    this() { }
         if (!ctor && baseClass && baseClass.ctor)
         {
-            FuncDeclaration fd = resolveFuncCall(loc, sc2, baseClass.ctor, null, null, null, 1);
+            auto fd = resolveFuncCall(loc, sc2, baseClass.ctor, null, null, null, 1);
             if (fd && !fd.errors)
             {
                 //printf("Creating default this(){} for class %s\n", toChars());
-                TypeFunction btf = cast(TypeFunction)fd.type;
+                auto btf = cast(TypeFunction)fd.type;
                 auto tf = new TypeFunction(null, null, 0, LINKd, fd.storage_class);
-                tf.purity = btf.purity;
+                tf.purity    = btf.purity;
                 tf.isnothrow = btf.isnothrow;
-                tf.isnogc = btf.isnogc;
-                tf.trust = btf.trust;
+                tf.isnogc    = btf.isnogc;
+                tf.trust     = btf.trust;
+
                 auto ctor = new CtorDeclaration(loc, Loc(), 0, tf);
                 ctor.fbody = new CompoundStatement(Loc(), new Statements());
+
                 members.push(ctor);
                 ctor.addMember(sc, this);
                 ctor.semantic(sc2);
+
                 this.ctor = ctor;
                 defaultCtor = ctor;
             }

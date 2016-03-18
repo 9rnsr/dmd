@@ -334,7 +334,7 @@ public:
             if (errors)
                 return new ErrorInitializer();
             auto sle = new StructLiteralExp(loc, sd, elements, t);
-            if (!sd.fill(loc, elements, false))
+            if (!sd.fill(loc, sc, elements))
                 return new ErrorInitializer();
             sle.type = t;
             auto ie = new ExpInitializer(loc, sle);

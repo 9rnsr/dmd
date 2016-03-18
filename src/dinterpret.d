@@ -2909,7 +2909,7 @@ public:
             }
             else
             {
-                StructDeclaration sd = (cast(TypeStruct)e.newtype.toBasetype()).sym;
+                auto sd = (cast(TypeStruct)e.newtype.toBasetype()).sym;
                 auto exps = new Expressions();
                 exps.reserve(sd.fields.dim);
                 if (e.arguments)
@@ -2924,7 +2924,7 @@ public:
                         (*exps)[i] = ex;
                     }
                 }
-                sd.fill(e.loc, exps, false);
+                sd.fill(e.loc, null, exps);
                 auto se = new StructLiteralExp(e.loc, sd, exps, e.newtype);
                 se.type = e.newtype;
                 se.ownedByCtfe = OWNEDctfe;

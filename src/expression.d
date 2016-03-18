@@ -2163,7 +2163,7 @@ extern (C++) int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expressi
             if (var.isField() && sc.fieldinit && !sc.intypeof)
             {
                 assert(e1);
-                bool mustInit = (var.storage_class & STCnodefaultctor || var.type.needsNested());
+                bool mustInit = ((var.storage_class & STCnodefaultctor) || var.type.needsNested());
                 size_t dim = sc.fieldinit_dim;
                 AggregateDeclaration ad = fd.isAggregateMember2();
                 assert(ad);
@@ -5325,7 +5325,7 @@ public:
             return new ErrorExp();
         /* Fill out remainder of elements[] with default initializers for fields[]
          */
-        if (!sd.fill(loc, elements, false))
+        if (!sd.fill(loc, sc, elements))
         {
             /* An error in the initializer needs to be recorded as an error
              * in the enclosing function or template, since the initializer
@@ -6128,7 +6128,7 @@ public:
                 if (!sd.fit(loc, sc, arguments, tb))
                     return new ErrorExp();
 
-                if (!sd.fill(loc, arguments, false))
+                if (!sd.fill(loc, sc, arguments))
                     return new ErrorExp();
 
                 if (checkFrameAccess(loc, sc, sd, arguments ? arguments.dim : 0))
@@ -9496,7 +9496,7 @@ public:
                     if (!sd.noDefaultCtor && !(arguments && arguments.dim))
                         goto Lx;
                     auto sle = new StructLiteralExp(loc, sd, null, e1.type);
-                    if (!sd.fill(loc, sle.elements, true))
+                    if (!sd.fill(loc, null, sle.elements))
                         return new ErrorExp();
                     if (checkFrameAccess(loc, sc, sd, sle.elements.dim))
                         return new ErrorExp();
