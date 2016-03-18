@@ -394,8 +394,8 @@ void test11718()
         enum int len = s.length;
         return len.stringof ~ s;
     }
-    enum result1 = TyName!("S" ~ fnName!("F"~"S6mangle9test11718FZ1A"~"Z") ~ "Z") ~ "7Ty11718";
-    enum result2 = TyName!("S" ~ fnName!("F"~""                      ~"Z") ~ "Z") ~ "7Ty11718";
+    enum result1 = TyName!("S" ~ fnName!("F"~"S6mangle9test11718FZ1A"~"Z") ~ "MZ") ~ "7Ty11718";
+    enum result2 = TyName!("S" ~ fnName!("F"~""                      ~"Z") ~ "MZ") ~ "7Ty11718";
 
     struct A {}
     static assert(fn11718(A.init) == result1);
@@ -417,8 +417,8 @@ void test11776()
         {
             auto s = S11776!(a => 1)();
             static assert(typeof(s).mangleof ==
-                "S"~"6mangle"~"56"~(
-                    "__T"~"6S11776"~"S42"~("6mangle"~"9test11776"~"FZ"~"9__lambda1MFZ"~"9__lambda1")~"Z"
+                "S"~"6mangle"~"57"~(
+                    "__T"~"6S11776"~"S42"~("6mangle"~"9test11776"~"FZ"~"9__lambda1MFZ"~"9__lambda1")~"MZ"
                 )~"6S11776");
         }
     };

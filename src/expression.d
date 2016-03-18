@@ -277,14 +277,17 @@ Lno:
     return null; // don't have 'this' available
 }
 
-extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
+extern (C++) bool isNeedThisScope(Scope* sc, Declaration d, bool checkCtfe = true)
 {
-    if (sc.intypeof == 1)
-        return false;
-    if (sc.flags & SCOPEctfe)
-        return false;
-    //if (sc.flags & SCOPEcompile)
-    //    return true;
+    if (checkCtfe)
+    {
+        if (sc.intypeof == 1)
+            return false;
+        if (sc.flags & SCOPEctfe)
+            return false;
+        //if (sc.flags & SCOPEcompile)
+        //    return true;
+    }
 
     if (auto ad = d.isThis())
     {

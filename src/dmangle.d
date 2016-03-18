@@ -340,7 +340,7 @@ public:
     void mangleParent(Dsymbol s)
     {
         Dsymbol p;
-        if (TemplateInstance ti = s.isTemplateInstance())
+        if (auto ti = s.isTemplateInstance())
             p = ti.isTemplateMixin() ? ti.parent : ti.tempdecl.parent;
         else
             p = s.parent;
@@ -349,9 +349,9 @@ public:
             mangleParent(p);
             if (p.getIdent())
             {
-                const(char)* id = p.ident.toChars();
+                auto id = p.ident.toChars();
                 toBuffer(id, s);
-                if (FuncDeclaration f = p.isFuncDeclaration())
+                if (auto f = p.isFuncDeclaration())
                     mangleFunc(f, true);
             }
             else
@@ -363,12 +363,15 @@ public:
     {
         //printf("deco = '%s'\n", fd.type.deco ? fd.type.deco : "null");
         //printf("fd.type = %s\n", fd.type.toChars());
+
+        // name mangling prefix for functions needing 'this'
         if (fd.needThis() || fd.isNested())
-            buf.writeByte(Type.needThisPrefix());
+            buf.writeByte('M');
+
         if (inParent)
         {
-            TypeFunction tf = cast(TypeFunction)fd.type;
-            TypeFunction tfo = cast(TypeFunction)fd.originalType;
+            auto tf = cast(TypeFunction)fd.type;
+            auto tfo = cast(TypeFunction)fd.originalType;
             mangleFuncType(tf, tfo, 0, null);
         }
         else if (fd.type.deco)

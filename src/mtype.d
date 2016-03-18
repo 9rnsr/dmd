@@ -819,11 +819,6 @@ public:
         return buf.extractString();
     }
 
-    final static char needThisPrefix()
-    {
-        return 'M'; // name mangling prefix for functions needing 'this'
-    }
-
     final static void _init()
     {
         stringtable._init(14000);

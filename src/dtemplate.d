@@ -2100,6 +2100,7 @@ public:
         }
         size_t bi = hash % buckets.dim;
         TemplateInstances* instances = buckets[bi];
+        //printf("findExistingInstance : %s\n", tithis.toChars());
         if (instances)
         {
             for (size_t i = 0; i < instances.dim; i++)
@@ -2108,6 +2109,7 @@ public:
                 static if (LOG)
                 {
                     printf("\t%s: checking for match with instance %d (%p): '%s'\n", tithis.toChars(), i, ti, ti.toChars());
+                    printf("\ttithis.hash = %x, ti.hash = %x\n", hash, ti.hash);
                 }
                 if (hash == ti.hash && tithis.compare(ti) == 0)
                 {
@@ -6645,6 +6647,9 @@ public:
         {
             hash = cast(size_t)cast(void*)enclosing;
             hash += arrayObjectHash(&tdtypes);
+            //printf("[%s] %s . hashCode = %x\n", loc.toChars(), toChars(), hash);
+            //if (enclosing)
+            //    printf("\tenclosing = %s\n", enclosing.toPrettyChars());
         }
         return hash;
     }
@@ -7679,7 +7684,7 @@ public:
                             return false;
                         // isNeedThisScope returns true means: vd use is in inaccessible place
                         // isNeedThisScope returns false  means: vd use is in accessible place
-                        return !isNeedThisScope(sc, vd);
+                        return !isNeedThisScope(sc, vd, false);
                     }
 
                     if (d.isFuncDeclaration())
@@ -7687,7 +7692,7 @@ public:
                         //printf("[%s] hasNestedArgs d = %s %s\n", loc.toChars(), d.kind(), d.toPrettyChars());
                         if (!d.isThis() && !d.isNested())
                             return false;
-                        return !isNeedThisScope(sc, d);
+                        return !isNeedThisScope(sc, d, false);
 
                         // todo for overloaded function
                     }
@@ -7854,9 +7859,10 @@ public:
      */
     final Identifier genIdent(Objects* args)
     {
-        TemplateDeclaration tempdecl = this.tempdecl.isTemplateDeclaration();
+        auto tempdecl = this.tempdecl.isTemplateDeclaration();
         assert(tempdecl);
-        //printf("TemplateInstance::genIdent('%s')\n", tempdecl->ident->toChars());
+        //printf("TemplateInstance::genIdent('%s')\n", tempdecl.ident.toChars());
+
         OutBuffer buf;
         const id = tempdecl.ident.toChars();
         if (!members)
@@ -7866,17 +7872,19 @@ public:
         }
         else
             buf.printf("__T%llu%s", cast(ulong)strlen(id), id);
+
         size_t nparams = tempdecl.parameters.dim - (tempdecl.isVariadic() ? 1 : 0);
         for (size_t i = 0; i < args.dim; i++)
         {
-            RootObject o = (*args)[i];
-            Type ta = isType(o);
-            Expression ea = isExpression(o);
-            Dsymbol sa = isDsymbol(o);
-            Tuple va = isTuple(o);
+            auto o = (*args)[i];
+            auto ta = isType(o);
+            auto ea = isExpression(o);
+            auto sa = isDsymbol(o);
+            auto va = isTuple(o);
             //printf("\to [%d] %p ta %p ea %p sa %p va %p\n", i, o, ta, ea, sa, va);
             if (i < nparams && (*tempdecl.parameters)[i].specialization())
                 buf.writeByte('H'); // Bugzilla 6574
+
             if (ta)
             {
                 buf.writeByte('T');
@@ -7928,6 +7936,7 @@ public:
                 ea = ea.ctfeInterpret();
                 if (ea.op == TOKerror || olderr != global.errors)
                     continue;
+
                 /* Use deco that matches what it would be for a function parameter
                  */
                 buf.writestring(ea.type.deco);
@@ -7938,13 +7947,14 @@ public:
             Lsa:
                 buf.writeByte('S');
                 sa = sa.toAlias();
-                Declaration d = sa.isDeclaration();
+                auto d = sa.isDeclaration();
                 if (d && (!d.type || !d.type.deco))
                 {
                     error("forward reference of %s %s", d.kind(), d.toChars());
                     continue;
                 }
                 const(char)* p = mangle(sa);
+
                 /* Bugzilla 3043: if the first character of p is a digit this
                  * causes ambiguity issues because the digits of the two numbers are adjacent.
                  * Current demanglers resolve this by trying various places to separate the
@@ -7963,7 +7973,13 @@ public:
             else
                 assert(0);
         }
+        // enclosing is appearing in the contextful symbol mangling of template arguments.
+        // But, whether its actually used as this.enclosiing, is now undeterministic.
+        // so, the binary information should be encoded into the mangled string.
+        if (enclosing)
+            buf.writeByte('M'); // similar to nested function
         buf.writeByte('Z');
+
         //printf("\tgenIdent = %s\n", buf.peekString());
         return Identifier.idPool(buf.peekSlice());
     }

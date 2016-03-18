@@ -239,7 +239,6 @@ public:
     int covariant(Type *t, StorageClass *pstc = NULL);
     char *toChars();
     char *toPrettyChars(bool QualifyTypes = false);
-    static char needThisPrefix();
     static void init();
 
     #define SIZE_INVALID (~(d_uns64)0)
