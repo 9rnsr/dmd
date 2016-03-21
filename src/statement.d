@@ -2251,6 +2251,7 @@ public:
 
                     if (ds)
                     {
+printf("\tForeach tuple[%d] ds = %s %s @ [%s]\n", j, ds.kind(), ds.toChars(), ds.loc.toChars());
                         var = new AliasDeclaration(loc, p.ident, ds);
                         if (p.storageClass & STCref)
                         {
