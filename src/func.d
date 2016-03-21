@@ -4177,6 +4177,7 @@ extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg)
         {
             foreach (sm; ov.members)
             {
+printf("\toverloadApply ov = %s @ [%s] sm = %s %s at [%s]\n", ov.toChars(), ov.loc.toChars(), sm.kind(), sm.toChars(), sm.loc.toChars());
                 if (int r = overloadApply(sm, dg))
                     return r;
             }
@@ -4194,6 +4195,7 @@ extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg)
             next = ov.overnext;
         +/
             // overnext?   // todo
+            next = null;
         }
         //else if (auto fa = d.isFuncAliasDeclaration())
         //{

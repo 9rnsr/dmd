@@ -878,8 +878,9 @@ public:
     extern (D) this(Loc loc, Identifier ident, Dsymbol s/*, bool hasOverloads = true*/)
     {
         super(ident);
+        this.loc = loc;
         //this.aliassym = s;
-        members.push(s);
+        this.members.push(s);
         //this.hasOverloads = hasOverloads;
         //if (hasOverloads)
         //{

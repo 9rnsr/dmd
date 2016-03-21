@@ -3789,6 +3789,7 @@ public:
                         checkAccess(loc, sc, null, d);
                 }
 
+printf("L%d [%s] +IdentifierExp s = %s %s\n", __LINE__, loc.toChars(), s.kind(), s.toChars());
                 /* If f is really a function template,
                  * then replace f with the function template declaration.
                  */
@@ -4006,6 +4007,7 @@ public:
         }
         if (auto ov = s.isOverDeclaration())
         {
+printf("L%d [%s] +OverExp s = %s %s\n", __LINE__, loc.toChars(), ov.kind(), ov.toChars());
             e = new VarExp(loc, ov, true);
             e.type = Type.tvoid;
             return e;
@@ -6525,6 +6527,7 @@ public:
         }
         else if (auto ov = var.isOverDeclaration())
         {
+printf("L%d [%s] +VarExp s = %s %s\n", __LINE__, loc.toChars(), ov.kind(), ov.toChars());
             type = Type.tvoid; // ambiguous type?
         }
 
@@ -9704,6 +9707,7 @@ public:
             }
             else
             {
+printf("L%d [%s] +CallExp s = %s %s\n", __LINE__, loc.toChars(), Token.toChars(e1.op), e1.toChars());
                 static __gshared int nest;
                 if (++nest > 500)
                 {
@@ -9715,6 +9719,7 @@ public:
                 --nest;
                 if (ex)
                     return ex;
+printf("L%d [%s] *CallExp s = %s %s\n", __LINE__, loc.toChars(), Token.toChars(e1.op), e1.toChars());
             }
 
             /* Look for e1 being a lazy parameter
@@ -9732,9 +9737,11 @@ public:
                     auto t = new TypeDelegate(tf);
                     ve.type = t.semantic(loc, sc);
                 }
-                auto v = ve.var.isVarDeclaration();
-                if (v && ve.checkPurity(sc, v))
-                    return new ErrorExp();
+                if (auto v = ve.var.isVarDeclaration())
+                {
+                    if (ve.checkPurity(sc, v))
+                        return new ErrorExp();
+                }
             }
 
             if (e1.op == TOKsymoff && (cast(SymOffExp)e1).hasOverloads)
@@ -9905,6 +9912,46 @@ public:
             else if (f.errors)
                 f = null;
             return f;
+        }
+
+        if (e1.op == TOKvar && (cast(VarExp)e1).var.isOverDeclaration())
+        {
+            auto ve = cast(VarExp)e1;
+            auto ov = ve.var.isOverDeclaration();
+
+            // Do overload resolution
+
+printf("[%s] +ve.var = %s %s\n", loc.toChars(), ve.var.kind(), ve.var.toChars());
+            auto f = resolveFuncCall(loc, sc, ov, tiargs, null, arguments, 2);
+            if (!f || f.errors)
+                return new ErrorExp();
+
+printf("[%s] -f = %s %s\n", loc.toChars(), f.kind(), f.toChars());
+            if (f.needThis())
+            {
+                // Change the ancestor lambdas to delegate before hasThis(sc) call.
+                if (f.checkNestedReference(sc, loc))
+                    return new ErrorExp();
+
+                if (hasThis(sc))
+                {
+                    // Supply an implicit 'this', as in
+                    //    this.ident
+                    e1 = new DotVarExp(loc, (new ThisExp(loc)).semantic(sc), ve.var);
+                    // Note: we cannot use f directly, because further overload resolution
+                    // through the supplied 'this' may cause different result.
+                    goto Lagain;
+                }
+                else if (isNeedThisScope(sc, f))
+                {
+                    error("need 'this' for '%s' of type '%s'", f.toChars(), f.type.toChars());
+                    return new ErrorExp();
+                }
+            }
+
+            e1 = new VarExp(ve.loc, f, false);
+            e1.type = f.type;
+            t1 = f.type;
         }
 
         if (e1.op == TOKdotvar && t1.ty == Tfunction ||
@@ -10290,6 +10337,7 @@ public:
             // Do overload resolution
             auto ve = cast(VarExp)e1;
 
+printf("[%s] +ve.var = %s %s\n", loc.toChars(), ve.var.kind(), ve.var.toChars());
             f = ve.var.isFuncDeclaration();
             assert(f);
             tiargs = null;
@@ -10318,7 +10366,7 @@ public:
             if (!f || f.errors)
                 return new ErrorExp();
 
-printf("[%s] f = %s %s\n", loc.toChars(), f.kind(), f.toChars());
+printf("[%s] -f = %s %s\n", loc.toChars(), f.kind(), f.toChars());
             if (f.needThis())
             {
                 // Change the ancestor lambdas to delegate before hasThis(sc) call.
