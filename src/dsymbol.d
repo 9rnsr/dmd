@@ -1278,6 +1278,20 @@ public:
         return sds;
     }
 
+    static Dsymbol getOverloadRoot(Dsymbol s)
+    {
+        if (!s)
+            return s;
+        if (auto fd = s.isFuncDeclaration())
+        {
+            printf("getOverloadRot fd = %s @ [%s]\n", fd.toChars(), fd.loc.toChars());
+            return fd.getOverloadRoot();
+        }
+        //if (auto td = s.isTemplateDeclaration())
+        //    return td.getOverloadRoot();
+        return s;
+    }
+
     /*****************************************
      * This function is #1 on the list of functions that eat cpu time.
      * Be very, very careful about slowing it down.
@@ -1295,6 +1309,9 @@ public:
         {
             //printf(" look in locals\n");
             auto s1 = symtab.lookup(ident);
+
+            s1 = getOverloadRoot(s1);
+
             if (s1)
             {
                 //printf("\tfound in locals = '%s.%s'\n",toChars(),s1.toChars());
@@ -1346,6 +1363,9 @@ public:
                  */
                 Dsymbol s2 = ss.search(loc, ident,
                     sflags | (ss.isModule() ? IgnorePrivateImports : IgnoreNone));
+
+                ss = getOverloadRoot(ss);
+
                 import ddmd.access : symbolIsVisible;
                 if (!s2 || !(flags & IgnoreSymbolVisibility) && !symbolIsVisible(this, s2))
                     continue;

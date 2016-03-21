@@ -741,10 +741,10 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 else
                     ex = dve.e1;
             }
-            //else
-            //    printf("ex = %s %s\n", Token.toChars(ex.op), ex.toChars());
+            else
+                printf("ex = %s %s\n", Token.toChars(ex.op), ex.toChars());
 
-//printf("\t__traits, f = %s %s\n", f.kind(), f.toChars());
+printf("\t__traits, f = %s %s\n", f.kind(), f.toChars());
             overloadApply(f, (Dsymbol s)
             {
                 auto fd = s.isFuncDeclaration();
@@ -756,7 +756,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                     return 0;
 
                 // todo
-//printf("\t__traits, fd = %s %s\n", fd.toChars(), fd.type.toChars());
+printf("\t__traits, fd = %s %s\n", fd.toChars(), fd.type.toChars());
                 auto e = ex ? new DotVarExp(Loc(), ex, fd, false)
                             : new DsymbolExp(Loc(), fd, false);
 

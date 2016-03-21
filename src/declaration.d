@@ -561,7 +561,7 @@ public:
             /* When s is added in member scope by static if, mixin("code") or others,
              * aliassym is determined already. See the case in: test/compilable/test61.d
              */
-            auto sa = aliassym.toAlias();
+            auto sa = ScopeDsymbol.getOverloadRoot(aliassym.toAlias());
             if (auto fd = sa.isFuncDeclaration())
             {
                 aliassym = new OverDeclaration(loc, parent, ident, fd);  // todo
@@ -805,6 +805,7 @@ public:
         if (aliassym)
         {
             // semantic is already done.
+            aliassym = ScopeDsymbol.getOverloadRoot(aliassym);
 
             // Even if type.deco !is null, "alias T = const int;` needs semantic
             // call to take the storage class `const` as type qualifier.
@@ -861,6 +862,7 @@ public:
     extern (D) this(Loc loc, Dsymbol p, Identifier ident, Dsymbol s, bool hasOverloads = true)
     {
         super(ident);
+        this.loc = loc;
         this.parent = p;
         members.push(s);
     }

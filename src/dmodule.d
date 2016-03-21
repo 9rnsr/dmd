@@ -947,6 +947,7 @@ public:
                 s.addMember(sc, sc.scopesym);
             }
         }
+//printf("Module '%s' addMember done\n", toChars());
         // anything else should be run after addMember, so version/debug symbols are defined
         /* Set scope for the symbols so that if we forward reference
          * a symbol, it can possibly be resolved on the spot.
@@ -1080,6 +1081,23 @@ public:
         //printf("%s Module.search('%s', flags = x%x) insearch = %d\n", toChars(), ident.toChars(), flags, insearch);
         if (insearch)
             return null;
+
+        if (semanticRun < PASSsemanticdone)
+        {
+//printf("Module '%s' search before semantic completion, ident = %s @ [%s]\n", ident.toChars(), loc.toChars());
+            semantic();
+/+
+            extern (C++) static int fp(Dsymbol s, void* param) { return 0; }
+
+            insearch = 1;
+            foreach (s; *members)
+            {
+                if (s.apply(&fp, null))
+                    break;
+            }
+            insearch = 0;
++/
+        }
 
         /* Qualified module searches always search their imports,
          * even if SearchLocalsOnly

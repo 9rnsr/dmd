@@ -678,6 +678,7 @@ public:
         {
             if (!(s.isCtorDeclaration() ||
                   s.isTemplateDeclaration() ||
+                  s.isOverDeclaration() ||
                   s.isOverloadSet()))
             {
                 s.error("is not a constructor; identifiers starting with __ are reserved for the implementation");

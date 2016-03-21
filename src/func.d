@@ -535,47 +535,45 @@ public:
      */
     override bool overloadInsert(Dsymbol s)
     {
-        //printf("FuncDeclaration::overloadInsert(s = %s) this = %s\n", s->toChars(), toChars());
+        printf("[%s] FuncDeclaration::overloadInsert('%s') s = %s %s @ [%s]\n",
+            loc.toChars(), toChars(), s.kind(), s.toChars(), s.loc.toChars());
+
+        if (auto ov = getOverloadRoot().isOverDeclaration())
+        {
+            return ov.overloadInsert(s);
+        }
+
         assert(s != this);
-        AliasDeclaration ad = s.isAliasDeclaration();
-        if (ad)
+        if (auto ad = s.isAliasDeclaration())
         {
             if (overnext)
-                return overnext.overloadInsert(ad);
+                return overnext.overloadInsert(s);
+
+            // todo
             if (!ad.aliassym && ad.type.ty != Tident && ad.type.ty != Tinstance)
             {
-                //printf("\tad = '%s'\n", ad->type->toChars());
+                //printf("\tad = '%s'\n", ad.type.toChars());
                 return false;
             }
-            overnext = ad;
-            //printf("\ttrue: no conflict\n");
+            overnext = s;
             return true;
         }
-        TemplateDeclaration td = s.isTemplateDeclaration();
-        if (td)
+        if (auto td = s.isTemplateDeclaration())
         {
-            if (!td.funcroot)
-                td.funcroot = this;
             if (overnext)
-                return overnext.overloadInsert(td);
-            overnext = td;
+                return overnext.overloadInsert(s);
+            overnext = s;
             return true;
         }
-        FuncDeclaration fd = s.isFuncDeclaration();
-        if (!fd)
-            return false;
-
-        if (overnext)
+        if (auto fd = s.isFuncDeclaration())
         {
-            td = overnext.isTemplateDeclaration();
-            if (td)
-                fd.overloadInsert(td);
-            else
-                return overnext.overloadInsert(fd);
+            if (overnext)
+                return overnext.overloadInsert(s);
+            printf("\tL%d\n", __LINE__);
+            overnext = s;
+            return true;
         }
-        overnext = fd;
-        //printf("\ttrue: no conflict\n");
-        return true;
+        return false;
     }
 
     // Do the semantic analysis on the external interface to the function.
@@ -2466,6 +2464,13 @@ public:
 
     override Dsymbol toAlias()
     {
+        return this;
+    }
+
+    final//temporary
+    Dsymbol getOverloadRoot()
+    {
+printf("getOverloadRoot %s, overnext = %p\n", toPrettyChars(), overnext);
         if (!overnext)
             return this;
         if (overnext.isOverDeclaration())
