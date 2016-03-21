@@ -535,8 +535,8 @@ public:
      */
     override Dsymbol overloadInsert(Dsymbol s)
     {
-        printf("[%s] FuncDeclaration::overloadInsert('%s') s = %s %s @ [%s]\n",
-            loc.toChars(), toChars(), s.kind(), s.toChars(), s.loc.toChars());
+        //printf("[%s] FuncDeclaration::overloadInsert('%s') s = %s %s @ [%s]\n",
+        //    loc.toChars(), toChars(), s.kind(), s.toChars(), s.loc.toChars());
 
         assert(s != this);
         if (auto ad = s.isAliasDeclaration())

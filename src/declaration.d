@@ -547,8 +547,8 @@ public:
 
     override Dsymbol overloadInsert(Dsymbol s)
     {
-        printf("[%s] AliasDeclaration::overloadInsert('%s') s = %s %s @ [%s]\n",
-            loc.toChars(), toChars(), s.kind(), s.toChars(), s.loc.toChars());
+        //printf("[%s] AliasDeclaration::overloadInsert('%s') s = %s %s @ [%s]\n",
+        //    loc.toChars(), toChars(), s.kind(), s.toChars(), s.loc.toChars());
 
         /* Don't know yet what the aliased symbol is, so assume it can
          * be overloaded and check later for correctness.
@@ -929,8 +929,8 @@ public:
 
     override Dsymbol overloadInsert(Dsymbol s)
     {
-        printf("[%s] OverDeclaration::overloadInsert('%s') s = %s %s @ [%s]\n",
-            loc.toChars(), toChars(), s.kind(), s.toChars(), s.loc.toChars());
+        //printf("[%s] OverDeclaration::overloadInsert('%s') s = %s %s @ [%s]\n",
+        //    loc.toChars(), toChars(), s.kind(), s.toChars(), s.loc.toChars());
 
         //if (overnext)
         //    return overnext.overloadInsert(s);
@@ -951,7 +951,7 @@ public:
         // detect conflicts of type alias vs isOverloadable() symbols?
         Dsymbols members2;
 
-        printf("[%s] +od members = %s\n", loc.toChars(), members.toChars());
+//        printf("[%s] +od members = %s\n", loc.toChars(), members.toChars());
         foreach (i, s; members)
         {
             if (s == this)
@@ -964,9 +964,9 @@ public:
                 {
                     if (sm2 == this)
                         continue;   // todo
-                    printf("members[%d] sm1 = %s %s @ [%s], sm2 = %s %s @ [%s], dup = %d\n",
-                        i, sm1.kind(), sm1.toChars(), sm1.loc.toChars(),
-                           sm2.kind(), sm2.toChars(), sm2.loc.toChars(), sm1 == sm2);
+//                    printf("members[%d] sm1 = %s %s @ [%s], sm2 = %s %s @ [%s], dup = %d\n",
+//                        i, sm1.kind(), sm1.toChars(), sm1.loc.toChars(),
+//                           sm2.kind(), sm2.toChars(), sm2.loc.toChars(), sm1 == sm2);
                     if (sm1 == sm2)
                         return 0;
                 }
@@ -976,7 +976,7 @@ public:
         }
 
         this.members.swap(members2);
-        printf("[%s] -od members = %s\n", loc.toChars(), members.toChars());
+//        printf("[%s] -od members = %s\n", loc.toChars(), members.toChars());
     }
 
     Dsymbol isUnique()
