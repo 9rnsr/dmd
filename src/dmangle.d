@@ -470,7 +470,7 @@ public:
             visit(cast(Dsymbol)fd);
     }
 
-    // ditto
+/+    // ditto
     override void visit(FuncAliasDeclaration fd)
     {
         FuncDeclaration f = fd.toAliasFunc();
@@ -486,7 +486,7 @@ public:
             return;
         }
         visit(cast(Dsymbol)fd);
-    }
+    }+/
 
     override void visit(OverDeclaration od)
     {
@@ -516,7 +516,6 @@ public:
 
     void mangleExact(FuncDeclaration fd)
     {
-        assert(!fd.isFuncAliasDeclaration());
         if (fd.mangleOverride)
         {
             buf.writestring(fd.mangleOverride);

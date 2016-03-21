@@ -4004,9 +4004,9 @@ public:
             fd.type = f.type;
             return new VarExp(loc, fd, hasOverloads);
         }
-        if (auto od = s.isOverDeclaration())
+        if (auto ov = s.isOverDeclaration())
         {
-            e = new VarExp(loc, od, true);
+            e = new VarExp(loc, ov, true);
             e.type = Type.tvoid;
             return e;
         }
@@ -6506,24 +6506,24 @@ public:
          */
         //checkAccess(loc, sc, NULL, var);
 
-        if (auto vd = var.isVarDeclaration())
+        if (auto v = var.isVarDeclaration())
         {
-            if (vd.checkNestedReference(sc, loc))
+            if (v.checkNestedReference(sc, loc))
                 return new ErrorExp();
 
             // Bugzilla 12025: If the variable is not actually used in runtime code,
             // the purity violation error is redundant.
-            //checkPurity(sc, vd);
+            //checkPurity(sc, v);
         }
-        else if (auto fd = var.isFuncDeclaration())
+        else if (auto f = var.isFuncDeclaration())
         {
-            // TODO: If fd isn't yet resolved its overload, the checkNestedReference
+            // TODO: If f isn't yet resolved its overload, the checkNestedReference
             // call would cause incorrect validation.
             // Maybe here should be moved in CallExp, or AddrExp for functions.
-            if (fd.checkNestedReference(sc, loc))
+            if (f.checkNestedReference(sc, loc))
                 return new ErrorExp();
         }
-        else if (auto od = var.isOverDeclaration())
+        else if (auto ov = var.isOverDeclaration())
         {
             type = Type.tvoid; // ambiguous type?
         }
@@ -8779,9 +8779,9 @@ public:
                     e = e.semantic(sc);
                     return e;
                 }
-                if (auto od = s.isOverDeclaration())
+                if (auto ov = s.isOverDeclaration())
                 {
-                    e = new VarExp(loc, od, true);
+                    e = new VarExp(loc, ov, true);
                     if (eleft)
                     {
                         e = new CommaExp(loc, eleft, e);
@@ -9036,7 +9036,7 @@ public:
             type = fd.type;
             assert(type);
         }
-        else if (auto od = var.isOverDeclaration())
+        else if (auto ov = var.isOverDeclaration())
         {
             type = Type.tvoid; // ambiguous type?
         }
@@ -9248,7 +9248,7 @@ public:
             return e;
         if (e.op == TOKdotvar)
         {
-            auto dve = cast(DotVarExp)e;
+            DotVarExp dve = cast(DotVarExp)e;
             if (auto fd = dve.var.isFuncDeclaration())
             {
                 if (auto td = fd.findTemplateDeclRoot())
@@ -9257,7 +9257,7 @@ public:
                     e = e.semantic(sc);
                 }
             }
-            else if (auto od = dve.var.isOverDeclaration())
+            else if (auto ov = dve.var.isOverDeclaration())
             {
                 e1 = dve.e1; // pull semantic() result
 
@@ -9295,9 +9295,9 @@ public:
                     e = e.semantic(sc);
                 }
             }
-            else if (auto od = ve.var.isOverDeclaration())
+            else if (auto ov = ve.var.isOverDeclaration())
             {
-                ti.tempdecl = od;
+                ti.tempdecl = ov;
                 e = new ScopeExp(loc, ti);
                 e = e.semantic(sc);
                 return e;
@@ -9627,8 +9627,8 @@ public:
                     assert(ti.tempdecl);
                     if (auto td = ti.tempdecl.isTemplateDeclaration())
                         e1 = new TemplateExp(loc, td);
-                    else if (auto od = ti.tempdecl.isOverDeclaration())
-                        e1 = new VarExp(loc, od);
+                    else if (auto ov = ti.tempdecl.isOverDeclaration())
+                        e1 = new VarExp(loc, ov);
                     else
                         e1 = new OverExp(loc, ti.tempdecl.isOverloadSet());
                 }
@@ -9667,9 +9667,9 @@ public:
                     assert(ti.tempdecl);
                     if (auto td = ti.tempdecl.isTemplateDeclaration())
                         e1 = new DotTemplateExp(loc, se.e1, td);
-                    else if (auto od = ti.tempdecl.isOverDeclaration())
+                    else if (auto ov = ti.tempdecl.isOverDeclaration())
                     {
-                        e1 = new DotVarExp(loc, se.e1, od, true);
+                        e1 = new DotVarExp(loc, se.e1, ov, true);
                     }
                     else
                         e1 = new DotExp(loc, se.e1, new OverExp(loc, ti.tempdecl.isOverloadSet()));
@@ -10321,6 +10321,7 @@ public:
             if (!f || f.errors)
                 return new ErrorExp();
 
+printf("[%s] f = %s %s\n", loc.toChars(), f.kind(), f.toChars());
             if (f.needThis())
             {
                 // Change the ancestor lambdas to delegate before hasThis(sc) call.

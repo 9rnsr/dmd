@@ -204,7 +204,7 @@ public:
     AliasDeclaration(Loc loc, Identifier *ident, Type *type);
     AliasDeclaration(Loc loc, Identifier *ident, Dsymbol *s);
     Dsymbol *syntaxCopy(Dsymbol *);
-    bool overloadInsert(Dsymbol *s);
+    Dsymbol *overloadInsert(Dsymbol *s);
     void semantic(Scope *sc);
     const char *kind();
     Type *getType();
@@ -227,7 +227,7 @@ public:
     OverDeclaration(Identifier *ident, Dsymbol *s, bool hasOverloads = true);
     const char *kind();
     bool equals(RootObject *o);
-    bool overloadInsert(Dsymbol *s);
+    Dsymbol *overloadInsert(Dsymbol *s);
     void semantic(Scope *sc);
 
     Dsymbol *toAlias();
@@ -595,7 +595,7 @@ public:
 
     FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);
-    bool overloadInsert(Dsymbol *s);
+    Dsymbol *overloadInsert(Dsymbol *s);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
@@ -674,21 +674,6 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
         Expressions *arguments,
         int flags = 0);
 
-class FuncAliasDeclaration : public FuncDeclaration
-{
-public:
-    FuncDeclaration *funcalias;
-    bool hasOverloads;
-
-    FuncAliasDeclaration(Identifier *ident, FuncDeclaration *funcalias, bool hasOverloads = true);
-
-    FuncAliasDeclaration *isFuncAliasDeclaration() { return this; }
-    const char *kind();
-
-    FuncDeclaration *toAliasFunc();
-    void accept(Visitor *v) { v->visit(this); }
-};
-
 class FuncLiteralDeclaration : public FuncDeclaration
 {
 public:
@@ -735,7 +720,7 @@ class PostBlitDeclaration : public FuncDeclaration
 public:
     PostBlitDeclaration(Loc loc, Loc endloc, StorageClass stc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *);
-    bool overloadInsert(Dsymbol *s);
+    Dsymbol *overloadInsert(Dsymbol *s);
     void semantic(Scope *sc);
     bool isVirtual();
     bool addPreInvariant();
@@ -751,7 +736,7 @@ public:
     DtorDeclaration(Loc loc, Loc endloc);
     DtorDeclaration(Loc loc, Loc endloc, StorageClass stc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *);
-    bool overloadInsert(Dsymbol *s);
+    Dsymbol *overloadInsert(Dsymbol *s);
     void semantic(Scope *sc);
     const char *kind();
     char *toChars();

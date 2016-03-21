@@ -663,11 +663,6 @@ public:
         visit(cast(Declaration)s);
     }
 
-    void visit(FuncAliasDeclaration s)
-    {
-        visit(cast(FuncDeclaration)s);
-    }
-
     void visit(FuncLiteralDeclaration s)
     {
         visit(cast(FuncDeclaration)s);

@@ -38,7 +38,6 @@ class InterfaceDeclaration;
 class StructDeclaration;
 class UnionDeclaration;
 class FuncDeclaration;
-class FuncAliasDeclaration;
 class OverDeclaration;
 class FuncLiteralDeclaration;
 class CtorDeclaration;
@@ -202,7 +201,7 @@ public:
     virtual Dsymbol *toAlias2();
     virtual int apply(Dsymbol_apply_ft_t fp, void *param);
     virtual void addMember(Scope *sc, ScopeDsymbol *sds);
-    virtual bool overloadInsert(Dsymbol *s);
+    virtual Dsymbol *overloadInsert(Dsymbol *s);
     virtual void setScope(Scope *sc);
     virtual void importAll(Scope *sc);
     virtual void semantic(Scope *sc);
@@ -254,7 +253,6 @@ public:
     virtual AliasDeclaration *isAliasDeclaration() { return NULL; }
     virtual AggregateDeclaration *isAggregateDeclaration() { return NULL; }
     virtual FuncDeclaration *isFuncDeclaration() { return NULL; }
-    virtual FuncAliasDeclaration *isFuncAliasDeclaration() { return NULL; }
     virtual OverDeclaration *isOverDeclaration() { return NULL; }
     virtual FuncLiteralDeclaration *isFuncLiteralDeclaration() { return NULL; }
     virtual CtorDeclaration *isCtorDeclaration() { return NULL; }

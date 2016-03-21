@@ -587,13 +587,23 @@ public:
         //printf("Dsymbol::addMember('%s')\n", toChars());
         //printf("Dsymbol::addMember(this = %p, '%s' scopesym = '%s')\n", this, toChars(), sds->toChars());
         //printf("Dsymbol::addMember(this = %p, '%s' sds = %p, sds->symtab = %p)\n", this, toChars(), sds, sds->symtab);
+
+        // Set Dsymbol.parent.
         parent = sds;
+
         if (!isAnonymous()) // no name, so can't add it to symbol table
         {
             if (!sds.symtabInsert(this)) // if name is already defined
             {
-                Dsymbol s2 = sds.symtab.lookup(ident);
-                if (!s2.overloadInsert(this))
+                auto s2 = sds.symtab.lookup(ident);
+
+                // Request to make an overload
+                if (auto sx = s2.overloadInsert(this))
+                {
+                    if (sx != s2)
+                        sds.symtab.update(sx);
+                }
+                else
                 {
                     sds.multiplyDefined(Loc(), this, s2);
                     errors = true;
@@ -610,10 +620,11 @@ public:
         }
     }
 
-    bool overloadInsert(Dsymbol s)
+    // Returns 'this' or a new symbol which represents an overload in the scope.
+    Dsymbol overloadInsert(Dsymbol s)
     {
         //printf("Dsymbol::overloadInsert('%s')\n", s->toChars());
-        return false;
+        return null;
     }
 
     /*************************************
@@ -934,12 +945,10 @@ public:
                              ((*ps).isOverloadable() || isOverloadableAlias(*ps)))
                     {
                         // keep head of overload set
-                        FuncDeclaration f1 = s.isFuncDeclaration();
-                        FuncDeclaration f2 = (*ps).isFuncDeclaration();
+                        auto f1 = s.isFuncDeclaration();
+                        auto f2 = (*ps).isFuncDeclaration();
                         if (f1 && f2)
                         {
-                            assert(!f1.isFuncAliasDeclaration());
-                            assert(!f2.isFuncAliasDeclaration());
                             for (; f1 != f2; f1 = f1.overnext0)
                             {
                                 if (f1.overnext0 is null)
@@ -1098,11 +1107,6 @@ public:
     }
 
     inout(FuncDeclaration) isFuncDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(FuncAliasDeclaration) isFuncAliasDeclaration() inout
     {
         return null;
     }

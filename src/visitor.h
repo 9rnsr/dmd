@@ -148,7 +148,6 @@ class TypeInfoWildDeclaration;
 class TypeInfoVectorDeclaration;
 
 class FuncDeclaration;
-class FuncAliasDeclaration;
 class FuncLiteralDeclaration;
 class CtorDeclaration;
 class PostBlitDeclaration;
@@ -434,7 +433,6 @@ public:
     virtual void visit(TypeInfoVectorDeclaration *s) { visit((TypeInfoDeclaration *)s); }
 
     virtual void visit(FuncDeclaration *s) { visit((Declaration *)s); }
-    virtual void visit(FuncAliasDeclaration *s) { visit((FuncDeclaration *)s); }
     virtual void visit(FuncLiteralDeclaration *s) { visit((FuncDeclaration *)s); }
     virtual void visit(CtorDeclaration *s) { visit((FuncDeclaration *)s); }
     virtual void visit(PostBlitDeclaration *s) { visit((FuncDeclaration *)s); }

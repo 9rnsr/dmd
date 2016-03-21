@@ -357,9 +357,6 @@ extern (C++) hash_t arrayObjectHash(Objects* oa1)
             }
             else if (s1)
             {
-                FuncAliasDeclaration fa1 = s1.isFuncAliasDeclaration();
-                if (fa1)
-                    s1 = fa1.toAliasFunc();
                 hash += cast(size_t)cast(void*)s1.getIdent() + cast(size_t)cast(void*)s1.parent;
             }
             else if (Tuple u1 = isTuple(o1))
@@ -496,38 +493,25 @@ public:
      * Overload existing TemplateDeclaration 'this' with the new one 's'.
      * Return true if successful; i.e. no conflict.
      */
-    override bool overloadInsert(Dsymbol s)
+    override Dsymbol overloadInsert(Dsymbol s)
     {
         static if (LOG)
         {
             printf("TemplateDeclaration::overloadInsert('%s')\n", s.toChars());
         }
-        FuncDeclaration fd = s.isFuncDeclaration();
-        if (fd)
+        if (auto fd = s.isFuncDeclaration())
         {
-            if (funcroot)
-                return funcroot.overloadInsert(fd);
-            funcroot = fd;
-            return funcroot.overloadInsert(this);
+            auto ov = new OverDeclaration(ident, this);
+            ov.parent = parent;
+            return ov.overloadInsert(s);
         }
-
-        TemplateDeclaration td = s.isTemplateDeclaration();
-        if (!td)
-            return false;
-
-        TemplateDeclaration pthis = this;
-        TemplateDeclaration* ptd;
-        for (ptd = &pthis; *ptd; ptd = &(*ptd).overnext)
+        if (auto td = s.isTemplateDeclaration())
         {
+            auto ov = new OverDeclaration(ident, this);
+            ov.parent = parent;
+            return ov.overloadInsert(s);
         }
-
-        td.overroot = this;
-        *ptd = td;
-        static if (LOG)
-        {
-            printf("\ttrue: no conflict\n");
-        }
-        return true;
+        return null;
     }
 
     override void semantic(Scope* sc)
@@ -7305,8 +7289,7 @@ public:
 
             /* If an OverloadSet, look for a unique member that is a template declaration
              */
-            OverloadSet os = s.isOverloadSet();
-            if (os)
+            if (auto os = s.isOverloadSet())
             {
                 s = null;
                 for (size_t i = 0; i < os.a.dim; i++)
@@ -7333,16 +7316,15 @@ public:
                 }
             }
 
-            OverDeclaration od = s.isOverDeclaration();
-            if (od)
+            if (auto ov = s.isOverDeclaration())
             {
-                tempdecl = od; // TODO: more strict check
+                tempdecl = ov; // TODO: more strict check
                 return true;
             }
 
             /* It should be a TemplateDeclaration, not some other symbol
              */
-            if (FuncDeclaration f = s.isFuncDeclaration())
+            if (auto f = s.isFuncDeclaration())
                 tempdecl = f.findTemplateDeclRoot();
             else
                 tempdecl = s.isTemplateDeclaration();
@@ -7582,35 +7564,23 @@ public:
                     continue;
                 }
 
-                TupleDeclaration d = sa.toAlias().isTupleDeclaration();
-                if (d)
+                if (auto tup = sa.toAlias().isTupleDeclaration())
                 {
                     // Expand tuple
                     tiargs.remove(j);
-                    tiargs.insert(j, d.objects);
+                    tiargs.insert(j, tup.objects);
                     j--;
                     continue;
                 }
-                if (FuncAliasDeclaration fa = sa.isFuncAliasDeclaration())
+                if (auto td = sa.isTemplateDeclaration())
                 {
-                    FuncDeclaration f = fa.toAliasFunc();
-                    if (!fa.hasOverloads && f.isUnique())
-                    {
-                        // Strip FuncAlias only when the aliased function
-                        // does not have any overloads.
-                        sa = f;
-                    }
+                    if (td.semanticRun == PASSinit && td.literal)
+                        td.semantic(sc);
                 }
-                (*tiargs)[j] = sa;
-
-                TemplateDeclaration td = sa.isTemplateDeclaration();
-                if (td && td.semanticRun == PASSinit && td.literal)
-                {
-                    td.semantic(sc);
-                }
-                FuncDeclaration fd = sa.isFuncDeclaration();
-                if (fd)
+                if (auto fd = sa.isFuncDeclaration())
                     fd.functionSemantic();
+
+                (*tiargs)[j] = sa;
             }
             else if (isParameter(o))
             {

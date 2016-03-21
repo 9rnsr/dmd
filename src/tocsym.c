@@ -264,11 +264,6 @@ Symbol *toSymbol(Dsymbol *s)
             tc->sym->accept(this);
         }
 
-        void visit(FuncAliasDeclaration *fad)
-        {
-            fad->funcalias->accept(this);
-        }
-
         void visit(FuncDeclaration *fd)
         {
             const char *id = mangleExact(fd);

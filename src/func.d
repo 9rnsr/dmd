@@ -437,7 +437,7 @@ public:
     VarDeclaration v_argsave;           // save area for args passed in registers for variadic functions
     VarDeclarations* parameters;        // Array of VarDeclaration's for parameters
     DsymbolTable labtab;                // statement label symbol table
-    Dsymbol overnext;                   // next in overload list
+//    Dsymbol overnext;                   // next in overload list
     FuncDeclaration overnext0;          // next in overload list (only used during IFTI)
     Loc endloc;                         // location of closing curly bracket
     int vtblIndex = -1;                 // for member functions, index into vtbl[]
@@ -533,72 +533,43 @@ public:
      * Overload this FuncDeclaration with the new one f.
      * Return true if successful; i.e. no conflict.
      */
-    override bool overloadInsert(Dsymbol s)
+    override Dsymbol overloadInsert(Dsymbol s)
     {
-        //printf("FuncDeclaration::overloadInsert(s = %s) this = %s\n", s->toChars(), toChars());
+        //printf("FuncDeclaration::overloadInsert(s = %s) this = %s\n", s.toChars(), toChars());
         assert(s != this);
-        AliasDeclaration ad = s.isAliasDeclaration();
-        if (ad)
+        if (auto ad = s.isAliasDeclaration())
         {
-            if (overnext)
-                return overnext.overloadInsert(ad);
+            // todo
             if (!ad.aliassym && ad.type.ty != Tident && ad.type.ty != Tinstance)
             {
-                //printf("\tad = '%s'\n", ad->type->toChars());
-                return false;
+                //printf("\tad = '%s'\n", ad.type.toChars());
+                return null;
             }
-            overnext = ad;
-            //printf("\ttrue: no conflict\n");
-            return true;
-        }
-        TemplateDeclaration td = s.isTemplateDeclaration();
-        if (td)
-        {
-            if (!td.funcroot)
-                td.funcroot = this;
-            if (overnext)
-                return overnext.overloadInsert(td);
-            overnext = td;
-            return true;
-        }
-        FuncDeclaration fd = s.isFuncDeclaration();
-        if (!fd)
-            return false;
 
-        version (none)
-        {
-            /* Disable this check because:
-             *  const void foo();
-             * semantic() isn't run yet on foo(), so the const hasn't been
-             * applied yet.
-             */
-            if (type)
-            {
-                printf("type = %s\n", type.toChars());
-                printf("fd->type = %s\n", fd.type.toChars());
-            }
-            // fd->type can be NULL for overloaded constructors
-            if (type && fd.type &&
-                fd.type.covariant(type) &&
-                fd.type.mod == type.mod &&
-                !isFuncAliasDeclaration())
-            {
-                //printf("\tfalse: conflict %s\n", kind());
-                return false;
-            }
+            auto ov = new OverDeclaration(ident, this);
+            ov.parent = parent;
+            return ov.overloadInsert(s);
         }
+        if (auto td = s.isTemplateDeclaration())
+        {
+            //if (!td.funcroot)
+            //    td.funcroot = this;
+            //if (overnext)
+            //    return overnext.overloadInsert(td);
+            //overnext = td;
+            //return true;
 
-        if (overnext)
-        {
-            td = overnext.isTemplateDeclaration();
-            if (td)
-                fd.overloadInsert(td);
-            else
-                return overnext.overloadInsert(fd);
+            auto ov = new OverDeclaration(ident, this);
+            ov.parent = parent;
+            return ov.overloadInsert(s);
         }
-        overnext = fd;
-        //printf("\ttrue: no conflict\n");
-        return true;
+        if (auto fd = s.isFuncDeclaration())
+        {
+            auto ov = new OverDeclaration(ident, this);
+            ov.parent = parent;
+            return ov.overloadInsert(s);
+        }
+        return null;
     }
 
     // Do the semantic analysis on the external interface to the function.
@@ -2644,34 +2615,18 @@ public:
     {
         if (this == o)
             return true;
+        auto s = isDsymbol(o);
+        if (!s)
+            return false;
 
-        Dsymbol s = isDsymbol(o);
-        if (s)
-        {
-            FuncDeclaration fd1 = this;
-            FuncDeclaration fd2 = s.isFuncDeclaration();
-            if (!fd2)
-                return false;
+        auto fd1 = this;
+        auto fd2 = s.isFuncDeclaration();
+        if (!fd2)
+            return false;
 
-            FuncAliasDeclaration fa1 = fd1.isFuncAliasDeclaration();
-            FuncAliasDeclaration fa2 = fd2.isFuncAliasDeclaration();
-            if (fa1 && fa2)
-            {
-                return fa1.toAliasFunc().equals(fa2.toAliasFunc()) &&
-                       fa1.hasOverloads == fa2.hasOverloads;
-            }
-
-            if (fa1 && (fd1 = fa1.toAliasFunc()).isUnique() && !fa1.hasOverloads)
-                fa1 = null;
-            if (fa2 && (fd2 = fa2.toAliasFunc()).isUnique() && !fa2.hasOverloads)
-                fa2 = null;
-            if ((fa1 !is null) != (fa2 !is null))
-                return false;
-
-            return fd1.toParent().equals(fd2.toParent()) &&
-                   fd1.ident.equals(fd2.ident) && fd1.type.equals(fd2.type);
-        }
-        return false;
+        return fd1.toParent().equals(fd2.toParent()) &&
+               fd1.ident.equals(fd2.ident) &&
+               fd1.type.equals(fd2.type);
     }
 
     /****************************************************
@@ -2945,14 +2900,14 @@ public:
     final TemplateDeclaration findTemplateDeclRoot()
     {
         FuncDeclaration f = this;
-        while (f && f.overnext)
-        {
-            //printf("f->overnext = %p %s\n", f->overnext, f->overnext->toChars());
-            TemplateDeclaration td = f.overnext.isTemplateDeclaration();
-            if (td)
-                return td;
-            f = f.overnext.isFuncDeclaration();
-        }
+        //while (f && f.overnext)
+        //{
+        //    //printf("f->overnext = %p %s\n", f->overnext, f->overnext->toChars());
+        //    TemplateDeclaration td = f.overnext.isTemplateDeclaration();
+        //    if (td)
+        //        return td;
+        //    f = f.overnext.isFuncDeclaration();
+        //}
         return null;
     }
 
@@ -4216,39 +4171,39 @@ extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg)
     Dsymbol next;
     for (Dsymbol d = fstart; d; d = next)
     {
-        if (auto od = d.isOverDeclaration())
+        if (auto ov = d.isOverDeclaration())
         {
-            if (od.hasOverloads)
+            if (ov.hasOverloads)
             {
-                if (int r = overloadApply(od.aliassym, dg))
+                if (int r = overloadApply(ov.aliassym, dg))
                     return r;
             }
             else
             {
-                if (int r = dg(od.aliassym))
+                if (int r = dg(ov.aliassym))
                     return r;
             }
-            next = od.overnext;
+            next = ov.overnext;
         }
-        else if (auto fa = d.isFuncAliasDeclaration())
-        {
-            if (fa.hasOverloads)
-            {
-                if (int r = overloadApply(fa.funcalias, dg))
-                    return r;
-            }
-            else if (auto fd = fa.toAliasFunc())
-            {
-                if (int r = dg(fd))
-                    return r;
-            }
-            else
-            {
-                d.error("is aliased to a function");
-                break;
-            }
-            next = fa.overnext;
-        }
+        //else if (auto fa = d.isFuncAliasDeclaration())
+        //{
+        //    if (fa.hasOverloads)
+        //    {
+        //        if (int r = overloadApply(fa.funcalias, dg))
+        //            return r;
+        //    }
+        //    else if (auto fd = fa.toAliasFunc())
+        //    {
+        //        if (int r = dg(fd))
+        //            return r;
+        //    }
+        //    else
+        //    {
+        //        d.error("is aliased to a function");
+        //        break;
+        //    }
+        //    next = fa.overnext;
+        //}
         else if (auto ad = d.isAliasDeclaration())
         {
             next = ad.toAlias();
@@ -4267,7 +4222,7 @@ extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg)
         {
             if (int r = dg(fd))
                 return r;
-            next = fd.overnext;
+            next = null;//fd.overnext;
         }
         else
         {
@@ -4380,7 +4335,7 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
     }
 
     auto fd = s.isFuncDeclaration();
-    auto od = s.isOverDeclaration();
+    auto ov = s.isOverDeclaration();
     auto td = s.isTemplateDeclaration();
     if (td && td.funcroot)
         s = fd = td.funcroot;
@@ -4426,16 +4381,16 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
                 return 1;   // stop iterating
             });
         }
-        else if (od)
+        else if (ov)
         {
             .error(loc, "none of the overloads of '%s' are callable using argument types !(%s)%s",
-                od.ident.toChars(), tiargsBuf.peekString(), fargsBuf.peekString());
+                ov.ident.toChars(), tiargsBuf.peekString(), fargsBuf.peekString());
         }
         else
         {
             assert(fd);
 
-            bool hasOverloads = fd.overnext !is null;
+            bool hasOverloads = false;//fd.overnext !is null;
             auto tf = cast(TypeFunction)fd.type;
             if (tthis && !MODimplicitConv(tthis.mod, tf.mod)) // modifier mismatch
             {
@@ -4480,12 +4435,12 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
                 auto tf = cast(TypeFunction)fd.type;
                 .errorSupplemental(fd.loc, "%s%s", fd.toPrettyChars(),
                     parametersTypeToChars(tf.parameters, tf.varargs));
-                if (global.params.verbose || --numToDisplay != 0 || !fd.overnext)
+                if (global.params.verbose || --numToDisplay != 0/* || !fd.overnext*/)
                     return 0;
 
                 // Too many overloads to sensibly display.
                 int num = 0;
-                overloadApply(fd.overnext, (s){ num += !!s.isFuncDeclaration(); return 0; });
+                overloadApply(null/*fd.overnext*/, (s){ num += !!s.isFuncDeclaration(); return 0; });
                 if (num > 0)
                     .errorSupplemental(loc, "... (%d more, -v to show) ...", num);
                 return 1;   // stop iterating
@@ -4666,6 +4621,7 @@ extern (C++) bool checkEscapingSiblings(FuncDeclaration f, FuncDeclaration outer
     return bAnyClosures;
 }
 
+/+
 /***********************************************************
  * Used as a way to import a set of functions from another scope into this one.
  */
@@ -4715,7 +4671,7 @@ public:
     {
         v.visit(this);
     }
-}
+}+/
 
 /***********************************************************
  */
@@ -4997,9 +4953,9 @@ public:
         return FuncDeclaration.syntaxCopy(dd);
     }
 
-    override bool overloadInsert(Dsymbol s)
+    override Dsymbol overloadInsert(Dsymbol s)
     {
-        return false; // cannot overload postblits
+        return null; // cannot overload postblits
     }
 
     override void semantic(Scope* sc)
@@ -5088,9 +5044,9 @@ public:
         return FuncDeclaration.syntaxCopy(dd);
     }
 
-    override bool overloadInsert(Dsymbol s)
+    override Dsymbol overloadInsert(Dsymbol s)
     {
-        return false; // cannot overload destructors
+        return null; // cannot overload destructors
     }
 
     override void semantic(Scope* sc)

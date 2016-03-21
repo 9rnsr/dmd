@@ -518,8 +518,8 @@ public:
     extern (D) this(Loc loc, Identifier id, Type type)
     {
         super(id);
-        //printf("AliasDeclaration(id = '%s', type = %p)\n", id->toChars(), type);
-        //printf("type = '%s'\n", type->toChars());
+        //printf("AliasDeclaration(id = '%s', type = %p)\n", id.toChars(), type);
+        //printf("type = '%s'\n", type.toChars());
         this.loc = loc;
         this.type = type;
         assert(type);
@@ -528,7 +528,7 @@ public:
     extern (D) this(Loc loc, Identifier id, Dsymbol s)
     {
         super(id);
-        //printf("AliasDeclaration(id = '%s', s = %p)\n", id->toChars(), s);
+        //printf("AliasDeclaration(id = '%s', s = %p)\n", id.toChars(), s);
         assert(s != this);
         this.loc = loc;
         this.aliassym = s;
@@ -539,75 +539,75 @@ public:
     {
         //printf("AliasDeclaration::syntaxCopy()\n");
         assert(!s);
-        AliasDeclaration sa =
-            type ? new AliasDeclaration(loc, ident, type.syntaxCopy())
-                 : new AliasDeclaration(loc, ident, aliassym.syntaxCopy(null));
+        auto sa = type ? new AliasDeclaration(loc, ident, type.syntaxCopy())
+                       : new AliasDeclaration(loc, ident, aliassym.syntaxCopy(null));
         sa.storage_class = storage_class;
         return sa;
     }
 
-    override bool overloadInsert(Dsymbol s)
+    override Dsymbol overloadInsert(Dsymbol s)
     {
         //printf("[%s] AliasDeclaration::overloadInsert('%s') s = %s %s @ [%s]\n",
-        //    loc.toChars(), toChars(), s->kind(), s->toChars(), s->loc.toChars());
-
-        /* semantic analysis is already finished, and the aliased entity
-         * is not overloadable.
-         */
-        if (semanticRun >= PASSsemanticdone)
-        {
-            if (type)
-                return false;
-
-            /* When s is added in member scope by static if, mixin("code") or others,
-             * aliassym is determined already. See the case in: test/compilable/test61.d
-             */
-            auto sa = aliassym.toAlias();
-            if (auto fd = sa.isFuncDeclaration())
-            {
-                aliassym = new FuncAliasDeclaration(ident, fd);
-                aliassym.parent = parent;
-                return aliassym.overloadInsert(s);
-            }
-            if (auto td = sa.isTemplateDeclaration())
-            {
-                aliassym = new OverDeclaration(ident, td);
-                aliassym.parent = parent;
-                return aliassym.overloadInsert(s);
-            }
-            if (auto od = sa.isOverDeclaration())
-            {
-                if (sa.ident != ident || sa.parent != parent)
-                {
-                    od = new OverDeclaration(ident, od);
-                    od.parent = parent;
-                    aliassym = od;
-                }
-                return od.overloadInsert(s);
-            }
-            if (auto os = sa.isOverloadSet())
-            {
-                if (sa.ident != ident || sa.parent != parent)
-                {
-                    os = new OverloadSet(ident, os);
-                    os.parent = parent;
-                    aliassym = os;
-                }
-                os.push(s);
-                return true;
-            }
-            return false;
-        }
+        //    loc.toChars(), toChars(), s.kind(), s.toChars(), s.loc.toChars());
 
         /* Don't know yet what the aliased symbol is, so assume it can
          * be overloaded and check later for correctness.
          */
-        if (overnext)
-            return overnext.overloadInsert(s);
-        if (s is this)
-            return true;
-        overnext = s;
-        return true;
+        if (semanticRun < PASSsemanticdone)
+        {
+            if (overnext)
+                return overnext.overloadInsert(s);
+            if (s is this)
+                return this;
+            overnext = s;
+            return this;
+        }
+
+        /* Semantic analysis is already finished, and the aliased entity
+         * is not overloadable.
+         */
+        if (type)
+            return null;
+
+        /* When s is added in member scope by static if, mixin("code") or others,
+         * aliassym is determined already. See the case in: test/compilable/test61.d
+         */
+        auto sa = aliassym.toAlias();
+        if (auto fd = sa.isFuncDeclaration())
+        {
+            aliassym = new OverDeclaration(ident, fd);
+            aliassym.parent = parent;
+            return aliassym.overloadInsert(s);
+        }
+        if (auto td = sa.isTemplateDeclaration())
+        {
+            aliassym = new OverDeclaration(ident, td);
+            aliassym.parent = parent;
+            return aliassym.overloadInsert(s);
+        }
+        if (auto ov = sa.isOverDeclaration())
+        {
+            if (sa.ident != ident || sa.parent != parent)
+            {
+                ov = new OverDeclaration(ident, ov);
+                ov.parent = parent;
+                aliassym = ov;
+            }
+            return ov.overloadInsert(s);
+        }
+        if (auto os = sa.isOverloadSet())
+        {
+            if (sa.ident != ident || sa.parent != parent)
+            {
+                os = new OverloadSet(ident, os);
+                os.parent = parent;
+                aliassym = os;
+            }
+            os.push(s);
+            // todo
+            return os;//true;
+        }
+        return null;//false;
     }
 
     override void semantic(Scope* sc)
@@ -664,7 +664,7 @@ public:
         //printf("%s parent = %s, gag = %d, instantiated = %d\n", toChars(), parent, global.gag, isInstantiated());
         if (parent && global.gag && !isInstantiated() && !toParent2().isFuncDeclaration())
         {
-            //printf("%s type = %s\n", toPrettyChars(), type->toChars());
+            //printf("%s type = %s\n", toPrettyChars(), type.toChars());
             global.gag = 0;
         }
 
@@ -771,7 +771,7 @@ public:
             inuse = 2;
             uint olderrors = global.errors;
             Dsymbol s = type.toDsymbol(_scope);
-            //printf("[%s] type = %s, s = %p, this = %p\n", loc.toChars(), type->toChars(), s, this);
+            //printf("[%s] type = %s, s = %p, this = %p\n", loc.toChars(), type.toChars(), s, this);
             if (global.errors != olderrors)
                 goto Lerr;
             if (s)
@@ -789,7 +789,7 @@ public:
                     goto Lerr;
                 if (global.errors != olderrors)
                     goto Lerr;
-                //printf("t = %s\n", t->toChars());
+                //printf("t = %s\n", t.toChars());
                 inuse = 0;
             }
         }
@@ -870,8 +870,8 @@ public:
         this.hasOverloads = hasOverloads;
         if (hasOverloads)
         {
-            if (OverDeclaration od = aliassym.isOverDeclaration())
-                this.hasOverloads = od.hasOverloads;
+            if (auto ov = aliassym.isOverDeclaration())
+                this.hasOverloads = ov.hasOverloads;
         }
         else
         {
@@ -885,46 +885,43 @@ public:
         return "overload alias"; // todo
     }
 
+    // todo
     override bool equals(RootObject o)
     {
         if (this == o)
             return true;
 
-        Dsymbol s = isDsymbol(o);
+        auto s = isDsymbol(o);
         if (!s)
             return false;
 
-        OverDeclaration od1 = this;
-        if (OverDeclaration od2 = s.isOverDeclaration())
+        auto ov1 = this;
+        if (auto ov2 = s.isOverDeclaration())
         {
-            return od1.aliassym.equals(od2.aliassym) &&
-                   od1.hasOverloads == od2.hasOverloads;
+            return ov1.aliassym.equals(ov2.aliassym) &&
+                   ov1.hasOverloads == ov2.hasOverloads;
         }
         if (aliassym == s)
         {
             if (hasOverloads)
                 return true;
-            if (FuncDeclaration fd = s.isFuncDeclaration())
-            {
+            if (auto fd = s.isFuncDeclaration())
                 return fd.isUnique() !is null;
-            }
-            if (TemplateDeclaration td = s.isTemplateDeclaration())
-            {
+            if (auto td = s.isTemplateDeclaration())
                 return td.overnext is null;
-            }
         }
         return false;
     }
 
-    override bool overloadInsert(Dsymbol s)
+    override Dsymbol overloadInsert(Dsymbol s)
     {
-        //printf("OverDeclaration::overloadInsert('%s') aliassym = %p, overnext = %p\n", s->toChars(), aliassym, overnext);
+        //printf("OverDeclaration::overloadInsert('%s') aliassym = %p, overnext = %p\n", s.toChars(), aliassym, overnext);
         if (overnext)
             return overnext.overloadInsert(s);
         if (s == this)
-            return true;
+            return this;
         overnext = s;
-        return true;
+        return this;
     }
 
     override void semantic(Scope* sc)

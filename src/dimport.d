@@ -228,17 +228,20 @@ public:
         }
     }
 
-    override bool overloadInsert(Dsymbol s)
+    override Dsymbol overloadInsert(Dsymbol s)
     {
         /* Allow multiple imports with the same package base, but disallow
          * alias collisions (Bugzilla 5412).
          */
         assert(ident && ident == s.ident);
-        Import imp;
-        if (!aliasId && (imp = s.isImport()) !is null && !imp.aliasId)
-            return true;
-        else
-            return false;
+        if (aliasId)
+            return null;
+        auto imp = s.isImport();
+        if (!imp)
+            return null;
+        if (imp .aliasId)
+            return null;
+        return this;
     }
 
     override void importAll(Scope* sc)

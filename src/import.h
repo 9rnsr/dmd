@@ -54,7 +54,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
     void load(Scope *sc);
     void addMember(Scope *sc, ScopeDsymbol *sds);
-    bool overloadInsert(Dsymbol *s);
+    Dsymbol *overloadInsert(Dsymbol *s);
     void importAll(Scope *sc);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
