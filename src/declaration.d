@@ -957,7 +957,7 @@ public:
         v.visit(this);
     }
 }
-
+//pragma(msg, "OverDeclaration.classInstanceSize = ", __traits(classInstanceSize, OverDeclaration));
 /***********************************************************
  */
 extern (C++) class VarDeclaration : Declaration
