@@ -449,27 +449,6 @@ public:
 
     override void visit(OverDeclaration od)
     {
-        if (od.overnext)
-        {
-            visit(cast(Dsymbol)od);
-            return;
-        }
-        if (FuncDeclaration fd = od.aliassym.isFuncDeclaration())
-        {
-            if (!od.hasOverloads || fd.isUnique())
-            {
-                mangleExact(fd);
-                return;
-            }
-        }
-        if (TemplateDeclaration td = od.aliassym.isTemplateDeclaration())
-        {
-            if (!od.hasOverloads || td.overnext is null)
-            {
-                td.accept(this);
-                return;
-            }
-        }
         visit(cast(Dsymbol)od);
     }
 

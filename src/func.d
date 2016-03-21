@@ -2464,14 +2464,19 @@ public:
         //fflush(stdout);
     }
 
-    version (none) Dsymbol toAlias()
+    override Dsymbol toAlias()
     {
-        if (auto sx = overnext)
-        {
-            overnext = null;
-            if (!overloadInsert(sx))
-                ScopeDsymbol.multiplyDefined(Loc(), sx, this);
-        }
+        if (!overnext)
+            return this;
+        if (overnext.isOverDeclaration())
+            return overnext;
+
+        auto ov = new OverDeclaration(loc, parent, ident, this);
+        if (!ov.overloadInsert(overnext))
+            ScopeDsymbol.multiplyDefined(Loc(), overnext, this);
+
+        overnext = ov;
+        return ov;
     }
 
     /****************************************************
@@ -2631,20 +2636,18 @@ public:
     {
         if (this == o)
             return true;
+        auto s = isDsymbol(o);
+        if (!s)
+            return false;
 
-        Dsymbol s = isDsymbol(o);
-        if (s)
-        {
-            auto fd1 = this;
-            auto fd2 = s.isFuncDeclaration();
-            if (!fd2)
-                return false;
+        auto fd1 = this;
+        auto fd2 = s.isFuncDeclaration();
+        if (!fd2)
+            return false;
 
-            return fd1.toParent().equals(fd2.toParent()) &&
-                   fd1.ident.equals(fd2.ident) &&
-                   fd1.type.equals(fd2.type);
-        }
-        return false;
+        return fd1.toParent().equals(fd2.toParent()) &&
+               fd1.ident.equals(fd2.ident) &&
+               fd1.type.equals(fd2.type);
     }
 
     /****************************************************
@@ -2918,14 +2921,6 @@ public:
     final TemplateDeclaration findTemplateDeclRoot()
     {
         FuncDeclaration f = this;
-        while (f && f.overnext)
-        {
-            //printf("f->overnext = %p %s\n", f->overnext, f->overnext->toChars());
-            TemplateDeclaration td = f.overnext.isTemplateDeclaration();
-            if (td)
-                return td;
-            f = f.overnext.isFuncDeclaration();
-        }
         return null;
     }
 
@@ -4189,19 +4184,14 @@ extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg)
     Dsymbol next;
     for (Dsymbol d = fstart; d; d = next)
     {
-        if (auto od = d.isOverDeclaration())
+        if (auto ov = d.isOverDeclaration())
         {
-            if (od.hasOverloads)
+            foreach (sm; ov.members)
             {
-                if (int r = overloadApply(od.aliassym, dg))
+                if (int r = overloadApply(sm, dg))
                     return r;
             }
-            else
-            {
-                if (int r = dg(od.aliassym))
-                    return r;
-            }
-            next = od.overnext;
+            next = null;
         }
         else if (auto ad = d.isAliasDeclaration())
         {
@@ -4221,7 +4211,7 @@ extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg)
         {
             if (int r = dg(fd))
                 return r;
-            next = fd.overnext;
+            next = null;//fd.overnext;
         }
         else
         {

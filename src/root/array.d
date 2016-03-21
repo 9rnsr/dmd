@@ -210,6 +210,14 @@ public:
         assert(a <= b && b <= dim);
         return data[a .. b];
     }
+
+    void swap(ref Array!T that)
+    {
+        void[Array!T.sizeof] temp = void;
+        memcpy(&temp, &that, Array!T.sizeof);
+        memcpy(&that, &this, Array!T.sizeof);
+        memcpy(&this, &temp, Array!T.sizeof);
+    }
 }
 
 struct BitArray

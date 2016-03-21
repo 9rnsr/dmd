@@ -518,8 +518,8 @@ public:
     extern (D) this(Loc loc, Identifier id, Type type)
     {
         super(id);
-        //printf("AliasDeclaration(id = '%s', type = %p)\n", id->toChars(), type);
-        //printf("type = '%s'\n", type->toChars());
+        //printf("AliasDeclaration(id = '%s', type = %p)\n", id.toChars(), type);
+        //printf("type = '%s'\n", type.toChars());
         this.loc = loc;
         this.type = type;
         assert(type);
@@ -528,7 +528,7 @@ public:
     extern (D) this(Loc loc, Identifier id, Dsymbol s)
     {
         super(id);
-        //printf("AliasDeclaration(id = '%s', s = %p)\n", id->toChars(), s);
+        //printf("AliasDeclaration(id = '%s', s = %p)\n", id.toChars(), s);
         assert(s != this);
         this.loc = loc;
         this.aliassym = s;
@@ -539,9 +539,8 @@ public:
     {
         //printf("AliasDeclaration::syntaxCopy()\n");
         assert(!s);
-        AliasDeclaration sa =
-            type ? new AliasDeclaration(loc, ident, type.syntaxCopy())
-                 : new AliasDeclaration(loc, ident, aliassym.syntaxCopy(null));
+        auto sa = type ? new AliasDeclaration(loc, ident, type.syntaxCopy())
+                       : new AliasDeclaration(loc, ident, aliassym.syntaxCopy(null));
         sa.storage_class = storage_class;
         return sa;
     }
@@ -549,7 +548,7 @@ public:
     override bool overloadInsert(Dsymbol s)
     {
         //printf("[%s] AliasDeclaration::overloadInsert('%s') s = %s %s @ [%s]\n",
-        //    loc.toChars(), toChars(), s->kind(), s->toChars(), s->loc.toChars());
+        //    loc.toChars(), toChars(), s.kind(), s.toChars(), s.loc.toChars());
 
         /* semantic analysis is already finished, and the aliased entity
          * is not overloadable.
@@ -661,7 +660,7 @@ public:
         //printf("%s parent = %s, gag = %d, instantiated = %d\n", toChars(), parent, global.gag, isInstantiated());
         if (parent && global.gag && !isInstantiated() && !toParent2().isFuncDeclaration())
         {
-            //printf("%s type = %s\n", toPrettyChars(), type->toChars());
+            //printf("%s type = %s\n", toPrettyChars(), type.toChars());
             global.gag = 0;
         }
 
@@ -768,7 +767,7 @@ public:
             inuse = 2;
             uint olderrors = global.errors;
             Dsymbol s = type.toDsymbol(_scope);
-            //printf("[%s] type = %s, s = %p, this = %p\n", loc.toChars(), type->toChars(), s, this);
+            //printf("[%s] type = %s, s = %p, this = %p\n", loc.toChars(), type.toChars(), s, this);
             if (global.errors != olderrors)
                 goto Lerr;
             if (s)
@@ -786,7 +785,7 @@ public:
                     goto Lerr;
                 if (global.errors != olderrors)
                     goto Lerr;
-                //printf("t = %s\n", t->toChars());
+                //printf("t = %s\n", t.toChars());
                 inuse = 0;
             }
         }
@@ -857,25 +856,13 @@ extern (C++) final class OverDeclaration : Declaration
 {
 public:
     Dsymbol overnext;   // next in overload list
-    Dsymbol aliassym;
-    bool hasOverloads;
+    Dsymbols members;
 
     extern (D) this(Loc loc, Dsymbol p, Identifier ident, Dsymbol s, bool hasOverloads = true)
     {
         super(ident);
         this.parent = p;
-        this.aliassym = s;
-        this.hasOverloads = hasOverloads;
-        if (hasOverloads)
-        {
-            if (OverDeclaration od = aliassym.isOverDeclaration())
-                this.hasOverloads = od.hasOverloads;
-        }
-        else
-        {
-            // for internal use
-            assert(!aliassym.isOverDeclaration());
-        }
+        members.push(s);
     }
 
     override const(char)* kind() const
@@ -888,40 +875,25 @@ public:
         if (this == o)
             return true;
 
-        Dsymbol s = isDsymbol(o);
-        if (!s)
-            return false;
-
-        OverDeclaration od1 = this;
-        if (OverDeclaration od2 = s.isOverDeclaration())
-        {
-            return od1.aliassym.equals(od2.aliassym) &&
-                   od1.hasOverloads == od2.hasOverloads;
-        }
-        if (aliassym == s)
-        {
-            if (hasOverloads)
-                return true;
-            if (FuncDeclaration fd = s.isFuncDeclaration())
-            {
-                return fd.isUnique() !is null;
-            }
-            if (TemplateDeclaration td = s.isTemplateDeclaration())
-            {
-                return td.overnext is null;
-            }
-        }
         return false;
     }
 
     override bool overloadInsert(Dsymbol s)
     {
-        //printf("OverDeclaration::overloadInsert('%s') aliassym = %p, overnext = %p\n", s->toChars(), aliassym, overnext);
-        if (overnext)
-            return overnext.overloadInsert(s);
-        if (s == this)
-            return true;
-        overnext = s;
+        printf("[%s] OverDeclaration::overloadInsert('%s') s = %s %s @ [%s]\n",
+            loc.toChars(), toChars(), s.kind(), s.toChars(), s.loc.toChars());
+
+        //if (overnext)
+        //    return overnext.overloadInsert(s);
+        //if (s == this)
+        //    return this;
+        //overnext = s;
+        foreach (sm; members)
+        {
+            if (sm == s)
+                return true;
+        }
+        members.push(s);
         return true;
     }
 
@@ -929,8 +901,46 @@ public:
     {
     }
 
+    override Dsymbol toAlias()
+    {
+        if (semanticRun >= PASSsemanticdone)
+            return this;
+
+        Dsymbols members2;
+
+//        printf("[%s] +od members = %s\n", loc.toChars(), members.toChars());
+        foreach (i, s; members)
+        {
+            if (s == this)
+                continue;   // todo
+            overloadApply(s, (Dsymbol sm1)
+            {
+                if (sm1 == this)
+                    return 0;   // todo
+                foreach (sm2; members2)
+                {
+                    if (sm2 == this)
+                        continue;   // todo
+//                    printf("members[%d] sm1 = %s %s @ [%s], sm2 = %s %s @ [%s], dup = %d\n",
+//                        i, sm1.kind(), sm1.toChars(), sm1.loc.toChars(),
+//                           sm2.kind(), sm2.toChars(), sm2.loc.toChars(), sm1 == sm2);
+                    if (sm1 == sm2)
+                        return 0;
+                }
+                members2.push(sm1);
+                return 0;
+            });
+        }
+
+        this.members.swap(members2);
+
+        semanticRun = PASSsemanticdone;
+        return this;
+    }
+
     Dsymbol isUnique()
     {
+/+
         if (!hasOverloads)
         {
             if (aliassym.isFuncDeclaration() ||
@@ -955,6 +965,8 @@ public:
             }
         });
         return result;
++/
+        return null;
     }
 
     override inout(OverDeclaration) isOverDeclaration() inout
