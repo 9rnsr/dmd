@@ -721,23 +721,30 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             /* Create tuple of functions of ex
              */
             auto exps = new Expressions();
-            FuncDeclaration f;
+            Dsymbol/*FuncDeclaration*/ f;
             if (ex.op == TOKvar)
             {
-                VarExp ve = cast(VarExp)ex;
+                auto ve = cast(VarExp)ex;
                 f = ve.var.isFuncDeclaration();
+                if (!f)
+                    f = ve.var.isOverDeclaration();
                 ex = null;
             }
             else if (ex.op == TOKdotvar)
             {
-                DotVarExp dve = cast(DotVarExp)ex;
+                auto dve = cast(DotVarExp)ex;
                 f = dve.var.isFuncDeclaration();
+                if (!f)
+                    f = dve.var.isOverDeclaration();
                 if (dve.e1.op == TOKdottype || dve.e1.op == TOKthis)
                     ex = null;
                 else
                     ex = dve.e1;
             }
+            //else
+            //    printf("ex = %s %s\n", Token.toChars(ex.op), ex.toChars());
 
+//printf("\t__traits, f = %s %s\n", f.kind(), f.toChars());
             overloadApply(f, (Dsymbol s)
             {
                 auto fd = s.isFuncDeclaration();
@@ -749,6 +756,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                     return 0;
 
                 // todo
+//printf("\t__traits, fd = %s %s\n", fd.toChars(), fd.type.toChars());
                 auto e = ex ? new DotVarExp(Loc(), ex, fd, false)
                             : new DsymbolExp(Loc(), fd, false);
 
