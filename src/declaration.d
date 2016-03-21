@@ -561,6 +561,8 @@ public:
             /* When s is added in member scope by static if, mixin("code") or others,
              * aliassym is determined already. See the case in: test/compilable/test61.d
              */
+pragma(msg, "FuncDecl.sizeof = ", __traits(classInstanceSize, FuncDeclaration));
+pragma(msg, "OverDecl.sizeof = ", __traits(classInstanceSize, OverDeclaration));
             auto sa = ScopeDsymbol.getOverloadRoot(aliassym.toAlias());
             if (auto fd = sa.isFuncDeclaration())
             {
