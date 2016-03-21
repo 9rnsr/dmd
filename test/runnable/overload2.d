@@ -140,6 +140,37 @@ pragma(msg, "====");
 }
 
 /***************************************************/
+// NG case
+//+
+alias foo = bar;
+int bar() { return 1; }
+
+void main()//test6()
+{
+pragma(msg, "====");
+    pragma(msg, foo.mangleof);
+    assert(foo() == 1);
+    assert(foo(1) == 2);
+
+    alias ov = AliasSeq!(__traits(getOverloads, mixin(__MODULE__), "foo"));
+pragma(msg, ov);
+    foreach (f; ov)
+        pragma(msg, typeof(f));
+}
+
+alias AliasSeq(T...) = T;
+
+static if (condition())
+{
+    int bar(int) { return 2; }
+    //alias foo = bar;
+}
+
+bool condition() { return true; }
+
+// +/
+
+/***************************************************/
 
 void main()
 {

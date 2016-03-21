@@ -929,8 +929,8 @@ public:
 
     override Dsymbol overloadInsert(Dsymbol s)
     {
-        //printf("[%s] OverDeclaration::overloadInsert('%s') s = %s %s @ [%s]\n",
-        //    loc.toChars(), toChars(), s.kind(), s.toChars(), s.loc.toChars());
+        printf("[%s] OverDeclaration::overloadInsert('%s') s = %s %s @ [%s]\n",
+            loc.toChars(), toChars(), s.kind(), s.toChars(), s.loc.toChars());
 
         //if (overnext)
         //    return overnext.overloadInsert(s);

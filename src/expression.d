@@ -3789,7 +3789,7 @@ public:
                         checkAccess(loc, sc, null, d);
                 }
 
-//printf("L%d [%s] +IdentifierExp s = %s %s\n", __LINE__, loc.toChars(), s.kind(), s.toChars());
+printf("L%d [%s] +IdentifierExp s = %s %s\n", __LINE__, loc.toChars(), s.kind(), s.toChars());
                 /* If f is really a function template,
                  * then replace f with the function template declaration.
                  */
