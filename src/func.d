@@ -400,6 +400,7 @@ enum FUNCFLAGinlineScanned    = 0x20;   // function has been scanned for inline 
 extern (C++) class FuncDeclaration : Declaration
 {
 public:
+    int inuse;                          // used to detect cycles
     Types* fthrows;                     // Array of Type's of exceptions (not used)
     Statement frequire;
     Statement fensure;

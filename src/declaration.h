@@ -129,7 +129,6 @@ public:
     StorageClass storage_class;
     Prot protection;
     LINK linkage;
-    int inuse;                  // used to detect cycles
     const char *mangleOverride;      // overridden symbol with pragma(mangle, "...")
     Semantic sem;
 
@@ -200,6 +199,7 @@ public:
     Dsymbol *aliassym;
     Dsymbol *overnext;          // next in overload list
     Dsymbol *import;            // !=NULL if unresolved internal alias for selective import
+    int inuse;                  // used to detect cycles
 
     AliasDeclaration(Loc loc, Identifier *ident, Type *type);
     AliasDeclaration(Loc loc, Identifier *ident, Dsymbol *s);
@@ -242,6 +242,7 @@ public:
 class VarDeclaration : public Declaration
 {
 public:
+    int inuse;                  // used to detect cycles
     Initializer *_init;
     unsigned offset;
     bool noscope;               // if scope destruction is disabled
@@ -515,6 +516,7 @@ void builtin_init();
 class FuncDeclaration : public Declaration
 {
 public:
+    int inuse;                          // used to detect cycles
     Types *fthrows;                     // Array of Type's of exceptions (not used)
     Statement *frequire;
     Statement *fensure;

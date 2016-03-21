@@ -697,14 +697,7 @@ public:
         //printf("Dsymbol::searchX(this=%p,%s, ident='%s')\n", this, toChars(), ident->toChars());
         Dsymbol s = toAlias();
         Dsymbol sm;
-        if (Declaration d = s.isDeclaration())
-        {
-            if (d.inuse)
-            {
-                .error(loc, "circular reference to '%s'", d.toPrettyChars());
-                return null;
-            }
-        }
+
         switch (id.dyncast())
         {
         case DYNCAST_IDENTIFIER:

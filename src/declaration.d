@@ -172,7 +172,6 @@ public:
     StorageClass storage_class;
     Prot protection;
     LINK linkage;
-    int inuse;          // used to detect cycles
 
     // overridden symbol with pragma(mangle, "...")
     const(char)* mangleOverride;
@@ -509,6 +508,7 @@ public:
     Dsymbol aliassym;
     Dsymbol overnext;   // next in overload list
     Dsymbol _import;    // !=null if unresolved internal alias for selective import
+    int inuse;          // used to detect cycles
 
     extern (D) this(Loc loc, Identifier id, Type type)
     {
@@ -963,6 +963,7 @@ public:
 extern (C++) class VarDeclaration : Declaration
 {
 public:
+    int inuse;                      // used to detect cycles
     Initializer _init;
     uint offset;
     bool noscope;                   // if scope destruction is disabled
