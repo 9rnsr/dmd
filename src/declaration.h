@@ -266,6 +266,10 @@ public:
     Expression *edtor;          // if !=NULL, does the destruction of the variable
     IntRange *range;            // if !NULL, the variable is known to be within the range
 
+    // backend
+    Symbol* csym;               // symbol for code generator
+    Symbol *isym;               // import version of csym
+
     VarDeclaration(Loc loc, Type *t, Identifier *id, Initializer *init);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
@@ -573,7 +577,6 @@ public:
     // Support for NRVO (named return value optimization)
     bool nrvo_can;                      // true means we can do it
     VarDeclaration *nrvo_var;           // variable to replace with shidden
-    Symbol *shidden;                    // hidden pointer passed to function
 
     ReturnStatements *returns;
 
@@ -592,6 +595,11 @@ public:
     FuncDeclarations siblingCallers;
 
     unsigned flags;                     // FUNCFLAGxxxxx
+
+    // backend
+    Symbol* csym;                       // symbol for code generator
+    Symbol *isym;                       // import version of csym
+    Symbol *shidden;                    // hidden pointer passed to function
 
     FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);

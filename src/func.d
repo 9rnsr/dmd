@@ -13,7 +13,6 @@ import core.stdc.string;
 import ddmd.aggregate;
 import ddmd.arraytypes;
 import ddmd.attrib;
-import ddmd.gluelayer;
 import ddmd.builtin;
 import ddmd.ctfeexpr;
 import ddmd.dclass;
@@ -30,6 +29,7 @@ import ddmd.errors;
 import ddmd.escape;
 import ddmd.expression;
 import ddmd.globals;
+import ddmd.gluelayer;
 import ddmd.hdrgen;
 import ddmd.id;
 import ddmd.identifier;
@@ -465,7 +465,6 @@ public:
     // Support for NRVO (named return value optimization)
     bool nrvo_can = true;               // true means we can do it
     VarDeclaration nrvo_var;            // variable to replace with shidden
-    Symbol* shidden;                    // hidden pointer passed to function
 
     ReturnStatements* returns;
 
@@ -485,6 +484,11 @@ public:
     FuncDeclarations siblingCallers;
 
     uint flags;                         // FUNCFLAGxxxxx
+
+    // backend
+    Symbol* csym;                       // symbol for code generator
+    Symbol *isym;                       // import version of csym
+    Symbol* shidden;                    // hidden pointer passed to function
 
     final extern (D) this(Loc loc, Loc endloc, Identifier id, StorageClass storage_class, Type type)
     {

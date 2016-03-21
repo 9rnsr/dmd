@@ -29,6 +29,7 @@ import ddmd.errors;
 import ddmd.expression;
 import ddmd.func;
 import ddmd.globals;
+import ddmd.gluelayer;
 import ddmd.hdrgen;
 import ddmd.id;
 import ddmd.identifier;
@@ -989,6 +990,10 @@ public:
     VarDeclaration rundtor;
     Expression edtor;               // if !=null, does the destruction of the variable
     IntRange* range;                // if !=null, the variable is known to be within the range
+
+    // backend
+    Symbol* csym;                   // symbol for code generator
+    Symbol *isym;                   // import version of csym
 
     final extern (D) this(Loc loc, Type type, Identifier id, Initializer _init)
     {

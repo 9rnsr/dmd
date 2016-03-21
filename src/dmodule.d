@@ -13,7 +13,6 @@ import core.stdc.stdlib;
 import core.stdc.string;
 import ddmd.aggregate;
 import ddmd.arraytypes;
-import ddmd.gluelayer;
 import ddmd.dimport;
 import ddmd.dmacro;
 import ddmd.doc;
@@ -22,6 +21,7 @@ import ddmd.dsymbol;
 import ddmd.errors;
 import ddmd.expression;
 import ddmd.globals;
+import ddmd.gluelayer;
 import ddmd.hdrgen;
 import ddmd.id;
 import ddmd.identifier;
@@ -357,6 +357,10 @@ public:
 
     size_t nameoffset;          // offset of module name from start of ModuleInfo
     size_t namelen;             // length of module name in characters
+
+    // backend
+    Symbol* csym;               // symbol for code generator
+    Symbol *isym;               // import version of csym
 
     extern (D) this(const(char)* filename, Identifier ident, int doDocComment, int doHdrGen)
     {

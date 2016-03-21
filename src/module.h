@@ -69,7 +69,6 @@ public:
 
     static AggregateDeclaration *moduleinfo;
 
-
     const char *arg;    // original argument name
     ModuleDeclaration *md; // if !NULL, the contents of the ModuleDeclaration declaration
     File *srcfile;      // input source file
@@ -115,6 +114,10 @@ public:
 
     size_t nameoffset;          // offset of module name from start of ModuleInfo
     size_t namelen;             // length of module name in characters
+
+    // backend
+    Symbol* csym;               // symbol for code generator
+    Symbol *isym;               // import version of csym
 
     Module(const char *arg, Identifier *ident, int doDocComment, int doHdrGen);
     static Module* create(const char *arg, Identifier *ident, int doDocComment, int doHdrGen);

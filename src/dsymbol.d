@@ -17,7 +17,6 @@ import ddmd.aggregate;
 import ddmd.aliasthis;
 import ddmd.arraytypes;
 import ddmd.attrib;
-import ddmd.gluelayer;
 import ddmd.dclass;
 import ddmd.declaration;
 import ddmd.denum;
@@ -31,6 +30,7 @@ import ddmd.errors;
 import ddmd.expression;
 import ddmd.func;
 import ddmd.globals;
+import ddmd.gluelayer;
 import ddmd.hdrgen;
 import ddmd.id;
 import ddmd.identifier;
@@ -196,8 +196,6 @@ extern (C++) class Dsymbol : RootObject
 public:
     Identifier ident;
     Dsymbol parent;
-    Symbol* csym;           // symbol for code generator
-    Symbol* isym;           // import version of csym
     const(char)* comment;   // documentation comment for this Dsymbol
     Loc loc;                // where defined
     Scope* _scope;          // !=null means context to use for semantic()
