@@ -565,29 +565,6 @@ public:
         if (!fd)
             return false;
 
-        version (none)
-        {
-            /* Disable this check because:
-             *  const void foo();
-             * semantic() isn't run yet on foo(), so the const hasn't been
-             * applied yet.
-             */
-            if (type)
-            {
-                printf("type = %s\n", type.toChars());
-                printf("fd->type = %s\n", fd.type.toChars());
-            }
-            // fd->type can be NULL for overloaded constructors
-            if (type && fd.type &&
-                fd.type.covariant(type) &&
-                fd.type.mod == type.mod &&
-                !isFuncAliasDeclaration())
-            {
-                //printf("\tfalse: conflict %s\n", kind());
-                return false;
-            }
-        }
-
         if (overnext)
         {
             td = overnext.isTemplateDeclaration();
@@ -2648,28 +2625,14 @@ public:
         Dsymbol s = isDsymbol(o);
         if (s)
         {
-            FuncDeclaration fd1 = this;
-            FuncDeclaration fd2 = s.isFuncDeclaration();
+            auto fd1 = this;
+            auto fd2 = s.isFuncDeclaration();
             if (!fd2)
                 return false;
 
-            FuncAliasDeclaration fa1 = fd1.isFuncAliasDeclaration();
-            FuncAliasDeclaration fa2 = fd2.isFuncAliasDeclaration();
-            if (fa1 && fa2)
-            {
-                return fa1.toAliasFunc().equals(fa2.toAliasFunc()) &&
-                       fa1.hasOverloads == fa2.hasOverloads;
-            }
-
-            if (fa1 && (fd1 = fa1.toAliasFunc()).isUnique() && !fa1.hasOverloads)
-                fa1 = null;
-            if (fa2 && (fd2 = fa2.toAliasFunc()).isUnique() && !fa2.hasOverloads)
-                fa2 = null;
-            if ((fa1 !is null) != (fa2 !is null))
-                return false;
-
             return fd1.toParent().equals(fd2.toParent()) &&
-                   fd1.ident.equals(fd2.ident) && fd1.type.equals(fd2.type);
+                   fd1.ident.equals(fd2.ident) &&
+                   fd1.type.equals(fd2.type);
         }
         return false;
     }
@@ -4230,25 +4193,6 @@ extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg)
             }
             next = od.overnext;
         }
-        else if (auto fa = d.isFuncAliasDeclaration())
-        {
-            if (fa.hasOverloads)
-            {
-                if (int r = overloadApply(fa.funcalias, dg))
-                    return r;
-            }
-            else if (auto fd = fa.toAliasFunc())
-            {
-                if (int r = dg(fd))
-                    return r;
-            }
-            else
-            {
-                d.error("is aliased to a function");
-                break;
-            }
-            next = fa.overnext;
-        }
         else if (auto ad = d.isAliasDeclaration())
         {
             next = ad.toAlias();
@@ -4664,57 +4608,6 @@ extern (C++) bool checkEscapingSiblings(FuncDeclaration f, FuncDeclaration outer
     }
     //printf("\t%d\n", bAnyClosures);
     return bAnyClosures;
-}
-
-/***********************************************************
- * Used as a way to import a set of functions from another scope into this one.
- */
-extern (C++) final class FuncAliasDeclaration : FuncDeclaration
-{
-public:
-    FuncDeclaration funcalias;
-    bool hasOverloads;
-
-    extern (D) this(Identifier ident, FuncDeclaration funcalias, bool hasOverloads = true)
-    {
-        super(funcalias.loc, funcalias.endloc, ident, funcalias.storage_class, funcalias.type);
-        assert(funcalias != this);
-        this.funcalias = funcalias;
-
-        this.hasOverloads = hasOverloads;
-        if (hasOverloads)
-        {
-            if (FuncAliasDeclaration fad = funcalias.isFuncAliasDeclaration())
-                this.hasOverloads = fad.hasOverloads;
-        }
-        else
-        {
-            // for internal use
-            assert(!funcalias.isFuncAliasDeclaration());
-            this.hasOverloads = false;
-        }
-        userAttribDecl = funcalias.userAttribDecl;
-    }
-
-    override inout(FuncAliasDeclaration) isFuncAliasDeclaration() inout
-    {
-        return this;
-    }
-
-    override const(char)* kind() const
-    {
-        return "function alias";
-    }
-
-    override FuncDeclaration toAliasFunc()
-    {
-        return funcalias.toAliasFunc();
-    }
-
-    override void accept(Visitor v)
-    {
-        v.visit(this);
-    }
 }
 
 /***********************************************************

@@ -439,53 +439,12 @@ public:
         }
     }
 
-    /******************************************************************************
-     * Normally FuncDeclaration and FuncAliasDeclaration have overloads.
-     * If and only if there is no overloads, mangle() could return
-     * exact mangled name.
-     *
-     *      module test;
-     *      void foo(long) {}           // _D4test3fooFlZv
-     *      void foo(string) {}         // _D4test3fooFAyaZv
-     *
-     *      // from FuncDeclaration.mangle().
-     *      pragma(msg, foo.mangleof);  // prints unexact mangled name "4test3foo"
-     *                                  // by calling Dsymbol.mangle()
-     *
-     *      // from FuncAliasDeclaration.mangle()
-     *      pragma(msg, __traits(getOverloads, test, "foo")[0].mangleof);  // "_D4test3fooFlZv"
-     *      pragma(msg, __traits(getOverloads, test, "foo")[1].mangleof);  // "_D4test3fooFAyaZv"
-     *
-     * If a function has no overloads, .mangleof property still returns exact mangled name.
-     *
-     *      void bar() {}
-     *      pragma(msg, bar.mangleof);  // still prints "_D4test3barFZv"
-     *                                  // by calling FuncDeclaration.mangleExact().
-     */
     override void visit(FuncDeclaration fd)
     {
         if (fd.isUnique())
             mangleExact(fd);
         else
             visit(cast(Dsymbol)fd);
-    }
-
-    // ditto
-    override void visit(FuncAliasDeclaration fd)
-    {
-        FuncDeclaration f = fd.toAliasFunc();
-        FuncAliasDeclaration fa = f.isFuncAliasDeclaration();
-        if (!fd.hasOverloads && !fa)
-        {
-            mangleExact(f);
-            return;
-        }
-        if (fa)
-        {
-            fa.accept(this);
-            return;
-        }
-        visit(cast(Dsymbol)fd);
     }
 
     override void visit(OverDeclaration od)
@@ -516,7 +475,6 @@ public:
 
     void mangleExact(FuncDeclaration fd)
     {
-        assert(!fd.isFuncAliasDeclaration());
         if (fd.mangleOverride)
         {
             buf.writestring(fd.mangleOverride);

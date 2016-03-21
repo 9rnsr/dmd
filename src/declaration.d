@@ -565,7 +565,7 @@ public:
             auto sa = aliassym.toAlias();
             if (auto fd = sa.isFuncDeclaration())
             {
-                aliassym = new FuncAliasDeclaration(ident, fd);
+                aliassym = new OverDeclaration(ident, fd);  // todo
                 aliassym.parent = parent;
                 return aliassym.overloadInsert(s);
             }

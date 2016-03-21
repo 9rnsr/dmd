@@ -357,9 +357,6 @@ extern (C++) hash_t arrayObjectHash(Objects* oa1)
             }
             else if (s1)
             {
-                FuncAliasDeclaration fa1 = s1.isFuncAliasDeclaration();
-                if (fa1)
-                    s1 = fa1.toAliasFunc();
                 hash += cast(size_t)cast(void*)s1.getIdent() + cast(size_t)cast(void*)s1.parent;
             }
             else if (Tuple u1 = isTuple(o1))
@@ -7590,16 +7587,6 @@ public:
                     tiargs.insert(j, d.objects);
                     j--;
                     continue;
-                }
-                if (FuncAliasDeclaration fa = sa.isFuncAliasDeclaration())
-                {
-                    FuncDeclaration f = fa.toAliasFunc();
-                    if (!fa.hasOverloads && f.isUnique())
-                    {
-                        // Strip FuncAlias only when the aliased function
-                        // does not have any overloads.
-                        sa = f;
-                    }
                 }
                 (*tiargs)[j] = sa;
 

@@ -674,21 +674,6 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
         Expressions *arguments,
         int flags = 0);
 
-class FuncAliasDeclaration : public FuncDeclaration
-{
-public:
-    FuncDeclaration *funcalias;
-    bool hasOverloads;
-
-    FuncAliasDeclaration(Identifier *ident, FuncDeclaration *funcalias, bool hasOverloads = true);
-
-    FuncAliasDeclaration *isFuncAliasDeclaration() { return this; }
-    const char *kind();
-
-    FuncDeclaration *toAliasFunc();
-    void accept(Visitor *v) { v->visit(this); }
-};
-
 class FuncLiteralDeclaration : public FuncDeclaration
 {
 public:
