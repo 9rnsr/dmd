@@ -610,6 +610,12 @@ public:
         }
     }
 
+    bool overloadInsert(Dsymbol s)
+    {
+        //printf("Dsymbol::overloadInsert('%s')\n", s->toChars());
+        return false;
+    }
+
     /*************************************
      * Set scope for future semantic analysis so we can
      * deal better with forward references.
@@ -764,12 +770,6 @@ public:
             assert(0);
         }
         return sm;
-    }
-
-    bool overloadInsert(Dsymbol s)
-    {
-        //printf("Dsymbol::overloadInsert('%s')\n", s->toChars());
-        return false;
     }
 
     uint size(Loc loc)

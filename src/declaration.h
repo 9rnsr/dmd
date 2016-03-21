@@ -204,8 +204,8 @@ public:
     AliasDeclaration(Loc loc, Identifier *ident, Type *type);
     AliasDeclaration(Loc loc, Identifier *ident, Dsymbol *s);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc);
     bool overloadInsert(Dsymbol *s);
+    void semantic(Scope *sc);
     const char *kind();
     Type *getType();
     Dsymbol *toAlias();
@@ -226,9 +226,9 @@ public:
 
     OverDeclaration(Identifier *ident, Dsymbol *s, bool hasOverloads = true);
     const char *kind();
-    void semantic(Scope *sc);
     bool equals(RootObject *o);
     bool overloadInsert(Dsymbol *s);
+    void semantic(Scope *sc);
 
     Dsymbol *toAlias();
     Dsymbol *isUnique();
@@ -595,6 +595,7 @@ public:
 
     FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);
+    bool overloadInsert(Dsymbol *s);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
@@ -606,7 +607,6 @@ public:
 
     int overrides(FuncDeclaration *fd);
     int findVtblIndex(Dsymbols *vtbl, int dim);
-    bool overloadInsert(Dsymbol *s);
     FuncDeclaration *overloadExactMatch(Type *t);
     FuncDeclaration *overloadModMatch(Loc loc, Type *tthis, Type *&t);
     TemplateDeclaration *findTemplateDeclRoot();
@@ -735,11 +735,11 @@ class PostBlitDeclaration : public FuncDeclaration
 public:
     PostBlitDeclaration(Loc loc, Loc endloc, StorageClass stc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *);
+    bool overloadInsert(Dsymbol *s);
     void semantic(Scope *sc);
     bool isVirtual();
     bool addPreInvariant();
     bool addPostInvariant();
-    bool overloadInsert(Dsymbol *s);
 
     PostBlitDeclaration *isPostBlitDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -751,13 +751,13 @@ public:
     DtorDeclaration(Loc loc, Loc endloc);
     DtorDeclaration(Loc loc, Loc endloc, StorageClass stc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *);
+    bool overloadInsert(Dsymbol *s);
     void semantic(Scope *sc);
     const char *kind();
     char *toChars();
     bool isVirtual();
     bool addPreInvariant();
     bool addPostInvariant();
-    bool overloadInsert(Dsymbol *s);
 
     DtorDeclaration *isDtorDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }

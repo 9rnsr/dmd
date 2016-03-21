@@ -87,8 +87,8 @@ public:
     TemplateDeclaration(Loc loc, Identifier *id, TemplateParameters *parameters,
         Expression *constraint, Dsymbols *decldefs, bool ismixin = false, bool literal = false);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc);
     bool overloadInsert(Dsymbol *s);
+    void semantic(Scope *sc);
     bool hasStaticCtorOrDtor();
     const char *kind();
     char *toChars();

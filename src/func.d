@@ -529,6 +529,78 @@ public:
         return f;
     }
 
+    /****************************************************
+     * Overload this FuncDeclaration with the new one f.
+     * Return true if successful; i.e. no conflict.
+     */
+    override bool overloadInsert(Dsymbol s)
+    {
+        //printf("FuncDeclaration::overloadInsert(s = %s) this = %s\n", s->toChars(), toChars());
+        assert(s != this);
+        AliasDeclaration ad = s.isAliasDeclaration();
+        if (ad)
+        {
+            if (overnext)
+                return overnext.overloadInsert(ad);
+            if (!ad.aliassym && ad.type.ty != Tident && ad.type.ty != Tinstance)
+            {
+                //printf("\tad = '%s'\n", ad->type->toChars());
+                return false;
+            }
+            overnext = ad;
+            //printf("\ttrue: no conflict\n");
+            return true;
+        }
+        TemplateDeclaration td = s.isTemplateDeclaration();
+        if (td)
+        {
+            if (!td.funcroot)
+                td.funcroot = this;
+            if (overnext)
+                return overnext.overloadInsert(td);
+            overnext = td;
+            return true;
+        }
+        FuncDeclaration fd = s.isFuncDeclaration();
+        if (!fd)
+            return false;
+
+        version (none)
+        {
+            /* Disable this check because:
+             *  const void foo();
+             * semantic() isn't run yet on foo(), so the const hasn't been
+             * applied yet.
+             */
+            if (type)
+            {
+                printf("type = %s\n", type.toChars());
+                printf("fd->type = %s\n", fd.type.toChars());
+            }
+            // fd->type can be NULL for overloaded constructors
+            if (type && fd.type &&
+                fd.type.covariant(type) &&
+                fd.type.mod == type.mod &&
+                !isFuncAliasDeclaration())
+            {
+                //printf("\tfalse: conflict %s\n", kind());
+                return false;
+            }
+        }
+
+        if (overnext)
+        {
+            td = overnext.isTemplateDeclaration();
+            if (td)
+                fd.overloadInsert(td);
+            else
+                return overnext.overloadInsert(fd);
+        }
+        overnext = fd;
+        //printf("\ttrue: no conflict\n");
+        return true;
+    }
+
     // Do the semantic analysis on the external interface to the function.
     override void semantic(Scope* sc)
     {
@@ -2721,78 +2793,6 @@ public:
                 return b;
         }
         return null;
-    }
-
-    /****************************************************
-     * Overload this FuncDeclaration with the new one f.
-     * Return true if successful; i.e. no conflict.
-     */
-    override bool overloadInsert(Dsymbol s)
-    {
-        //printf("FuncDeclaration::overloadInsert(s = %s) this = %s\n", s->toChars(), toChars());
-        assert(s != this);
-        AliasDeclaration ad = s.isAliasDeclaration();
-        if (ad)
-        {
-            if (overnext)
-                return overnext.overloadInsert(ad);
-            if (!ad.aliassym && ad.type.ty != Tident && ad.type.ty != Tinstance)
-            {
-                //printf("\tad = '%s'\n", ad->type->toChars());
-                return false;
-            }
-            overnext = ad;
-            //printf("\ttrue: no conflict\n");
-            return true;
-        }
-        TemplateDeclaration td = s.isTemplateDeclaration();
-        if (td)
-        {
-            if (!td.funcroot)
-                td.funcroot = this;
-            if (overnext)
-                return overnext.overloadInsert(td);
-            overnext = td;
-            return true;
-        }
-        FuncDeclaration fd = s.isFuncDeclaration();
-        if (!fd)
-            return false;
-
-        version (none)
-        {
-            /* Disable this check because:
-             *  const void foo();
-             * semantic() isn't run yet on foo(), so the const hasn't been
-             * applied yet.
-             */
-            if (type)
-            {
-                printf("type = %s\n", type.toChars());
-                printf("fd->type = %s\n", fd.type.toChars());
-            }
-            // fd->type can be NULL for overloaded constructors
-            if (type && fd.type &&
-                fd.type.covariant(type) &&
-                fd.type.mod == type.mod &&
-                !isFuncAliasDeclaration())
-            {
-                //printf("\tfalse: conflict %s\n", kind());
-                return false;
-            }
-        }
-
-        if (overnext)
-        {
-            td = overnext.isTemplateDeclaration();
-            if (td)
-                fd.overloadInsert(td);
-            else
-                return overnext.overloadInsert(fd);
-        }
-        overnext = fd;
-        //printf("\ttrue: no conflict\n");
-        return true;
     }
 
     /********************************************
@@ -4997,6 +4997,11 @@ public:
         return FuncDeclaration.syntaxCopy(dd);
     }
 
+    override bool overloadInsert(Dsymbol s)
+    {
+        return false; // cannot overload postblits
+    }
+
     override void semantic(Scope* sc)
     {
         //printf("PostBlitDeclaration::semantic() %s\n", toChars());
@@ -5050,11 +5055,6 @@ public:
         return (isThis() && vthis && global.params.useInvariants);
     }
 
-    override bool overloadInsert(Dsymbol s)
-    {
-        return false; // cannot overload postblits
-    }
-
     override inout(PostBlitDeclaration) isPostBlitDeclaration() inout
     {
         return this;
@@ -5086,6 +5086,11 @@ public:
         assert(!s);
         auto dd = new DtorDeclaration(loc, endloc, storage_class, ident);
         return FuncDeclaration.syntaxCopy(dd);
+    }
+
+    override bool overloadInsert(Dsymbol s)
+    {
+        return false; // cannot overload destructors
     }
 
     override void semantic(Scope* sc)
@@ -5150,11 +5155,6 @@ public:
     override bool addPostInvariant()
     {
         return false;
-    }
-
-    override bool overloadInsert(Dsymbol s)
-    {
-        return false; // cannot overload destructors
     }
 
     override inout(DtorDeclaration) isDtorDeclaration() inout

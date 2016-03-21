@@ -546,6 +546,70 @@ public:
         return sa;
     }
 
+    override bool overloadInsert(Dsymbol s)
+    {
+        //printf("[%s] AliasDeclaration::overloadInsert('%s') s = %s %s @ [%s]\n",
+        //    loc.toChars(), toChars(), s->kind(), s->toChars(), s->loc.toChars());
+
+        /* semantic analysis is already finished, and the aliased entity
+         * is not overloadable.
+         */
+        if (semanticRun >= PASSsemanticdone)
+        {
+            if (type)
+                return false;
+
+            /* When s is added in member scope by static if, mixin("code") or others,
+             * aliassym is determined already. See the case in: test/compilable/test61.d
+             */
+            auto sa = aliassym.toAlias();
+            if (auto fd = sa.isFuncDeclaration())
+            {
+                aliassym = new FuncAliasDeclaration(ident, fd);
+                aliassym.parent = parent;
+                return aliassym.overloadInsert(s);
+            }
+            if (auto td = sa.isTemplateDeclaration())
+            {
+                aliassym = new OverDeclaration(ident, td);
+                aliassym.parent = parent;
+                return aliassym.overloadInsert(s);
+            }
+            if (auto od = sa.isOverDeclaration())
+            {
+                if (sa.ident != ident || sa.parent != parent)
+                {
+                    od = new OverDeclaration(ident, od);
+                    od.parent = parent;
+                    aliassym = od;
+                }
+                return od.overloadInsert(s);
+            }
+            if (auto os = sa.isOverloadSet())
+            {
+                if (sa.ident != ident || sa.parent != parent)
+                {
+                    os = new OverloadSet(ident, os);
+                    os.parent = parent;
+                    aliassym = os;
+                }
+                os.push(s);
+                return true;
+            }
+            return false;
+        }
+
+        /* Don't know yet what the aliased symbol is, so assume it can
+         * be overloaded and check later for correctness.
+         */
+        if (overnext)
+            return overnext.overloadInsert(s);
+        if (s is this)
+            return true;
+        overnext = s;
+        return true;
+    }
+
     override void semantic(Scope* sc)
     {
         //printf("AliasDeclaration::semantic() %s\n", toChars());
@@ -682,70 +746,6 @@ public:
             if (!overloadInsert(sx))
                 ScopeDsymbol.multiplyDefined(Loc(), sx, this);
         }
-    }
-
-    override bool overloadInsert(Dsymbol s)
-    {
-        //printf("[%s] AliasDeclaration::overloadInsert('%s') s = %s %s @ [%s]\n",
-        //    loc.toChars(), toChars(), s->kind(), s->toChars(), s->loc.toChars());
-
-        /* semantic analysis is already finished, and the aliased entity
-         * is not overloadable.
-         */
-        if (semanticRun >= PASSsemanticdone)
-        {
-            if (type)
-                return false;
-
-            /* When s is added in member scope by static if, mixin("code") or others,
-             * aliassym is determined already. See the case in: test/compilable/test61.d
-             */
-            auto sa = aliassym.toAlias();
-            if (auto fd = sa.isFuncDeclaration())
-            {
-                aliassym = new FuncAliasDeclaration(ident, fd);
-                aliassym.parent = parent;
-                return aliassym.overloadInsert(s);
-            }
-            if (auto td = sa.isTemplateDeclaration())
-            {
-                aliassym = new OverDeclaration(ident, td);
-                aliassym.parent = parent;
-                return aliassym.overloadInsert(s);
-            }
-            if (auto od = sa.isOverDeclaration())
-            {
-                if (sa.ident != ident || sa.parent != parent)
-                {
-                    od = new OverDeclaration(ident, od);
-                    od.parent = parent;
-                    aliassym = od;
-                }
-                return od.overloadInsert(s);
-            }
-            if (auto os = sa.isOverloadSet())
-            {
-                if (sa.ident != ident || sa.parent != parent)
-                {
-                    os = new OverloadSet(ident, os);
-                    os.parent = parent;
-                    aliassym = os;
-                }
-                os.push(s);
-                return true;
-            }
-            return false;
-        }
-
-        /* Don't know yet what the aliased symbol is, so assume it can
-         * be overloaded and check later for correctness.
-         */
-        if (overnext)
-            return overnext.overloadInsert(s);
-        if (s is this)
-            return true;
-        overnext = s;
-        return true;
     }
 
     override const(char)* kind() const
@@ -885,10 +885,6 @@ public:
         return "overload alias"; // todo
     }
 
-    override void semantic(Scope* sc)
-    {
-    }
-
     override bool equals(RootObject o)
     {
         if (this == o)
@@ -929,6 +925,10 @@ public:
             return true;
         overnext = s;
         return true;
+    }
+
+    override void semantic(Scope* sc)
+    {
     }
 
     Dsymbol isUnique()

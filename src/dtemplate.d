@@ -492,6 +492,44 @@ public:
             Dsymbol.arraySyntaxCopy(members), ismixin, literal);
     }
 
+    /**********************************
+     * Overload existing TemplateDeclaration 'this' with the new one 's'.
+     * Return true if successful; i.e. no conflict.
+     */
+    override bool overloadInsert(Dsymbol s)
+    {
+        static if (LOG)
+        {
+            printf("TemplateDeclaration::overloadInsert('%s')\n", s.toChars());
+        }
+        FuncDeclaration fd = s.isFuncDeclaration();
+        if (fd)
+        {
+            if (funcroot)
+                return funcroot.overloadInsert(fd);
+            funcroot = fd;
+            return funcroot.overloadInsert(this);
+        }
+
+        TemplateDeclaration td = s.isTemplateDeclaration();
+        if (!td)
+            return false;
+
+        TemplateDeclaration pthis = this;
+        TemplateDeclaration* ptd;
+        for (ptd = &pthis; *ptd; ptd = &(*ptd).overnext)
+        {
+        }
+
+        td.overroot = this;
+        *ptd = td;
+        static if (LOG)
+        {
+            printf("\ttrue: no conflict\n");
+        }
+        return true;
+    }
+
     override void semantic(Scope* sc)
     {
         static if (LOG)
@@ -610,44 +648,6 @@ public:
         /* BUG: should check:
          *  o no virtual functions or non-static data members of classes
          */
-    }
-
-    /**********************************
-     * Overload existing TemplateDeclaration 'this' with the new one 's'.
-     * Return true if successful; i.e. no conflict.
-     */
-    override bool overloadInsert(Dsymbol s)
-    {
-        static if (LOG)
-        {
-            printf("TemplateDeclaration::overloadInsert('%s')\n", s.toChars());
-        }
-        FuncDeclaration fd = s.isFuncDeclaration();
-        if (fd)
-        {
-            if (funcroot)
-                return funcroot.overloadInsert(fd);
-            funcroot = fd;
-            return funcroot.overloadInsert(this);
-        }
-
-        TemplateDeclaration td = s.isTemplateDeclaration();
-        if (!td)
-            return false;
-
-        TemplateDeclaration pthis = this;
-        TemplateDeclaration* ptd;
-        for (ptd = &pthis; *ptd; ptd = &(*ptd).overnext)
-        {
-        }
-
-        td.overroot = this;
-        *ptd = td;
-        static if (LOG)
-        {
-            printf("\ttrue: no conflict\n");
-        }
-        return true;
     }
 
     override bool hasStaticCtorOrDtor()
