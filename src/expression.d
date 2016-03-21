@@ -8554,27 +8554,24 @@ public:
             case TOKdotvar:
                 ds = (cast(DotVarExp)e1).var;
                 goto L1;
+            case TOKtemplate:
+                auto te = cast(TemplateExp)e1;
+                ds = te.fd ? cast(Dsymbol)te.fd : te.td;
+                goto L1;
             case TOKoverloadset:
                 ds = (cast(OverExp)e1).vars;
                 goto L1;
-            case TOKtemplate:
-                {
-                    auto te = cast(TemplateExp)e1;
-                    ds = te.fd ? cast(Dsymbol)te.fd : te.td;
-                }
             L1:
+                assert(ds);
+                if (auto f = ds.isFuncDeclaration())
                 {
-                    assert(ds);
-                    if (auto f = ds.isFuncDeclaration())
-                    {
-                        if (f.checkForwardRef(loc))
-                            return new ErrorExp();
-                    }
-                    const(char)* s = mangle(ds);
-                    Expression e = new StringExp(loc, cast(void*)s, strlen(s));
-                    e = e.semantic(sc);
-                    return e;
+                    if (f.checkForwardRef(loc))
+                        return new ErrorExp();
                 }
+                const(char)* s = mangle(ds);
+                Expression e = new StringExp(loc, cast(void*)s, strlen(s));
+                e = e.semantic(sc);
+                return e;
             default:
                 break;
             }
