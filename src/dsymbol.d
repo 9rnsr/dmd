@@ -132,6 +132,7 @@ struct Prot
     {
         if (this.kind != parent.kind)
             return false;
+
         if (this.kind == PROTpackage)
         {
             if (!this.pkg)
@@ -141,6 +142,7 @@ struct Prot
             if (parent.pkg.isAncestorPackageOf(this.pkg))
                 return true;
         }
+
         return true;
     }
 }
@@ -315,6 +317,7 @@ public:
                 if (sp.isDeprecated())
                     goto L1;
             }
+
             for (Scope* sc2 = sc; sc2; sc2 = sc2.enclosing)
             {
                 if (sc2.scopesym && sc2.scopesym.isDeprecated())
@@ -323,6 +326,7 @@ public:
                 if (sc2.stc & STCdeprecated)
                     goto L1;
             }
+
             const(char)* message = null;
             for (Dsymbol p = this; p; p = p.parent)
             {
@@ -330,11 +334,13 @@ public:
                 if (message)
                     break;
             }
+
             if (message)
                 deprecation(loc, "is deprecated - %s", message);
             else
                 deprecation(loc, "is deprecated");
         }
+
     L1:
         Declaration d = isDeclaration();
         if (d && d.storage_class & STCdisable)
@@ -357,6 +363,7 @@ public:
         //printf("Dsymbol::getModule()\n");
         if (TemplateInstance ti = isInstantiated())
             return ti.tempdecl.getModule();
+
         Dsymbol s = this;
         while (s)
         {
@@ -377,6 +384,7 @@ public:
         //printf("Dsymbol::getAccessModule()\n");
         if (TemplateInstance ti = isInstantiated())
             return ti.tempdecl.getAccessModule();
+
         Dsymbol s = this;
         while (s)
         {
@@ -614,6 +622,7 @@ public:
         _scope = sc;
         if (sc.depdecl)
             depdecl = sc.depdecl;
+
         if (!userAttribDecl)
             userAttribDecl = sc.userAttribDecl;
     }
@@ -677,6 +686,7 @@ public:
             Identifier id = Identifier.lookup(seed, len);
             if (!id)
                 return null;
+
             cost = 0;
             Dsymbol s = this;
             Module.clearCache();
@@ -699,6 +709,7 @@ public:
         //printf("Dsymbol::searchX(this=%p,%s, ident='%s')\n", this, toChars(), ident->toChars());
         Dsymbol s = toAlias();
         Dsymbol sm;
+
         if (Declaration d = s.isDeclaration())
         {
             if (d.inuse)
@@ -707,11 +718,13 @@ public:
                 return null;
             }
         }
+
         switch (id.dyncast())
         {
         case DYNCAST_IDENTIFIER:
             sm = s.search(loc, cast(Identifier)id);
             break;
+
         case DYNCAST_DSYMBOL:
             {
                 // It's a template instance
@@ -723,16 +736,19 @@ public:
                 {
                     sm = s.search_correct(ti.name);
                     if (sm)
-                        .error(loc, "template identifier '%s' is not a member of %s '%s', did you mean %s '%s'?", ti.name.toChars(), s.kind(), s.toPrettyChars(), sm.kind(), sm.toChars());
+                        .error(loc, "template identifier '%s' is not a member of %s '%s', did you mean %s '%s'?",
+                            ti.name.toChars(), s.kind(), s.toPrettyChars(), sm.kind(), sm.toChars());
                     else
-                        .error(loc, "template identifier '%s' is not a member of %s '%s'", ti.name.toChars(), s.kind(), s.toPrettyChars());
+                        .error(loc, "template identifier '%s' is not a member of %s '%s'",
+                            ti.name.toChars(), s.kind(), s.toPrettyChars());
                     return null;
                 }
                 sm = sm.toAlias();
                 TemplateDeclaration td = sm.isTemplateDeclaration();
                 if (!td)
                 {
-                    .error(loc, "%s.%s is not a template, it is a %s", s.toPrettyChars(), ti.name.toChars(), sm.kind());
+                    .error(loc, "%s.%s is not a template, it is a %s",
+                        s.toPrettyChars(), ti.name.toChars(), sm.kind());
                     return null;
                 }
                 ti.tempdecl = td;
@@ -741,6 +757,7 @@ public:
                 sm = ti.toAlias();
                 break;
             }
+
         case DYNCAST_TYPE:
         case DYNCAST_EXPRESSION:
         default:
@@ -981,7 +998,8 @@ public:
     void addComment(const(char)* comment)
     {
         //if (comment)
-        //printf("adding comment '%s' to symbol %p '%s'\n", comment, this, toChars());
+        //    printf("adding comment '%s' to symbol %p '%s'\n", comment, this, toChars());
+
         if (!this.comment)
             this.comment = comment;
         else if (comment && strcmp(cast(char*)comment, cast(char*)this.comment) != 0)
@@ -1298,14 +1316,17 @@ public:
             //printf(" look in imports\n");
             Dsymbol s = null;
             OverloadSet a = null;
+
             // Look in imported modules
             for (size_t i = 0; i < importedScopes.dim; i++)
             {
                 // If private import, don't search it
                 if ((flags & IgnorePrivateImports) && prots[i] == PROTprivate)
                     continue;
+
                 int sflags = flags & (IgnoreErrors | IgnoreAmbiguous | IgnoreSymbolVisibility); // remember these in recursive searches
                 Dsymbol ss = (*importedScopes)[i];
+
                 //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
 
                 if (ss.isModule())
@@ -1330,7 +1351,8 @@ public:
 
                 /* Don't find private members if ss is a module
                  */
-                Dsymbol s2 = ss.search(loc, ident, sflags | (ss.isModule() ? IgnorePrivateImports : IgnoreNone));
+                Dsymbol s2 = ss.search(loc, ident,
+                    sflags | (ss.isModule() ? IgnorePrivateImports : IgnoreNone));
                 import ddmd.access : symbolIsVisible;
                 if (!s2 || !(flags & IgnoreSymbolVisibility) && !symbolIsVisible(this, s2))
                     continue;
@@ -1342,15 +1364,19 @@ public:
                 }
                 else if (s2 && s != s2)
                 {
-                    if (s.toAlias() == s2.toAlias() || s.getType() == s2.getType() && s.getType())
+                    if (s.toAlias() == s2.toAlias() ||
+                        s.getType() == s2.getType() && s.getType())
                     {
                         /* After following aliases, we found the same
                          * symbol, so it's not an ambiguity.  But if one
                          * alias is deprecated or less accessible, prefer
                          * the other.
                          */
-                        if (s.isDeprecated() || s.prot().isMoreRestrictiveThan(s2.prot()) && s2.prot().kind != PROTnone)
+                        if (s.isDeprecated() ||
+                            s.prot().isMoreRestrictiveThan(s2.prot()) && s2.prot().kind != PROTnone)
+                        {
                             s = s2;
+                        }
                     }
                     else
                     {
@@ -1359,7 +1385,10 @@ public:
                          */
                         Import i1 = s.isImport();
                         Import i2 = s2.isImport();
-                        if (!(i1 && i2 && (i1.mod == i2.mod || (!i1.parent.isImport() && !i2.parent.isImport() && i1.ident.equals(i2.ident)))))
+                        if (!(i1 && i2 &&
+                              (i1.mod == i2.mod ||
+                               (!i1.parent.isImport() && !i2.parent.isImport() &&
+                                i1.ident.equals(i2.ident)))))
                         {
                             /* Bugzilla 8668:
                              * Public selective import adds AliasDeclaration in module.
@@ -1368,16 +1397,21 @@ public:
                              */
                             s = s.toAlias();
                             s2 = s2.toAlias();
+
                             /* If both s2 and s are overloadable (though we only
                              * need to check s once)
                              */
-                            if ((s2.isOverloadSet() || s2.isOverloadable()) && (a || s.isOverloadable()))
+                            if ((s2.isOverloadSet() || s2.isOverloadable()) &&
+                                (a || s.isOverloadable()))
                             {
                                 a = mergeOverloadSet(ident, a, s2);
                                 continue;
                             }
-                            if (flags & IgnoreAmbiguous) // if return NULL on ambiguity
+
+                            // if return NULL on ambiguity
+                            if (flags & IgnoreAmbiguous)
                                 return null;
+
                             if (!(flags & IgnoreErrors))
                                 ScopeDsymbol.multiplyDefined(loc, s, s2);
                             break;
@@ -1385,6 +1419,7 @@ public:
                     }
                 }
             }
+
             if (s)
             {
                 /* Build special symbol if we had multiple finds
@@ -1441,6 +1476,7 @@ public:
         else
         {
             assert(s.isOverloadable());
+
             /* Don't add to os[] if s is alias of previous sym
              */
             for (size_t j = 0; j < os.a.dim; j++)
@@ -1456,6 +1492,7 @@ public:
                 }
             }
             os.push(s);
+
         Lcontinue:
         }
         return os;
@@ -1516,11 +1553,18 @@ public:
         }
         if (loc.filename)
         {
-            .error(loc, "%s at %s conflicts with %s at %s", s1.toPrettyChars(), s1.locToChars(), s2.toPrettyChars(), s2.locToChars());
+            .error(loc, "%s at %s conflicts with %s at %s",
+                s1.toPrettyChars(),
+                s1.locToChars(),
+                s2.toPrettyChars(),
+                s2.locToChars());
         }
         else
         {
-            s1.error(s1.loc, "conflicts with %s %s at %s", s2.kind(), s2.toPrettyChars(), s2.locToChars());
+            s1.error(s1.loc, "conflicts with %s %s at %s",
+                s2.kind(),
+                s2.toPrettyChars(),
+                s2.locToChars());
         }
     }
 
@@ -1538,10 +1582,12 @@ public:
     {
         Dsymbol s = search_function(this, Id.getmembers);
         FuncDeclaration fdx = s ? s.isFuncDeclaration() : null;
+
         version (none)
         {
             // Finish
             static __gshared TypeFunction tfgetmembers;
+
             if (!tfgetmembers)
             {
                 Scope sc;
@@ -1641,6 +1687,7 @@ public:
         assert(dg);
         if (!members)
             return 0;
+
         size_t n = pn ? *pn : 0; // take over index
         int result = 0;
         foreach (size_t i; 0 .. members.dim)
@@ -1658,6 +1705,7 @@ public:
             }
             else
                 result = dg(n++, s);
+
             if (result)
                 break;
         }
@@ -1772,6 +1820,7 @@ public:
         {
             VarDeclaration* pvar;
             Expression ce;
+
         L1:
             if (td)
             {
@@ -1784,6 +1833,7 @@ public:
                 v.semantic(sc);
                 return v;
             }
+
             if (type)
             {
                 /* $ gives the number of type entries in the type tuple
@@ -1795,11 +1845,12 @@ public:
                 v.semantic(sc);
                 return v;
             }
+
             if (exp.op == TOKindex)
             {
                 /* array[index] where index is some function of $
                  */
-                IndexExp ie = cast(IndexExp)exp;
+                auto ie = cast(IndexExp)exp;
                 pvar = &ie.lengthVar;
                 ce = ie.e1;
             }
@@ -1807,7 +1858,7 @@ public:
             {
                 /* array[lwr .. upr] where lwr or upr is some function of $
                  */
-                SliceExp se = cast(SliceExp)exp;
+                auto se = cast(SliceExp)exp;
                 pvar = &se.lengthVar;
                 ce = se.e1;
             }
@@ -1816,7 +1867,7 @@ public:
                 /* array[e0, e1, e2, e3] where e0, e1, e2 are some function of $
                  * $ is a opDollar!(dim)() where dim is the dimension(0,1,2,...)
                  */
-                ArrayExp ae = cast(ArrayExp)exp;
+                auto ae = cast(ArrayExp)exp;
                 pvar = &ae.lengthVar;
                 ce = ae.e1;
             }
@@ -1826,8 +1877,10 @@ public:
                  */
                 return null;
             }
+
             while (ce.op == TOKcomma)
                 ce = (cast(CommaExp)ce).e2;
+
             /* If we are indexing into an array that is really a type
              * tuple, rewrite this as an index into a type tuple and
              * try again.
@@ -1841,6 +1894,7 @@ public:
                     goto L1;
                 }
             }
+
             /* *pvar is lazily initialized, so if we refer to $
              * multiple times, it gets set only once.
              */
@@ -1859,16 +1913,19 @@ public:
                     v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, new ExpInitializer(Loc(), e));
                     v.storage_class |= STCtemp | STCstatic | STCconst;
                 }
-                else if (ce.type && (t = ce.type.toBasetype()) !is null && (t.ty == Tstruct || t.ty == Tclass))
+                else if (ce.type && (t = ce.type.toBasetype()) !is null &&
+                         (t.ty == Tstruct || t.ty == Tclass))
                 {
                     // Look for opDollar
                     assert(exp.op == TOKarray || exp.op == TOKslice);
                     AggregateDeclaration ad = isAggregate(t);
                     assert(ad);
+
                     Dsymbol s = ad.search(loc, Id.opDollar);
                     if (!s) // no dollar exists -- search in higher scope
                         return null;
                     s = s.toAlias();
+
                     Expression e = null;
                     // Check for multi-dimensional opDollar(dim) template.
                     if (TemplateDeclaration td = s.isTemplateDeclaration())
@@ -1886,6 +1943,7 @@ public:
                         {
                             assert(0);
                         }
+
                         auto tiargs = new Objects();
                         Expression edim = new IntegerExp(Loc(), dim, Type.tsize_t);
                         edim = edim.semantic(sc);
