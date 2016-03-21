@@ -3789,7 +3789,7 @@ public:
                         checkAccess(loc, sc, null, d);
                 }
 
-printf("L%d [%s] +IdentifierExp s = %s %s\n", __LINE__, loc.toChars(), s.kind(), s.toChars());
+//printf("L%d [%s] +IdentifierExp s = %s %s\n", __LINE__, loc.toChars(), s.kind(), s.toChars());
                 /* If f is really a function template,
                  * then replace f with the function template declaration.
                  */
@@ -4007,7 +4007,7 @@ public:
         }
         if (auto ov = s.isOverDeclaration())
         {
-printf("L%d [%s] +OverExp s = %s %s\n", __LINE__, loc.toChars(), ov.kind(), ov.toChars());
+//printf("L%d [%s] +OverExp s = %s %s\n", __LINE__, loc.toChars(), ov.kind(), ov.toChars());
             e = new VarExp(loc, ov, true);
             e.type = Type.tvoid;
             return e;
@@ -6527,7 +6527,7 @@ public:
         }
         else if (auto ov = var.isOverDeclaration())
         {
-printf("L%d [%s] +VarExp s = %s %s\n", __LINE__, loc.toChars(), ov.kind(), ov.toChars());
+//printf("L%d [%s] +VarExp s = %s %s\n", __LINE__, loc.toChars(), ov.kind(), ov.toChars());
             type = Type.tvoid; // ambiguous type?
         }
 
@@ -9707,7 +9707,7 @@ public:
             }
             else
             {
-printf("L%d [%s] +CallExp s = %s %s\n", __LINE__, loc.toChars(), Token.toChars(e1.op), e1.toChars());
+//printf("L%d [%s] +CallExp s = %s %s\n", __LINE__, loc.toChars(), Token.toChars(e1.op), e1.toChars());
                 static __gshared int nest;
                 if (++nest > 500)
                 {
@@ -9719,7 +9719,7 @@ printf("L%d [%s] +CallExp s = %s %s\n", __LINE__, loc.toChars(), Token.toChars(e
                 --nest;
                 if (ex)
                     return ex;
-printf("L%d [%s] *CallExp s = %s %s\n", __LINE__, loc.toChars(), Token.toChars(e1.op), e1.toChars());
+//printf("L%d [%s] *CallExp s = %s %s\n", __LINE__, loc.toChars(), Token.toChars(e1.op), e1.toChars());
             }
 
             /* Look for e1 being a lazy parameter
@@ -9921,12 +9921,12 @@ printf("L%d [%s] *CallExp s = %s %s\n", __LINE__, loc.toChars(), Token.toChars(e
 
             // Do overload resolution
 
-printf("[%s] +ve.var = %s %s\n", loc.toChars(), ve.var.kind(), ve.var.toChars());
+//printf("[%s] +ve.var = %s %s\n", loc.toChars(), ve.var.kind(), ve.var.toChars());
             auto f = resolveFuncCall(loc, sc, ov, tiargs, null, arguments, 2);
             if (!f || f.errors)
                 return new ErrorExp();
 
-printf("[%s] -f = %s %s\n", loc.toChars(), f.kind(), f.toChars());
+//printf("[%s] -f = %s %s\n", loc.toChars(), f.kind(), f.toChars());
             if (f.needThis())
             {
                 // Change the ancestor lambdas to delegate before hasThis(sc) call.
@@ -10337,7 +10337,7 @@ printf("[%s] -f = %s %s\n", loc.toChars(), f.kind(), f.toChars());
             // Do overload resolution
             auto ve = cast(VarExp)e1;
 
-printf("[%s] +ve.var = %s %s\n", loc.toChars(), ve.var.kind(), ve.var.toChars());
+//printf("[%s] +ve.var = %s %s\n", loc.toChars(), ve.var.kind(), ve.var.toChars());
             f = ve.var.isFuncDeclaration();
             assert(f);
             tiargs = null;
@@ -10366,7 +10366,7 @@ printf("[%s] +ve.var = %s %s\n", loc.toChars(), ve.var.kind(), ve.var.toChars())
             if (!f || f.errors)
                 return new ErrorExp();
 
-printf("[%s] -f = %s %s\n", loc.toChars(), f.kind(), f.toChars());
+//printf("[%s] -f = %s %s\n", loc.toChars(), f.kind(), f.toChars());
             if (f.needThis())
             {
                 // Change the ancestor lambdas to delegate before hasThis(sc) call.

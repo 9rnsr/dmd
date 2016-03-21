@@ -601,7 +601,10 @@ public:
                 if (auto sx = s2.overloadInsert(this))
                 {
                     if (sx != s2)
+                    {
                         sds.symtab.update(sx);
+                        sds.members.push(sx);   // todo
+                    }
                 }
                 else
                 {

@@ -559,8 +559,8 @@ public:
                 return null;
 
             auto ov = new OverDeclaration(loc, ident, this);
-            ov.parent = parent;
-printf("\tL%d create ov\n", __LINE__, ov);
+//            ov.parent = parent;
+//printf("\tL%d create ov\n", __LINE__, ov);
             return ov.overloadInsert(s);
 
             //if (overnext)
@@ -600,10 +600,10 @@ printf("\tL%d create ov\n", __LINE__, ov);
                 ov = new OverDeclaration(loc, ident, ov);
                 ov.parent = parent;
                 aliassym = ov;
-printf("\tL%d create ov\n", __LINE__, ov);
+//printf("\tL%d create ov\n", __LINE__, ov);
             }
-            else
-printf("\tL%d existing ov\n", __LINE__, sa);
+//            else
+//printf("\tL%d existing ov\n", __LINE__, sa);
             return ov.overloadInsert(s);
         }
         if (auto os = sa.isOverloadSet())
@@ -948,6 +948,35 @@ public:
 
     override void semantic(Scope* sc)
     {
+        // detect conflicts of type alias vs isOverloadable() symbols?
+        Dsymbols members2;
+
+        printf("[%s] +od members = %s\n", loc.toChars(), members.toChars());
+        foreach (i, s; members)
+        {
+            if (s == this)
+                continue;   // todo
+            overloadApply(s, (Dsymbol sm1)
+            {
+                if (sm1 == this)
+                    return 0;   // todo
+                foreach (sm2; members2)
+                {
+                    if (sm2 == this)
+                        continue;   // todo
+                    printf("members[%d] sm1 = %s %s @ [%s], sm2 = %s %s @ [%s], dup = %d\n",
+                        i, sm1.kind(), sm1.toChars(), sm1.loc.toChars(),
+                           sm2.kind(), sm2.toChars(), sm2.loc.toChars(), sm1 == sm2);
+                    if (sm1 == sm2)
+                        return 0;
+                }
+                members2.push(sm1);
+                return 0;
+            });
+        }
+
+        this.members.swap(members2);
+        printf("[%s] -od members = %s\n", loc.toChars(), members.toChars());
     }
 
     Dsymbol isUnique()

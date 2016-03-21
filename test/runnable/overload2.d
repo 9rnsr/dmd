@@ -97,6 +97,26 @@ pragma(msg, ov);
 
 /***************************************************/
 
+alias foo6 = bar6;
+int bar6() { return 1; }
+int bar6(int) { return 2; }
+alias foo6 = bar6;
+
+void test6()
+{
+pragma(msg, "====");
+    pragma(msg, foo6.mangleof);
+    assert(foo6() == 1);
+    assert(foo6(1) == 2);
+
+    alias ov = AliasSeq!(__traits(getOverloads, mixin(__MODULE__), "foo6"));
+pragma(msg, ov);
+    foreach (f; ov)
+        pragma(msg, typeof(f));
+}
+
+/***************************************************/
+
 void main()
 {
     test1();
