@@ -7579,25 +7579,23 @@ public:
                     continue;
                 }
 
-                TupleDeclaration d = sa.toAlias().isTupleDeclaration();
-                if (d)
+                if (auto tup = sa.toAlias().isTupleDeclaration())
                 {
                     // Expand tuple
                     tiargs.remove(j);
-                    tiargs.insert(j, d.objects);
+                    tiargs.insert(j, tup.objects);
                     j--;
                     continue;
                 }
-                (*tiargs)[j] = sa;
-
-                TemplateDeclaration td = sa.isTemplateDeclaration();
-                if (td && td.semanticRun == PASSinit && td.literal)
+                if (auto td = sa.isTemplateDeclaration())
                 {
-                    td.semantic(sc);
+                    if (td.semanticRun == PASSinit && td.literal)   // todo
+                        td.semantic(sc);
                 }
-                FuncDeclaration fd = sa.isFuncDeclaration();
-                if (fd)
+                if (auto fd = sa.isFuncDeclaration())
                     fd.functionSemantic();
+
+                (*tiargs)[j] = sa;
             }
             else if (isParameter(o))
             {

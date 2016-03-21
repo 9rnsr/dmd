@@ -565,22 +565,19 @@ public:
             auto sa = aliassym.toAlias();
             if (auto fd = sa.isFuncDeclaration())
             {
-                aliassym = new OverDeclaration(ident, fd);  // todo
-                aliassym.parent = parent;
+                aliassym = new OverDeclaration(loc, parent, ident, fd);  // todo
                 return aliassym.overloadInsert(s);
             }
             if (auto td = sa.isTemplateDeclaration())
             {
-                aliassym = new OverDeclaration(ident, td);
-                aliassym.parent = parent;
+                aliassym = new OverDeclaration(loc, parent, ident, td);
                 return aliassym.overloadInsert(s);
             }
             if (auto od = sa.isOverDeclaration())
             {
                 if (sa.ident != ident || sa.parent != parent)
                 {
-                    od = new OverDeclaration(ident, od);
-                    od.parent = parent;
+                    od = new OverDeclaration(loc, parent, ident, od);
                     aliassym = od;
                 }
                 return od.overloadInsert(s);
@@ -863,9 +860,10 @@ public:
     Dsymbol aliassym;
     bool hasOverloads;
 
-    extern (D) this(Identifier ident, Dsymbol s, bool hasOverloads = true)
+    extern (D) this(Loc loc, Dsymbol p, Identifier ident, Dsymbol s, bool hasOverloads = true)
     {
         super(ident);
+        this.parent = p;
         this.aliassym = s;
         this.hasOverloads = hasOverloads;
         if (hasOverloads)

@@ -2464,6 +2464,16 @@ public:
         //fflush(stdout);
     }
 
+    version (none) Dsymbol toAlias()
+    {
+        if (auto sx = overnext)
+        {
+            overnext = null;
+            if (!overloadInsert(sx))
+                ScopeDsymbol.multiplyDefined(Loc(), sx, this);
+        }
+    }
+
     /****************************************************
      * Resolve forward reference of function signature -
      * parameter types, return type, and attributes.
