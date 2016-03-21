@@ -490,6 +490,7 @@ public:
 
     override void visit(OverDeclaration od)
     {
+/+
         if (od.overnext)
         {
             visit(cast(Dsymbol)od);
@@ -511,6 +512,7 @@ public:
                 return;
             }
         }
++/
         visit(cast(Dsymbol)od);
     }
 

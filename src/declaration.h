@@ -221,10 +221,11 @@ class OverDeclaration : public Declaration
 {
 public:
     Dsymbol *overnext;          // next in overload list
-    Dsymbol *aliassym;
-    bool hasOverloads;
+    //Dsymbol *aliassym;
+    //bool hasOverloads;
+    Dsymbols members;
 
-    OverDeclaration(Identifier *ident, Dsymbol *s, bool hasOverloads = true);
+    OverDeclaration(Loc loc, Identifier *ident, Dsymbol *s/*, bool hasOverloads = true*/);
     const char *kind();
     bool equals(RootObject *o);
     Dsymbol *overloadInsert(Dsymbol *s);

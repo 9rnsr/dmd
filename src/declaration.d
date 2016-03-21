@@ -547,20 +547,28 @@ public:
 
     override Dsymbol overloadInsert(Dsymbol s)
     {
-        //printf("[%s] AliasDeclaration::overloadInsert('%s') s = %s %s @ [%s]\n",
-        //    loc.toChars(), toChars(), s.kind(), s.toChars(), s.loc.toChars());
+        printf("[%s] AliasDeclaration::overloadInsert('%s') s = %s %s @ [%s]\n",
+            loc.toChars(), toChars(), s.kind(), s.toChars(), s.loc.toChars());
 
         /* Don't know yet what the aliased symbol is, so assume it can
          * be overloaded and check later for correctness.
          */
         if (semanticRun < PASSsemanticdone)
         {
-            if (overnext)
-                return overnext.overloadInsert(s);
-            if (s is this)
-                return this;
-            overnext = s;
-            return this;
+            if (type && type.deco)
+                return null;
+
+            auto ov = new OverDeclaration(loc, ident, this);
+            ov.parent = parent;
+printf("\tL%d create ov\n", __LINE__, ov);
+            return ov.overloadInsert(s);
+
+            //if (overnext)
+            //    return overnext.overloadInsert(s);
+            //if (s is this)
+            //    return this;
+            //overnext = s;
+            //return this;
         }
 
         /* Semantic analysis is already finished, and the aliased entity
@@ -575,13 +583,13 @@ public:
         auto sa = aliassym.toAlias();
         if (auto fd = sa.isFuncDeclaration())
         {
-            aliassym = new OverDeclaration(ident, fd);
+            aliassym = new OverDeclaration(loc, ident, fd);
             aliassym.parent = parent;
             return aliassym.overloadInsert(s);
         }
         if (auto td = sa.isTemplateDeclaration())
         {
-            aliassym = new OverDeclaration(ident, td);
+            aliassym = new OverDeclaration(loc, ident, td);
             aliassym.parent = parent;
             return aliassym.overloadInsert(s);
         }
@@ -589,10 +597,13 @@ public:
         {
             if (sa.ident != ident || sa.parent != parent)
             {
-                ov = new OverDeclaration(ident, ov);
+                ov = new OverDeclaration(loc, ident, ov);
                 ov.parent = parent;
                 aliassym = ov;
+printf("\tL%d create ov\n", __LINE__, ov);
             }
+            else
+printf("\tL%d existing ov\n", __LINE__, sa);
             return ov.overloadInsert(s);
         }
         if (auto os = sa.isOverloadSet())
@@ -860,24 +871,26 @@ extern (C++) final class OverDeclaration : Declaration
 {
 public:
     Dsymbol overnext;   // next in overload list
-    Dsymbol aliassym;
-    bool hasOverloads;
+    //Dsymbol aliassym;
+    //bool hasOverloads;
+    Dsymbols members;
 
-    extern (D) this(Identifier ident, Dsymbol s, bool hasOverloads = true)
+    extern (D) this(Loc loc, Identifier ident, Dsymbol s/*, bool hasOverloads = true*/)
     {
         super(ident);
-        this.aliassym = s;
-        this.hasOverloads = hasOverloads;
-        if (hasOverloads)
-        {
-            if (auto ov = aliassym.isOverDeclaration())
-                this.hasOverloads = ov.hasOverloads;
-        }
-        else
-        {
-            // for internal use
-            assert(!aliassym.isOverDeclaration());
-        }
+        //this.aliassym = s;
+        members.push(s);
+        //this.hasOverloads = hasOverloads;
+        //if (hasOverloads)
+        //{
+        //    if (auto ov = aliassym.isOverDeclaration())
+        //        this.hasOverloads = ov.hasOverloads;
+        //}
+        //else
+        //{
+        //    // for internal use
+        //    assert(!aliassym.isOverDeclaration());
+        //}
     }
 
     override const(char)* kind() const
@@ -891,36 +904,44 @@ public:
         if (this == o)
             return true;
 
-        auto s = isDsymbol(o);
-        if (!s)
-            return false;
+        //auto s = isDsymbol(o);
+        //if (!s)
+        //    return false;
 
-        auto ov1 = this;
-        if (auto ov2 = s.isOverDeclaration())
-        {
-            return ov1.aliassym.equals(ov2.aliassym) &&
-                   ov1.hasOverloads == ov2.hasOverloads;
-        }
-        if (aliassym == s)
-        {
-            if (hasOverloads)
-                return true;
-            if (auto fd = s.isFuncDeclaration())
-                return fd.isUnique() !is null;
-            if (auto td = s.isTemplateDeclaration())
-                return td.overnext is null;
-        }
+        //auto ov1 = this;
+        //if (auto ov2 = s.isOverDeclaration())
+        //{
+        //    return ov1.aliassym.equals(ov2.aliassym) &&
+        //           ov1.hasOverloads == ov2.hasOverloads;
+        //}
+        //if (aliassym == s)
+        //{
+        //    if (hasOverloads)
+        //        return true;
+        //    if (auto fd = s.isFuncDeclaration())
+        //        return fd.isUnique() !is null;
+        //    if (auto td = s.isTemplateDeclaration())
+        //        return td.overnext is null;
+        //}
         return false;
     }
 
     override Dsymbol overloadInsert(Dsymbol s)
     {
-        //printf("OverDeclaration::overloadInsert('%s') aliassym = %p, overnext = %p\n", s.toChars(), aliassym, overnext);
-        if (overnext)
-            return overnext.overloadInsert(s);
-        if (s == this)
-            return this;
-        overnext = s;
+        printf("[%s] OverDeclaration::overloadInsert('%s') s = %s %s @ [%s]\n",
+            loc.toChars(), toChars(), s.kind(), s.toChars(), s.loc.toChars());
+
+        //if (overnext)
+        //    return overnext.overloadInsert(s);
+        //if (s == this)
+        //    return this;
+        //overnext = s;
+        foreach (sm; members)
+        {
+            if (sm == s)
+                return this;
+        }
+        members.push(s);
         return this;
     }
 
@@ -930,6 +951,7 @@ public:
 
     Dsymbol isUnique()
     {
+/+
         if (!hasOverloads)
         {
             if (aliassym.isFuncDeclaration() ||
@@ -954,6 +976,8 @@ public:
             }
         });
         return result;
++/
+        return null;
     }
 
     override inout(OverDeclaration) isOverDeclaration() inout

@@ -501,13 +501,13 @@ public:
         }
         if (auto fd = s.isFuncDeclaration())
         {
-            auto ov = new OverDeclaration(ident, this);
+            auto ov = new OverDeclaration(loc, ident, this);
             ov.parent = parent;
             return ov.overloadInsert(s);
         }
         if (auto td = s.isTemplateDeclaration())
         {
-            auto ov = new OverDeclaration(ident, this);
+            auto ov = new OverDeclaration(loc, ident, this);
             ov.parent = parent;
             return ov.overloadInsert(s);
         }

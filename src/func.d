@@ -535,7 +535,9 @@ public:
      */
     override Dsymbol overloadInsert(Dsymbol s)
     {
-        //printf("FuncDeclaration::overloadInsert(s = %s) this = %s\n", s.toChars(), toChars());
+        printf("[%s] FuncDeclaration::overloadInsert('%s') s = %s %s @ [%s]\n",
+            loc.toChars(), toChars(), s.kind(), s.toChars(), s.loc.toChars());
+
         assert(s != this);
         if (auto ad = s.isAliasDeclaration())
         {
@@ -546,7 +548,7 @@ public:
                 return null;
             }
 
-            auto ov = new OverDeclaration(ident, this);
+            auto ov = new OverDeclaration(loc, ident, this);
             ov.parent = parent;
             return ov.overloadInsert(s);
         }
@@ -559,13 +561,13 @@ public:
             //overnext = td;
             //return true;
 
-            auto ov = new OverDeclaration(ident, this);
+            auto ov = new OverDeclaration(loc, ident, this);
             ov.parent = parent;
             return ov.overloadInsert(s);
         }
         if (auto fd = s.isFuncDeclaration())
         {
-            auto ov = new OverDeclaration(ident, this);
+            auto ov = new OverDeclaration(loc, ident, this);
             ov.parent = parent;
             return ov.overloadInsert(s);
         }
@@ -4173,6 +4175,12 @@ extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg)
     {
         if (auto ov = d.isOverDeclaration())
         {
+            foreach (sm; ov.members)
+            {
+                if (int r = overloadApply(sm, dg))
+                    return r;
+            }
+        /+
             if (ov.hasOverloads)
             {
                 if (int r = overloadApply(ov.aliassym, dg))
@@ -4184,6 +4192,8 @@ extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg)
                     return r;
             }
             next = ov.overnext;
+        +/
+            // overnext?   // todo
         }
         //else if (auto fa = d.isFuncAliasDeclaration())
         //{
