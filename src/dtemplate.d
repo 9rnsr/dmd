@@ -4759,7 +4759,7 @@ public:
      */
     final RootObject declareParameter(Scope* sc, RootObject o)
     {
-        //printf("TemplateParameter::declareParameter('%s', o = %p)\n", ident.toChars(), o);
+        printf("TemplateParameter::declareParameter('%s', o = %p)\n", ident.toChars(), o);
         if (auto ea = isExpression(o))
         {
             if (ea.op == TOKtype)
@@ -4777,11 +4777,11 @@ public:
                     o = fe.fd;
             }
         }
-        //printf("o = %p\n", o);
-        //if (auto ta = isType(o))       printf("ta = %p %d %s\n", ta, ta.ty, ta.toChars());
-        //if (auto ea = isExpression(o)) printf("ea = %p %s %s\n", ea, Token.toChars(ea.op), ea.toChars());
-        //if (auto sa = isDsymbol(o))    printf("sa = %p %s %s\n", sa, sa.kind(), sa.toChars());
-        //if (auto va = isTuple(o))      printf("va = %p %s\n", va, va.toChars());
+        printf("o = %p\n", o);
+        if (auto ta = isType(o))       printf("ta = %p %d %s\n", ta, ta.ty, ta.toChars());
+        if (auto ea = isExpression(o)) printf("ea = %p %s %s\n", ea, Token.toChars(ea.op), ea.toChars());
+        if (auto sa = isDsymbol(o))    printf("sa = %p %s %s\n", sa, sa.kind(), sa.toChars());
+        if (auto va = isTuple(o))      printf("va = %p %s\n", va, va.toChars());
 
         auto d = declareParameter(o);
         if (!sc.insert(d))
@@ -4800,7 +4800,7 @@ public:
     {
         if (auto ta = isType(o))
         {
-            //printf("\ttype %s = %s;\n", ident.toChars(), ta.toChars());
+            printf("\ttype %s = %s;\n", ident.toChars(), ta.toChars());
             auto d = new AliasDeclaration(loc, ident, ta);
             d.protection = Prot(PROTpublic);
             d.storage_class |= STCtemplateparameter;
@@ -4823,7 +4823,7 @@ public:
         }
         if (auto sa = isDsymbol(o))
         {
-            //printf("\talias %s = %s %s;\n", ident.toChars(), sa.kind(), sa.toChars());
+            printf("\talias %s = %s %s;\n", ident.toChars(), sa.kind(), sa.toChars());
             auto d = new AliasDeclaration(loc, ident, sa);
             d.protection = Prot(PROTpublic);
             d.storage_class |= STCtemplateparameter;
@@ -4836,6 +4836,23 @@ public:
         if (auto ea = isExpression(o))
         {
             printf("\texpr %s = %s %s;\n", ident.toChars(), ea.type.toChars(), ea.toChars());
+
+            if (ea.op == TOKvar)
+            {
+                auto ve = cast(VarExp)ea;
+                if (ve.var.isFuncDeclaration() && !ve.hasOverloads)
+                {
+                    auto d = new FuncAliasDeclaration(ident, ve.var.isFuncDeclaration(), false);
+                    d.protection = Prot(PROTpublic);
+                    d.storage_class |= STCtemplateparameter;
+
+                    if (ve.var.isDeprecated())
+                        d.storage_class |= STCdeprecated;
+
+                    return d;
+                }
+            }
+
             auto ei = new ExpInitializer(loc, ea);
             auto tvp = isTemplateValueParameter();
             auto type = tvp ? tvp.valType : null;
@@ -5475,7 +5492,7 @@ public:
     override MATCH matchArg(Scope* sc, RootObject oarg,
         size_t i, TemplateParameters* parameters, Objects* dedtypes)
     {
-        //printf("TemplateAliasParameter::matchArg('%s')\n", ident.toChars());
+        printf("TemplateAliasParameter::matchArg('%s')\n", ident.toChars());
         MATCH m = MATCHexact;
         Type ta = isType(oarg);
         RootObject sa = ta && !ta.deco ? null : getDsymbol(oarg);
@@ -5500,6 +5517,15 @@ public:
                     goto Lnomatch;
                 if (!d.type.equals(specType))
                     goto Lnomatch;
+            }
+            if (ea && ea.op == TOKvar)
+            {
+                auto ve = cast(VarExp)ea;
+                if (ve.var.isFuncDeclaration() && !ve.hasOverloads)
+                {
+                    printf("Alias parameter <= ea %s\n", ea.toChars());
+                    sa = ea;
+                }
             }
         }
         else
@@ -5537,14 +5563,14 @@ public:
         {
             if (sa == sdummy)
                 goto Lnomatch;
-            Dsymbol sx = isDsymbol(sa);
+            auto sx = isDsymbol(sa);
             if (sa != specAlias && sx)
             {
-                Type talias = isType(specAlias);
+                auto talias = isType(specAlias);
                 if (!talias)
                     goto Lnomatch;
 
-                TemplateInstance ti = sx.isTemplateInstance();
+                auto ti = sx.isTemplateInstance();
                 if (!ti && sx.parent)
                 {
                     ti = sx.parent.isTemplateInstance();
