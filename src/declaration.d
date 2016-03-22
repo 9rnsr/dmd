@@ -634,7 +634,14 @@ public:
             {
                 //printf("[%s] AliasDecl e = %s\n", loc.toChars(), e.toChars());
                 //if (e.op == TOKvar) printf("\tve = %s hasOverloads = %d\n", e.toChars(), (cast(VarExp)e).hasOverloads);
-                s = getDsymbol(e);
+                if (e.op && TOKvar && (cast(VarExp)e).var.isFuncDeclaration() && !(cast(VarExp)e).hasOverloads)
+                {
+                    s = new FuncAliasDeclaration((cast(VarExp)e).var.ident, (cast(VarExp)e).var.isFuncDeclaration(), false);
+                    s.loc = loc;
+                    s.parent = parent;
+                }
+                else
+                    s = getDsymbol(e);
                 if (!s)
                 {
                     if (e.op != TOKerror)
@@ -697,6 +704,7 @@ public:
             auto sa = aliassym.toAlias();
             if (auto fd = sa.isFuncDeclaration())
             {
+                //printf("[%s] sa = %s %s @ [%s]\n", loc.toChars(), fd.kind(), fd.toChars(), fd.loc.toChars());
                 aliassym = new FuncAliasDeclaration(ident, fd);
                 aliassym.parent = parent;
                 return aliassym.overloadInsert(s);
