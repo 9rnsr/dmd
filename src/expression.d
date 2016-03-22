@@ -3903,7 +3903,7 @@ public:
 
             //auto fd = s.isFuncDeclaration();
             //fd.type = f.type;
-            printf("[%s] f = %s %s [%s], hasOverloads = %d\n", loc.toChars(), f.toChars(), f.type.toChars(), f.loc.toChars(), hasOverloads);
+            //printf("[%s] f = %s %s [%s], hasOverloads = %d\n", loc.toChars(), f.toChars(), f.type.toChars(), f.loc.toChars(), hasOverloads);
             return new VarExp(loc, f, hasOverloads);
         }
         if (OverDeclaration od = s.isOverDeclaration())
@@ -4724,7 +4724,7 @@ public:
             {
                 if (e.op == TOKvar && !(cast(VarExp)e).hasOverloads)
                 {
-                    printf("[%s] TupleExp.ctor tup.objects[%d] = %s\n", loc.toChars(), i, e.toChars());
+                    //printf("[%s] TupleExp.ctor tup.objects[%d] = %s\n", loc.toChars(), i, e.toChars());
                     this.exps.push(e);
                     continue;
                 }
@@ -9180,7 +9180,7 @@ public:
 
     override Expression semantic(Scope* sc)
     {
-        //static if (LOGSEMANTIC)
+        static if (LOGSEMANTIC)
         {
             printf("CallExp::semantic() %s\n", toChars());
         }
