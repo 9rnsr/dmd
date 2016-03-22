@@ -6973,25 +6973,25 @@ public:
     final void resolveHelper(Loc loc, Scope* sc, Dsymbol s, Dsymbol scopesym,
         Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
     {
-        version (none)
+        //version (none)
         {
             printf("TypeQualified::resolveHelper(sc = %p, idents = '%s')\n", sc, toChars());
-            if (scopesym)
-                printf("\tscopesym = '%s'\n", scopesym.toChars());
+            //if (scopesym)
+            //    printf("\tscopesym = '%s'\n", scopesym.toChars());
         }
         *pe = null;
         *pt = null;
         *ps = null;
         if (s)
         {
-            //printf("\t1: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
-            Declaration d = s.isDeclaration();
+            //printf("\t1: s = '%s' %p, kind = '%s'\n",s.toChars(), s, s.kind());
+            auto d = s.isDeclaration();
             if (d && (d.storage_class & STCtemplateparameter))
                 s = s.toAlias();
             else
                 s.checkDeprecated(loc, sc); // check for deprecated aliases
             s = s.toAlias();
-            //printf("\t2: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
+            printf("\t2: s = '%s' %p, kind = '%s'\n",s.toChars(), s, s.kind());
             for (size_t i = 0; i < idents.dim; i++)
             {
                 RootObject id = idents[i];
@@ -7019,7 +7019,7 @@ public:
 
                 Type t = s.getType(); // type symbol, type alias, or type tuple?
                 uint errorsave = global.errors;
-                Dsymbol sm = s.searchX(loc, sc, id);
+                auto sm = s.searchX(loc, sc, id);
                 if (sm && !symbolIsVisible(sc, sm))
                 {
                     .deprecation(loc, "%s is not visible from module %s", sm.toPrettyChars(), sc._module.toChars());
@@ -7030,10 +7030,10 @@ public:
                     *pt = Type.terror;
                     return;
                 }
-                //printf("\t3: s = %p %s %s, sm = %p\n", s, s->kind(), s->toChars(), sm);
+                printf("\t3: s = %p %s %s, sm = %p\n", s, s.kind(), s.toChars(), sm);
                 if (intypeid && !t && sm && sm.needThis())
                     goto L3;
-                if (VarDeclaration v = s.isVarDeclaration())
+                if (auto v = s.isVarDeclaration())
                 {
                     if (v.storage_class & (STCconst | STCimmutable | STCmanifest) ||
                         v.type.isConst() || v.type.isImmutable())
