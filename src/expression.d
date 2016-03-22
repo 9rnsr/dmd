@@ -3690,17 +3690,26 @@ public:
                 /* If f is really a function template,
                  * then replace f with the function template declaration.
                  */
-                FuncDeclaration f = s.isFuncDeclaration();
-                if (f)
+                if (auto f = s.isFuncDeclaration())
                 {
-                    TemplateDeclaration td = getFuncTemplateDecl(f);
-                    if (td)
+                    if (auto td = getFuncTemplateDecl(f))
                     {
                         if (td.overroot) // if not start of overloaded list of TemplateDeclaration's
                             td = td.overroot; // then get the start
                         e = new TemplateExp(loc, td, f);
                         e = e.semantic(sc);
                         return e;
+                    }
+                    if (auto fa = f.isFuncAliasDeclaration())
+                    {
+                        if (!fa.hasOverloads)
+                        {
+                            s = fa.funcalias;
+                            e = DsymbolExp.resolve(loc, sc, s, false);
+                            printf("e : %s %s\n", Token.toChars(e.op), e.toChars());
+                            if (e.op == TOKvar) printf("\tve.hasOverloads = %d\n", (cast(VarExp)e).hasOverloads);
+                            return e;
+                        }
                     }
                 }
                 // Haven't done overload resolution yet, so pass 1
@@ -3885,16 +3894,17 @@ public:
         }
         if (auto f = s.isFuncDeclaration())
         {
-            f = f.toAliasFunc();
+            //f = f.toAliasFunc();
             if (!f.functionSemantic())
                 return new ErrorExp();
 
             if (!hasOverloads && f.checkForwardRef(loc))
                 return new ErrorExp();
 
-            auto fd = s.isFuncDeclaration();
-            fd.type = f.type;
-            return new VarExp(loc, fd, hasOverloads);
+            //auto fd = s.isFuncDeclaration();
+            //fd.type = f.type;
+            printf("[%s] f = %s %s [%s], hasOverloads = %d\n", loc.toChars(), f.toChars(), f.type.toChars(), f.loc.toChars(), hasOverloads);
+            return new VarExp(loc, f, hasOverloads);
         }
         if (OverDeclaration od = s.isOverDeclaration())
         {
@@ -4710,6 +4720,16 @@ public:
         for (size_t i = 0; i < tup.objects.dim; i++)
         {
             RootObject o = (*tup.objects)[i];
+            if (auto e = isExpression(o))
+            {
+                if (e.op == TOKvar && !(cast(VarExp)e).hasOverloads)
+                {
+                    printf("[%s] TupleExp.ctor tup.objects[%d] = %s\n", loc.toChars(), i, e.toChars());
+                    this.exps.push(e);
+                    continue;
+                }
+            }
+
             if (Dsymbol s = getDsymbol(o))
             {
                 /* If tuple element represents a symbol, translate to DsymbolExp
@@ -9160,7 +9180,7 @@ public:
 
     override Expression semantic(Scope* sc)
     {
-        static if (LOGSEMANTIC)
+        //static if (LOGSEMANTIC)
         {
             printf("CallExp::semantic() %s\n", toChars());
         }
@@ -9885,7 +9905,8 @@ public:
         else if (e1.op == TOKvar)
         {
             // Do overload resolution
-            VarExp ve = cast(VarExp)e1;
+            auto ve = cast(VarExp)e1;
+            //printf("\tCall e1, ve = %s hasOverloads = %d\n", ve.toChars(), ve.hasOverloads);
             f = ve.var.isFuncDeclaration();
             assert(f);
             tiargs = null;
@@ -11783,6 +11804,8 @@ public:
                 if (e1.op == TOKtuple)
                 {
                     e = (*te.exps)[cast(size_t)index];
+                    //printf("[%s] indexExp %s\n", loc.toChars(), toChars());
+                    //if (e.op == TOKvar) printf("\tve - %s hasOverloads = %d\n", e.toChars(), (cast(VarExp)e).hasOverloads);
                     e = combine(te.e0, e);
                 }
                 else

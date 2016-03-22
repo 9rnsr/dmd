@@ -632,6 +632,8 @@ public:
 
             if (e)  // Try to convert Expression to Dsymbol
             {
+                //printf("[%s] AliasDecl e = %s\n", loc.toChars(), e.toChars());
+                //if (e.op == TOKvar) printf("\tve = %s hasOverloads = %d\n", e.toChars(), (cast(VarExp)e).hasOverloads);
                 s = getDsymbol(e);
                 if (!s)
                 {
