@@ -6973,7 +6973,7 @@ public:
     final void resolveHelper(Loc loc, Scope* sc, Dsymbol s, Dsymbol scopesym,
         Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
     {
-        //version (none)
+        version (none)
         {
             printf("TypeQualified::resolveHelper(sc = %p, idents = '%s')\n", sc, toChars());
             //if (scopesym)
@@ -6991,7 +6991,7 @@ public:
             else
                 s.checkDeprecated(loc, sc); // check for deprecated aliases
             s = s.toAlias();
-            printf("\t2: s = '%s' %p, kind = '%s'\n",s.toChars(), s, s.kind());
+            //printf("\t2: s = '%s' %p, kind = '%s'\n",s.toChars(), s, s.kind());
             for (size_t i = 0; i < idents.dim; i++)
             {
                 RootObject id = idents[i];
@@ -7030,7 +7030,7 @@ public:
                     *pt = Type.terror;
                     return;
                 }
-                printf("\t3: s = %p %s %s, sm = %p\n", s, s.kind(), s.toChars(), sm);
+                //printf("\t3: s = %p %s %s, sm = %p\n", s, s.kind(), s.toChars(), sm);
                 if (intypeid && !t && sm && sm.needThis())
                     goto L3;
                 if (auto v = s.isVarDeclaration())
