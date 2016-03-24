@@ -4687,6 +4687,8 @@ public:
 
     Expressions* exps;
 
+    //VarDeclaration lengthVar;
+
     extern (D) this(Loc loc, Expression e0, Expressions* exps)
     {
         super(loc, TOKtuple, __traits(classInstanceSize, TupleExp));

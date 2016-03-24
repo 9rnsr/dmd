@@ -1743,7 +1743,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
 public:
     Expression exp;         // IndexExp or SliceExp
     TypeTuple type;         // for tuple[length]
-    TupleDeclaration td;    // for tuples of objects
+    TupleDeclaration tup;   // for tuples of objects
     Scope* sc;
 
     extern (D) this(Scope* sc, Expression e)
@@ -1761,7 +1761,7 @@ public:
 
     extern (D) this(Scope* sc, TupleDeclaration s)
     {
-        td = s;
+        tup = s;
         this.sc = sc;
     }
 
@@ -1774,12 +1774,13 @@ public:
             Expression ce;
 
         L1:
-            if (td)
+            if (tup)
             {
                 /* $ gives the number of elements in the tuple
                  */
+                printf("tup ce = %s\n [%s]\n", tup.toChars(), loc.toChars());
                 auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
-                Expression e = new IntegerExp(Loc(), td.objects.dim, Type.tsize_t);
+                Expression e = new IntegerExp(Loc(), tup.objects.dim, Type.tsize_t);
                 v._init = new ExpInitializer(Loc(), e);
                 v.storage_class |= STCtemp | STCstatic | STCconst;
                 v.semantic(sc);
@@ -1790,6 +1791,7 @@ public:
             {
                 /* $ gives the number of type entries in the type tuple
                  */
+                printf("type ce = %s\n [%s]\n", type.toChars(), loc.toChars());
                 auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
                 Expression e = new IntegerExp(Loc(), type.arguments.dim, Type.tsize_t);
                 v._init = new ExpInitializer(Loc(), e);
@@ -1858,6 +1860,7 @@ public:
                 Type t;
                 if (ce.op == TOKtuple)
                 {
+                    printf("TupleExp ce = %s\n [%s]\n", ce.toChars(), ce.loc.toChars());
                     /* It is for an expression tuple, so the
                      * length will be a const.
                      */
@@ -1879,7 +1882,7 @@ public:
 
                     Expression e = null;
                     // Check for multi-dimensional opDollar(dim) template.
-                    if (TemplateDeclaration td = s.isTemplateDeclaration())
+                    if (auto td = s.isTemplateDeclaration())
                     {
                         dinteger_t dim = 0;
                         if (exp.op == TOKarray)

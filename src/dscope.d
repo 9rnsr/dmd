@@ -552,6 +552,8 @@ struct Scope
             alias snew = s;
             if (sold !is snew)
             {
+                printf("sold = %p %s [%s]\n", sold, sold.toChars(), sold.loc.toChars());
+                printf("snew = %p %s [%s]\n", snew, snew.toChars(), snew.loc.toChars());
                 deprecation(loc, "local import search method found %s %s instead of %s %s",
                     sold ? sold.kind() : "nothing", sold ? sold.toPrettyChars() : null,
                     snew ? snew.kind() : "nothing", snew ? snew.toPrettyChars() : null);
