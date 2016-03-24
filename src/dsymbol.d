@@ -1772,6 +1772,7 @@ public:
         {
             VarDeclaration* pvar;
             Expression ce;
+
         L1:
             if (td)
             {
@@ -1784,6 +1785,7 @@ public:
                 v.semantic(sc);
                 return v;
             }
+
             if (type)
             {
                 /* $ gives the number of type entries in the type tuple
@@ -1795,6 +1797,7 @@ public:
                 v.semantic(sc);
                 return v;
             }
+
             if (exp.op == TOKindex)
             {
                 /* array[index] where index is some function of $
@@ -1826,8 +1829,10 @@ public:
                  */
                 return null;
             }
+
             while (ce.op == TOKcomma)
                 ce = (cast(CommaExp)ce).e2;
+
             /* If we are indexing into an array that is really a type
              * tuple, rewrite this as an index into a type tuple and
              * try again.
@@ -1841,6 +1846,7 @@ public:
                     goto L1;
                 }
             }
+
             /* *pvar is lazily initialized, so if we refer to $
              * multiple times, it gets set only once.
              */
@@ -1865,10 +1871,12 @@ public:
                     assert(exp.op == TOKarray || exp.op == TOKslice);
                     AggregateDeclaration ad = isAggregate(t);
                     assert(ad);
+
                     Dsymbol s = ad.search(loc, Id.opDollar);
                     if (!s) // no dollar exists -- search in higher scope
                         return null;
                     s = s.toAlias();
+
                     Expression e = null;
                     // Check for multi-dimensional opDollar(dim) template.
                     if (TemplateDeclaration td = s.isTemplateDeclaration())
@@ -1886,6 +1894,7 @@ public:
                         {
                             assert(0);
                         }
+
                         auto tiargs = new Objects();
                         Expression edim = new IntegerExp(Loc(), dim, Type.tsize_t);
                         edim = edim.semantic(sc);
