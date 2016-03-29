@@ -684,8 +684,9 @@ Lneed:
  */
 extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
 {
-    if (Dsymbol s = search_function(sd, Id.tohash))
+    if (auto s = search_function(sd, Id.tohash))
     {
+        printf("\tL%d\n", __LINE__);
         static __gshared TypeFunction tftohash;
         if (!tftohash)
         {
@@ -693,23 +694,59 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
             tftohash.mod = MODconst;
             tftohash = cast(TypeFunction)tftohash.merge();
         }
-        if (FuncDeclaration fd = s.isFuncDeclaration())
+
+        if (auto fd = s.isFuncDeclaration())
         {
-            fd = fd.overloadExactMatch(tftohash);
-            if (fd)
-                return fd;
+            if (auto f = fd.overloadExactMatch(tftohash))
+            {
+            printf("\tL%d fd = [%s] %s\n", __LINE__, fd.loc.toChars(), fd.toChars());
+                return f;
+            }
+
+            Loc declLoc = Loc(); // loc is unnecessary so __xtoHash is never called directly
+            Loc loc = Loc();     // internal code should have no loc to prevent coverage
+
+            auto parameters = new Parameters();
+            parameters.push(new Parameter(STCref | STCconst, sd.type, Id.p, null));
+            auto tf = new TypeFunction(parameters, Type.thash_t, 0, LINKd, STCnothrow | STCtrusted);
+
+            auto id = Id.xtoHash;
+            auto fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
+
+            Expression e = new IdentifierExp(loc, Id.p);
+            e = new DotVarExp(loc, e, fd);
+            e = new CallExp(loc, e);
+            fop.fbody = new ReturnStatement(loc, e);
+
+            Scope* sc2 = sc.push();
+            sc2.stc = 0;
+            sc2.linkage = LINKd;
+
+            fop.semantic(sc2);
+            fop.semantic2(sc2);
+
+            sc2.pop();
+            printf("\tL%d\n", __LINE__);
+
+            return fop;
         }
     }
+
     if (!needToHash(sd))
+    {
+        printf("\tL%d\n", __LINE__);
         return null;
+    }
 
     //printf("StructDeclaration::buildXtoHash() %s\n", sd.toPrettyChars());
     Loc declLoc = Loc(); // loc is unnecessary so __xtoHash is never called directly
-    Loc loc = Loc(); // internal code should have no loc to prevent coverage
+    Loc loc = Loc();     // internal code should have no loc to prevent coverage
+
     auto parameters = new Parameters();
     parameters.push(new Parameter(STCref | STCconst, sd.type, Id.p, null));
     auto tf = new TypeFunction(parameters, Type.thash_t, 0, LINKd, STCnothrow | STCtrusted);
-    Identifier id = Id.xtoHash;
+
+    auto id = Id.xtoHash;
     auto fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
 
     /* Do memberwise hashing.
@@ -723,12 +760,16 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
         "    h += typeid(T).getHash(cast(const void*)&p.tupleof[i]);" ~
         "return h;";
     fop.fbody = new CompileStatement(loc, new StringExp(loc, cast(char*)code));
+
     Scope* sc2 = sc.push();
     sc2.stc = 0;
     sc2.linkage = LINKd;
+
     fop.semantic(sc2);
     fop.semantic2(sc2);
+
     sc2.pop();
+    printf("\tL%d\n", __LINE__);
 
     //printf("%s fop = %s %s\n", sd.toChars(), fop.toChars(), fop.type.toChars());
     return fop;

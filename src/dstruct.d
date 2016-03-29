@@ -446,6 +446,7 @@ public:
         xeq = buildXopEquals(this, sc2);
         xcmp = buildXopCmp(this, sc2);
         xhash = buildXtoHash(this, sc2);
+        printf("sd = %s, xhash = %p\n", toChars(), xhash);
 
         inv = buildInv(this, sc2);
 
