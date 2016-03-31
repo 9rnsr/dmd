@@ -10099,20 +10099,22 @@ public:
         }
         if (type)
             return this;
-        if (Expression ex = unaSemantic(sc))
-            return ex;
+
+        if (auto e = unaSemantic(sc))
+            return e;
+
         int wasCond = e1.op == TOKquestion;
         if (e1.op == TOKdotti)
         {
-            DotTemplateInstanceExp dti = cast(DotTemplateInstanceExp)e1;
-            TemplateInstance ti = dti.ti;
+            auto dti = cast(DotTemplateInstanceExp)e1;
+            auto ti = dti.ti;
             {
                 //assert(ti.needsTypeInference(sc));
                 ti.semantic(sc);
                 if (!ti.inst || ti.errors) // if template failed to expand
                     return new ErrorExp();
-                Dsymbol s = ti.toAlias();
-                FuncDeclaration f = s.isFuncDeclaration();
+                auto s = ti.toAlias();
+                auto f = s.isFuncDeclaration();
                 if (f)
                 {
                     e1 = new DotVarExp(e1.loc, dti.e1, f);
@@ -10122,15 +10124,15 @@ public:
         }
         else if (e1.op == TOKscope)
         {
-            TemplateInstance ti = (cast(ScopeExp)e1).sds.isTemplateInstance();
+            auto ti = (cast(ScopeExp)e1).sds.isTemplateInstance();
             if (ti)
             {
                 //assert(ti.needsTypeInference(sc));
                 ti.semantic(sc);
                 if (!ti.inst || ti.errors) // if template failed to expand
                     return new ErrorExp();
-                Dsymbol s = ti.toAlias();
-                FuncDeclaration f = s.isFuncDeclaration();
+                auto s = ti.toAlias();
+                auto f = s.isFuncDeclaration();
                 if (f)
                 {
                     e1 = new VarExp(e1.loc, f);
@@ -10168,31 +10170,58 @@ public:
                 error("forward reference to %s", e1.toChars());
             return new ErrorExp();
         }
+
         type = e1.type.pointerTo();
+
         // See if this should really be a delegate
         if (e1.op == TOKdotvar)
         {
-            DotVarExp dve = cast(DotVarExp)e1;
-            FuncDeclaration f = dve.var.isFuncDeclaration();
-            if (f)
+            auto dve = cast(DotVarExp)e1;
+            if (auto f = dve.var.isFuncDeclaration())
             {
                 f = f.toAliasFunc(); // FIXME, should see overlods - Bugzilla 1983
                 if (!dve.hasOverloads)
                     f.tookAddressOf++;
+
                 Expression e;
                 if (f.needThis())
+                {
                     e = new DelegateExp(loc, dve.e1, f, dve.hasOverloads);
-                else // It is a function pointer. Convert &v.f() --> (v, &V.f())
-                    e = new CommaExp(loc, dve.e1, new AddrExp(loc, new VarExp(loc, f, dve.hasOverloads)));
-                e = e.semantic(sc);
+                    e = e.semantic(sc);
+                }
+                else if (f.isNested())
+                {
+                    Expression ethis;
+                    if (f.isFuncLiteralDeclaration() &&
+                        !f.FuncDeclaration.isNested())
+                    {
+                        /* Supply a 'null' for a this pointer if no this is available
+                         */
+                        ethis = new NullExp(loc, Type.tnull);
+                    }
+                    else
+                        ethis = new VarExp(loc, f, dve.hasOverloads);
+
+                    e = new DelegateExp(loc, ethis, f, dve.hasOverloads);
+                    e = e.semantic(sc);
+
+                    e = Expression.combine(dve.e1, e);
+                }
+                else
+                {
+                    //return optimize(WANTvalue);
+                    e = new SymOffExp(loc, f, 0, dve.hasOverloads);
+                    e.type = type;
+
+                    e = Expression.combine(dve.e1, e);
+                }
                 return e;
             }
         }
         else if (e1.op == TOKvar)
         {
-            VarExp ve = cast(VarExp)e1;
-            VarDeclaration v = ve.var.isVarDeclaration();
-            if (v)
+            auto ve = cast(VarExp)e1;
+            if (auto v = ve.var.isVarDeclaration())
             {
                 if (!v.canTakeAddressOf())
                 {
@@ -10209,8 +10238,7 @@ public:
                 }
                 ve.checkPurity(sc, v);
             }
-            FuncDeclaration f = ve.var.isFuncDeclaration();
-            if (f)
+            if (auto f = ve.var.isFuncDeclaration())
             {
                 /* Because nested functions cannot be overloaded,
                  * mark here that we took its address because castTo()
@@ -10218,33 +10246,49 @@ public:
                  */
                 if (!ve.hasOverloads || f.isNested())
                     f.tookAddressOf++;
+
+                Expression e;
                 if (f.isNested())
                 {
-                    if (f.isFuncLiteralDeclaration())
+                    Expression ethis;
+                    if (f.isFuncLiteralDeclaration() &&
+                        !f.FuncDeclaration.isNested())
                     {
-                        if (!f.FuncDeclaration.isNested())
-                        {
-                            /* Supply a 'null' for a this pointer if no this is available
-                             */
-                            Expression e = new DelegateExp(loc, new NullExp(loc, Type.tnull), f, ve.hasOverloads);
-                            e = e.semantic(sc);
-                            return e;
-                        }
+                        /* Supply a 'null' for a this pointer if no this is available
+                         */
+                        ethis = new NullExp(loc, Type.tnull);
                     }
-                    Expression e = new DelegateExp(loc, e1, f, ve.hasOverloads);
+                    else
+                        ethis = e1;
+
+                    e = new DelegateExp(loc, ethis, f, ve.hasOverloads);
                     e = e.semantic(sc);
-                    return e;
                 }
-                if (f.needThis() && hasThis(sc))
+                else if (f.needThis())
                 {
-                    /* Should probably supply 'this' after overload resolution,
-                     * not before.
-                     */
-                    Expression ethis = new ThisExp(loc);
-                    Expression e = new DelegateExp(loc, ethis, f, ve.hasOverloads);
-                    e = e.semantic(sc);
-                    return e;
+                    if (hasThis(sc))
+                    {
+                        /* Should probably supply 'this' after overload resolution,
+                         * not before.
+                         */
+                        Expression ethis = new ThisExp(loc);
+                        e = new DelegateExp(loc, ethis, f, ve.hasOverloads);
+                        e = e.semantic(sc);
+                    }
+                    else
+                    {
+                        //return optimize(WANTvalue);
+                        e = new SymOffExp(loc, f, 0, ve.hasOverloads);
+                        e.type = type;
+                    }
                 }
+                else
+                {
+                    //return optimize(WANTvalue);
+                    e = new SymOffExp(loc, f, 0, ve.hasOverloads);
+                    e.type = type;
+                }
+                return e;
             }
         }
         else if (wasCond)
