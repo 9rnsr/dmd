@@ -890,16 +890,49 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             Type tb = t.toBasetype();
             Type typeb = e.type.toBasetype();
 
-            // Look for pointers to functions where the functions are overloaded.
+            MATCH determineMatch(FuncDeclaration f)
+            {
+                if ((tb.ty == Tdelegate && (f.needThis() || f.isNested())) ||
+                    (tb.ty == Tpointer && !(f.needThis() || f.isNested())))
+                {
+                    return MATCHexact;
+                }
+                return MATCHnomatch;
+            }
+
+            // Look for function addresses where the functions are overloaded.
+            if (e.e1.op == TOKvar && (cast(VarExp)e.e1).hasOverloads &&
+                (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
+            {
+                auto f = (cast(VarExp)e.e1).var.isFuncDeclaration();
+                if (f)
+                    f = f.overloadExactMatch(tb.nextOf());
+                if (f)
+                {
+                    result = determineMatch(f);
+                    return;
+                }
+            }
+            if (e.e1.op == TOKdotvar && (cast(DotVarExp)e.e1).hasOverloads &&
+                (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
+            {
+                auto f = (cast(DotVarExp)e.e1).var.isFuncDeclaration();
+                if (f)
+                    f = f.overloadExactMatch(tb.nextOf());
+                if (f)
+                {
+                    result = determineMatch(f);
+                    return;
+                }
+            }
             if (e.e1.op == TOKoverloadset &&
                 (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
             {
-                OverExp eo = cast(OverExp)e.e1;
                 FuncDeclaration f = null;
-                for (size_t i = 0; i < eo.vars.a.dim; i++)
+                auto os = (cast(OverExp)e.e1).vars;
+                foreach (s; os.a)
                 {
-                    Dsymbol s = eo.vars.a[i];
-                    FuncDeclaration f2 = s.isFuncDeclaration();
+                    auto f2 = s.isFuncDeclaration();
                     assert(f2);
                     if (f2.overloadExactMatch(tb.nextOf()))
                     {
@@ -912,21 +945,15 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                         }
                         else
                             f = f2;
-                        result = MATCHexact;
                     }
+                }
+                if (f)
+                {
+                    result = determineMatch(f);
+                    return;
                 }
             }
 
-            if (e.e1.op == TOKvar &&
-                typeb.ty == Tpointer && typeb.nextOf().ty == Tfunction &&
-                tb.ty == Tpointer && tb.nextOf().ty == Tfunction)
-            {
-                /* I don't think this can ever happen -
-                 * it should have been
-                 * converted to a SymOffExp.
-                 */
-                assert(0);
-            }
             //printf("\tresult = %d\n", result);
         }
 
@@ -938,30 +965,6 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             }
             result = e.type.implicitConvTo(t);
             //printf("\tresult = %d\n", result);
-            if (result != MATCHnomatch)
-                return;
-
-            Type tb = t.toBasetype();
-            Type typeb = e.type.toBasetype();
-
-            // Look for pointers to functions where the functions are overloaded.
-            if (typeb.ty == Tpointer && typeb.nextOf().ty == Tfunction &&
-                (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
-            {
-                if (FuncDeclaration f = e.var.isFuncDeclaration())
-                {
-                    f = f.overloadExactMatch(tb.nextOf());
-                    if (f)
-                    {
-                        if ((tb.ty == Tdelegate && (f.needThis() || f.isNested())) ||
-                            (tb.ty == Tpointer && !(f.needThis() || f.isNested())))
-                        {
-                            result = MATCHexact;
-                        }
-                    }
-                }
-            }
-            //printf("\tresult = %d\n", result);
         }
 
         override void visit(DelegateExp e)
@@ -971,18 +974,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 printf("DelegateExp::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
             }
             result = e.type.implicitConvTo(t);
-            if (result != MATCHnomatch)
-                return;
-
-            Type tb = t.toBasetype();
-            Type typeb = e.type.toBasetype();
-
-            // Look for pointers to functions where the functions are overloaded.
-            if (typeb.ty == Tdelegate && tb.ty == Tdelegate)
-            {
-                if (e.func && e.func.overloadExactMatch(tb.nextOf()))
-                    result = MATCHexact;
-            }
+            //printf("\tresult = %d\n", result);
         }
 
         override void visit(FuncExp e)
@@ -1834,89 +1826,6 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             result.type = t; // so semantic() won't be run on e
         }
 
-        override void visit(AddrExp e)
-        {
-            version (none)
-            {
-                printf("AddrExp::castTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
-            }
-            result = e;
-
-            Type tb = t.toBasetype();
-            Type typeb = e.type.toBasetype();
-
-            if (tb.equals(typeb))
-            {
-                result = e.copy();
-                result.type = t;
-                return;
-            }
-
-            // Look for pointers to functions where the functions are overloaded.
-            if (e.e1.op == TOKoverloadset &&
-                (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
-            {
-                OverExp eo = cast(OverExp)e.e1;
-                FuncDeclaration f = null;
-                for (size_t i = 0; i < eo.vars.a.dim; i++)
-                {
-                    auto s = eo.vars.a[i];
-                    auto f2 = s.isFuncDeclaration();
-                    assert(f2);
-                    if (f2.overloadExactMatch(tb.nextOf()))
-                    {
-                        if (f)
-                        {
-                            /* Error if match in more than one overload set,
-                             * even if one is a 'better' match than the other.
-                             */
-                            ScopeDsymbol.multiplyDefined(e.loc, f, f2);
-                        }
-                        else
-                            f = f2;
-                    }
-                }
-                if (f)
-                {
-                    f.tookAddressOf++;
-                    auto se = new SymOffExp(e.loc, f, 0/*, false*/);
-                    se.semantic(sc);
-                    // Let SymOffExp::castTo() do the heavy lifting
-                    visit(se);
-                    return;
-                }
-            }
-
-            if (e.e1.op == TOKvar &&
-                typeb.ty == Tpointer && typeb.nextOf().ty == Tfunction &&
-                tb.ty == Tpointer && tb.nextOf().ty == Tfunction)
-            {
-                auto ve = cast(VarExp)e.e1;
-                auto f = ve.var.isFuncDeclaration();
-                if (f)
-                {
-                    f = f.overloadExactMatch(tb.nextOf());
-                    if (f)
-                    {
-                        result = new SymOffExp(e.loc, f, 0/*, false*/);
-                        result.type = t;
-                        return;
-                    }
-                }
-            }
-
-            if (auto f = isFuncAddress(e))
-            {
-                if (f.checkForwardRef(e.loc))
-                {
-                    result = new ErrorExp();
-                    return;
-                }
-            }
-
-            visit(cast(Expression)e);
-        }
-
         override void visit(TupleExp e)
         {
             if (e.type.equals(t))
@@ -2068,6 +1977,129 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             visit(cast(Expression)e);
         }
 
+        override void visit(AddrExp e)
+        {
+            version (none)
+            {
+                printf("AddrExp::castTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
+            }
+            result = e;
+
+            Type tb = t.toBasetype();
+            Type typeb = e.type.toBasetype();
+
+            if (tb.equals(typeb))
+            {
+                result = e.copy();
+                result.type = t;
+                return;
+            }
+
+            // Look for pointers to functions where the functions are overloaded.
+            Expression determineOverload(FuncDeclaration f)
+            {
+                if (f.checkForwardRef(e.loc))
+                    return new ErrorExp();
+
+                if (tb.ty == Tdelegate)
+                {
+                    Expression ethis;
+                    if (f.needThis() && hasThis(sc))
+                    {
+                        ethis = new ThisExp(e.loc);
+                    }
+                    else if (f.isNested())
+                    {
+                        ethis = new IntegerExp(0);
+                    }
+                    else if (f.needThis())
+                    {
+                        e.error("no 'this' to create delegate for %s", f.toChars());
+                        return new ErrorExp();
+                    }
+                    else
+                    {
+                        e.error("cannot cast from function pointer to delegate");
+                        return new ErrorExp();
+                    }
+
+                    f.tookAddressOf++;
+                    Expression dge = new DelegateExp(e.loc, ethis, f/*, false*/);
+                    dge = dge.semantic(sc);
+                    return dge;
+                }
+                else
+                {
+                    f.tookAddressOf++;
+                    Expression soe = new SymOffExp(e.loc, f, 0/*, false*/);
+                    soe = soe.semantic(sc);
+                    return soe;
+                }
+            }
+
+            // Look for function addresses where the functions are overloaded.
+            if (e.e1.op == TOKvar && (cast(VarExp)e.e1).hasOverloads &&
+                (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
+            {
+                auto f = (cast(VarExp)e.e1).var.isFuncDeclaration();
+                if (f)
+                    f = f.overloadExactMatch(tb.nextOf());
+                if (f)
+                {
+                    result = determineOverload(f);
+                    if (result.op != TOKerror)
+                        result.type = t;
+                    return;
+                }
+            }
+            if (e.e1.op == TOKdotvar && (cast(DotVarExp)e.e1).hasOverloads &&
+                (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
+            {
+                auto f = (cast(DotVarExp)e.e1).var.isFuncDeclaration();
+                if (f)
+                    f = f.overloadExactMatch(tb.nextOf());
+                if (f)
+                {
+                    result = determineOverload(f);
+                    if (result.op != TOKerror)
+                        result.type = t;
+                    return;
+                }
+            }
+            if (e.e1.op == TOKoverloadset &&
+                (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
+            {
+                FuncDeclaration f = null;
+                auto os = (cast(OverExp)e.e1).vars;
+                foreach (s; os.a)
+                {
+                    auto f2 = s.isFuncDeclaration();
+                    assert(f2);
+                    if (f2.overloadExactMatch(tb.nextOf()))
+                    {
+                        if (f)
+                        {
+                            /* Error if match in more than one overload set,
+                             * even if one is a 'better' match than the other.
+                             */
+                            ScopeDsymbol.multiplyDefined(e.loc, f, f2);
+                        }
+                        else
+                            f = f2;
+                    }
+                }
+                if (f)
+                {
+                    result = determineOverload(f);
+                    if (result.op != TOKerror)
+                        result.type = t;
+                    return;
+                }
+            }
+
+            visit(cast(Expression)e);
+        }
+
         override void visit(SymOffExp e)
         {
             version (none)
@@ -2089,60 +2121,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 result.type = t;
                 return;
             }
-/+
-            // Look for pointers to functions where the functions are overloaded.
-            if (e.hasOverloads &&
-                typeb.ty == Tpointer && typeb.nextOf().ty == Tfunction &&
-                (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
-            {
-                FuncDeclaration f = e.var.isFuncDeclaration();
-                f = f ? f.overloadExactMatch(tb.nextOf()) : null;
-                if (f)
-                {
-                    if (tb.ty == Tdelegate)
-                    {
-                        if (f.needThis() && hasThis(sc))
-                        {
-                            result = new DelegateExp(e.loc, new ThisExp(e.loc), f, false);
-                            result = result.semantic(sc);
-                        }
-                        else if (f.isNested())
-                        {
-                            result = new DelegateExp(e.loc, new IntegerExp(0), f, false);
-                            result = result.semantic(sc);
-                        }
-                        else if (f.needThis())
-                        {
-                            e.error("no 'this' to create delegate for %s", f.toChars());
-                            result = new ErrorExp();
-                            return;
-                        }
-                        else
-                        {
-                            e.error("cannot cast from function pointer to delegate");
-                            result = new ErrorExp();
-                            return;
-                        }
-                    }
-                    else
-                    {
-                        result = new SymOffExp(e.loc, f, 0, false);
-                        result.type = t;
-                    }
-                    f.tookAddressOf++;
-                    return;
-                }
-            }
 
-            if (auto f = isFuncAddress(e))
-            {
-                if (f.checkForwardRef(e.loc))
-                {
-                    result = new ErrorExp();
-                    return;
-                }
-            }
-+/
             visit(cast(Expression)e);
         }
 
@@ -2152,7 +2131,6 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             {
                 printf("DelegateExp::castTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
             }
-            static __gshared const(char)* msg = "cannot form delegate due to covariant return type";
 
             if (e.type == t)
             {
@@ -2165,35 +2143,31 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
 
             if (tb.equals(typeb))
             {
-                //int offset;
-                //e.func.tookAddressOf++;
-                //if (e.func.tintro && e.func.tintro.nextOf().isBaseOf(e.func.type.nextOf(), &offset) && offset)
-                //    e.error("%s", msg);
                 result = e.copy();
                 result.type = t;
                 return;
             }
-
+// TODO
+/+
             // Look for delegates to functions where the functions are overloaded.
-            if (typeb.ty == Tdelegate && tb.ty == Tdelegate)
+            if (tb.ty == Tdelegate)
             {
-                //if (e.func)
+                static __gshared const(char)* msg = "cannot form delegate due to covariant return type";
+
+                auto f = e.func.overloadExactMatch(tb.nextOf());
+                if (f)
                 {
-                    auto f = e.func.overloadExactMatch(tb.nextOf());
-                    if (f)
-                    {
-                        int offset;
-                        if (f.tintro && f.tintro.nextOf().isBaseOf(f.type.nextOf(), &offset) && offset)
-                            e.error("%s", msg);
-                        if (f != e.func)    // if address not already marked as taken
-                            f.tookAddressOf++;
-                        result = new DelegateExp(e.loc, e.e1, f/*, false*/);
-                        result.type = t;
-                        return;
-                    }
-                    if (e.func.tintro)
+                    int offset;
+                    if (f.tintro && f.tintro.nextOf().isBaseOf(f.type.nextOf(), &offset) && offset)
                         e.error("%s", msg);
+                    if (f != e.func)    // if address not already marked as taken
+                        f.tookAddressOf++;
+                    result = new DelegateExp(e.loc, e.e1, f/*, false*/);
+                    result.type = t;
+                    return;
                 }
+                if (e.func.tintro)
+                    e.error("%s", msg);
             }
 
             if (auto f = isFuncAddress(e))
@@ -2204,7 +2178,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     return;
                 }
             }
-
++/
             visit(cast(Expression)e);
         }
 
