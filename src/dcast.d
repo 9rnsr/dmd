@@ -1879,7 +1879,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 if (f)
                 {
                     f.tookAddressOf++;
-                    auto se = new SymOffExp(e.loc, f, 0, false);
+                    auto se = new SymOffExp(e.loc, f, 0/*, false*/);
                     se.semantic(sc);
                     // Let SymOffExp::castTo() do the heavy lifting
                     visit(se);
@@ -1898,7 +1898,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     f = f.overloadExactMatch(tb.nextOf());
                     if (f)
                     {
-                        result = new SymOffExp(e.loc, f, false);
+                        result = new SymOffExp(e.loc, f, 0/*, false*/);
                         result.type = t;
                         return;
                     }
@@ -2074,7 +2074,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             {
                 printf("SymOffExp::castTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
             }
-            if (e.type == t && !e.hasOverloads)
+            if (e.type == t)
             {
                 result = e;
                 return;
@@ -2087,10 +2087,9 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             {
                 result = e.copy();
                 result.type = t;
-                (cast(SymOffExp)result).hasOverloads = false;
                 return;
             }
-
+/+
             // Look for pointers to functions where the functions are overloaded.
             if (e.hasOverloads &&
                 typeb.ty == Tpointer && typeb.nextOf().ty == Tfunction &&
@@ -2143,7 +2142,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     return;
                 }
             }
-
++/
             visit(cast(Expression)e);
         }
 
@@ -2154,15 +2153,22 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 printf("DelegateExp::castTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
             }
             static __gshared const(char)* msg = "cannot form delegate due to covariant return type";
+
+            if (e.type == t)
+            {
+                result = e;
+                return;
+            }
+
             Type tb = t.toBasetype();
             Type typeb = e.type.toBasetype();
 
-            if (tb.equals(typeb) && !e.hasOverloads)
+            if (tb.equals(typeb))
             {
-                int offset;
-                e.func.tookAddressOf++;
-                if (e.func.tintro && e.func.tintro.nextOf().isBaseOf(e.func.type.nextOf(), &offset) && offset)
-                    e.error("%s", msg);
+                //int offset;
+                //e.func.tookAddressOf++;
+                //if (e.func.tintro && e.func.tintro.nextOf().isBaseOf(e.func.type.nextOf(), &offset) && offset)
+                //    e.error("%s", msg);
                 result = e.copy();
                 result.type = t;
                 return;
@@ -2171,7 +2177,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             // Look for delegates to functions where the functions are overloaded.
             if (typeb.ty == Tdelegate && tb.ty == Tdelegate)
             {
-                if (e.func)
+                //if (e.func)
                 {
                     auto f = e.func.overloadExactMatch(tb.nextOf());
                     if (f)
@@ -2181,7 +2187,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                             e.error("%s", msg);
                         if (f != e.func)    // if address not already marked as taken
                             f.tookAddressOf++;
-                        result = new DelegateExp(e.loc, e.e1, f, false);
+                        result = new DelegateExp(e.loc, e.e1, f/*, false*/);
                         result.type = t;
                         return;
                     }

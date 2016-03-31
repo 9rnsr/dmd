@@ -1736,10 +1736,10 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                 //arg = callCpCtor(sc, arg);
             }
             // Give error for overloaded function addresses
-            if (arg.op == TOKsymoff)
+            if (arg.op == TOKaddress && (cast(AddrExp)arg).e1.op == TOKvar)
             {
-                SymOffExp se = cast(SymOffExp)arg;
-                if (se.hasOverloads && !se.var.isFuncDeclaration().isUnique())
+                auto ve = cast(VarExp)(cast(AddrExp)arg).e1;
+                if (ve.hasOverloads && !ve.var.isFuncDeclaration().isUnique())
                 {
                     arg.error("function %s is overloaded", arg.toChars());
                     err = true;
@@ -6167,14 +6167,12 @@ extern (C++) class SymbolExp : Expression
 {
 public:
     Declaration var;
-    bool hasOverloads;
 
-    final extern (D) this(Loc loc, TOK op, int size, Declaration var, bool hasOverloads)
+    final extern (D) this(Loc loc, TOK op, int size, Declaration var)
     {
         super(loc, op, size);
         assert(var);
         this.var = var;
-        this.hasOverloads = hasOverloads;
     }
 
     override void accept(Visitor v)
@@ -6199,17 +6197,9 @@ extern (C++) final class SymOffExp : SymbolExp
 public:
     dinteger_t offset;
 
-    extern (D) this(Loc loc, Declaration var, dinteger_t offset, bool hasOverloads = true)
+    extern (D) this(Loc loc, Declaration var, dinteger_t offset)
     {
-        if (auto v = var.isVarDeclaration())
-        {
-            // FIXME: This error report will never be handled anyone.
-            // It should be done before the SymOffExp construction.
-            if (v.needThis())
-                .error(loc, "need 'this' for address of %s", v.toChars());
-            hasOverloads = false;
-        }
-        super(loc, TOKsymoff, __traits(classInstanceSize, SymOffExp), var, hasOverloads);
+        super(loc, TOKsymoff, __traits(classInstanceSize, SymOffExp), var);
         this.offset = offset;
     }
 
@@ -6254,15 +6244,17 @@ public:
 extern (C++) final class VarExp : SymbolExp
 {
 public:
+    bool hasOverloads;
+
     extern (D) this(Loc loc, Declaration var, bool hasOverloads = true)
     {
         if (var.isVarDeclaration())
             hasOverloads = false;
 
-        super(loc, TOKvar, __traits(classInstanceSize, VarExp), var, hasOverloads);
-        //printf("VarExp(this = %p, '%s', loc = %s)\n", this, var->toChars(), loc.toChars());
-        //if (strcmp(var->ident->toChars(), "func") == 0) assert(0);
+        super(loc, TOKvar, __traits(classInstanceSize, VarExp), var);
+        //printf("VarExp(this = %p, '%s', loc = %s)\n", this, var.toChars(), loc.toChars());
         this.type = var.type;
+        this.hasOverloads = hasOverloads;
     }
 
     static VarExp create(Loc loc, Declaration var, bool hasOverloads = true)
@@ -9013,13 +9005,11 @@ extern (C++) final class DelegateExp : UnaExp
 {
 public:
     FuncDeclaration func;
-    bool hasOverloads;
 
-    extern (D) this(Loc loc, Expression e, FuncDeclaration f, bool hasOverloads = true)
+    extern (D) this(Loc loc, Expression e, FuncDeclaration f)
     {
         super(loc, TOKdelegate, __traits(classInstanceSize, DelegateExp), e);
         this.func = f;
-        this.hasOverloads = hasOverloads;
     }
 
     override Expression semantic(Scope* sc)
@@ -9030,11 +9020,14 @@ public:
         }
         if (type)
             return this;
+
         e1 = e1.semantic(sc);
+
         type = new TypeDelegate(func.type);
         type = type.semantic(loc, sc);
-        FuncDeclaration f = func.toAliasFunc();
-        AggregateDeclaration ad = f.toParent().isAggregateDeclaration();
+
+        auto f = func.toAliasFunc();
+        auto ad = f.toParent().isAggregateDeclaration();
         if (f.needThis())
             e1 = getRightThis(loc, sc, ad, e1, f);
         if (ad && ad.isClassDeclaration() && ad.type != e1.type)
@@ -9189,8 +9182,8 @@ public:
         }
         if (e1.op == TOKdelegate)
         {
-            DelegateExp de = cast(DelegateExp)e1;
-            e1 = new DotVarExp(de.loc, de.e1, de.func, de.hasOverloads);
+            auto dge = cast(DelegateExp)e1;
+            e1 = new DotVarExp(dge.loc, dge.e1, dge.func);
             return semantic(sc);
         }
         if (e1.op == TOKfunction)
@@ -9353,10 +9346,10 @@ public:
                     return new ErrorExp();
             }
 
-            if (e1.op == TOKsymoff && (cast(SymOffExp)e1).hasOverloads)
+            if (e1.op == TOKsymoff)
             {
-                SymOffExp se = cast(SymOffExp)e1;
-                e1 = new VarExp(se.loc, se.var, true);
+                auto soe = cast(SymOffExp)e1;
+                e1 = new VarExp(soe.loc, soe.var, false);
                 e1 = e1.semantic(sc);
             }
             else if (e1.op == TOKdot)
@@ -10067,14 +10060,14 @@ FuncDeclaration isFuncAddress(Expression e, bool* hasOverloads = null)
         {
             auto soe = cast(SymOffExp)e;
             if (hasOverloads)
-                *hasOverloads = soe.hasOverloads;
+                *hasOverloads = false;
             return soe.var.isFuncDeclaration();
         }
         if (e.op == TOKdelegate)
         {
             auto dge = cast(DelegateExp)e;
             if (hasOverloads)
-                *hasOverloads = dge.hasOverloads;
+                *hasOverloads = false;
             return dge.func.isFuncDeclaration();
         }
     }
@@ -10181,7 +10174,11 @@ public:
                     f.tookAddressOf++;
                 Expression e;
                 if (f.needThis())
-                    e = new DelegateExp(loc, dve.e1, f, dve.hasOverloads);
+                {
+                    if (dve.hasOverloads)
+                        return this;    // Keep the form AddrExp + DotVarExp
+                    e = new DelegateExp(loc, dve.e1, f/*, false*/);
+                }
                 else // It is a function pointer. Convert &v.f() --> (v, &V.f())
                     e = new CommaExp(loc, dve.e1, new AddrExp(loc, new VarExp(loc, f, dve.hasOverloads)));
                 e = e.semantic(sc);
@@ -10220,18 +10217,20 @@ public:
                     f.tookAddressOf++;
                 if (f.isNested())
                 {
+                    if (ve.hasOverloads)
+                        return this;    // Keep the form AddrExp + DotVarExp
                     if (f.isFuncLiteralDeclaration())
                     {
                         if (!f.FuncDeclaration.isNested())
                         {
                             /* Supply a 'null' for a this pointer if no this is available
                              */
-                            Expression e = new DelegateExp(loc, new NullExp(loc, Type.tnull), f, ve.hasOverloads);
+                            Expression e = new DelegateExp(loc, new NullExp(loc, Type.tnull), f/*, ve.hasOverloads*/);
                             e = e.semantic(sc);
                             return e;
                         }
                     }
-                    Expression e = new DelegateExp(loc, e1, f, ve.hasOverloads);
+                    Expression e = new DelegateExp(loc, e1, f/*, ve.hasOverloads*/);
                     e = e.semantic(sc);
                     return e;
                 }
@@ -10240,8 +10239,10 @@ public:
                     /* Should probably supply 'this' after overload resolution,
                      * not before.
                      */
+                    if (ve.hasOverloads)
+                        return this;    // Keep the form AddrExp + DotVarExp
                     Expression ethis = new ThisExp(loc);
-                    Expression e = new DelegateExp(loc, ethis, f, ve.hasOverloads);
+                    Expression e = new DelegateExp(loc, ethis, f/*, ve.hasOverloads*/);
                     e = e.semantic(sc);
                     return e;
                 }
