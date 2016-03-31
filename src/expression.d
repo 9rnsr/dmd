@@ -10180,40 +10180,82 @@ public:
             if (auto f = dve.var.isFuncDeclaration())
             {
                 f = f.toAliasFunc(); // FIXME, should see overlods - Bugzilla 1983
-                if (!dve.hasOverloads)
-                    f.tookAddressOf++;
 
+                Expression ethis;
                 Expression e;
                 if (f.needThis())
                 {
-                    e = new DelegateExp(loc, dve.e1, f, dve.hasOverloads);
-                    e = e.semantic(sc);
+                    if (dve.hasOverloads)
+                    {
+                        e = new DelegateExp(loc, dve.e1, f, dve.hasOverloads);
+                        e = e.semantic(sc);
+                    }
+                    else
+                    {
+                        f.tookAddressOf++;
+                        e = new DelegateExp(loc, dve.e1, f, dve.hasOverloads);
+                        e = e.semantic(sc);
+                    }
                 }
                 else if (f.isNested())
                 {
-                    Expression ethis;
-                    if (f.isFuncLiteralDeclaration() &&
-                        !f.FuncDeclaration.isNested())
+                    if (dve.hasOverloads)
                     {
-                        /* Supply a 'null' for a this pointer if no this is available
-                         */
-                        ethis = new NullExp(loc, Type.tnull);
+                        if (f.isFuncLiteralDeclaration() &&
+                            !f.FuncDeclaration.isNested())
+                        {
+                            /* Supply a 'null' for a this pointer if no this is available
+                             */
+                            ethis = new NullExp(loc, Type.tnull);
+                        }
+                        else
+                            ethis = new VarExp(loc, f, dve.hasOverloads);
+
+                        e = new DelegateExp(loc, ethis, f, dve.hasOverloads);
+                        e = e.semantic(sc);
+
+                        e = Expression.combine(dve.e1, e);
                     }
                     else
-                        ethis = new VarExp(loc, f, dve.hasOverloads);
+                    {
+                        f.tookAddressOf++;
 
-                    e = new DelegateExp(loc, ethis, f, dve.hasOverloads);
-                    e = e.semantic(sc);
+                        if (f.isFuncLiteralDeclaration() &&
+                            !f.FuncDeclaration.isNested())
+                        {
+                            /* Supply a 'null' for a this pointer if no this is available
+                             */
+                            ethis = new NullExp(loc, Type.tnull);
+                        }
+                        else
+                            ethis = new VarExp(loc, f, dve.hasOverloads);
 
-                    e = Expression.combine(dve.e1, e);
+                        e = new DelegateExp(loc, ethis, f, dve.hasOverloads);
+                        e = e.semantic(sc);
+
+                        e = Expression.combine(dve.e1, e);
+                    }
                 }
                 else
                 {
-                    //return optimize(WANTvalue);
-                    e = new SymOffExp(loc, f, 0, dve.hasOverloads);
-                    e.type = type;
+                    if (dve.hasOverloads)
+                    {
+                        //return optimize(WANTvalue);
+                        e = new SymOffExp(loc, f, 0, dve.hasOverloads);
+                        e.type = type;
 
-                    e = Expression.combine(dve.e1, e);
+                        e = Expression.combine(dve.e1, e);
+                    }
+                    else
+                    {
+                        f.tookAddressOf++;
+
+                        //return optimize(WANTvalue);
+                        e = new SymOffExp(loc, f, 0, dve.hasOverloads);
+                        e.type = type;
+
+                        e = Expression.combine(dve.e1, e);
+                    }
                 }
                 return e;
             }
@@ -10240,53 +10282,104 @@ public:
             }
             if (auto f = ve.var.isFuncDeclaration())
             {
-                /* Because nested functions cannot be overloaded,
-                 * mark here that we took its address because castTo()
-                 * may not be called with an exact match.
-                 */
-                if (!ve.hasOverloads || f.isNested())
-                    f.tookAddressOf++;
-
+                Expression ethis;
                 Expression e;
                 if (f.isNested())
                 {
-                    Expression ethis;
-                    if (f.isFuncLiteralDeclaration() &&
-                        !f.FuncDeclaration.isNested())
+                    if (ve.hasOverloads)
                     {
-                        /* Supply a 'null' for a this pointer if no this is available
-                         */
-                        ethis = new NullExp(loc, Type.tnull);
-                    }
-                    else
-                        ethis = e1;
+                        f.tookAddressOf++;
 
-                    e = new DelegateExp(loc, ethis, f, ve.hasOverloads);
-                    e = e.semantic(sc);
-                }
-                else if (f.needThis())
-                {
-                    if (hasThis(sc))
-                    {
-                        /* Should probably supply 'this' after overload resolution,
-                         * not before.
-                         */
-                        Expression ethis = new ThisExp(loc);
+                        if (f.isFuncLiteralDeclaration() &&
+                            !f.FuncDeclaration.isNested())
+                        {
+                            /* Supply a 'null' for a this pointer if no this is available
+                             */
+                            ethis = new NullExp(loc, Type.tnull);
+                        }
+                        else
+                            ethis = e1;
+
                         e = new DelegateExp(loc, ethis, f, ve.hasOverloads);
                         e = e.semantic(sc);
                     }
                     else
                     {
-                        //return optimize(WANTvalue);
-                        e = new SymOffExp(loc, f, 0, ve.hasOverloads);
-                        e.type = type;
+                        f.tookAddressOf++;
+
+                        if (f.isFuncLiteralDeclaration() &&
+                            !f.FuncDeclaration.isNested())
+                        {
+                            /* Supply a 'null' for a this pointer if no this is available
+                             */
+                            ethis = new NullExp(loc, Type.tnull);
+                        }
+                        else
+                            ethis = e1;
+
+                        e = new DelegateExp(loc, ethis, f, ve.hasOverloads);
+                        e = e.semantic(sc);
+                    }
+                }
+                else if (f.needThis())
+                {
+                    if (ve.hasOverloads)
+                    {
+                        if (hasThis(sc))
+                        {
+                            /* Should probably supply 'this' after overload resolution,
+                             * not before.
+                             */
+                            Expression ethis = new ThisExp(loc);
+                            e = new DelegateExp(loc, ethis, f, ve.hasOverloads);
+                            e = e.semantic(sc);
+                        }
+                        else
+                        {
+                            //return optimize(WANTvalue);
+                            e = new SymOffExp(loc, f, 0, ve.hasOverloads);
+                            e.type = type;
+                        }
+                    }
+                    else
+                    {
+                        if (hasThis(sc))
+                        {
+                            f.tookAddressOf++;
+
+                            /* Should probably supply 'this' after overload resolution,
+                             * not before.
+                             */
+                            Expression ethis = new ThisExp(loc);
+                            e = new DelegateExp(loc, ethis, f, ve.hasOverloads);
+                            e = e.semantic(sc);
+                        }
+                        else
+                        {
+                            f.tookAddressOf++;
+
+                            //return optimize(WANTvalue);
+                            e = new SymOffExp(loc, f, 0, ve.hasOverloads);
+                            e.type = type;
+                        }
                     }
                 }
                 else
                 {
-                    //return optimize(WANTvalue);
-                    e = new SymOffExp(loc, f, 0, ve.hasOverloads);
-                    e.type = type;
+                    if (ve.hasOverloads)
+                    {
+                        //return optimize(WANTvalue);
+                        e = new SymOffExp(loc, f, 0, ve.hasOverloads);
+                        e.type = type;
+                    }
+                    else
+                    {
+                        f.tookAddressOf++;
+
+                        //return optimize(WANTvalue);
+                        e = new SymOffExp(loc, f, 0, ve.hasOverloads);
+                        e.type = type;
+                    }
                 }
                 return e;
             }
