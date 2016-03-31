@@ -10161,35 +10161,54 @@ public:
                 error("forward reference to %s", e1.toChars());
             return new ErrorExp();
         }
+
         type = e1.type.pointerTo();
+
         // See if this should really be a delegate
         if (e1.op == TOKdotvar)
         {
-            DotVarExp dve = cast(DotVarExp)e1;
-            FuncDeclaration f = dve.var.isFuncDeclaration();
-            if (f)
+            auto dve = cast(DotVarExp)e1;
+            if (auto f = dve.var.isFuncDeclaration())
             {
-                f = f.toAliasFunc(); // FIXME, should see overlods - Bugzilla 1983
                 if (!dve.hasOverloads)
-                    f.tookAddressOf++;
-                Expression e;
-                if (f.needThis())
                 {
-                    if (dve.hasOverloads)
-                        return this;    // Keep the form AddrExp + DotVarExp
-                    e = new DelegateExp(loc, dve.e1, f/*, false*/);
+                    f = f.toAliasFunc();
+
+                    f.tookAddressOf++;
+
+                    Expression e;
+                    if (f.needThis())
+                    {
+                        e = new DelegateExp(loc, dve.e1, f/*, false*/);
+                    }
+                    else // It is a function pointer. Convert &v.f() --> (v, &V.f())
+                    {
+                        e = new SymOffExp(loc, f, 0/*, false*/);
+                        e = Expression.combine(dve.e1, e);
+                    }
+                    e = e.semantic(sc);
+                    return e;
                 }
-                else // It is a function pointer. Convert &v.f() --> (v, &V.f())
-                    e = new CommaExp(loc, dve.e1, new AddrExp(loc, new VarExp(loc, f, dve.hasOverloads)));
-                e = e.semantic(sc);
-                return e;
+                else
+                {
+                    // The first function type of overloads is pickd up.
+                    if (f.needThis() || f.isNested())
+                    {
+                        type = new TypeDelegate(f.type);
+                        type = type.semantic(loc, sc);
+                    }
+                    else
+                    {
+                        // Keep function pointer type
+                    }
+                    return this;
+                }
             }
         }
         else if (e1.op == TOKvar)
         {
-            VarExp ve = cast(VarExp)e1;
-            VarDeclaration v = ve.var.isVarDeclaration();
-            if (v)
+            auto ve = cast(VarExp)e1;
+            if (auto v = ve.var.isVarDeclaration())
             {
                 if (!v.canTakeAddressOf())
                 {
@@ -10205,46 +10224,51 @@ public:
                     }
                 }
                 ve.checkPurity(sc, v);
+
+                return optimize(WANTvalue);
             }
-            FuncDeclaration f = ve.var.isFuncDeclaration();
-            if (f)
+            if (auto f = ve.var.isFuncDeclaration())
             {
-                /* Because nested functions cannot be overloaded,
-                 * mark here that we took its address because castTo()
-                 * may not be called with an exact match.
-                 */
-                if (!ve.hasOverloads || f.isNested())
+                // If f is a nested function and introduced by template mixin, it might have overloads.
+                // If f is lambda and aliased in DeclDefs scope, it might have overloads which introduced by alias declarations.
+                if (!ve.hasOverloads)
+                {
                     f.tookAddressOf++;
-                if (f.isNested())
-                {
-                    if (ve.hasOverloads)
-                        return this;    // Keep the form AddrExp + DotVarExp
-                    if (f.isFuncLiteralDeclaration())
+                    if (f.isNested())
                     {
-                        if (!f.FuncDeclaration.isNested())
+                        Expression ethis;
+                        if (f.isFuncLiteralDeclaration() &&
+                            !f.FuncDeclaration.isNested())
                         {
-                            /* Supply a 'null' for a this pointer if no this is available
-                             */
-                            Expression e = new DelegateExp(loc, new NullExp(loc, Type.tnull), f/*, ve.hasOverloads*/);
-                            e = e.semantic(sc);
-                            return e;
+                            ethis = new NullExp(loc, Type.tnull);
                         }
+                        else
+                            ethis = e1;
+
+                        Expression e = new DelegateExp(loc, ethis, f/*, ve.hasOverloads*/);
+                        e = e.semantic(sc);
+                        return e;
                     }
-                    Expression e = new DelegateExp(loc, e1, f/*, ve.hasOverloads*/);
-                    e = e.semantic(sc);
-                    return e;
+                    if (f.needThis())
+                    {
+                        Expression ethis = hasThis(sc) ? new ThisExp(loc) : null;
+                        Expression e;
+                        if (ethis)
+                        {
+                            e = new DelegateExp(loc, ethis, f/*, ve.hasOverloads*/);
+                        }
+                        else
+                        {
+                            // out of member function scope, &func makes a raw function address. ???
+                            e = new SymOffExp(loc, f, 0/*, false*/);
+                        }
+                        e = e.semantic(sc);
+                        return e;
+                    }
                 }
-                if (f.needThis() && hasThis(sc))
+                else
                 {
-                    /* Should probably supply 'this' after overload resolution,
-                     * not before.
-                     */
-                    if (ve.hasOverloads)
-                        return this;    // Keep the form AddrExp + DotVarExp
-                    Expression ethis = new ThisExp(loc);
-                    Expression e = new DelegateExp(loc, ethis, f/*, ve.hasOverloads*/);
-                    e = e.semantic(sc);
-                    return e;
+                    return this;    // Keep the form AddrExp + DotVarExp
                 }
             }
         }
