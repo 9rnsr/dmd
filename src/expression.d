@@ -10201,6 +10201,9 @@ public:
                 {
                     if (dve.hasOverloads)
                     {
+                        // TODO: The relation between dve.e1 and f are dropped here.
+                        // If later overload resolution reaches needThis() function, it would cause a problem.
+
                         if (f.isFuncLiteralDeclaration() &&
                             !f.FuncDeclaration.isNested())
                         {
@@ -10240,6 +10243,9 @@ public:
                 {
                     if (dve.hasOverloads)
                     {
+                        // TODO: The relation between dve.e1 and f are dropped here.
+                        // If later overload resolution reaches needThis() function, it would cause a problem.
+
                         //return optimize(WANTvalue);
                         e = new SymOffExp(loc, f, 0, dve.hasOverloads);
                         e.type = type;
@@ -10288,12 +10294,18 @@ public:
                 {
                     if (ve.hasOverloads)
                     {
+                        // TODO
                         f.tookAddressOf++;
 
+                        // If later overload resolution reaches needThis() or free function, these
+                        // dummy 'this' should be dropped.
                         if (f.isFuncLiteralDeclaration() &&
                             !f.FuncDeclaration.isNested())
                         {
+                            // This is a special for the lambdas directly under aggregate members!?
+
                             /* Supply a 'null' for a this pointer if no this is available
+                             * --> See also DelegateExp.toElem() in dmd glue layer.
                              */
                             ethis = new NullExp(loc, Type.tnull);
                         }
@@ -10310,7 +10322,10 @@ public:
                         if (f.isFuncLiteralDeclaration() &&
                             !f.FuncDeclaration.isNested())
                         {
+                            // This is a special for the lambdas directly under aggregate members!?
+
                             /* Supply a 'null' for a this pointer if no this is available
+                             * --> See also DelegateExp.toElem() in dmd glue layer.
                              */
                             ethis = new NullExp(loc, Type.tnull);
                         }
@@ -10329,6 +10344,7 @@ public:
                         {
                             /* Should probably supply 'this' after overload resolution,
                              * not before.
+                             * --> At least 'this' is valid in loc, so it's not a problem.
                              */
                             Expression ethis = new ThisExp(loc);
                             e = new DelegateExp(loc, ethis, f, ve.hasOverloads);
@@ -10336,9 +10352,19 @@ public:
                         }
                         else
                         {
+                            // TODO: outside aggregate scope, the address of member function
+                            // is typed as function pointer. I think it's not good context dependent behavior
+                            // but changing it would break existing user code.
+
                             //return optimize(WANTvalue);
                             e = new SymOffExp(loc, f, 0, ve.hasOverloads);
                             e.type = type;
+
+                            // Later the SymOff is called with overload resolution,
+                            // the implicit 'this' might be supplied in CallExp.semantic.
+
+                            // Later the SymOff is casted to Tdelegate with overload resolution,
+                            // the implicit 'this' might be supplied in SymOffExp.castTo.
                         }
                     }
                     else
@@ -10356,6 +10382,10 @@ public:
                         }
                         else
                         {
+                            // TODO: outside aggregate scope, the address of member function
+                            // is typed as function pointer. I think it's not good context dependent behavior
+                            // but changing it would break existing user code.
+
                             f.tookAddressOf++;
 
                             //return optimize(WANTvalue);
