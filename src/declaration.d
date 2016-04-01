@@ -2082,7 +2082,6 @@ public:
         {
             inuse++;
             _init = _init.semantic(_scope, type, INITinterpret);
-            _scope = null;
             inuse--;
         }
 

@@ -2248,6 +2248,10 @@ public:
                         auto fe = cast(FuncExp)e;
                         ds = fe.td ? cast(Dsymbol)fe.td : fe.fd;
                     }
+                    else if (e.op == TOKdotvar && (cast(DotVarExp)e).e1.op == TOKtype)
+                    {
+                        ds = (cast(DotVarExp)e).var;
+                    }
 
                     if (ds)
                     {

@@ -1,8 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail120.d(12): Error: need 'this' for 'nodes' of type 'int[2]'
-fail_compilation/fail120.d(13): Error: need 'this' for 'nodes' of type 'int[2]'
+fail_compilation/fail120.d(12): Error: 'this' is only defined in non-static member functions, not __lambda4
+fail_compilation/fail120.d(13): Error: 'this' is only defined in non-static member functions, not __lambda5
 ---
 */
 

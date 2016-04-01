@@ -124,10 +124,18 @@ extern (C++) Expression resolveAliasThis(Scope* sc, Expression e, bool gag = fal
         uint olderrors = gag ? global.startGagging() : 0;
         Loc loc = e.loc;
         Type tthis = (e.op == TOKtype ? e.type : null);
+
         e = new DotIdExp(loc, e, ad.aliasthis.ident);
         e = e.semantic(sc);
+
         if (tthis && ad.aliasthis.needThis())
         {
+            if (e.op == TOKdotvar && (cast(DotVarExp)e).e1.op == TOKtype)
+            {
+                // unreal variable
+                e = new VarExp(e.loc, (cast(DotVarExp)e).var, (cast(DotVarExp)e).hasOverloads);
+            }
+
             if (e.op == TOKvar)
             {
                 if (auto fd = (cast(VarExp)e).var.isFuncDeclaration())
@@ -145,6 +153,7 @@ extern (C++) Expression resolveAliasThis(Scope* sc, Expression e, bool gag = fal
                     }
                 }
             }
+
             /* non-@property function is not called inside typeof(),
              * so resolve it ahead.
              */

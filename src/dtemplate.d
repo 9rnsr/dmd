@@ -150,6 +150,10 @@ extern (C++) Dsymbol getDsymbol(RootObject oarg)
         // Try to convert Expression to symbol
         if (ea.op == TOKvar)
             sa = (cast(VarExp)ea).var;
+        else if (ea.op == TOKdotvar && (cast(DotVarExp)ea).e1.op == TOKtype)
+        {
+            sa = (cast(DotVarExp)ea).var;
+        }
         else if (ea.op == TOKfunction)
         {
             if ((cast(FuncExp)ea).td)
@@ -7330,7 +7334,7 @@ public:
             else if (ea)
             {
             Lexpr:
-                //printf("+[%d] ea = %s %s\n", j, Token::toChars(ea->op), ea->toChars());
+                //printf("+[%d] ea = %s %s\n", j, Token.toChars(ea.op), ea.toChars());
                 if (flags & 1) // only used by __traits
                 {
                     ea = ea.semantic(sc);
@@ -7355,6 +7359,11 @@ public:
                          * const substitution in TemplateValueParameter::matchArg().
                          */
                     }
+                    else if (ea.op == TOKdotvar && (cast(DotVarExp)ea).e1.op == TOKtype)
+                    {
+                        auto dve = cast(DotVarExp)ea;
+                        ea = new VarExp(ea.loc, dve.var, dve.hasOverloads);
+                    }
                     else if (definitelyValueParameter(ea))
                     {
                         if (ea.checkValue()) // check void expression
@@ -7365,7 +7374,8 @@ public:
                             ea = new ErrorExp();
                     }
                 }
-                //printf("-[%d] ea = %s %s\n", j, Token::toChars(ea->op), ea->toChars());
+                //printf("-[%d] ea = %s %s\n", j, Token.toChars(ea.op), ea.toChars());
+
                 if (ea.op == TOKtuple)
                 {
                     // Expand tuple

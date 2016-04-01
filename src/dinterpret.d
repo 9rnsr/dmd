@@ -745,8 +745,14 @@ extern (C++) Expression ctfeInterpretForPragmaMsg(Expression e)
     {
         return e;
     }
+    if (e.op == TOKdotvar && (cast(DotVarExp)e).e1.op == TOKtype)
+    {
+        auto dve = cast(DotVarExp)e;
+        return new VarExp(e.loc, dve.var, dve.hasOverloads);
+    }
     if (e.op != TOKtuple)
         return e.ctfeInterpret();
+
     // Tuples need to be treated seperately, since they are
     // allowed to contain a TypeExp in this case.
     TupleExp tup = cast(TupleExp)e;
