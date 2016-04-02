@@ -786,25 +786,10 @@ public:
         }
 
         // Give error for overloaded function addresses
-        bool hasOverloads;
-        if (auto f = isFuncAddress(exp, &hasOverloads))
+        if (exp.op == TOKaddress && (cast(AddrExp)exp).isAmbiguous())
         {
-            if (f.checkForwardRef(loc))
-                return new ErrorInitializer();
-            if (hasOverloads && !f.isUnique())
-            {
-                exp.error("cannot infer type from overloaded function symbol %s", exp.toChars());
-                return new ErrorInitializer();
-            }
-        }
-        if (exp.op == TOKaddress)
-        {
-            AddrExp ae = cast(AddrExp)exp;
-            if (ae.e1.op == TOKoverloadset)
-            {
-                exp.error("cannot infer type from overloaded function symbol %s", exp.toChars());
-                return new ErrorInitializer();
-            }
+            exp.error("cannot infer type from overloaded function address %s", exp.toChars());
+            return new ErrorInitializer();
         }
         if (exp.op == TOKerror)
             return new ErrorInitializer();

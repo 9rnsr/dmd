@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail289.d(12): Error: cannot cast from function pointer to delegate
+fail_compilation/fail289.d(12): Error: cannot cast expression & fun of type void function() to void delegate()
 ---
 */
 

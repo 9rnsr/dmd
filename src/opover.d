@@ -1721,10 +1721,12 @@ extern (C++) bool inferAggregate(ForeachStatement fes, Scope* sc, ref Dsymbol sa
     Type att = null;
     Expression aggr = fes.aggr;
     AggregateDeclaration ad;
+
     while (1)
     {
         if (!aggr.type)
             goto Lerr;
+
         tab = aggr.type.toBasetype();
         switch (tab.ty)
         {
@@ -1733,12 +1735,15 @@ extern (C++) bool inferAggregate(ForeachStatement fes, Scope* sc, ref Dsymbol sa
         case Ttuple:
         case Taarray:
             break;
+
         case Tclass:
             ad = (cast(TypeClass)tab).sym;
             goto Laggr;
+
         case Tstruct:
             ad = (cast(TypeStruct)tab).sym;
             goto Laggr;
+
         Laggr:
             if (!sliced)
             {
@@ -1748,6 +1753,7 @@ extern (C++) bool inferAggregate(ForeachStatement fes, Scope* sc, ref Dsymbol sa
                     // opApply aggregate
                     break;
                 }
+
                 if (fes.aggr.op != TOKtype)
                 {
                     Expression rinit = new ArrayExp(aggr.loc, fes.aggr);
@@ -1760,11 +1766,13 @@ extern (C++) bool inferAggregate(ForeachStatement fes, Scope* sc, ref Dsymbol sa
                     }
                 }
             }
+
             if (ad.search(Loc(), idfront))
             {
                 // range aggregate
                 break;
             }
+
             if (ad.aliasthis)
             {
                 if (att == tab)
@@ -1775,14 +1783,33 @@ extern (C++) bool inferAggregate(ForeachStatement fes, Scope* sc, ref Dsymbol sa
                 continue;
             }
             goto Lerr;
+
         case Tdelegate:
             if (aggr.op == TOKdelegate)
             {
                 sapply = (cast(DelegateExp)aggr).func;
             }
+            if (aggr.op == TOKaddress)
+            {
+                auto ae = cast(AddrExp)aggr;
+                //if (ae.e1.op == TOKvar)
+                //{
+                //    sapply = (cast(VarExp)ae.e1).var;
+                //    break;
+                //}
+                if (ae.e1.op == TOKdotvar && ae.isAmbiguous())
+                {
+                    sapply = (cast(DotVarExp)ae.e1).var;
+                    break;
+                }
+                //if (ae.e1.op == TOKoverloadset) {}
+                // todo: DotExp + OverExp
+            }
             break;
+
         case Terror:
             break;
+
         default:
             goto Lerr;
         }
@@ -1790,6 +1817,7 @@ extern (C++) bool inferAggregate(ForeachStatement fes, Scope* sc, ref Dsymbol sa
     }
     fes.aggr = aggr;
     return true;
+
 Lerr:
     return false;
 }
@@ -1803,6 +1831,7 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
 {
     if (!fes.parameters || !fes.parameters.dim)
         return false;
+
     if (sapply) // prefer opApply
     {
         for (size_t u = 0; u < fes.parameters.dim; u++)
@@ -1814,26 +1843,32 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
                 p.type = p.type.addStorageClass(p.storageClass);
             }
         }
+
         Expression ethis;
         Type tab = fes.aggr.type.toBasetype();
         if (tab.ty == Tclass || tab.ty == Tstruct)
             ethis = fes.aggr;
-        else
+        else if (fes.aggr.op == TOKdelegate)
         {
-            assert(tab.ty == Tdelegate && fes.aggr.op == TOKdelegate);
             ethis = (cast(DelegateExp)fes.aggr).e1;
         }
+        else
+        {
+            assert(fes.aggr.op == TOKaddress && (cast(AddrExp)fes.aggr).e1.op == TOKdotvar);
+            ethis = (cast(DotVarExp)(cast(AddrExp)fes.aggr).e1).e1;
+        }
+
         /* Look for like an
          *  int opApply(int delegate(ref Type [, ...]) dg);
          * overload
          */
-        FuncDeclaration fd = sapply.isFuncDeclaration();
-        if (fd)
+        if (auto fd = sapply.isFuncDeclaration())
         {
             sapply = inferApplyArgTypesX(ethis, fd, fes.parameters);
         }
         return sapply !is null;
     }
+
     /* Return if no parameters need types.
      */
     for (size_t u = 0; u < fes.parameters.dim; u++)
@@ -1842,7 +1877,9 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
         if (!p.type)
             break;
     }
+
     AggregateDeclaration ad;
+
     Parameter p = (*fes.parameters)[0];
     Type taggr = fes.aggr.type;
     assert(taggr);
@@ -1867,6 +1904,7 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
             p.type = p.type.addStorageClass(p.storageClass);
         }
         break;
+
     case Taarray:
         {
             TypeAArray taa = cast(TypeAArray)tab;
@@ -1888,12 +1926,15 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
             }
             break;
         }
+
     case Tclass:
         ad = (cast(TypeClass)tab).sym;
         goto Laggr;
+
     case Tstruct:
         ad = (cast(TypeStruct)tab).sym;
         goto Laggr;
+
     Laggr:
         if (fes.parameters.dim == 1)
         {
@@ -1925,12 +1966,14 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
             break;
         }
         break;
+
     case Tdelegate:
         {
             if (!inferApplyArgTypesY(cast(TypeFunction)tab.nextOf(), fes.parameters))
                 return false;
             break;
         }
+
     default:
         break; // ignore error, caught later
     }
@@ -1943,6 +1986,7 @@ extern (C++) static Dsymbol inferApplyArgTypesX(Expression ethis, FuncDeclaratio
     MATCH match = MATCHnomatch;
     FuncDeclaration fd_best;
     FuncDeclaration fd_ambig;
+
     overloadApply(fstart, (Dsymbol s)
     {
         auto f = s.isFuncDeclaration();
@@ -1950,6 +1994,7 @@ extern (C++) static Dsymbol inferApplyArgTypesX(Expression ethis, FuncDeclaratio
             return 0;
         auto tf = cast(TypeFunction)f.type;
         MATCH m = MATCHexact;
+
         if (f.isThis())
         {
             if (!MODimplicitConv(mod, tf.mod))
@@ -1959,6 +2004,7 @@ extern (C++) static Dsymbol inferApplyArgTypesX(Expression ethis, FuncDeclaratio
         }
         if (!inferApplyArgTypesY(tf, parameters, 1))
             m = MATCHnomatch;
+
         if (m > match)
         {
             fd_best = f;

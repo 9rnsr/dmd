@@ -586,9 +586,8 @@ class SymbolExp : public Expression
 {
 public:
     Declaration *var;
-    bool hasOverloads;
 
-    SymbolExp(Loc loc, TOK op, int size, Declaration *var, bool hasOverloads);
+    SymbolExp(Loc loc, TOK op, int size, Declaration *var);
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -600,7 +599,7 @@ class SymOffExp : public SymbolExp
 public:
     dinteger_t offset;
 
-    SymOffExp(Loc loc, Declaration *var, dinteger_t offset, bool hasOverloads = true);
+    SymOffExp(Loc loc, Declaration *var, dinteger_t offset);
     Expression *semantic(Scope *sc);
     bool isBool(bool result);
 
@@ -612,6 +611,8 @@ public:
 class VarExp : public SymbolExp
 {
 public:
+    bool hasOverloads;
+
     VarExp(Loc loc, Declaration *var, bool hasOverloads = true);
     static VarExp *create(Loc loc, Declaration *var, bool hasOverloads = true);
     bool equals(RootObject *o);
@@ -878,9 +879,8 @@ class DelegateExp : public UnaExp
 {
 public:
     FuncDeclaration *func;
-    bool hasOverloads;
 
-    DelegateExp(Loc loc, Expression *e, FuncDeclaration *func, bool hasOverloads = true);
+    DelegateExp(Loc loc, Expression *e, FuncDeclaration *func);
     Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }

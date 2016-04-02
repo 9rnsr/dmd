@@ -355,10 +355,10 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
             if (e.e1.op == TOKvar)
             {
-                VarExp ve = cast(VarExp)e.e1;
-                if (!ve.var.isOut() && !ve.var.isRef())
+                auto ve = cast(VarExp)e.e1;
+                if (!ve.hasOverloads && !ve.var.isOut() && !ve.var.isRef())
                 {
-                    ret = new SymOffExp(e.loc, ve.var, 0, ve.hasOverloads);
+                    ret = new SymOffExp(e.loc, ve.var, 0);
                     ret.type = e.type;
                     return;
                 }

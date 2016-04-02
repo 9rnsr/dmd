@@ -2210,7 +2210,7 @@ public:
         }
         else
         {
-            result = new DelegateExp(e.loc, result, e.func, false);
+            result = new DelegateExp(e.loc, result, e.func);
             result.type = e.type;
         }
     }

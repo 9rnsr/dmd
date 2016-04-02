@@ -2989,7 +2989,7 @@ public:
                     if (aggr.op == TOKdelegate && (cast(DelegateExp)aggr).func.isNested())
                     {
                         // See Bugzilla 3560
-                        aggr = (cast(DelegateExp)aggr).e1;
+                        aggr = (cast(DelegateExp)aggr).e1;      // aggr --> VarExp(the nested func) ?
                     }
                     ec = new CallExp(loc, aggr, flde);
                     ec = ec.semantic(sc2);

@@ -2367,7 +2367,10 @@ public Expression inlineCopy(Expression e, Scope* sc)
             /* See Bugzilla 4820
              * Defer checking until later if we actually need the 'this' pointer
              */
-            return de.copy();
+            de = cast(DelegateExp)de.copy();
+            // TODO
+            de.e1 = new NullExp(de.loc, Type.tnull);
+            return de;
         }
     }
     scope InlineCostVisitor icv = new InlineCostVisitor();
