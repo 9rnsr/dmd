@@ -3875,12 +3875,11 @@ public:
         {
             printf("DsymbolExp::resolve(%s %s)\n", s.kind(), s.toChars());
         }
-    Lagain:
+
         Expression e;
-        //printf("DsymbolExp:: %p '%s' is a symbol\n", this, toChars());
-        //printf("s = '%s', s.kind = '%s'\n", s.toChars(), s.kind());
-        Dsymbol olds = s;
-        Declaration d = s.isDeclaration();
+
+        auto olds = s;
+        auto d = s.isDeclaration();
         if (d && (d.storage_class & STCtemplateparameter))
         {
             s = s.toAlias();
@@ -3898,11 +3897,12 @@ public:
                 s.checkDeprecated(loc, sc);
         }
 
-        if (EnumMember em = s.isEnumMember())
+        if (auto em = s.isEnumMember())
         {
-            return em.getVarExp(loc, sc);
+            e = em.getVarExp(loc, sc);
+            return e;
         }
-        if (VarDeclaration v = s.isVarDeclaration())
+        if (auto v = s.isVarDeclaration())
         {
             //printf("Identifier '%s' is a variable, type '%s'\n", toChars(), v.type.toChars());
             if (!v.type)
@@ -3952,49 +3952,54 @@ public:
 
             auto fd = s.isFuncDeclaration();
             fd.type = f.type;
-            return new VarExp(loc, fd, hasOverloads);
+            e = new VarExp(loc, fd, hasOverloads);
+            return e;
         }
-        if (OverDeclaration od = s.isOverDeclaration())
+        if (auto od = s.isOverDeclaration())
         {
             e = new VarExp(loc, od, true);
             e.type = Type.tvoid;
             return e;
         }
-        if (OverloadSet o = s.isOverloadSet())
+        if (auto os = s.isOverloadSet())
         {
             //printf("'%s' is an overload set\n", o.toChars());
-            return new OverExp(loc, o);
+            return new OverExp(loc, os);
         }
-        if (Import imp = s.isImport())
+
+        if (auto imp = s.isImport())
         {
             if (!imp.pkg)
             {
                 .error(loc, "forward reference of import %s", imp.toChars());
                 return new ErrorExp();
             }
-            auto ie = new ScopeExp(loc, imp.pkg);
-            return ie.semantic(sc);
+            e = new ScopeExp(loc, imp.pkg);
+            e = e.semantic(sc);
+            return e;
         }
-        if (Package pkg = s.isPackage())
+        if (auto pkg = s.isPackage())
         {
-            auto ie = new ScopeExp(loc, pkg);
-            return ie.semantic(sc);
+            // pkg is Package or Module
+            e = new ScopeExp(loc, pkg);
+            e = e.semantic(sc);
+            return e;
         }
-        if (Module mod = s.isModule())
+        if (auto ns = s.isNspace())
         {
-            auto ie = new ScopeExp(loc, mod);
-            return ie.semantic(sc);
+            e = new ScopeExp(loc, ns);
+            e = e.semantic(sc);
+            return e;
         }
-        if (Nspace ns = s.isNspace())
+
+        if (auto t = s.getType())
         {
-            auto ie = new ScopeExp(loc, ns);
-            return ie.semantic(sc);
+            e = new TypeExp(loc, t);
+            e = e.semantic(sc);
+            return e;
         }
-        if (Type t = s.getType())
-        {
-            return (new TypeExp(loc, t)).semantic(sc);
-        }
-        if (TupleDeclaration tup = s.isTupleDeclaration())
+
+        if (auto tup = s.isTupleDeclaration())
         {
             if (tup.needThis() && hasThis(sc))
                 e = new DotVarExp(loc, new ThisExp(loc), tup);
@@ -4003,24 +4008,27 @@ public:
             e = e.semantic(sc);
             return e;
         }
-        if (TemplateInstance ti = s.isTemplateInstance())
+
+        if (auto ti = s.isTemplateInstance())
         {
             ti.semantic(sc);
             if (!ti.inst || ti.errors)
                 return new ErrorExp();
             s = ti.toAlias();
             if (!s.isTemplateInstance())
-                goto Lagain;
+                return DsymbolExp.resolve(loc, sc, s, hasOverloads);
             e = new ScopeExp(loc, ti);
             e = e.semantic(sc);
             return e;
         }
-        if (TemplateDeclaration td = s.isTemplateDeclaration())
+        if (auto td = s.isTemplateDeclaration())
         {
-            Dsymbol p = td.toParent2();
-            FuncDeclaration fdthis = hasThis(sc);
-            AggregateDeclaration ad = p ? p.isAggregateDeclaration() : null;
-            if (fdthis && ad && isAggregate(fdthis.vthis.type) == ad && (td._scope.stc & STCstatic) == 0)
+            auto p = td.toParent2();
+            auto fdthis = hasThis(sc);
+            auto ad = p ? p.isAggregateDeclaration() : null;
+            if (fdthis &&
+                ad && isAggregate(fdthis.vthis.type) == ad &&
+                (td._scope.stc & STCstatic) == 0)
             {
                 e = new DotTemplateExp(loc, new ThisExp(loc), td);
             }
@@ -4029,6 +4037,7 @@ public:
             e = e.semantic(sc);
             return e;
         }
+
         .error(loc, "%s '%s' is not a variable", s.kind(), s.toChars());
         return new ErrorExp();
     }
