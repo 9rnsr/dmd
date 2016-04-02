@@ -4080,7 +4080,7 @@ public:
         if (type)
             return this;
 
-        FuncDeclaration fd = hasThis(sc); // fd is the uplevel function with the 'this' variable
+        auto fd = hasThis(sc); // fd is the uplevel function with the 'this' variable
 
         /* Special case for typeof(this) and typeof(super) since both
          * should work even if they are not inside a non-static member function
@@ -4095,36 +4095,30 @@ public:
                     error("%s is not in a class or struct scope", toChars());
                     goto Lerr;
                 }
-                ClassDeclaration cd = s.isClassDeclaration();
-                if (cd)
+                if (auto ad = s.isAggregateDeclaration())
                 {
-                    type = cd.type;
-                    return this;
-                }
-                StructDeclaration sd = s.isStructDeclaration();
-                if (sd)
-                {
-                    type = sd.type;
+                    type = ad.type;
                     return this;
                 }
             }
         }
         if (!fd)
-            goto Lerr;
-
-        assert(fd.vthis);
-        var = fd.vthis;
-        assert(var.parent);
-        type = var.type;
-        if (var.checkNestedReference(sc, loc))
+        {
+        Lerr:
+            error("'this' is only defined in non-static member functions, not %s", sc.parent.toChars());
             return new ErrorExp();
+        }
+        assert(fd.vthis);
+
+        if (fd.vthis.checkNestedReference(sc, loc))
+            return new ErrorExp();
+
         if (!sc.intypeof)
             sc.callSuper |= CSXthis;
-        return this;
+        var = fd.vthis;
+        type = var.type;
 
-    Lerr:
-        error("'this' is only defined in non-static member functions, not %s", sc.parent.toChars());
-        return new ErrorExp();
+        return this;
     }
 
     override final bool isBool(bool result)
@@ -4174,9 +4168,7 @@ public:
         if (type)
             return this;
 
-        FuncDeclaration fd = hasThis(sc);
-        ClassDeclaration cd;
-        Dsymbol s;
+        auto fd = hasThis(sc);
 
         /* Special case for typeof(this) and typeof(super) since both
          * should work even if they are not inside a non-static member function
@@ -4184,64 +4176,53 @@ public:
         if (!fd && sc.intypeof == 1)
         {
             // Find enclosing class
-            for (s = sc.getStructClassScope(); 1; s = s.parent)
+            for (Dsymbol s = sc.getStructClassScope(); 1; s = s.parent)
             {
                 if (!s)
                 {
                     error("%s is not in a class scope", toChars());
                     goto Lerr;
                 }
-                cd = s.isClassDeclaration();
-                if (cd)
+                if (auto cd = s.isClassDeclaration())
                 {
-                    cd = cd.baseClass;
-                    if (!cd)
+                    if (!cd.baseClass)
                     {
                         error("class %s has no 'super'", s.toChars());
                         goto Lerr;
                     }
-                    type = cd.type;
+                    type = cd.baseClass.type;
                     return this;
                 }
             }
         }
         if (!fd)
-            goto Lerr;
+        {
+        Lerr:
+            error("'super' is only allowed in non-static class member functions");
+            return new ErrorExp();
+        }
+        assert(fd.vthis);
 
-        var = fd.vthis;
-        assert(var && var.parent);
-
-        s = fd.toParent();
-        while (s && s.isTemplateInstance())
-            s = s.toParent();
-        if (s.isTemplateDeclaration()) // allow inside template constraint
-            s = s.toParent();
-        assert(s);
-        cd = s.isClassDeclaration();
-        //printf("parent is %s %s\n", fd->toParent()->kind(), fd->toParent()->toChars());
+        auto cd = fd.toParent2().isClassDeclaration();
+        //printf("parent is %s %s\n", fd.toParent2().kind(), fd.toParent2().toChars());
         if (!cd)
             goto Lerr;
         if (!cd.baseClass)
         {
             error("no base class for %s", cd.toChars());
-            type = var.type;
-        }
-        else
-        {
-            type = cd.baseClass.type;
-            type = type.castMod(var.type.mod);
+            return new ErrorExp();
         }
 
-        if (var.checkNestedReference(sc, loc))
+        if (fd.vthis.checkNestedReference(sc, loc))
             return new ErrorExp();
 
         if (!sc.intypeof)
             sc.callSuper |= CSXsuper;
-        return this;
+        var = fd.vthis;
+        type = cd.baseClass.type;
+        type = type.castMod(var.type.mod);
 
-    Lerr:
-        error("'super' is only allowed in non-static class member functions");
-        return new ErrorExp();
+        return this;
     }
 
     override void accept(Visitor v)
