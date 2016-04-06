@@ -12143,6 +12143,7 @@ public:
             return this;
 
         Expression e1old = e1;
+        Expression aaAssign_e0;
 
         if (e2.op == TOKcomma)
         {
@@ -12703,13 +12704,13 @@ public:
                     if (e0)
                         e0 = e0.semantic(sc);
 
-                    AssignExp ae = cast(AssignExp)copy();
-                    ae.e1 = new IndexExp(loc, ea, ek);
-                    ae.e1 = ae.e1.semantic(sc);
-                    ae.e1 = ae.e1.optimize(WANTvalue);
-                    ae.e2 = ev;
-                    Expression e = ae.op_overload(sc);
-                    if (e)
+                    this.e1 = new IndexExp(loc, ea, ek);
+                    this.e1 = this.e1.semantic(sc);
+                    this.e1 = this.e1.optimize(WANTvalue);
+                    this.e2 = ev;
+                    auto ae = cast(AssignExp)this.copy();
+
+                    if (auto e = ae.op_overload(sc))
                     {
                         Expression ey = null;
                         if (t2.ty == Tstruct && sd == t2.toDsymbol(sc))
@@ -12754,6 +12755,8 @@ public:
                         e = e.semantic(sc);
                         return e;
                     }
+
+                    aaAssign_e0 = e0;
                 }
                 else
                 {
@@ -13078,7 +13081,15 @@ public:
 
         type = e1.type;
         assert(type);
-        return op == TOKassign ? reorderSettingAAElem(sc) : this;
+        if (op == TOKassign)
+        {
+            if (aaAssign_e0)
+                return Expression.combine(aaAssign_e0, this);
+            else
+                return reorderSettingAAElem(sc);
+        }
+        else
+            return this;
     }
 
     override final bool isLvalue()
