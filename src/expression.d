@@ -5480,6 +5480,7 @@ public:
             strcpy(buf.ptr, "__sl");
             strncat(buf.ptr, sd.ident.toChars(), len - 4 - 1);
             assert(buf[len] == 0);
+
             Identifier idtmp = Identifier.generateId(buf.ptr);
             auto tmp = new VarDeclaration(loc, type, idtmp, new ExpInitializer(loc, this));
             tmp.storage_class |= STCtemp | STCctfe;
@@ -8737,16 +8738,17 @@ public:
         }
         if (type)
             return this;
+
+        e1 = e1.semantic(sc);
+
         var = var.toAlias().isDeclaration();
-        TupleDeclaration tup = var.isTupleDeclaration();
-        if (tup)
+        if (auto tup = var.isTupleDeclaration())
         {
             /* Replace:
              *  e1.tuple(a, b, c)
              * with:
              *  tuple(e1.a, e1.b, e1.c)
              */
-            e1 = e1.semantic(sc);
             auto exps = new Expressions();
             Expression e0 = null;
             Expression ev = e1;
@@ -8794,8 +8796,14 @@ public:
             e = e.semantic(sc);
             return e;
         }
-        e1 = e1.semantic(sc);
-        e1 = e1.addDtorHook(sc);
+        if (e1.op == TOKstructliteral && var.isCtorDeclaration())
+        {
+            // This is a part of struct constructor call.
+            // __ctmp.ctor(arguments...)
+        }
+        else
+            e1 = e1.addDtorHook(sc);
+
         Type t1 = e1.type;
         if (FuncDeclaration fd = var.isFuncDeclaration())
         {
@@ -10153,6 +10161,19 @@ public:
 
     override Expression addDtorHook(Scope* sc)
     {
+        if (e1.op == TOKdotvar)
+        {
+            auto dve = cast(DotVarExp)e1;
+            if (dve.e1.op == TOKstructliteral &&
+                dve.var.isCtorDeclaration())
+            {
+                dve.e1 = dve.e1.addDtorHook(sc);
+                if (dve.e1.op == TOKerror)
+                    return dve.e1;
+                return this;
+            }
+        }
+
         /* Only need to add dtor hook if it's a type that needs destruction.
          * Use same logic as VarDeclaration::callScopeDtor()
          */
@@ -10162,6 +10183,7 @@ public:
             if (tf.isref)
                 return this;
         }
+
         Type tv = type.baseElemOf();
         if (tv.ty == Tstruct)
         {
@@ -12492,10 +12514,14 @@ public:
                         (dve = cast(DotVarExp)ce.e1, dve.var.isCtorDeclaration()) &&
                         e2y.type.implicitConvTo(t1))
                     {
+//printf("[%s] +ConstructExp e2y = %s\n", loc.toChars(), e2y.toChars());
                         /* Look for form of constructor call which is:
                          *    __ctmp.ctor(arguments...)
                          */
+                        assert(dve.e1.op == TOKstructliteral);  // __ctmp
 
+                        auto einit = dve.e1;
+                    /+
                         /* Before calling the constructor, initialize
                          * variable with a bit copy of the default
                          * initializer
@@ -12521,6 +12547,7 @@ public:
                         {
                             einit = t1.defaultInit(loc);
                         }
+                    +/
                         auto ae = new BlitExp(loc, e1, einit);
                         ae.type = e1x.type;
 
@@ -12528,17 +12555,20 @@ public:
                          * We need to copy constructor call expression,
                          * because it may be used in other place.
                          */
-                        auto dvx = cast(DotVarExp)dve.copy();
-                        dvx.e1 = e1x;
-                        auto cx = cast(CallExp)ce.copy();
-                        cx.e1 = dvx;
+                        dve.e1 = ae;
+                        //auto dvx = cast(DotVarExp)dve.copy();
+                        //dvx.e1 = e1x;
+                        //auto cx = cast(CallExp)ce.copy();
+                        //cx.e1 = dvx;
+                        auto cx = ce;
 
                         Expression e0;
                         extractLast(e2x, &e0);
 
-                        auto e = combine(ae, cx);
+                        Expression e = cx;//combine(ae, cx);
                         e = combine(e0, e);
                         e = e.semantic(sc);
+//printf("[%s] -ConstructExp e = %s\n", loc.toChars(), e.toChars());
                         return e;
                     }
                     if (sd.postblit)
