@@ -2514,18 +2514,23 @@ public:
      * is returned via *pe0.
      * Otherwise 'e' is directly returned and *pe0 is set to NULL.
      */
-    static void extractLast(Expressions *exps, Expression *pe0)
+    extern (D) static void extractLast(Expressions *exps, Expression *pe0, string file = __FILE__, ulong line = __LINE__)
     {
         if (!exps)
             return;
+        printf("\tfrom [%s] L%d\n", file.ptr, line);
+        printf("\t+exps = %s\n", exps.toChars());
         for (size_t i = 0; i < exps.dim; i++)
         {
             (*exps)[i] = Expression.extractLast((*exps)[i], pe0);
         }
+        printf("\t-exps = %s, *pe0 = %s\n", exps.toChars(), *pe0 ? (*pe0).toChars() : null);
     }
     /// ditto
-    static Expression extractLast(Expression e, Expression* pe0)
+    extern (D) static Expression extractLast(Expression e, Expression* pe0, string file = __FILE__, ulong line = __LINE__)
     {
+        printf("extractLast called from [%s] L%d\n", file.ptr, line);
+
         extern (C++) final class CommaVisitor : Visitor
         {
             alias visit = super.visit;
@@ -12143,6 +12148,7 @@ public:
             return this;
 
         Expression e1old = e1;
+        Expression aaAssign_e0;
 
         if (e2.op == TOKcomma)
         {
@@ -12538,6 +12544,7 @@ public:
                         auto e = combine(ae, cx);
                         e = combine(e0, e);
                         e = e.semantic(sc);
+                        printf("[%s] =====> e = %s\n", loc.toChars(), e.toChars());
                         return e;
                     }
                     if (sd.postblit)
@@ -12663,6 +12670,8 @@ public:
                     IndexExp ie = cast(IndexExp)e1x;
                     Type t2 = e2x.type.toBasetype();
                     Expression e0 = null;
+                    printf("L%d [%s] before AA index assign: %s = %s\n", __LINE__, loc.toChars(),
+                        e1x.toChars(), e2x.toChars());
 
                     Expression ea = ie.e1;
                     Expression ek = ie.e2;
@@ -12691,6 +12700,7 @@ public:
                     }
                     if (!isTrivialExp(ev))
                     {
+                        printf("L%d ev = %s (elaborate)\n", __LINE__, ev.toChars());
                         auto v = new VarDeclaration(loc, e2x.type,
                             Identifier.generateId("__aaval"),
                             new ExpInitializer(loc, e2x));
@@ -12700,14 +12710,20 @@ public:
                         e0 = combine(e0, new DeclarationExp(loc, v));
                         ev = new VarExp(loc, v);
                     }
+                    else
+                        printf("L%d ev = %s (trivial)\n", __LINE__, ev.toChars());
                     if (e0)
+                    {
+                    printf("L%d before trying opAssign: e0 = %s\n", __LINE__, e0.toChars());
                         e0 = e0.semantic(sc);
+                    }
 
                     AssignExp ae = cast(AssignExp)copy();
                     ae.e1 = new IndexExp(loc, ea, ek);
                     ae.e1 = ae.e1.semantic(sc);
                     ae.e1 = ae.e1.optimize(WANTvalue);
                     ae.e2 = ev;
+
                     Expression e = ae.op_overload(sc);
                     if (e)
                     {
@@ -12754,6 +12770,8 @@ public:
                         e = e.semantic(sc);
                         return e;
                     }
+
+                    aaAssign_e0 = e0;
                 }
                 else
                 {
@@ -12855,6 +12873,7 @@ public:
             e2 = e2x;
             t1 = e1x.type.toBasetype();
         }
+
         /* Check the mutability of e1.
          */
         if (e1.op == TOKarraylength)
@@ -13078,6 +13097,13 @@ public:
 
         type = e1.type;
         assert(type);
+        printf("[%s] ==||==> %s\n", loc.toChars(), toChars());
+        if (op == TOKassign && aaAssign_e0)
+        {
+            auto r = Expression.combine(aaAssign_e0, this);
+            printf("[%s] ==//==> %s\n", loc.toChars(), r.toChars());
+            return r;
+        }
         return op == TOKassign ? reorderSettingAAElem(sc) : this;
     }
 
