@@ -12663,16 +12663,21 @@ public:
                      */
                     IndexExp ie = cast(IndexExp)e1x;
                     Type t2 = e2x.type.toBasetype();
-                    Expression e0 = null;
 
-                    Expression ea = ie.e1;
-                    Expression ek = ie.e2;
-                    Expression ev = e2x;
+                    Expression e0 = null;
+                    printf("+%s\n", toChars());
+                    auto ea = extractLast(ie.e1, &e0);
+                    auto ek = extractLast(ie.e2, &e0);
+                    auto ev = extractLast(e2x, &e0);
+                    if (e0) printf("-e0 = %s\n", e0.toChars());
+                    printf("-ea = %s\n", ea.toChars());
+                    printf("-ek = %s\n", ek.toChars());
+                    printf("-ev = %s\n", ev.toChars());
                     if (!isTrivialExp(ea))
                     {
-                        auto v = new VarDeclaration(loc, ie.e1.type,
+                        auto v = new VarDeclaration(loc, ea.type,
                             Identifier.generateId("__aatmp"),
-                            new ExpInitializer(loc, ie.e1));
+                            new ExpInitializer(loc, ea));
                         v.storage_class |= STCtemp | STCctfe
                                         | (ea.isLvalue() ? STCforeach | STCref : STCrvalue);
                         v.semantic(sc);
@@ -12681,9 +12686,9 @@ public:
                     }
                     if (!isTrivialExp(ek))
                     {
-                        auto v = new VarDeclaration(loc, ie.e2.type,
+                        auto v = new VarDeclaration(loc, ek.type,
                             Identifier.generateId("__aakey"),
-                            new ExpInitializer(loc, ie.e2));
+                            new ExpInitializer(loc, ek));
                         v.storage_class |= STCtemp | STCctfe
                                         | (ek.isLvalue() ? STCforeach | STCref : STCrvalue);
                         v.semantic(sc);
@@ -12692,9 +12697,9 @@ public:
                     }
                     if (!isTrivialExp(ev))
                     {
-                        auto v = new VarDeclaration(loc, e2x.type,
+                        auto v = new VarDeclaration(loc, ev.type,
                             Identifier.generateId("__aaval"),
-                            new ExpInitializer(loc, e2x));
+                            new ExpInitializer(loc, ev));
                         v.storage_class |= STCtemp | STCctfe
                                         | (ev.isLvalue() ? STCforeach | STCref : STCrvalue);
                         v.semantic(sc);
@@ -12712,6 +12717,7 @@ public:
 
                     if (auto e = ae.op_overload(sc))
                     {
+                        printf("[%s] aa[idx].opAssign = ev :: %s\n", loc.toChars(), e.toChars());
                         Expression ey = null;
                         if (t2.ty == Tstruct && sd == t2.toDsymbol(sc))
                         {
@@ -12753,6 +12759,7 @@ public:
                         }
                         e = combine(e0, e);
                         e = e.semantic(sc);
+                        printf("[%s] ===>  %s\n", loc.toChars(), e.toChars());
                         return e;
                     }
 
