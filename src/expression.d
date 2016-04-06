@@ -10167,10 +10167,14 @@ public:
             if (dve.e1.op == TOKstructliteral &&
                 dve.var.isCtorDeclaration())
             {
-                dve.e1 = dve.e1.addDtorHook(sc);
-                if (dve.e1.op == TOKerror)
-                    return dve.e1;
-                return this;
+                auto e1x = dve.e1.addDtorHook(sc);
+                if (e1x.op == TOKerror)
+                    return e1x;
+                dve = cast(DotVarExp)dve.copy();
+                dve.e1 = e1x;
+                auto ce = cast(CallExp)this.copy();
+                ce.e1 = dve;
+                return ce;
             }
         }
 
@@ -13542,8 +13546,11 @@ public:
             // Append element
             if (e2.checkPostblit(sc, tb2))
                 return new ErrorExp();
+printf("L%d [%s] CatAssign = %s\n", __LINE__, loc.toChars(), toChars());
             e2 = e2.castTo(sc, tb1next);
+printf("L%d [%s] CatAssign = %s\n", __LINE__, loc.toChars(), toChars());
             e2 = doCopyOrMove(sc, e2);
+printf("L%d [%s] CatAssign = %s\n", __LINE__, loc.toChars(), toChars());
         }
         else if (tb1.ty == Tarray &&
                  (tb1next.ty == Tchar || tb1next.ty == Twchar) &&
@@ -13566,6 +13573,7 @@ public:
             return new ErrorExp();
 
         type = e1.type;
+printf("L%d [%s] CatAssign = %s\n", __LINE__, loc.toChars(), toChars());
         return reorderSettingAAElem(sc);
     }
 

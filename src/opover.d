@@ -1300,7 +1300,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
          */
         override void visit(BinAssignExp e)
         {
-            //printf("BinAssignExp::op_overload() (%s)\n", e->toChars());
+            printf("BinAssignExp::op_overload() (%s)\n", e.toChars());
             if (e.e1.op == TOKarray)
             {
                 ArrayExp ae = cast(ArrayExp)e.e1;
@@ -1489,7 +1489,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                  */
                 if (e.att1 && e.e1.type == e.att1)
                     return;
-                //printf("att %s e1 = %s\n", Token::toChars(e->op), e->e1->type->toChars());
+                printf("att %s e1 = %s\n", Token.toChars(e.op), e.e1.type.toChars());
                 Expression e1 = new DotIdExp(e.loc, e.e1, ad1.aliasthis.ident);
                 BinExp be = cast(BinExp)e.copy();
                 if (!be.att1 && e.e1.type.checkAliasThisRec())
@@ -1507,13 +1507,15 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                  */
                 if (e.att2 && e.e2.type == e.att2)
                     return;
-                //printf("att %s e2 = %s\n", Token::toChars(e->op), e->e2->type->toChars());
+if (e.op == TOKcatass)                printf("att %s e2 = %s\n", Token.toChars(e.op), e.e2.type.toChars());
                 Expression e2 = new DotIdExp(e.loc, e.e2, ad2.aliasthis.ident);
                 BinExp be = cast(BinExp)e.copy();
                 if (!be.att2 && e.e2.type.checkAliasThisRec())
                     be.att2 = e.e2.type;
                 be.e2 = e2;
+if (e.op == TOKcatass) printf("L%d [%s] CatAssign = %s\n", __LINE__, e.loc.toChars(), e.toChars());
                 result = be.trySemantic(sc);
+if (e.op == TOKcatass) printf("L%d [%s] CatAssign = %s, result = %p\n", __LINE__, e.loc.toChars(), e.toChars(), result);
                 return;
             }
         }
