@@ -64,10 +64,13 @@ void testArrayOps()
         {
             foreach (string op2; ["+", "-", "*", "/", "%", "^", "&", "|"])
             {
-                writeln("a()[] ", op1, " y()   ", op2, " z();");    writeln(`assertOrder("ayz");`, "\n");
-                writeln("a()[] ", op1, " b()[] ", op2, " z();");    writeln(`assertOrder("abz");`, "\n");
-                writeln("a()[] ", op1, " y()   ", op2, " c()[];");  writeln(`assertOrder("ayc");`, "\n");
-                writeln("a()[] ", op1, " b()[] ", op2, " c()[];");  writeln(`assertOrder("abc");`, "\n");
+                auto v = op1 == "=" ? "ayz" : "yza";
+                writeln("a()[] ", op1, " y()   ", op2, " z();");
+                                                    if (op1 == "=") writeln(`assertOrder("ayz");`, "\n");
+                                                               else writeln(`assertOrder("yza");`, "\n");
+                writeln("a()[] ", op1, " b()[] ", op2, " z();");    writeln(`assertOrder("bza");`, "\n");
+                writeln("a()[] ", op1, " y()   ", op2, " c()[];");  writeln(`assertOrder("yca");`, "\n");
+                writeln("a()[] ", op1, " b()[] ", op2, " c()[];");  writeln(`assertOrder("bca");`, "\n");
             }
         }
 
@@ -77,8 +80,10 @@ void testArrayOps()
         {
             foreach (string op2; ["-", "~"])
             {
-                writeln("a()[] ", op1, " ", op2, "z();");   writeln(`assertOrder("az");`, "\n");
-                writeln("a()[] ", op1, " ", op2, "c()[];"); writeln(`assertOrder("ac");`, "\n");
+                writeln("a()[] ", op1, " ", op2, "z();");
+                                            if (op1 == "=") writeln(`assertOrder("az");`, "\n");
+                                                       else writeln(`assertOrder("za");`, "\n");
+                writeln("a()[] ", op1, " ", op2, "c()[];"); writeln(`assertOrder("ca");`, "\n");
             }
         }
 
