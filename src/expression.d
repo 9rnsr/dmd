@@ -2634,8 +2634,8 @@ public:
             override void visit(CondExp e)
             {
                 e.econd = Expression.extractLast(e.econd, &e0);
-                e.e1 = Expression.extractLast(e.e1, &e0);
-                e.e2 = Expression.extractLast(e.e2, &e0);
+                //e.e1 = Expression.extractLast(e.e1, &e0);
+                //e.e2 = Expression.extractLast(e.e2, &e0);
                 result = e;
             }
 
