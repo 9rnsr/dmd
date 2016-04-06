@@ -2181,7 +2181,7 @@ extern (C++) Expression opAssignToOp(Loc loc, TOK op, Expression e1, Expression 
 /****************************************************************/
 extern (C++) Expression extractOpDollarSideEffect(Scope* sc, UnaExp ue)
 {
-    Expression e0;
+    Expression e0 = null;
     Expression e1 = Expression.extractLast(ue.e1, &e0);
     // Bugzilla 12585: Extract the side effect part if ue->e1 is comma.
     if (!isTrivialExp(e1))
@@ -2514,22 +2514,163 @@ public:
      * is returned via *pe0.
      * Otherwise 'e' is directly returned and *pe0 is set to NULL.
      */
+    static void extractLast(Expressions *exps, Expression *pe0)
+    {
+        if (!exps)
+            return;
+        for (size_t i = 0; i < exps.dim; i++)
+        {
+            (*exps)[i] = Expression.extractLast((*exps)[i], pe0);
+        }
+    }
+    /// ditto
     static Expression extractLast(Expression e, Expression* pe0)
     {
+        extern (C++) final class CommaVisitor : Visitor
+        {
+            alias visit = super.visit;
+        public:
+            Expression e0;
+            Expression result;      // the result that comma part are stripped
+
+            this(Expression e0)
+            {
+                this.e0 = e0;
+                result = null;
+            }
+
+            override void visit(Expression e)
+            {
+                result = e;
+            }
+
+            override void visit(NewExp e)
+            {
+                e.thisexp = Expression.extractLast(e.thisexp, &e0);
+                Expression.extractLast(e.newargs, &e0);
+                Expression.extractLast(e.arguments, &e0);
+                result = e;
+            }
+
+            override void visit(NewAnonClassExp e)
+            {
+                assert(0);
+            }
+
+            override void visit(UnaExp e)
+            {
+                e.e1 = Expression.extractLast(e.e1, &e0);
+                result = e;
+            }
+
+            override void visit(BinExp e)
+            {
+                e.e1 = Expression.extractLast(e.e1, &e0);
+                e.e2 = Expression.extractLast(e.e2, &e0);
+                result = e;
+            }
+
+            override void visit(AssertExp e)
+            {
+                e.e1 = Expression.extractLast(e.e1, &e0);
+                e.msg = Expression.extractLast(e.msg, &e0);
+                result = e;
+            }
+
+            override void visit(CallExp e)
+            {
+                e.e1 = Expression.extractLast(e.e1, &e0);
+                Expression.extractLast(e.arguments, &e0);
+                result = e;
+            }
+
+            override void visit(ArrayExp e)
+            {
+                e.e1 = Expression.extractLast(e.e1, &e0);
+                Expression.extractLast(e.arguments, &e0);
+                result = e;
+            }
+
+            override void visit(SliceExp e)
+            {
+                e.e1 = Expression.extractLast(e.e1, &e0);
+                e.lwr = Expression.extractLast(e.lwr, &e0);
+                e.upr = Expression.extractLast(e.upr, &e0);
+                result = e;
+            }
+
+            override void visit(ArrayLiteralExp e)
+            {
+                Expression.extractLast(e.elements, &e0);
+                result = e;
+            }
+
+            override void visit(AssocArrayLiteralExp e)
+            {
+                Expression.extractLast(e.keys, &e0);
+                Expression.extractLast(e.values, &e0);
+                result = e;
+            }
+
+            override void visit(StructLiteralExp e)
+            {
+                if (!(e.stageflags & stageApply))
+                {
+                    int old = e.stageflags;
+                    e.stageflags |= stageApply;
+                    Expression.extractLast(e.elements, &e0);
+                    e.stageflags = old;
+                }
+                result = e;
+            }
+
+            override void visit(TupleExp e)
+            {
+                e0 = Expression.combine(e0, e.e0);
+                Expression.extractLast(e.exps, &e0);
+                result = e;
+            }
+
+            override void visit(CondExp e)
+            {
+                e.econd = Expression.extractLast(e.econd, &e0);
+                e.e1 = Expression.extractLast(e.e1, &e0);
+                e.e2 = Expression.extractLast(e.e2, &e0);
+                result = e;
+            }
+
+            override void visit(CommaExp e)
+            {
+                e0 = Expression.combine(e0, e.e1);
+                result = Expression.extractLast(e.e2, &e0);
+            }
+        }
+
+        assert(pe0);
+
+        if (!e)
+            return e;
+
         if (e.op != TOKcomma)
         {
-            *pe0 = null;
-            return e;
+            //*pe0 = NULL;
+            scope v = new CommaVisitor(*pe0);
+            e.accept(v);
+            *pe0 = v.e0;
+            assert(v.result);
+            return v.result;
         }
+
         CommaExp ce = cast(CommaExp)e;
         if (ce.e2.op != TOKcomma)
         {
-            *pe0 = ce.e1;
+            *pe0 = Expression.combine(*pe0, ce.e1);
             return ce.e2;
         }
         else
         {
-            *pe0 = e;
+            *pe0 = Expression.combine(*pe0, e);
+
             Expression* pce = &ce.e2;
             while ((cast(CommaExp)(*pce)).e2.op == TOKcomma)
             {
@@ -2538,8 +2679,16 @@ public:
             assert((*pce).op == TOKcomma);
             ce = cast(CommaExp)(*pce);
             *pce = ce.e1;
+
             return ce.e2;
         }
+    }
+    /// ditto
+    final static Expression extractLast(Expression e)
+    {
+        Expression e0 = null;
+        e = Expression.extractLast(e, &e0);
+        return Expression.combine(e0, e);
     }
 
     static Expressions* arraySyntaxCopy(Expressions* exps)
@@ -11999,7 +12148,7 @@ public:
         {
             /* Rewrite to get rid of the comma from rvalue
              */
-            Expression e0;
+            Expression e0 = null;
             e2 = Expression.extractLast(e2, &e0);
             Expression e = Expression.combine(e0, this);
             return e.semantic(sc);
