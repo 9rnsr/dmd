@@ -54,6 +54,7 @@ public:
     extern (D) this(Loc loc, Identifiers* packages, Identifier id, Identifier aliasId, int isstatic)
     {
         super(null);
+
         assert(id);
         version (none)
         {
@@ -74,6 +75,7 @@ public:
         this.aliasId = aliasId;
         this.isstatic = isstatic;
         this.protection = PROTprivate; // default to private
+
         // Set symbol name (bracketed)
         if (aliasId)
         {
@@ -200,6 +202,51 @@ public:
         //printf("-Import::load('%s'), pkg = %p\n", toChars(), pkg);
     }
 
+    /*****************************
+     * Add import to sds's symbol table.
+     */
+    override void addMember(Scope* sc, ScopeDsymbol sds)
+    {
+        //printf("Import.addMember(this=%s, sds=%s, sc=%p)\n", toChars(), sds.toChars(), sc);
+        if (names.dim == 0)
+            return Dsymbol.addMember(sc, sds);
+
+        if (aliasId)
+            Dsymbol.addMember(sc, sds);
+
+        /* Instead of adding the import to sds's symbol table,
+         * add each of the alias=name pairs
+         */
+        for (size_t i = 0; i < names.dim; i++)
+        {
+            Identifier name = names[i];
+            Identifier _alias = aliases[i];
+            if (!_alias)
+                _alias = name;
+            auto tname = new TypeIdentifier(loc, name);
+            auto ad = new AliasDeclaration(loc, _alias, tname);
+            ad._import = this;
+            ad.addMember(sc, sds);
+            aliasdecls.push(ad);
+        }
+    }
+
+    override void setScope(Scope* sc)
+    {
+        Dsymbol.setScope(sc);
+        if (aliasdecls.dim)
+        {
+            if (!mod)
+                importAll(sc);
+
+            sc = sc.push(mod);
+            sc.protection = protection;
+            foreach (ad; aliasdecls)
+                ad.setScope(sc);
+            sc = sc.pop();
+        }
+    }
+
     override void importAll(Scope* sc)
     {
         if (!mod)
@@ -209,13 +256,15 @@ public:
             {
                 if (mod.md && mod.md.isdeprecated)
                 {
-                    Expression msg = mod.md.msg;
-                    if (StringExp se = msg ? msg.toStringExp() : null)
+                    auto msg = mod.md.msg;
+                    if (auto se = msg ? msg.toStringExp() : null)
                         mod.deprecation(loc, "is deprecated - %s", se.string);
                     else
                         mod.deprecation(loc, "is deprecated");
                 }
+
                 mod.importAll(null);
+
                 if (sc.explicitProtection)
                     protection = sc.protection;
                 if (!isstatic && !aliasId && !names.dim)
@@ -284,11 +333,13 @@ public:
             }
 
             mod.semantic();
+
             if (mod.needmoduleinfo)
             {
                 //printf("module4 %s because of %s\n", sc.module.toChars(), mod.toChars());
                 sc._module.needmoduleinfo = 1;
             }
+
             sc = sc.push(mod);
             sc.protection = protection;
             for (size_t i = 0; i < aliasdecls.dim; i++)
@@ -311,6 +362,7 @@ public:
             }
             sc = sc.pop();
         }
+
         // object self-imports itself, so skip that (Bugzilla 7547)
         // don't list pseudo modules __entrypoint.d, __main.d (Bugzilla 11117, 11164)
         if (global.params.moduleDeps !is null && !(id == Id.object && sc._module.ident == Id.object) && sc._module.ident != Id.entrypoint && strcmp(sc._module.ident.string, "__main") != 0)
@@ -403,49 +455,6 @@ public:
         if (aliasId)
             return mod;
         return this;
-    }
-
-    /*****************************
-     * Add import to sd's symbol table.
-     */
-    override void addMember(Scope* sc, ScopeDsymbol sd)
-    {
-        //printf("Import.addMember(this=%s, sd=%s, sc=%p)\n", toChars(), sd.toChars(), sc);
-        if (names.dim == 0)
-            return Dsymbol.addMember(sc, sd);
-        if (aliasId)
-            Dsymbol.addMember(sc, sd);
-        /* Instead of adding the import to sd's symbol table,
-         * add each of the alias=name pairs
-         */
-        for (size_t i = 0; i < names.dim; i++)
-        {
-            Identifier name = names[i];
-            Identifier _alias = aliases[i];
-            if (!_alias)
-                _alias = name;
-            auto tname = new TypeIdentifier(loc, name);
-            auto ad = new AliasDeclaration(loc, _alias, tname);
-            ad._import = this;
-            ad.addMember(sc, sd);
-            aliasdecls.push(ad);
-        }
-    }
-
-    override void setScope(Scope* sc)
-    {
-        Dsymbol.setScope(sc);
-        if (aliasdecls.dim)
-        {
-            if (!mod)
-                importAll(sc);
-
-            sc = sc.push(mod);
-            sc.protection = protection;
-            foreach (ad; aliasdecls)
-                ad.setScope(sc);
-            sc = sc.pop();
-        }
     }
 
     override Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
