@@ -250,28 +250,65 @@ public:
     override void importAll(Scope* sc)
     {
         if (!mod)
-        {
             load(sc);
-            if (mod) // if successfully loaded module
+        if (mod) // if successfully loaded module
+        {
+            //printf("%s imports %s\n", sc.module.toChars(), mod.toChars());
+
+            // Modules need a list of each imported module
+            sc._module.aimports.push(mod);
+
+            if (mod.md && mod.md.isdeprecated)
             {
-                if (mod.md && mod.md.isdeprecated)
-                {
-                    auto msg = mod.md.msg;
-                    if (auto se = msg ? msg.toStringExp() : null)
-                        mod.deprecation(loc, "is deprecated - %s", se.string);
-                    else
-                        mod.deprecation(loc, "is deprecated");
-                }
-
-                mod.importAll(null);
-
-                if (sc.explicitProtection)
-                    protection = sc.protection;
-                if (!isstatic && !aliasId && !names.dim)
-                {
-                    sc.scopesym.importScope(mod, protection);
-                }
+                auto msg = mod.md.msg;
+                if (auto se = msg ? msg.toStringExp() : null)
+                    mod.deprecation(loc, "is deprecated - %s", se.string);
+                else
+                    mod.deprecation(loc, "is deprecated");
             }
+
+            if (sc.explicitProtection)
+                protection = sc.protection;
+
+            // neither a selective nor a renamed import
+            if (!aliasId && !names.dim)
+            {
+                ScopeDsymbol sds;
+                for (Scope* scd = sc; scd; scd = scd.enclosing)
+                {
+                    if (!scd.sds)
+                        continue;
+                    sds = scd.scopesym;
+                    break;
+                }
+                // Note: sds should be same with the paramterer of addMember.
+                // After the addMember sc parameter fix (9rnsr/dmd.git refactor_addmember),
+                // the module load and importScope, addAccessiblePackages can be moved into
+                // Import.addMember, because they don't depend on mod.importAll.
+
+                if (!isstatic)
+                {
+                    sds.importScope(mod, protection);
+                }
+
+                // Mark the imported packages as accessible from the current
+                // scope. This access check is necessary when using FQN b/c
+                // we're using a single global package tree. See Bugzilla 313.
+                if (packages)
+                {
+                    // import a.b.c.d;
+                    auto p = pkg; // a
+                    sds.addAccessiblePackage(p);
+                    foreach (id; (*packages)[1 .. packages.dim]) // [b, c]
+                    {
+                        p = cast(Package) p.symtab.lookup(id);
+                        sds.addAccessiblePackage(p);
+                    }
+                }
+                sds.addAccessiblePackage(mod); // d
+            }
+
+            mod.importAll(null);
         }
     }
 
@@ -283,68 +320,21 @@ public:
             sc = _scope;
             _scope = null;
         }
+
         // Load if not already done so
         if (!mod)
-        {
-            load(sc);
-            if (mod)
-                mod.importAll(null);
-        }
+            importAll(sc);
+
         if (mod)
         {
-            // Modules need a list of each imported module
-            //printf("%s imports %s\n", sc.module.toChars(), mod.toChars());
-            sc._module.aimports.push(mod);
-
-            if (sc.explicitProtection)
-                protection = sc.protection;
-
-            if (!aliasId && !names.dim) // neither a selective nor a renamed import
-            {
-                ScopeDsymbol scopesym;
-                for (Scope* scd = sc; scd; scd = scd.enclosing)
-                {
-                    if (!scd.scopesym)
-                        continue;
-                    scopesym = scd.scopesym;
-                    break;
-                }
-
-                if (!isstatic)
-                {
-                    scopesym.importScope(mod, protection);
-                }
-
-                // Mark the imported packages as accessible from the current
-                // scope. This access check is necessary when using FQN b/c
-                // we're using a single global package tree. See Bugzilla 313.
-                if (packages)
-                {
-                    // import a.b.c.d;
-                    auto p = pkg; // a
-                    scopesym.addAccessiblePackage(p);
-                    foreach (id; (*packages)[1 .. packages.dim]) // [b, c]
-                    {
-                        p = cast(Package) p.symtab.lookup(id);
-                        scopesym.addAccessiblePackage(p);
-                    }
-                }
-                scopesym.addAccessiblePackage(mod); // d
-            }
-
             mod.semantic();
 
-            if (mod.needmoduleinfo)
-            {
-                //printf("module4 %s because of %s\n", sc.module.toChars(), mod.toChars());
-                sc._module.needmoduleinfo = 1;
-            }
-
+            // Resolve selective imported names
             sc = sc.push(mod);
             sc.protection = protection;
             for (size_t i = 0; i < aliasdecls.dim; i++)
             {
-                AliasDeclaration ad = aliasdecls[i];
+                auto ad = aliasdecls[i];
                 //printf("\tImport %s alias %s = %s, scope = %p\n", toPrettyChars(), aliases[i].toChars(), names[i].toChars(), ad._scope);
                 if (mod.search(loc, names[i]))
                 {
@@ -352,15 +342,22 @@ public:
                 }
                 else
                 {
-                    Dsymbol s = mod.search_correct(names[i]);
+                    auto s = mod.search_correct(names[i]);
                     if (s)
-                        mod.error(loc, "import '%s' not found, did you mean %s '%s'?", names[i].toChars(), s.kind(), s.toChars());
+                        mod.error(loc, "import '%s' not found, did you mean %s '%s'?",
+                            names[i].toChars(), s.kind(), s.toChars());
                     else
                         mod.error(loc, "import '%s' not found", names[i].toChars());
                     ad.type = Type.terror;
                 }
             }
             sc = sc.pop();
+
+            if (mod.needmoduleinfo)
+            {
+                //printf("module4 %s because of %s\n", sc.module.toChars(), mod.toChars());
+                sc._module.needmoduleinfo = 1;
+            }
         }
 
         // object self-imports itself, so skip that (Bugzilla 7547)
