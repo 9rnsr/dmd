@@ -276,7 +276,7 @@ public:
                 ScopeDsymbol sds;
                 for (Scope* scd = sc; scd; scd = scd.enclosing)
                 {
-                    if (!scd.sds)
+                    if (!scd.scopesym)
                         continue;
                     sds = scd.scopesym;
                     break;
@@ -306,6 +306,20 @@ public:
                     }
                 }
                 sds.addAccessiblePackage(mod); // d
+
+                // Pull public imports from mod into the importing scope.
+                if (mod.importedScopes)
+                foreach (i, ss; *mod.importedScopes)
+                {
+                    auto m = ss.isModule();
+                    if (!m)
+                        continue;
+                    if (mod.prots[i] != PROTpublic)
+                        continue;
+
+                    //printf("\t[%s] imp = %s at %s\n", loc.toChars(), imp.toChars(), imp.loc.toChars());
+                    sds.importScope(m, protection);
+                }
             }
 
             mod.importAll(null);
