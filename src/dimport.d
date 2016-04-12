@@ -330,6 +330,38 @@ public:
                     }
                 }
                 scopesym.addAccessiblePackage(mod); // d
+
+                // Pull public imports from mod into the importing scope.
+                // todo: This does not work for public renamed imports because
+                // they're not listed in mod.importedScopes.
+                if (!isstatic && mod.importedScopes)
+                {
+                    foreach (i, ss; *mod.importedScopes)
+                    {
+                        auto m = ss.isModule();
+                        if (!m)
+                            continue;
+                        if (mod.prots[i] != PROTpublic)
+                            continue;
+
+                        //printf("\t[%s] mod = %s\n", loc.toChars(), mod.toChars());
+                        scopesym.importScope(m, protection);
+
+                        if (m.md && m.md.packages && m.md.packages.dim)
+                        {
+                            DsymbolTable dst = Module.modules;
+                            auto s = dst.lookup((*m.md.packages)[0]);
+                            auto p = s ? s.isPackage() : null;
+                            scopesym.addAccessiblePackage(p);
+                            foreach (id; (*m.md.packages)[1 .. m.md.packages.dim])
+                            {
+                                p = cast(Package) p.symtab.lookup(id);
+                                scopesym.addAccessiblePackage(p);
+                            }
+                            scopesym.addAccessiblePackage(m);
+                        }
+                    }
+                }
             }
 
             mod.semantic();

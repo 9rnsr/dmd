@@ -1258,11 +1258,11 @@ public:
     Dsymbols* members;          // all Dsymbol's in this scope
     DsymbolTable symtab;        // members[] sorted into table
 
-private:
     /// symbols whose members have been imported, i.e. imported modules and template mixins
     Dsymbols* importedScopes;
     PROTKIND* prots;            // array of PROTKIND, one for each import
 
+private:
     import ddmd.root.array : BitArray;
     BitArray accessiblePackages;// whitelist of accessible (imported) packages
 
