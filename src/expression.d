@@ -6516,12 +6516,6 @@ public:
         if (type)
             return this;
 
-        Expression e = this;
-
-        sc = sc.push(); // just create new scope
-        sc.flags &= ~SCOPEctfe; // temporary stop CTFE
-        sc.protection = Prot(PROTpublic); // Bugzilla 12506
-
         /* fd.treq might be incomplete type,
          * so should not semantic it.
          * void foo(T)(T delegate(int) dg){}
@@ -6548,28 +6542,33 @@ public:
         if (td) // this is a template lambda
         {
             assert(td.parameters && td.parameters.dim);
-            td.semantic(sc);
+
+            auto sc2 = sc.push();
+            sc2.flags &= ~SCOPEctfe;
+            sc2.protection = Prot(PROTpublic);
+            td.semantic(sc2);
+            sc2.pop();
+
             type = Type.tvoid; // temporary type
 
+            auto fe = this;
             if (fd.treq) // defer type determination
             {
-                FuncExp fe;
-                if (matchType(fd.treq, sc, &fe) > MATCHnomatch)
-                    e = fe;
-                else
-                    e = new ErrorExp();
+                if (matchType(fd.treq, sc, &fe) <= MATCHnomatch)
+                    return new ErrorExp();
             }
-            goto Ldone;
+            return fe;
         }
 
-        fd.semantic(sc);
-        fd.semantic2(sc);
-        fd.semantic3(sc);
+        auto sc2 = sc.push(); // just create new scope
+        sc2.flags &= ~SCOPEctfe; // temporary stop CTFE
+        sc2.protection = Prot(PROTpublic); // Bugzilla 12506
+        fd.semantic(sc2);
+        fd.semantic2(sc2);
+        fd.semantic3(sc2);
+        sc2.pop();
         if (fd.errors || fd.semantic3Errors)
-        {
-            e = new ErrorExp();
-            goto Ldone;
-        }
+            return new ErrorExp();
 
         // Type is a "delegate to" or "pointer to" the function literal
         if ((fd.isNested() && fd.tok == TOKdelegate) ||
@@ -6602,9 +6601,7 @@ public:
         }
         fd.tookAddressOf++;
 
-    Ldone:
-        sc = sc.pop();
-        return e;
+        return this;
     }
 
     // used from CallExp::semantic()
