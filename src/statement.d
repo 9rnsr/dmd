@@ -2333,213 +2333,212 @@ public:
         {
         case Tarray:
         case Tsarray:
+            if (checkForArgTypes())
+                return this;
+
+            if (dim < 1 || dim > 2)
             {
-                if (checkForArgTypes())
-                    return this;
+                error("only one or two arguments for array foreach");
+                goto Lerror2;
+            }
 
-                if (dim < 1 || dim > 2)
+            /* Look for special case of parsing char types out of char type
+             * array.
+             */
+            tn = tab.nextOf().toBasetype();
+            if (tn.ty == Tchar || tn.ty == Twchar || tn.ty == Tdchar)
+            {
+                int i = (dim == 1) ? 0 : 1; // index of value
+                Parameter p = (*parameters)[i];
+                p.type = p.type.semantic(loc, sc2);
+                p.type = p.type.addStorageClass(p.storageClass);
+                tnv = p.type.toBasetype();
+                if (tnv.ty != tn.ty &&
+                    (tnv.ty == Tchar || tnv.ty == Twchar || tnv.ty == Tdchar))
                 {
-                    error("only one or two arguments for array foreach");
-                    goto Lerror2;
-                }
-
-                /* Look for special case of parsing char types out of char type
-                 * array.
-                 */
-                tn = tab.nextOf().toBasetype();
-                if (tn.ty == Tchar || tn.ty == Twchar || tn.ty == Tdchar)
-                {
-                    int i = (dim == 1) ? 0 : 1; // index of value
-                    Parameter p = (*parameters)[i];
-                    p.type = p.type.semantic(loc, sc2);
-                    p.type = p.type.addStorageClass(p.storageClass);
-                    tnv = p.type.toBasetype();
-                    if (tnv.ty != tn.ty &&
-                        (tnv.ty == Tchar || tnv.ty == Twchar || tnv.ty == Tdchar))
+                    if (p.storageClass & STCref)
                     {
+                        error("foreach: value of UTF conversion cannot be ref");
+                        goto Lerror2;
+                    }
+                    if (dim == 2)
+                    {
+                        p = (*parameters)[0];
                         if (p.storageClass & STCref)
                         {
-                            error("foreach: value of UTF conversion cannot be ref");
+                            error("foreach: key cannot be ref");
                             goto Lerror2;
                         }
-                        if (dim == 2)
-                        {
-                            p = (*parameters)[0];
-                            if (p.storageClass & STCref)
-                            {
-                                error("foreach: key cannot be ref");
-                                goto Lerror2;
-                            }
-                        }
-                        goto Lapply;
                     }
+                    goto Lapply;
                 }
-
-                foreach (i; 0 .. dim)
-                {
-                    // Declare parameterss
-                    Parameter p = (*parameters)[i];
-                    p.type = p.type.semantic(loc, sc2);
-                    p.type = p.type.addStorageClass(p.storageClass);
-                    VarDeclaration var;
-
-                    if (dim == 2 && i == 0)
-                    {
-                        var = new VarDeclaration(loc, p.type.mutableOf(), Identifier.generateId("__key"), null);
-                        var.storage_class |= STCtemp | STCforeach;
-                        if (var.storage_class & (STCref | STCout))
-                            var.storage_class |= STCnodtor;
-
-                        key = var;
-                        if (p.storageClass & STCref)
-                        {
-                            if (var.type.constConv(p.type) <= MATCHnomatch)
-                            {
-                                error("key type mismatch, %s to ref %s",
-                                    var.type.toChars(), p.type.toChars());
-                                goto Lerror2;
-                            }
-                        }
-                        if (tab.ty == Tsarray)
-                        {
-                            TypeSArray ta = cast(TypeSArray)tab;
-                            IntRange dimrange = getIntRange(ta.dim);
-                            if (!IntRange.fromType(var.type).contains(dimrange))
-                            {
-                                error("index type '%s' cannot cover index range 0..%llu",
-                                    p.type.toChars(), ta.dim.toInteger());
-                                goto Lerror2;
-                            }
-                            key.range = new IntRange(SignExtendedNumber(0), dimrange.imax);
-                        }
-                    }
-                    else
-                    {
-                        var = new VarDeclaration(loc, p.type, p.ident, null);
-                        var.storage_class |= STCforeach;
-                        var.storage_class |= p.storageClass & (STCin | STCout | STCref | STC_TYPECTOR);
-                        if (var.storage_class & (STCref | STCout))
-                            var.storage_class |= STCnodtor;
-
-                        value = var;
-                        if (var.storage_class & STCref)
-                        {
-                            if (aggr.checkModifiable(sc2, 1) == 2)
-                                var.storage_class |= STCctorinit;
-
-                            Type t = tab.nextOf();
-                            if (t.constConv(p.type) <= MATCHnomatch)
-                            {
-                                error("argument type mismatch, %s to ref %s",
-                                    t.toChars(), p.type.toChars());
-                                goto Lerror2;
-                            }
-                        }
-                    }
-                }
-
-                /* Convert to a ForStatement
-                 *   foreach (key, value; a) body =>
-                 *   for (T[] tmp = a[], size_t key; key < tmp.length; ++key)
-                 *   { T value = tmp[k]; body }
-                 *
-                 *   foreach_reverse (key, value; a) body =>
-                 *   for (T[] tmp = a[], size_t key = tmp.length; key--; )
-                 *   { T value = tmp[k]; body }
-                 */
-                Identifier id = Identifier.generateId("__r");
-                auto ie = new ExpInitializer(loc, new SliceExp(loc, aggr, null, null));
-                VarDeclaration tmp;
-                if (aggr.op == TOKarrayliteral &&
-                    !((*parameters)[dim - 1].storageClass & STCref))
-                {
-                    auto ale = cast(ArrayLiteralExp)aggr;
-                    size_t edim = ale.elements ? ale.elements.dim : 0;
-                    aggr.type = tab.nextOf().sarrayOf(edim);
-
-                    // for (T[edim] tmp = a, ...)
-                    tmp = new VarDeclaration(loc, aggr.type, id, ie);
-                }
-                else
-                    tmp = new VarDeclaration(loc, tab.nextOf().arrayOf(), id, ie);
-                tmp.storage_class |= STCtemp;
-
-                Expression tmp_length = new DotIdExp(loc, new VarExp(loc, tmp), Id.length);
-
-                if (!key)
-                {
-                    Identifier idkey = Identifier.generateId("__key");
-                    key = new VarDeclaration(loc, Type.tsize_t, idkey, null);
-                    key.storage_class |= STCtemp;
-                }
-                if (op == TOKforeach_reverse)
-                    key._init = new ExpInitializer(loc, tmp_length);
-                else
-                    key._init = new ExpInitializer(loc, new IntegerExp(loc, 0, key.type));
-
-                auto cs = new Statements();
-                if (vinit)
-                    cs.push(new ExpStatement(loc, vinit));
-                cs.push(new ExpStatement(loc, tmp));
-                cs.push(new ExpStatement(loc, key));
-                Statement forinit = new CompoundDeclarationStatement(loc, cs);
-
-                Expression cond;
-                if (op == TOKforeach_reverse)
-                {
-                    // key--
-                    cond = new PostExp(TOKminusminus, loc, new VarExp(loc, key));
-                }
-                else
-                {
-                    // key < tmp.length
-                    cond = new CmpExp(TOKlt, loc, new VarExp(loc, key), tmp_length);
-                }
-
-                Expression increment = null;
-                if (op == TOKforeach)
-                {
-                    // key += 1
-                    increment = new AddAssignExp(loc, new VarExp(loc, key), new IntegerExp(loc, 1, key.type));
-                }
-
-                // T value = tmp[key];
-                IndexExp indexExp = new IndexExp(loc, new VarExp(loc, tmp), new VarExp(loc, key));
-                indexExp.indexIsInBounds = true; // disabling bounds checking in foreach statements.
-                value._init = new ExpInitializer(loc, indexExp);
-                Statement ds = new ExpStatement(loc, value);
-
-                if (dim == 2)
-                {
-                    Parameter p = (*parameters)[0];
-                    if ((p.storageClass & STCref) && p.type.equals(key.type))
-                    {
-                        key.range = null;
-                        auto v = new AliasDeclaration(loc, p.ident, key);
-                        _body = new CompoundStatement(loc, new ExpStatement(loc, v), _body);
-                    }
-                    else
-                    {
-                        auto ei = new ExpInitializer(loc, new IdentifierExp(loc, key.ident));
-                        auto v = new VarDeclaration(loc, p.type, p.ident, ei);
-                        v.storage_class |= STCforeach | (p.storageClass & STCref);
-                        _body = new CompoundStatement(loc, new ExpStatement(loc, v), _body);
-                        if (key.range && !p.type.isMutable())
-                        {
-                            /* Limit the range of the key to the specified range
-                             */
-                            v.range = new IntRange(key.range.imin, key.range.imax - SignExtendedNumber(1));
-                        }
-                    }
-                }
-                _body = new CompoundStatement(loc, ds, _body);
-
-                s = new ForStatement(loc, forinit, cond, increment, _body, endloc);
-                if (auto ls = checkLabeledLoop(sc, this))   // Bugzilla 15450: don't use sc2
-                    ls.gotoTarget = s;
-                s = s.semantic(sc2);
-                break;
             }
+
+            foreach (i; 0 .. dim)
+            {
+                // Declare parameterss
+                Parameter p = (*parameters)[i];
+                p.type = p.type.semantic(loc, sc2);
+                p.type = p.type.addStorageClass(p.storageClass);
+                VarDeclaration var;
+
+                if (dim == 2 && i == 0)
+                {
+                    var = new VarDeclaration(loc, p.type.mutableOf(), Identifier.generateId("__key"), null);
+                    var.storage_class |= STCtemp | STCforeach;
+                    if (var.storage_class & (STCref | STCout))
+                        var.storage_class |= STCnodtor;
+
+                    key = var;
+                    if (p.storageClass & STCref)
+                    {
+                        if (var.type.constConv(p.type) <= MATCHnomatch)
+                        {
+                            error("key type mismatch, %s to ref %s",
+                                var.type.toChars(), p.type.toChars());
+                            goto Lerror2;
+                        }
+                    }
+                    if (tab.ty == Tsarray)
+                    {
+                        TypeSArray ta = cast(TypeSArray)tab;
+                        IntRange dimrange = getIntRange(ta.dim);
+                        if (!IntRange.fromType(var.type).contains(dimrange))
+                        {
+                            error("index type '%s' cannot cover index range 0..%llu",
+                                p.type.toChars(), ta.dim.toInteger());
+                            goto Lerror2;
+                        }
+                        key.range = new IntRange(SignExtendedNumber(0), dimrange.imax);
+                    }
+                }
+                else
+                {
+                    var = new VarDeclaration(loc, p.type, p.ident, null);
+                    var.storage_class |= STCforeach;
+                    var.storage_class |= p.storageClass & (STCin | STCout | STCref | STC_TYPECTOR);
+                    if (var.storage_class & (STCref | STCout))
+                        var.storage_class |= STCnodtor;
+
+                    value = var;
+                    if (var.storage_class & STCref)
+                    {
+                        if (aggr.checkModifiable(sc2, 1) == 2)
+                            var.storage_class |= STCctorinit;
+
+                        Type t = tab.nextOf();
+                        if (t.constConv(p.type) <= MATCHnomatch)
+                        {
+                            error("argument type mismatch, %s to ref %s",
+                                t.toChars(), p.type.toChars());
+                            goto Lerror2;
+                        }
+                    }
+                }
+            }
+
+            /* Convert to a ForStatement
+             *   foreach (key, value; a) body =>
+             *   for (T[] tmp = a[], size_t key; key < tmp.length; ++key)
+             *   { T value = tmp[k]; body }
+             *
+             *   foreach_reverse (key, value; a) body =>
+             *   for (T[] tmp = a[], size_t key = tmp.length; key--; )
+             *   { T value = tmp[k]; body }
+             */
+            Identifier id = Identifier.generateId("__r");
+            auto ie = new ExpInitializer(loc, new SliceExp(loc, aggr, null, null));
+            VarDeclaration tmp;
+            if (aggr.op == TOKarrayliteral &&
+                !((*parameters)[dim - 1].storageClass & STCref))
+            {
+                auto ale = cast(ArrayLiteralExp)aggr;
+                size_t edim = ale.elements ? ale.elements.dim : 0;
+                aggr.type = tab.nextOf().sarrayOf(edim);
+
+                // for (T[edim] tmp = a, ...)
+                tmp = new VarDeclaration(loc, aggr.type, id, ie);
+            }
+            else
+                tmp = new VarDeclaration(loc, tab.nextOf().arrayOf(), id, ie);
+            tmp.storage_class |= STCtemp;
+
+            Expression tmp_length = new DotIdExp(loc, new VarExp(loc, tmp), Id.length);
+
+            if (!key)
+            {
+                Identifier idkey = Identifier.generateId("__key");
+                key = new VarDeclaration(loc, Type.tsize_t, idkey, null);
+                key.storage_class |= STCtemp;
+            }
+            if (op == TOKforeach_reverse)
+                key._init = new ExpInitializer(loc, tmp_length);
+            else
+                key._init = new ExpInitializer(loc, new IntegerExp(loc, 0, key.type));
+
+            auto cs = new Statements();
+            if (vinit)
+                cs.push(new ExpStatement(loc, vinit));
+            cs.push(new ExpStatement(loc, tmp));
+            cs.push(new ExpStatement(loc, key));
+            Statement forinit = new CompoundDeclarationStatement(loc, cs);
+
+            Expression cond;
+            if (op == TOKforeach_reverse)
+            {
+                // key--
+                cond = new PostExp(TOKminusminus, loc, new VarExp(loc, key));
+            }
+            else
+            {
+                // key < tmp.length
+                cond = new CmpExp(TOKlt, loc, new VarExp(loc, key), tmp_length);
+            }
+
+            Expression increment = null;
+            if (op == TOKforeach)
+            {
+                // key += 1
+                increment = new AddAssignExp(loc, new VarExp(loc, key), new IntegerExp(loc, 1, key.type));
+            }
+
+            // T value = tmp[key];
+            IndexExp indexExp = new IndexExp(loc, new VarExp(loc, tmp), new VarExp(loc, key));
+            indexExp.indexIsInBounds = true; // disabling bounds checking in foreach statements.
+            value._init = new ExpInitializer(loc, indexExp);
+            Statement ds = new ExpStatement(loc, value);
+
+            if (dim == 2)
+            {
+                Parameter p = (*parameters)[0];
+                if ((p.storageClass & STCref) && p.type.equals(key.type))
+                {
+                    key.range = null;
+                    auto v = new AliasDeclaration(loc, p.ident, key);
+                    _body = new CompoundStatement(loc, new ExpStatement(loc, v), _body);
+                }
+                else
+                {
+                    auto ei = new ExpInitializer(loc, new IdentifierExp(loc, key.ident));
+                    auto v = new VarDeclaration(loc, p.type, p.ident, ei);
+                    v.storage_class |= STCforeach | (p.storageClass & STCref);
+                    _body = new CompoundStatement(loc, new ExpStatement(loc, v), _body);
+                    if (key.range && !p.type.isMutable())
+                    {
+                        /* Limit the range of the key to the specified range
+                         */
+                        v.range = new IntRange(key.range.imin, key.range.imax - SignExtendedNumber(1));
+                    }
+                }
+            }
+            _body = new CompoundStatement(loc, ds, _body);
+
+            s = new ForStatement(loc, forinit, cond, increment, _body, endloc);
+            if (auto ls = checkLabeledLoop(sc, this))   // Bugzilla 15450: don't use sc2
+                ls.gotoTarget = s;
+            s = s.semantic(sc2);
+            break;
+
         case Taarray:
             if (op == TOKforeach_reverse)
                 warning("cannot use foreach_reverse with an associative array");
@@ -2560,493 +2559,493 @@ public:
              */
             if (sapply)
                 goto Lapply;
+
+            /* Look for range iteration, i.e. the properties
+             * .empty, .popFront, .popBack, .front and .back
+             *    foreach (e; aggr) { ... }
+             * translates to:
+             *    for (auto __r = aggr[]; !__r.empty; __r.popFront()) {
+             *        auto e = __r.front;
+             *        ...
+             *    }
+             */
+            auto ad = (tab.ty == Tclass) ?
+                cast(AggregateDeclaration)(cast(TypeClass)tab).sym :
+                cast(AggregateDeclaration)(cast(TypeStruct)tab).sym;
+            Identifier idfront;
+            Identifier idpopFront;
+            if (op == TOKforeach)
             {
-                /* Look for range iteration, i.e. the properties
-                 * .empty, .popFront, .popBack, .front and .back
-                 *    foreach (e; aggr) { ... }
-                 * translates to:
-                 *    for (auto __r = aggr[]; !__r.empty; __r.popFront()) {
-                 *        auto e = __r.front;
-                 *        ...
-                 *    }
-                 */
-                auto ad = (tab.ty == Tclass) ?
-                    cast(AggregateDeclaration)(cast(TypeClass)tab).sym :
-                    cast(AggregateDeclaration)(cast(TypeStruct)tab).sym;
-                Identifier idfront;
-                Identifier idpopFront;
-                if (op == TOKforeach)
-                {
-                    idfront = Id.Ffront;
-                    idpopFront = Id.FpopFront;
-                }
-                else
-                {
-                    idfront = Id.Fback;
-                    idpopFront = Id.FpopBack;
-                }
-                auto sfront = ad.search(Loc(), idfront);
-                if (!sfront)
-                    goto Lapply;
-
-                /* Generate a temporary __r and initialize it with the aggregate.
-                 */
-                VarDeclaration r;
-                Statement _init;
-                if (vinit && aggr.op == TOKvar && (cast(VarExp)aggr).var == vinit)
-                {
-                    r = vinit;
-                    _init = new ExpStatement(loc, vinit);
-                }
-                else
-                {
-                    r = copyToTemp(0, "__r", aggr);
-                    _init = new ExpStatement(loc, r);
-                    if (vinit)
-                        _init = new CompoundStatement(loc, new ExpStatement(loc, vinit), _init);
-                }
-
-                // !__r.empty
-                Expression e = new VarExp(loc, r);
-                e = new DotIdExp(loc, e, Id.Fempty);
-                Expression condition = new NotExp(loc, e);
-
-                // __r.idpopFront()
-                e = new VarExp(loc, r);
-                Expression increment = new CallExp(loc, new DotIdExp(loc, e, idpopFront));
-
-                /* Declaration statement for e:
-                 *    auto e = __r.idfront;
-                 */
-                e = new VarExp(loc, r);
-                Expression einit = new DotIdExp(loc, e, idfront);
-                Statement makeargs, forbody;
-                if (dim == 1)
-                {
-                    auto p = (*parameters)[0];
-                    auto ve = new VarDeclaration(loc, p.type, p.ident, new ExpInitializer(loc, einit));
-                    ve.storage_class |= STCforeach;
-                    ve.storage_class |= p.storageClass & (STCin | STCout | STCref | STC_TYPECTOR);
-
-                    makeargs = new ExpStatement(loc, ve);
-                }
-                else
-                {
-                    auto vd = copyToTemp(STCref, "__front", einit);
-                    makeargs = new ExpStatement(loc, vd);
-
-                    Type tfront;
-                    if (auto fd = sfront.isFuncDeclaration())
-                    {
-                        if (!fd.functionSemantic())
-                            goto Lrangeerr;
-                        tfront = fd.type;
-                    }
-                    else if (auto td = sfront.isTemplateDeclaration())
-                    {
-                        Expressions a;
-                        if (auto f = resolveFuncCall(loc, sc, td, null, tab, &a, 1))
-                            tfront = f.type;
-                    }
-                    else if (auto d = sfront.isDeclaration())
-                    {
-                        tfront = d.type;
-                    }
-                    if (!tfront || tfront.ty == Terror)
-                        goto Lrangeerr;
-                    if (tfront.toBasetype().ty == Tfunction)
-                        tfront = tfront.toBasetype().nextOf();
-                    if (tfront.ty == Tvoid)
-                    {
-                        error("%s.front is void and has no value", oaggr.toChars());
-                        goto Lerror2;
-                    }
-                    // Resolve inout qualifier of front type
-                    tfront = tfront.substWildTo(tab.mod);
-
-                    Expression ve = new VarExp(loc, vd);
-                    ve.type = tfront;
-
-                    auto exps = new Expressions();
-                    exps.push(ve);
-                    int pos = 0;
-                    while (exps.dim < dim)
-                    {
-                        pos = expandAliasThisTuples(exps, pos);
-                        if (pos == -1)
-                            break;
-                    }
-                    if (exps.dim != dim)
-                    {
-                        const(char)* plural = exps.dim > 1 ? "s" : "";
-                        error("cannot infer argument types, expected %d argument%s, not %d",
-                            exps.dim, plural, dim);
-                        goto Lerror2;
-                    }
-
-                    foreach (i; 0 .. dim)
-                    {
-                        auto p = (*parameters)[i];
-                        auto exp = (*exps)[i];
-                        version (none)
-                        {
-                            printf("[%d] p = %s %s, exp = %s %s\n", i,
-                                p.type ? p.type.toChars() : "?", p.ident.toChars(),
-                                exp.type.toChars(), exp.toChars());
-                        }
-                        if (!p.type)
-                            p.type = exp.type;
-                        p.type = p.type.addStorageClass(p.storageClass).semantic(loc, sc2);
-                        if (!exp.implicitConvTo(p.type))
-                            goto Lrangeerr;
-
-                        auto var = new VarDeclaration(loc, p.type, p.ident, new ExpInitializer(loc, exp));
-                        var.storage_class |= STCctfe | STCref | STCforeach;
-                        makeargs = new CompoundStatement(loc, makeargs, new ExpStatement(loc, var));
-                    }
-                }
-
-                forbody = new CompoundStatement(loc, makeargs, this._body);
-
-                s = new ForStatement(loc, _init, condition, increment, forbody, endloc);
-                if (auto ls = checkLabeledLoop(sc, this))
-                    ls.gotoTarget = s;
-
-                version (none)
-                {
-                    printf("init: %s\n", _init.toChars());
-                    printf("condition: %s\n", condition.toChars());
-                    printf("increment: %s\n", increment.toChars());
-                    printf("body: %s\n", forbody.toChars());
-                }
-                s = s.semantic(sc2);
-                break;
-
-            Lrangeerr:
-                error("cannot infer argument types");
-                goto Lerror2;
+                idfront = Id.Ffront;
+                idpopFront = Id.FpopFront;
             }
+            else
+            {
+                idfront = Id.Fback;
+                idpopFront = Id.FpopBack;
+            }
+            auto sfront = ad.search(Loc(), idfront);
+            if (!sfront)
+                goto Lapply;
+
+            /* Generate a temporary __r and initialize it with the aggregate.
+             */
+            VarDeclaration r;
+            Statement _init;
+            if (vinit && aggr.op == TOKvar && (cast(VarExp)aggr).var == vinit)
+            {
+                r = vinit;
+                _init = new ExpStatement(loc, vinit);
+            }
+            else
+            {
+                r = copyToTemp(0, "__r", aggr);
+                _init = new ExpStatement(loc, r);
+                if (vinit)
+                    _init = new CompoundStatement(loc, new ExpStatement(loc, vinit), _init);
+            }
+
+            // !__r.empty
+            Expression e = new VarExp(loc, r);
+            e = new DotIdExp(loc, e, Id.Fempty);
+            Expression condition = new NotExp(loc, e);
+
+            // __r.idpopFront()
+            e = new VarExp(loc, r);
+            Expression increment = new CallExp(loc, new DotIdExp(loc, e, idpopFront));
+
+            /* Declaration statement for e:
+             *    auto e = __r.idfront;
+             */
+            e = new VarExp(loc, r);
+            Expression einit = new DotIdExp(loc, e, idfront);
+            Statement makeargs, forbody;
+            if (dim == 1)
+            {
+                auto p = (*parameters)[0];
+                auto ve = new VarDeclaration(loc, p.type, p.ident, new ExpInitializer(loc, einit));
+                ve.storage_class |= STCforeach;
+                ve.storage_class |= p.storageClass & (STCin | STCout | STCref | STC_TYPECTOR);
+
+                makeargs = new ExpStatement(loc, ve);
+            }
+            else
+            {
+                auto vd = copyToTemp(STCref, "__front", einit);
+                makeargs = new ExpStatement(loc, vd);
+
+                Type tfront;
+                if (auto fd = sfront.isFuncDeclaration())
+                {
+                    if (!fd.functionSemantic())
+                        goto Lrangeerr;
+                    tfront = fd.type;
+                }
+                else if (auto td = sfront.isTemplateDeclaration())
+                {
+                    Expressions a;
+                    if (auto f = resolveFuncCall(loc, sc, td, null, tab, &a, 1))
+                        tfront = f.type;
+                }
+                else if (auto d = sfront.isDeclaration())
+                {
+                    tfront = d.type;
+                }
+                if (!tfront || tfront.ty == Terror)
+                    goto Lrangeerr;
+                if (tfront.toBasetype().ty == Tfunction)
+                    tfront = tfront.toBasetype().nextOf();
+                if (tfront.ty == Tvoid)
+                {
+                    error("%s.front is void and has no value", oaggr.toChars());
+                    goto Lerror2;
+                }
+                // Resolve inout qualifier of front type
+                tfront = tfront.substWildTo(tab.mod);
+
+                Expression ve = new VarExp(loc, vd);
+                ve.type = tfront;
+
+                auto exps = new Expressions();
+                exps.push(ve);
+                int pos = 0;
+                while (exps.dim < dim)
+                {
+                    pos = expandAliasThisTuples(exps, pos);
+                    if (pos == -1)
+                        break;
+                }
+                if (exps.dim != dim)
+                {
+                    const(char)* plural = exps.dim > 1 ? "s" : "";
+                    error("cannot infer argument types, expected %d argument%s, not %d",
+                        exps.dim, plural, dim);
+                    goto Lerror2;
+                }
+
+                foreach (i; 0 .. dim)
+                {
+                    auto p = (*parameters)[i];
+                    auto exp = (*exps)[i];
+                    version (none)
+                    {
+                        printf("[%d] p = %s %s, exp = %s %s\n", i,
+                            p.type ? p.type.toChars() : "?", p.ident.toChars(),
+                            exp.type.toChars(), exp.toChars());
+                    }
+                    if (!p.type)
+                        p.type = exp.type;
+                    p.type = p.type.addStorageClass(p.storageClass).semantic(loc, sc2);
+                    if (!exp.implicitConvTo(p.type))
+                        goto Lrangeerr;
+
+                    auto var = new VarDeclaration(loc, p.type, p.ident, new ExpInitializer(loc, exp));
+                    var.storage_class |= STCctfe | STCref | STCforeach;
+                    makeargs = new CompoundStatement(loc, makeargs, new ExpStatement(loc, var));
+                }
+            }
+
+            forbody = new CompoundStatement(loc, makeargs, this._body);
+
+            s = new ForStatement(loc, _init, condition, increment, forbody, endloc);
+            if (auto ls = checkLabeledLoop(sc, this))
+                ls.gotoTarget = s;
+
+            version (none)
+            {
+                printf("init: %s\n", _init.toChars());
+                printf("condition: %s\n", condition.toChars());
+                printf("increment: %s\n", increment.toChars());
+                printf("body: %s\n", forbody.toChars());
+            }
+            s = s.semantic(sc2);
+            break;
+
+        Lrangeerr:
+            error("cannot infer argument types");
+            goto Lerror2;
+
         case Tdelegate:
             if (op == TOKforeach_reverse)
                 deprecation("cannot use foreach_reverse with a delegate");
+
         Lapply:
+            if (checkForArgTypes())
             {
-                if (checkForArgTypes())
-                {
-                    _body = _body.semanticNoScope(sc2);
-                    return this;
-                }
+                _body = _body.semanticNoScope(sc2);
+                return this;
+            }
 
-                TypeFunction tfld = null;
-                if (sapply)
+            TypeFunction tfld = null;
+            if (sapply)
+            {
+                FuncDeclaration fdapply = sapply.isFuncDeclaration();
+                if (fdapply)
                 {
-                    FuncDeclaration fdapply = sapply.isFuncDeclaration();
-                    if (fdapply)
+                    assert(fdapply.type && fdapply.type.ty == Tfunction);
+                    tfld = cast(TypeFunction)fdapply.type.semantic(loc, sc2);
+                    goto Lget;
+                }
+                else if (tab.ty == Tdelegate)
+                {
+                    tfld = cast(TypeFunction)tab.nextOf();
+                Lget:
+                    //printf("tfld = %s\n", tfld->toChars());
+                    if (tfld.parameters.dim == 1)
                     {
-                        assert(fdapply.type && fdapply.type.ty == Tfunction);
-                        tfld = cast(TypeFunction)fdapply.type.semantic(loc, sc2);
-                        goto Lget;
-                    }
-                    else if (tab.ty == Tdelegate)
-                    {
-                        tfld = cast(TypeFunction)tab.nextOf();
-                    Lget:
-                        //printf("tfld = %s\n", tfld->toChars());
-                        if (tfld.parameters.dim == 1)
+                        Parameter p = Parameter.getNth(tfld.parameters, 0);
+                        if (p.type && p.type.ty == Tdelegate)
                         {
-                            Parameter p = Parameter.getNth(tfld.parameters, 0);
-                            if (p.type && p.type.ty == Tdelegate)
-                            {
-                                auto t = p.type.semantic(loc, sc2);
-                                assert(t.ty == Tdelegate);
-                                tfld = cast(TypeFunction)t.nextOf();
-                            }
+                            auto t = p.type.semantic(loc, sc2);
+                            assert(t.ty == Tdelegate);
+                            tfld = cast(TypeFunction)t.nextOf();
                         }
                     }
                 }
+            }
 
-                /* Turn body into the function literal:
-                 *  int delegate(ref T param) { body }
-                 */
-                auto params = new Parameters();
-                foreach (i; 0 .. dim)
+            /* Turn body into the function literal:
+             *  int delegate(ref T param) { body }
+             */
+            auto params = new Parameters();
+            foreach (i; 0 .. dim)
+            {
+                Parameter p = (*parameters)[i];
+                StorageClass stc = STCref;
+                Identifier id;
+
+                p.type = p.type.semantic(loc, sc2);
+                p.type = p.type.addStorageClass(p.storageClass);
+                if (tfld)
                 {
-                    Parameter p = (*parameters)[i];
-                    StorageClass stc = STCref;
-                    Identifier id;
-
-                    p.type = p.type.semantic(loc, sc2);
-                    p.type = p.type.addStorageClass(p.storageClass);
-                    if (tfld)
+                    Parameter prm = Parameter.getNth(tfld.parameters, i);
+                    //printf("\tprm = %s%s\n", (prm->storageClass&STCref?"ref ":""), prm->ident->toChars());
+                    stc = prm.storageClass & STCref;
+                    id = p.ident; // argument copy is not need.
+                    if ((p.storageClass & STCref) != stc)
                     {
-                        Parameter prm = Parameter.getNth(tfld.parameters, i);
-                        //printf("\tprm = %s%s\n", (prm->storageClass&STCref?"ref ":""), prm->ident->toChars());
-                        stc = prm.storageClass & STCref;
-                        id = p.ident; // argument copy is not need.
-                        if ((p.storageClass & STCref) != stc)
+                        if (!stc)
                         {
-                            if (!stc)
-                            {
-                                error("foreach: cannot make %s ref", p.ident.toChars());
-                                goto Lerror2;
-                            }
-                            goto LcopyArg;
-                        }
-                    }
-                    else if (p.storageClass & STCref)
-                    {
-                        // default delegate parameters are marked as ref, then
-                        // argument copy is not need.
-                        id = p.ident;
-                    }
-                    else
-                    {
-                        // Make a copy of the ref argument so it isn't
-                        // a reference.
-                    LcopyArg:
-                        id = Identifier.generateId("__applyArg", cast(int)i);
-
-                        Initializer ie = new ExpInitializer(Loc(), new IdentifierExp(Loc(), id));
-                        auto v = new VarDeclaration(Loc(), p.type, p.ident, ie);
-                        v.storage_class |= STCtemp;
-                        s = new ExpStatement(Loc(), v);
-                        _body = new CompoundStatement(loc, s, _body);
-                    }
-                    params.push(new Parameter(stc, p.type, id, null));
-                }
-                // Bugzilla 13840: Throwable nested function inside nothrow function is acceptable.
-                StorageClass stc = mergeFuncAttrs(STCsafe | STCpure | STCnogc, func);
-                tfld = new TypeFunction(params, Type.tint32, 0, LINKd, stc);
-                cases = new Statements();
-                gotos = new ScopeStatements();
-                auto fld = new FuncLiteralDeclaration(loc, Loc(), tfld, TOKdelegate, this);
-                fld.fbody = _body;
-                Expression flde = new FuncExp(loc, fld);
-                flde = flde.semantic(sc2);
-                fld.tookAddressOf = 0;
-
-                // Resolve any forward referenced goto's
-                foreach (i; 0 .. gotos.dim)
-                {
-                    GotoStatement gs = cast(GotoStatement)(*gotos)[i].statement;
-                    if (!gs.label.statement)
-                    {
-                        // 'Promote' it to this scope, and replace with a return
-                        cases.push(gs);
-                        s = new ReturnStatement(Loc(), new IntegerExp(cases.dim + 1));
-                        (*gotos)[i].statement = s;
-                    }
-                }
-
-                Expression e = null;
-                Expression ec;
-                if (vinit)
-                {
-                    e = new DeclarationExp(loc, vinit);
-                    e = e.semantic(sc2);
-                    if (e.op == TOKerror)
-                        goto Lerror2;
-                }
-
-                if (taa)
-                {
-                    // Check types
-                    Parameter p = (*parameters)[0];
-                    bool isRef = (p.storageClass & STCref) != 0;
-                    Type ta = p.type;
-                    if (dim == 2)
-                    {
-                        Type ti = (isRef ? taa.index.addMod(MODconst) : taa.index);
-                        if (isRef ? !ti.constConv(ta) : !ti.implicitConvTo(ta))
-                        {
-                            error("foreach: index must be type %s, not %s",
-                                ti.toChars(), ta.toChars());
+                            error("foreach: cannot make %s ref", p.ident.toChars());
                             goto Lerror2;
                         }
-                        p = (*parameters)[1];
-                        isRef = (p.storageClass & STCref) != 0;
-                        ta = p.type;
+                        goto LcopyArg;
                     }
-                    Type taav = taa.nextOf();
-                    if (isRef ? !taav.constConv(ta) : !taav.implicitConvTo(ta))
+                }
+                else if (p.storageClass & STCref)
+                {
+                    // default delegate parameters are marked as ref, then
+                    // argument copy is not need.
+                    id = p.ident;
+                }
+                else
+                {
+                    // Make a copy of the ref argument so it isn't
+                    // a reference.
+                LcopyArg:
+                    id = Identifier.generateId("__applyArg", cast(int)i);
+
+                    Initializer ie = new ExpInitializer(Loc(), new IdentifierExp(Loc(), id));
+                    auto v = new VarDeclaration(Loc(), p.type, p.ident, ie);
+                    v.storage_class |= STCtemp;
+                    s = new ExpStatement(Loc(), v);
+                    _body = new CompoundStatement(loc, s, _body);
+                }
+                params.push(new Parameter(stc, p.type, id, null));
+            }
+            // Bugzilla 13840: Throwable nested function inside nothrow function is acceptable.
+            StorageClass stc = mergeFuncAttrs(STCsafe | STCpure | STCnogc, func);
+            tfld = new TypeFunction(params, Type.tint32, 0, LINKd, stc);
+            cases = new Statements();
+            gotos = new ScopeStatements();
+            auto fld = new FuncLiteralDeclaration(loc, Loc(), tfld, TOKdelegate, this);
+            fld.fbody = _body;
+            Expression flde = new FuncExp(loc, fld);
+            flde = flde.semantic(sc2);
+            fld.tookAddressOf = 0;
+
+            // Resolve any forward referenced goto's
+            foreach (i; 0 .. gotos.dim)
+            {
+                GotoStatement gs = cast(GotoStatement)(*gotos)[i].statement;
+                if (!gs.label.statement)
+                {
+                    // 'Promote' it to this scope, and replace with a return
+                    cases.push(gs);
+                    s = new ReturnStatement(Loc(), new IntegerExp(cases.dim + 1));
+                    (*gotos)[i].statement = s;
+                }
+            }
+
+            Expression e = null;
+            Expression ec;
+            if (vinit)
+            {
+                e = new DeclarationExp(loc, vinit);
+                e = e.semantic(sc2);
+                if (e.op == TOKerror)
+                    goto Lerror2;
+            }
+
+            if (taa)
+            {
+                // Check types
+                Parameter p = (*parameters)[0];
+                bool isRef = (p.storageClass & STCref) != 0;
+                Type ta = p.type;
+                if (dim == 2)
+                {
+                    Type ti = (isRef ? taa.index.addMod(MODconst) : taa.index);
+                    if (isRef ? !ti.constConv(ta) : !ti.implicitConvTo(ta))
                     {
-                        error("foreach: value must be type %s, not %s",
-                            taav.toChars(), ta.toChars());
+                        error("foreach: index must be type %s, not %s",
+                            ti.toChars(), ta.toChars());
                         goto Lerror2;
                     }
-
-                    /* Call:
-                     *  extern(C) int _aaApply(void*, in size_t, int delegate(void*))
-                     *      _aaApply(aggr, keysize, flde)
-                     *
-                     *  extern(C) int _aaApply2(void*, in size_t, int delegate(void*, void*))
-                     *      _aaApply2(aggr, keysize, flde)
-                     */
-                    static __gshared const(char)** name = ["_aaApply", "_aaApply2"];
-                    static __gshared FuncDeclaration* fdapply = [null, null];
-                    static __gshared TypeDelegate* fldeTy = [null, null];
-
-                    ubyte i = (dim == 2 ? 1 : 0);
-                    if (!fdapply[i])
-                    {
-                        params = new Parameters();
-                        params.push(new Parameter(0, Type.tvoid.pointerTo(), null, null));
-                        params.push(new Parameter(STCin, Type.tsize_t, null, null));
-                        auto dgparams = new Parameters();
-                        dgparams.push(new Parameter(0, Type.tvoidptr, null, null));
-                        if (dim == 2)
-                            dgparams.push(new Parameter(0, Type.tvoidptr, null, null));
-                        fldeTy[i] = new TypeDelegate(new TypeFunction(dgparams, Type.tint32, 0, LINKd));
-                        params.push(new Parameter(0, fldeTy[i], null, null));
-                        fdapply[i] = FuncDeclaration.genCfunc(params, Type.tint32, name[i]);
-                    }
-
-                    auto exps = new Expressions();
-                    exps.push(aggr);
-                    size_t keysize = cast(size_t)taa.index.size();
-                    keysize = (keysize + (cast(size_t)Target.ptrsize - 1)) & ~(cast(size_t)Target.ptrsize - 1);
-                    // paint delegate argument to the type runtime expects
-                    if (!fldeTy[i].equals(flde.type))
-                    {
-                        flde = new CastExp(loc, flde, flde.type);
-                        flde.type = fldeTy[i];
-                    }
-                    exps.push(new IntegerExp(Loc(), keysize, Type.tsize_t));
-                    exps.push(flde);
-                    ec = new VarExp(Loc(), fdapply[i], false);
-                    ec = new CallExp(loc, ec, exps);
-                    ec.type = Type.tint32; // don't run semantic() on ec
+                    p = (*parameters)[1];
+                    isRef = (p.storageClass & STCref) != 0;
+                    ta = p.type;
                 }
-                else if (tab.ty == Tarray || tab.ty == Tsarray)
+                Type taav = taa.nextOf();
+                if (isRef ? !taav.constConv(ta) : !taav.implicitConvTo(ta))
                 {
-                    /* Call:
-                     *      _aApply(aggr, flde)
-                     */
-                    static __gshared const(char)** fntab =
-                    [
-                        "cc", "cw", "cd",
-                        "wc", "cc", "wd",
-                        "dc", "dw", "dd"
-                    ];
+                    error("foreach: value must be type %s, not %s",
+                        taav.toChars(), ta.toChars());
+                    goto Lerror2;
+                }
 
-                    const(size_t) BUFFER_LEN = 7 + 1 + 2 + dim.sizeof * 3 + 1;
-                    char[BUFFER_LEN] fdname;
-                    int flag;
+                /* Call:
+                 *  extern(C) int _aaApply(void*, in size_t, int delegate(void*))
+                 *      _aaApply(aggr, keysize, flde)
+                 *
+                 *  extern(C) int _aaApply2(void*, in size_t, int delegate(void*, void*))
+                 *      _aaApply2(aggr, keysize, flde)
+                 */
+                static __gshared const(char)** name = ["_aaApply", "_aaApply2"];
+                static __gshared FuncDeclaration* fdapply = [null, null];
+                static __gshared TypeDelegate* fldeTy = [null, null];
 
-                    switch (tn.ty)
-                    {
-                        case Tchar:     flag = 0;   break;
-                        case Twchar:    flag = 3;   break;
-                        case Tdchar:    flag = 6;   break;
-                    default:
-                        assert(0);
-                    }
-                    switch (tnv.ty)
-                    {
-                        case Tchar:     flag += 0;  break;
-                        case Twchar:    flag += 1;  break;
-                        case Tdchar:    flag += 2;  break;
-                    default:
-                        assert(0);
-                    }
-                    const(char)* r = (op == TOKforeach_reverse) ? "R" : "";
-                    int j = sprintf(fdname.ptr, "_aApply%s%.*s%llu", r, 2, fntab[flag], cast(ulong)dim);
-                    assert(j < BUFFER_LEN);
-
-                    FuncDeclaration fdapply;
-                    TypeDelegate dgty;
+                ubyte i = (dim == 2 ? 1 : 0);
+                if (!fdapply[i])
+                {
                     params = new Parameters();
-                    params.push(new Parameter(STCin, tn.arrayOf(), null, null));
+                    params.push(new Parameter(0, Type.tvoid.pointerTo(), null, null));
+                    params.push(new Parameter(STCin, Type.tsize_t, null, null));
                     auto dgparams = new Parameters();
                     dgparams.push(new Parameter(0, Type.tvoidptr, null, null));
                     if (dim == 2)
                         dgparams.push(new Parameter(0, Type.tvoidptr, null, null));
-                    dgty = new TypeDelegate(new TypeFunction(dgparams, Type.tint32, 0, LINKd));
-                    params.push(new Parameter(0, dgty, null, null));
-                    fdapply = FuncDeclaration.genCfunc(params, Type.tint32, fdname.ptr);
-
-                    if (tab.ty == Tsarray)
-                        aggr = aggr.castTo(sc2, tn.arrayOf());
-                    // paint delegate argument to the type runtime expects
-                    if (!dgty.equals(flde.type))
-                    {
-                        flde = new CastExp(loc, flde, flde.type);
-                        flde.type = dgty;
-                    }
-                    ec = new VarExp(Loc(), fdapply, false);
-                    ec = new CallExp(loc, ec, aggr, flde);
-                    ec.type = Type.tint32; // don't run semantic() on ec
+                    fldeTy[i] = new TypeDelegate(new TypeFunction(dgparams, Type.tint32, 0, LINKd));
+                    params.push(new Parameter(0, fldeTy[i], null, null));
+                    fdapply[i] = FuncDeclaration.genCfunc(params, Type.tint32, name[i]);
                 }
-                else if (tab.ty == Tdelegate)
+
+                auto exps = new Expressions();
+                exps.push(aggr);
+                size_t keysize = cast(size_t)taa.index.size();
+                keysize = (keysize + (cast(size_t)Target.ptrsize - 1)) & ~(cast(size_t)Target.ptrsize - 1);
+                // paint delegate argument to the type runtime expects
+                if (!fldeTy[i].equals(flde.type))
                 {
-                    /* Call:
-                     *      aggr(flde)
-                     */
-                    if (aggr.op == TOKdelegate && (cast(DelegateExp)aggr).func.isNested())
-                    {
-                        // See Bugzilla 3560
-                        aggr = (cast(DelegateExp)aggr).e1;
-                    }
-                    ec = new CallExp(loc, aggr, flde);
-                    ec = ec.semantic(sc2);
-                    if (ec.op == TOKerror)
-                        goto Lerror2;
-                    if (ec.type != Type.tint32)
-                    {
-                        error("opApply() function for %s must return an int", tab.toChars());
-                        goto Lerror2;
-                    }
+                    flde = new CastExp(loc, flde, flde.type);
+                    flde.type = fldeTy[i];
                 }
-                else
-                {
-                    assert(tab.ty == Tstruct || tab.ty == Tclass);
-                    assert(sapply);
-                    /* Call:
-                     *  aggr.apply(flde)
-                     */
-                    ec = new DotIdExp(loc, aggr, sapply.ident);
-                    ec = new CallExp(loc, ec, flde);
-                    ec = ec.semantic(sc2);
-                    if (ec.op == TOKerror)
-                        goto Lerror2;
-                    if (ec.type != Type.tint32)
-                    {
-                        error("opApply() function for %s must return an int", tab.toChars());
-                        goto Lerror2;
-                    }
-                }
-                e = Expression.combine(e, ec);
-
-                if (!cases.dim)
-                {
-                    // Easy case, a clean exit from the loop
-                    e = new CastExp(loc, e, Type.tvoid); // Bugzilla 13899
-                    s = new ExpStatement(loc, e);
-                }
-                else
-                {
-                    // Construct a switch statement around the return value
-                    // of the apply function.
-                    auto a = new Statements();
-
-                    // default: break; takes care of cases 0 and 1
-                    s = new BreakStatement(Loc(), null);
-                    s = new DefaultStatement(Loc(), s);
-                    a.push(s);
-
-                    // cases 2...
-                    foreach (i, c; *cases)
-                    {
-                        s = new CaseStatement(Loc(), new IntegerExp(i + 2), c);
-                        a.push(s);
-                    }
-
-                    s = new CompoundStatement(loc, a);
-                    s = new SwitchStatement(loc, e, s, false);
-                }
-                s = s.semantic(sc2);
-                break;
+                exps.push(new IntegerExp(Loc(), keysize, Type.tsize_t));
+                exps.push(flde);
+                ec = new VarExp(Loc(), fdapply[i], false);
+                ec = new CallExp(loc, ec, exps);
+                ec.type = Type.tint32; // don't run semantic() on ec
             }
+            else if (tab.ty == Tarray || tab.ty == Tsarray)
+            {
+                /* Call:
+                 *      _aApply(aggr, flde)
+                 */
+                static __gshared const(char)** fntab =
+                [
+                    "cc", "cw", "cd",
+                    "wc", "cc", "wd",
+                    "dc", "dw", "dd"
+                ];
+
+                const(size_t) BUFFER_LEN = 7 + 1 + 2 + dim.sizeof * 3 + 1;
+                char[BUFFER_LEN] fdname;
+                int flag;
+
+                switch (tn.ty)
+                {
+                case Tchar:     flag = 0;   break;
+                case Twchar:    flag = 3;   break;
+                case Tdchar:    flag = 6;   break;
+                default:
+                    assert(0);
+                }
+                switch (tnv.ty)
+                {
+                case Tchar:     flag += 0;  break;
+                case Twchar:    flag += 1;  break;
+                case Tdchar:    flag += 2;  break;
+                default:
+                    assert(0);
+                }
+                const(char)* r = (op == TOKforeach_reverse) ? "R" : "";
+                int j = sprintf(fdname.ptr, "_aApply%s%.*s%llu", r, 2, fntab[flag], cast(ulong)dim);
+                assert(j < BUFFER_LEN);
+
+                FuncDeclaration fdapply;
+                TypeDelegate dgty;
+                params = new Parameters();
+                params.push(new Parameter(STCin, tn.arrayOf(), null, null));
+                auto dgparams = new Parameters();
+                dgparams.push(new Parameter(0, Type.tvoidptr, null, null));
+                if (dim == 2)
+                    dgparams.push(new Parameter(0, Type.tvoidptr, null, null));
+                dgty = new TypeDelegate(new TypeFunction(dgparams, Type.tint32, 0, LINKd));
+                params.push(new Parameter(0, dgty, null, null));
+                fdapply = FuncDeclaration.genCfunc(params, Type.tint32, fdname.ptr);
+
+                if (tab.ty == Tsarray)
+                    aggr = aggr.castTo(sc2, tn.arrayOf());
+                // paint delegate argument to the type runtime expects
+                if (!dgty.equals(flde.type))
+                {
+                    flde = new CastExp(loc, flde, flde.type);
+                    flde.type = dgty;
+                }
+                ec = new VarExp(Loc(), fdapply, false);
+                ec = new CallExp(loc, ec, aggr, flde);
+                ec.type = Type.tint32; // don't run semantic() on ec
+            }
+            else if (tab.ty == Tdelegate)
+            {
+                /* Call:
+                 *      aggr(flde)
+                 */
+                if (aggr.op == TOKdelegate && (cast(DelegateExp)aggr).func.isNested())
+                {
+                    // See Bugzilla 3560
+                    aggr = (cast(DelegateExp)aggr).e1;
+                }
+                ec = new CallExp(loc, aggr, flde);
+                ec = ec.semantic(sc2);
+                if (ec.op == TOKerror)
+                    goto Lerror2;
+                if (ec.type != Type.tint32)
+                {
+                    error("opApply() function for %s must return an int", tab.toChars());
+                    goto Lerror2;
+                }
+            }
+            else
+            {
+                assert(tab.ty == Tstruct || tab.ty == Tclass);
+                assert(sapply);
+                /* Call:
+                 *  aggr.apply(flde)
+                 */
+                ec = new DotIdExp(loc, aggr, sapply.ident);
+                ec = new CallExp(loc, ec, flde);
+                ec = ec.semantic(sc2);
+                if (ec.op == TOKerror)
+                    goto Lerror2;
+                if (ec.type != Type.tint32)
+                {
+                    error("opApply() function for %s must return an int", tab.toChars());
+                    goto Lerror2;
+                }
+            }
+            e = Expression.combine(e, ec);
+
+            if (!cases.dim)
+            {
+                // Easy case, a clean exit from the loop
+                e = new CastExp(loc, e, Type.tvoid); // Bugzilla 13899
+                s = new ExpStatement(loc, e);
+            }
+            else
+            {
+                // Construct a switch statement around the return value
+                // of the apply function.
+                auto a = new Statements();
+
+                // default: break; takes care of cases 0 and 1
+                s = new BreakStatement(Loc(), null);
+                s = new DefaultStatement(Loc(), s);
+                a.push(s);
+
+                // cases 2...
+                foreach (i, c; *cases)
+                {
+                    s = new CaseStatement(Loc(), new IntegerExp(i + 2), c);
+                    a.push(s);
+                }
+
+                s = new CompoundStatement(loc, a);
+                s = new SwitchStatement(loc, e, s, false);
+            }
+            s = s.semantic(sc2);
+            break;
+
         case Terror:
         Lerror2:
             s = new ErrorStatement();
@@ -5438,22 +5437,20 @@ public:
             *sexception = s;
             break;
         case TOKon_scope_success:
-            {
-                /* Create:
-                 *  sentry:   bool x = false;
-                 *  sexception:    x = true;
-                 *  sfinally: if (!x) statement;
-                 */
-                auto v = copyToTemp(0, "__os", new IntegerExp(Loc(), 0, Type.tbool));
-                *sentry = new ExpStatement(loc, v);
-                Expression e = new IntegerExp(Loc(), 1, Type.tbool);
-                e = new AssignExp(Loc(), new VarExp(Loc(), v), e);
-                *sexception = new ExpStatement(Loc(), e);
-                e = new VarExp(Loc(), v);
-                e = new NotExp(Loc(), e);
-                *sfinally = new IfStatement(Loc(), null, e, s, null);
-                break;
-            }
+            /* Create:
+             *  sentry:   bool x = false;
+             *  sexception:    x = true;
+             *  sfinally: if (!x) statement;
+             */
+            auto v = copyToTemp(0, "__os", new IntegerExp(Loc(), 0, Type.tbool));
+            *sentry = new ExpStatement(loc, v);
+            Expression e = new IntegerExp(Loc(), 1, Type.tbool);
+            e = new AssignExp(Loc(), new VarExp(Loc(), v), e);
+            *sexception = new ExpStatement(Loc(), e);
+            e = new VarExp(Loc(), v);
+            e = new NotExp(Loc(), e);
+            *sfinally = new IfStatement(Loc(), null, e, s, null);
+            break;
         default:
             assert(0);
         }

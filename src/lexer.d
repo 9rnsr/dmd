@@ -404,102 +404,100 @@ public:
             case 'Z':
             case '_':
             case_ident:
+                while (1)
                 {
-                    while (1)
+                    const c = *++p;
+                    if (isidchar(c))
+                        continue;
+                    else if (c & 0x80)
                     {
-                        const c = *++p;
-                        if (isidchar(c))
+                        const s = p;
+                        const u = decodeUTF();
+                        if (isUniAlpha(u))
                             continue;
-                        else if (c & 0x80)
-                        {
-                            const s = p;
-                            const u = decodeUTF();
-                            if (isUniAlpha(u))
-                                continue;
-                            error("char 0x%04x not allowed in identifier", u);
-                            p = s;
-                        }
-                        break;
+                        error("char 0x%04x not allowed in identifier", u);
+                        p = s;
                     }
-                    Identifier id = Identifier.idPool(cast(char*)t.ptr, p - t.ptr);
-                    t.ident = id;
-                    t.value = cast(TOK)id.value;
-                    anyToken = 1;
-                    if (*t.ptr == '_') // if special identifier token
-                    {
-                        __gshared bool initdone = false;
-                        __gshared char[11 + 1] date;
-                        __gshared char[8 + 1] time;
-                        __gshared char[24 + 1] timestamp;
-                        if (!initdone) // lazy evaluation
-                        {
-                            initdone = true;
-                            time_t ct;
-                            .time(&ct);
-                            const p = ctime(&ct);
-                            assert(p);
-                            sprintf(&date[0], "%.6s %.4s", p + 4, p + 20);
-                            sprintf(&time[0], "%.8s", p + 11);
-                            sprintf(&timestamp[0], "%.24s", p);
-                        }
-                        if (id == Id.DATE)
-                        {
-                            t.ustring = date.ptr;
-                            goto Lstr;
-                        }
-                        else if (id == Id.TIME)
-                        {
-                            t.ustring = time.ptr;
-                            goto Lstr;
-                        }
-                        else if (id == Id.VENDOR)
-                        {
-                            t.ustring = global.compiler.vendor;
-                            goto Lstr;
-                        }
-                        else if (id == Id.TIMESTAMP)
-                        {
-                            t.ustring = timestamp.ptr;
-                        Lstr:
-                            t.value = TOKstring;
-                            t.postfix = 0;
-                            t.len = cast(uint)strlen(t.ustring);
-                        }
-                        else if (id == Id.VERSIONX)
-                        {
-                            uint major = 0;
-                            uint minor = 0;
-                            bool point = false;
-                            for (const(char)* p = global._version + 1; 1; p++)
-                            {
-                                const c = *p;
-                                if (isdigit(cast(char)c))
-                                    minor = minor * 10 + c - '0';
-                                else if (c == '.')
-                                {
-                                    if (point)
-                                        break; // ignore everything after second '.'
-                                    point = true;
-                                    major = minor;
-                                    minor = 0;
-                                }
-                                else
-                                    break;
-                            }
-                            t.value = TOKint64v;
-                            t.uns64value = major * 1000 + minor;
-                        }
-                        else if (id == Id.EOFX)
-                        {
-                            t.value = TOKeof;
-                            // Advance scanner to end of file
-                            while (!(*p == 0 || *p == 0x1A))
-                                p++;
-                        }
-                    }
-                    //printf("t->value = %d\n",t->value);
-                    return;
+                    break;
                 }
+                Identifier id = Identifier.idPool(cast(char*)t.ptr, p - t.ptr);
+                t.ident = id;
+                t.value = cast(TOK)id.value;
+                anyToken = 1;
+                if (*t.ptr == '_') // if special identifier token
+                {
+                    __gshared bool initdone = false;
+                    __gshared char[11 + 1] date;
+                    __gshared char[8 + 1] time;
+                    __gshared char[24 + 1] timestamp;
+                    if (!initdone) // lazy evaluation
+                    {
+                        initdone = true;
+                        time_t ct;
+                        .time(&ct);
+                        const p = ctime(&ct);
+                        assert(p);
+                        sprintf(&date[0], "%.6s %.4s", p + 4, p + 20);
+                        sprintf(&time[0], "%.8s", p + 11);
+                        sprintf(&timestamp[0], "%.24s", p);
+                    }
+                    if (id == Id.DATE)
+                    {
+                        t.ustring = date.ptr;
+                        goto Lstr;
+                    }
+                    else if (id == Id.TIME)
+                    {
+                        t.ustring = time.ptr;
+                        goto Lstr;
+                    }
+                    else if (id == Id.VENDOR)
+                    {
+                        t.ustring = global.compiler.vendor;
+                        goto Lstr;
+                    }
+                    else if (id == Id.TIMESTAMP)
+                    {
+                        t.ustring = timestamp.ptr;
+                    Lstr:
+                        t.value = TOKstring;
+                        t.postfix = 0;
+                        t.len = cast(uint)strlen(t.ustring);
+                    }
+                    else if (id == Id.VERSIONX)
+                    {
+                        uint major = 0;
+                        uint minor = 0;
+                        bool point = false;
+                        for (const(char)* p = global._version + 1; 1; p++)
+                        {
+                            const c = *p;
+                            if (isdigit(cast(char)c))
+                                minor = minor * 10 + c - '0';
+                            else if (c == '.')
+                            {
+                                if (point)
+                                    break; // ignore everything after second '.'
+                                point = true;
+                                major = minor;
+                                minor = 0;
+                            }
+                            else
+                                break;
+                        }
+                        t.value = TOKint64v;
+                        t.uns64value = major * 1000 + minor;
+                    }
+                    else if (id == Id.EOFX)
+                    {
+                        t.value = TOKeof;
+                        // Advance scanner to end of file
+                        while (!(*p == 0 || *p == 0x1A))
+                            p++;
+                    }
+                }
+                //printf("t->value = %d\n",t->value);
+                return;
             case '/':
                 p++;
                 switch (*p)
@@ -998,44 +996,40 @@ public:
                     t.value = TOKmod;
                 return;
             case '#':
+                p++;
+                Token n;
+                scan(&n);
+                if (n.value == TOKidentifier && n.ident == Id.line)
                 {
-                    p++;
-                    Token n;
-                    scan(&n);
-                    if (n.value == TOKidentifier && n.ident == Id.line)
-                    {
-                        poundLine();
-                        continue;
-                    }
-                    else
-                    {
-                        t.value = TOKpound;
-                        return;
-                    }
-                }
-            default:
-                {
-                    dchar c = *p;
-                    if (c & 0x80)
-                    {
-                        c = decodeUTF();
-                        // Check for start of unicode identifier
-                        if (isUniAlpha(c))
-                            goto case_ident;
-                        if (c == PS || c == LS)
-                        {
-                            endOfLine();
-                            p++;
-                            continue;
-                        }
-                    }
-                    if (c < 0x80 && isprint(c))
-                        error("character '%c' is not a valid token", c);
-                    else
-                        error("character 0x%02x is not a valid token", c);
-                    p++;
+                    poundLine();
                     continue;
                 }
+                else
+                {
+                    t.value = TOKpound;
+                    return;
+                }
+            default:
+                dchar c = *p;
+                if (c & 0x80)
+                {
+                    c = decodeUTF();
+                    // Check for start of unicode identifier
+                    if (isUniAlpha(c))
+                        goto case_ident;
+                    if (c == PS || c == LS)
+                    {
+                        endOfLine();
+                        p++;
+                        continue;
+                    }
+                }
+                if (c < 0x80 && isprint(c))
+                    error("character '%c' is not a valid token", c);
+                else
+                    error("character 0x%02x is not a valid token", c);
+                p++;
+                continue;
             }
         }
     }

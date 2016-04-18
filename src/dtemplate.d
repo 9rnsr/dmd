@@ -1749,102 +1749,98 @@ public:
                     // 6764 fix - TypeAArray may be TypeSArray have not yet run semantic().
                 case Tsarray:
                 case Taarray:
+                    // Perhaps we can do better with this, see TypeFunction::callMatch()
+                    if (tb.ty == Tsarray)
                     {
-                        // Perhaps we can do better with this, see TypeFunction::callMatch()
-                        if (tb.ty == Tsarray)
+                        TypeSArray tsa = cast(TypeSArray)tb;
+                        dinteger_t sz = tsa.dim.toInteger();
+                        if (sz != nfargs - argi)
+                            goto Lnomatch;
+                    }
+                    else if (tb.ty == Taarray)
+                    {
+                        TypeAArray taa = cast(TypeAArray)tb;
+                        Expression dim = new IntegerExp(instLoc, nfargs - argi, Type.tsize_t);
+
+                        size_t i = templateParameterLookup(taa.index, parameters);
+                        if (i == IDX_NOTFOUND)
                         {
-                            TypeSArray tsa = cast(TypeSArray)tb;
-                            dinteger_t sz = tsa.dim.toInteger();
-                            if (sz != nfargs - argi)
+                            Expression e;
+                            Type t;
+                            Dsymbol s;
+                            taa.index.resolve(instLoc, sc, &e, &t, &s);
+                            if (!e)
+                                goto Lnomatch;
+                            e = e.ctfeInterpret();
+                            e = e.implicitCastTo(sc, Type.tsize_t);
+                            e = e.optimize(WANTvalue);
+                            if (!dim.equals(e))
                                 goto Lnomatch;
                         }
-                        else if (tb.ty == Taarray)
+                        else
                         {
-                            TypeAArray taa = cast(TypeAArray)tb;
-                            Expression dim = new IntegerExp(instLoc, nfargs - argi, Type.tsize_t);
-
-                            size_t i = templateParameterLookup(taa.index, parameters);
-                            if (i == IDX_NOTFOUND)
+                            // This code matches code in TypeInstance::deduceType()
+                            TemplateParameter tprm = (*parameters)[i];
+                            TemplateValueParameter tvp = tprm.isTemplateValueParameter();
+                            if (!tvp)
+                                goto Lnomatch;
+                            Expression e = cast(Expression)(*dedtypes)[i];
+                            if (e)
                             {
-                                Expression e;
-                                Type t;
-                                Dsymbol s;
-                                taa.index.resolve(instLoc, sc, &e, &t, &s);
-                                if (!e)
-                                    goto Lnomatch;
-                                e = e.ctfeInterpret();
-                                e = e.implicitCastTo(sc, Type.tsize_t);
-                                e = e.optimize(WANTvalue);
                                 if (!dim.equals(e))
                                     goto Lnomatch;
                             }
                             else
                             {
-                                // This code matches code in TypeInstance::deduceType()
-                                TemplateParameter tprm = (*parameters)[i];
-                                TemplateValueParameter tvp = tprm.isTemplateValueParameter();
-                                if (!tvp)
+                                Type vt = tvp.valType.semantic(Loc(), sc);
+                                MATCH m = dim.implicitConvTo(vt);
+                                if (m <= MATCHnomatch)
                                     goto Lnomatch;
-                                Expression e = cast(Expression)(*dedtypes)[i];
-                                if (e)
-                                {
-                                    if (!dim.equals(e))
-                                        goto Lnomatch;
-                                }
-                                else
-                                {
-                                    Type vt = tvp.valType.semantic(Loc(), sc);
-                                    MATCH m = dim.implicitConvTo(vt);
-                                    if (m <= MATCHnomatch)
-                                        goto Lnomatch;
-                                    (*dedtypes)[i] = dim;
-                                }
+                                (*dedtypes)[i] = dim;
                             }
                         }
-                        goto case Tarray;
                     }
+                    goto case Tarray;
                 case Tarray:
+                    TypeArray ta = cast(TypeArray)tb;
+                    Type tret = fparam.isLazyArray();
+                    for (; argi < nfargs; argi++)
                     {
-                        TypeArray ta = cast(TypeArray)tb;
-                        Type tret = fparam.isLazyArray();
-                        for (; argi < nfargs; argi++)
-                        {
-                            Expression arg = (*fargs)[argi];
-                            assert(arg);
+                        Expression arg = (*fargs)[argi];
+                        assert(arg);
 
-                            MATCH m;
-                            /* If lazy array of delegates,
-                             * convert arg(s) to delegate(s)
-                             */
-                            if (tret)
+                        MATCH m;
+                        /* If lazy array of delegates,
+                         * convert arg(s) to delegate(s)
+                         */
+                        if (tret)
+                        {
+                            if (ta.next.equals(arg.type))
                             {
-                                if (ta.next.equals(arg.type))
-                                {
-                                    m = MATCHexact;
-                                }
-                                else
-                                {
-                                    m = arg.implicitConvTo(tret);
-                                    if (m == MATCHnomatch)
-                                    {
-                                        if (tret.toBasetype().ty == Tvoid)
-                                            m = MATCHconvert;
-                                    }
-                                }
+                                m = MATCHexact;
                             }
                             else
                             {
-                                uint wm = 0;
-                                m = deduceType(arg, paramscope, ta.next, parameters, dedtypes, &wm, inferStart);
-                                wildmatch |= wm;
+                                m = arg.implicitConvTo(tret);
+                                if (m == MATCHnomatch)
+                                {
+                                    if (tret.toBasetype().ty == Tvoid)
+                                        m = MATCHconvert;
+                                }
                             }
-                            if (m == MATCHnomatch)
-                                goto Lnomatch;
-                            if (m < match)
-                                match = m;
                         }
-                        goto Lmatch;
+                        else
+                        {
+                            uint wm = 0;
+                            m = deduceType(arg, paramscope, ta.next, parameters, dedtypes, &wm, inferStart);
+                            wildmatch |= wm;
+                        }
+                        if (m == MATCHnomatch)
+                            goto Lnomatch;
+                        if (m < match)
+                            match = m;
                     }
+                    goto Lmatch;
                 case Tclass:
                 case Tident:
                     goto Lmatch;
@@ -2870,14 +2866,12 @@ extern (C++) ubyte deduceWildHelper(Type t, Type* at, Type tparam)
     case X(MODshared | MODwildconst, MODshared):
     case X(MODshared | MODwildconst, MODshared | MODconst):
     case X(MODshared | MODwildconst, MODimmutable):
-        {
-            ubyte wm = (t.mod & ~MODshared);
-            if (wm == 0)
-                wm = MODmutable;
-            ubyte m = (t.mod & (MODconst | MODimmutable)) | (tparam.mod & t.mod & MODshared);
-            *at = t.unqualify(m);
-            return wm;
-        }
+        ubyte wm = (t.mod & ~MODshared);
+        if (wm == 0)
+            wm = MODmutable;
+        ubyte m = (t.mod & (MODconst | MODimmutable)) | (tparam.mod & t.mod & MODshared);
+        *at = t.unqualify(m);
+        return wm;
     case X(MODwild, MODwild):
     case X(MODwild, MODwildconst):
     case X(MODwild, MODshared | MODwild):
@@ -2890,10 +2884,8 @@ extern (C++) ubyte deduceWildHelper(Type t, Type* at, Type tparam)
     case X(MODshared | MODwild, MODshared | MODwildconst):
     case X(MODshared | MODwildconst, MODshared | MODwild):
     case X(MODshared | MODwildconst, MODshared | MODwildconst):
-        {
-            *at = t.unqualify(tparam.mod & t.mod);
-            return MODwild;
-        }
+        *at = t.unqualify(tparam.mod & t.mod);
+        return MODwild;
     default:
         return 0;
     }
@@ -2919,19 +2911,17 @@ extern (C++) MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
     case X(0, MODshared | MODwild):
     case X(0, MODshared | MODwildconst):
     case X(0, MODimmutable):
-        // foo(U)                       T                       => T
-        // foo(U)                       const(T)                => const(T)
-        // foo(U)                       inout(T)                => inout(T)
-        // foo(U)                       inout(const(T))         => inout(const(T))
-        // foo(U)                       shared(T)               => shared(T)
-        // foo(U)                       shared(const(T))        => shared(const(T))
-        // foo(U)                       shared(inout(T))        => shared(inout(T))
-        // foo(U)                       shared(inout(const(T))) => shared(inout(const(T)))
-        // foo(U)                       immutable(T)            => immutable(T)
-        {
-            *at = t;
-            return MATCHexact;
-        }
+    // foo(U)                       T                       => T
+    // foo(U)                       const(T)                => const(T)
+    // foo(U)                       inout(T)                => inout(T)
+    // foo(U)                       inout(const(T))         => inout(const(T))
+    // foo(U)                       shared(T)               => shared(T)
+    // foo(U)                       shared(const(T))        => shared(const(T))
+    // foo(U)                       shared(inout(T))        => shared(inout(T))
+    // foo(U)                       shared(inout(const(T))) => shared(inout(const(T)))
+    // foo(U)                       immutable(T)            => immutable(T)
+        *at = t;
+        return MATCHexact;
     case X(MODconst, MODconst):
     case X(MODwild, MODwild):
     case X(MODwildconst, MODwildconst):
@@ -2940,18 +2930,16 @@ extern (C++) MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
     case X(MODshared | MODwild, MODshared | MODwild):
     case X(MODshared | MODwildconst, MODshared | MODwildconst):
     case X(MODimmutable, MODimmutable):
-        // foo(const(U))                const(T)                => T
-        // foo(inout(U))                inout(T)                => T
-        // foo(inout(const(U)))         inout(const(T))         => T
-        // foo(shared(U))               shared(T)               => T
-        // foo(shared(const(U)))        shared(const(T))        => T
-        // foo(shared(inout(U)))        shared(inout(T))        => T
-        // foo(shared(inout(const(U)))) shared(inout(const(T))) => T
-        // foo(immutable(U))            immutable(T)            => T
-        {
-            *at = t.mutableOf().unSharedOf();
-            return MATCHexact;
-        }
+    // foo(const(U))                const(T)                => T
+    // foo(inout(U))                inout(T)                => T
+    // foo(inout(const(U)))         inout(const(T))         => T
+    // foo(shared(U))               shared(T)               => T
+    // foo(shared(const(U)))        shared(const(T))        => T
+    // foo(shared(inout(U)))        shared(inout(T))        => T
+    // foo(shared(inout(const(U)))) shared(inout(const(T))) => T
+    // foo(immutable(U))            immutable(T)            => T
+        *at = t.mutableOf().unSharedOf();
+        return MATCHexact;
     case X(MODconst, 0):
     case X(MODconst, MODwild):
     case X(MODconst, MODwildconst):
@@ -2962,56 +2950,46 @@ extern (C++) MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
     case X(MODwild, MODshared | MODwild):
     case X(MODwildconst, MODshared | MODwildconst):
     case X(MODshared | MODconst, MODimmutable):
-        // foo(const(U))                T                       => T
-        // foo(const(U))                inout(T)                => T
-        // foo(const(U))                inout(const(T))         => T
-        // foo(const(U))                shared(const(T))        => shared(T)
-        // foo(const(U))                shared(inout(T))        => shared(T)
-        // foo(const(U))                shared(inout(const(T))) => shared(T)
-        // foo(const(U))                immutable(T)            => T
-        // foo(inout(U))                shared(inout(T))        => shared(T)
-        // foo(inout(const(U)))         shared(inout(const(T))) => shared(T)
-        // foo(shared(const(U)))        immutable(T)            => T
-        {
-            *at = t.mutableOf();
-            return MATCHconst;
-        }
+    // foo(const(U))                T                       => T
+    // foo(const(U))                inout(T)                => T
+    // foo(const(U))                inout(const(T))         => T
+    // foo(const(U))                shared(const(T))        => shared(T)
+    // foo(const(U))                shared(inout(T))        => shared(T)
+    // foo(const(U))                shared(inout(const(T))) => shared(T)
+    // foo(const(U))                immutable(T)            => T
+    // foo(inout(U))                shared(inout(T))        => shared(T)
+    // foo(inout(const(U)))         shared(inout(const(T))) => shared(T)
+    // foo(shared(const(U)))        immutable(T)            => T
+        *at = t.mutableOf();
+        return MATCHconst;
     case X(MODconst, MODshared):
-        // foo(const(U))                shared(T)               => shared(T)
-        {
-            *at = t;
-            return MATCHconst;
-        }
+    // foo(const(U))                shared(T)               => shared(T)
+        *at = t;
+        return MATCHconst;
     case X(MODshared, MODshared | MODconst):
     case X(MODshared, MODshared | MODwild):
     case X(MODshared, MODshared | MODwildconst):
     case X(MODshared | MODconst, MODshared):
-        // foo(shared(U))               shared(const(T))        => const(T)
-        // foo(shared(U))               shared(inout(T))        => inout(T)
-        // foo(shared(U))               shared(inout(const(T))) => inout(const(T))
-        // foo(shared(const(U)))        shared(T)               => T
-        {
-            *at = t.unSharedOf();
-            return MATCHconst;
-        }
+    // foo(shared(U))               shared(const(T))        => const(T)
+    // foo(shared(U))               shared(inout(T))        => inout(T)
+    // foo(shared(U))               shared(inout(const(T))) => inout(const(T))
+    // foo(shared(const(U)))        shared(T)               => T
+        *at = t.unSharedOf();
+        return MATCHconst;
     case X(MODwildconst, MODimmutable):
     case X(MODshared | MODconst, MODshared | MODwildconst):
     case X(MODshared | MODwildconst, MODimmutable):
     case X(MODshared | MODwildconst, MODshared | MODwild):
-        // foo(inout(const(U)))         immutable(T)            => T
-        // foo(shared(const(U)))        shared(inout(const(T))) => T
-        // foo(shared(inout(const(U)))) immutable(T)            => T
-        // foo(shared(inout(const(U)))) shared(inout(T))        => T
-        {
-            *at = t.unSharedOf().mutableOf();
-            return MATCHconst;
-        }
+    // foo(inout(const(U)))         immutable(T)            => T
+    // foo(shared(const(U)))        shared(inout(const(T))) => T
+    // foo(shared(inout(const(U)))) immutable(T)            => T
+    // foo(shared(inout(const(U)))) shared(inout(T))        => T
+        *at = t.unSharedOf().mutableOf();
+        return MATCHconst;
     case X(MODshared | MODconst, MODshared | MODwild):
-        // foo(shared(const(U)))        shared(inout(T))        => T
-        {
-            *at = t.unSharedOf().mutableOf();
-            return MATCHconst;
-        }
+    // foo(shared(const(U)))        shared(inout(T))        => T
+        *at = t.unSharedOf().mutableOf();
+        return MATCHconst;
     case X(MODwild, 0):
     case X(MODwild, MODconst):
     case X(MODwild, MODwildconst):
@@ -3056,50 +3034,50 @@ extern (C++) MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
     case X(MODimmutable, MODshared | MODconst):
     case X(MODimmutable, MODshared | MODwild):
     case X(MODimmutable, MODshared | MODwildconst):
-        // foo(inout(U))                T                       => nomatch
-        // foo(inout(U))                const(T)                => nomatch
-        // foo(inout(U))                inout(const(T))         => nomatch
-        // foo(inout(U))                immutable(T)            => nomatch
-        // foo(inout(U))                shared(T)               => nomatch
-        // foo(inout(U))                shared(const(T))        => nomatch
-        // foo(inout(U))                shared(inout(const(T))) => nomatch
-        // foo(inout(const(U)))         T                       => nomatch
-        // foo(inout(const(U)))         const(T)                => nomatch
-        // foo(inout(const(U)))         inout(T)                => nomatch
-        // foo(inout(const(U)))         shared(T)               => nomatch
-        // foo(inout(const(U)))         shared(const(T))        => nomatch
-        // foo(inout(const(U)))         shared(inout(T))        => nomatch
-        // foo(shared(U))               T                       => nomatch
-        // foo(shared(U))               const(T)                => nomatch
-        // foo(shared(U))               inout(T)                => nomatch
-        // foo(shared(U))               inout(const(T))         => nomatch
-        // foo(shared(U))               immutable(T)            => nomatch
-        // foo(shared(const(U)))        T                       => nomatch
-        // foo(shared(const(U)))        const(T)                => nomatch
-        // foo(shared(const(U)))        inout(T)                => nomatch
-        // foo(shared(const(U)))        inout(const(T))         => nomatch
-        // foo(shared(inout(U)))        T                       => nomatch
-        // foo(shared(inout(U)))        const(T)                => nomatch
-        // foo(shared(inout(U)))        inout(T)                => nomatch
-        // foo(shared(inout(U)))        inout(const(T))         => nomatch
-        // foo(shared(inout(U)))        immutable(T)            => nomatch
-        // foo(shared(inout(U)))        shared(T)               => nomatch
-        // foo(shared(inout(U)))        shared(const(T))        => nomatch
-        // foo(shared(inout(U)))        shared(inout(const(T))) => nomatch
-        // foo(shared(inout(const(U)))) T                       => nomatch
-        // foo(shared(inout(const(U)))) const(T)                => nomatch
-        // foo(shared(inout(const(U)))) inout(T)                => nomatch
-        // foo(shared(inout(const(U)))) inout(const(T))         => nomatch
-        // foo(shared(inout(const(U)))) shared(T)               => nomatch
-        // foo(shared(inout(const(U)))) shared(const(T))        => nomatch
-        // foo(immutable(U))            T                       => nomatch
-        // foo(immutable(U))            const(T)                => nomatch
-        // foo(immutable(U))            inout(T)                => nomatch
-        // foo(immutable(U))            inout(const(T))         => nomatch
-        // foo(immutable(U))            shared(T)               => nomatch
-        // foo(immutable(U))            shared(const(T))        => nomatch
-        // foo(immutable(U))            shared(inout(T))        => nomatch
-        // foo(immutable(U))            shared(inout(const(T))) => nomatch
+    // foo(inout(U))                T                       => nomatch
+    // foo(inout(U))                const(T)                => nomatch
+    // foo(inout(U))                inout(const(T))         => nomatch
+    // foo(inout(U))                immutable(T)            => nomatch
+    // foo(inout(U))                shared(T)               => nomatch
+    // foo(inout(U))                shared(const(T))        => nomatch
+    // foo(inout(U))                shared(inout(const(T))) => nomatch
+    // foo(inout(const(U)))         T                       => nomatch
+    // foo(inout(const(U)))         const(T)                => nomatch
+    // foo(inout(const(U)))         inout(T)                => nomatch
+    // foo(inout(const(U)))         shared(T)               => nomatch
+    // foo(inout(const(U)))         shared(const(T))        => nomatch
+    // foo(inout(const(U)))         shared(inout(T))        => nomatch
+    // foo(shared(U))               T                       => nomatch
+    // foo(shared(U))               const(T)                => nomatch
+    // foo(shared(U))               inout(T)                => nomatch
+    // foo(shared(U))               inout(const(T))         => nomatch
+    // foo(shared(U))               immutable(T)            => nomatch
+    // foo(shared(const(U)))        T                       => nomatch
+    // foo(shared(const(U)))        const(T)                => nomatch
+    // foo(shared(const(U)))        inout(T)                => nomatch
+    // foo(shared(const(U)))        inout(const(T))         => nomatch
+    // foo(shared(inout(U)))        T                       => nomatch
+    // foo(shared(inout(U)))        const(T)                => nomatch
+    // foo(shared(inout(U)))        inout(T)                => nomatch
+    // foo(shared(inout(U)))        inout(const(T))         => nomatch
+    // foo(shared(inout(U)))        immutable(T)            => nomatch
+    // foo(shared(inout(U)))        shared(T)               => nomatch
+    // foo(shared(inout(U)))        shared(const(T))        => nomatch
+    // foo(shared(inout(U)))        shared(inout(const(T))) => nomatch
+    // foo(shared(inout(const(U)))) T                       => nomatch
+    // foo(shared(inout(const(U)))) const(T)                => nomatch
+    // foo(shared(inout(const(U)))) inout(T)                => nomatch
+    // foo(shared(inout(const(U)))) inout(const(T))         => nomatch
+    // foo(shared(inout(const(U)))) shared(T)               => nomatch
+    // foo(shared(inout(const(U)))) shared(const(T))        => nomatch
+    // foo(immutable(U))            T                       => nomatch
+    // foo(immutable(U))            const(T)                => nomatch
+    // foo(immutable(U))            inout(T)                => nomatch
+    // foo(immutable(U))            inout(const(T))         => nomatch
+    // foo(immutable(U))            shared(T)               => nomatch
+    // foo(immutable(U))            shared(const(T))        => nomatch
+    // foo(immutable(U))            shared(inout(T))        => nomatch
+    // foo(immutable(U))            shared(inout(const(T))) => nomatch
         return MATCHnomatch;
 
     default:

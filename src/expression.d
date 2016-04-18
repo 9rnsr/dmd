@@ -1469,52 +1469,50 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                 {
                 case Tsarray:
                 case Tarray:
+                    /* Create a static array variable v of type arg->type:
+                     *  T[dim] __arrayArg = [ arguments[i], ..., arguments[nargs-1] ];
+                     *
+                     * The array literal in the initializer of the hidden variable
+                     * is now optimized. See Bugzilla 2356.
+                     */
+                    Type tbn = (cast(TypeArray)tb).next;
+                    Type tsa = tbn.sarrayOf(nargs - i);
+                    auto elements = new Expressions();
+                    elements.setDim(nargs - i);
+                    for (size_t u = 0; u < elements.dim; u++)
                     {
-                        /* Create a static array variable v of type arg->type:
-                         *  T[dim] __arrayArg = [ arguments[i], ..., arguments[nargs-1] ];
-                         *
-                         * The array literal in the initializer of the hidden variable
-                         * is now optimized. See Bugzilla 2356.
-                         */
-                        Type tbn = (cast(TypeArray)tb).next;
-                        Type tsa = tbn.sarrayOf(nargs - i);
-                        auto elements = new Expressions();
-                        elements.setDim(nargs - i);
-                        for (size_t u = 0; u < elements.dim; u++)
+                        Expression a = (*arguments)[i + u];
+                        if (tret && a.implicitConvTo(tret))
                         {
-                            Expression a = (*arguments)[i + u];
-                            if (tret && a.implicitConvTo(tret))
-                            {
-                                a = a.implicitCastTo(sc, tret);
-                                a = a.optimize(WANTvalue);
-                                a = toDelegate(a, a.type, sc);
-                            }
-                            else
-                                a = a.implicitCastTo(sc, tbn);
-                            (*elements)[u] = a;
+                            a = a.implicitCastTo(sc, tret);
+                            a = a.optimize(WANTvalue);
+                            a = toDelegate(a, a.type, sc);
                         }
-                        // Bugzilla 14395: Convert to a static array literal, or its slice.
-                        arg = new ArrayLiteralExp(loc, elements);
-                        arg.type = tsa;
-                        if (tb.ty == Tarray)
-                        {
-                            arg = new SliceExp(loc, arg, null, null);
-                            arg.type = p.type;
-                        }
-                        break;
+                        else
+                            a = a.implicitCastTo(sc, tbn);
+                        (*elements)[u] = a;
                     }
+                    // Bugzilla 14395: Convert to a static array literal, or its slice.
+                    arg = new ArrayLiteralExp(loc, elements);
+                    arg.type = tsa;
+                    if (tb.ty == Tarray)
+                    {
+                        arg = new SliceExp(loc, arg, null, null);
+                        arg.type = p.type;
+                    }
+                    break;
+
                 case Tclass:
-                    {
-                        /* Set arg to be:
-                         *      new Tclass(arg0, arg1, ..., argn)
-                         */
-                        auto args = new Expressions();
-                        args.setDim(nargs - i);
-                        for (size_t u = i; u < nargs; u++)
-                            (*args)[u - i] = (*arguments)[u];
-                        arg = new NewExp(loc, null, null, p.type, args);
-                        break;
-                    }
+                    /* Set arg to be:
+                     *      new Tclass(arg0, arg1, ..., argn)
+                     */
+                    auto args = new Expressions();
+                    args.setDim(nargs - i);
+                    for (size_t u = i; u < nargs; u++)
+                        (*args)[u - i] = (*arguments)[u];
+                    arg = new NewExp(loc, null, null, p.type, args);
+                    break;
+
                 default:
                     if (!arg)
                     {
@@ -4548,25 +4546,21 @@ public:
             case 1:
                 return memcmp(string, se2.string, len1);
             case 2:
+                wchar* s1 = cast(wchar*)string;
+                wchar* s2 = cast(wchar*)se2.string;
+                for (size_t u = 0; u < len; u++)
                 {
-                    wchar* s1 = cast(wchar*)string;
-                    wchar* s2 = cast(wchar*)se2.string;
-                    for (size_t u = 0; u < len; u++)
-                    {
-                        if (s1[u] != s2[u])
-                            return s1[u] - s2[u];
-                    }
+                    if (s1[u] != s2[u])
+                        return s1[u] - s2[u];
                 }
                 break;
             case 4:
+                dchar* s1 = cast(dchar*)string;
+                dchar* s2 = cast(dchar*)se2.string;
+                for (size_t u = 0; u < len; u++)
                 {
-                    dchar* s1 = cast(dchar*)string;
-                    dchar* s2 = cast(dchar*)se2.string;
-                    for (size_t u = 0; u < len; u++)
-                    {
-                        if (s1[u] != s2[u])
-                            return s1[u] - s2[u];
-                    }
+                    if (s1[u] != s2[u])
+                        return s1[u] - s2[u];
                 }
                 break;
             default:
@@ -7245,31 +7239,29 @@ public:
                 break;
             case TOKfunction:
             case TOKparameters:
+                if (targ.ty != Tfunction)
+                    goto Lno;
+                tded = targ;
+                /* Generate tuple from function parameter types.
+                 */
+                assert(tded.ty == Tfunction);
+                Parameters* params = (cast(TypeFunction)tded).parameters;
+                size_t dim = Parameter.dim(params);
+                auto args = new Parameters();
+                args.reserve(dim);
+                for (size_t i = 0; i < dim; i++)
                 {
-                    if (targ.ty != Tfunction)
-                        goto Lno;
-                    tded = targ;
-                    /* Generate tuple from function parameter types.
+                    Parameter arg = Parameter.getNth(params, i);
+                    assert(arg && arg.type);
+                    /* If one of the default arguments was an error,
+                       don't return an invalid tuple
                      */
-                    assert(tded.ty == Tfunction);
-                    Parameters* params = (cast(TypeFunction)tded).parameters;
-                    size_t dim = Parameter.dim(params);
-                    auto args = new Parameters();
-                    args.reserve(dim);
-                    for (size_t i = 0; i < dim; i++)
-                    {
-                        Parameter arg = Parameter.getNth(params, i);
-                        assert(arg && arg.type);
-                        /* If one of the default arguments was an error,
-                           don't return an invalid tuple
-                         */
-                        if (tok2 == TOKparameters && arg.defaultArg && arg.defaultArg.op == TOKerror)
-                            return new ErrorExp();
-                        args.push(new Parameter(arg.storageClass, arg.type, (tok2 == TOKparameters) ? arg.ident : null, (tok2 == TOKparameters) ? arg.defaultArg : null));
-                    }
-                    tded = new TypeTuple(args);
-                    break;
+                    if (tok2 == TOKparameters && arg.defaultArg && arg.defaultArg.op == TOKerror)
+                        return new ErrorExp();
+                    args.push(new Parameter(arg.storageClass, arg.type, (tok2 == TOKparameters) ? arg.ident : null, (tok2 == TOKparameters) ? arg.defaultArg : null));
                 }
+                tded = new TypeTuple(args);
+                break;
             case TOKreturn:
                 /* Get the 'return type' for the function,
                  * delegate, or pointer to function.
@@ -8165,6 +8157,10 @@ public:
             Dsymbol ds;
             switch (e1.op)
             {
+            case TOKtemplate:
+                auto te = cast(TemplateExp)e1;
+                ds = te.fd ? cast(Dsymbol)te.fd : te.td;
+                goto L1;
             case TOKscope:
                 ds = (cast(ScopeExp)e1).sds;
                 goto L1;
@@ -8177,24 +8173,18 @@ public:
             case TOKoverloadset:
                 ds = (cast(OverExp)e1).vars;
                 goto L1;
-            case TOKtemplate:
-                {
-                    TemplateExp te = cast(TemplateExp)e1;
-                    ds = te.fd ? cast(Dsymbol)te.fd : te.td;
-                }
             L1:
+                assert(ds);
+                if (auto f = ds.isFuncDeclaration())
                 {
-                    assert(ds);
-                    if (auto f = ds.isFuncDeclaration())
-                    {
-                        if (f.checkForwardRef(loc))
-                            return new ErrorExp();
-                    }
-                    const(char)* s = mangle(ds);
-                    Expression e = new StringExp(loc, cast(void*)s, strlen(s));
-                    e = e.semantic(sc);
-                    return e;
+                    if (f.checkForwardRef(loc))
+                        return new ErrorExp();
                 }
+                const(char)* s = mangle(ds);
+                Expression e = new StringExp(loc, cast(void*)s, strlen(s));
+                e = e.semantic(sc);
+                return e;
+
             default:
                 break;
             }
@@ -10506,19 +10496,18 @@ public:
         switch (tb.ty)
         {
         case Tclass:
+            auto cd = (cast(TypeClass)tb).sym;
+            if (cd.isCOMinterface())
             {
-                auto cd = (cast(TypeClass)tb).sym;
-                if (cd.isCOMinterface())
-                {
-                    /* Because COM classes are deleted by IUnknown.Release()
-                     */
-                    error("cannot delete instance of COM interface %s", cd.toChars());
-                    return new ErrorExp();
-                }
-
-                ad = cd;
-                break;
+                /* Because COM classes are deleted by IUnknown.Release()
+                 */
+                error("cannot delete instance of COM interface %s", cd.toChars());
+                return new ErrorExp();
             }
+
+            ad = cd;
+            break;
+
         case Tpointer:
             tb = (cast(TypePointer)tb).next.toBasetype();
             if (tb.ty == Tstruct)
@@ -10568,16 +10557,15 @@ public:
             }
             break;
         case Tarray:
+            Type tv = tb.nextOf().baseElemOf();
+            if (tv.ty == Tstruct)
             {
-                Type tv = tb.nextOf().baseElemOf();
-                if (tv.ty == Tstruct)
-                {
-                    ad = (cast(TypeStruct)tv).sym;
-                    if (ad.dtor)
-                        semanticTypeInfo(sc, ad.type);
-                }
-                break;
+                ad = (cast(TypeStruct)tv).sym;
+                if (ad.dtor)
+                    semanticTypeInfo(sc, ad.type);
             }
+            break;
+
         default:
             error("cannot delete type %s", e1.type.toChars());
             return new ErrorExp();
@@ -11653,68 +11641,62 @@ public:
             type = (cast(TypeNext)t1b).next;
             break;
         case Tsarray:
-            {
-                e2 = e2.implicitCastTo(sc, Type.tsize_t);
-                if (e2.type == Type.terror)
-                    return new ErrorExp();
-                type = t1b.nextOf();
-                break;
-            }
+            e2 = e2.implicitCastTo(sc, Type.tsize_t);
+            if (e2.type == Type.terror)
+                return new ErrorExp();
+            type = t1b.nextOf();
+            break;
         case Taarray:
+            TypeAArray taa = cast(TypeAArray)t1b;
+            /* We can skip the implicit conversion if they differ only by
+             * constness (Bugzilla 2684, see also bug 2954b)
+             */
+            if (!arrayTypeCompatibleWithoutCasting(e2.loc, e2.type, taa.index))
             {
-                TypeAArray taa = cast(TypeAArray)t1b;
-                /* We can skip the implicit conversion if they differ only by
-                 * constness (Bugzilla 2684, see also bug 2954b)
-                 */
-                if (!arrayTypeCompatibleWithoutCasting(e2.loc, e2.type, taa.index))
-                {
-                    e2 = e2.implicitCastTo(sc, taa.index); // type checking
-                    if (e2.type == Type.terror)
-                        return new ErrorExp();
-                }
-                semanticTypeInfo(sc, taa);
-                type = taa.next;
-                break;
-            }
-        case Ttuple:
-            {
-                e2 = e2.implicitCastTo(sc, Type.tsize_t);
+                e2 = e2.implicitCastTo(sc, taa.index); // type checking
                 if (e2.type == Type.terror)
                     return new ErrorExp();
-                e2 = e2.ctfeInterpret();
-                uinteger_t index = e2.toUInteger();
-                TupleExp te;
-                TypeTuple tup;
-                size_t length;
-                if (e1.op == TOKtuple)
-                {
-                    te = cast(TupleExp)e1;
-                    tup = null;
-                    length = te.exps.dim;
-                }
-                else if (e1.op == TOKtype)
-                {
-                    te = null;
-                    tup = cast(TypeTuple)t1b;
-                    length = Parameter.dim(tup.arguments);
-                }
-                else
-                    assert(0);
-                if (length <= index)
-                {
-                    error("array index [%llu] is outside array bounds [0 .. %llu]", index, cast(ulong)length);
-                    return new ErrorExp();
-                }
-                Expression e;
-                if (e1.op == TOKtuple)
-                {
-                    e = (*te.exps)[cast(size_t)index];
-                    e = combine(te.e0, e);
-                }
-                else
-                    e = new TypeExp(e1.loc, Parameter.getNth(tup.arguments, cast(size_t)index).type);
-                return e;
             }
+            semanticTypeInfo(sc, taa);
+            type = taa.next;
+            break;
+        case Ttuple:
+            e2 = e2.implicitCastTo(sc, Type.tsize_t);
+            if (e2.type == Type.terror)
+                return new ErrorExp();
+            e2 = e2.ctfeInterpret();
+            uinteger_t index = e2.toUInteger();
+            TupleExp te;
+            TypeTuple tup;
+            size_t length;
+            if (e1.op == TOKtuple)
+            {
+                te = cast(TupleExp)e1;
+                tup = null;
+                length = te.exps.dim;
+            }
+            else if (e1.op == TOKtype)
+            {
+                te = null;
+                tup = cast(TypeTuple)t1b;
+                length = Parameter.dim(tup.arguments);
+            }
+            else
+                assert(0);
+            if (length <= index)
+            {
+                error("array index [%llu] is outside array bounds [0 .. %llu]", index, cast(ulong)length);
+                return new ErrorExp();
+            }
+            Expression e;
+            if (e1.op == TOKtuple)
+            {
+                e = (*te.exps)[cast(size_t)index];
+                e = combine(te.e0, e);
+            }
+            else
+                e = new TypeExp(e1.loc, Parameter.getNth(tup.arguments, cast(size_t)index).type);
+            return e;
         default:
             error("%s must be an array or pointer type, not %s", e1.toChars(), e1.type.toChars());
             return new ErrorExp();
@@ -14652,19 +14634,17 @@ public:
         switch (t2b.ty)
         {
         case Taarray:
+            TypeAArray ta = cast(TypeAArray)t2b;
+            // Special handling for array keys
+            if (!arrayTypeCompatible(e1.loc, e1.type, ta.index))
             {
-                TypeAArray ta = cast(TypeAArray)t2b;
-                // Special handling for array keys
-                if (!arrayTypeCompatible(e1.loc, e1.type, ta.index))
-                {
-                    // Convert key to type of key
-                    e1 = e1.implicitCastTo(sc, ta.index);
-                }
-                semanticTypeInfo(sc, ta.index);
-                // Return type is pointer to value
-                type = ta.nextOf().pointerTo();
-                break;
+                // Convert key to type of key
+                e1 = e1.implicitCastTo(sc, ta.index);
             }
+            semanticTypeInfo(sc, ta.index);
+            // Return type is pointer to value
+            type = ta.nextOf().pointerTo();
+            break;
         default:
             error("rvalue of in expression must be an associative array, not %s", e2.type.toChars());
             goto case Terror;

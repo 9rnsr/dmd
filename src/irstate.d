@@ -230,17 +230,15 @@ struct IRState
             result = true;
             break;
         case BOUNDSCHECKsafeonly:
+            result = false;
+            FuncDeclaration fd = getFunc();
+            if (fd)
             {
-                result = false;
-                FuncDeclaration fd = getFunc();
-                if (fd)
-                {
-                    Type t = fd.type;
-                    if (t.ty == Tfunction && (cast(TypeFunction)t).trust == TRUSTsafe)
-                        result = true;
-                }
-                break;
+                Type t = fd.type;
+                if (t.ty == Tfunction && (cast(TypeFunction)t).trust == TRUSTsafe)
+                    result = true;
             }
+            break;
         default:
             assert(0);
         }

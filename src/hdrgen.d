@@ -2073,12 +2073,10 @@ public:
             switch (t.ty)
             {
             case Tenum:
-                {
-                    TypeEnum te = cast(TypeEnum)t;
-                    buf.printf("cast(%s)", te.sym.toChars());
-                    t = te.sym.memtype;
-                    goto L1;
-                }
+                TypeEnum te = cast(TypeEnum)t;
+                buf.printf("cast(%s)", te.sym.toChars());
+                t = te.sym.memtype;
+                goto L1;
             case Twchar:
                 // BUG: need to cast(wchar)
             case Tdchar:
@@ -2090,18 +2088,16 @@ public:
                 }
                 goto case;
             case Tchar:
-                {
-                    size_t o = buf.offset;
-                    if (v == '\'')
-                        buf.writestring("'\\''");
-                    else if (isprint(cast(int)v) && v != '\\')
-                        buf.printf("'%c'", cast(int)v);
-                    else
-                        buf.printf("'\\x%02x'", cast(int)v);
-                    if (hgs.ddoc)
-                        escapeDdocString(buf, o);
-                    break;
-                }
+                size_t o = buf.offset;
+                if (v == '\'')
+                    buf.writestring("'\\''");
+                else if (isprint(cast(int)v) && v != '\\')
+                    buf.printf("'%c'", cast(int)v);
+                else
+                    buf.printf("'\\x%02x'", cast(int)v);
+                if (hgs.ddoc)
+                    escapeDdocString(buf, o);
+                break;
             case Tint8:
                 buf.writestring("cast(byte)");
                 goto L2;

@@ -6506,14 +6506,12 @@ extern (C++) Expression foreachApplyUtf(InterState* istate, Expression str, Expr
                 errmsg = utf_decodeWchar(&utf16buf[0], buflen, n, rawvalue);
                 break;
             case 4:
-                {
-                    if (rvs)
-                        --indx;
-                    Expression r = (*ale.elements)[indx];
-                    assert(r.op == TOKint64);
-                    rawvalue = cast(dchar)(cast(IntegerExp)r).getInteger();
-                    n = 1;
-                }
+                if (rvs)
+                    --indx;
+                Expression r = (*ale.elements)[indx];
+                assert(r.op == TOKint64);
+                rawvalue = cast(dchar)(cast(IntegerExp)r).getInteger();
+                n = 1;
                 break;
             default:
                 assert(0);

@@ -811,61 +811,57 @@ extern (C++) struct Token
             strcat(&buffer[0], "Li");
             break;
         case TOKstring:
+            OutBuffer buf;
+            buf.writeByte('"');
+            for (size_t i = 0; i < len;)
             {
-                OutBuffer buf;
-                buf.writeByte('"');
-                for (size_t i = 0; i < len;)
+                dchar c;
+                utf_decodeChar(ustring, len, i, c);
+                switch (c)
                 {
-                    dchar c;
-                    utf_decodeChar(ustring, len, i, c);
-                    switch (c)
-                    {
-                    case 0:
-                        break;
-                    case '"':
-                    case '\\':
-                        buf.writeByte('\\');
-                        goto default;
-                    default:
-                        if (c <= 0x7F)
-                        {
-                            if (isprint(c))
-                                buf.writeByte(c);
-                            else
-                                buf.printf("\\x%02x", c);
-                        }
-                        else if (c <= 0xFFFF)
-                            buf.printf("\\u%04x", c);
-                        else
-                            buf.printf("\\U%08x", c);
-                        continue;
-                    }
+                case 0:
                     break;
+                case '"':
+                case '\\':
+                    buf.writeByte('\\');
+                    goto default;
+                default:
+                    if (c <= 0x7F)
+                    {
+                        if (isprint(c))
+                            buf.writeByte(c);
+                        else
+                            buf.printf("\\x%02x", c);
+                    }
+                    else if (c <= 0xFFFF)
+                        buf.printf("\\u%04x", c);
+                    else
+                        buf.printf("\\U%08x", c);
+                    continue;
                 }
-                buf.writeByte('"');
-                if (postfix)
-                    buf.writeByte(postfix);
-                p = buf.extractString();
-            }
-            break;
-        case TOKxstring:
-            {
-                OutBuffer buf;
-                buf.writeByte('x');
-                buf.writeByte('"');
-                foreach (size_t i; 0 .. len)
-                {
-                    if (i)
-                        buf.writeByte(' ');
-                    buf.printf("%02x", ustring[i]);
-                }
-                buf.writeByte('"');
-                if (postfix)
-                    buf.writeByte(postfix);
-                buf.writeByte(0);
-                p = buf.extractData();
                 break;
             }
+            buf.writeByte('"');
+            if (postfix)
+                buf.writeByte(postfix);
+            p = buf.extractString();
+            break;
+        case TOKxstring:
+            OutBuffer buf;
+            buf.writeByte('x');
+            buf.writeByte('"');
+            foreach (size_t i; 0 .. len)
+            {
+                if (i)
+                    buf.writeByte(' ');
+                buf.printf("%02x", ustring[i]);
+            }
+            buf.writeByte('"');
+            if (postfix)
+                buf.writeByte(postfix);
+            buf.writeByte(0);
+            p = buf.extractData();
+            break;
         case TOKidentifier:
         case TOKenum:
         case TOKstruct:

@@ -334,17 +334,13 @@ extern (C++) static void encodeReal(Expression e, ubyte* buffer)
     switch (e.type.ty)
     {
     case Tfloat32:
-        {
-            float* p = cast(float*)buffer;
-            *p = cast(float)e.toReal();
-            break;
-        }
+        float* p = cast(float*)buffer;
+        *p = cast(float)e.toReal();
+        break;
     case Tfloat64:
-        {
-            double* p = cast(double*)buffer;
-            *p = cast(double)e.toReal();
-            break;
-        }
+        double* p = cast(double*)buffer;
+        *p = cast(double)e.toReal();
+        break;
     default:
         assert(0);
     }
@@ -358,17 +354,13 @@ extern (C++) static Expression decodeReal(Loc loc, Type type, ubyte* buffer)
     switch (type.ty)
     {
     case Tfloat32:
-        {
-            float* p = cast(float*)buffer;
-            value = ldouble(*p);
-            break;
-        }
+        float* p = cast(float*)buffer;
+        value = ldouble(*p);
+        break;
     case Tfloat64:
-        {
-            double* p = cast(double*)buffer;
-            value = ldouble(*p);
-            break;
-        }
+        double* p = cast(double*)buffer;
+        value = ldouble(*p);
+        break;
     default:
         assert(0);
     }

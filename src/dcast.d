@@ -403,56 +403,50 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     return;
                 break;
             case Tfloat32:
+                float f;
+                if (e.type.isunsigned())
                 {
-                    float f;
-                    if (e.type.isunsigned())
-                    {
-                        f = cast(float)value;
-                        if (f != value)
-                            return;
-                    }
-                    else
-                    {
-                        f = cast(float)cast(sinteger_t)value;
-                        if (f != cast(sinteger_t)value)
-                            return;
-                    }
-                    break;
+                    f = cast(float)value;
+                    if (f != value)
+                        return;
                 }
+                else
+                {
+                    f = cast(float)cast(sinteger_t)value;
+                    if (f != cast(sinteger_t)value)
+                        return;
+                }
+                break;
             case Tfloat64:
+                double f;
+                if (e.type.isunsigned())
                 {
-                    double f;
-                    if (e.type.isunsigned())
-                    {
-                        f = cast(double)value;
-                        if (f != value)
-                            return;
-                    }
-                    else
-                    {
-                        f = cast(double)cast(sinteger_t)value;
-                        if (f != cast(sinteger_t)value)
-                            return;
-                    }
-                    break;
+                    f = cast(double)value;
+                    if (f != value)
+                        return;
                 }
+                else
+                {
+                    f = cast(double)cast(sinteger_t)value;
+                    if (f != cast(sinteger_t)value)
+                        return;
+                }
+                break;
             case Tfloat80:
+                real f;
+                if (e.type.isunsigned())
                 {
-                    real f;
-                    if (e.type.isunsigned())
-                    {
-                        f = ldouble(value);
-                        if (f != value) // isn't this a noop, because the compiler prefers ld
-                            return;
-                    }
-                    else
-                    {
-                        f = ldouble(cast(sinteger_t)value);
-                        if (f != cast(sinteger_t)value)
-                            return;
-                    }
-                    break;
+                    f = ldouble(value);
+                    if (f != value) // isn't this a noop, because the compiler prefers ld
+                        return;
                 }
+                else
+                {
+                    f = ldouble(cast(sinteger_t)value);
+                    if (f != cast(sinteger_t)value)
+                        return;
+                }
+                break;
             case Tpointer:
                 //printf("type = %s\n", type->toBasetype()->toChars());
                 //printf("t = %s\n", t->toBasetype()->toChars());

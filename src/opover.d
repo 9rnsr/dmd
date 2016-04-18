@@ -1868,26 +1868,24 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
         }
         break;
     case Taarray:
+        TypeAArray taa = cast(TypeAArray)tab;
+        if (fes.parameters.dim == 2)
         {
-            TypeAArray taa = cast(TypeAArray)tab;
-            if (fes.parameters.dim == 2)
-            {
-                if (!p.type)
-                {
-                    p.type = taa.index; // key type
-                    p.type = p.type.addStorageClass(p.storageClass);
-                    if (p.storageClass & STCref) // key must not be mutated via ref
-                        p.type = p.type.addMod(MODconst);
-                }
-                p = (*fes.parameters)[1];
-            }
             if (!p.type)
             {
-                p.type = taa.next; // value type
+                p.type = taa.index; // key type
                 p.type = p.type.addStorageClass(p.storageClass);
+                if (p.storageClass & STCref) // key must not be mutated via ref
+                    p.type = p.type.addMod(MODconst);
             }
-            break;
+            p = (*fes.parameters)[1];
         }
+        if (!p.type)
+        {
+            p.type = taa.next; // value type
+            p.type = p.type.addStorageClass(p.storageClass);
+        }
+        break;
     case Tclass:
         ad = (cast(TypeClass)tab).sym;
         goto Laggr;
@@ -1926,11 +1924,9 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
         }
         break;
     case Tdelegate:
-        {
-            if (!inferApplyArgTypesY(cast(TypeFunction)tab.nextOf(), fes.parameters))
-                return false;
-            break;
-        }
+        if (!inferApplyArgTypesY(cast(TypeFunction)tab.nextOf(), fes.parameters))
+            return false;
+        break;
     default:
         break; // ignore error, caught later
     }

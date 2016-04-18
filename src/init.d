@@ -514,21 +514,19 @@ public:
             break;
         case Taarray:
         case Tstruct: // consider implicit constructor call
+            Expression e;
+            // note: MyStruct foo = [1:2, 3:4] is correct code if MyStruct has a this(int[int])
+            if (t.ty == Taarray || isAssociativeArray())
+                e = toAssocArrayLiteral();
+            else
+                e = toExpression();
+            if (!e) // Bugzilla 13987
             {
-                Expression e;
-                // note: MyStruct foo = [1:2, 3:4] is correct code if MyStruct has a this(int[int])
-                if (t.ty == Taarray || isAssociativeArray())
-                    e = toAssocArrayLiteral();
-                else
-                    e = toExpression();
-                if (!e) // Bugzilla 13987
-                {
-                    error(loc, "cannot use array to initialize %s", t.toChars());
-                    goto Lerr;
-                }
-                auto ei = new ExpInitializer(e.loc, e);
-                return ei.semantic(sc, t, needInterpret);
+                error(loc, "cannot use array to initialize %s", t.toChars());
+                goto Lerr;
             }
+            auto ei = new ExpInitializer(e.loc, e);
+            return ei.semantic(sc, t, needInterpret);
         case Tpointer:
             if (t.nextOf().ty != Tfunction)
                 break;

@@ -4058,13 +4058,11 @@ public:
         case Tcomplex32:
         case Tcomplex64:
         case Tcomplex80:
-            {
-                // Can't use fvalue + I*fvalue (the im part becomes a quiet NaN).
-                complex_t cvalue;
-                (cast(real_t*)&cvalue)[0] = Port.snan;
-                (cast(real_t*)&cvalue)[1] = Port.snan;
-                return new ComplexExp(loc, cvalue, this);
-            }
+            // Can't use fvalue + I*fvalue (the im part becomes a quiet NaN).
+            complex_t cvalue;
+            (cast(real_t*)&cvalue)[0] = Port.snan;
+            (cast(real_t*)&cvalue)[1] = Port.snan;
+            return new ComplexExp(loc, cvalue, this);
         case Tvoid:
             error(loc, "void does not have a default initializer");
             return new ErrorExp();
@@ -4566,19 +4564,17 @@ public:
         switch (tbn.ty)
         {
         case Ttuple:
+            // Index the tuple to get the type
+            assert(dim);
+            TypeTuple tt = cast(TypeTuple)tbn;
+            uinteger_t d = dim.toUInteger();
+            if (d >= tt.arguments.dim)
             {
-                // Index the tuple to get the type
-                assert(dim);
-                TypeTuple tt = cast(TypeTuple)tbn;
-                uinteger_t d = dim.toUInteger();
-                if (d >= tt.arguments.dim)
-                {
-                    error(loc, "tuple index %llu exceeds %u", d, tt.arguments.dim);
-                    goto Lerror;
-                }
-                Type telem = (*tt.arguments)[cast(size_t)d].type;
-                return telem.addMod(this.mod);
+                error(loc, "tuple index %llu exceeds %u", d, tt.arguments.dim);
+                goto Lerror;
             }
+            Type telem = (*tt.arguments)[cast(size_t)d].type;
+            return telem.addMod(this.mod);
         case Tfunction:
         case Tnone:
             error(loc, "can't have array of %s", tbn.toChars());
@@ -6558,38 +6554,36 @@ public:
                             goto Nomatch;
                         goto case Tarray;
                     case Tarray:
+                        TypeArray ta = cast(TypeArray)tb;
+                        for (; u < nargs; u++)
                         {
-                            TypeArray ta = cast(TypeArray)tb;
-                            for (; u < nargs; u++)
+                            Expression arg = (*args)[u];
+                            assert(arg);
+                            /* If lazy array of delegates,
+                             * convert arg(s) to delegate(s)
+                             */
+                            Type tret = p.isLazyArray();
+                            if (tret)
                             {
-                                Expression arg = (*args)[u];
-                                assert(arg);
-                                /* If lazy array of delegates,
-                                 * convert arg(s) to delegate(s)
-                                 */
-                                Type tret = p.isLazyArray();
-                                if (tret)
-                                {
-                                    if (ta.next.equals(arg.type))
-                                        m = MATCHexact;
-                                    else if (tret.toBasetype().ty == Tvoid)
-                                        m = MATCHconvert;
-                                    else
-                                    {
-                                        m = arg.implicitConvTo(tret);
-                                        if (m == MATCHnomatch)
-                                            m = arg.implicitConvTo(ta.next);
-                                    }
-                                }
+                                if (ta.next.equals(arg.type))
+                                    m = MATCHexact;
+                                else if (tret.toBasetype().ty == Tvoid)
+                                    m = MATCHconvert;
                                 else
-                                    m = arg.implicitConvTo(ta.next);
-                                if (m == MATCHnomatch)
-                                    goto Nomatch;
-                                if (m < match)
-                                    match = m;
+                                {
+                                    m = arg.implicitConvTo(tret);
+                                    if (m == MATCHnomatch)
+                                        m = arg.implicitConvTo(ta.next);
+                                }
                             }
-                            goto Ldone;
+                            else
+                                m = arg.implicitConvTo(ta.next);
+                            if (m == MATCHnomatch)
+                                goto Nomatch;
+                            if (m < match)
+                                match = m;
                         }
+                        goto Ldone;
                     case Tclass:
                         // Should see if there's a constructor match?
                         // Or just leave it ambiguous?

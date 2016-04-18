@@ -979,74 +979,72 @@ public:
                 return;
 
             default:
+                FuncDeclaration fdv = cd.baseClass.vtbl[vi].isFuncDeclaration();
+                FuncDeclaration fdc = cd.vtbl[vi].isFuncDeclaration();
+                // This function is covariant with fdv
+                if (fdc == this)
                 {
-                    FuncDeclaration fdv = cd.baseClass.vtbl[vi].isFuncDeclaration();
-                    FuncDeclaration fdc = cd.vtbl[vi].isFuncDeclaration();
-                    // This function is covariant with fdv
-                    if (fdc == this)
-                    {
-                        doesoverride = true;
-                        break;
-                    }
-                    if (fdc.toParent() == parent)
-                    {
-                        //printf("vi = %d,\tthis = %p %s %s @ [%s]\n\tfdc  = %p %s %s @ [%s]\n\tfdv  = %p %s %s @ [%s]\n",
-                        //        vi, this, this->toChars(), this->type->toChars(), this->loc.toChars(),
-                        //            fdc,  fdc ->toChars(), fdc ->type->toChars(), fdc ->loc.toChars(),
-                        //            fdv,  fdv ->toChars(), fdv ->type->toChars(), fdv ->loc.toChars());
-                        // fdc overrides fdv exactly, then this introduces new function.
-                        if (fdc.type.mod == fdv.type.mod && this.type.mod != fdv.type.mod)
-                            goto Lintro;
-                    }
-                    // This function overrides fdv
-                    if (fdv.isFinalFunc())
-                        error("cannot override final function %s", fdv.toPrettyChars());
                     doesoverride = true;
-                    if (!isOverride())
-                        .error(loc, "cannot implicitly override base class method %s with %s; add 'override' attribute", fdv.toPrettyChars(), toPrettyChars());
-                    if (fdc.toParent() == parent)
-                    {
-                        // If both are mixins, or both are not, then error.
-                        // If either is not, the one that is not overrides the other.
-                        bool thismixin = this.parent.isClassDeclaration() !is null;
-                        bool fdcmixin = fdc.parent.isClassDeclaration() !is null;
-                        if (thismixin == fdcmixin)
-                        {
-                            error("multiple overrides of same function");
-                        }
-                        else if (!thismixin) // fdc overrides fdv
-                        {
-                            // this doesn't override any function
-                            break;
-                        }
-                    }
-                    cd.vtbl[vi] = this;
-                    vtblIndex = vi;
-                    /* Remember which functions this overrides
-                     */
-                    foverrides.push(fdv);
-                    /* This works by whenever this function is called,
-                     * it actually returns tintro, which gets dynamically
-                     * cast to type. But we know that tintro is a base
-                     * of type, so we could optimize it by not doing a
-                     * dynamic cast, but just subtracting the isBaseOf()
-                     * offset if the value is != null.
-                     */
-                    if (fdv.tintro)
-                        tintro = fdv.tintro;
-                    else if (!type.equals(fdv.type))
-                    {
-                        /* Only need to have a tintro if the vptr
-                         * offsets differ
-                         */
-                        int offset;
-                        if (fdv.type.nextOf().isBaseOf(type.nextOf(), &offset))
-                        {
-                            tintro = fdv.type;
-                        }
-                    }
                     break;
                 }
+                if (fdc.toParent() == parent)
+                {
+                    //printf("vi = %d,\tthis = %p %s %s @ [%s]\n\tfdc  = %p %s %s @ [%s]\n\tfdv  = %p %s %s @ [%s]\n",
+                    //        vi, this, this->toChars(), this->type->toChars(), this->loc.toChars(),
+                    //            fdc,  fdc ->toChars(), fdc ->type->toChars(), fdc ->loc.toChars(),
+                    //            fdv,  fdv ->toChars(), fdv ->type->toChars(), fdv ->loc.toChars());
+                    // fdc overrides fdv exactly, then this introduces new function.
+                    if (fdc.type.mod == fdv.type.mod && this.type.mod != fdv.type.mod)
+                        goto Lintro;
+                }
+                // This function overrides fdv
+                if (fdv.isFinalFunc())
+                    error("cannot override final function %s", fdv.toPrettyChars());
+                doesoverride = true;
+                if (!isOverride())
+                    .error(loc, "cannot implicitly override base class method %s with %s; add 'override' attribute", fdv.toPrettyChars(), toPrettyChars());
+                if (fdc.toParent() == parent)
+                {
+                    // If both are mixins, or both are not, then error.
+                    // If either is not, the one that is not overrides the other.
+                    bool thismixin = this.parent.isClassDeclaration() !is null;
+                    bool fdcmixin = fdc.parent.isClassDeclaration() !is null;
+                    if (thismixin == fdcmixin)
+                    {
+                        error("multiple overrides of same function");
+                    }
+                    else if (!thismixin) // fdc overrides fdv
+                    {
+                        // this doesn't override any function
+                        break;
+                    }
+                }
+                cd.vtbl[vi] = this;
+                vtblIndex = vi;
+                /* Remember which functions this overrides
+                 */
+                foverrides.push(fdv);
+                /* This works by whenever this function is called,
+                 * it actually returns tintro, which gets dynamically
+                 * cast to type. But we know that tintro is a base
+                 * of type, so we could optimize it by not doing a
+                 * dynamic cast, but just subtracting the isBaseOf()
+                 * offset if the value is != null.
+                 */
+                if (fdv.tintro)
+                    tintro = fdv.tintro;
+                else if (!type.equals(fdv.type))
+                {
+                    /* Only need to have a tintro if the vptr
+                     * offsets differ
+                     */
+                    int offset;
+                    if (fdv.type.nextOf().isBaseOf(type.nextOf(), &offset))
+                    {
+                        tintro = fdv.type;
+                    }
+                }
+                break;
             }
             /* Go through all the interface bases.
              * If this function is covariant with any members of those interface
@@ -1066,45 +1064,43 @@ public:
                     return;
 
                 default:
+                    auto fdv = cast(FuncDeclaration)b.sym.vtbl[vi];
+                    Type ti = null;
+
+                    /* Remember which functions this overrides
+                     */
+                    foverrides.push(fdv);
+
+                    /* Should we really require 'override' when implementing
+                     * an interface function?
+                     */
+                    //if (!isOverride())
+                    //    warning(loc, "overrides base class function %s, but is not marked with 'override'", fdv->toPrettyChars());
+                    if (fdv.tintro)
+                        ti = fdv.tintro;
+                    else if (!type.equals(fdv.type))
                     {
-                        auto fdv = cast(FuncDeclaration)b.sym.vtbl[vi];
-                        Type ti = null;
-
-                        /* Remember which functions this overrides
+                        /* Only need to have a tintro if the vptr
+                         * offsets differ
                          */
-                        foverrides.push(fdv);
-
-                        /* Should we really require 'override' when implementing
-                         * an interface function?
-                         */
-                        //if (!isOverride())
-                        //    warning(loc, "overrides base class function %s, but is not marked with 'override'", fdv->toPrettyChars());
-                        if (fdv.tintro)
-                            ti = fdv.tintro;
-                        else if (!type.equals(fdv.type))
+                        int offset;
+                        if (fdv.type.nextOf().isBaseOf(type.nextOf(), &offset))
                         {
-                            /* Only need to have a tintro if the vptr
-                             * offsets differ
-                             */
-                            int offset;
-                            if (fdv.type.nextOf().isBaseOf(type.nextOf(), &offset))
-                            {
-                                ti = fdv.type;
-                            }
+                            ti = fdv.type;
                         }
-                        if (ti)
-                        {
-                            if (tintro)
-                            {
-                                if (!tintro.nextOf().equals(ti.nextOf()) && !tintro.nextOf().isBaseOf(ti.nextOf(), null) && !ti.nextOf().isBaseOf(tintro.nextOf(), null))
-                                {
-                                    error("incompatible covariant types %s and %s", tintro.toChars(), ti.toChars());
-                                }
-                            }
-                            tintro = ti;
-                        }
-                        goto L2;
                     }
+                    if (ti)
+                    {
+                        if (tintro)
+                        {
+                            if (!tintro.nextOf().equals(ti.nextOf()) && !tintro.nextOf().isBaseOf(ti.nextOf(), null) && !ti.nextOf().isBaseOf(tintro.nextOf(), null))
+                            {
+                                error("incompatible covariant types %s and %s", tintro.toChars(), ti.toChars());
+                            }
+                        }
+                        tintro = ti;
+                    }
+                    goto L2;
                 }
             }
             if (!doesoverride && isOverride() && (type.nextOf() || !may_override))
@@ -1180,12 +1176,10 @@ public:
             case 0:
                 break;
             case 1:
-                {
-                    Parameter fparam0 = Parameter.getNth(f.parameters, 0);
-                    if (fparam0.type.ty != Tarray || fparam0.type.nextOf().ty != Tarray || fparam0.type.nextOf().nextOf().ty != Tchar || fparam0.storageClass & (STCout | STCref | STClazy))
-                        goto Lmainerr;
-                    break;
-                }
+                Parameter fparam0 = Parameter.getNth(f.parameters, 0);
+                if (fparam0.type.ty != Tarray || fparam0.type.nextOf().ty != Tarray || fparam0.type.nextOf().nextOf().ty != Tchar || fparam0.storageClass & (STCout | STCref | STClazy))
+                    goto Lmainerr;
+                break;
             default:
                 goto Lmainerr;
             }

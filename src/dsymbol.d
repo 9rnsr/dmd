@@ -739,34 +739,32 @@ public:
             sm = s.search(loc, cast(Identifier)id);
             break;
         case DYNCAST_DSYMBOL:
+            // It's a template instance
+            //printf("\ttemplate instance id\n");
+            Dsymbol st = cast(Dsymbol)id;
+            TemplateInstance ti = st.isTemplateInstance();
+            sm = s.search(loc, ti.name);
+            if (!sm)
             {
-                // It's a template instance
-                //printf("\ttemplate instance id\n");
-                Dsymbol st = cast(Dsymbol)id;
-                TemplateInstance ti = st.isTemplateInstance();
-                sm = s.search(loc, ti.name);
-                if (!sm)
-                {
-                    sm = s.search_correct(ti.name);
-                    if (sm)
-                        .error(loc, "template identifier '%s' is not a member of %s '%s', did you mean %s '%s'?", ti.name.toChars(), s.kind(), s.toPrettyChars(), sm.kind(), sm.toChars());
-                    else
-                        .error(loc, "template identifier '%s' is not a member of %s '%s'", ti.name.toChars(), s.kind(), s.toPrettyChars());
-                    return null;
-                }
-                sm = sm.toAlias();
-                TemplateDeclaration td = sm.isTemplateDeclaration();
-                if (!td)
-                {
-                    .error(loc, "%s.%s is not a template, it is a %s", s.toPrettyChars(), ti.name.toChars(), sm.kind());
-                    return null;
-                }
-                ti.tempdecl = td;
-                if (!ti.semanticRun)
-                    ti.semantic(sc);
-                sm = ti.toAlias();
-                break;
+                sm = s.search_correct(ti.name);
+                if (sm)
+                    .error(loc, "template identifier '%s' is not a member of %s '%s', did you mean %s '%s'?", ti.name.toChars(), s.kind(), s.toPrettyChars(), sm.kind(), sm.toChars());
+                else
+                    .error(loc, "template identifier '%s' is not a member of %s '%s'", ti.name.toChars(), s.kind(), s.toPrettyChars());
+                return null;
             }
+            sm = sm.toAlias();
+            TemplateDeclaration td = sm.isTemplateDeclaration();
+            if (!td)
+            {
+                .error(loc, "%s.%s is not a template, it is a %s", s.toPrettyChars(), ti.name.toChars(), sm.kind());
+                return null;
+            }
+            ti.tempdecl = td;
+            if (!ti.semanticRun)
+                ti.semantic(sc);
+            sm = ti.toAlias();
+            break;
         case DYNCAST_TYPE:
         case DYNCAST_EXPRESSION:
         default:

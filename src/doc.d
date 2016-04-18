@@ -682,15 +682,15 @@ extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
                     par_open--;
             }
             break;
-            version (none)
-            {
-                // For this to work, loc must be set to the beginning of the passed
-                // text which is currently not possible
-                // (loc is set to the Loc of the Dsymbol)
-            case '\n':
-                loc.linnum++;
-                break;
-            }
+        version (none)
+        {
+            // For this to work, loc must be set to the beginning of the passed
+            // text which is currently not possible
+            // (loc is set to the Loc of the Dsymbol)
+        case '\n':
+            loc.linnum++;
+            break;
+        }
         case '-':
             // Issue 15465: don't try to escape unbalanced parens inside code
             // blocks.
@@ -2196,131 +2196,123 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             iLineStart = i + 1;
             break;
         case '<':
-            {
-                leadingBlank = 0;
-                if (inCode)
-                    break;
-                char* p = cast(char*)&buf.data[i];
-                const(char)* se = sc._module.escapetable.escapeChar('<');
-                if (se && strcmp(se, "&lt;") == 0)
-                {
-                    // Generating HTML
-                    // Skip over comments
-                    if (p[1] == '!' && p[2] == '-' && p[3] == '-')
-                    {
-                        size_t j = i + 4;
-                        p += 4;
-                        while (1)
-                        {
-                            if (j == buf.offset)
-                                goto L1;
-                            if (p[0] == '-' && p[1] == '-' && p[2] == '>')
-                            {
-                                i = j + 2; // place on closing '>'
-                                break;
-                            }
-                            j++;
-                            p++;
-                        }
-                        break;
-                    }
-                    // Skip over HTML tag
-                    if (isalpha(p[1]) || (p[1] == '/' && isalpha(p[2])))
-                    {
-                        size_t j = i + 2;
-                        p += 2;
-                        while (1)
-                        {
-                            if (j == buf.offset)
-                                break;
-                            if (p[0] == '>')
-                            {
-                                i = j; // place on closing '>'
-                                break;
-                            }
-                            j++;
-                            p++;
-                        }
-                        break;
-                    }
-                }
-            L1:
-                // Replace '<' with '&lt;' character entity
-                if (se)
-                {
-                    size_t len = strlen(se);
-                    buf.remove(i, 1);
-                    i = buf.insert(i, se, len);
-                    i--; // point to ';'
-                }
+            leadingBlank = 0;
+            if (inCode)
                 break;
+            char* p = cast(char*)&buf.data[i];
+            const(char)* se = sc._module.escapetable.escapeChar('<');
+            if (se && strcmp(se, "&lt;") == 0)
+            {
+                // Generating HTML
+                // Skip over comments
+                if (p[1] == '!' && p[2] == '-' && p[3] == '-')
+                {
+                    size_t j = i + 4;
+                    p += 4;
+                    while (1)
+                    {
+                        if (j == buf.offset)
+                            goto L1;
+                        if (p[0] == '-' && p[1] == '-' && p[2] == '>')
+                        {
+                            i = j + 2; // place on closing '>'
+                            break;
+                        }
+                        j++;
+                        p++;
+                    }
+                    break;
+                }
+                // Skip over HTML tag
+                if (isalpha(p[1]) || (p[1] == '/' && isalpha(p[2])))
+                {
+                    size_t j = i + 2;
+                    p += 2;
+                    while (1)
+                    {
+                        if (j == buf.offset)
+                            break;
+                        if (p[0] == '>')
+                        {
+                            i = j; // place on closing '>'
+                            break;
+                        }
+                        j++;
+                        p++;
+                    }
+                    break;
+                }
             }
+        L1:
+            // Replace '<' with '&lt;' character entity
+            if (se)
+            {
+                size_t len = strlen(se);
+                buf.remove(i, 1);
+                i = buf.insert(i, se, len);
+                i--; // point to ';'
+            }
+            break;
         case '>':
-            {
-                leadingBlank = 0;
-                if (inCode)
-                    break;
-                // Replace '>' with '&gt;' character entity
-                const(char)* se = sc._module.escapetable.escapeChar('>');
-                if (se)
-                {
-                    size_t len = strlen(se);
-                    buf.remove(i, 1);
-                    i = buf.insert(i, se, len);
-                    i--; // point to ';'
-                }
+            leadingBlank = 0;
+            if (inCode)
                 break;
+            // Replace '>' with '&gt;' character entity
+            const(char)* se = sc._module.escapetable.escapeChar('>');
+            if (se)
+            {
+                size_t len = strlen(se);
+                buf.remove(i, 1);
+                i = buf.insert(i, se, len);
+                i--; // point to ';'
             }
+            break;
         case '&':
-            {
-                leadingBlank = 0;
-                if (inCode)
-                    break;
-                char* p = cast(char*)&buf.data[i];
-                if (p[1] == '#' || isalpha(p[1]))
-                    break;
-                // already a character entity
-                // Replace '&' with '&amp;' character entity
-                const(char)* se = sc._module.escapetable.escapeChar('&');
-                if (se)
-                {
-                    size_t len = strlen(se);
-                    buf.remove(i, 1);
-                    i = buf.insert(i, se, len);
-                    i--; // point to ';'
-                }
+            leadingBlank = 0;
+            if (inCode)
                 break;
+            char* p = cast(char*)&buf.data[i];
+            if (p[1] == '#' || isalpha(p[1]))
+                break;
+            // already a character entity
+            // Replace '&' with '&amp;' character entity
+            const(char)* se = sc._module.escapetable.escapeChar('&');
+            if (se)
+            {
+                size_t len = strlen(se);
+                buf.remove(i, 1);
+                i = buf.insert(i, se, len);
+                i--; // point to ';'
             }
+            break;
         case '`':
+            if (inBacktick)
             {
-                if (inBacktick)
-                {
-                    inBacktick = 0;
-                    inCode = 0;
-                    OutBuffer codebuf;
-                    codebuf.write(buf.data + iCodeStart + 1, i - (iCodeStart + 1));
-                    // escape the contents, but do not perform highlighting except for DDOC_PSYMBOL
-                    highlightCode(sc, a, &codebuf, 0);
-                    buf.remove(iCodeStart, i - iCodeStart + 1); // also trimming off the current `
-                    static __gshared const(char)* pre = "$(DDOC_BACKQUOTED ";
-                    i = buf.insert(iCodeStart, pre, strlen(pre));
-                    i = buf.insert(i, cast(char*)codebuf.data, codebuf.offset);
-                    i = buf.insert(i, cast(char*)")", 1);
-                    i--; // point to the ending ) so when the for loop does i++, it will see the next character
-                    break;
-                }
-                if (inCode)
-                    break;
-                inCode = 1;
-                inBacktick = 1;
-                codeIndent = 0; // inline code is not indented
-                // All we do here is set the code flags and record
-                // the location. The macro will be inserted lazily
-                // so we can easily cancel the inBacktick if we come
-                // across a newline character.
-                iCodeStart = i;
+                inBacktick = 0;
+                inCode = 0;
+                OutBuffer codebuf;
+                codebuf.write(buf.data + iCodeStart + 1, i - (iCodeStart + 1));
+                // escape the contents, but do not perform highlighting except for DDOC_PSYMBOL
+                highlightCode(sc, a, &codebuf, 0);
+                buf.remove(iCodeStart, i - iCodeStart + 1); // also trimming off the current `
+                static __gshared const(char)* pre = "$(DDOC_BACKQUOTED ";
+                i = buf.insert(iCodeStart, pre, strlen(pre));
+                i = buf.insert(i, cast(char*)codebuf.data, codebuf.offset);
+                i = buf.insert(i, cast(char*)")", 1);
+                i--; // point to the ending ) so when the for loop does i++, it will see the next character
                 break;
             }
+            if (inCode)
+                break;
+            inCode = 1;
+            inBacktick = 1;
+            codeIndent = 0; // inline code is not indented
+            // All we do here is set the code flags and record
+            // the location. The macro will be inserted lazily
+            // so we can easily cancel the inBacktick if we come
+            // across a newline character.
+            iCodeStart = i;
+            break;
         case '-':
             /* A line beginning with --- delimits a code section.
              * inCode tells us if it is start or end of a code section.
@@ -2634,23 +2626,21 @@ extern (C++) void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t 
         switch (tok.value)
         {
         case TOKidentifier:
+            if (!sc)
+                break;
+            size_t len = lex.p - tok.ptr;
+            if (isIdentifier(a, tok.ptr, len))
             {
-                if (!sc)
-                    break;
-                size_t len = lex.p - tok.ptr;
-                if (isIdentifier(a, tok.ptr, len))
-                {
-                    highlight = "$(D_PSYMBOL ";
-                    break;
-                }
-                if (isFunctionParameter(a, tok.ptr, len))
-                {
-                    //printf("highlighting arg '%s', i = %d, j = %d\n", arg->ident->toChars(), i, j);
-                    highlight = "$(D_PARAM ";
-                    break;
-                }
+                highlight = "$(D_PSYMBOL ";
                 break;
             }
+            if (isFunctionParameter(a, tok.ptr, len))
+            {
+                //printf("highlighting arg '%s', i = %d, j = %d\n", arg->ident->toChars(), i, j);
+                highlight = "$(D_PARAM ";
+                break;
+            }
+            break;
         case TOKcomment:
             highlight = "$(D_COMMENT ";
             break;
