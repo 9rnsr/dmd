@@ -6635,12 +6635,98 @@ public:
             return true;
         if (o.dyncast() != DYNCAST_EXPRESSION)
             return false;
-        if ((cast(Expression)o).op == TOKfunction)
+        if ((cast(Expression)o).op != TOKfunction)
+            return false;
+
+        auto printSym(Dsymbol s)
         {
-            FuncExp fe = cast(FuncExp)o;
-            return fd == fe.fd;
+            HdrGenState hgs;
+            hgs.hdrgen = 1;
+            OutBuffer buf;
+            buf.doindent = 1;
+            toCBuffer(s, &buf, &hgs);
+            printf("%s\n", buf.peekString());
         }
-        return false;
+
+        auto fe = cast(FuncExp)o;
+        if (td && fe.td)
+        {
+            if (tok != TOKreserved && fe.tok != TOKreserved && tok != fe.tok)
+                return false;
+
+            auto td1 = td;
+            auto td2 = fe.td;
+            printf("td1 = %s\n", td1.toPrettyChars());
+            printf("td2 = %s\n", td2.toPrettyChars());
+
+            auto fd1 = fd;
+            auto fd2 = fe.fd;
+            printf("L%d td.parameters = %d, %d\n", __LINE__, td1.parameters.dim, td2.parameters.dim);
+            if (td1.parameters.dim != td2.parameters.dim)
+                return false;
+
+            auto tf1 = cast(TypeFunction)fd1.type;
+            auto tf2 = cast(TypeFunction)fd2.type;
+            // tf1.next, tf2.next
+
+            printf("L%d tf.parameters = %d, %d\n", __LINE__,
+                tf1.parameters ? tf1.parameters.dim : 0, tf2.parameters ? tf2.parameters.dim : 0);
+            if ((tf1.parameters ? tf1.parameters.dim : 0) != (tf2.parameters ? tf2.parameters.dim : 0))
+                return false;
+
+            void*[void*] mapId;
+            if (tf1.parameters)
+            {
+                foreach (i, p1; (*tf1.parameters))
+                {
+                    auto p2 = (*tf2.parameters)[i];
+                    mapId[cast(void*)p1.ident] = cast(void*)p2.ident;
+                    printf("\tmap: %p %s => %p %s\n",
+                        p1.ident, p1.ident.toChars(),
+                        p2.ident, p2.ident.toChars());
+                }
+            }
+
+            printf("L%d linkage = %s, %s\n", __LINE__, linkageToChars(tf1.linkage), linkageToChars(tf2.linkage));
+            if (tf1.linkage != tf2.linkage)
+                return false;
+            printf("L%d varargs = %d, %d\n", __LINE__, tf1.varargs, tf2.varargs);
+            if (tf1.varargs != tf2.varargs)
+                return false;
+            if (tf1.purity     != tf2.purity ||
+                tf1.isnothrow  != tf2.isnothrow ||
+                tf1.isnogc     != tf2.isnogc ||
+                tf1.isproperty != tf2.isproperty ||
+                tf1.isref      != tf2.isref ||
+                tf1.trust      != tf2.trust)
+            {
+                return false;
+            }
+            printf("fbody = \n\t%s\n\t%s", fd1.fbody.toChars(), fd2.fbody.toChars());
+            auto rs1 = fd1.fbody.isReturnStatement();
+            auto rs2 = fd2.fbody.isReturnStatement();
+            if (!!rs1 != !!rs2)
+                return false;
+            printf("rs1 = %p, rs2 = %p\n", rs1, rs2);
+            auto e1 = rs1.exp;
+            auto e2 = rs2.exp;
+            if (!!e1 != !!e2)
+                return false;
+            if (!e1 && !e2)
+                return true;
+            printf("e1 = %s, e2 = %s\n", e1.toChars(), e2.toChars());
+            if (e1.op == TOKidentifier && e2.op == TOKidentifier)
+            {
+                auto id1 = (cast(IdentifierExp)e1).ident;
+                auto id2 = (cast(IdentifierExp)e2).ident;
+                if (cast(void*)id1 !in mapId)
+                    return false;
+                printf("id = %s=>%p %s\n", id1.toChars(), mapId[cast(void*)id1], id2.toChars());
+                if (mapId[cast(void*)id1] is cast(void*)id2)
+                    return true;
+            }
+        }
+        return fd == fe.fd;
     }
 
     void genIdent(Scope* sc)
@@ -15351,6 +15437,11 @@ public:
             return e;
         if (e1.op == TOKtype || e2.op == TOKtype)
             return incompatibleTypes();
+
+        if (e1.op == TOKfunction && e2.op == TOKfunction)
+        {
+            return new IntegerExp(loc, e1.equals(e2), Type.tbool);
+        }
 
         /* Before checking for operator overloading, check to see if we're
          * comparing the addresses of two statics. If so, we can just see

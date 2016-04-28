@@ -216,7 +216,7 @@ extern (C++) bool match(RootObject o1, RootObject o2)
         return s ? .getValue(s) : .getValue(isExpression(o));
     }
 
-    enum debugPrint = 0;
+    enum debugPrint = 1;
 
     static if (debugPrint)
     {
@@ -349,6 +349,7 @@ extern (C++) hash_t arrayObjectHash(Objects* oa1)
             Expression e1 = s1 ? getValue(s1) : getValue(isExpression(o1));
             if (e1)
             {
+                printf("otHash j = %d, e1 = %s\n", j, e1.toChars());
                 if (e1.op == TOKint64)
                 {
                     IntegerExp ne = cast(IntegerExp)e1;
@@ -2209,11 +2210,11 @@ public:
      */
     TemplateInstance findExistingInstance(TemplateInstance tithis, Expressions* fargs)
     {
-        //printf("findExistingInstance(%p)\n", tithis);
+        printf("findExistingInstance(%p)\n", tithis);
         tithis.fargs = fargs;
         auto tibox = TemplateInstanceBox(tithis);
         auto p = tibox in instances;
-        //if (p) printf("\tfound %p\n", *p); else printf("\tnot found\n");
+        if (p) printf("\tfound %p\n", *p); else printf("\tnot found\n");
         return p ? *p : null;
     }
 
@@ -6819,16 +6820,16 @@ public:
     {
         TemplateInstance ti = cast(TemplateInstance)o;
 
-        //printf("this = %p, ti = %p\n", this, ti);
+        printf("this = %p, ti = %p\n", this, ti);
         assert(tdtypes.dim == ti.tdtypes.dim);
 
         // Nesting must match
         if (enclosing != ti.enclosing)
         {
-            //printf("test2 enclosing %s ti->enclosing %s\n", enclosing ? enclosing->toChars() : "", ti->enclosing ? ti->enclosing->toChars() : "");
+            printf("test2 enclosing %s ti.enclosing %s\n", enclosing ? enclosing.toChars() : "", ti.enclosing ? ti.enclosing.toChars() : "");
             goto Lnotequals;
         }
-        //printf("parent = %s, ti->parent = %s\n", parent->toPrettyChars(), ti->parent->toPrettyChars());
+        printf("parent = %s, ti.parent = %s\n", parent.toPrettyChars(), ti.parent.toPrettyChars());
 
         if (!arrayObjectMatch(&tdtypes, &ti.tdtypes))
             goto Lnotequals;
@@ -7285,7 +7286,7 @@ public:
             Expression ea = isExpression(o);
             Dsymbol sa = isDsymbol(o);
 
-            //printf("1: (*tiargs)[%d] = %p, s=%p, v=%p, ea=%p, ta=%p\n", j, o, isDsymbol(o), isTuple(o), ea, ta);
+            printf("1: (*tiargs)[%d] = %p, s=%p, v=%p, ea=%p, ta=%p\n", j, o, isDsymbol(o), isTuple(o), ea, ta);
             if (ta)
             {
                 //printf("type %s\n", ta->toChars());
@@ -7420,6 +7421,7 @@ public:
                          * get template declaration itself. */
                         //sa = fe->td;
                         //goto Ldsym;
+                        printf("\ttiargs [%s] %s\n", fe.loc.toChars(), fe.toChars());
                     }
                 }
                 if (ea.op == TOKdotvar)
@@ -8866,6 +8868,8 @@ struct TemplateInstanceBox
 
     bool opEquals(ref const TemplateInstanceBox s) @trusted const
     {
+        printf("TemplateInstanceBox.opEquals %s vs %s\n",
+            (cast(const)ti).toChars(), (cast(const)s.ti).toChars());
         if (ti.inst && s.ti.inst)
             /* This clause is only used when an instance with errors
              * is replaced with a correct instance.
@@ -8878,5 +8882,3 @@ struct TemplateInstanceBox
             return (cast()s.ti).compare(cast()ti) == 0;
     }
 }
-
-
