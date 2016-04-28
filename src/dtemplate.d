@@ -358,6 +358,7 @@ extern (C++) hash_t arrayObjectHash(Objects* oa1)
             }
             else if (s1)
             {
+                printf("toHash j = %d, s1 = %s %s\n", j, s1.kind(), s1.toChars());
                 FuncAliasDeclaration fa1 = s1.isFuncAliasDeclaration();
                 if (fa1)
                     s1 = fa1.toAliasFunc();
@@ -2210,7 +2211,7 @@ public:
      */
     TemplateInstance findExistingInstance(TemplateInstance tithis, Expressions* fargs)
     {
-        printf("findExistingInstance(%p)\n", tithis);
+        printf("findExistingInstance(%p), instances = %d\n", tithis, instances.length);
         tithis.fargs = fargs;
         auto tibox = TemplateInstanceBox(tithis);
         auto p = tibox in instances;
@@ -6829,7 +6830,7 @@ public:
             printf("test2 enclosing %s ti.enclosing %s\n", enclosing ? enclosing.toChars() : "", ti.enclosing ? ti.enclosing.toChars() : "");
             goto Lnotequals;
         }
-        printf("parent = %s, ti.parent = %s\n", parent.toPrettyChars(), ti.parent.toPrettyChars());
+        //printf("parent = %s, ti.parent = %s\n", parent.toPrettyChars(), ti.parent.toPrettyChars());
 
         if (!arrayObjectMatch(&tdtypes, &ti.tdtypes))
             goto Lnotequals;
@@ -8845,6 +8846,8 @@ public:
     }
 }
 
+debug = print;
+
 /************************************
  * This struct is needed for TemplateInstance to be the key in an associative array.
  * Fixing Bugzillas 15812 and 15813 would make it unnecessary.
@@ -8862,14 +8865,16 @@ struct TemplateInstanceBox
 
     size_t toHash() const @trusted pure nothrow
     {
+        debug(print) try { printf("TemplateInstanceBox.toHash ti = x%X %s\n", ti.hash, (cast()ti).toChars()); } catch {}
         assert(ti.hash);
         return ti.hash;
     }
 
     bool opEquals(ref const TemplateInstanceBox s) @trusted const
     {
-        printf("TemplateInstanceBox.opEquals %s vs %s\n",
-            (cast(const)ti).toChars(), (cast(const)s.ti).toChars());
+        debug(print) printf("TemplateInstanceBox.opEquals\n");
+        //printf("TemplateInstanceBox.opEquals %s vs %s\n",
+        //    (cast(const)ti).toChars(), (cast(const)s.ti).toChars());
         if (ti.inst && s.ti.inst)
             /* This clause is only used when an instance with errors
              * is replaced with a correct instance.
