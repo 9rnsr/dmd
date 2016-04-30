@@ -495,6 +495,9 @@ public:
 
     uint flags;                         // FUNCFLAGxxxxx
 
+    FuncDeclaration depending;
+    FuncDeclarations deferredInference;
+
     final extern (D) this(Loc loc, Loc endloc, Identifier id, StorageClass storage_class, Type type)
     {
         super(id);
@@ -1667,6 +1670,9 @@ public:
                 scout = sc2.push(sym);
             }
 
+            bool maybeNothrow = true;
+            bool nothrowViolation = false;
+
             if (fbody)
             {
                 auto sym = new ScopeDsymbol();
@@ -1823,13 +1829,9 @@ public:
                     uint nothrowErrors = global.errors;
                     blockexit = fbody.blockExit(this, f.isnothrow);
                     if (f.isnothrow && (global.errors != nothrowErrors))
-                        .error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
-                    if (flags & FUNCFLAGnothrowInprocess)
-                    {
-                        if (type == f)
-                            f = cast(TypeFunction)f.copy();
-                        f.isnothrow = !(blockexit & BEthrow);
-                    }
+                        nothrowViolation = true;
+                    if (blockexit & BEthrow)
+                        maybeNothrow = false;
                 }
 
                 if (fbody.isErrorStatement())
@@ -2216,12 +2218,11 @@ public:
                             s = s.semantic(sc2);
 
                             uint nothrowErrors = global.errors;
-                            bool isnothrow = f.isnothrow & !(flags & FUNCFLAGnothrowInprocess);
-                            int blockexit = s.blockExit(this, isnothrow);
+                            int blockexit = s.blockExit(this, f.isnothrow);
                             if (f.isnothrow && (global.errors != nothrowErrors))
-                                .error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
-                            if (flags & FUNCFLAGnothrowInprocess && blockexit & BEthrow)
-                                f.isnothrow = false;
+                                nothrowViolation = true;
+                            if (blockexit & BEthrow)
+                                maybeNothrow = false;
 
                             if (sbody.blockExit(this, f.isnothrow) == BEfallthru)
                                 sbody = new CompoundStatement(Loc(), sbody, s);
@@ -2231,7 +2232,15 @@ public:
                     }
                 }
                 // from this point on all possible 'throwers' are checked
-                flags &= ~FUNCFLAGnothrowInprocess;
+                if (f.isnothrow && nothrowViolation)
+                    .error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
+                if ((flags & FUNCFLAGnothrowInprocess) && maybeNothrow)
+                {
+                    if (type == f)
+                        f = cast(TypeFunction)f.copy();
+                    flags &= ~FUNCFLAGnothrowInprocess;
+                    f.isnothrow = true;
+                }
 
                 if (isSynchronized())
                 {
@@ -2298,32 +2307,90 @@ public:
             //errors = true;
         }
 
+        /* If this function had instantiated with gagging, error reproduction will be
+         * done by TemplateInstance::semantic.
+         * Otherwise, error gagging should be temporarily ungagged by functionSemantic3.
+         */
+        semanticRun = PASSsemantic3done;
+        semantic3Errors = (global.errors != oldErrors) || (fbody && fbody.isErrorStatement());
+
+        void determineAttributes(FuncDeclaration f)
+        {
+            f.flags &= this.flags;
+            if (!f.flags)
+                return;
+            auto tf = cast(TypeFunction)f.type.copy();
+            tf.deco = null;
+
+            /* If function survived being marked as impure, then it is pure
+             */
+            if (f.flags & FUNCFLAGpurityInprocess)
+            {
+                f.flags &= ~FUNCFLAGpurityInprocess;
+                tf.purity = PUREfwdref;
+            }
+            if (f.flags & FUNCFLAGsafetyInprocess)
+            {
+                f.flags &= ~FUNCFLAGsafetyInprocess;
+                tf.trust = TRUSTsafe;
+            }
+            if (f.flags & FUNCFLAGnogcInprocess)
+            {
+                f.flags &= ~FUNCFLAGnogcInprocess;
+                tf.isnogc = true;
+            }
+            f.flags &= ~FUNCFLAGreturnInprocess;
+
+            // reset deco to apply inference result to mangled name
+            tf.deco = tf.merge().deco;
+            f.type = tf;
+        }
+
+        if (deferredInference.dim)
+        {
+            printf("End of %s.semantic3, deferredInference = %s / flags = x%x\n", toChars(), deferredInference.toChars(), flags);
+            foreach (fd; deferredInference)
+            {
+                determineAttributes(fd);
+            }
+            determineAttributes(this);
+            return;
+        }
+        if (depending)
+        {
+            printf("End of %s.semantic3, depending = %s / flags = x%x\n", toChars(), depending.toChars(), flags);
+            depending.deferredInference.push(this);
+
+            if (type !is f)
+            {
+                f.deco = null;
+                f.deco = f.merge().deco;
+                type = f;
+            }
+            return;
+        }
+        //printf("-FuncDeclaration::semantic3('%s.%s', sc = %p, loc = %s)\n", parent.toChars(), toChars(), sc, loc.toChars());
+
+        if (flags && type is f)
+            f = cast(TypeFunction)f.copy();
+
         /* If function survived being marked as impure, then it is pure
          */
         if (flags & FUNCFLAGpurityInprocess)
         {
             flags &= ~FUNCFLAGpurityInprocess;
-            if (type == f)
-                f = cast(TypeFunction)f.copy();
             f.purity = PUREfwdref;
         }
-
         if (flags & FUNCFLAGsafetyInprocess)
         {
             flags &= ~FUNCFLAGsafetyInprocess;
-            if (type == f)
-                f = cast(TypeFunction)f.copy();
             f.trust = TRUSTsafe;
         }
-
         if (flags & FUNCFLAGnogcInprocess)
         {
             flags &= ~FUNCFLAGnogcInprocess;
-            if (type == f)
-                f = cast(TypeFunction)f.copy();
             f.isnogc = true;
         }
-
         flags &= ~FUNCFLAGreturnInprocess;
 
         // reset deco to apply inference result to mangled name
@@ -2332,26 +2399,7 @@ public:
 
         // Do semantic type AFTER pure/nothrow inference.
         if (!f.deco && ident != Id.xopEquals && ident != Id.xopCmp)
-        {
-            sc = sc.push();
-            if (isCtorDeclaration()) // Bugzilla #15665
-                sc.flags |= SCOPEctor;
-            sc.stc = 0;
-            sc.linkage = linkage; // Bugzilla 8496
-            type = f.semantic(loc, sc);
-            sc = sc.pop();
-        }
-
-        /* If this function had instantiated with gagging, error reproduction will be
-         * done by TemplateInstance::semantic.
-         * Otherwise, error gagging should be temporarily ungagged by functionSemantic3.
-         */
-        semanticRun = PASSsemantic3done;
-        semantic3Errors = (global.errors != oldErrors) || (fbody && fbody.isErrorStatement());
-        if (type.ty == Terror)
-            errors = true;
-        //printf("-FuncDeclaration::semantic3('%s.%s', sc = %p, loc = %s)\n", parent->toChars(), toChars(), sc, loc.toChars());
-        //fflush(stdout);
+            f.deco = f.merge().deco;
     }
 
     /****************************************************

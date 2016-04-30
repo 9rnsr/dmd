@@ -1928,27 +1928,50 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf,
     // If inferring return type, and semantic3() needs to be run if not already run.
     if (fd)
     {
+        printf("[%s] ++functionParameter fd = %s. semanticRun = %d\n", loc.toChars(), fd.toChars(), fd.semanticRun);
+        auto fddsave = fd.depending;
+        if (!sc.func.flags || sc.func is fd)
+        {
+            printf("\tL%d\n", __LINE__);
+            // direct recursive call
+        }
+        else if (!fd.depending)
+        {
+            printf("\tL%d\n", __LINE__);
+            fd.depending = sc.func;
+        }
+        else
+        {
+            printf("\tL%d\n", __LINE__);
+            for (auto fx = sc.func.depending; fx; fx = fx.depending)
+            {
+                if (fx is fd)
+                {
+                    printf("\tL%d mutual!\n", __LINE__);
+                    break;
+                }
+                if (!fx.depending)
+                {
+                    printf("\tL%d new dependent!\n", __LINE__);
+                    fd.deferredInference.push(fd);
+                    break;
+                }
+            }
+        }
+
+        bool r;
         auto ti = fd.toParent().isTemplateInstance();
         if (ti && ti.semanticRun >= PASSsemanticdone)
         {
             ti.semantic3(null);
-            if (ti.errors)
-                return true;
-
-            if (fd.type.nextOf())
-            {
-                // Workaround for compilable/test9209.d
-            }
-            else if (fd.checkForwardRef(loc))
-                return true;
+            r = !ti.errors;
         }
         else
-        {
-            if (!fd.functionSemantic())
-                return true;
-            if (fd.checkForwardRef(loc))
-                return true;
-        }
+            r = fd.functionSemantic();
+
+        fd.depending = fddsave;
+        if (!r)
+            return true;
 
         if (fd.ident == Id.assign &&
             (fd.storage_class & STCinference) &&
@@ -1964,11 +1987,13 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf,
         assert(fd.type.ty == Tfunction);
         tf = cast(TypeFunction)fd.type;
 
+        printf("[%s] --functionParameter fd = %s. semanticRun = %d\n", loc.toChars(), fd.toChars(), fd.semanticRun);
+
         // TODO: Converting errors in these checks to an ErrorExp will hide
         // nothrow errors.
-        Expression.checkPurity(loc, sc, fd);
-        Expression.checkSafety(loc, sc, fd);
-        Expression.checkNogc(loc, sc, fd);
+        if ((fd.flags & FUNCFLAGpurityInprocess) == 0) Expression.checkPurity(loc, sc, fd);
+        if ((fd.flags & FUNCFLAGsafetyInprocess) == 0) Expression.checkSafety(loc, sc, fd);
+        if ((fd.flags & FUNCFLAGnogcInprocess)   == 0) Expression.checkNogc(loc, sc, fd);
     }
 
     Type tret = tf.next;

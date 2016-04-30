@@ -589,6 +589,9 @@ public:
 
     unsigned flags;                     // FUNCFLAGxxxxx
 
+    FuncDeclaration *depending;
+    FuncDeclarations deferredInference;
+
     FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
