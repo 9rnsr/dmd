@@ -1928,21 +1928,21 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf,
     // If inferring return type, and semantic3() needs to be run if not already run.
     if (fd)
     {
-        printf("[%s] ++functionParameter fd = %s. semanticRun = %d\n", loc.toChars(), fd.toChars(), fd.semanticRun);
+        //printf("[%s] ++functionParameter fd = %s. semanticRun = %d\n", loc.toChars(), fd.toChars(), fd.semanticRun);
         auto fddsave = fd.depending;
         if (!sc.func || !sc.func.flags || sc.func is fd)
         {
-            printf("\tL%d\n", __LINE__);
+            //printf("\tL%d\n", __LINE__);
             // direct recursive call
         }
         else if (!fd.depending)
         {
-            printf("\tL%d\n", __LINE__);
+            //printf("\tL%d\n", __LINE__);
             fd.depending = sc.func;
         }
         else
         {
-            printf("\tL%d\n", __LINE__);
+            //printf("\tL%d\n", __LINE__);
         /+  for (auto fx = sc.func.depending; fx; fx = fx.depending)
             {
                 printf("\t\tfx = %s\n", fx.toChars());
@@ -1988,7 +1988,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf,
         assert(fd.type.ty == Tfunction);
         tf = cast(TypeFunction)fd.type;
 
-        printf("[%s] --functionParameter fd = %s. semanticRun = %d\n", loc.toChars(), fd.toChars(), fd.semanticRun);
+        //printf("[%s] --functionParameter fd = %s. semanticRun = %d\n", loc.toChars(), fd.toChars(), fd.semanticRun);
 
         // TODO: Converting errors in these checks to an ErrorExp will hide
         // nothrow errors.
