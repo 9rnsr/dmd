@@ -1930,7 +1930,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf,
     {
         printf("[%s] ++functionParameter fd = %s. semanticRun = %d\n", loc.toChars(), fd.toChars(), fd.semanticRun);
         auto fddsave = fd.depending;
-        if (!sc.func.flags || sc.func is fd)
+        if (!sc.func || !sc.func.flags || sc.func is fd)
         {
             printf("\tL%d\n", __LINE__);
             // direct recursive call
