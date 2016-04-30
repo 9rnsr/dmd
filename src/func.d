@@ -1428,6 +1428,9 @@ public:
             }
         }
 
+        bool nothrowViolation = false;
+        //bool maybeNothrow = true;
+
         frequire = mergeFrequire(frequire);
         fensure = mergeFensure(fensure, outId);
         if (fbody || frequire || fensure)
@@ -1670,9 +1673,6 @@ public:
                 scout = sc2.push(sym);
             }
 
-            bool maybeNothrow = true;
-            bool nothrowViolation = false;
-
             if (fbody)
             {
                 auto sym = new ScopeDsymbol();
@@ -1831,7 +1831,8 @@ public:
                     if (f.isnothrow && (global.errors != nothrowErrors))
                         nothrowViolation = true;
                     if (blockexit & BEthrow)
-                        maybeNothrow = false;
+                        flags &= ~FUNCFLAGnothrowInprocess;
+                    //printf("\tL%d %s maybeNothrow = %d\n", __LINE__, toChars(), maybeNothrow);
                 }
 
                 if (fbody.isErrorStatement())
@@ -2222,7 +2223,8 @@ public:
                             if (f.isnothrow && (global.errors != nothrowErrors))
                                 nothrowViolation = true;
                             if (blockexit & BEthrow)
-                                maybeNothrow = false;
+                                flags &= ~FUNCFLAGnothrowInprocess;
+                    //printf("\tL%d %s maybeNothrow = %d\n", __LINE__, toChars(), maybeNothrow);
 
                             if (sbody.blockExit(this, f.isnothrow) == BEfallthru)
                                 sbody = new CompoundStatement(Loc(), sbody, s);
@@ -2231,16 +2233,9 @@ public:
                         }
                     }
                 }
-                // from this point on all possible 'throwers' are checked
-                if (f.isnothrow && nothrowViolation)
+                // from this point on all possible 'throwers' in fbody are checked
+                if (f.isnothrow && nothrowViolation)    // todo
                     .error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
-                if ((flags & FUNCFLAGnothrowInprocess) && maybeNothrow)
-                {
-                    if (type == f)
-                        f = cast(TypeFunction)f.copy();
-                    flags &= ~FUNCFLAGnothrowInprocess;
-                    f.isnothrow = true;
-                }
 
                 if (isSynchronized())
                 {
@@ -2314,10 +2309,12 @@ public:
         semanticRun = PASSsemantic3done;
         semantic3Errors = (global.errors != oldErrors) || (fbody && fbody.isErrorStatement());
 
-        void determineAttributes(FuncDeclaration f)
+        void determineAttributes(FuncDeclaration f, uint finalFlags)
         {
-            f.flags &= this.flags;
+            f.flags &= finalFlags;
             if (!f.flags)
+                return;
+            if (f.ident == Id.xopEquals || f.ident == Id.xopCmp)
                 return;
             auto tf = cast(TypeFunction)f.type.copy();
             tf.deco = null;
@@ -2326,20 +2323,25 @@ public:
              */
             if (f.flags & FUNCFLAGpurityInprocess)
             {
-                f.flags &= ~FUNCFLAGpurityInprocess;
+                //f.flags &= ~FUNCFLAGpurityInprocess;
                 tf.purity = PUREfwdref;
             }
             if (f.flags & FUNCFLAGsafetyInprocess)
             {
-                f.flags &= ~FUNCFLAGsafetyInprocess;
+                //f.flags &= ~FUNCFLAGsafetyInprocess;
                 tf.trust = TRUSTsafe;
             }
             if (f.flags & FUNCFLAGnogcInprocess)
             {
-                f.flags &= ~FUNCFLAGnogcInprocess;
+                //f.flags &= ~FUNCFLAGnogcInprocess;
                 tf.isnogc = true;
             }
-            f.flags &= ~FUNCFLAGreturnInprocess;
+            if (flags & FUNCFLAGnothrowInprocess)
+            {
+                //flags &= ~FUNCFLAGnothrowInprocess;
+                tf.isnothrow = true;
+            }
+            //f.flags &= ~FUNCFLAGreturnInprocess;
 
             // reset deco to apply inference result to mangled name
             tf.deco = tf.merge().deco;
@@ -2348,58 +2350,38 @@ public:
 
         if (deferredInference.dim)
         {
-            printf("End of %s.semantic3, deferredInference = %s / flags = x%x\n", toChars(), deferredInference.toChars(), flags);
+            //printf("End of %s.semantic3, deferredInference = %s / flags = x%x\n", toChars(), deferredInference.toChars(), flags);
             foreach (fd; deferredInference)
             {
-                determineAttributes(fd);
+                determineAttributes(fd, this.flags);
+                fd.flags &= ~FUNCFLAGpurityInprocess;
+                fd.flags &= ~FUNCFLAGsafetyInprocess;
+                fd.flags &= ~FUNCFLAGnogcInprocess;
+                fd.flags &= ~FUNCFLAGreturnInprocess;
             }
-            determineAttributes(this);
+            determineAttributes(this, this.flags);
+            this.flags &= ~FUNCFLAGpurityInprocess;
+            this.flags &= ~FUNCFLAGsafetyInprocess;
+            this.flags &= ~FUNCFLAGnogcInprocess;
+            this.flags &= ~FUNCFLAGreturnInprocess;
             return;
         }
         if (depending)
         {
-            printf("End of %s.semantic3, depending = %s / flags = x%x\n", toChars(), depending.toChars(), flags);
-            depending.deferredInference.push(this);
-
             if (type !is f)
             {
                 f.deco = null;
                 f.deco = f.merge().deco;
                 type = f;
             }
+
+            //printf("End of %s.semantic3, depending = %s / flags = x%x type = %s\n", toChars(), depending.toChars(), flags, type.toChars());
+            depending.deferredInference.push(this);
             return;
         }
         //printf("-FuncDeclaration::semantic3('%s.%s', sc = %p, loc = %s)\n", parent.toChars(), toChars(), sc, loc.toChars());
 
-        if (flags && type is f)
-            f = cast(TypeFunction)f.copy();
-
-        /* If function survived being marked as impure, then it is pure
-         */
-        if (flags & FUNCFLAGpurityInprocess)
-        {
-            flags &= ~FUNCFLAGpurityInprocess;
-            f.purity = PUREfwdref;
-        }
-        if (flags & FUNCFLAGsafetyInprocess)
-        {
-            flags &= ~FUNCFLAGsafetyInprocess;
-            f.trust = TRUSTsafe;
-        }
-        if (flags & FUNCFLAGnogcInprocess)
-        {
-            flags &= ~FUNCFLAGnogcInprocess;
-            f.isnogc = true;
-        }
-        flags &= ~FUNCFLAGreturnInprocess;
-
-        // reset deco to apply inference result to mangled name
-        if (f != type)
-            f.deco = null;
-
-        // Do semantic type AFTER pure/nothrow inference.
-        if (!f.deco && ident != Id.xopEquals && ident != Id.xopCmp)
-            f.deco = f.merge().deco;
+        determineAttributes(this, this.flags);
     }
 
     /****************************************************
