@@ -109,3 +109,61 @@ void test2() //@safe
     pragma(msg, "typeof foo2 = ", typeof(&foo2!()));
     pragma(msg, "typeof bar2 = ", typeof(&bar2!()));
 }
+
+/*
+TEST_OUTPUT:
+---
+====================
+= test3 -> foo3
+= foo3
+= foo3 -> bar3
+= bar3
+= bar3 -> baz3
+= baz3
+= baz3 -> bar3
+typeof foo3 = void function(int n) pure nothrow @nogc @safe
+typeof bar3 = void function(int n) pure nothrow @nogc @safe
+---
+*/
+void foo3()(int n)// @system
+{
+    pragma(msg, "= foo3");
+    if (n > 0)
+    {
+        pragma(msg, "= foo3 -> bar3");
+        bar3(n - 1);
+    }
+    return;
+}
+
+void bar3()(int n)
+{
+    pragma(msg, "= bar3");
+    if (n > 0)
+    {
+        pragma(msg, "= bar3 -> baz3");
+        baz3(n - 1);
+    }
+    return;
+}
+
+void baz3()(int n)
+{
+    pragma(msg, "= baz3");
+    if (n > 0)
+    {
+        pragma(msg, "= baz3 -> bar3");
+        bar3(n - 1);
+    }
+    return;
+}
+
+void test3() //@safe
+{
+    pragma(msg, "====================");
+    pragma(msg, "= test3 -> foo3");
+    foo3(5);
+
+    pragma(msg, "typeof foo3 = ", typeof(&foo3!()));
+    pragma(msg, "typeof bar3 = ", typeof(&bar3!()));
+}

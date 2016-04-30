@@ -66,13 +66,8 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
              * Note that pure functions can throw.
              */
             Type t = ce.e1.type.toBasetype();
-            if (ce.f)
-            {
-                if (ce.f == func)
-                    return;
-                if (ce.f.flags & FUNCFLAGnothrowInprocess)
-                    return;
-            }
+            if (ce.f && (ce.f == func || (ce.f.flags & FUNCFLAGnothrowInprocess)))
+                return;
             if (t.ty == Tfunction && (cast(TypeFunction)t).isnothrow)
                 return;
             if (t.ty == Tdelegate && (cast(TypeFunction)(cast(TypeDelegate)t).next).isnothrow)
