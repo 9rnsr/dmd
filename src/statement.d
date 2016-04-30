@@ -2647,7 +2647,11 @@ public:
                     {
                         Expressions a;
                         if (auto f = resolveFuncCall(loc, sc, td, null, tab, &a, 1))
+                        {
+                            if (!f.functionSemantic())
+                                goto Lrangeerr;
                             tfront = f.type;
+                        }
                     }
                     else if (auto d = sfront.isDeclaration())
                     {

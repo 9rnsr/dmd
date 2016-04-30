@@ -7539,19 +7539,27 @@ public:
              * template functions.
              */
         }
+
+        Type t = exp.type;
         if (auto f = exp.op == TOKvar    ? (cast(   VarExp)exp).var.isFuncDeclaration()
                    : exp.op == TOKdotvar ? (cast(DotVarExp)exp).var.isFuncDeclaration() : null)
         {
             if (f.checkForwardRef(loc))
                 goto Lerr;
+            t = f.type;
         }
         if (auto f = isFuncAddress(exp))
         {
             if (f.checkForwardRef(loc))
                 goto Lerr;
+            if (exp.type.ty == Tdelegate)
+            {
+                t = new TypeDelegate(f.type);
+                t = t.semantic(exp.loc, sc);
+            }
+            else
+                t = f.type.pointerTo();
         }
-
-        Type t = exp.type;
         if (!t)
         {
             error(loc, "expression (%s) has no type", exp.toChars());
@@ -7562,6 +7570,7 @@ public:
             error(loc, "forward reference to %s", toChars());
             goto Lerr;
         }
+
         if (idents.dim == 0)
             *pt = t;
         else
