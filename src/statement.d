@@ -1304,7 +1304,7 @@ public:
 
     override Statements* flatten(Scope* sc)
     {
-        //printf("CompileStatement::flatten() %s\n", exp->toChars());
+        //printf("CompileStatement::flatten() %s\n", exp.toChars());
 
         auto errorStatements()
         {
@@ -1338,7 +1338,7 @@ public:
 
     override Statement semantic(Scope* sc)
     {
-        //printf("CompileStatement::semantic() %s\n", exp->toChars());
+        //printf("CompileStatement::semantic() %s\n", exp.toChars());
         Statements* a = flatten(sc);
         if (!a)
             return null;
@@ -3624,47 +3624,49 @@ public:
                     error("string expected for library name");
                     goto Lerror;
                 }
-                else
-                {
-                    auto se = semanticString(sc, (*args)[0], "library name");
-                    if (!se)
-                        goto Lerror;
 
-                    if (global.params.verbose)
-                    {
-                        fprintf(global.stdmsg, "library   %.*s\n", cast(int)se.len, se.string);
-                    }
+                auto se = semanticString(sc, (*args)[0], "library name");
+                if (!se)
+                    goto Lerror;
+                (*args)[0] = se;
+
+                if (global.params.verbose)
+                {
+                    fprintf(global.stdmsg, "library   %.*s\n", cast(int)se.len, se.string);
                 }
             }
         }
         else if (ident == Id.startaddress)
         {
             if (!args || args.dim != 1)
-                error("function name expected for start address");
-            else
             {
-                Expression e = (*args)[0];
-                sc = sc.startCTFE();
-                e = e.semantic(sc);
-                e = resolveProperties(sc, e);
-                sc = sc.endCTFE();
-
-                e = e.ctfeInterpret();
-                (*args)[0] = e;
-                Dsymbol sa = getDsymbol(e);
-                if (!sa || !sa.isFuncDeclaration())
-                {
-                    error("function name expected for start address, not '%s'", e.toChars());
-                    goto Lerror;
-                }
-                if (_body)
-                {
-                    _body = _body.semantic(sc);
-                    if (_body.isErrorStatement())
-                        return _body;
-                }
-                return this;
+                error("function name expected for start address");
+                goto Lerror;
             }
+
+            Expression e = (*args)[0];
+
+            sc = sc.startCTFE();
+            e = e.semantic(sc);
+            e = resolveProperties(sc, e);
+            sc = sc.endCTFE();
+
+            e = e.ctfeInterpret();
+            (*args)[0] = e;
+
+            auto sa = getDsymbol(e);
+            if (!sa || !sa.isFuncDeclaration())
+            {
+                error("function name expected for start address, not '%s'", e.toChars());
+                goto Lerror;
+            }
+            if (_body)
+            {
+                _body = _body.semantic(sc);
+                if (_body.isErrorStatement())
+                    return _body;
+            }
+            return this;
         }
         else if (ident == Id.Pinline)
         {

@@ -843,10 +843,12 @@ public:
                 for (size_t i = 0; i < args.dim; i++)
                 {
                     Expression e = (*args)[i];
+
                     sc = sc.startCTFE();
                     e = e.semantic(sc);
                     e = resolveProperties(sc, e);
                     sc = sc.endCTFE();
+
                     // pragma(msg) is allowed to contain types as well as expressions
                     e = ctfeInterpretForPragmaMsg(e);
                     if (e.op == TOKerror)
@@ -870,55 +872,59 @@ public:
         else if (ident == Id.lib)
         {
             if (!args || args.dim != 1)
-                .error(loc, "string expected for library name");
-            else
             {
-                auto se = semanticString(sc, (*args)[0], "library name");
-                if (!se)
-                    goto Lnodecl;
-                (*args)[0] = se;
-
-                auto name = cast(char*)mem.xmalloc(se.len + 1);
-                memcpy(name, se.string, se.len);
-                name[se.len] = 0;
-                if (global.params.verbose)
-                    fprintf(global.stdmsg, "library   %s\n", name);
-                if (global.params.moduleDeps && !global.params.moduleDepsFile)
-                {
-                    OutBuffer* ob = global.params.moduleDeps;
-                    Module imod = sc.instantiatingModule();
-                    ob.writestring("depsLib ");
-                    ob.writestring(imod.toPrettyChars());
-                    ob.writestring(" (");
-                    escapePath(ob, imod.srcfile.toChars());
-                    ob.writestring(") : ");
-                    ob.writestring(name);
-                    ob.writenl();
-                }
-                mem.xfree(name);
+                .error(loc, "string expected for library name");
+                goto Lnodecl;
             }
+
+            auto se = semanticString(sc, (*args)[0], "library name");
+            if (!se)
+                goto Lnodecl;
+            (*args)[0] = se;
+
+            auto name = cast(char*)mem.xmalloc(se.len + 1);
+            memcpy(name, se.string, se.len);
+            name[se.len] = 0;
+            if (global.params.verbose)
+                fprintf(global.stdmsg, "library   %s\n", name);
+            if (global.params.moduleDeps && !global.params.moduleDepsFile)
+            {
+                OutBuffer* ob = global.params.moduleDeps;
+                Module imod = sc.instantiatingModule();
+                ob.writestring("depsLib ");
+                ob.writestring(imod.toPrettyChars());
+                ob.writestring(" (");
+                escapePath(ob, imod.srcfile.toChars());
+                ob.writestring(") : ");
+                ob.writestring(name);
+                ob.writenl();
+            }
+            mem.xfree(name);
             goto Lnodecl;
         }
         else if (ident == Id.startaddress)
         {
             if (!args || args.dim != 1)
-                .error(loc, "function name expected for start address");
-            else
             {
-                /* Bugzilla 11980:
-                 * resolveProperties and ctfeInterpret call are not necessary.
-                 */
-                Expression e = (*args)[0];
-
-                sc = sc.startCTFE();
-                e = e.semantic(sc);
-                sc = sc.endCTFE();
-                (*args)[0] = e;
-
-                Dsymbol sa = getDsymbol(e);
-                if (!sa || !sa.isFuncDeclaration())
-                    .error(loc, "function name expected for start address, not '%s'", e.toChars());
+                .error(loc, "function name expected for start address");
+                goto Lnodecl;
             }
+
+            /* Bugzilla 11980:
+             * resolveProperties and ctfeInterpret call are not necessary.
+             */
+            Expression e = (*args)[0];
+
+            sc = sc.startCTFE();
+            e = e.semantic(sc);
+            sc = sc.endCTFE();
+
+            (*args)[0] = e;
+
+            auto sa = getDsymbol(e);
+            if (!sa || !sa.isFuncDeclaration())
+                .error(loc, "function name expected for start address, not '%s'", e.toChars());
+
             goto Lnodecl;
         }
         else if (ident == Id.Pinline)
