@@ -836,7 +836,7 @@ public:
         else if (ident == Id.lib)
         {
             if (!args || args.dim != 1)
-                error("string expected for library name");
+                .error(loc, "string expected for library name");
             else
             {
                 Expression e = (*args)[0];
@@ -850,7 +850,7 @@ public:
                     goto Lnodecl;
                 StringExp se = e.toStringExp();
                 if (!se)
-                    error("string expected for library name, not '%s'", e.toChars());
+                    .error(loc, "string expected for library name, not '%s'", e.toChars());
                 else
                 {
                     char* name = cast(char*)mem.xmalloc(se.len + 1);
@@ -878,7 +878,7 @@ public:
         else if (ident == Id.startaddress)
         {
             if (!args || args.dim != 1)
-                error("function name expected for start address");
+                .error(loc, "function name expected for start address");
             else
             {
                 /* Bugzilla 11980:
@@ -891,7 +891,7 @@ public:
                 (*args)[0] = e;
                 Dsymbol sa = getDsymbol(e);
                 if (!sa || !sa.isFuncDeclaration())
-                    error("function name expected for start address, not '%s'", e.toChars());
+                    .error(loc, "function name expected for start address, not '%s'", e.toChars());
             }
             goto Lnodecl;
         }
@@ -905,7 +905,7 @@ public:
                 args = new Expressions();
             if (args.dim != 1)
             {
-                error("string expected for mangled name");
+                .error(loc, "string expected for mangled name");
                 args.setDim(1);
                 (*args)[0] = new ErrorExp(); // error recovery
                 goto Ldecl;
@@ -919,19 +919,20 @@ public:
             StringExp se = e.toStringExp();
             if (!se)
             {
-                error("string expected for mangled name, not '%s'", e.toChars());
+                .error(loc, "string expected for mangled name, not '%s'", e.toChars());
                 goto Ldecl;
             }
             if (!se.len)
             {
-                error("zero-length string not allowed for mangled name");
+                .error(loc, "zero-length string not allowed for mangled name");
                 goto Ldecl;
             }
             if (se.sz != 1)
             {
-                error("mangled name characters can only be of type char");
+                .error(loc, "mangled name characters can only be of type char");
                 goto Ldecl;
             }
+
             version (all)
             {
                 /* Note: D language specification should not have any assumption about backend
@@ -945,25 +946,29 @@ public:
                     dchar c = p[i];
                     if (c < 0x80)
                     {
-                        if (c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c != 0 && strchr("$%().:?@[]_", c))
+                        if (c >= 'A' && c <= 'Z' ||
+                            c >= 'a' && c <= 'z' ||
+                            c >= '0' && c <= '9' ||
+                            c != 0 && strchr("$%().:?@[]_", c))
                         {
                             ++i;
                             continue;
                         }
                         else
                         {
-                            error("char 0x%02x not allowed in mangled name", c);
+                            .error(loc, "char 0x%02x not allowed in mangled name", c);
                             break;
                         }
                     }
+
                     if (const msg = utf_decodeChar(se.string, se.len, i, c))
                     {
-                        error("%s", msg);
+                        .error(loc, "%s in mangled name", msg);
                         break;
                     }
                     if (!isUniAlpha(c))
                     {
-                        error("char 0x%04x not allowed in mangled name", c);
+                        .error(loc, "char 0x%04x not allowed in mangled name", c);
                         break;
                     }
                 }
@@ -981,10 +986,12 @@ public:
                     for (size_t i = 0; i < args.dim; i++)
                     {
                         Expression e = (*args)[i];
+
                         sc = sc.startCTFE();
                         e = e.semantic(sc);
                         e = resolveProperties(sc, e);
                         sc = sc.endCTFE();
+
                         e = e.ctfeInterpret();
                         if (i == 0)
                             fprintf(global.stdmsg, " (");
@@ -1000,7 +1007,8 @@ public:
             goto Lnodecl;
         }
         else
-            error("unrecognized pragma(%s)", ident.toChars());
+            .error(loc, "unrecognized pragma(%s)", ident.toChars());
+
     Ldecl:
         if (decl)
         {
@@ -1019,7 +1027,7 @@ public:
                         name[se.len] = 0;
                         uint cnt = setMangleOverride(s, name);
                         if (cnt > 1)
-                            error("can only apply to a single declaration");
+                            .error(loc, "can only apply to a single declaration");
                     }
                 }
             }
@@ -1027,10 +1035,11 @@ public:
                 sc2.pop();
         }
         return;
+
     Lnodecl:
         if (decl)
         {
-            error("pragma is missing closing ';'");
+            .error(loc, "pragma is missing closing ';'");
             goto Ldecl;
             // do them anyway, to avoid segfaults.
         }
