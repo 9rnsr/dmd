@@ -245,30 +245,18 @@ extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
  */
 extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = null)
 {
-    //printf("resolvePropertiesX, e1 = %s %s, e2 = %s\n", Token::toChars(e1->op), e1->toChars(), e2 ? e2->toChars() : NULL);
+    //printf("resolvePropertiesX, e1 = %s %s, e2 = %s\n", Token.toChars(e1.op), e1.toChars(), e2 ? e2.toChars() : null);
+
     Loc loc = e1.loc;
 
-    OverloadSet os;
-    Dsymbol s;
-    Objects* tiargs;
-    Type tthis;
-    if (e1.op == TOKdot)
+    auto errorNotAProperty()
     {
-        DotExp de = cast(DotExp)e1;
-        if (de.e2.op == TOKoverloadset)
-        {
-            tiargs = null;
-            tthis = de.e1.type;
-            os = (cast(OverExp)de.e2).vars;
-            goto Los;
-        }
+        error(loc, "not a property %s", e1.toChars());
+        return new ErrorExp();
     }
-    else if (e1.op == TOKoverloadset)
+
+    Expression resolveOverloadSet(OverloadSet os, Objects* tiargs, Type tthis)
     {
-        tiargs = null;
-        tthis = null;
-        os = (cast(OverExp)e1).vars;
-    Los:
         assert(os);
         FuncDeclaration fd = null;
         if (e2)
@@ -281,16 +269,15 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
             Expressions a;
             a.push(e2);
 
-            for (size_t i = 0; i < os.a.dim; i++)
+            foreach (s; os.a)
             {
-                FuncDeclaration f = resolveFuncCall(loc, sc, os.a[i], tiargs, tthis, &a, 1);
-                if (f)
+                if (auto f = resolveFuncCall(loc, sc, s, tiargs, tthis, &a, 1))
                 {
                     if (f.errors)
                         return new ErrorExp();
                     fd = f;
                     assert(fd.type.ty == Tfunction);
-                    TypeFunction tf = cast(TypeFunction)fd.type;
+                    auto tf = cast(TypeFunction)fd.type;
                 }
             }
             if (fd)
@@ -300,18 +287,20 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
             }
         }
         {
-            for (size_t i = 0; i < os.a.dim; i++)
+            foreach (s; os.a)
             {
-                FuncDeclaration f = resolveFuncCall(loc, sc, os.a[i], tiargs, tthis, null, 1);
-                if (f)
+                if (auto f = resolveFuncCall(loc, sc, s, tiargs, tthis, null, 1))
                 {
                     if (f.errors)
                         return new ErrorExp();
                     fd = f;
                     assert(fd.type.ty == Tfunction);
-                    TypeFunction tf = cast(TypeFunction)fd.type;
+                    auto tf = cast(TypeFunction)fd.type;
                     if (!tf.isref && e2)
-                        goto Leproplvalue;
+                    {
+                        error(loc, "%s is not an lvalue", e1.toChars());
+                        return new ErrorExp();
+                    }
                 }
             }
             if (fd)
@@ -323,68 +312,12 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
             }
         }
         if (e2)
-            goto Leprop;
+            return errorNotAProperty();
+        return null;
     }
-    else if (e1.op == TOKdotti)
+
+    Expression resolveFunc(Dsymbol s, Objects* tiargs, Type tthis)
     {
-        DotTemplateInstanceExp dti = cast(DotTemplateInstanceExp)e1;
-        if (!dti.findTempDecl(sc))
-            goto Leprop;
-        if (!dti.ti.semanticTiargs(sc))
-            goto Leprop;
-        tiargs = dti.ti.tiargs;
-        tthis = dti.e1.type;
-        if ((os = dti.ti.tempdecl.isOverloadSet()) !is null)
-            goto Los;
-        if ((s = dti.ti.tempdecl) !is null)
-            goto Lfd;
-    }
-    else if (e1.op == TOKdottd)
-    {
-        DotTemplateExp dte = cast(DotTemplateExp)e1;
-        s = dte.td;
-        tiargs = null;
-        tthis = dte.e1.type;
-        goto Lfd;
-    }
-    else if (e1.op == TOKscope)
-    {
-        s = (cast(ScopeExp)e1).sds;
-        TemplateInstance ti = s.isTemplateInstance();
-        if (ti && !ti.semanticRun && ti.tempdecl)
-        {
-            //assert(ti.needsTypeInference(sc));
-            if (!ti.semanticTiargs(sc))
-                goto Leprop;
-            tiargs = ti.tiargs;
-            tthis = null;
-            if ((os = ti.tempdecl.isOverloadSet()) !is null)
-                goto Los;
-            if ((s = ti.tempdecl) !is null)
-                goto Lfd;
-        }
-    }
-    else if (e1.op == TOKtemplate)
-    {
-        s = (cast(TemplateExp)e1).td;
-        tiargs = null;
-        tthis = null;
-        goto Lfd;
-    }
-    else if (e1.op == TOKdotvar && e1.type && e1.type.toBasetype().ty == Tfunction)
-    {
-        DotVarExp dve = cast(DotVarExp)e1;
-        s = dve.var.isFuncDeclaration();
-        tiargs = null;
-        tthis = dve.e1.type;
-        goto Lfd;
-    }
-    else if (e1.op == TOKvar && e1.type && e1.type.toBasetype().ty == Tfunction)
-    {
-        s = (cast(VarExp)e1).var.isFuncDeclaration();
-        tiargs = null;
-        tthis = null;
-    Lfd:
         assert(s);
         if (e2)
         {
@@ -396,25 +329,25 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
             Expressions a;
             a.push(e2);
 
-            FuncDeclaration fd = resolveFuncCall(loc, sc, s, tiargs, tthis, &a, 1);
+            auto fd = resolveFuncCall(loc, sc, s, tiargs, tthis, &a, 1);
             if (fd && fd.type)
             {
                 if (fd.errors)
                     return new ErrorExp();
                 assert(fd.type.ty == Tfunction);
-                TypeFunction tf = cast(TypeFunction)fd.type;
+                auto tf = cast(TypeFunction)fd.type;
                 Expression e = new CallExp(loc, e1, e2);
                 return e.semantic(sc);
             }
         }
         {
-            FuncDeclaration fd = resolveFuncCall(loc, sc, s, tiargs, tthis, null, 1);
+            auto fd = resolveFuncCall(loc, sc, s, tiargs, tthis, null, 1);
             if (fd && fd.type)
             {
                 if (fd.errors)
                     return new ErrorExp();
                 assert(fd.type.ty == Tfunction);
-                TypeFunction tf = cast(TypeFunction)fd.type;
+                auto tf = cast(TypeFunction)fd.type;
                 if (!e2 || tf.isref)
                 {
                     Expression e = new CallExp(loc, e1);
@@ -424,21 +357,99 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
                 }
             }
         }
-        if (FuncDeclaration fd = s.isFuncDeclaration())
+        if (auto fd = s.isFuncDeclaration())
         {
             // Keep better diagnostic message for invalid property usage of functions
             assert(fd.type.ty == Tfunction);
-            TypeFunction tf = cast(TypeFunction)fd.type;
+            auto tf = cast(TypeFunction)fd.type;
             Expression e = new CallExp(loc, e1, e2);
             return e.semantic(sc);
         }
         if (e2)
-            goto Leprop;
+            return errorNotAProperty();
+        return null;
     }
+
+    if (e1.op == TOKdot)
+    {
+        auto de = cast(DotExp)e1;
+        if (de.e2.op == TOKoverloadset)
+        {
+            if (auto e = resolveOverloadSet((cast(OverExp)de.e2).vars, null, de.e1.type))
+                return e;
+        }
+    }
+    else if (e1.op == TOKoverloadset)
+    {
+        if (auto e = resolveOverloadSet((cast(OverExp)e1).vars, null, null))
+            return e;
+    }
+    else if (e1.op == TOKdotti)
+    {
+        auto dti = cast(DotTemplateInstanceExp)e1;
+        if (!dti.findTempDecl(sc))
+            return errorNotAProperty();
+        if (!dti.ti.semanticTiargs(sc))
+            return errorNotAProperty();
+        if (auto os = dti.ti.tempdecl.isOverloadSet())
+        {
+            if (auto e = resolveOverloadSet(os, dti.ti.tiargs, dti.e1.type))
+                return e;
+        }
+        else
+        {
+            if (auto e = resolveFunc(dti.ti.tempdecl, dti.ti.tiargs, dti.e1.type))
+                return e;
+        }
+    }
+    else if (e1.op == TOKdottd)
+    {
+        auto dte = cast(DotTemplateExp)e1;
+        if (auto e = resolveFunc(dte.td, null, dte.e1.type))
+            return e;
+    }
+    else if (e1.op == TOKscope)
+    {
+        auto ti = (cast(ScopeExp)e1).sds.isTemplateInstance();
+        if (ti && !ti.semanticRun && ti.tempdecl)
+        {
+            //assert(ti.needsTypeInference(sc));
+            if (!ti.semanticTiargs(sc))
+                return errorNotAProperty();
+            if (auto os = ti.tempdecl.isOverloadSet())
+            {
+                if (auto e = resolveOverloadSet(os, ti.tiargs, null))
+                    return e;
+            }
+            else
+            {
+                if (auto e = resolveFunc(ti.tempdecl, ti.tiargs, null))
+                    return e;
+            }
+        }
+    }
+    else if (e1.op == TOKtemplate)
+    {
+        if (auto e = resolveFunc((cast(TemplateExp)e1).td, null, null))
+            return e;
+    }
+    else if (e1.op == TOKdotvar && e1.type && e1.type.toBasetype().ty == Tfunction)
+    {
+        auto dve = cast(DotVarExp)e1;
+        if (auto e = resolveFunc(dve.var.isFuncDeclaration(), null, dve.e1.type))
+            return e;
+    }
+    else if (e1.op == TOKvar && e1.type && e1.type.toBasetype().ty == Tfunction)
+    {
+        auto ve = cast(VarExp)e1;
+        if (auto e = resolveFunc(ve.var.isFuncDeclaration(), null, null))
+            return e;
+    }
+
     if (e1.op == TOKvar)
     {
-        VarExp ve = cast(VarExp)e1;
-        VarDeclaration v = ve.var.isVarDeclaration();
+        auto ve = cast(VarExp)e1;
+        auto v = ve.var.isVarDeclaration();
         if (v && ve.checkPurity(sc, v))
             return new ErrorExp();
     }
@@ -451,7 +462,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
          */
         if (e1.op == TOKvar)
         {
-            VarExp ve = cast(VarExp)e1;
+            auto ve = cast(VarExp)e1;
             if (ve.var.storage_class & STClazy)
             {
                 Expression e = new CallExp(loc, e1);
@@ -461,13 +472,14 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
         else if (e1.op == TOKdotvar)
         {
             // Check for reading overlapped pointer field in @safe code.
-            VarDeclaration v = (cast(DotVarExp)e1).var.isVarDeclaration();
+            auto v = (cast(DotVarExp)e1).var.isVarDeclaration();
             if (v && v.overlapped && sc.func && !sc.intypeof)
             {
-                AggregateDeclaration ad = v.toParent2().isAggregateDeclaration();
+                auto ad = v.toParent2().isAggregateDeclaration();
                 if (ad && e1.type.hasPointers() && sc.func.setUnsafe())
                 {
-                    e1.error("field %s.%s cannot be accessed in @safe code because it overlaps with a pointer", ad.toChars(), v.toChars());
+                    e1.error("field %s.%s cannot be accessed in @safe code because it overlaps with a pointer",
+                        ad.toChars(), v.toChars());
                     return new ErrorExp();
                 }
             }
@@ -485,14 +497,6 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
         e1 = new ErrorExp();
     }
     return e1;
-
-Leprop:
-    error(loc, "not a property %s", e1.toChars());
-    return new ErrorExp();
-
-Leproplvalue:
-    error(loc, "%s is not an lvalue", e1.toChars());
-    return new ErrorExp();
 }
 
 extern (C++) Expression resolveProperties(Scope* sc, Expression e)
