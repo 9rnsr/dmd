@@ -181,9 +181,7 @@ extern (C++) FuncDeclaration hasThis(Scope* sc)
     while (1)
     {
         if (!fd)
-        {
-            goto Lno;
-        }
+            return null;
         if (!fd.isNested())
             break;
 
@@ -191,7 +189,7 @@ extern (C++) FuncDeclaration hasThis(Scope* sc)
         while (1)
         {
             if (!parent)
-                goto Lno;
+                return null;
             TemplateInstance ti = parent.isTemplateInstance();
             if (ti)
                 parent = ti.parent;
@@ -204,14 +202,11 @@ extern (C++) FuncDeclaration hasThis(Scope* sc)
     if (!fd.isThis())
     {
         //printf("test '%s'\n", fd->toChars());
-        goto Lno;
+        return null; // don't have 'this' available
     }
 
     assert(fd.vthis);
     return fd;
-
-Lno:
-    return null; // don't have 'this' available
 }
 
 extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
