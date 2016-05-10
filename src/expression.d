@@ -9850,8 +9850,38 @@ public:
             return f;
         }
 
+        auto checkCallMatch(TypeFunction tf, Type tthis)
+        {
+            if (tf.callMatch(tthis, arguments))
+                return false;
+
+            OutBuffer buf;
+            buf.writeByte('(');
+            argExpTypesToCBuffer(&buf, arguments);
+            buf.writeByte(')');
+            if (tthis)
+                tthis.modToBuffer(&buf);
+
+            //printf("tf = %s, args = %s\n", tf.deco, (*arguments)[0].type.deco);
+            .error(loc, "%s %s is not callable using argument types %s",
+                e1.toChars(), parametersTypeToChars(tf.parameters, tf.varargs),
+                buf.peekString());
+            return true;
+        }
+
         auto resolveFunc(Loc loc1, Expression ethis, FuncDeclaration f)
         {
+            auto ue = cast(UnaExp)e1;
+
+            auto ethisold = ethis; // need for 'right this' check
+            VarDeclaration v;
+            if (ethis.op == TOKvar &&
+                (v = (cast(VarExp)ethis).var.isVarDeclaration()) !is null &&
+                v.needThis())
+            {
+                ethis = null;
+            }
+
             if (f.needThis())
             {
                 if (!ethis)
@@ -9908,6 +9938,30 @@ public:
                         return new ErrorExp();
                 }
 
+                /* Cannot call public functions from inside invariant
+                 * (because then the invariant would have infinite recursion)
+                 * TODO: should go into functionParameters().
+                 */
+                if (sc.func &&
+                    sc.func.isInvariantDeclaration() &&
+                    ethis.op == TOKthis &&
+                    f.addPostInvariant())
+                {
+                    error("cannot call public/export function %s from invariant", f.toChars());
+                    return new ErrorExp();
+                }
+
+                // BUG: this should really be done by checking the static
+                // call graph
+                // --> should go into functionParameters(), preparation is in fix_funcall
+                if (sc.func &&
+                    sc.func.isCtorDeclaration() == f &&
+                    ethis.op == TOKthis)
+                {
+                    error("cyclic constructor call");
+                    return new ErrorExp();
+                }
+
                 checkDeprecated(sc, f);
                 checkPurity(sc, f);
                 checkSafety(sc, f);
@@ -9962,109 +10016,7 @@ public:
             }
         }
 
-        if (e1.op == TOKdotvar && t1.ty == Tfunction || e1.op == TOKdottd)
-        {
-            auto ue = cast(UnaExp)e1;
-
-            auto ue1 = ue.e1;
-            auto ue1old = ue1; // need for 'right this' check
-            VarDeclaration v;
-            if (ue1.op == TOKvar &&
-                (v = (cast(VarExp)ue1).var.isVarDeclaration()) !is null &&
-                v.needThis())
-            {
-                ue.e1 = new TypeExp(ue1.loc, ue1.type);
-                ue1 = null;
-            }
-
-            DotVarExp dve;
-            DotTemplateExp dte;
-            Dsymbol s;
-            if (e1.op == TOKdotvar)
-            {
-                dve = cast(DotVarExp)e1;
-                dte = null;
-                s = dve.var;
-                tiargs = null;
-            }
-            else
-            {
-                dve = null;
-                dte = cast(DotTemplateExp)e1;
-                s = dte.td;
-            }
-
-            // Do overload resolution
-            f = resolveFuncCall(loc, sc, s, tiargs, ue1 ? ue1.type : null, arguments);
-            if (!f || f.errors || f.type.ty == Terror)
-                return new ErrorExp();
-
-            /* Cannot call public functions from inside invariant
-             * (because then the invariant would have infinite recursion)
-             * TODO: should go into functionParameters().
-             */
-            if (sc.func && sc.func.isInvariantDeclaration() && ue.e1.op == TOKthis && f.addPostInvariant())
-            {
-                error("cannot call public/export function %s from invariant", f.toChars());
-                return new ErrorExp();
-            }
-
-            resolveFunc(e1.loc, ue.e1, f);
-
-            //checkDeprecated(sc, f);
-            //checkPurity(sc, f);
-            //checkSafety(sc, f);
-            //checkNogc(sc, f);
-            //checkAccess(loc, sc, ue.e1, f);
-            //if (!f.needThis())
-            //{
-            //    e1 = Expression.combine(ue.e1, new VarExp(loc, f, false));
-            //}
-            //else
-            //{
-            //    //if (ue1old.checkRightThis(sc))
-            //    //    return new ErrorExp();
-            //    if (e1.op == TOKdotvar)
-            //    {
-            //        dve.var = f;
-            //        e1.type = f.type;
-            //    }
-            //    else
-            //    {
-            //        e1 = new DotVarExp(loc, dte.e1, f, false);
-            //        e1 = e1.semantic(sc);
-            //        if (e1.op == TOKerror)
-            //            return new ErrorExp();
-            //        ue = cast(UnaExp)e1;
-            //    }
-            //
-            ///+
-            //    // See if we need to adjust the 'this' pointer
-            //    auto ad = f.isThis();
-            //    auto cd = ue.e1.type.isClassHandle();
-            //    if (ad && cd && ad.isClassDeclaration())
-            //    {
-            //        if (ue.e1.op == TOKdottype)
-            //        {
-            //            ue.e1 = (cast(DotTypeExp)ue.e1).e1;
-            //            directcall = true;
-            //        }
-            //        else if (ue.e1.op == TOKsuper)
-            //            directcall = true;
-            //        else if ((cd.storage_class & STCfinal) != 0) // Bugzilla 14211
-            //            directcall = true;
-            //
-            //        if (ad != cd)
-            //        {
-            //            ue.e1 = ue.e1.castTo(sc, ad.type.addMod(ue.e1.type.mod));
-            //            ue.e1 = ue.e1.semantic(sc);
-            //        }
-            //    }
-            //+/
-            //}
-            t1 = e1.type;
-        }
-        else if (e1.op == TOKsuper)
+        if (e1.op == TOKsuper)
         {
             // Base class constructor call
             auto ad = sc.func ? sc.func.isThis() : null;
@@ -10098,15 +10050,7 @@ public:
                 f = resolveFuncCall(loc, sc, cd.baseClass.ctor, null, tthis, arguments, 0);
             if (!f || f.errors)
                 return new ErrorExp();
-            //checkDeprecated(sc, f);
-            //checkPurity(sc, f);
-            //checkSafety(sc, f);
-            //checkNogc(sc, f);
-            //checkAccess(loc, sc, null, f);
 
-            //e1 = new DotVarExp(e1.loc, e1, f, false);
-            //e1 = e1.semantic(sc);
-            //t1 = e1.type;
             resolveFunc(e1.loc, e1, f);
         }
         else if (e1.op == TOKthis)
@@ -10137,25 +10081,8 @@ public:
                 f = resolveFuncCall(loc, sc, ad.ctor, null, tthis, arguments, 0);
             if (!f || f.errors)
                 return new ErrorExp();
-            //checkDeprecated(sc, f);
-            //checkPurity(sc, f);
-            //checkSafety(sc, f);
-            //checkNogc(sc, f);
-            ////checkAccess(loc, sc, NULL, f);    // necessary?
 
-            //e1 = new DotVarExp(e1.loc, e1, f, false);
-            //e1 = e1.semantic(sc);
-            //t1 = e1.type;
             resolveFunc(e1.loc, e1, f);
-
-            // BUG: this should really be done by checking the static
-            // call graph
-            // --> should go into functionParameters(), preparation is in fix_funcall
-            if (f == sc.func)
-            {
-                error("cyclic constructor call");
-                return new ErrorExp();
-            }
         }
         else if (e1.op == TOKoverloadset)
         {
@@ -10163,12 +10090,91 @@ public:
             f = resolveOverloadSet(loc, sc, os, tiargs, tthis, arguments);
             if (!f)
                 return new ErrorExp();
-            //if (ethis)
-            //    e1 = new DotVarExp(loc, ethis, f, false);
-            //else
-            //    e1 = new VarExp(loc, f, false);
-            //goto Lagain;
+
             resolveFunc(ethis, f);
+        }
+        else if (e1.op == TOKdotvar && (t1.ty == Tfunction || t1.ty == Tvoid))
+        {
+            auto dve = cast(DotVarExp)e1;
+            if (dve.hasOverloads)
+            {
+                f = resolveFuncCall(loc, sc, dve.var, tiargs, ue1 ? ue1.type : null, arguments);
+            }
+            else
+            {
+                f = dve.var.isFuncDeclaration();
+                assert(f);
+                f = f.toAliasFunc();
+
+                auto tf = cast(TypeFunction)f.type;
+                if (checkCallMatch(tf, dve.e1.type))
+                    return new ErrorExp();
+            }
+            if (!f || f.errors)
+                return new ErrorExp();
+
+            resolveFunc(e1.loc, ue.e1, f);
+            t1 = e1.type;
+        }
+        else if (e1.op == TOKvar && (t1.ty == Tfunction || t1.ty == Tvoid))
+        {
+            // Do overload resolution
+            auto ve = cast(VarExp)e1;
+
+            tiargs = null;
+
+            if (ve.hasOverloads)
+            {
+                f = resolveFuncCall(loc, sc, ve.var, tiargs, null, arguments, 2);
+            }
+            else
+            {
+                f = ve.var.isFuncDeclaration();
+                assert(f);
+                f = f.toAliasFunc();
+
+                auto tf = cast(TypeFunction)f.type;
+                if (checkCallMatch(tf, null))
+                    return new ErrorExp();
+            }
+            if (!f || f.errors)
+                return new ErrorExp();
+
+            resolveFunc(e1.loc, null, f);
+            t1 = f.type;
+        }
+        else if(e1.op == TOKdottd)
+        {
+            auto dte = cast(DotTemplateExp)e1;
+
+            f = resolveFuncCall(loc, sc, dte.td, tiargs, ue1 ? ue1.type : null, arguments);
+            if (!f || f.errors || f.type.ty == Terror)
+                return new ErrorExp();
+
+            resolveFunc(e1.loc, ue.e1, f);
+            t1 = e1.type;
+        }
+        else if (e1.op == TOKtemplate)
+        {
+            auto tde = cast(TemplateExp)e1;
+            f = resolveFuncCall(loc, sc, tde.td, tiargs, null, arguments);
+            if (!f || f.errors)
+                return new ErrorExp();
+
+            resolveFunc(e1.loc, null, f);
+        }
+        else if (e1.op == TOKfunction)
+        {
+            // function literal that direct called is always inferred.
+            auto fe = cast(FuncExp)e1;
+            ///auto fe.semantic(sc, arguments);
+
+            assert(fe.fd);
+            //f = (cast(FuncExp)e1).fd;
+            //tf = cast(TypeFunction)f.type;
+            //p = "function literal";
+
+            resolveFunc(e1.loc, null, fe.fd);
         }
         else if (!t1)
         {
@@ -10183,84 +10189,8 @@ public:
         {
             TypeFunction tf;
             const(char)* p;
-            f = null;
-            if (e1.op == TOKfunction)
-            {
-                // function literal that direct called is always inferred.
-                auto fe = cast(FuncExp)e1;
-                ///auto fe.semantic(sc, arguments);
 
-                assert(fe.fd);
-                //f = (cast(FuncExp)e1).fd;
-                //tf = cast(TypeFunction)f.type;
-                //p = "function literal";
-
-                resolveFunc(e1.loc, null, fe.fd);
-            }
-            else if (e1.op == TOKdotvar && (cast(DotVarExp)e1).var.isOverDeclaration())
-            {
-                auto dve = cast(DotVarExp)e1;
-                f = resolveFuncCall(loc, sc, dve.var, tiargs, dve.e1.type, arguments, 2);
-                if (!f)
-                    return new ErrorExp();
-                resolveFunc(e1.loc, dve.e1, f);
-                //if (f.needThis())
-                //{
-                //    //dve.var = f;
-                //    //dve.type = f.type;
-                //    //dve.hasOverloads = false;
-                //    //goto Lagain;
-                //    resolveFunc(dve.e1, f);
-                //    goto xxx;///
-                //}
-                //else
-                //{
-                //    //e1 = new VarExp(dve.loc, f, false);
-                //    resolveFunc(null, f);
-                //    Expression e = new CommaExp(loc, dve.e1, this);
-                //    return e.semantic(sc);  // CallExp.semantic again?
-                //}
-            }
-            else if (e1.op == TOKvar && (cast(VarExp)e1).var.isOverDeclaration())
-            {
-                Dsymbol s = (cast(VarExp)e1).var;
-                //goto L2;
-                f = resolveFuncCall(loc, sc, s, tiargs, null, arguments);
-                if (!f || f.errors)
-                    return new ErrorExp();
-                resolveFunc(e1.loc, null, f)
-            }
-            else if (e1.op == TOKtemplate)
-            {
-                Dsymbol s = (cast(TemplateExp)e1).td;
-            //L2:
-                f = resolveFuncCall(loc, sc, s, tiargs, null, arguments);
-                if (!f || f.errors)
-                    return new ErrorExp();
-                //if (f.needThis())
-                //{
-                //    if (hasThis(sc))
-                //    {
-                //        // Supply an implicit 'this', as in
-                //        //    this.ident
-                //        //e1 = new DotVarExp(loc, ().semantic(sc), f, false);
-                //        //goto Lagain;
-                //        Expression ethis = new ThisExp(loc);
-                //        ethis = ethis.semantic(sc);
-                //        //if (ethis.op == TOKerror) { ... }
-                //        resolveFunc(e1.loc, ethis, f);
-                //    }
-                //    else if (isNeedThisScope(sc, f))
-                //    {
-                //        error("need 'this' for '%s' of type '%s'", f.toChars(), f.type.toChars());
-                //        return new ErrorExp();
-                //    }
-                //}
-                //e1 = new VarExp(e1.loc, f, false);
-                //goto Lagain;
-                resolveFunc(e1.loc, null, f)
-            }
-            else if (t1.ty == Tdelegate)
+            if (t1.ty == Tdelegate)
             {
                 auto tdg = cast(TypeDelegate)t1;
                 assert(tdg.next.ty == Tfunction);
@@ -10269,7 +10199,8 @@ public:
             }
             else if (t1.ty == Tpointer && (cast(TypePointer)t1).next.ty == Tfunction)
             {
-                tf = cast(TypeFunction)(cast(TypePointer)t1).next;
+                auto tfp = cast(TypePointer)t1;
+                tf = cast(TypeFunction)tfp.next;
                 p = "function pointer";
             }
             else
@@ -10278,30 +10209,9 @@ public:
                 return new ErrorExp();
             }
 
-            if (!tf.callMatch(null, arguments))
-            {
-                OutBuffer buf;
-                buf.writeByte('(');
-                argExpTypesToCBuffer(&buf, arguments);
-                buf.writeByte(')');
-                if (tthis)
-                    tthis.modToBuffer(&buf);
-
-                //printf("tf = %s, args = %s\n", tf->deco, (*arguments)[0]->type->deco);
-                .error(loc, "%s %s %s is not callable using argument types %s", p, e1.toChars(), parametersTypeToChars(tf.parameters, tf.varargs), buf.peekString());
-
-                return new ErrorExp();
-            }
             // Purity and safety check should run after testing arguments matching
-            if (f)
-            {
-                checkPurity(sc, f);
-                checkSafety(sc, f);
-                checkNogc(sc, f);
-                if (f.checkNestedReference(sc, loc))
-                    return new ErrorExp();
-            }
-            else if (sc.func && sc.intypeof != 1 && !(sc.flags & SCOPEctfe))
+            // TODO: should go into functionParameters()
+            if (sc.func && sc.intypeof != 1 && !(sc.flags & SCOPEctfe))
             {
                 bool err = false;
                 if (!tf.purity && !(sc.flags & SCOPEdebug) && sc.func.setImpure())
@@ -10328,93 +10238,10 @@ public:
 
             if (t1.ty == Tpointer)
             {
-                Expression e = new PtrExp(loc, e1);
-                e.type = tf;
-                e1 = e;
+                e1 = new PtrExp(loc, e1);
+                e1.type = tf;
             }
             t1 = tf;
-        }
-        else if (e1.op == TOKvar)
-        {
-            // Do overload resolution
-            auto ve = cast(VarExp)e1;
-
-            f = ve.var.isFuncDeclaration();
-            assert(f);
-            tiargs = null;
-
-            if (ve.hasOverloads)
-                f = resolveFuncCall(loc, sc, f, tiargs, null, arguments, 2);
-            else
-            {
-                f = f.toAliasFunc();
-                auto tf = cast(TypeFunction)f.type;
-                if (!tf.callMatch(null, arguments))
-                {
-                    OutBuffer buf;
-                    buf.writeByte('(');
-                    argExpTypesToCBuffer(&buf, arguments);
-                    buf.writeByte(')');
-
-                    //printf("tf = %s, args = %s\n", tf->deco, (*arguments)[0]->type->deco);
-                    .error(loc, "%s %s is not callable using argument types %s",
-                        e1.toChars(),
-                        parametersTypeToChars(tf.parameters, tf.varargs),
-                        buf.peekString());
-
-                    f = null;
-                }
-            }
-            if (!f || f.errors)
-                return new ErrorExp();
-
-            //if (f.needThis())
-            //{
-            //    // Change the ancestor lambdas to delegate before hasThis(sc) call.
-            //    if (f.checkNestedReference(sc, loc))
-            //        return new ErrorExp();
-            //
-            //    if (hasThis(sc))
-            //    {
-            //        // Supply an implicit 'this', as in
-            //        //    this.ident
-            //        //e1 = new DotVarExp(loc, (new ThisExp(loc)).semantic(sc), ve.var);
-            //        // Note: we cannot use f directly, because further overload resolution
-            //        // through the supplied 'this' may cause different result.
-            //        //goto Lagain;
-            //
-            //        Expression ethis = new ThisExp(loc);
-            //        ethis = ethis.semantic(sc);
-            //        //if (ethis.op == TOKerror) { ... }
-            //        resolveFunc(ethis, f)
-            //    }
-            //    else if (isNeedThisScope(sc, f))
-            //    {
-            //        error("need 'this' for '%s' of type '%s'", f.toChars(), f.type.toChars());
-            //        return new ErrorExp();
-            //    }
-            //}
-
-            resolveFunc(null, f);
-        /+
-            checkDeprecated(sc, f);
-            checkPurity(sc, f);
-            checkSafety(sc, f);
-            checkNogc(sc, f);
-            checkAccess(loc, sc, null, f);
-            if (f.checkNestedReference(sc, loc))
-                return new ErrorExp();
-
-            ethis = null;
-            tthis = null;
-
-            if (ve.hasOverloads)
-            {
-                e1 = new VarExp(ve.loc, f, false);
-                e1.type = f.type;
-            }
-        +/
-            t1 = f.type;
         }
         assert(t1.ty == Tfunction);
 
