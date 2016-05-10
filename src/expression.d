@@ -8473,41 +8473,35 @@ public:
         if (ident == Id._mangleof)
         {
             // symbol.mangleof
-            Dsymbol ds;
+            Expression mangledName(Dsymbol ds)
+            {
+                assert(ds);
+                if (auto f = ds.isFuncDeclaration())
+                {
+                    if (f.checkForwardRef(loc))
+                        return new ErrorExp();
+                }
+                OutBuffer buf;
+                mangleToBuffer(ds, &buf);
+                const s = buf.peekSlice();
+                Expression e = new StringExp(loc, buf.extractString(), s.length);
+                e = e.semantic(sc);
+                return e;
+            }
+
             switch (e1.op)
             {
             case TOKscope:
-                ds = (cast(ScopeExp)e1).sds;
-                goto L1;
+                return mangledName((cast(ScopeExp)e1).sds);
             case TOKvar:
-                ds = (cast(VarExp)e1).var;
-                goto L1;
+                return mangledName((cast(VarExp)e1).var);
             case TOKdotvar:
-                ds = (cast(DotVarExp)e1).var;
-                goto L1;
+                return mangledName((cast(DotVarExp)e1).var);
             case TOKoverloadset:
-                ds = (cast(OverExp)e1).vars;
-                goto L1;
+                return mangledName((cast(OverExp)e1).vars);
             case TOKtemplate:
-                {
-                    TemplateExp te = cast(TemplateExp)e1;
-                    ds = te.fd ? cast(Dsymbol)te.fd : te.td;
-                }
-            L1:
-                {
-                    assert(ds);
-                    if (auto f = ds.isFuncDeclaration())
-                    {
-                        if (f.checkForwardRef(loc))
-                            return new ErrorExp();
-                    }
-                    OutBuffer buf;
-                    mangleToBuffer(ds, &buf);
-                    const s = buf.peekSlice();
-                    Expression e = new StringExp(loc, buf.extractString(), s.length);
-                    e = e.semantic(sc);
-                    return e;
-                }
+                auto tde = cast(TemplateExp)e1;
+                return mangledName(tde.fd ? tde.fd : tde.td);
             default:
                 break;
             }
