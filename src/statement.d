@@ -3594,7 +3594,7 @@ public:
                     if (e.op == TOKerror)
                     {
                         errorSupplemental(loc, "while evaluating pragma(msg, %s)", arg.toChars());
-                        goto Lerror;
+                        return new ErrorStatement();
                     }
                     StringExp se = e.toStringExp();
                     if (se)
@@ -3615,20 +3615,20 @@ public:
                 /* Should this be allowed?
                  */
                 error("pragma(lib) not allowed as statement");
-                goto Lerror;
+                return new ErrorStatement();
             }
             else
             {
                 if (!args || args.dim != 1)
                 {
                     error("string expected for library name");
-                    goto Lerror;
+                    return new ErrorStatement();
                 }
                 else
                 {
                     auto se = semanticString(sc, (*args)[0], "library name");
                     if (!se)
-                        goto Lerror;
+                        return new ErrorStatement();
 
                     if (global.params.verbose)
                     {
@@ -3655,7 +3655,7 @@ public:
                 if (!sa || !sa.isFuncDeclaration())
                 {
                     error("function name expected for start address, not '%s'", e.toChars());
-                    goto Lerror;
+                    return new ErrorStatement();
                 }
                 if (_body)
                 {
@@ -3674,7 +3674,7 @@ public:
             else if (!args || args.dim != 1)
             {
                 error("boolean expression expected for pragma(inline)");
-                goto Lerror;
+                return new ErrorStatement();
             }
             else
             {
@@ -3682,7 +3682,7 @@ public:
                 if (e.op != TOKint64 || !e.type.equals(Type.tbool))
                 {
                     error("pragma(inline, true or false) expected, not %s", e.toChars());
-                    goto Lerror;
+                    return new ErrorStatement();
                 }
 
                 if (e.isBool(true))
@@ -3694,7 +3694,7 @@ public:
                 if (!fd)
                 {
                     error("pragma(inline) is not inside a function");
-                    goto Lerror;
+                    return new ErrorStatement();
                 }
                 fd.inlining = inlining;
             }
@@ -3702,7 +3702,7 @@ public:
         else
         {
             error("unrecognized pragma(%s)", ident.toChars());
-            goto Lerror;
+            return new ErrorStatement();
         }
 
         if (_body)
@@ -3710,9 +3710,6 @@ public:
             _body = _body.semantic(sc);
         }
         return _body;
-
-    Lerror:
-        return new ErrorStatement();
     }
 
     override void accept(Visitor v)
