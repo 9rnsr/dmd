@@ -3166,7 +3166,6 @@ public:
         if (!lwr.type)
         {
             error("invalid range lower bound %s", lwr.toChars());
-        Lerror:
             return new ErrorStatement();
         }
 
@@ -3176,7 +3175,7 @@ public:
         if (!upr.type)
         {
             error("invalid range upper bound %s", upr.toChars());
-            goto Lerror;
+            return new ErrorStatement();
         }
 
         if (prm.type)
@@ -3330,7 +3329,7 @@ public:
             if (key.type.constConv(prm.type) <= MATCHnomatch)
             {
                 error("prmument type mismatch, %s to ref %s", key.type.toChars(), prm.type.toChars());
-                goto Lerror;
+                return new ErrorStatement();
             }
         }
 
