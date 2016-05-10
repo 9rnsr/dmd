@@ -840,6 +840,47 @@ public:
 
     override void semantic(Scope* sc)
     {
+        // When a pragma accepts following members.
+        void semanticDecl(Scope* sc)
+        {
+            if (!decl)
+                return;
+
+            auto sc2 = newScope(sc);
+            for (size_t i = 0; i < decl.dim; i++)
+            {
+                auto s = (*decl)[i];
+                s.semantic(sc2);
+
+                if (ident == Id.mangle)
+                {
+                    assert(args && args.dim == 1);
+                    if (auto se = (*args)[0].toStringExp())
+                    {
+                        auto name = cast(char*)mem.xmalloc(se.len + 1);
+                        memcpy(name, se.string, se.len);
+                        name[se.len] = 0;
+                        uint cnt = setMangleOverride(s, name);
+                        if (cnt > 1)
+                            error("can only apply to a single declaration");
+                    }
+                }
+            }
+            if (sc2 != sc)
+                sc2.pop();
+        }
+
+        // When a pragma doesn't accept following members.
+        void semanticNodecl(Scope* sc)
+        {
+            if (!decl)
+                return;
+
+            error("pragma is missing closing ';'");
+            // do them anyway, to avoid segfaults.
+            return semanticDecl(sc);
+        }
+
         // Should be merged with PragmaStatement
         //printf("\tPragmaDeclaration::semantic '%s'\n",toChars());
         if (ident == Id.msg)
@@ -871,7 +912,7 @@ public:
                 }
                 fprintf(stderr, "\n");
             }
-            goto Lnodecl;
+            return semanticNodecl(sc);
         }
         else if (ident == Id.lib)
         {
@@ -881,7 +922,7 @@ public:
             {
                 auto se = semanticString(sc, (*args)[0], "library name");
                 if (!se)
-                    goto Lnodecl;
+                    return semanticNodecl(sc);
                 (*args)[0] = se;
 
                 auto name = cast(char*)mem.xmalloc(se.len + 1);
@@ -903,7 +944,7 @@ public:
                 }
                 mem.xfree(name);
             }
-            goto Lnodecl;
+            return semanticNodecl(sc);
         }
         else if (ident == Id.startaddress)
         {
@@ -923,11 +964,11 @@ public:
                 if (!sa || !sa.isFuncDeclaration())
                     error("function name expected for start address, not '%s'", e.toChars());
             }
-            goto Lnodecl;
+            return semanticNodecl(sc);
         }
         else if (ident == Id.Pinline)
         {
-            goto Ldecl;
+            return semanticDecl(sc);
         }
         else if (ident == Id.mangle)
         {
@@ -938,23 +979,23 @@ public:
                 error("string expected for mangled name");
                 args.setDim(1);
                 (*args)[0] = new ErrorExp(); // error recovery
-                goto Ldecl;
+                return semanticDecl(sc);
             }
 
             auto se = semanticString(sc, (*args)[0], "mangled name");
             if (!se)
-                goto Ldecl;
+                return semanticDecl(sc);
             (*args)[0] = se; // Will be used later
 
             if (!se.len)
             {
                 error("zero-length string not allowed for mangled name");
-                goto Ldecl;
+                return semanticDecl(sc);
             }
             if (se.sz != 1)
             {
                 error("mangled name characters can only be of type char");
-                goto Ldecl;
+                return semanticDecl(sc);
             }
             version (all)
             {
@@ -1021,43 +1062,12 @@ public:
                 }
                 fprintf(global.stdmsg, "\n");
             }
-            goto Lnodecl;
+            return semanticNodecl(sc);
         }
         else
             error("unrecognized pragma(%s)", ident.toChars());
-    Ldecl:
-        if (decl)
-        {
-            Scope* sc2 = newScope(sc);
-            for (size_t i = 0; i < decl.dim; i++)
-            {
-                Dsymbol s = (*decl)[i];
-                s.semantic(sc2);
-                if (ident == Id.mangle)
-                {
-                    assert(args && args.dim == 1);
-                    if (auto se = (*args)[0].toStringExp())
-                    {
-                        char* name = cast(char*)mem.xmalloc(se.len + 1);
-                        memcpy(name, se.string, se.len);
-                        name[se.len] = 0;
-                        uint cnt = setMangleOverride(s, name);
-                        if (cnt > 1)
-                            error("can only apply to a single declaration");
-                    }
-                }
-            }
-            if (sc2 != sc)
-                sc2.pop();
-        }
-        return;
-    Lnodecl:
-        if (decl)
-        {
-            error("pragma is missing closing ';'");
-            goto Ldecl;
-            // do them anyway, to avoid segfaults.
-        }
+
+        return semanticDecl(sc);
     }
 
     override const(char)* kind() const
