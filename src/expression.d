@@ -9515,44 +9515,44 @@ public:
         }
         if (e1.op == TOKdelegate)
         {
-            DelegateExp de = cast(DelegateExp)e1;
+            auto de = cast(DelegateExp)e1;
             e1 = new DotVarExp(de.loc, de.e1, de.func, de.hasOverloads);
             return semantic(sc);
         }
         if (e1.op == TOKfunction)
         {
-            if (arrayExpressionSemantic(arguments, sc) || preFunctionParameters(loc, sc, arguments))
-            {
+            if (arrayExpressionSemantic(arguments, sc))
                 return new ErrorExp();
-            }
+            if (preFunctionParameters(loc, sc, arguments))
+                return new ErrorExp();
 
             // Run e1 semantic even if arguments have any errors
-            FuncExp fe = cast(FuncExp)e1;
+            auto fe = cast(FuncExp)e1;
             e1 = fe.semantic(sc, arguments);
             if (e1.op == TOKerror)
                 return e1;
         }
 
-        if (Expression ex = resolveUFCS(sc, this))
-            return ex;
+        if (auto e = resolveUFCS(sc, this))
+            return e;
 
         /* This recognizes:
          *  foo!(tiargs)(funcargs)
          */
         if (e1.op == TOKscope)
         {
-            ScopeExp se = cast(ScopeExp)e1;
-            TemplateInstance ti = se.sds.isTemplateInstance();
+            auto se = cast(ScopeExp)e1;
+            auto ti = se.sds.isTemplateInstance();
             if (ti)
             {
                 /* Attempt to instantiate ti. If that works, go with it.
                  * If not, go with partial explicit specialization.
                  */
                 WithScopeSymbol withsym;
-                if (!ti.findTempDecl(sc, &withsym) || !ti.semanticTiargs(sc))
-                {
+                if (!ti.findTempDecl(sc, &withsym))
                     return new ErrorExp();
-                }
+                if (!ti.semanticTiargs(sc))
+                    return new ErrorExp();
                 if (withsym && withsym.withstate.wthis)
                 {
                     e1 = new VarExp(e1.loc, withsym.withstate.wthis);
@@ -9565,16 +9565,16 @@ public:
                      */
                     tiargs = ti.tiargs;
                     assert(ti.tempdecl);
-                    if (TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration())
+                    if (auto td = ti.tempdecl.isTemplateDeclaration())
                         e1 = new TemplateExp(loc, td);
-                    else if (OverDeclaration od = ti.tempdecl.isOverDeclaration())
+                    else if (auto od = ti.tempdecl.isOverDeclaration())
                         e1 = new VarExp(loc, od);
                     else
                         e1 = new OverExp(loc, ti.tempdecl.isOverloadSet());
                 }
                 else
                 {
-                    Expression e1x = e1.semantic(sc);
+                    auto e1x = e1.semantic(sc);
                     if (e1x.op == TOKerror)
                         return e1x;
                     e1 = e1x;
@@ -9588,34 +9588,32 @@ public:
     Ldotti:
         if (e1.op == TOKdotti && !e1.type)
         {
-            DotTemplateInstanceExp se = cast(DotTemplateInstanceExp)e1;
-            TemplateInstance ti = se.ti;
+            auto se = cast(DotTemplateInstanceExp)e1;
+            auto ti = se.ti;
             {
                 /* Attempt to instantiate ti. If that works, go with it.
                  * If not, go with partial explicit specialization.
                  */
-                if (!se.findTempDecl(sc) || !ti.semanticTiargs(sc))
-                {
+                if (!se.findTempDecl(sc))
                     return new ErrorExp();
-                }
+                if (!ti.semanticTiargs(sc))
+                    return new ErrorExp();
                 if (ti.needsTypeInference(sc, 1))
                 {
                     /* Go with partial explicit specialization
                      */
                     tiargs = ti.tiargs;
                     assert(ti.tempdecl);
-                    if (TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration())
+                    if (auto td = ti.tempdecl.isTemplateDeclaration())
                         e1 = new DotTemplateExp(loc, se.e1, td);
-                    else if (OverDeclaration od = ti.tempdecl.isOverDeclaration())
-                    {
+                    else if (auto od = ti.tempdecl.isOverDeclaration())
                         e1 = new DotVarExp(loc, se.e1, od, true);
-                    }
                     else
                         e1 = new DotExp(loc, se.e1, new OverExp(loc, ti.tempdecl.isOverloadSet()));
                 }
                 else
                 {
-                    Expression e1x = e1.semantic(sc);
+                    auto e1x = e1.semantic(sc);
                     if (e1x.op == TOKerror)
                         return e1x;
                     e1 = e1x;
@@ -9634,8 +9632,9 @@ public:
         {
             if (e1.op == TOKdotid)
             {
-                DotIdExp die = cast(DotIdExp)e1;
+                auto die = cast(DotIdExp)e1;
                 e1 = die.semantic(sc);
+
                 /* Look for e1 having been rewritten to expr.opDispatch!(string)
                  * We handle such earlier, so go back.
                  * Note that in the rewrite, we carefully did not run semantic() on e1
@@ -9654,7 +9653,7 @@ public:
                     --nest;
                     return new ErrorExp();
                 }
-                Expression ex = unaSemantic(sc);
+                auto ex = unaSemantic(sc);
                 --nest;
                 if (ex)
                     return ex;
@@ -9664,31 +9663,32 @@ public:
              */
             if (e1.op == TOKvar)
             {
-                VarExp ve = cast(VarExp)e1;
+                auto ve = cast(VarExp)e1;
                 if (ve.var.storage_class & STClazy)
                 {
                     // lazy paramaters can be called without violating purity and safety
                     Type tw = ve.var.type;
                     Type tc = ve.var.type.substWildTo(MODconst);
                     auto tf = new TypeFunction(null, tc, 0, LINKd, STCsafe | STCpure);
-                    (tf = cast(TypeFunction)tf.semantic(loc, sc)).next = tw; // hack for bug7757
+                    tf = cast(TypeFunction)tf.semantic(loc, sc);
+                    tf.next = tw; // hack for bug7757
                     auto t = new TypeDelegate(tf);
                     ve.type = t.semantic(loc, sc);
                 }
-                VarDeclaration v = ve.var.isVarDeclaration();
+                auto v = ve.var.isVarDeclaration();
                 if (v && ve.checkPurity(sc, v))
                     return new ErrorExp();
             }
 
             if (e1.op == TOKsymoff && (cast(SymOffExp)e1).hasOverloads)
             {
-                SymOffExp se = cast(SymOffExp)e1;
+                auto se = cast(SymOffExp)e1;
                 e1 = new VarExp(se.loc, se.var, true);
                 e1 = e1.semantic(sc);
             }
             else if (e1.op == TOKdot)
             {
-                DotExp de = cast(DotExp)e1;
+                auto de = cast(DotExp)e1;
 
                 if (de.e2.op == TOKoverloadset)
                 {
@@ -9708,10 +9708,10 @@ public:
 
         if (e1.op == TOKerror)
             return e1;
-        if (arrayExpressionSemantic(arguments, sc) || preFunctionParameters(loc, sc, arguments))
-        {
+        if (arrayExpressionSemantic(arguments, sc))
             return new ErrorExp();
-        }
+        if (preFunctionParameters(loc, sc, arguments))
+            return new ErrorExp();
 
         // Check for call operator overload
         if (t1)
@@ -9852,12 +9852,14 @@ public:
 
         if (e1.op == TOKdotvar && t1.ty == Tfunction || e1.op == TOKdottd)
         {
-            UnaExp ue = cast(UnaExp)e1;
+            auto ue = cast(UnaExp)e1;
 
-            Expression ue1 = ue.e1;
-            Expression ue1old = ue1; // need for 'right this' check
+            auto ue1 = ue.e1;
+            auto ue1old = ue1; // need for 'right this' check
             VarDeclaration v;
-            if (ue1.op == TOKvar && (v = (cast(VarExp)ue1).var.isVarDeclaration()) !is null && v.needThis())
+            if (ue1.op == TOKvar &&
+                (v = (cast(VarExp)ue1).var.isVarDeclaration()) !is null &&
+                v.needThis())
             {
                 ue.e1 = new TypeExp(ue1.loc, ue1.type);
                 ue1 = null;
@@ -10104,9 +10106,9 @@ public:
             }
             else if (t1.ty == Tdelegate)
             {
-                TypeDelegate td = cast(TypeDelegate)t1;
-                assert(td.next.ty == Tfunction);
-                tf = cast(TypeFunction)td.next;
+                auto tdg = cast(TypeDelegate)t1;
+                assert(tdg.next.ty == Tfunction);
+                tf = cast(TypeFunction)tdg.next;
                 p = "delegate";
             }
             else if (t1.ty == Tpointer && (cast(TypePointer)t1).next.ty == Tfunction)
@@ -10116,7 +10118,7 @@ public:
             }
             else if (e1.op == TOKdotvar && (cast(DotVarExp)e1).var.isOverDeclaration())
             {
-                DotVarExp dve = cast(DotVarExp)e1;
+                auto dve = cast(DotVarExp)e1;
                 f = resolveFuncCall(loc, sc, dve.var, tiargs, dve.e1.type, arguments, 2);
                 if (!f)
                     return new ErrorExp();
@@ -10226,7 +10228,7 @@ public:
         else if (e1.op == TOKvar)
         {
             // Do overload resolution
-            VarExp ve = cast(VarExp)e1;
+            auto ve = cast(VarExp)e1;
 
             f = ve.var.isFuncDeclaration();
             assert(f);
@@ -10237,7 +10239,7 @@ public:
             else
             {
                 f = f.toAliasFunc();
-                TypeFunction tf = cast(TypeFunction)f.type;
+                auto tf = cast(TypeFunction)f.type;
                 if (!tf.callMatch(null, arguments))
                 {
                     OutBuffer buf;
@@ -10313,7 +10315,7 @@ public:
         {
             Type t = type;
             int offset = 0;
-            TypeFunction tf = cast(TypeFunction)f.tintro;
+            auto tf = cast(TypeFunction)f.tintro;
             if (tf.next.isBaseOf(t, &offset) && offset)
             {
                 type = tf.next;
