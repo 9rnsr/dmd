@@ -9147,12 +9147,16 @@ public:
 
         auto die = new DotIdExp(loc, e1, ti.name);
 
-        Expression e = die.semanticX(sc);
+        auto e = die.semanticX(sc);
         if (e == die)
         {
             e1 = die.e1; // take back
             Type t1b = e1.type.toBasetype();
-            if (t1b.ty == Tarray || t1b.ty == Tsarray || t1b.ty == Taarray || t1b.ty == Tnull || (t1b.isTypeBasic() && t1b.ty != Tvoid))
+            if (t1b.ty == Tarray ||
+                t1b.ty == Tsarray ||
+                t1b.ty == Taarray ||
+                t1b.ty == Tnull ||
+                (t1b.isTypeBasic() && t1b.ty != Tvoid))
             {
                 /* No built-in type has templatized properties, so do shortcut.
                  * It is necessary in: 1024.max!"a < b"
@@ -9173,35 +9177,37 @@ public:
         }
         assert(e);
 
-    L1:
         if (e.op == TOKerror)
             return e;
         if (e.op == TOKdotvar)
         {
-            DotVarExp dve = cast(DotVarExp)e;
-            if (FuncDeclaration fd = dve.var.isFuncDeclaration())
+            auto dve = cast(DotVarExp)e;
+            if (auto fd = dve.var.isFuncDeclaration())
             {
-                TemplateDeclaration td = fd.findTemplateDeclRoot();
-                if (td)
+                if (auto td = fd.findTemplateDeclRoot())
                 {
                     e = new DotTemplateExp(dve.loc, dve.e1, td);
                     e = e.semantic(sc);
                 }
             }
-            else if (OverDeclaration od = dve.var.isOverDeclaration())
+            else if (auto od = dve.var.isOverDeclaration())
             {
                 e1 = dve.e1; // pull semantic() result
 
                 if (!findTempDecl(sc))
-                    goto Lerr;
+                {
+                    // TODO: redundant error messge?
+                    error("%s isn't a template", e.toChars());
+                    return new ErrorExp();
+                }
                 if (ti.needsTypeInference(sc))
                     return this;
                 ti.semantic(sc);
                 if (!ti.inst || ti.errors) // if template failed to expand
                     return new ErrorExp();
 
-                Dsymbol s = ti.toAlias();
-                Declaration v = s.isDeclaration();
+                auto s = ti.toAlias();
+                auto v = s.isDeclaration();
                 if (v)
                 {
                     if (v.type && !v.type.deco)
@@ -9218,17 +9224,16 @@ public:
         }
         else if (e.op == TOKvar)
         {
-            VarExp ve = cast(VarExp)e;
-            if (FuncDeclaration fd = ve.var.isFuncDeclaration())
+            auto ve = cast(VarExp)e;
+            if (auto fd = ve.var.isFuncDeclaration())
             {
-                TemplateDeclaration td = fd.findTemplateDeclRoot();
-                if (td)
+                if (auto td = fd.findTemplateDeclRoot())
                 {
                     e = new TemplateExp(ve.loc, td);
                     e = e.semantic(sc);
                 }
             }
-            else if (OverDeclaration od = ve.var.isOverDeclaration())
+            else if (auto od = ve.var.isOverDeclaration())
             {
                 ti.tempdecl = od;
                 e = new ScopeExp(loc, ti);
@@ -9238,7 +9243,7 @@ public:
         }
         if (e.op == TOKdottd)
         {
-            DotTemplateExp dte = cast(DotTemplateExp)e;
+            auto dte = cast(DotTemplateExp)e;
             e1 = dte.e1; // pull semantic() result
 
             ti.tempdecl = dte.td;
@@ -9250,8 +9255,8 @@ public:
             if (!ti.inst || ti.errors) // if template failed to expand
                 return new ErrorExp();
 
-            Dsymbol s = ti.toAlias();
-            Declaration v = s.isDeclaration();
+            auto s = ti.toAlias();
+            auto v = s.isDeclaration();
             if (v && (v.isFuncDeclaration() || v.isVarDeclaration()))
             {
                 e = new DotVarExp(loc, e1, v);
@@ -9272,22 +9277,22 @@ public:
         }
         else if (e.op == TOKdot)
         {
-            DotExp de = cast(DotExp)e;
+            auto de = cast(DotExp)e;
 
             if (de.e2.op == TOKoverloadset)
             {
-                if (!findTempDecl(sc) || !ti.semanticTiargs(sc))
-                {
+                if (!findTempDecl(sc))
                     return new ErrorExp();
-                }
+                if (!ti.semanticTiargs(sc))
+                    return new ErrorExp();
                 if (ti.needsTypeInference(sc))
                     return this;
                 ti.semantic(sc);
                 if (!ti.inst || ti.errors) // if template failed to expand
                     return new ErrorExp();
 
-                Dsymbol s = ti.toAlias();
-                Declaration v = s.isDeclaration();
+                auto s = ti.toAlias();
+                auto v = s.isDeclaration();
                 if (v)
                 {
                     if (v.type && !v.type.deco)
@@ -9304,14 +9309,13 @@ public:
         }
         else if (e.op == TOKoverloadset)
         {
-            OverExp oe = cast(OverExp)e;
+            auto oe = cast(OverExp)e;
             ti.tempdecl = oe.vars;
             e = new ScopeExp(loc, ti);
             e = e.semantic(sc);
             return e;
         }
 
-    Lerr:
         error("%s isn't a template", e.toChars());
         return new ErrorExp();
     }
