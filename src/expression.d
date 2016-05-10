@@ -9850,6 +9850,118 @@ public:
             return f;
         }
 
+        auto resolveFunc(Loc loc1, Expression ethis, FuncDeclaration f)
+        {
+            if (f.needThis())
+            {
+                if (!ethis)
+                {
+                    // Change the ancestor lambdas to delegate before hasThis(sc) call.
+                    // TODO: This should be removed finally. fix_funcall will do it.
+                    if (f.checkNestedReference(sc, loc))
+                        return new ErrorExp();
+
+                    if (hasThis(sc))
+                    {
+                        // Supply an implicit 'this', as in
+                        //    this.ident
+                        ethis = new ThisExp(loc);
+                        ethis = ethis.semantic(sc);
+                        if (ethis.op == TOKerror)
+                            return new ErrorExp();
+                    }
+                    else if (isNeedThisScope(sc, f))
+                    {
+                        error("need 'this' for '%s' of type '%s'", f.toChars(), f.type.toChars());
+                        return new ErrorExp();
+                    }
+                    else
+                        goto Lpseudocall;
+                }
+                assert(ethis);
+
+                if (f.interfaceVirtual)
+                {
+                    /* Cast 'this' to the type of the interface, and replace f with the interface's equivalent
+                     */
+                    auto b = f.interfaceVirtual;
+                    auto ad2 = b.sym;
+                    ethis = ethis.castTo(sc, ad2.type.addMod(ethis.type.mod));
+                    ethis = ethis.semantic(sc);
+                    //ue1 = ethis;
+                    auto vi = f.findVtblIndex(&ad2.vtbl, cast(int)ad2.vtbl.dim);
+                    assert(vi >= 0);
+                    f = ad2.vtbl[vi].isFuncDeclaration();
+                    assert(f);
+                }
+
+                if (f.needThis())
+                {
+                    auto ad = f.toParent2().isAggregateDeclaration();
+                    ethis = getRightThis(loc, sc, ad, ethis, f);
+                    if (ethis.op == TOKerror)
+                        return ethis;
+                    ethis = ethis;
+                    tthis = ethis.type;
+
+                    if (ue1old.checkRightThis(sc))
+                        return new ErrorExp();
+                }
+
+                checkDeprecated(sc, f);
+                checkPurity(sc, f);
+                checkSafety(sc, f);
+                checkNogc(sc, f);
+                checkAccess(loc, sc, null, f);
+
+                // See if we need to adjust the 'this' pointer
+                auto ad = f.isThis();
+                auto cd = ethis.type.isClassHandle();
+                if (ad && cd && ad.isClassDeclaration())
+                {
+                    if (ethis.op == TOKdottype)
+                    {
+                        ethis = (cast(DotTypeExp)ethis).e1;
+                        directcall = true;
+                    }
+                    else if (ethis.op == TOKsuper)
+                        directcall = true;
+                    else if ((cd.storage_class & STCfinal) != 0) // Bugzilla 14211
+                        directcall = true;
+
+                    if (ad != cd)
+                    {
+                        ethis = ethis.castTo(sc, ad.type.addMod(ethis.type.mod));
+                        ethis = ethis.semantic(sc);
+                    }
+                }
+
+                e1 = new DotVarExp(loc1, ethis, f, false);
+                e1 = e1.semantic(sc);
+                t1 = e1.type;
+            }
+            else
+            {
+            Lpseudocall:
+                checkDeprecated(sc, f);
+                checkPurity(sc, f);
+                checkSafety(sc, f);
+                checkNogc(sc, f);
+                checkAccess(loc, sc, null, f);
+                if (f.checkNestedReference(sc, loc))
+                    return new ErrorExp();
+
+                ethis = null;
+                tthis = null;
+
+                e1 = new VarExp(loc1, f, false);
+                e1.type = f.type;
+
+                if (ethis)  // todo
+                    return Expression.combine(ethis, this);
+            }
+        }
+
         if (e1.op == TOKdotvar && t1.ty == Tfunction || e1.op == TOKdottd)
         {
             auto ue = cast(UnaExp)e1;
@@ -9887,32 +9999,9 @@ public:
             if (!f || f.errors || f.type.ty == Terror)
                 return new ErrorExp();
 
-            if (f.interfaceVirtual)
-            {
-                /* Cast 'this' to the type of the interface, and replace f with the interface's equivalent
-                 */
-                auto b = f.interfaceVirtual;
-                auto ad2 = b.sym;
-                ue.e1 = ue.e1.castTo(sc, ad2.type.addMod(ue.e1.type.mod));
-                ue.e1 = ue.e1.semantic(sc);
-                ue1 = ue.e1;
-                auto vi = f.findVtblIndex(&ad2.vtbl, cast(int)ad2.vtbl.dim);
-                assert(vi >= 0);
-                f = ad2.vtbl[vi].isFuncDeclaration();
-                assert(f);
-            }
-            if (f.needThis())
-            {
-                AggregateDeclaration ad = f.toParent2().isAggregateDeclaration();
-                ue.e1 = getRightThis(loc, sc, ad, ue.e1, f);
-                if (ue.e1.op == TOKerror)
-                    return ue.e1;
-                ethis = ue.e1;
-                tthis = ue.e1.type;
-            }
-
             /* Cannot call public functions from inside invariant
              * (because then the invariant would have infinite recursion)
+             * TODO: should go into functionParameters().
              */
             if (sc.func && sc.func.isInvariantDeclaration() && ue.e1.op == TOKthis && f.addPostInvariant())
             {
@@ -9920,63 +10009,59 @@ public:
                 return new ErrorExp();
             }
 
-            checkDeprecated(sc, f);
-            checkPurity(sc, f);
-            checkSafety(sc, f);
-            checkNogc(sc, f);
-            checkAccess(loc, sc, ue.e1, f);
-            if (!f.needThis())
-            {
-                e1 = Expression.combine(ue.e1, new VarExp(loc, f, false));
-            }
-            else
-            {
-                if (ue1old.checkRightThis(sc))
-                    return new ErrorExp();
-                if (e1.op == TOKdotvar)
-                {
-                    dve.var = f;
-                    e1.type = f.type;
-                }
-                else
-                {
-                    e1 = new DotVarExp(loc, dte.e1, f, false);
-                    e1 = e1.semantic(sc);
-                    if (e1.op == TOKerror)
-                        return new ErrorExp();
-                    ue = cast(UnaExp)e1;
-                }
-                version (none)
-                {
-                    printf("ue->e1 = %s\n", ue.e1.toChars());
-                    printf("f = %s\n", f.toChars());
-                    printf("t = %s\n", t.toChars());
-                    printf("e1 = %s\n", e1.toChars());
-                    printf("e1->type = %s\n", e1.type.toChars());
-                }
+            resolveFunc(e1.loc, ue.e1, f);
 
-                // See if we need to adjust the 'this' pointer
-                AggregateDeclaration ad = f.isThis();
-                ClassDeclaration cd = ue.e1.type.isClassHandle();
-                if (ad && cd && ad.isClassDeclaration())
-                {
-                    if (ue.e1.op == TOKdottype)
-                    {
-                        ue.e1 = (cast(DotTypeExp)ue.e1).e1;
-                        directcall = true;
-                    }
-                    else if (ue.e1.op == TOKsuper)
-                        directcall = true;
-                    else if ((cd.storage_class & STCfinal) != 0) // Bugzilla 14211
-                        directcall = true;
-
-                    if (ad != cd)
-                    {
-                        ue.e1 = ue.e1.castTo(sc, ad.type.addMod(ue.e1.type.mod));
-                        ue.e1 = ue.e1.semantic(sc);
-                    }
-                }
-            }
+            //checkDeprecated(sc, f);
+            //checkPurity(sc, f);
+            //checkSafety(sc, f);
+            //checkNogc(sc, f);
+            //checkAccess(loc, sc, ue.e1, f);
+            //if (!f.needThis())
+            //{
+            //    e1 = Expression.combine(ue.e1, new VarExp(loc, f, false));
+            //}
+            //else
+            //{
+            //    //if (ue1old.checkRightThis(sc))
+            //    //    return new ErrorExp();
+            //    if (e1.op == TOKdotvar)
+            //    {
+            //        dve.var = f;
+            //        e1.type = f.type;
+            //    }
+            //    else
+            //    {
+            //        e1 = new DotVarExp(loc, dte.e1, f, false);
+            //        e1 = e1.semantic(sc);
+            //        if (e1.op == TOKerror)
+            //            return new ErrorExp();
+            //        ue = cast(UnaExp)e1;
+            //    }
+            //
+            ///+
+            //    // See if we need to adjust the 'this' pointer
+            //    auto ad = f.isThis();
+            //    auto cd = ue.e1.type.isClassHandle();
+            //    if (ad && cd && ad.isClassDeclaration())
+            //    {
+            //        if (ue.e1.op == TOKdottype)
+            //        {
+            //            ue.e1 = (cast(DotTypeExp)ue.e1).e1;
+            //            directcall = true;
+            //        }
+            //        else if (ue.e1.op == TOKsuper)
+            //            directcall = true;
+            //        else if ((cd.storage_class & STCfinal) != 0) // Bugzilla 14211
+            //            directcall = true;
+            //
+            //        if (ad != cd)
+            //        {
+            //            ue.e1 = ue.e1.castTo(sc, ad.type.addMod(ue.e1.type.mod));
+            //            ue.e1 = ue.e1.semantic(sc);
+            //        }
+            //    }
+            //+/
+            //}
             t1 = e1.type;
         }
         else if (e1.op == TOKsuper)
@@ -10013,15 +10098,16 @@ public:
                 f = resolveFuncCall(loc, sc, cd.baseClass.ctor, null, tthis, arguments, 0);
             if (!f || f.errors)
                 return new ErrorExp();
-            checkDeprecated(sc, f);
-            checkPurity(sc, f);
-            checkSafety(sc, f);
-            checkNogc(sc, f);
-            checkAccess(loc, sc, null, f);
+            //checkDeprecated(sc, f);
+            //checkPurity(sc, f);
+            //checkSafety(sc, f);
+            //checkNogc(sc, f);
+            //checkAccess(loc, sc, null, f);
 
-            e1 = new DotVarExp(e1.loc, e1, f, false);
-            e1 = e1.semantic(sc);
-            t1 = e1.type;
+            //e1 = new DotVarExp(e1.loc, e1, f, false);
+            //e1 = e1.semantic(sc);
+            //t1 = e1.type;
+            resolveFunc(e1.loc, e1, f);
         }
         else if (e1.op == TOKthis)
         {
@@ -10051,18 +10137,20 @@ public:
                 f = resolveFuncCall(loc, sc, ad.ctor, null, tthis, arguments, 0);
             if (!f || f.errors)
                 return new ErrorExp();
-            checkDeprecated(sc, f);
-            checkPurity(sc, f);
-            checkSafety(sc, f);
-            checkNogc(sc, f);
-            //checkAccess(loc, sc, NULL, f);    // necessary?
+            //checkDeprecated(sc, f);
+            //checkPurity(sc, f);
+            //checkSafety(sc, f);
+            //checkNogc(sc, f);
+            ////checkAccess(loc, sc, NULL, f);    // necessary?
 
-            e1 = new DotVarExp(e1.loc, e1, f, false);
-            e1 = e1.semantic(sc);
-            t1 = e1.type;
+            //e1 = new DotVarExp(e1.loc, e1, f, false);
+            //e1 = e1.semantic(sc);
+            //t1 = e1.type;
+            resolveFunc(e1.loc, e1, f);
 
             // BUG: this should really be done by checking the static
             // call graph
+            // --> should go into functionParameters(), preparation is in fix_funcall
             if (f == sc.func)
             {
                 error("cyclic constructor call");
@@ -10075,11 +10163,12 @@ public:
             f = resolveOverloadSet(loc, sc, os, tiargs, tthis, arguments);
             if (!f)
                 return new ErrorExp();
-            if (ethis)
-                e1 = new DotVarExp(loc, ethis, f, false);
-            else
-                e1 = new VarExp(loc, f, false);
-            goto Lagain;
+            //if (ethis)
+            //    e1 = new DotVarExp(loc, ethis, f, false);
+            //else
+            //    e1 = new VarExp(loc, f, false);
+            //goto Lagain;
+            resolveFunc(ethis, f);
         }
         else if (!t1)
         {
@@ -10094,15 +10183,82 @@ public:
         {
             TypeFunction tf;
             const(char)* p;
-            Dsymbol s;
             f = null;
             if (e1.op == TOKfunction)
             {
                 // function literal that direct called is always inferred.
-                assert((cast(FuncExp)e1).fd);
-                f = (cast(FuncExp)e1).fd;
-                tf = cast(TypeFunction)f.type;
-                p = "function literal";
+                auto fe = cast(FuncExp)e1;
+                ///auto fe.semantic(sc, arguments);
+
+                assert(fe.fd);
+                //f = (cast(FuncExp)e1).fd;
+                //tf = cast(TypeFunction)f.type;
+                //p = "function literal";
+
+                resolveFunc(e1.loc, null, fe.fd);
+            }
+            else if (e1.op == TOKdotvar && (cast(DotVarExp)e1).var.isOverDeclaration())
+            {
+                auto dve = cast(DotVarExp)e1;
+                f = resolveFuncCall(loc, sc, dve.var, tiargs, dve.e1.type, arguments, 2);
+                if (!f)
+                    return new ErrorExp();
+                resolveFunc(e1.loc, dve.e1, f);
+                //if (f.needThis())
+                //{
+                //    //dve.var = f;
+                //    //dve.type = f.type;
+                //    //dve.hasOverloads = false;
+                //    //goto Lagain;
+                //    resolveFunc(dve.e1, f);
+                //    goto xxx;///
+                //}
+                //else
+                //{
+                //    //e1 = new VarExp(dve.loc, f, false);
+                //    resolveFunc(null, f);
+                //    Expression e = new CommaExp(loc, dve.e1, this);
+                //    return e.semantic(sc);  // CallExp.semantic again?
+                //}
+            }
+            else if (e1.op == TOKvar && (cast(VarExp)e1).var.isOverDeclaration())
+            {
+                Dsymbol s = (cast(VarExp)e1).var;
+                //goto L2;
+                f = resolveFuncCall(loc, sc, s, tiargs, null, arguments);
+                if (!f || f.errors)
+                    return new ErrorExp();
+                resolveFunc(e1.loc, null, f)
+            }
+            else if (e1.op == TOKtemplate)
+            {
+                Dsymbol s = (cast(TemplateExp)e1).td;
+            //L2:
+                f = resolveFuncCall(loc, sc, s, tiargs, null, arguments);
+                if (!f || f.errors)
+                    return new ErrorExp();
+                //if (f.needThis())
+                //{
+                //    if (hasThis(sc))
+                //    {
+                //        // Supply an implicit 'this', as in
+                //        //    this.ident
+                //        //e1 = new DotVarExp(loc, ().semantic(sc), f, false);
+                //        //goto Lagain;
+                //        Expression ethis = new ThisExp(loc);
+                //        ethis = ethis.semantic(sc);
+                //        //if (ethis.op == TOKerror) { ... }
+                //        resolveFunc(e1.loc, ethis, f);
+                //    }
+                //    else if (isNeedThisScope(sc, f))
+                //    {
+                //        error("need 'this' for '%s' of type '%s'", f.toChars(), f.type.toChars());
+                //        return new ErrorExp();
+                //    }
+                //}
+                //e1 = new VarExp(e1.loc, f, false);
+                //goto Lagain;
+                resolveFunc(e1.loc, null, f)
             }
             else if (t1.ty == Tdelegate)
             {
@@ -10115,53 +10271,6 @@ public:
             {
                 tf = cast(TypeFunction)(cast(TypePointer)t1).next;
                 p = "function pointer";
-            }
-            else if (e1.op == TOKdotvar && (cast(DotVarExp)e1).var.isOverDeclaration())
-            {
-                auto dve = cast(DotVarExp)e1;
-                f = resolveFuncCall(loc, sc, dve.var, tiargs, dve.e1.type, arguments, 2);
-                if (!f)
-                    return new ErrorExp();
-                if (f.needThis())
-                {
-                    dve.var = f;
-                    dve.type = f.type;
-                    dve.hasOverloads = false;
-                    goto Lagain;
-                }
-                e1 = new VarExp(dve.loc, f, false);
-                Expression e = new CommaExp(loc, dve.e1, this);
-                return e.semantic(sc);
-            }
-            else if (e1.op == TOKvar && (cast(VarExp)e1).var.isOverDeclaration())
-            {
-                s = (cast(VarExp)e1).var;
-                goto L2;
-            }
-            else if (e1.op == TOKtemplate)
-            {
-                s = (cast(TemplateExp)e1).td;
-            L2:
-                f = resolveFuncCall(loc, sc, s, tiargs, null, arguments);
-                if (!f || f.errors)
-                    return new ErrorExp();
-                if (f.needThis())
-                {
-                    if (hasThis(sc))
-                    {
-                        // Supply an implicit 'this', as in
-                        //    this.ident
-                        e1 = new DotVarExp(loc, (new ThisExp(loc)).semantic(sc), f, false);
-                        goto Lagain;
-                    }
-                    else if (isNeedThisScope(sc, f))
-                    {
-                        error("need 'this' for '%s' of type '%s'", f.toChars(), f.type.toChars());
-                        return new ErrorExp();
-                    }
-                }
-                e1 = new VarExp(e1.loc, f, false);
-                goto Lagain;
             }
             else
             {
@@ -10248,7 +10357,10 @@ public:
                     buf.writeByte(')');
 
                     //printf("tf = %s, args = %s\n", tf->deco, (*arguments)[0]->type->deco);
-                    .error(loc, "%s %s is not callable using argument types %s", e1.toChars(), parametersTypeToChars(tf.parameters, tf.varargs), buf.peekString());
+                    .error(loc, "%s %s is not callable using argument types %s",
+                        e1.toChars(),
+                        parametersTypeToChars(tf.parameters, tf.varargs),
+                        buf.peekString());
 
                     f = null;
                 }
@@ -10256,28 +10368,35 @@ public:
             if (!f || f.errors)
                 return new ErrorExp();
 
-            if (f.needThis())
-            {
-                // Change the ancestor lambdas to delegate before hasThis(sc) call.
-                if (f.checkNestedReference(sc, loc))
-                    return new ErrorExp();
+            //if (f.needThis())
+            //{
+            //    // Change the ancestor lambdas to delegate before hasThis(sc) call.
+            //    if (f.checkNestedReference(sc, loc))
+            //        return new ErrorExp();
+            //
+            //    if (hasThis(sc))
+            //    {
+            //        // Supply an implicit 'this', as in
+            //        //    this.ident
+            //        //e1 = new DotVarExp(loc, (new ThisExp(loc)).semantic(sc), ve.var);
+            //        // Note: we cannot use f directly, because further overload resolution
+            //        // through the supplied 'this' may cause different result.
+            //        //goto Lagain;
+            //
+            //        Expression ethis = new ThisExp(loc);
+            //        ethis = ethis.semantic(sc);
+            //        //if (ethis.op == TOKerror) { ... }
+            //        resolveFunc(ethis, f)
+            //    }
+            //    else if (isNeedThisScope(sc, f))
+            //    {
+            //        error("need 'this' for '%s' of type '%s'", f.toChars(), f.type.toChars());
+            //        return new ErrorExp();
+            //    }
+            //}
 
-                if (hasThis(sc))
-                {
-                    // Supply an implicit 'this', as in
-                    //    this.ident
-                    e1 = new DotVarExp(loc, (new ThisExp(loc)).semantic(sc), ve.var);
-                    // Note: we cannot use f directly, because further overload resolution
-                    // through the supplied 'this' may cause different result.
-                    goto Lagain;
-                }
-                else if (isNeedThisScope(sc, f))
-                {
-                    error("need 'this' for '%s' of type '%s'", f.toChars(), f.type.toChars());
-                    return new ErrorExp();
-                }
-            }
-
+            resolveFunc(null, f);
+        /+
             checkDeprecated(sc, f);
             checkPurity(sc, f);
             checkSafety(sc, f);
@@ -10294,6 +10413,7 @@ public:
                 e1 = new VarExp(ve.loc, f, false);
                 e1.type = f.type;
             }
+        +/
             t1 = f.type;
         }
         assert(t1.ty == Tfunction);
