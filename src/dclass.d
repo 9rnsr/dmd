@@ -89,17 +89,14 @@ struct BaseClass
         // first entry is ClassInfo reference
         for (size_t j = sym.vtblOffset(); j < sym.vtbl.dim; j++)
         {
-            FuncDeclaration ifd = sym.vtbl[j].isFuncDeclaration();
-            FuncDeclaration fd;
-            TypeFunction tf;
-
+            auto ifd = sym.vtbl[j].isFuncDeclaration();
             //printf("        vtbl[%d] is '%s'\n", j, ifd ? ifd.toChars() : "null");
             assert(ifd);
+            assert(ifd.type.ty == Tfunction);
 
             // Find corresponding function in this class
-            tf = (ifd.type.ty == Tfunction) ? cast(TypeFunction)ifd.type : null;
-            assert(tf); // should always be non-null
-            fd = cd.findFunc(ifd.ident, tf);
+            auto tf = cast(TypeFunction)ifd.type;
+            auto fd = cd.findFunc(ifd.ident, tf);
             if (fd && !fd.isAbstract())
             {
                 //printf("            found\n");
@@ -201,8 +198,8 @@ public:
     ClassDeclaration baseClass; // NULL only if this is Object
     FuncDeclaration staticCtor;
     FuncDeclaration staticDtor;
-    Dsymbols vtbl;              // Array of FuncDeclaration's making up the vtbl[]
-    Dsymbols vtblFinal;         // More FuncDeclaration's that aren't in vtbl[]
+    FuncDeclarations vtbl;      // Array of FuncDeclaration's making up the vtbl[]
+    FuncDeclarations vtblFinal; // More FuncDeclaration's that aren't in vtbl[]
 
     // Array of BaseClass's; first is super, rest are Interface's
     BaseClasses* baseclasses;
@@ -818,7 +815,8 @@ public:
                 // No base class, so this is the root of the class hierarchy
                 vtbl.setDim(0);
                 if (vtblOffset())
-                    vtbl.push(this); // leave room for classinfo as first member
+                  //vtbl.push(this); // leave room for classinfo as first member
+                    vtbl.push(null); // leave room for classinfo as first member
             }
 
             /* If this is a nested class, add the hidden 'this'
@@ -1297,11 +1295,10 @@ public:
         FuncDeclaration fdmatch = null;
         FuncDeclaration fdambig = null;
 
-        void searchVtbl(ref Dsymbols vtbl)
+        void searchVtbl(ref FuncDeclarations vtbl)
         {
-            foreach (s; vtbl)
+            foreach (fd; vtbl)
             {
-                auto fd = s.isFuncDeclaration();
                 if (!fd)
                     continue;
 
@@ -1444,7 +1441,7 @@ public:
          */
         for (size_t i = 1; i < vtbl.dim; i++)
         {
-            auto fd = vtbl[i].isFuncDeclaration();
+            auto fd = vtbl[i];
             //if (fd) printf("\tvtbl[%d] = [%s] %s\n", i, fd.loc.toChars(), fd.toChars());
             if (!fd || fd.isAbstract())
             {
@@ -1765,7 +1762,8 @@ public:
 
             // initialize vtbl
             if (vtblOffset())
-                vtbl.push(this); // leave room at vtbl[0] for classinfo
+              //vtbl.push(this); // leave room at vtbl[0] for classinfo
+                vtbl.push(null); // leave room at vtbl[0] for classinfo
 
             // Cat together the vtbl[]'s from base interfaces
             foreach (i, b; interfaces)

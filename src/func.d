@@ -854,7 +854,7 @@ public:
                     continue;
                 for (size_t j = 0; j < cbd.vtbl.dim; j++)
                 {
-                    FuncDeclaration f2 = cbd.vtbl[j].isFuncDeclaration();
+                    auto f2 = cbd.vtbl[j];
                     if (!f2 || f2.ident != ident)
                         continue;
                     if (cbd.parent && cbd.parent.isTemplateInstance())
@@ -947,7 +947,7 @@ public:
                         // shift all existing functions back
                         for (size_t i = cd.vtbl.dim; i > vtblIndex; i--)
                         {
-                            FuncDeclaration fd = cd.vtbl[i - 1].isFuncDeclaration();
+                            auto fd = cd.vtbl[i - 1];
                             assert(fd);
                             fd.vtblIndex++;
                         }
@@ -969,8 +969,8 @@ public:
 
             default:
                 {
-                    FuncDeclaration fdv = cd.baseClass.vtbl[vi].isFuncDeclaration();
-                    FuncDeclaration fdc = cd.vtbl[vi].isFuncDeclaration();
+                    auto fdv = cd.baseClass.vtbl[vi];
+                    auto fdc = cd.vtbl[vi];
                     // This function is covariant with fdv
 
                     if (fdc == this)
@@ -1065,7 +1065,7 @@ public:
 
                 default:
                     {
-                        auto fdv = cast(FuncDeclaration)b.sym.vtbl[vi];
+                        auto fdv = b.sym.vtbl[vi];
                         Type ti = null;
 
                         /* Remember which functions this overrides
@@ -2571,16 +2571,15 @@ public:
      *      -1      didn't find one
      *      -2      can't determine because of forward references
      */
-    final int findVtblIndex(Dsymbols* vtbl, int dim)
+    final int findVtblIndex(FuncDeclarations* vtbl, int dim)
     {
         FuncDeclaration mismatch = null;
         StorageClass mismatchstc = 0;
         int mismatchvi = -1;
         int exactvi = -1;
         int bestvi = -1;
-        for (int vi = 0; vi < dim; vi++)
+        foreach (int vi, fdv; *vtbl)
         {
-            FuncDeclaration fdv = (*vtbl)[vi].isFuncDeclaration();
             if (fdv && fdv.ident == ident)
             {
                 if (type.equals(fdv.type)) // if exact match

@@ -574,7 +574,7 @@ void toDebug(ClassDeclaration *cd)
             unsigned char descriptor = 0;
             for (size_t i = 0; i < cd->vtbl.dim; i++)
             {
-                FuncDeclaration *fd = (FuncDeclaration *)cd->vtbl[i];
+                FuncDeclaration *fd = cd->vtbl[i];
                 //if (intsize == 4)
                     descriptor |= 5;
                 vshape->data[4 + n / 2] = descriptor;

@@ -601,7 +601,7 @@ public:
     bool equals(RootObject *o);
 
     int overrides(FuncDeclaration *fd);
-    int findVtblIndex(Dsymbols *vtbl, int dim);
+    int findVtblIndex(FuncDeclarations *vtbl, int dim);
     bool overloadInsert(Dsymbol *s);
     FuncDeclaration *overloadExactMatch(Type *t);
     FuncDeclaration *overloadModMatch(Loc loc, Type *tthis, Type *&t);

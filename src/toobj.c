@@ -618,7 +618,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 dtbv.xoff(cd->csym, 0, TYnptr);           // first entry is ClassInfo reference
             for (size_t i = cd->vtblOffset(); i < cd->vtbl.dim; i++)
             {
-                FuncDeclaration *fd = cd->vtbl[i]->isFuncDeclaration();
+                FuncDeclaration *fd = cd->vtbl[i];
 
                 //printf("\tvtbl[%d] = %p\n", i, fd);
                 if (fd && (fd->fbody || !cd->isAbstract()))
@@ -638,7 +638,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                         {
                             if (j == i)
                                 continue;
-                            FuncDeclaration *fd2 = cd->vtbl[j]->isFuncDeclaration();
+                            FuncDeclaration *fd2 = cd->vtbl[j];
                             if (!fd2->ident->equals(fd->ident))
                                 continue;
                             if (fd->leastAsSpecialized(fd2) || fd2->leastAsSpecialized(fd))

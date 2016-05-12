@@ -6014,7 +6014,7 @@ public:
                 error("cannot create instance of abstract class %s", cd.toChars());
                 for (size_t i = 0; i < cd.vtbl.dim; i++)
                 {
-                    FuncDeclaration fd = cd.vtbl[i].isFuncDeclaration();
+                    auto fd = cd.vtbl[i];
                     if (fd && fd.isAbstract())
                     {
                         errorSupplemental(loc, "function '%s' is not implemented",
@@ -9896,7 +9896,7 @@ public:
                 ue1 = ue.e1;
                 auto vi = f.findVtblIndex(&ad2.vtbl, cast(int)ad2.vtbl.dim);
                 assert(vi >= 0);
-                f = ad2.vtbl[vi].isFuncDeclaration();
+                f = ad2.vtbl[vi];
                 assert(f);
             }
             if (f.needThis())
