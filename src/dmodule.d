@@ -1221,16 +1221,34 @@ extern (C++) final class Module : Package
     {
         Module.runDeferredSemantic2();
 
-        Dsymbols* a = &Module.deferred3;
-        for (size_t i = 0; i < a.dim; i++)
-        {
-            Dsymbol s = (*a)[i];
-            //printf("[%d] %s semantic3a\n", i, s.toPrettyChars());
-            s.semantic3(null);
+        static __gshared Dsymbols todo3;
+        static __gshared int nested;
+        if (nested)
+            return;
+        //if (deferred3.dim) printf("+Module::runDeferredSemantic3(), len = %d\n", deferred3.dim);
+        nested++;
 
-            if (global.errors)
+        size_t len;
+        do
+        {
+            len = deferred3.dim;
+            if (!len)
                 break;
+
+            todo3.append(&deferred3);
+            deferred3.setDim(0);
+
+            foreach (s; todo3[0 .. len])
+            {
+                s.semantic3(null);
+                //printf("deferred3: %s, parent = %s\n", s.toChars(), s.parent.toChars());
+            }
+            //printf("\tdeferred3.dim = %d, len = %d\n", deferred3.dim, len);
+            todo3.setDim(0);
         }
+        while (deferred3.dim);
+        nested--;
+        //printf("-Module::runDeferredSemantic3(), len = %d\n", deferred3.dim);
     }
 
     static void clearCache()
