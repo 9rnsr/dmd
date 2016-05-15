@@ -1152,6 +1152,7 @@ extern (C++) final class Module : Package
         if (dprogress == 0)
             return;
 
+        static __gshared Dsymbols todo;
         static __gshared int nested;
         if (nested)
             return;
@@ -1166,31 +1167,16 @@ extern (C++) final class Module : Package
             if (!len)
                 break;
 
-            Dsymbol* todo;
-            Dsymbol* todoalloc = null;
-            Dsymbol tmp;
-            if (len == 1)
-            {
-                todo = &tmp;
-            }
-            else
-            {
-                todo = cast(Dsymbol*)malloc(len * Dsymbol.sizeof);
-                assert(todo);
-                todoalloc = todo;
-            }
-            memcpy(todo, deferred.tdata(), len * Dsymbol.sizeof);
+            todo.append(&deferred);
             deferred.setDim(0);
 
-            for (size_t i = 0; i < len; i++)
+            foreach (s; todo)
             {
-                Dsymbol s = todo[i];
                 s.semantic(null);
                 //printf("deferred: %s, parent = %s\n", s.toChars(), s.parent.toChars());
             }
             //printf("\tdeferred.dim = %d, len = %d, dprogress = %d\n", deferred.dim, len, dprogress);
-            if (todoalloc)
-                free(todoalloc);
+            todo.setDim(0);
         }
         while (deferred.dim < len || dprogress); // while making progress
         nested--;
