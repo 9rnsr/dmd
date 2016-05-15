@@ -1187,16 +1187,34 @@ extern (C++) final class Module : Package
     {
         Module.runDeferredSemantic();
 
-        Dsymbols* a = &Module.deferred2;
-        for (size_t i = 0; i < a.dim; i++)
-        {
-            Dsymbol s = (*a)[i];
-            //printf("[%d] %s semantic2a\n", i, s.toPrettyChars());
-            s.semantic2(null);
+        static __gshared Dsymbols todo2;
+        static __gshared int nested;
+        if (nested)
+            return;
+        //if (deferred2.dim) printf("+Module::runDeferredSemantic2(), len = %d\n", deferred2.dim);
+        nested++;
 
-            if (global.errors)
+        size_t len;
+        do
+        {
+            len = deferred2.dim;
+            if (!len)
                 break;
+
+            todo2.append(&deferred2);
+            deferred2.setDim(0);
+
+            foreach (s; todo2)
+            {
+                s.semantic2(null);
+                //printf("deferred2: %s, parent = %s\n", s.toChars(), s.parent.toChars());
+            }
+            //printf("\tdeferred2.dim = %d, len = %d\n", deferred2.dim, len);
+            todo2.setDim(0);
         }
+        while (deferred2.dim);
+        nested--;
+        //printf("-Module::runDeferredSemantic2(), len = %d\n", deferred2.dim);
     }
 
     static void runDeferredSemantic3()
