@@ -500,12 +500,19 @@ Leproplvalue:
     return new ErrorExp();
 }
 
-extern (C++) Expression resolveProperties(Scope* sc, Expression e)
+extern (C++) Expression resolveProperties(Scope* sc, Expression e, int flags = 0)
 {
     //printf("resolveProperties(%s)\n", e->toChars());
     e = resolvePropertiesX(sc, e);
+
     if (e.checkRightThis(sc))
         return new ErrorExp();
+
+    if (!(flags & 1))
+    {
+        checkComma(e);
+    }
+
     return e;
 }
 
@@ -981,6 +988,16 @@ extern (C++) bool arrayExpressionSemantic(Expressions* exps, Scope* sc, bool pre
         }
     }
     return err;
+}
+
+bool checkComma(Expression e)
+{
+    if (e.op == TOKcomma && !(cast(CommaExp)e).internal)
+    {
+        e.deprecation("use of comma expression");
+        (cast(CommaExp)e).internal = true;
+    }
+    return false;
 }
 
 /****************************************
@@ -9532,11 +9549,14 @@ public:
 
         if (e1.op == TOKcomma)
         {
+            checkComma(e1);
+
             /* Rewrite (a,b)(args) as (a,(b(args)))
              */
             auto ce = cast(CommaExp)e1;
             e1 = ce.e2;
             ce.e2 = this;
+            ce.internal = true;
             return ce.semantic(sc);
         }
         if (e1.op == TOKdelegate)
@@ -12472,6 +12492,8 @@ public:
 
         if (e2.op == TOKcomma)
         {
+            checkComma(e2);
+
             /* Rewrite to get rid of the comma from rvalue
              */
             Expression e0;
@@ -12648,6 +12670,8 @@ public:
                 return new ErrorExp();
             e1 = e1x;
             assert(e1.type);
+
+            checkComma(e1);
         }
         Type t1 = e1.type.toBasetype();
 

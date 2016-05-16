@@ -53,7 +53,7 @@ struct UnionExp;
 
 void initPrecedence();
 
-Expression *resolveProperties(Scope *sc, Expression *e);
+Expression *resolveProperties(Scope *sc, Expression *e, int flags);
 Expression *resolvePropertiesOnly(Scope *sc, Expression *e1);
 bool checkAccess(Loc loc, Scope *sc, Expression *e, Declaration *d);
 Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *earg, Dsymbol *d);

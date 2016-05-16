@@ -1161,7 +1161,7 @@ public:
         {
             //printf("ExpStatement::semantic() %s\n", exp.toChars());
             exp = exp.semantic(sc);
-            exp = resolveProperties(sc, exp);
+            exp = resolveProperties(sc, exp, 1);
             exp = exp.addDtorHook(sc);
             if (checkNonAssignmentArrayOp(exp))
                 exp = new ErrorExp();
@@ -1994,7 +1994,7 @@ public:
         if (increment)
         {
             increment = increment.semantic(sc);
-            increment = resolveProperties(sc, increment);
+            increment = resolveProperties(sc, increment, 1);
             if (checkNonAssignmentArrayOp(increment))
                 increment = new ErrorExp();
             increment = increment.optimize(WANTvalue);
@@ -4338,6 +4338,7 @@ public:
         if (exp)
         {
             exp = exp.semantic(sc);
+            checkComma(exp);
             exp = exp.implicitCastTo(sc, sc.sw.condition.type);
             exp = exp.optimize(WANTvalue);
             if (exp.op == TOKerror)
