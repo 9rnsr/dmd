@@ -5966,6 +5966,7 @@ public:
                 error("'this' for nested class must be a class type, not %s", thisexp.type.toChars());
                 return new ErrorExp();
             }
+            checkComma(thisexp);
 
             sc = sc.push(cdthis);
             type = newtype.semantic(loc, sc);
@@ -8641,6 +8642,8 @@ public:
         Expression e = semanticX(sc);
         if (e != this)
             return e;
+
+        checkComma(e1);
 
         Expression eleft;
         Expression eright;
