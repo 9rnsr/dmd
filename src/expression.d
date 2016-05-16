@@ -11821,7 +11821,9 @@ public:
 extern (C++) final class CommaExp : BinExp
 {
 public:
-    extern (D) this(Loc loc, Expression e1, Expression e2)
+    bool internal;
+
+    extern (D) this(Loc loc, Expression e1, Expression e2, bool internal = true)
     {
         super(loc, TOKcomma, __traits(classInstanceSize, CommaExp), e1, e2);
     }

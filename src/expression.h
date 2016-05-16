@@ -1111,7 +1111,9 @@ public:
 class CommaExp : public BinExp
 {
 public:
-    CommaExp(Loc loc, Expression *e1, Expression *e2);
+    bool internal;
+
+    CommaExp(Loc loc, Expression *e1, Expression *e2, bool internal = true);
     Expression *semantic(Scope *sc);
     int checkModifiable(Scope *sc, int flag);
     bool isLvalue();
