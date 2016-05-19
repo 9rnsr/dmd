@@ -722,14 +722,19 @@ public:
         {
             if (arrayObjectMatch(p.dedargs, dedargs))
             {
-                //printf("recursive, no match p->sc=%p %p %s\n", p->sc, this, this->toChars());
-                /* It must be a subscope of p->sc, other scope chains are not recursive
+                //printf("recursive, no match p.sc = %p %p %s\n", p.sc, this, this.toChars());
+
+                /* It must be a subscope of p.sc, other scope chains are not recursive
                  * instantiations.
                  */
                 for (Scope* scx = sc; scx; scx = scx.enclosing)
                 {
                     if (scx == p.sc)
+                    {
+                        .error(ti.loc, "recursive template expansion %s", ti.toChars());
+                        ti.errors = true;
                         return false;
+                    }
                 }
             }
             /* BUG: should also check for ref param differences
@@ -799,7 +804,7 @@ public:
         assert(ti.inst is null);
         ti.inst = ti; // temporary instantiation to enable genIdent()
 
-        //printf("\tscx->parent = %s %s\n", scx->parent->kind(), scx->parent->toPrettyChars());
+        //printf("\tscx.parent = %s %s\n", scx.parent.kind(), scx.parent.toPrettyChars());
         e = e.semantic(scx);
         e = resolveProperties(scx, e);
 
@@ -7569,7 +7574,7 @@ public:
                 if (!td || td == td_best)   // skip duplicates
                     return 0;
 
-                //printf("td = %s\n", td->toPrettyChars());
+                //printf("td = %s\n", td.toPrettyChars());
                 // If more arguments than parameters,
                 // then this is no match.
                 if (td.parameters.dim < tiargs.dim)
@@ -7682,16 +7687,24 @@ public:
         else
         {
             auto tdecl = tempdecl.isTemplateDeclaration();
-
-            if (errs != global.errors)
+            if (errors)
+            {
+                // error message is already printed on 'this'.
+            }
+            else if (errs != global.errors)
+            {
                 errorSupplemental(loc, "while looking for match for %s", toChars());
+            }
             else if (tdecl && !tdecl.overnext)
             {
                 // Only one template, so we can give better error message
                 error("does not match template declaration %s", tdecl.toChars());
             }
             else
-                .error(loc, "%s %s.%s does not match any template declaration", tempdecl.kind(), tempdecl.parent.toPrettyChars(), tempdecl.ident.toChars());
+            {
+                .error(loc, "%s %s.%s does not match any template declaration",
+                    tempdecl.kind(), tempdecl.parent.toPrettyChars(), tempdecl.ident.toChars());
+            }
             return false;
         }
 
