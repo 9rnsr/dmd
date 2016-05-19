@@ -329,7 +329,7 @@ public:
     TemplateInstance(Loc loc, TemplateDeclaration *tempdecl, Objects *tiargs);
     static Objects *arraySyntaxCopy(Objects *objs);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc, Expressions *fargs);
+    void semantic(Loc instLoc, Scope *sc, Expressions *fargs);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);

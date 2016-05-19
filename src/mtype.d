@@ -7708,7 +7708,7 @@ public:
         *ps = null;
 
         //printf("TypeInstance::resolve(sc = %p, tempinst = '%s')\n", sc, tempinst.toChars());
-        tempinst.semantic(sc);
+        tempinst.semantic(loc, sc, null);
         if (!global.gag && tempinst.errors)
         {
             *pt = terror;

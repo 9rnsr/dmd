@@ -2522,7 +2522,7 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
             if (mta <= MATCHnomatch || mta < ta_last)   // no match or less match
                 return 0;
 
-            ti.semantic(sc, fargs);
+            ti.semantic(loc, sc, fargs);
             if (!ti.inst)               // if template failed to expand
                 return 0;
 
@@ -2750,7 +2750,7 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
             sc = td_best._scope; // workaround for Type::aliasthisOf
 
         auto ti = new TemplateInstance(loc, td_best, ti_best.tiargs);
-        ti.semantic(sc, fargs);
+        ti.semantic(loc, sc, fargs);
 
         m.lastf = ti.toAlias().isFuncDeclaration();
         if (!m.lastf)
@@ -5992,9 +5992,16 @@ public:
         return ti;
     }
 
-    final void semantic(Scope* sc, Expressions* fargs)
+    /**
+     * Instantiate template and makes the "signature" of instantiated symbol visible.
+     * If it's an eponymous template, the eponymous member will be set to aliasdecl.
+     *
+     * - If this is a struct/class template, TypeInstance is resolved to AggregateDeclaration.
+     * - If this is a function template, its function body is left unresolved.
+     */
+    final void semantic(Loc instLoc, Scope* sc, Expressions* fargs)
     {
-        //printf("[%s] TemplateInstance::semantic('%s', this=%p, gag = %d, sc = %p)\n", loc.toChars(), toChars(), this, global.gag, sc);
+        //printf("[%s] TemplateInstance::semantic('%s', this=%p, gag = %d, sc = %p)\n", instLoc.toChars(), toChars(), this, global.gag, sc);
         version (none)
         {
             for (Dsymbol s = this; s; s = s.parent)
@@ -6029,7 +6036,7 @@ public:
             auto ungag = Ungag(global.gag);
             if (!gagged)
                 global.gag = 0;
-            error(loc, "recursive template expansion");
+            error(instLoc, "recursive template expansion");
             if (gagged)
                 semanticRun = PASSinit;
             else
@@ -6053,16 +6060,18 @@ public:
         gagged = (global.gag > 0);
 
         semanticRun = PASSsemantic;
-
         static if (LOG)
         {
             printf("\tdo semantic\n");
         }
+
         /* Find template declaration first,
          * then run semantic on each argument (place results in tiargs[]),
          * last find most specialized template from overload list/set.
          */
-        if (!findTempDecl(sc, null) || !semanticTiargs(sc) || !findBestMatch(sc, fargs))
+        if (!findTempDecl(sc, null) ||
+            !semanticTiargs(sc) ||
+            !findBestMatch(sc, fargs))
         {
         Lerror:
             if (gagged)
@@ -6075,13 +6084,13 @@ public:
             errors = true;
             return;
         }
-        TemplateDeclaration tempdecl = this.tempdecl.isTemplateDeclaration();
+        auto tempdecl = this.tempdecl.isTemplateDeclaration();
         assert(tempdecl);
 
         // If tempdecl is a mixin, disallow it
         if (tempdecl.ismixin)
         {
-            error("mixin templates are not regular templates");
+            error(instLoc, "mixin templates are not regular templates");
             goto Lerror;
         }
 
@@ -6182,15 +6191,15 @@ public:
 
         inst = this;
         parent = enclosing ? enclosing : tempdecl.parent;
-        //printf("parent = '%s'\n", parent->kind());
+        //printf("parent = '%s'\n", parent.kind());
 
-        TemplateInstance tempdecl_instance_idx = tempdecl.addInstance(this);
+        auto tempdecl_instance_idx = tempdecl.addInstance(this);
 
         //getIdent();
 
         // Store the place we added it to in target_symbol_list(_idx) so we can
         // remove it later if we encounter an error.
-        Dsymbols* target_symbol_list = appendToModuleMember();
+        auto target_symbol_list = appendToModuleMember();
         size_t target_symbol_list_idx = target_symbol_list ? target_symbol_list.dim - 1 : 0;
 
         // Copy the syntax trees from the TemplateDeclaration
@@ -6205,7 +6214,7 @@ public:
             assert(t);
             if (StorageClass stc = ModToStc(t.mod))
             {
-                //printf("t = %s, stc = x%llx\n", t->toChars(), stc);
+                //printf("t = %s, stc = x%llx\n", t.toChars(), stc);
                 auto s = new Dsymbols();
                 s.push(new StorageClassDeclaration(stc, members));
                 members = s;
@@ -6213,14 +6222,17 @@ public:
             break;
         }
 
-        // Create our own scope for the template parameters
-        Scope* _scope = tempdecl._scope;
+        // TODO: can replace with assert, because it's already checked in findBestMatch.
         if (tempdecl.semanticRun == PASSinit)
         {
-            error("template instantiation %s forward references template declaration %s", toChars(), tempdecl.toChars());
+            error(instLoc, "template instantiation %s forward references template declaration %s",
+                toChars(), tempdecl.toChars());
+            errors = true;
             return;
         }
 
+        // Create our own scope for the template parameters
+        auto _scope = tempdecl._scope;
         static if (LOG)
         {
             printf("\tcreate scope for template parameters '%s'\n", toChars());
@@ -6230,17 +6242,17 @@ public:
         _scope = _scope.push(argsym);
         _scope.tinst = this;
         _scope.minst = minst;
-        //scope->stc = 0;
+        //scope.stc = 0;
 
         // Declare each template parameter as an alias for the argument type
-        Scope* paramscope = _scope.push();
+        auto paramscope = _scope.push();
         paramscope.stc = 0;
         paramscope.protection = Prot(PROTpublic); // Bugzilla 14169: template parameters should be public
         declareParameters(paramscope);
         paramscope.pop();
 
         // Add members of template instance to template instance symbol table
-        //parent = scope->scopesym;
+        //parent = scope.scopesym;
         symtab = new DsymbolTable();
         for (size_t i = 0; i < members.dim; i++)
         {
@@ -6260,7 +6272,7 @@ public:
          * member has the same name as the template instance.
          * If so, this template instance becomes an alias for that member.
          */
-        //printf("members->dim = %d\n", members->dim);
+        //printf("members.dim = %d\n", members.dim);
         if (members.dim)
         {
             Dsymbol s;
@@ -6276,13 +6288,12 @@ public:
          */
         if (fargs && aliasdecl)
         {
-            FuncDeclaration fd = aliasdecl.isFuncDeclaration();
-            if (fd)
+            if (auto fd = aliasdecl.isFuncDeclaration())
             {
                 /* Transmit fargs to type so that TypeFunction::semantic() can
                  * resolve any "auto ref" storage classes.
                  */
-                TypeFunction tf = cast(TypeFunction)fd.type;
+                auto tf = cast(TypeFunction)fd.type;
                 if (tf && tf.ty == Tfunction)
                     tf.fargs = fargs;
             }
@@ -6293,9 +6304,8 @@ public:
         {
             printf("\tdo semantic() on template instance members '%s'\n", toChars());
         }
-        Scope* sc2;
-        sc2 = _scope.push(this);
-        //printf("enclosing = %d, sc->parent = %s\n", enclosing, sc->parent->toChars());
+        auto sc2 = _scope.push(this);
+        //printf("enclosing = %d, sc.parent = %s\n", enclosing, sc.parent.toChars());
         sc2.parent = this;
         sc2.tinst = this;
         sc2.minst = minst;
@@ -6308,7 +6318,7 @@ public:
             if (++nest > 500)
             {
                 global.gag = 0; // ensure error message gets printed
-                error("recursive expansion");
+                error(instLoc, "recursive expansion");
                 fatal();
             }
 
@@ -6334,6 +6344,7 @@ public:
                 //printf("test3: enclosing = %d, s->parent = %s\n", enclosing, s->parent->toChars());
                 s.semantic(sc2);
                 //printf("test4: enclosing = %d, s->parent = %s\n", enclosing, s->parent->toChars());
+
                 Module.runDeferredSemantic();
             }
 
@@ -6361,51 +6372,109 @@ public:
             }
         }
 
+    //Laftersemantic:
+        sc2.pop();
+        _scope.pop();
+
+        // Give additional context info if error occurred during instantiation
         if (global.errors != errorsave)
-            goto Laftersemantic;
+        {
+            if (!errors)
+            {
+                if (!tempdecl.literal)
+                    error(instLoc, "error instantiating");
+                if (tinst)
+                    tinst.printInstantiationTrace();
+            }
+            errors = true;
+            if (gagged)
+            {
+                // Errors are gagged, so remove the template instance from the
+                // instance/symbol lists we added it to and reset our state to
+                // finish clean and so we can try to instantiate it again later
+                // (see bugzilla 4302 and 6602).
+                tempdecl.removeInstance(tempdecl_instance_idx);
+                if (target_symbol_list)
+                {
+                    // Because we added 'this' in the last position above, we
+                    // should be able to remove it without messing other indices up.
+                    assert((*target_symbol_list)[target_symbol_list_idx] == this);
+                    target_symbol_list.remove(target_symbol_list_idx);
+                    memberOf = null;                    // no longer a member
+                }
+                semanticRun = PASSinit;
+                inst = null;
+                symtab = null;
+            }
+        }
+        else if (errinst)
+        {
+            /* Bugzilla 14541: If the previous gagged instance had failed by
+             * circular references, currrent "error reproduction instantiation"
+             * might succeed, because of the difference of instantiated context.
+             * On such case, the cached error instance needs to be overridden by the
+             * succeeded instance.
+             */
+            //printf("replaceInstance()\n");
+            assert(errinst.errors);
+            auto ti1 = TemplateInstanceBox(errinst);
+            tempdecl.instances.remove(ti1);
+
+            auto ti2 = TemplateInstanceBox(this);
+            tempdecl.instances[ti2] = this;
+        }
+
+        //printf("-TemplateInstance::semantic('%s', this=%p)\n", toChars(), this);
+    }
+
+    override void semantic(Scope* sc)
+    {
+        semantic(loc, sc, null);
+        if (errors)
+            return;
 
         /* If any of the instantiation members didn't get semantic() run
          * on them due to forward references, we cannot run semantic2()
          * or semantic3() yet.
          */
+        bool found_deferred_ad = false;
+        for (size_t i = 0; i < Module.deferred.dim; i++)
         {
-            bool found_deferred_ad = false;
-            for (size_t i = 0; i < Module.deferred.dim; i++)
+            auto sd = Module.deferred[i];
+            auto ad = sd.isAggregateDeclaration();
+            if (ad && ad.parent && ad.parent.isTemplateInstance())
             {
-                Dsymbol sd = Module.deferred[i];
-                AggregateDeclaration ad = sd.isAggregateDeclaration();
-                if (ad && ad.parent && ad.parent.isTemplateInstance())
+                //printf("deferred template aggregate: %s %s\n",
+                //        sd.parent.toChars(), sd.toChars());
+                found_deferred_ad = true;
+                if (ad.parent == this)
                 {
-                    //printf("deferred template aggregate: %s %s\n",
-                    //        sd->parent->toChars(), sd->toChars());
-                    found_deferred_ad = true;
-                    if (ad.parent == this)
-                    {
-                        ad.deferred = this;
-                        break;
-                    }
+                    ad.deferred = this;
+                    break;
                 }
             }
-            if (found_deferred_ad || Module.deferred.dim)
-                goto Laftersemantic;
         }
+        if (found_deferred_ad || Module.deferred.dim)
+            return;
+
+        uint errorsave = global.errors;
 
         /* The problem is when to parse the initializer for a variable.
          * Perhaps VarDeclaration::semantic() should do it like it does
          * for initializers inside a function.
          */
-        //if (sc->parent->isFuncDeclaration())
+        //if (sc.parent.isFuncDeclaration())
         {
             /* BUG 782: this has problems if the classes this depends on
              * are forward referenced. Find a way to defer semantic()
              * on this template.
              */
-            semantic2(sc2);
+            semantic2(null);
         }
         if (global.errors != errorsave)
-            goto Laftersemantic;
+            return;
 
-        void trySemantic3(Scope* sc2)
+        void trySemantic3()
         {
             // extracted to a function to allow windows SEH to work without destructors in the same function
             static __gshared int nest;
@@ -6417,7 +6486,7 @@ public:
                 fatal();
             }
 
-            semantic3(sc2);
+            semantic3(null);
 
             --nest;
         }
@@ -6433,11 +6502,11 @@ public:
             this.deferred = &deferred;
 
             //printf("Run semantic3 on %s\n", toChars());
-            trySemantic3(sc2);
+            trySemantic3();
 
             for (size_t i = 0; i < deferred.dim; i++)
             {
-                //printf("+ run deferred semantic3 on %s\n", deferred[i]->toChars());
+                //printf("+ run deferred semantic3 on %s\n", deferred[i].toChars());
                 deferred[i].semantic3(null);
             }
 
@@ -6485,9 +6554,9 @@ public:
                 //printf("[%s] %s doSemantic3 = %d\n", loc.toChars(), toChars(), doSemantic3);
             }
             if (doSemantic3)
-                trySemantic3(sc2);
+                trySemantic3();
 
-            TemplateInstance ti = tinst;
+            auto ti = tinst;
             int nest = 0;
             while (ti && !ti.deferred && ti.tinst)
             {
@@ -6501,7 +6570,7 @@ public:
             }
             if (ti && ti.deferred)
             {
-                //printf("deferred semantic3 of %p %s, ti = %s, ti->deferred = %p\n", this, toChars(), ti->toChars());
+                //printf("deferred semantic3 of %p %s, ti = %s, ti.deferred = %p\n", this, toChars(), ti.toChars());
                 for (size_t i = 0;; i++)
                 {
                     if (i == ti.deferred.dim)
@@ -6527,68 +6596,6 @@ public:
              */
             aliasdecl = aliasdecl.toAlias2();
         }
-
-    Laftersemantic:
-        sc2.pop();
-        _scope.pop();
-
-        // Give additional context info if error occurred during instantiation
-        if (global.errors != errorsave)
-        {
-            if (!errors)
-            {
-                if (!tempdecl.literal)
-                    error(loc, "error instantiating");
-                if (tinst)
-                    tinst.printInstantiationTrace();
-            }
-            errors = true;
-            if (gagged)
-            {
-                // Errors are gagged, so remove the template instance from the
-                // instance/symbol lists we added it to and reset our state to
-                // finish clean and so we can try to instantiate it again later
-                // (see bugzilla 4302 and 6602).
-                tempdecl.removeInstance(tempdecl_instance_idx);
-                if (target_symbol_list)
-                {
-                    // Because we added 'this' in the last position above, we
-                    // should be able to remove it without messing other indices up.
-                    assert((*target_symbol_list)[target_symbol_list_idx] == this);
-                    target_symbol_list.remove(target_symbol_list_idx);
-                    memberOf = null;                    // no longer a member
-                }
-                semanticRun = PASSinit;
-                inst = null;
-                symtab = null;
-            }
-        }
-        else if (errinst)
-        {
-            /* Bugzilla 14541: If the previous gagged instance had failed by
-             * circular references, currrent "error reproduction instantiation"
-             * might succeed, because of the difference of instantiated context.
-             * On such case, the cached error instance needs to be overridden by the
-             * succeeded instance.
-             */
-            //printf("replaceInstance()\n");
-            assert(errinst.errors);
-            auto ti1 = TemplateInstanceBox(errinst);
-            tempdecl.instances.remove(ti1);
-
-            auto ti2 = TemplateInstanceBox(this);
-            tempdecl.instances[ti2] = this;
-        }
-
-        static if (LOG)
-        {
-            printf("-TemplateInstance::semantic('%s', this=%p)\n", toChars(), this);
-        }
-    }
-
-    override void semantic(Scope* sc)
-    {
-        semantic(sc, null);
     }
 
     override void semantic2(Scope* sc)
@@ -6602,7 +6609,7 @@ public:
         }
         if (!errors && members)
         {
-            TemplateDeclaration tempdecl = this.tempdecl.isTemplateDeclaration();
+            auto tempdecl = this.tempdecl.isTemplateDeclaration();
             assert(tempdecl);
 
             sc = tempdecl._scope;
@@ -6665,7 +6672,7 @@ public:
         semanticRun = PASSsemantic3;
         if (!errors && members)
         {
-            TemplateDeclaration tempdecl = this.tempdecl.isTemplateDeclaration();
+            auto tempdecl = this.tempdecl.isTemplateDeclaration();
             assert(tempdecl);
 
             sc = tempdecl._scope;

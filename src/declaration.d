@@ -759,7 +759,7 @@ public:
             inuse = 2;
             uint olderrors = global.errors;
             Dsymbol s = type.toDsymbol(_scope);
-            //printf("[%s] type = %s, s = %p, this = %p\n", loc.toChars(), type->toChars(), s, this);
+            //printf("[%s] type = %s, s = %p, this = %p\n", loc.toChars(), type.toChars(), s, this);
             if (global.errors != olderrors)
                 goto Lerr;
             if (s)
@@ -777,7 +777,7 @@ public:
                     goto Lerr;
                 if (global.errors != olderrors)
                     goto Lerr;
-                //printf("t = %s\n", t->toChars());
+                //printf("t = %s\n", t.toChars());
                 inuse = 0;
             }
         }
