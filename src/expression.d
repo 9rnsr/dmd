@@ -5673,12 +5673,13 @@ public:
         if (type)
             return this;
 
-        ScopeDsymbol sds2 = sds;
-        TemplateInstance ti = sds2.isTemplateInstance();
+        auto sds2 = sds;
+        auto ti = sds2.isTemplateInstance();
         while (ti)
         {
             WithScopeSymbol withsym;
-            if (!ti.findTempDecl(sc, &withsym) || !ti.semanticTiargs(sc))
+            if (!ti.findTempDecl(sc, &withsym) ||
+                !ti.semanticTiargs(sc))
             {
                 return new ErrorExp();
             }
@@ -5690,21 +5691,22 @@ public:
             }
             if (ti.needsTypeInference(sc))
             {
-                if (TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration())
+                if (auto td = ti.tempdecl.isTemplateDeclaration())
                 {
-                    Dsymbol p = td.toParent2();
-                    FuncDeclaration fdthis = hasThis(sc);
-                    AggregateDeclaration ad = p ? p.isAggregateDeclaration() : null;
-                    if (fdthis && ad && isAggregate(fdthis.vthis.type) == ad && (td._scope.stc & STCstatic) == 0)
+                    auto p = td.toParent2();
+                    auto fdthis = hasThis(sc);
+                    auto ad = p ? p.isAggregateDeclaration() : null;
+                    if (fdthis && ad && isAggregate(fdthis.vthis.type) == ad &&
+                        (td._scope.stc & STCstatic) == 0)
                     {
                         Expression e = new DotTemplateInstanceExp(loc, new ThisExp(loc), ti.name, ti.tiargs);
                         return e.semantic(sc);
                     }
                 }
-                else if (OverloadSet os = ti.tempdecl.isOverloadSet())
+                else if (auto os = ti.tempdecl.isOverloadSet())
                 {
-                    FuncDeclaration fdthis = hasThis(sc);
-                    AggregateDeclaration ad = os.parent.isAggregateDeclaration();
+                    auto fdthis = hasThis(sc);
+                    auto ad = os.parent.isAggregateDeclaration();
                     if (fdthis && ad && isAggregate(fdthis.vthis.type) == ad)
                     {
                         Expression e = new DotTemplateInstanceExp(loc, new ThisExp(loc), ti.name, ti.tiargs);
@@ -5717,10 +5719,11 @@ public:
                 return this;
             }
             ti.semantic(sc);
+            //ti.semantic(loc, sc, null);
             if (!ti.inst || ti.errors)
                 return new ErrorExp();
 
-            Dsymbol s = ti.toAlias();
+            auto s = ti.toAlias();
             if (s == ti)
             {
                 sds = ti;
