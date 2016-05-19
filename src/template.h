@@ -348,17 +348,14 @@ public:
     // Internal
     bool findTempDecl(Scope *sc, WithScopeSymbol **pwithsym);
     bool updateTempDecl(Scope *sc, Dsymbol *s);
-    static bool semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int flags);
     bool semanticTiargs(Scope *sc);
+    static bool semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int flags);
     bool findBestMatch(Scope *sc, Expressions *fargs);
     bool needsTypeInference(Scope *sc, int flag = 0);
     bool hasNestedArgs(Objects *tiargs, bool isstatic);
     Dsymbols *appendToModuleMember();
     void declareParameters(Scope *sc);
     Identifier *genIdent(Objects *args);
-    void expandMembers(Scope *sc);
-    void tryExpandMembers(Scope *sc);
-    void trySemantic3(Scope *sc2);
 
     TemplateInstance *isTemplateInstance() { return this; }
     void accept(Visitor *v) { v->visit(this); }
