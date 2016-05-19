@@ -731,8 +731,11 @@ public:
                 {
                     if (scx == p.sc)
                     {
-                        .error(ti.loc, "recursive template expansion %s", ti.toChars());
-                        ti.errors = true;
+                        if (scx.tinst)
+                        {
+                            .error(ti.loc, "recursive template expansion %s", ti.toChars());
+                            ti.errors = true;
+                        }
                         return false;
                     }
                 }
@@ -7570,7 +7573,7 @@ public:
             Dsymbol dstart = tovers ? tovers.a[oi] : tempdecl;
             overloadApply(dstart, (Dsymbol s)
             {
-                auto  td = s.isTemplateDeclaration();
+                auto td = s.isTemplateDeclaration();
                 if (!td || td == td_best)   // skip duplicates
                     return 0;
 
