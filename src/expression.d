@@ -15104,7 +15104,7 @@ public:
 
     override Expression semantic(Scope* sc)
     {
-        //static if (LOGSEMANTIC)
+        static if (LOGSEMANTIC)
         {
             printf("[%s] CmpExp::semantic('%s')\n", loc.toChars(), toChars());
         }
@@ -15121,7 +15121,7 @@ public:
             error("do not use null when comparing class types");
             return new ErrorExp();
         }
-        printf("\tL%d t1 = %s, t2 = %s\n", __LINE__, e1.type.toBasetype().toChars(), e2.type.toBasetype().toChars());
+        //printf("\tL%d t1 = %s, t2 = %s\n", __LINE__, e1.type.toBasetype().toChars(), e2.type.toBasetype().toChars());
 
         if (auto e = op_overload(sc))
         {
@@ -15137,11 +15137,11 @@ public:
             }
             return e;
         }
-        printf("\tL%d t1 = %s, t2 = %s\n", __LINE__, e1.type.toBasetype().toChars(), e2.type.toBasetype().toChars());
+        //printf("\tL%d t1 = %s, t2 = %s\n", __LINE__, e1.type.toBasetype().toChars(), e2.type.toBasetype().toChars());
 
         if (auto e = typeCombine(this, sc))
             return e;
-        printf("\tL%d t1 = %s, t2 = %s\n", __LINE__, e1.type.toBasetype().toChars(), e2.type.toBasetype().toChars());
+        //printf("\tL%d t1 = %s, t2 = %s\n", __LINE__, e1.type.toBasetype().toChars(), e2.type.toBasetype().toChars());
 
         auto f1 = checkNonAssignmentArrayOp(e1);
         auto f2 = checkNonAssignmentArrayOp(e2);

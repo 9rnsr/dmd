@@ -3365,24 +3365,36 @@ extern (C++) Expression typeCombine(BinExp be, Scope* sc)
     case TOKlt:
     case TOKge:
     case TOKgt:
-        printf("typeCombine\n");
-        printf("\tt1 = %s, t2 = %s\n", t1.toChars(), t2.toChars());
-        printf("\tbe.e1 = %s --> %s, e2 = %s --> %s\n",
-            Token.toChars(e1old.op), be.e1.toChars(),
-            Token.toChars(e2old.op), be.e2.toChars());
+        //printf("typeCombine\n");
+        //printf("\tt1 = %s, t2 = %s\n", t1.toChars(), t2.toChars());
+        //printf("\tbe.e1 = %s --> %s, e2 = %s --> %s\n",
+        //    Token.toChars(e1old.op), be.e1.toChars(),
+        //    Token.toChars(e2old.op), be.e2.toChars());
         if (t1.isunsigned() == t2.isunsigned())
             break;
-        if (!t1.isunsigned() && e1old.op == TOKint64 &&
-            cast(sinteger_t)(cast(IntegerExp)e1old).value >= 0L)
+        if (t2.isunsigned())   // signed vs unsigned
         {
+            // signed.sizeof > unsigned.sizeof
+            if (t1.size() > t2.size())
+                break;
+            // narrow signed is promoted to biger signed.
+            if (be.e1.type.size() > t1.size() && !be.e1.type.isunsigned())
+                break;
             // casting signed integer literal to unsigned would cause no problem.
-            break;
+            if (e1old.op == TOKint64 && cast(sinteger_t)(cast(IntegerExp)e1old).value >= 0L)
+                break;
         }
-        if (!t2.isunsigned() && e2old.op == TOKint64 &&
-            cast(sinteger_t)(cast(IntegerExp)e2old).value >= 0L)
+        else                    // unsigned vs signed
         {
+            // signed.sizeof > unsigned.sizeof
+            if (t2.size() > t1.size())
+                break;
+            // narrow signed is promoted to biger signed.
+            if (be.e2.type.size() > t2.size() && !be.e2.type.isunsigned())
+                break;
             // casting signed integer literal to unsigned would cause no problem.
-            break;
+            if (e2old.op == TOKint64 && cast(sinteger_t)(cast(IntegerExp)e2old).value >= 0L)
+                break;
         }
         be.deprecation("sign mismatch");
         break;
