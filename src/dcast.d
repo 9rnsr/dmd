@@ -3336,6 +3336,8 @@ extern (C++) Expression typeCombine(BinExp be, Scope* sc)
 {
     Type t1 = be.e1.type.toBasetype();
     Type t2 = be.e2.type.toBasetype();
+    auto e1old = be.e1;
+    auto e2old = be.e2;
 
     if (be.op == TOKmin || be.op == TOKadd)
     {
@@ -3356,6 +3358,39 @@ extern (C++) Expression typeCombine(BinExp be, Scope* sc)
         return be.e1;
     if (be.e2.op == TOKerror)
         return be.e2;
+
+    switch (be.op)
+    {
+    case TOKle:
+    case TOKlt:
+    case TOKge:
+    case TOKgt:
+        printf("typeCombine\n");
+        printf("\tt1 = %s, t2 = %s\n", t1.toChars(), t2.toChars());
+        printf("\tbe.e1 = %s --> %s, e2 = %s --> %s\n",
+            Token.toChars(e1old.op), be.e1.toChars(),
+            Token.toChars(e2old.op), be.e2.toChars());
+        if (t1.isunsigned() == t2.isunsigned())
+            break;
+        if (!t1.isunsigned() && e1old.op == TOKint64 &&
+            cast(sinteger_t)(cast(IntegerExp)e1old).value >= 0L)
+        {
+            // casting signed integer literal to unsigned would cause no problem.
+            break;
+        }
+        if (!t2.isunsigned() && e2old.op == TOKint64 &&
+            cast(sinteger_t)(cast(IntegerExp)e2old).value >= 0L)
+        {
+            // casting signed integer literal to unsigned would cause no problem.
+            break;
+        }
+        be.deprecation("sign mismatch");
+        break;
+
+    default:
+        break;
+    }
+
     return null;
 
 Lerror:

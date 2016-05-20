@@ -15104,25 +15104,26 @@ public:
 
     override Expression semantic(Scope* sc)
     {
-        static if (LOGSEMANTIC)
+        //static if (LOGSEMANTIC)
         {
-            printf("CmpExp::semantic('%s')\n", toChars());
+            printf("[%s] CmpExp::semantic('%s')\n", loc.toChars(), toChars());
         }
         if (type)
             return this;
 
-        if (Expression ex = binSemanticProp(sc))
-            return ex;
+        if (auto e = binSemanticProp(sc))
+            return e;
         Type t1 = e1.type.toBasetype();
         Type t2 = e2.type.toBasetype();
-        if (t1.ty == Tclass && e2.op == TOKnull || t2.ty == Tclass && e1.op == TOKnull)
+        if (t1.ty == Tclass && e2.op == TOKnull ||
+            t2.ty == Tclass && e1.op == TOKnull)
         {
             error("do not use null when comparing class types");
             return new ErrorExp();
         }
+        printf("\tL%d t1 = %s, t2 = %s\n", __LINE__, e1.type.toBasetype().toChars(), e2.type.toBasetype().toChars());
 
-        Expression e = op_overload(sc);
-        if (e)
+        if (auto e = op_overload(sc))
         {
             if (!e.type.isscalar() && e.type.equals(e1.type))
             {
@@ -15136,9 +15137,11 @@ public:
             }
             return e;
         }
+        printf("\tL%d t1 = %s, t2 = %s\n", __LINE__, e1.type.toBasetype().toChars(), e2.type.toBasetype().toChars());
 
-        if (Expression ex = typeCombine(this, sc))
-            return ex;
+        if (auto e = typeCombine(this, sc))
+            return e;
+        printf("\tL%d t1 = %s, t2 = %s\n", __LINE__, e1.type.toBasetype().toChars(), e2.type.toBasetype().toChars());
 
         auto f1 = checkNonAssignmentArrayOp(e1);
         auto f2 = checkNonAssignmentArrayOp(e2);
@@ -15150,21 +15153,26 @@ public:
         // Special handling for array comparisons
         t1 = e1.type.toBasetype();
         t2 = e2.type.toBasetype();
-        if ((t1.ty == Tarray || t1.ty == Tsarray || t1.ty == Tpointer) && (t2.ty == Tarray || t2.ty == Tsarray || t2.ty == Tpointer))
+        if ((t1.ty == Tarray || t1.ty == Tsarray || t1.ty == Tpointer) &&
+            (t2.ty == Tarray || t2.ty == Tsarray || t2.ty == Tpointer))
         {
             Type t1next = t1.nextOf();
             Type t2next = t2.nextOf();
-            if (t1next.implicitConvTo(t2next) < MATCHconst && t2next.implicitConvTo(t1next) < MATCHconst && (t1next.ty != Tvoid && t2next.ty != Tvoid))
+            if (t1next.implicitConvTo(t2next) < MATCHconst &&
+                t2next.implicitConvTo(t1next) < MATCHconst &&
+                (t1next.ty != Tvoid && t2next.ty != Tvoid))
             {
                 error("array comparison type mismatch, %s vs %s", t1next.toChars(), t2next.toChars());
                 return new ErrorExp();
             }
-            if ((t1.ty == Tarray || t1.ty == Tsarray) && (t2.ty == Tarray || t2.ty == Tsarray))
+            if ((t1.ty == Tarray || t1.ty == Tsarray) &&
+                (t2.ty == Tarray || t2.ty == Tsarray))
             {
                 semanticTypeInfo(sc, t1.nextOf());
             }
         }
-        else if (t1.ty == Tstruct || t2.ty == Tstruct || (t1.ty == Tclass && t2.ty == Tclass))
+        else if (t1.ty == Tstruct || t2.ty == Tstruct ||
+                 (t1.ty == Tclass && t2.ty == Tclass))
         {
             if (t2.ty == Tstruct)
                 error("need member function opCmp() for %s %s to compare", t2.toDsymbol(sc).kind(), t2.toChars());
@@ -15234,7 +15242,8 @@ public:
             altop = TOKreserved;
             break;
         }
-        if (altop == TOKerror && (t1.ty == Tarray || t1.ty == Tsarray || t2.ty == Tarray || t2.ty == Tsarray))
+        if (altop == TOKerror &&
+            (t1.ty == Tarray || t1.ty == Tsarray || t2.ty == Tarray || t2.ty == Tsarray))
         {
             error("'%s' is not defined for array comparisons", Token.toChars(op));
             return new ErrorExp();
@@ -15246,21 +15255,24 @@ public:
                 if (altop == TOKerror)
                 {
                     const(char)* s = op == TOKunord ? "false" : "true";
-                    error("floating point operator '%s' always returns %s for non-floating comparisons", Token.toChars(op), s);
+                    error("floating point operator '%s' always returns %s for non-floating comparisons",
+                        Token.toChars(op), s);
                 }
                 else
                 {
-                    error("use '%s' for non-floating comparisons rather than floating point operator '%s'", Token.toChars(altop), Token.toChars(op));
+                    error("use '%s' for non-floating comparisons rather than floating point operator '%s'",
+                        Token.toChars(altop), Token.toChars(op));
                 }
             }
             else
             {
-                error("use std.math.isNaN to deal with NaN operands rather than floating point operator '%s'", Token.toChars(op));
+                error("use std.math.isNaN to deal with NaN operands rather than floating point operator '%s'",
+                    Token.toChars(op));
             }
             return new ErrorExp();
         }
 
-        //printf("CmpExp: %s, type = %s\n", e->toChars(), e->type->toChars());
+        //printf("CmpExp: %s, type = %s\n", toChars(), type->toChars());
         return this;
     }
 
