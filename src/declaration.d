@@ -783,7 +783,8 @@ public:
         }
         if (inuse)
         {
-            error("recursive alias declaration");
+            //if (type !is Type.terror)
+                error("recursive alias declaration");
 
         Lerr:
             // Avoid breaking "recursive alias" state during errors gagged

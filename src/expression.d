@@ -885,6 +885,9 @@ extern (C++) Expression resolveUFCSProperties(Scope* sc, Expression e1, Expressi
     {
         DotIdExp die = cast(DotIdExp)e1;
         eleft = die.e1;
+        //printf("\tL%d\n", __LINE__);
+        if (eleft.op == TOKscope && (cast(ScopeExp)eleft).sds.isTemplateMixin())
+            return eleft.type.Type.getProperty(loc, die.ident, 0);
         e = searchUFCS(sc, die, die.ident);
     }
     else if (e1.op == TOKdotti)
