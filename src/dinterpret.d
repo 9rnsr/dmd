@@ -2092,7 +2092,7 @@ public:
 
     override void visit(SymOffExp e)
     {
-        debug (LOG)
+        //debug (LOG)
         {
             printf("%s SymOffExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -2126,8 +2126,11 @@ public:
         if (e.var.type.ty == Tarray || e.var.type.ty == Tsarray)
         {
             fromType = (cast(TypeArray)e.var.type).next;
+            printf("\tL%d\n", __LINE__);
         }
-        if (e.var.isDataseg() && ((e.offset == 0 && isSafePointerCast(e.var.type, pointee)) || (fromType && isSafePointerCast(fromType, pointee))))
+        if (e.var.isDataseg() &&
+            ((e.offset == 0 && isSafePointerCast(e.var.type, pointee)) ||
+             (fromType && isSafePointerCast(fromType, pointee))))
         {
             result = e;
             return;
@@ -2138,6 +2141,7 @@ public:
             return;
         if (val.type.ty == Tarray || val.type.ty == Tsarray)
         {
+            printf("\tL%d\n", __LINE__);
             // Check for unsupported type painting operations
             Type elemtype = (cast(TypeArray)val.type).next;
             d_uns64 elemsize = elemtype.size();
@@ -2204,6 +2208,7 @@ public:
                 result.type = elemtype;
                 result = new AddrExp(e.loc, result);
                 result.type = e.type;
+            printf("\tL%d\n", __LINE__);
                 return;
             }
         }
@@ -5774,7 +5779,7 @@ public:
 
     override void visit(CastExp e)
     {
-        debug (LOG)
+        //debug (LOG)
         {
             printf("%s CastExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -5789,6 +5794,7 @@ public:
         }
         if (e.to.ty == Tpointer && e1.op != TOKnull)
         {
+            printf("\tL%d\n", __LINE__);
             Type pointee = (cast(TypePointer)e.type).next;
             // Implement special cases of normally-unsafe casts
             if (e1.op == TOKint64)
@@ -5798,10 +5804,12 @@ public:
                 return;
             }
 
+            printf("\tL%d\n", __LINE__);
             bool castToSarrayPointer = false;
             bool castBackFromVoid = false;
             if (e1.type.ty == Tarray || e1.type.ty == Tsarray || e1.type.ty == Tpointer)
             {
+            printf("\tL%d\n", __LINE__);
                 // Check for unsupported type painting operations
                 // For slices, we need the type being sliced,
                 // since it may have already been type painted
@@ -5824,6 +5832,7 @@ public:
                 if (ultimatePointee.ty == Tsarray && ultimatePointee.nextOf().equivalent(ultimateSrc))
                 {
                     castToSarrayPointer = true;
+            printf("\tL%d\n", __LINE__);
                 }
                 else if (ultimatePointee.ty != Tvoid && ultimateSrc.ty != Tvoid && !isSafePointerCast(elemtype, pointee))
                 {
@@ -5833,13 +5842,16 @@ public:
                 }
                 if (ultimateSrc.ty == Tvoid)
                     castBackFromVoid = true;
+            printf("\tL%d\n", __LINE__);
             }
 
             if (e1.op == TOKslice)
             {
+            printf("\tL%d\n", __LINE__);
                 if ((cast(SliceExp)e1).e1.op == TOKnull)
                 {
                     result = paintTypeOntoLiteral(e.type, (cast(SliceExp)e1).e1);
+            printf("\tL%d\n", __LINE__);
                     return;
                 }
                 // Create a CTFE pointer &aggregate[1..2]
@@ -5847,6 +5859,7 @@ public:
                 result.type = e.type.nextOf();
                 result = new AddrExp(e.loc, result);
                 result.type = e.type;
+            printf("\tL%d\n", __LINE__);
                 return;
             }
             if (e1.op == TOKarrayliteral || e1.op == TOKstring)
@@ -5856,6 +5869,7 @@ public:
                 result.type = e.type.nextOf();
                 result = new AddrExp(e.loc, result);
                 result.type = e.type;
+            printf("\tL%d\n", __LINE__);
                 return;
             }
             if (e1.op == TOKindex && !(cast(IndexExp)e1).e1.type.equals(e1.type))
@@ -5890,6 +5904,7 @@ public:
                     }
                 }
                 result.type = e.type;
+            printf("\tL%d\n", __LINE__);
                 return;
             }
             if (e1.op == TOKaddress)
@@ -5899,6 +5914,7 @@ public:
                 {
                     result = new AddrExp(e.loc, (cast(AddrExp)e1).e1);
                     result.type = e.type;
+            printf("\tL%d\n", __LINE__);
                     return;
                 }
                 if (castToSarrayPointer && pointee.toBasetype().ty == Tsarray && (cast(AddrExp)e1).e1.op == TOKindex)
@@ -5914,8 +5930,10 @@ public:
                     result.type = pointee;
                     result = new AddrExp(e.loc, result);
                     result.type = e.type;
+            printf("\tL%d\n", __LINE__);
                     return;
                 }
+            printf("\tL%d\n", __LINE__);
             }
             if (e1.op == TOKvar || e1.op == TOKsymoff)
             {
@@ -5932,6 +5950,7 @@ public:
                 else
                     result = new SymOffExp(e.loc, (cast(SymOffExp)e1).var, (cast(SymOffExp)e1).offset);
                 result.type = e.to;
+            printf("\tL%d\n", __LINE__);
                 return;
             }
 
@@ -5943,6 +5962,7 @@ public:
                 result = CTFEExp.cantexp;
                 return;
             }
+            printf("\tL%d\n", __LINE__);
         }
         if (e.to.ty == Tsarray && e.e1.type.ty == Tvector)
         {
@@ -5952,6 +5972,7 @@ public:
                 return;
             assert(e1.op == TOKvector);
             e1 = (cast(VectorExp)e1).e1;
+            printf("\tL%d\n", __LINE__);
         }
         if (e.to.ty == Tarray && e1.op == TOKslice)
         {
@@ -5967,14 +5988,18 @@ public:
             e1 = new SliceExp(e1.loc, se.e1, se.lwr, se.upr);
             e1.type = e.to;
             result = e1;
+            printf("\tL%d\n", __LINE__);
             return;
         }
         // Disallow array type painting, except for conversions between built-in
         // types of identical size.
-        if ((e.to.ty == Tsarray || e.to.ty == Tarray) && (e1.type.ty == Tsarray || e1.type.ty == Tarray) && !isSafePointerCast(e1.type.nextOf(), e.to.nextOf()))
+        if ((e.to.ty == Tsarray || e.to.ty == Tarray) &&
+            (e1.type.ty == Tsarray || e1.type.ty == Tarray) &&
+            !isSafePointerCast(e1.type.nextOf(), e.to.nextOf()))
         {
             e.error("array cast from %s to %s is not supported at compile time", e1.type.toChars(), e.to.toChars());
             result = CTFEExp.cantexp;
+            printf("\tL%d\n", __LINE__);
             return;
         }
         if (e.to.ty == Tsarray)
@@ -5982,9 +6007,11 @@ public:
         if (e.to.toBasetype().ty == Tbool && e1.type.ty == Tpointer)
         {
             result = new IntegerExp(e.loc, e1.op != TOKnull, e.to);
+            printf("\tL%d\n", __LINE__);
             return;
         }
         result = ctfeCast(e.loc, e.type, e.to, e1);
+            printf("\tL%d\n", __LINE__);
     }
 
     override void visit(AssertExp e)
@@ -6025,12 +6052,15 @@ public:
 
     override void visit(PtrExp e)
     {
-        debug (LOG)
+        //debug (LOG)
         {
             printf("%s PtrExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
         // Check for int<->float and long<->double casts.
-        if (e.e1.op == TOKsymoff && (cast(SymOffExp)e.e1).offset == 0 && (cast(SymOffExp)e.e1).var.isVarDeclaration() && isFloatIntPaint(e.type, (cast(SymOffExp)e.e1).var.type))
+        if (e.e1.op == TOKsymoff &&
+            (cast(SymOffExp)e.e1).offset == 0 &&
+            (cast(SymOffExp)e.e1).var.isVarDeclaration() &&
+            isFloatIntPaint(e.type, (cast(SymOffExp)e.e1).var.type))
         {
             // *(cast(int*)&v), where v is a float variable
             result = paintFloatInt(getVarExp(e.loc, istate, (cast(SymOffExp)e.e1).var, ctfeNeedRvalue), e.type);
@@ -6074,6 +6104,7 @@ public:
         if (exceptionOrCant(result))
             return;
 
+        printf("\tL%d e1 -> result = %s\n", __LINE__, result.toChars());
         if (result.op == TOKfunction)
             return;
         if (result.op == TOKsymoff)
