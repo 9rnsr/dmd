@@ -772,24 +772,45 @@ public:
         if (t1.isreturn && !t2.isreturn)
             goto Lnotcovariant;
 
-        /* Can convert mutable to const
+        /* Check that 'this' qualifier is covariant.
          */
-        if (!MODimplicitConv(t2.mod, t1.mod))
+        if (t1.mod == t2.mod)
         {
-            version (none)
+            // covariant
+        }
+        else if ((t1.mod & (MODwild | MODconst)) &&
+                 (t1.isShared() == t2.isShared() ||
+                  t2.mod == MODimmutable))
+        {
+            // covariant:
+            //   c, w, wc to  m, c, w, wc,i
+            //  sc,sw,swc to sm,sc,sw,swc,i
+        }
+        else
+            goto Ldistinct;
+/+
+        if (t1.mod == t2.mod)
+        {
+            // covariant
+        }
+        else if (t1.mod & (MODwild | MODconst))
+        {
+            if (t2.mod & (MODwild | MODconst))
             {
-                //stop attribute inference with const
-                // If adding 'const' will make it covariant
-                if (MODimplicitConv(t2.mod, MODmerge(t1.mod, MODconst)))
-                    stc |= STCconst;
-                else
-                    goto Lnotcovariant;
+                if (t1.isShared() != t2.isShared())
+                    goto Ldistinct;
+                // covariant
+            }
+            else if (t1.isShared() == t2.isShared() || t2.mod == MODimmutable)
+            {
+                // covariant
             }
             else
-            {
                 goto Ldistinct;
-            }
         }
+        else
+            goto Ldistinct;
++/
 
         /* Can convert pure to impure, nothrow to throw, and nogc to gc
          */
